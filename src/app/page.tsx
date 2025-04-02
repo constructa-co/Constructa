@@ -6,15 +6,17 @@ export default function Home() {
       {/* Hero Section */}
       <section className="max-w-4xl w-full text-center">
         <h1 className="text-5xl font-extrabold tracking-tight leading-tight mb-6">
-        <div className="w-full max-w-3xl mx-auto mb-8">
-  <img
-    src="/gantt-visual-dark.png" // 👈 update to match your image filename
-    alt="Constructa project timeline visual"
-    className="w-full h-auto rounded-xl shadow-md"
-  />
-</div>
           Simple software for builders who don&apos;t do admin.
         </h1>
+
+        <div className="w-full max-w-2xl mx-auto mb-6">
+          <img
+            src="/gantt-visual-dark.png"
+            alt="Constructa project timeline visual"
+            className="w-full h-auto rounded-lg shadow-sm"
+          />
+        </div>
+
         <p className="text-xl text-muted-foreground mb-8">
           Constructa helps micro construction companies estimate, plan, and manage projects — without spreadsheets, stress, or expensive software.
         </p>

@@ -82,6 +82,13 @@ export default function Home() {
             className="w-full h-auto rounded-md shadow-md"
           />
         </div>
+        <div className="w-full max-w-4xl mx-auto mt-24">
+          <img
+            src="/constructa-visual-1.png"
+            alt="Constructa scheduling and Gantt chart interface"
+            className="w-full h-auto rounded-md shadow-md"
+          />
+        </div>
 
         {/* About Section */}
         <div className="w-full max-w-md mx-auto mt-24 mb-12">

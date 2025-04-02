@@ -56,7 +56,7 @@ export default function Home() {
 
       {/* About Section */}
       <section className="max-w-3xl w-full mt-24 text-center">
-        <h3 className="text-3xl font-bold mb-6">Why We're Building Constructa</h3>
+        <h3 className="text-3xl font-bold mb-6">Why We&apos;re Building Constructa</h3>
         <p className="text-muted-foreground">
           I&apos;ve spent 20 years in construction and saw how smaller teams were underserved by clunky, overbuilt tools. So we&apos;re building the tool I wish I&apos;d had — one that helps great builders run great businesses.
         </p>

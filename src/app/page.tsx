@@ -6,7 +6,7 @@ export default function Home() {
       {/* Hero Section */}
       <section className="max-w-4xl w-full text-center">
         <h1 className="text-5xl font-extrabold tracking-tight leading-tight mb-6">
-          Simple software for builders who don't do admin.
+          Simple software for builders who don&apos;t do admin.
         </h1>
         <p className="text-xl text-muted-foreground mb-8">
           Constructa helps micro construction companies estimate, plan, and manage projects — without spreadsheets, stress, or expensive software.
@@ -42,7 +42,7 @@ export default function Home() {
           <div>
             <h3 className="text-xl font-semibold mb-2">One-click proposals</h3>
             <p className="text-muted-foreground">
-              Turn your estimate into a polished proposal you'll be proud to send.
+              Turn your estimate into a polished proposal you&apos;ll be proud to send.
             </p>
           </div>
           <div>
@@ -58,7 +58,7 @@ export default function Home() {
       <section className="max-w-3xl w-full mt-24 text-center">
         <h3 className="text-3xl font-bold mb-6">Why We're Building Constructa</h3>
         <p className="text-muted-foreground">
-          I’ve spent 20 years in construction and saw how smaller teams were underserved by clunky, overbuilt tools. So we’re building the tool I wish I’d had — one that helps great builders run great businesses.
+          I&apos;ve spent 20 years in construction and saw how smaller teams were underserved by clunky, overbuilt tools. So we&apos;re building the tool I wish I&apos;d had — one that helps great builders run great businesses.
         </p>
       </section>
 

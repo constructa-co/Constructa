@@ -27,7 +27,7 @@ export default function Home() {
             <input
               type="email"
               placeholder="Your email"
-              className="px-4 py-2 border rounded-md text-black w-full sm:w-auto"
+              className="px-4 py-2 border border-gray-300 rounded-md bg-white text-black placeholder-gray-500 w-full sm:w-auto"
             />
             <button
               type="submit"

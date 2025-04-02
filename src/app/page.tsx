@@ -23,13 +23,6 @@ export default function Home() {
           <p className="text-xl text-muted-foreground mb-8">
             Constructa helps micro construction companies estimate, plan, and manage projects — without spreadsheets, stress, or expensive software.
           </p>
-          <div className="w-full max-w-md mx-auto mt-24">
-            <img
-              src="/constructa-visual-1.png"
-              alt="Constructa scheduling and Gantt chart interface"
-              className="w-[150%] h-auto rounded-md shadow-md"
-            />
-          </div>
           <form className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md mx-auto">
             <input
               type="email"
@@ -43,6 +36,13 @@ export default function Home() {
               Keep me posted
             </button>
           </form>
+          <div className="w-full max-w-md mx-auto mt-24">
+            <img
+              src="/constructa-visual-1.png"
+              alt="Constructa scheduling and Gantt chart interface"
+              className="w-[150%] h-auto rounded-md shadow-md"
+            />
+          </div>
           <p className="text-sm text-muted-foreground mt-4">
             Launching in 2025 — be the first to know.
           </p>

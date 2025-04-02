@@ -68,7 +68,7 @@ export default function Home() {
             <img
               src="/constructa-visual-1.png"
               alt="Constructa scheduling and Gantt chart interface"
-              className="w-[125%] h-auto rounded-md shadow-md"
+              className="w-[150%] h-auto rounded-md shadow-md"
             />
           </div>
         </section>
@@ -78,7 +78,7 @@ export default function Home() {
           <img
             src="/constructa-visual-2.png"
             alt="Constructa interface concept visual"
-            className="w-[125%] h-auto rounded-md shadow-sm"
+            className="w-[150%] h-auto rounded-md shadow-sm"
           />
         </div>
         <section className="max-w-3xl w-full mt-24 text-center">
@@ -93,7 +93,7 @@ export default function Home() {
           <img
             src="/constructa-visual-3.png"
             alt="Constructa pricing feature preview"
-            className="w-[125%] h-auto rounded-md shadow-sm"
+            className="w-[150%] h-auto rounded-md shadow-sm"
           />
         </div>
         <section className="max-w-4xl w-full mt-24 text-center">

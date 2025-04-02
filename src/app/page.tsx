@@ -22,8 +22,8 @@ export default function Home() {
 
           <div className="w-full max-w-md mx-auto mt-4 mb-6">
             <img
-              src="/gantt-visual-dark.png"
-              alt="Constructa project timeline visual"
+              src="/constructa-visual-1.png"
+              alt="Constructa scheduling and Gantt chart interface"
               className="w-full h-auto rounded-md shadow-sm"
             />
           </div>

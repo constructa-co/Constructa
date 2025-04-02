@@ -1,3 +1,5 @@
+import "tailwindcss-animate";
+
 export default function Home() {
   return (
     <>
@@ -15,15 +17,15 @@ export default function Home() {
       </header>
       <main className="flex min-h-screen flex-col items-center justify-between px-4 pt-36 pb-10">
         {/* Hero Section */}
-        <section className="max-w-4xl w-full text-center">
-          <h1 className="text-5xl font-extrabold tracking-tight leading-tight mb-6">
+        <section className="max-w-4xl w-full text-center animate-fade-in animate-duration-1000">
+          <h1 className="text-5xl font-extrabold tracking-tight leading-tight mb-6 animate-fade-up animate-delay-100">
             Simple software for builders who don&apos;t do admin.
           </h1>
 
-          <p className="text-xl text-muted-foreground mb-8">
+          <p className="text-xl text-muted-foreground mb-8 animate-fade-up animate-delay-300">
             Constructa helps micro construction companies estimate, plan, and manage projects — without spreadsheets, stress, or expensive software.
           </p>
-          <form className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md mx-auto">
+          <form className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md mx-auto animate-fade-up animate-delay-500">
             <input
               type="email"
               placeholder="Your email"
@@ -40,7 +42,7 @@ export default function Home() {
             <img
               src="/constructa-visual-1.png"
               alt="Constructa scheduling and Gantt chart interface"
-              className="w-[150%] h-auto rounded-md shadow-md"
+              className="w-[150%] h-auto rounded-md shadow-md animate-fade-up animate-delay-700"
             />
           </div>
           <p className="text-sm text-muted-foreground mt-4">

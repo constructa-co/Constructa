@@ -42,7 +42,7 @@ export default function Home() {
           <div>
             <h3 className="text-xl font-semibold mb-2">One-click proposals</h3>
             <p className="text-muted-foreground">
-              Turn your estimate into a polished proposal you’ll be proud to send.
+              Turn your estimate into a polished proposal you'll be proud to send.
             </p>
           </div>
           <div>

@@ -74,7 +74,7 @@ export default function Home() {
         </section>
 
         {/* About Section */}
-        <div className="w-full max-w-2xl mx-auto mt-24 mb-12">
+        <div className="w-full max-w-md mx-auto mt-24 mb-12">
           <img
             src="/constructa-visual-2.png"
             alt="Constructa interface concept visual"
@@ -89,7 +89,7 @@ export default function Home() {
         </section>
 
         {/* Pricing Preview */}
-        <div className="w-full max-w-2xl mx-auto mt-24 mb-12">
+        <div className="w-full max-w-md mx-auto mt-24 mb-12">
           <img
             src="/constructa-visual-3.png"
             alt="Constructa pricing feature preview"

@@ -79,6 +79,13 @@ export default function Home() {
       </section>
 
       {/* Pricing Preview */}
+      <div className="w-full max-w-md mx-auto mt-24 mb-12">
+        <img
+          src="/constructa-visual-3.png"
+          alt="Constructa pricing feature preview"
+          className="w-full h-auto rounded-md shadow-sm"
+        />
+      </div>
       <section className="max-w-4xl w-full mt-24 text-center">
         <h3 className="text-3xl font-bold mb-4">Pricing made simple</h3>
         <p className="text-muted-foreground mb-6">

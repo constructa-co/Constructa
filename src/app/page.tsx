@@ -1,8 +1,21 @@
 "use client";
 
+<header className="w-full py-4 px-6 fixed top-0 left-0 bg-black bg-opacity-90 z-50 flex justify-between items-center border-b border-gray-800">
+  <div className="text-white font-bold text-xl tracking-widest">CONSTRUCTA</div>
+  <nav className="hidden md:flex space-x-6 text-white text-sm">
+    <a href="#product" className="hover:underline">Product</a>
+    <a href="#features" className="hover:underline">Features</a>
+    <a href="#pricing" className="hover:underline">Pricing</a>
+    <a href="#resources" className="hover:underline">Resources</a>
+    <a href="#about" className="hover:underline">About</a>
+    <a href="#contact" className="hover:underline">Contact</a>
+    <button className="ml-4 px-4 py-1 border rounded text-white border-white hover:bg-white hover:text-black transition">Sign up</button>
+  </nav>
+</header>
+
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between px-4 pt-24 pb-10">
+    <main className="flex min-h-screen flex-col items-center justify-between px-4 pt-36 pb-10">
       {/* Hero Section */}
       <section className="max-w-4xl w-full text-center">
         <h1 className="text-5xl font-extrabold tracking-tight leading-tight mb-6">

@@ -93,7 +93,7 @@ export default function Home() {
         <h3 className="text-3xl font-bold mb-6">Simple, Transparent Pricing</h3>
         <p className="text-gray-400 mb-4">No hidden fees. Cancel anytime. Pricing plans to suit solo builders and growing teams.</p>
         <p className="text-white text-xl font-semibold">Coming Soon</p>
-      </section>
+      </section> 
 
       {/* Footer */}
       <footer className="px-6 py-10 border-t border-neutral-800 text-sm text-gray-500 text-center">

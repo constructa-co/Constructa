@@ -64,6 +64,13 @@ export default function Home() {
       </section>
 
       {/* About Section */}
+      <div className="w-full max-w-md mx-auto mt-24 mb-12">
+        <img
+          src="/constructa-visual-2.png"
+          alt="Constructa interface concept visual"
+          className="w-full h-auto rounded-md shadow-sm"
+        />
+      </div>
       <section className="max-w-3xl w-full mt-24 text-center">
         <h3 className="text-3xl font-bold mb-6">Why We&apos;re Building Constructa</h3>
         <p className="text-muted-foreground">

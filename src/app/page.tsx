@@ -76,6 +76,15 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Visual Preview Section */}
+      <div className="w-full max-w-4xl mx-auto mt-24">
+        <img
+          src="/constructa-visual-4.png"
+          alt="Constructa feature illustration"
+          className="w-full h-auto rounded-md shadow-md"
+        />
+      </div>
+
       {/* About Section */}
       <div className="w-full max-w-md mx-auto mt-24 mb-12">
         <img

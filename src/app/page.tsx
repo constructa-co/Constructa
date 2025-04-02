@@ -1,8 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-between px-4 pt-24 pb-10">
@@ -14,10 +11,19 @@ export default function Home() {
         <p className="text-xl text-muted-foreground mb-8">
           Constructa helps micro construction companies estimate, plan, and manage projects — without spreadsheets, stress, or expensive software.
         </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Input type="email" placeholder="Your email" className="max-w-xs" />
-          <Button className="w-full sm:w-auto">Keep me posted</Button>
-        </div>
+        <form className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md mx-auto">
+          <input
+            type="email"
+            placeholder="Your email"
+            className="px-4 py-2 border rounded-md text-black w-full sm:w-auto"
+          />
+          <button
+            type="submit"
+            className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition"
+          >
+            Keep me posted
+          </button>
+        </form>
         <p className="text-sm text-muted-foreground mt-4">
           Launching in 2025 — be the first to know.
         </p>

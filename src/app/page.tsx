@@ -9,11 +9,11 @@ export default function Home() {
           Simple software for builders who don&apos;t do admin.
         </h1>
 
-        <div className="w-full max-w-2xl mx-auto mb-6">
+        <div className="w-full max-w-xl mx-auto mt-4 mb-6">
           <img
             src="/gantt-visual-dark.png"
             alt="Constructa project timeline visual"
-            className="w-full h-auto rounded-lg shadow-sm"
+            className="w-full h-auto rounded-md shadow-sm"
           />
         </div>
 

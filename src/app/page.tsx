@@ -20,14 +20,6 @@ export default function Home() {
             Simple software for builders who don&apos;t do admin.
           </h1>
 
-          <div className="w-full max-w-md mx-auto mt-4 mb-6">
-            <img
-              src="/constructa-visual-1.png"
-              alt="Constructa scheduling and Gantt chart interface"
-              className="w-full h-auto rounded-md shadow-sm"
-            />
-          </div>
-
           <p className="text-xl text-muted-foreground mb-8">
             Constructa helps micro construction companies estimate, plan, and manage projects — without spreadsheets, stress, or expensive software.
           </p>
@@ -80,15 +72,6 @@ export default function Home() {
             />
           </div>
         </section>
-
-        {/* Visual Preview Section */}
-        <div className="w-full max-w-4xl mx-auto mt-24">
-          <img
-            src="/constructa-visual-1.png"
-            alt="Constructa scheduling and Gantt chart interface"
-            className="w-full h-auto rounded-md shadow-md"
-          />
-        </div>
 
         {/* About Section */}
         <div className="w-full max-w-md mx-auto mt-24 mb-12">

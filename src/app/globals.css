@@ -1,2 +1,145 @@
-@tailwind base;
-@tailwind components;
+/* Reset margin and padding for all elements */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  /* Basic styles for the page */
+  body {
+    background-color: #000;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    text-align: center;
+  }
+  
+  /* Ensure all images are centered */
+  img {
+    margin: 0 auto;
+    display: block;
+  }
+  
+  /* Header Styles */
+  header {
+    width: 100%;
+    background-color: black;
+    color: white;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 10;
+  }
+  
+  header nav {
+    display: flex;
+  }
+  
+  header nav a {
+    color: white;
+    text-decoration: none;
+    margin-left: 20px;
+    font-size: 1.2rem;
+  }
+  
+  header nav a:hover {
+    color: #f97316; /* Orange hover color */
+  }
+  
+  /* Hero Section Styling */
+  section.hero {
+    background-color: black;
+    text-align: center;
+    padding: 80px 20px;
+  }
+  
+  section.hero h2 {
+    font-size: 3rem;
+    margin-bottom: 20px;
+  }
+  
+  section.hero p {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+  }
+  
+  section.hero .email-input {
+    padding: 10px;
+    width: 50%; /* Adjusted width for better look */
+    max-width: 400px;
+    border-radius: 5px;
+    border: none;
+  }
+  
+  section.hero button {
+    padding: 10px 20px;
+    background-color: #f97316; /* Orange color */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  section.hero button:hover {
+    background-color: #d35f12;
+  }
+  
+  /* Pricing Section */
+  section.pricing {
+    background-color: black;
+    padding: 50px 20px;
+    text-align: center;
+  }
+  
+  section.pricing h3 {
+    font-size: 2rem;
+    margin-bottom: 20px;
+  }
+  
+  section.pricing p {
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+  }
+  
+  section.pricing .pricing-table {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 30px;
+  }
+  
+  section.pricing .pricing-table .plan {
+    background-color: white;
+    color: black;
+    padding: 20px;
+    border-radius: 8px;
+    width: 30%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  section.pricing .pricing-table .plan h4 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+  }
+  
+  section.pricing .pricing-table .plan p {
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+  }
+  
+  section.pricing .pricing-table .plan ul {
+    list-style-type: none;
+  }
+  
+  section.pricing .pricing-table .plan ul li {
+    margin-bottom: 10px;
+  }
+  
+  /* Footer Styling */
+  footer {
+    background-color: black;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    margin-top: 50px;
+  }

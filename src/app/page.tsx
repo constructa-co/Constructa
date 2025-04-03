@@ -1,4 +1,4 @@
-import 'tailwindcss-animate/dist/tailwind.css';
+
 
 export default function Home() {
   return (

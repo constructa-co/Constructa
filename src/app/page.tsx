@@ -1,99 +1,84 @@
-import Image from "next/image";
+import React from "react";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-black text-white">
-      {/* Navbar */}
-      <header className="w-full py-6 px-4 flex justify-between items-center border-b border-gray-800">
-        <div className="text-xl font-semibold">CONSTRUCTA</div>
-        <nav className="hidden md:flex space-x-6 text-sm">
-          <a href="#" className="hover:underline">Product</a>
-          <a href="#" className="hover:underline">Features</a>
-          <a href="#" className="hover:underline">Pricing</a>
-          <a href="#" className="hover:underline">Resources</a>
-          <a href="#" className="hover:underline">About</a>
-          <a href="#" className="hover:underline">Contact</a>
-          <button className="border px-4 py-1 rounded hover:bg-white hover:text-black">Sign up</button>
-        </nav>
+    <div className="bg-black text-white">
+      {/* Header Section */}
+      <header className="bg-black text-white p-4">
+        <div className="flex justify-between">
+          <h1 className="text-xl font-bold">Constructa</h1>
+          <nav>
+            <ul className="flex space-x-4">
+              <li><a href="/product" className="hover:text-gray-400">Product</a></li>
+              <li><a href="/features" className="hover:text-gray-400">Features</a></li>
+              <li><a href="/pricing" className="hover:text-gray-400">Pricing</a></li>
+              <li><a href="/contact" className="hover:text-gray-400">Contact</a></li>
+            </ul>
+          </nav>
+        </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="text-center py-20 px-4">
-        <h1 className="text-4xl md:text-6xl font-bold mb-6">
-          SaaS for the next generation of construction firms.
-        </h1>
-        <p className="text-lg md:text-xl max-w-2xl mx-auto">
-          We help construction professionals plan, cost, and manage projects with ease.
-        </p>
-      </section>
+      {/* Main Section */}
+      <main className="my-16">
+        {/* Hero Section */}
+        <section className="text-center py-10">
+          <h2 className="text-4xl font-bold mb-4">SaaS for the next generation of construction firms.</h2>
+          <p className="text-lg mb-8">We help construction professionals plan, cost, and manage projects with ease.</p>
+          <div className="w-[25%] mx-auto">
+            <img
+              src="https://via.placeholder.com/700x400"
+              alt="Plan, cost, and manage projects"
+              className="w-full"
+            />
+          </div>
+          <p className="mt-4">We’ll be launching soon. Stay in the loop.</p>
+        </section>
 
-      {/* Image 1 - Gantt Chart Placeholder */}
-      <section className="flex justify-center py-10 px-4">
-        <div className="w-full max-w-xs mx-auto">
-          <Image
-            src="/image1.png"
-            alt="Gantt Chart"
-            width={700}
-            height={400}
-            className="w-full h-auto rounded"
-            priority
-          />
-        </div>
-      </section>
+        {/* Email Capture Section */}
+        <section className="text-center py-8">
+          <div className="w-[50%] mx-auto">
+            <input
+              type="email"
+              placeholder="Enter your email"
+              className="w-full p-2 text-black rounded-md mb-4"
+            />
+            <button className="bg-orange-500 text-white px-6 py-2 rounded-md">
+              Submit
+            </button>
+          </div>
+        </section>
 
-      {/* Email Capture */}
-      <section className="text-center py-16 px-4">
-        <p className="text-lg md:text-xl mb-4">We’ll be launching soon. Stay in the loop.</p>
-        <form className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <input
-            type="email"
-            placeholder="Enter your email"
-            className="px-4 py-2 text-black rounded max-w-sm w-full sm:w-auto"
-          />
-          <button
-            type="submit"
-            className="bg-white text-black px-6 py-2 rounded sm:w-auto"
-          >
-            Submit
-          </button>
-        </form>
-      </section>
+        {/* Features Section */}
+        <section className="text-center py-16">
+          <h3 className="text-3xl font-bold mb-6">Simplified estimating and planning</h3>
+          <div className="flex justify-around">
+            <div className="p-4">
+              <h4 className="text-xl">Estimate</h4>
+              <p>$10/month</p>
+            </div>
+            <div className="p-4">
+              <h4 className="text-xl">Proposal</h4>
+              <p>$20/month</p>
+            </div>
+            <div className="p-4">
+              <h4 className="text-xl">Planning</h4>
+              <p>$30/month</p>
+            </div>
+          </div>
+        </section>
 
-      {/* Image 2 - Constructa Feature */}
-      <section className="flex justify-center py-10 px-4">
-        <div className="w-full max-w-xs mx-auto">
-          <Image
-            src="/image2.png"
-            alt="Constructa Feature Visual"
-            width={700}
-            height={400}
-            className="w-full h-auto rounded"
-            priority
-          />
-        </div>
-      </section>
+        {/* Pricing Section */}
+        <section className="bg-black text-white text-center py-16">
+          <h3 className="text-3xl font-bold mb-6">Pricing</h3>
+          <p className="mb-8">We’ll be offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.</p>
+          <p className="mb-4">Early users get priority access and special launch pricing.</p>
+        </section>
+      </main>
 
-      {/* Image 3 - Timeline Visual */}
-      <section className="flex justify-center py-10 px-4">
-        <div className="w-full max-w-xs mx-auto">
-          <Image
-            src="/image3.png"
-            alt="Timeline Visual"
-            width={700}
-            height={400}
-            className="w-full h-auto rounded"
-            priority
-          />
-        </div>
-      </section>
-
-      <section className="py-20 px-4 border-t border-gray-800 text-center">
-        <h2 className="text-3xl font-bold mb-6">Pricing</h2>
-        <p className="max-w-xl mx-auto text-lg">
-          We’ll be offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
-        </p>
-        <p className="mt-2 text-sm text-gray-400">Early users get priority access and special launch pricing.</p>
-      </section>
-    </main>
+      {/* Footer Section */}
+      <footer className="bg-black text-white text-center py-4">
+        <p>Constructa © 2025</p>
+      </footer>
+    </div>
   );
 }

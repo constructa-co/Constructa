@@ -17,28 +17,6 @@ const Page = () => {
         </div>
       </section>
 
-      {/* Simplified Estimating and Planning Section */}
-      <section className="p-12 bg-gray-100 text-center">
-        <h3 className="text-3xl font-bold mb-6">Simplified estimating and planning</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
-          <div className="bg-white p-4">
-            <img src="/image1.png" alt="Estimate" className="w-3/4 h-24 object-cover mb-6 mx-auto" />
-            <h4 className="text-2xl">Estimate</h4>
-            <p className="text-xl">$10/month</p>
-          </div>
-          <div className="bg-white p-4">
-            <img src="/image2.png" alt="Proposal" className="w-3/4 h-24 object-cover mb-6 mx-auto" />
-            <h4 className="text-2xl">Proposal</h4>
-            <p className="text-xl">$20/month</p>
-          </div>
-          <div className="bg-white p-4">
-            <img src="/image3.png" alt="Planning" className="w-3/4 h-24 object-cover mb-6 mx-auto" />
-            <h4 className="text-2xl">Planning</h4>
-            <p className="text-xl">$30/month</p>
-          </div>
-        </div>
-      </section>
-
       {/* Pricing Section */}
       <section className="bg-black text-white p-8 text-center">
         <h3 className="text-3xl mb-8 font-bold">Pricing</h3>

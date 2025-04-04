@@ -7,6 +7,7 @@ const Page = () => {
       <section className="bg-black text-white text-center p-28">
         <h2 className="text-5xl font-bold">SaaS for the next generation of construction firms.</h2>
         <p className="mt-6 text-xl">We help construction professionals plan, cost, and manage projects with ease.</p>
+        <img src="/images/image1.png" alt="Description of image" />
         <div className="mt-8 flex justify-center">
           <input
             type="email"
@@ -16,6 +17,11 @@ const Page = () => {
           <button className="p-3 bg-orange-600 text-white text-lg">Submit</button>
         </div>
       </section>
+
+      {/* Image Section */}
+      <div className="flex justify-center my-10">
+        <img src="/images/image1.png" alt="Description of image" className="max-w-full h-auto" />
+      </div>
 
       {/* Pricing Section */}
       <section className="bg-black text-white p-8 text-center">

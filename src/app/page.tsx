@@ -27,7 +27,7 @@ export default function Home() {
         </p>
         <div className="w-full max-w-2xl mx-auto">
           <Image
-            src="/images/hero-image.png"
+            src="https://placehold.co/1200x600"
             alt="Construction Planning Software"
             width={1200}
             height={600}

@@ -8,14 +8,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Header Section */}
         <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-b border-gray-800/50">
           <div className="max-w-7xl mx-auto px-8">
-            <div className="flex items-center justify-between h-16">
-              {/* Left block - Logo */}
-              <a href="/" className="text-2xl font-semibold text-white hover:opacity-90 transition-opacity">
-                CONSTRUCTA
-              </a>
+            <div className="h-16 grid grid-cols-3 items-center">
+              {/* Left column - Logo */}
+              <div className="flex items-center">
+                <a href="/" className="text-2xl font-semibold text-white hover:opacity-90 transition-opacity">
+                  CONSTRUCTA
+                </a>
+              </div>
 
-              {/* Center block - Navigation */}
-              <nav className="hidden md:flex items-center absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+              {/* Center column - Navigation */}
+              <nav className="flex justify-center">
                 <div className="flex items-center space-x-8">
                   <a href="#features" className="text-gray-500 hover:text-gray-300 transition-colors duration-200">Features</a>
                   <a href="#pricing" className="text-gray-500 hover:text-gray-300 transition-colors duration-200">Pricing</a>
@@ -24,8 +26,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
               </nav>
 
-              {/* Right block - Auth Buttons */}
-              <div className="flex items-center space-x-6">
+              {/* Right column - Auth Buttons */}
+              <div className="flex items-center justify-end space-x-6">
                 <button className="text-gray-500 hover:text-gray-300 transition-colors duration-200">
                   Log in
                 </button>

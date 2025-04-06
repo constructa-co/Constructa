@@ -5,17 +5,15 @@ import Image from 'next/image';
 export default function Home() {
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Navbar */}
+      {/* Single Header Section */}
       <header className="w-full py-6 px-4 flex justify-between items-center border-b border-gray-800">
-        <div className="text-xl font-semibold">CONSTRUCTA</div>
-        <nav className="hidden md:flex space-x-6 text-sm">
-          <a href="#product" className="hover:underline">Product</a>
-          <a href="#features" className="hover:underline">Features</a>
-          <a href="#pricing" className="hover:underline">Pricing</a>
-          <a href="#resources" className="hover:underline">Resources</a>
-          <a href="#about" className="hover:underline">About</a>
-          <a href="#contact" className="hover:underline">Contact</a>
-          <button className="border px-4 py-1 rounded hover:bg-white hover:text-black">Sign up</button>
+        <div className="text-2xl font-bold tracking-wider">CONSTRUCTA</div>
+        <nav className="flex space-x-8 text-lg">
+          <a href="#product" className="hover:text-orange-500 transition-colors">Product</a>
+          <a href="#features" className="hover:text-orange-500 transition-colors">Features</a>
+          <a href="#pricing" className="hover:text-orange-500 transition-colors">Pricing</a>
+          <a href="#contact" className="hover:text-orange-500 transition-colors">Contact</a>
+          <button className="border px-6 py-1 rounded-md hover:bg-white hover:text-black transition-colors">Sign up</button>
         </nav>
       </header>
 
@@ -24,23 +22,23 @@ export default function Home() {
         <h1 className="text-4xl md:text-6xl font-bold mb-6">
           Constructa: proposal, planning, and project tools for construction professionals.
         </h1>
-        <p className="text-lg md:text-xl max-w-2xl mx-auto mb-8">
+        <p className="text-lg md:text-xl max-w-2xl mx-auto mb-12">
           Quote faster, plan smarter, and keep control of every job.
         </p>
         <div className="w-full max-w-2xl mx-auto">
           <Image
-            src="https://via.placeholder.com/1200x600"
+            src="/images/hero-image.jpg"
             alt="Construction Planning Software"
             width={1200}
             height={600}
-            className="w-full h-auto rounded"
+            className="w-full h-auto rounded-lg shadow-2xl"
             priority
           />
         </div>
       </section>
 
       {/* Problem → Solution Section */}
-      <section className="bg-gray-100 text-black p-10 text-center">
+      <section className="bg-black text-white p-10 text-center border-t border-gray-800">
         <h2 className="text-3xl font-bold mb-6">No more spreadsheets. Just smart tools for your construction company.</h2>
         <p className="text-lg mb-4">
           Running a small construction company means quoting fast, planning tight, and delivering on site&mdash;all while juggling paperwork, messages, and spreadsheets.
@@ -54,7 +52,7 @@ export default function Home() {
       </section>
 
       {/* Feature Highlights Section */}
-      <section className="bg-white text-black p-10">
+      <section className="bg-black text-white p-10 border-t border-gray-800">
         <h2 className="text-3xl font-bold text-center mb-8">Feature Highlights</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
           <div>
@@ -77,7 +75,7 @@ export default function Home() {
       </section>
 
       {/* What Sets Us Apart Section */}
-      <section className="bg-gray-100 text-black p-10">
+      <section className="bg-black text-white p-10 border-t border-gray-800">
         <h2 className="text-3xl font-bold text-center mb-8">What Sets Us Apart</h2>
         <p className="text-lg text-center mb-6">
           Not just another piece of software&mdash;Constructa is built for how construction really works.
@@ -99,7 +97,7 @@ export default function Home() {
       </section>
 
       {/* How It Works Section */}
-      <section className="bg-white text-black p-10">
+      <section className="bg-black text-white p-10 border-t border-gray-800">
         <h2 className="text-3xl font-bold text-center mb-8">Quote it. Plan it. Run it.</h2>
         <ol className="list-decimal list-inside text-lg space-y-4 max-w-3xl mx-auto">
           <li>
@@ -118,7 +116,7 @@ export default function Home() {
       </section>
 
       {/* Pricing Section */}
-      <section className="bg-black text-white p-10 text-center">
+      <section className="bg-black text-white p-10 text-center border-t border-gray-800">
         <h2 className="text-3xl font-bold mb-6">Professional tools&mdash;without the big software price tag.</h2>
         <p className="text-lg mb-4 max-w-3xl mx-auto">
           We&apos;ll be offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
@@ -127,47 +125,28 @@ export default function Home() {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="bg-gray-100 text-black p-10 text-center">
+      <section id="contact" className="bg-black text-white p-10 text-center border-t border-gray-800">
         <h2 className="text-3xl font-bold mb-6">Got a question? Want to stay in the loop?</h2>
         <p className="text-lg mb-6 max-w-3xl mx-auto">
           We&apos;re building Constructa to help construction professionals quote, plan, and win more work without the admin headache.
           If you&apos;ve got a question, suggestion, or want early access&mdash;we&apos;d love to hear from you.
         </p>
         <div className="flex flex-col items-center space-y-4">
-          <p className="text-lg">Direct email: <a href="mailto:hello@constructa.co" className="text-orange-600">hello@constructa.co</a></p>
+          <p className="text-lg">Direct email: <a href="mailto:hello@constructa.co" className="text-orange-500 hover:text-orange-400">hello@constructa.co</a></p>
           <form className="w-full max-w-md">
-            <input type="text" placeholder="Name" className="w-full p-3 mb-4 border border-gray-300 rounded" />
-            <input type="email" placeholder="Email" className="w-full p-3 mb-4 border border-gray-300 rounded" />
-            <textarea placeholder="Message" className="w-full p-3 mb-4 border border-gray-300 rounded" rows={4}></textarea>
-            <button type="submit" className="p-3 bg-orange-600 text-white w-full rounded hover:bg-orange-700">Send Message</button>
+            <input type="text" placeholder="Name" className="w-full p-3 mb-4 bg-gray-900 border border-gray-700 rounded text-white" />
+            <input type="email" placeholder="Email" className="w-full p-3 mb-4 bg-gray-900 border border-gray-700 rounded text-white" />
+            <textarea placeholder="Message" className="w-full p-3 mb-4 bg-gray-900 border border-gray-700 rounded text-white" rows={4}></textarea>
+            <button type="submit" className="p-3 bg-orange-600 text-white w-full rounded hover:bg-orange-700 transition-colors">Send Message</button>
           </form>
-          <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:text-orange-700">
+          <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-400">
             LinkedIn
           </a>
         </div>
       </section>
 
-      {/* About Section */}
-      <section id="about" className="bg-white text-black p-10 text-center">
-        <h2 className="text-3xl font-bold mb-6">Built by people who know the job.</h2>
-        <div className="max-w-3xl mx-auto">
-          <p className="text-lg mb-4">
-            We&apos;ve spent years in the construction industry&mdash;quoting jobs, planning programmes, and dealing with the same headaches you face every day.
-          </p>
-          <p className="text-lg mb-4">
-            Constructa was born out of that experience. It&apos;s designed for small construction teams who need simple, reliable tools to quote, plan, and manage work&mdash;without the bloat, the cost, or the complexity.
-          </p>
-          <p className="text-lg mb-4">
-            We&apos;re building Constructa to be practical, fast, and made for the way construction really works.
-          </p>
-          <p className="text-lg font-bold">
-            Our goal is simple: To give small construction teams the tools they need to work smarter, win more jobs, and stay in control&mdash;without getting buried in admin.
-          </p>
-        </div>
-      </section>
-
       {/* Footer Section */}
-      <footer className="bg-black text-white p-10">
+      <footer className="bg-black text-white p-10 border-t border-gray-800">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col sm:flex-row justify-between items-center">
             <div className="text-center sm:text-left">
@@ -175,16 +154,15 @@ export default function Home() {
               <p>Made for construction professionals.</p>
             </div>
             <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4 mt-4 sm:mt-0">
-              <a href="#product" className="text-orange-600 hover:text-orange-700">Product</a>
-              <a href="#features" className="text-orange-600 hover:text-orange-700">Features</a>
-              <a href="#pricing" className="text-orange-600 hover:text-orange-700">Pricing</a>
-              <a href="#contact" className="text-orange-600 hover:text-orange-700">Contact</a>
-              <a href="#about" className="text-orange-600 hover:text-orange-700">About</a>
+              <a href="#product" className="hover:text-orange-500 transition-colors">Product</a>
+              <a href="#features" className="hover:text-orange-500 transition-colors">Features</a>
+              <a href="#pricing" className="hover:text-orange-500 transition-colors">Pricing</a>
+              <a href="#contact" className="hover:text-orange-500 transition-colors">Contact</a>
             </div>
           </div>
           <div className="text-center mt-6">
-            <p>Email: <a href="mailto:hello@constructa.co" className="text-orange-600 hover:text-orange-700">hello@constructa.co</a></p>
-            <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:text-orange-700">
+            <p>Email: <a href="mailto:hello@constructa.co" className="text-orange-500 hover:text-orange-400">hello@constructa.co</a></p>
+            <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-400">
               LinkedIn
             </a>
           </div>

@@ -42,21 +42,55 @@ export default function Home() {
       {/* Feature Highlights Section */}
       <section className="bg-black text-white p-10 border-t border-gray-800">
         <h2 className="text-3xl font-bold text-center mb-8">Feature Highlights</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
-          <div>
-            <h3 className="text-xl font-bold mb-2">Fast, accurate proposals</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
+          <div className="space-y-4">
+            <div className="relative w-full h-[300px]">
+              <Image
+                src="/images/Build your proposal White.png"
+                alt="Build professional proposals quickly"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+            <h3 className="text-xl font-bold">Fast, accurate proposals</h3>
             <p>Create professional quotes in minutes&mdash;not hours. Set clear pricing, scope, and terms so clients know exactly what they&apos;re getting.</p>
           </div>
-          <div>
-            <h3 className="text-xl font-bold mb-2">Simple project planning</h3>
+          <div className="space-y-4">
+            <div className="relative w-full h-[300px]">
+              <Image
+                src="/images/project Timecard.png"
+                alt="Simple project planning interface"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+            <h3 className="text-xl font-bold">Simple project planning</h3>
             <p>Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.</p>
           </div>
-          <div>
-            <h3 className="text-xl font-bold mb-2">Built-in cost control</h3>
+          <div className="space-y-4">
+            <div className="relative w-full h-[300px]">
+              <Image
+                src="/images/One Tap Update White.png"
+                alt="Built-in cost control features"
+                fill
+                className="object-contain"
+              />
+            </div>
+            <h3 className="text-xl font-bold">Built-in cost control</h3>
             <p>Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.</p>
           </div>
-          <div>
-            <h3 className="text-xl font-bold mb-2">Build proposals that win work</h3>
+          <div className="space-y-4">
+            <div className="relative w-full h-[300px]">
+              <Image
+                src="/images/Client-Ready Quote White.png"
+                alt="Professional quote builder"
+                fill
+                className="object-contain"
+              />
+            </div>
+            <h3 className="text-xl font-bold">Build proposals that win work</h3>
             <p>Build your proposal, showcase your capability, and lock in your terms&mdash;all in a clean, consistent format.</p>
           </div>
         </div>
@@ -65,6 +99,16 @@ export default function Home() {
       {/* What Sets Us Apart Section */}
       <section className="bg-black text-white p-10 border-t border-gray-800">
         <h2 className="text-3xl font-bold text-center mb-8">What Sets Us Apart</h2>
+        <div className="max-w-4xl mx-auto mb-12">
+          <div className="relative w-full h-[400px]">
+            <Image
+              src="/images/imple Project Overview White.png"
+              alt="Simple project overview interface"
+              fill
+              className="object-contain"
+            />
+          </div>
+        </div>
         <p className="text-lg text-center mb-6">
           Not just another piece of software&mdash;Constructa is built for how construction really works.
         </p>

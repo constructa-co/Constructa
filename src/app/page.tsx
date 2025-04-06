@@ -211,30 +211,6 @@ export default function Home() {
           </a>
         </div>
       </section>
-
-      {/* Footer Section */}
-      <footer className="bg-black text-white p-10">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col sm:flex-row justify-between items-center">
-            <div className="text-center sm:text-left">
-              <p>Constructa © 2025</p>
-              <p>Made for construction professionals.</p>
-            </div>
-            <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4 mt-4 sm:mt-0">
-              <a href="#product" className="hover:text-orange-500 transition-colors">Product</a>
-              <a href="#features" className="hover:text-orange-500 transition-colors">Features</a>
-              <a href="#pricing" className="hover:text-orange-500 transition-colors">Pricing</a>
-              <a href="#contact" className="hover:text-orange-500 transition-colors">Contact</a>
-            </div>
-          </div>
-          <div className="text-center mt-6">
-            <p>Email: <a href="mailto:hello@constructa.co" className="text-orange-500 hover:text-orange-400">hello@constructa.co</a></p>
-            <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-400">
-              LinkedIn
-            </a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

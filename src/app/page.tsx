@@ -15,8 +15,7 @@ export default function Home() {
             <div className="col-span-2 pl-10">
               <div className="flex flex-col items-start">
                 <h1 className="text-left leading-[1.2] w-[1000px]">
-                  <span className="text-6xl md:text-7xl font-semibold tracking-tight">Constructa:</span>
-                  <span className="text-4xl md:text-5xl font-semibold tracking-tight"> proposal, planning and project<br />tools for construction professionals.</span>
+                  <span className="text-4xl md:text-5xl font-semibold tracking-tight">Constructa: proposal, planning and project<br />tools for construction professionals.</span>
                 </h1>
                 <p className="text-lg md:text-xl text-gray-400 mt-6 text-left">
                   Quote faster, plan smarter, and keep control of every job.

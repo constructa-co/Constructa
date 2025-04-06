@@ -6,27 +6,30 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Hero Section */}
-      <section className="relative text-center py-32 px-4 overflow-hidden">
+      <section className="relative text-center py-32 px-8 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1)_0%,transparent_100%)]"></div>
         </div>
-        <div className="relative">
-          <h1 className="text-4xl md:text-6xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-400 tracking-tight">
-            Constructa: proposal, planning, and project tools for construction professionals.
-          </h1>
-          <p className="text-lg md:text-xl max-w-2xl mx-auto mb-16 text-gray-400">
-            Quote faster, plan smarter, and keep control of every job.
-          </p>
-          <div className="w-full max-w-2xl mx-auto transform hover:scale-[1.02] transition-all duration-500 ease-out">
-            <div className="relative rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
-              <Image
-                src="/images/hero-image.png"
-                alt="Construction Planning Software"
-                width={1200}
-                height={600}
-                className="w-full h-auto shadow-2xl shadow-black/50"
-                priority
-              />
+        <div className="relative max-w-7xl mx-auto">
+          <div className="flex flex-col items-start max-w-[800px] mx-auto">
+            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-left">
+              Constructa: proposal, planning,<br />
+              and project tools for construction professionals.
+            </h1>
+            <p className="text-lg text-gray-400 mt-6 text-left">
+              Quote faster, plan smarter, and keep control of every job.
+            </p>
+            <div className="w-full mt-12">
+              <div className="relative rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
+                <Image
+                  src="/images/hero-image.png"
+                  alt="Construction Planning Software"
+                  width={1200}
+                  height={600}
+                  className="w-full h-auto shadow-2xl shadow-black/50"
+                  priority
+                />
+              </div>
             </div>
           </div>
         </div>

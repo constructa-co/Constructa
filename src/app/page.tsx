@@ -163,10 +163,23 @@ export default function Home() {
       {/* Pricing Section */}
       <section className="bg-black text-white p-10 text-center">
         <h2 className="text-3xl font-bold mb-6">Professional tools&mdash;without the big software price tag.</h2>
-        <p className="text-lg mb-4 max-w-3xl mx-auto">
+        <p className="text-lg mb-8 max-w-3xl mx-auto">
           We&apos;ll be offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
         </p>
-        <p className="text-lg mb-6">Early users get priority access and special launch pricing.</p>
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="p-6 rounded-lg border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:shadow-xl hover:shadow-gray-900/30 bg-black/50">
+            <h3 className="text-xl font-bold text-orange-500 mb-4">Built for people who build</h3>
+            <p className="text-gray-300">Whether you&apos;re pricing up a job, planning your programme, or getting stuck in on site - Constructa works the way you do.</p>
+          </div>
+          <div className="p-6 rounded-lg border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:shadow-xl hover:shadow-gray-900/30 bg-black/50">
+            <h3 className="text-xl font-bold text-orange-500 mb-4">Simple, practical, and made to fit</h3>
+            <p className="text-gray-300">No steep learning curve - just practical tools that work out of the box.</p>
+          </div>
+          <div className="p-6 rounded-lg border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:shadow-xl hover:shadow-gray-900/30 bg-black/50">
+            <h3 className="text-xl font-bold text-orange-500 mb-4">Control from day one</h3>
+            <p className="text-gray-300">Quote, plan, and manage your jobs with confidence&mdash;no missed steps, no mess.</p>
+          </div>
+        </div>
       </section>
 
       {/* Contact Section */}

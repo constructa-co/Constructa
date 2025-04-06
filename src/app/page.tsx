@@ -26,7 +26,7 @@ export default function Home() {
       </section>
 
       {/* Problem → Solution Section */}
-      <section className="bg-black text-white p-10 text-center border-t border-gray-800">
+      <section className="bg-black text-white p-10 text-center">
         <h2 className="text-3xl font-bold mb-6">No more spreadsheets. Just smart tools for your construction company.</h2>
         <p className="text-lg mb-4">
           Running a small construction company means quoting fast, planning tight, and delivering on site&mdash;all while juggling paperwork, messages, and spreadsheets.
@@ -40,7 +40,7 @@ export default function Home() {
       </section>
 
       {/* Feature Highlights Section */}
-      <section className="bg-gradient-to-b from-black via-gray-900 to-black p-10 border-t border-gray-800">
+      <section className="bg-gradient-to-b from-black via-gray-900 to-black p-10">
         <h2 className="text-3xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-300">Feature Highlights</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
           <div className="space-y-4 p-6 rounded-lg border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:shadow-xl hover:shadow-gray-900/30 bg-black/50">
@@ -97,7 +97,7 @@ export default function Home() {
       </section>
 
       {/* What Sets Us Apart Section */}
-      <section className="bg-black text-white p-10 border-t border-gray-800">
+      <section className="bg-black text-white p-10">
         <h2 className="text-3xl font-bold text-center mb-8">What Sets Us Apart</h2>
         <div className="max-w-4xl mx-auto mb-12">
           <div className="relative w-full h-[400px]">
@@ -129,7 +129,7 @@ export default function Home() {
       </section>
 
       {/* How It Works Section */}
-      <section className="bg-black text-white p-10 border-t border-gray-800">
+      <section className="bg-black text-white p-10">
         <h2 className="text-3xl font-bold text-center mb-8">Quote it. Plan it. Run it.</h2>
         
         <div className="max-w-5xl mx-auto mb-6">
@@ -161,7 +161,7 @@ export default function Home() {
       </section>
 
       {/* Pricing Section */}
-      <section className="bg-black text-white p-10 text-center border-t border-gray-800">
+      <section className="bg-black text-white p-10 text-center">
         <h2 className="text-3xl font-bold mb-6">Professional tools&mdash;without the big software price tag.</h2>
         <p className="text-lg mb-4 max-w-3xl mx-auto">
           We&apos;ll be offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
@@ -170,7 +170,7 @@ export default function Home() {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="bg-gradient-to-b from-black via-gray-900 to-black p-10 text-center border-t border-gray-800">
+      <section id="contact" className="bg-gradient-to-b from-black via-gray-900 to-black p-10 text-center">
         <h2 className="text-3xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-300">Got a question? Want to stay in the loop?</h2>
         <p className="text-lg mb-8 max-w-3xl mx-auto text-gray-300">
           We&apos;re building Constructa to help construction professionals quote, plan, and win more work without the admin headache.
@@ -213,7 +213,7 @@ export default function Home() {
       </section>
 
       {/* Footer Section */}
-      <footer className="bg-black text-white p-10 border-t border-gray-800">
+      <footer className="bg-black text-white p-10">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col sm:flex-row justify-between items-center">
             <div className="text-center sm:text-left">

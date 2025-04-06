@@ -224,6 +224,39 @@ export default function Home() {
           </a>
         </div>
       </section>
+
+      {/* About Section */}
+      <section id="about" className="bg-black text-white p-10">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center gap-2 mb-6">
+            <span className="text-green-500 text-2xl">✅</span>
+            <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-300">About</h2>
+          </div>
+          
+          <h3 className="text-2xl font-bold mb-6 text-orange-500">Built by people who know the job.</h3>
+          
+          <div className="space-y-6 text-gray-300">
+            <p className="text-lg">
+              We&apos;ve spent years in the construction industry—quoting jobs, planning programmes, and dealing with the same headaches you face every day.
+            </p>
+            
+            <p className="text-lg">
+              Constructa was born out of that experience. It&apos;s designed for small construction teams who need simple, reliable tools to quote, plan, and manage work—without the bloat, the cost, or the complexity.
+            </p>
+            
+            <p className="text-lg">
+              We&apos;re building Constructa to be practical, fast, and made for the way construction really works.
+            </p>
+            
+            <div className="pt-4">
+              <h4 className="text-xl font-bold mb-3">Our goal is simple:</h4>
+              <p className="text-lg">
+                To give small construction teams the tools they need to work smarter, win more jobs, and stay in control—without getting buried in admin.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

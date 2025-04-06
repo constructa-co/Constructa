@@ -5,17 +5,6 @@ import Image from 'next/image';
 export default function Home() {
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Top Navigation */}
-      <div className="w-full py-4 px-8 flex justify-between items-center">
-        <div className="text-2xl">Constructa</div>
-        <div className="flex space-x-8">
-          <a href="#product">Product</a>
-          <a href="#features">Features</a>
-          <a href="#pricing">Pricing</a>
-          <a href="#contact">Contact</a>
-        </div>
-      </div>
-
       {/* Hero Section */}
       <section className="text-center py-20 px-4">
         <h1 className="text-4xl md:text-6xl font-bold mb-6">

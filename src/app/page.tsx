@@ -6,14 +6,13 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Header Section */}
-      <header className="w-full py-6 px-4 flex justify-between items-center border-b border-gray-800">
-        <div className="text-3xl font-semibold">Constructa</div>
-        <nav className="hidden md:flex space-x-8 text-lg">
+      <header className="w-full py-6 px-8 flex justify-between items-center">
+        <div className="text-3xl">Constructa</div>
+        <nav className="flex space-x-8 text-lg">
           <a href="#product" className="hover:text-orange-500 transition-colors">Product</a>
           <a href="#features" className="hover:text-orange-500 transition-colors">Features</a>
           <a href="#pricing" className="hover:text-orange-500 transition-colors">Pricing</a>
           <a href="#contact" className="hover:text-orange-500 transition-colors">Contact</a>
-          <button className="border px-6 py-1 rounded-md hover:bg-white hover:text-black transition-colors">Sign up</button>
         </nav>
       </header>
 

@@ -12,11 +12,11 @@ export default function Home() {
         </div>
         <div className="relative max-w-7xl mx-auto px-8">
           <div className="grid grid-cols-3">
-            <div className="col-span-2 pl-8">
+            <div className="col-span-2 pl-10">
               <div className="flex flex-col items-start">
-                <h1 className="text-5xl md:text-6xl font-semibold tracking-tight text-left leading-[1.2] max-w-[1000px]">
-                  Constructa: proposal, planning and project tools for<br />
-                  construction professionals.
+                <h1 className="text-5xl md:text-6xl font-semibold tracking-tight text-left leading-[1.2] w-[1000px]">
+                  Constructa: proposal, planning and project tools for construction<br />
+                  professionals.
                 </h1>
                 <p className="text-lg md:text-xl text-gray-400 mt-6 text-left">
                   Quote faster, plan smarter, and keep control of every job.

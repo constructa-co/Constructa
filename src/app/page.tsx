@@ -128,9 +128,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Process Overview Image */}
-      <section className="bg-black text-white py-16 px-4">
-        <div className="max-w-5xl mx-auto">
+      {/* How It Works Section */}
+      <section className="bg-black text-white p-10 border-t border-gray-800">
+        <h2 className="text-3xl font-bold text-center mb-8">Quote it. Plan it. Run it.</h2>
+        
+        <div className="max-w-5xl mx-auto mb-12">
           <div className="relative w-full h-[500px]">
             <Image
               src="/images/Quote it Plant it deliver it Black.png"
@@ -141,11 +143,7 @@ export default function Home() {
             />
           </div>
         </div>
-      </section>
 
-      {/* How It Works Section */}
-      <section className="bg-black text-white p-10 border-t border-gray-800">
-        <h2 className="text-3xl font-bold text-center mb-8">Quote it. Plan it. Run it.</h2>
         <ol className="list-decimal list-inside text-lg space-y-4 max-w-3xl mx-auto">
           <li>
             <strong>Build your quote:</strong> Set your price, add your capability statement, and drop in your terms. Done in minutes, not hours.

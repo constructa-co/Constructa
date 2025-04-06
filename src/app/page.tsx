@@ -6,17 +6,17 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Hero Section */}
-      <section className="relative text-center py-32 px-8 overflow-hidden">
+      <section className="relative py-32 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1)_0%,transparent_100%)]"></div>
         </div>
-        <div className="relative max-w-7xl mx-auto">
-          <div className="flex flex-col items-start max-w-[800px] mx-auto">
-            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-left">
+        <div className="relative max-w-7xl mx-auto px-8">
+          <div className="flex flex-col items-start max-w-[900px]">
+            <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-left leading-tight">
               Constructa: proposal, planning,<br />
               and project tools for construction professionals.
             </h1>
-            <p className="text-lg text-gray-400 mt-6 text-left">
+            <p className="text-lg md:text-xl text-gray-400 mt-6 text-left">
               Quote faster, plan smarter, and keep control of every job.
             </p>
             <div className="w-full mt-12">

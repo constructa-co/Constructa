@@ -8,24 +8,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Header Section */}
         <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-b border-gray-800/50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              {/* Logo */}
-              <div>
+            <div className="flex items-center h-16">
+              {/* Left block - Logo */}
+              <div className="flex-none">
                 <a href="/" className="text-2xl font-bold text-white whitespace-nowrap">
                   CONSTRUCTA
                 </a>
               </div>
 
-              {/* Navigation */}
-              <nav className="hidden md:flex items-center space-x-12">
-                <a href="#features" className="text-gray-300 hover:text-white transition-colors duration-200 whitespace-nowrap">Features</a>
-                <a href="#pricing" className="text-gray-300 hover:text-white transition-colors duration-200 whitespace-nowrap">Pricing</a>
-                <a href="#about" className="text-gray-300 hover:text-white transition-colors duration-200 whitespace-nowrap">About</a>
-                <a href="#contact" className="text-gray-300 hover:text-white transition-colors duration-200 whitespace-nowrap">Contact</a>
-              </nav>
+              {/* Center block - Navigation */}
+              <div className="flex-1 flex justify-center">
+                <nav className="hidden md:flex items-center space-x-6">
+                  <a href="#features" className="text-gray-300 hover:text-white transition-colors duration-200 whitespace-nowrap">Features</a>
+                  <a href="#pricing" className="text-gray-300 hover:text-white transition-colors duration-200 whitespace-nowrap">Pricing</a>
+                  <a href="#about" className="text-gray-300 hover:text-white transition-colors duration-200 whitespace-nowrap">About</a>
+                  <a href="#contact" className="text-gray-300 hover:text-white transition-colors duration-200 whitespace-nowrap">Contact</a>
+                </nav>
+              </div>
 
-              {/* Auth Buttons */}
-              <div className="flex items-center space-x-4">
+              {/* Right block - Auth Buttons */}
+              <div className="flex-none flex items-center space-x-4">
                 <button className="px-4 py-2 text-gray-300 hover:text-white transition-colors duration-200 whitespace-nowrap">
                   Log in
                 </button>

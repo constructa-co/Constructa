@@ -7,7 +7,7 @@ export default function Home() {
     <div className="min-h-screen bg-black text-white">
       {/* Header Section */}
       <header className="w-full py-6 px-4 flex justify-between items-center border-b border-gray-800">
-        <div className="text-2xl font-bold tracking-widest">CONSTRUCTA</div>
+        <div className="text-3xl font-semibold">Constructa</div>
         <nav className="hidden md:flex space-x-8 text-lg">
           <a href="#product" className="hover:text-orange-500 transition-colors">Product</a>
           <a href="#features" className="hover:text-orange-500 transition-colors">Features</a>

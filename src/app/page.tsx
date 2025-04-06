@@ -1,3 +1,4 @@
+// Main page component for Constructa
 import React from 'react';
 
 const Page = () => {
@@ -30,7 +31,7 @@ const Page = () => {
           Running a small construction company means quoting fast, planning tight, and delivering on site—all while juggling paperwork, messages, and spreadsheets.
         </p>
         <p className="text-lg mb-4">
-          Without the right tools, it’s easy for details to slip through the cracks—quotes get rushed, programmes are missed, and jobs lose momentum.
+          Without the right tools, it's easy for details to slip through the cracks—quotes get rushed, programmes are missed, and jobs lose momentum.
         </p>
         <p className="text-lg">
           Constructa brings everything into one place. From proposals to planning and project delivery, it gives you the clarity, structure, and control you need—without the admin overload.
@@ -43,7 +44,7 @@ const Page = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8">
           <div>
             <h4 className="text-xl font-bold mb-2">Fast, accurate proposals</h4>
-            <p>Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they’re getting.</p>
+            <p>Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.</p>
           </div>
           <div>
             <h4 className="text-xl font-bold mb-2">Simple project planning</h4>
@@ -69,7 +70,7 @@ const Page = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
           <div>
             <h4 className="text-xl font-bold mb-2">Built for people who build</h4>
-            <p>Whether you’re pricing up a job, planning your programme, or getting stuck in on site—Constructa works the way you do.</p>
+            <p>Whether you're pricing up a job, planning your programme, or getting stuck in on site—Constructa works the way you do.</p>
           </div>
           <div>
             <h4 className="text-xl font-bold mb-2">Simple, practical, and made to fit</h4>
@@ -96,7 +97,7 @@ const Page = () => {
             <strong>Stay in control:</strong> Track changes, stay on schedule, and keep the job moving without the spreadsheet stress.
           </li>
           <li>
-            <strong>Win the work:</strong> Show clients you’re ready to deliver—professional, prepared, and in control from day one.
+            <strong>Win the work:</strong> Show clients you're ready to deliver—professional, prepared, and in control from day one.
           </li>
         </ol>
       </section>
@@ -105,7 +106,7 @@ const Page = () => {
       <section className="bg-black text-white p-10 text-center">
         <h3 className="text-3xl font-bold mb-6">Professional tools—without the big software price tag.</h3>
         <p className="text-lg mb-4">
-          We’ll be offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
+          We'll be offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
         </p>
         <p className="text-lg mb-6">Early users get priority access and special launch pricing.</p>
       </section>
@@ -114,8 +115,8 @@ const Page = () => {
       <section className="bg-gray-100 text-black p-10 text-center">
         <h3 className="text-3xl font-bold mb-6">Got a question? Want to stay in the loop?</h3>
         <p className="text-lg mb-6">
-          We’re building Constructa to help construction professionals quote, plan, and win more work without the admin headache.
-          If you’ve got a question, suggestion, or want early access—we’d love to hear from you.
+          We're building Constructa to help construction professionals quote, plan, and win more work without the admin headache.
+          If you've got a question, suggestion, or want early access—we'd love to hear from you.
         </p>
         <div className="flex flex-col items-center space-y-4">
           <p className="text-lg">Direct email: <a href="mailto:hello@constructa.co" className="text-orange-600">hello@constructa.co</a></p>
@@ -136,13 +137,13 @@ const Page = () => {
       <section className="bg-white text-black p-10 text-center">
         <h3 className="text-3xl font-bold mb-6">Built by people who know the job.</h3>
         <p className="text-lg mb-4">
-          We’ve spent years in the construction industry—quoting jobs, planning programmes, and dealing with the same headaches you face every day.
+          We've spent years in the construction industry—quoting jobs, planning programmes, and dealing with the same headaches you face every day.
         </p>
         <p className="text-lg mb-4">
-          Constructa was born out of that experience. It’s designed for small construction teams who need simple, reliable tools to quote, plan, and manage work—without the bloat, the cost, or the complexity.
+          Constructa was born out of that experience. It's designed for small construction teams who need simple, reliable tools to quote, plan, and manage work—without the bloat, the cost, or the complexity.
         </p>
         <p className="text-lg mb-4">
-          We’re building Constructa to be practical, fast, and made for the way construction really works.
+          We're building Constructa to be practical, fast, and made for the way construction really works.
         </p>
         <p className="text-lg font-bold">
           Our goal is simple: To give small construction teams the tools they need to work smarter, win more jobs, and stay in control—without getting buried in admin.

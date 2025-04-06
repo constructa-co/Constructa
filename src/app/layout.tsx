@@ -6,14 +6,35 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head />
       <body className="bg-black text-white">
         {/* Header Section */}
-        <header className="w-full bg-black text-white p-5 flex justify-between items-center">
-          <div className="text-2xl font-bold tracking-wider">CONSTRUCTA</div>
-          <nav className="space-x-6 flex">
-            <a href="#product" className="hover:text-orange-500">Product</a>
-            <a href="#features" className="hover:text-orange-500">Features</a>
-            <a href="#pricing" className="hover:text-orange-500">Pricing</a>
-            <a href="#contact" className="hover:text-orange-500">Contact</a>
-          </nav>
+        <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-b border-gray-800/50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              {/* Logo - Left aligned */}
+              <div className="flex-shrink-0">
+                <a href="/" className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                  CONSTRUCTA
+                </a>
+              </div>
+
+              {/* Navigation - Center aligned */}
+              <nav className="hidden md:flex items-center justify-center space-x-8 flex-1">
+                <a href="#features" className="text-gray-300 hover:text-white transition-colors duration-200">Features</a>
+                <a href="#pricing" className="text-gray-300 hover:text-white transition-colors duration-200">Pricing</a>
+                <a href="#about" className="text-gray-300 hover:text-white transition-colors duration-200">About</a>
+                <a href="#contact" className="text-gray-300 hover:text-white transition-colors duration-200">Contact</a>
+              </nav>
+
+              {/* Auth Buttons - Right aligned */}
+              <div className="flex items-center space-x-4">
+                <button className="px-4 py-2 text-gray-300 hover:text-white transition-colors duration-200">
+                  Log in
+                </button>
+                <button className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-500 active:bg-orange-700 transition-colors duration-300">
+                  Sign up
+                </button>
+              </div>
+            </div>
+          </div>
         </header>
 
         {/* Content Section */}

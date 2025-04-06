@@ -1,4 +1,4 @@
-// Main page component for Constructa
+// Main page component for Constructa - Latest version
 import React from 'react';
 
 const Page = () => {

@@ -132,7 +132,7 @@ export default function Home() {
       <section className="bg-black text-white p-10 border-t border-gray-800">
         <h2 className="text-3xl font-bold text-center mb-8">Quote it. Plan it. Run it.</h2>
         
-        <div className="max-w-5xl mx-auto mb-12">
+        <div className="max-w-5xl mx-auto mb-6">
           <div className="relative w-full h-[500px]">
             <Image
               src="/images/Quote it Plant it deliver it Black.png"

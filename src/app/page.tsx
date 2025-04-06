@@ -13,11 +13,11 @@ export default function Home() {
         <div className="relative max-w-7xl mx-auto px-8">
           <div className="grid grid-cols-3">
             {/* Empty left column to match header grid */}
-            <div className="col-span-2">
-              <div className="flex flex-col items-start max-w-[900px]">
-                <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-left leading-tight">
-                  Constructa: proposal, planning,<br />
-                  and project tools for construction professionals.
+            <div className="col-span-2 pl-4">
+              <div className="flex flex-col items-start max-w-[1000px]">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-left leading-[1.1]">
+                  Constructa: proposal, planning, and project tools<br />
+                  for construction professionals.
                 </h1>
                 <p className="text-lg md:text-xl text-gray-400 mt-6 text-left">
                   Quote faster, plan smarter, and keep control of every job.
@@ -26,7 +26,7 @@ export default function Home() {
             </div>
           </div>
           
-          <div className="mt-12 flex justify-center">
+          <div className="mt-16 flex justify-center">
             <div className="max-w-[1000px] w-full">
               <div className="relative rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
                 <Image

@@ -6,14 +6,14 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Hero Section */}
-      <section className="text-center py-20 px-4">
-        <h1 className="text-4xl md:text-6xl font-bold mb-6">
+      <section className="text-center py-20 px-4 bg-gradient-to-b from-black via-gray-900 to-black">
+        <h1 className="text-4xl md:text-6xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-300">
           Constructa: proposal, planning, and project tools for construction professionals.
         </h1>
-        <p className="text-lg md:text-xl max-w-2xl mx-auto mb-12">
+        <p className="text-lg md:text-xl max-w-2xl mx-auto mb-16 text-gray-300">
           Quote faster, plan smarter, and keep control of every job.
         </p>
-        <div className="w-full max-w-2xl mx-auto">
+        <div className="w-full max-w-2xl mx-auto transform hover:scale-[1.02] transition-transform duration-300">
           <Image
             src="/images/hero-image.png"
             alt="Construction Planning Software"
@@ -40,58 +40,58 @@ export default function Home() {
       </section>
 
       {/* Feature Highlights Section */}
-      <section className="bg-black text-white p-10 border-t border-gray-800">
-        <h2 className="text-3xl font-bold text-center mb-8">Feature Highlights</h2>
+      <section className="bg-gradient-to-b from-black via-gray-900 to-black p-10 border-t border-gray-800">
+        <h2 className="text-3xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-300">Feature Highlights</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
-          <div className="space-y-4">
+          <div className="space-y-4 p-6 rounded-lg border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:shadow-xl hover:shadow-gray-900/30 bg-black/50">
             <div className="relative w-full h-[300px]">
               <Image
                 src="/images/Build your proposal White.png"
                 alt="Build professional proposals quickly"
                 fill
-                className="object-contain"
+                className="object-contain hover:scale-105 transition-transform duration-300"
                 priority
               />
             </div>
-            <h3 className="text-xl font-bold">Fast, accurate proposals</h3>
-            <p>Create professional quotes in minutes&mdash;not hours. Set clear pricing, scope, and terms so clients know exactly what they&apos;re getting.</p>
+            <h3 className="text-xl font-bold text-orange-500">Fast, accurate proposals</h3>
+            <p className="text-gray-300">Create professional quotes in minutes&mdash;not hours. Set clear pricing, scope, and terms so clients know exactly what they&apos;re getting.</p>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-4 p-6 rounded-lg border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:shadow-xl hover:shadow-gray-900/30 bg-black/50">
             <div className="relative w-full h-[300px]">
               <Image
                 src="/images/project Timecard.png"
                 alt="Simple project planning interface"
                 fill
-                className="object-contain"
+                className="object-contain hover:scale-105 transition-transform duration-300"
                 priority
               />
             </div>
-            <h3 className="text-xl font-bold">Simple project planning</h3>
-            <p>Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.</p>
+            <h3 className="text-xl font-bold text-orange-500">Simple project planning</h3>
+            <p className="text-gray-300">Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.</p>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-4 p-6 rounded-lg border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:shadow-xl hover:shadow-gray-900/30 bg-black/50">
             <div className="relative w-full h-[300px]">
               <Image
                 src="/images/One Tap Update White.png"
                 alt="Built-in cost control features"
                 fill
-                className="object-contain"
+                className="object-contain hover:scale-105 transition-transform duration-300"
               />
             </div>
-            <h3 className="text-xl font-bold">Built-in cost control</h3>
-            <p>Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.</p>
+            <h3 className="text-xl font-bold text-orange-500">Built-in cost control</h3>
+            <p className="text-gray-300">Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.</p>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-4 p-6 rounded-lg border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:shadow-xl hover:shadow-gray-900/30 bg-black/50">
             <div className="relative w-full h-[300px]">
               <Image
                 src="/images/Client-Ready Quote White.png"
                 alt="Professional quote builder"
                 fill
-                className="object-contain"
+                className="object-contain hover:scale-105 transition-transform duration-300"
               />
             </div>
-            <h3 className="text-xl font-bold">Build proposals that win work</h3>
-            <p>Build your proposal, showcase your capability, and lock in your terms&mdash;all in a clean, consistent format.</p>
+            <h3 className="text-xl font-bold text-orange-500">Build proposals that win work</h3>
+            <p className="text-gray-300">Build your proposal, showcase your capability, and lock in your terms&mdash;all in a clean, consistent format.</p>
           </div>
         </div>
       </section>
@@ -170,22 +170,44 @@ export default function Home() {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="bg-black text-white p-10 text-center border-t border-gray-800">
-        <h2 className="text-3xl font-bold mb-6">Got a question? Want to stay in the loop?</h2>
-        <p className="text-lg mb-6 max-w-3xl mx-auto">
+      <section id="contact" className="bg-gradient-to-b from-black via-gray-900 to-black p-10 text-center border-t border-gray-800">
+        <h2 className="text-3xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-300">Got a question? Want to stay in the loop?</h2>
+        <p className="text-lg mb-8 max-w-3xl mx-auto text-gray-300">
           We&apos;re building Constructa to help construction professionals quote, plan, and win more work without the admin headache.
           If you&apos;ve got a question, suggestion, or want early access&mdash;we&apos;d love to hear from you.
         </p>
-        <div className="flex flex-col items-center space-y-4">
-          <p className="text-lg">Direct email: <a href="mailto:hello@constructa.co" className="text-orange-500 hover:text-orange-400">hello@constructa.co</a></p>
-          <form className="w-full max-w-md">
-            <input type="text" placeholder="Name" className="w-full p-3 mb-4 bg-gray-900 border border-gray-700 rounded text-white" />
-            <input type="email" placeholder="Email" className="w-full p-3 mb-4 bg-gray-900 border border-gray-700 rounded text-white" />
-            <textarea placeholder="Message" className="w-full p-3 mb-4 bg-gray-900 border border-gray-700 rounded text-white" rows={4}></textarea>
-            <button type="submit" className="p-3 bg-orange-600 text-white w-full rounded hover:bg-orange-700 transition-colors">Send Message</button>
+        <div className="flex flex-col items-center space-y-6">
+          <p className="text-lg text-gray-300">Direct email: <a href="mailto:hello@constructa.co" className="text-orange-500 hover:text-orange-400 transition-colors">hello@constructa.co</a></p>
+          <form className="w-full max-w-md space-y-4">
+            <input 
+              type="text" 
+              placeholder="Name" 
+              className="w-full p-4 bg-black/50 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all duration-300" 
+            />
+            <input 
+              type="email" 
+              placeholder="Email" 
+              className="w-full p-4 bg-black/50 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all duration-300" 
+            />
+            <textarea 
+              placeholder="Message" 
+              className="w-full p-4 bg-black/50 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all duration-300" 
+              rows={4}
+            ></textarea>
+            <button 
+              type="submit" 
+              className="p-4 bg-orange-600 text-white w-full rounded-lg hover:bg-orange-500 active:bg-orange-700 transition-colors duration-300 font-medium"
+            >
+              Send Message
+            </button>
           </form>
-          <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-400">
-            LinkedIn
+          <a 
+            href="https://www.linkedin.com" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-orange-500 hover:text-orange-400 transition-colors inline-flex items-center space-x-2"
+          >
+            <span>LinkedIn</span>
           </a>
         </div>
       </section>

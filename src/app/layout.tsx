@@ -7,7 +7,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-black text-white">
         {/* Header Section */}
         <header className="w-full bg-black text-white p-5 flex justify-between items-center">
-          <div className="font-bold text-2xl">Constructa</div>
+          <div className="text-2xl font-bold tracking-wider">CONSTRUCTA</div>
           <nav className="space-x-6 flex">
             <a href="#product" className="hover:text-orange-500">Product</a>
             <a href="#features" className="hover:text-orange-500">Features</a>

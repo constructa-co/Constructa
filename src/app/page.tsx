@@ -1,5 +1,6 @@
 // Main page component for Constructa - Latest version
 import React from 'react';
+import Image from 'next/image';
 
 const Page = () => {
   return (
@@ -8,7 +9,7 @@ const Page = () => {
       <section className="bg-black text-white text-center p-28">
         <h2 className="text-5xl font-bold">Constructa: proposal, planning, and project tools for construction professionals.</h2>
         <p className="mt-6 text-xl">Quote faster, plan smarter, and keep control of every job.</p>
-        <img src="/images/image1.png" alt="Description of image" />
+        <Image src="/images/image1.png" alt="Description of image" width={800} height={400} />
         <div className="mt-8 flex justify-center">
           <input
             type="email"
@@ -21,20 +22,20 @@ const Page = () => {
     
       {/* Image at 50% size */}
       <div className="flex justify-center my-10">
-        <img src="./public/images/image1.png" alt="Hero Section Image" className="w-1/2" />
+        <Image src="/images/image1.png" alt="Hero Section Image" width={800} height={400} className="w-1/2" />
       </div>
 
       {/* Problem → Solution Section */}
       <section className="bg-gray-100 text-black p-10 text-center">
         <h3 className="text-3xl font-bold mb-6">No more spreadsheets. Just smart tools for your construction company.</h3>
         <p className="text-lg mb-4">
-          Running a small construction company means quoting fast, planning tight, and delivering on site—all while juggling paperwork, messages, and spreadsheets.
+          Running a small construction company means quoting fast, planning tight, and delivering on site&mdash;all while juggling paperwork, messages, and spreadsheets.
         </p>
         <p className="text-lg mb-4">
-          Without the right tools, it's easy for details to slip through the cracks—quotes get rushed, programmes are missed, and jobs lose momentum.
+          Without the right tools, it&apos;s easy for details to slip through the cracks&mdash;quotes get rushed, programmes are missed, and jobs lose momentum.
         </p>
         <p className="text-lg">
-          Constructa brings everything into one place. From proposals to planning and project delivery, it gives you the clarity, structure, and control you need—without the admin overload.
+          Constructa brings everything into one place. From proposals to planning and project delivery, it gives you the clarity, structure, and control you need&mdash;without the admin overload.
         </p>
       </section>
 
@@ -44,7 +45,7 @@ const Page = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8">
           <div>
             <h4 className="text-xl font-bold mb-2">Fast, accurate proposals</h4>
-            <p>Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.</p>
+            <p>Create professional quotes in minutes&mdash;not hours. Set clear pricing, scope, and terms so clients know exactly what they&apos;re getting.</p>
           </div>
           <div>
             <h4 className="text-xl font-bold mb-2">Simple project planning</h4>
@@ -56,7 +57,7 @@ const Page = () => {
           </div>
           <div>
             <h4 className="text-xl font-bold mb-2">Build proposals that win work</h4>
-            <p>Build your proposal, showcase your capability, and lock in your terms—all in a clean, consistent format.</p>
+            <p>Build your proposal, showcase your capability, and lock in your terms&mdash;all in a clean, consistent format.</p>
           </div>
         </div>
       </section>
@@ -65,20 +66,20 @@ const Page = () => {
       <section className="bg-gray-100 text-black p-10">
         <h3 className="text-3xl font-bold text-center mb-8">What Sets Us Apart</h3>
         <p className="text-lg text-center mb-6">
-          Not just another piece of software—Constructa is built for how construction really works.
+          Not just another piece of software&mdash;Constructa is built for how construction really works.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
           <div>
             <h4 className="text-xl font-bold mb-2">Built for people who build</h4>
-            <p>Whether you're pricing up a job, planning your programme, or getting stuck in on site—Constructa works the way you do.</p>
+            <p>Whether you&apos;re pricing up a job, planning your programme, or getting stuck in on site&mdash;Constructa works the way you do.</p>
           </div>
           <div>
             <h4 className="text-xl font-bold mb-2">Simple, practical, and made to fit</h4>
-            <p>No steep learning curve—just practical tools that work out of the box.</p>
+            <p>No steep learning curve&mdash;just practical tools that work out of the box.</p>
           </div>
           <div>
             <h4 className="text-xl font-bold mb-2">Control from day one</h4>
-            <p>Quote, plan, and manage your jobs with confidence—no missed steps, no mess.</p>
+            <p>Quote, plan, and manage your jobs with confidence&mdash;no missed steps, no mess.</p>
           </div>
         </div>
       </section>
@@ -91,22 +92,22 @@ const Page = () => {
             <strong>Build your quote:</strong> Set your price, add your capability statement, and drop in your terms. Done in minutes, not hours.
           </li>
           <li>
-            <strong>Map out the job:</strong> Add key dates, phases, and milestones. Keep everyone—from client to crew—on the same page.
+            <strong>Map out the job:</strong> Add key dates, phases, and milestones. Keep everyone&mdash;from client to crew&mdash;on the same page.
           </li>
           <li>
             <strong>Stay in control:</strong> Track changes, stay on schedule, and keep the job moving without the spreadsheet stress.
           </li>
           <li>
-            <strong>Win the work:</strong> Show clients you're ready to deliver—professional, prepared, and in control from day one.
+            <strong>Win the work:</strong> Show clients you&apos;re ready to deliver&mdash;professional, prepared, and in control from day one.
           </li>
         </ol>
       </section>
 
       {/* Pricing Section */}
       <section className="bg-black text-white p-10 text-center">
-        <h3 className="text-3xl font-bold mb-6">Professional tools—without the big software price tag.</h3>
+        <h3 className="text-3xl font-bold mb-6">Professional tools&mdash;without the big software price tag.</h3>
         <p className="text-lg mb-4">
-          We'll be offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
+          We&apos;ll be offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
         </p>
         <p className="text-lg mb-6">Early users get priority access and special launch pricing.</p>
       </section>
@@ -115,15 +116,15 @@ const Page = () => {
       <section className="bg-gray-100 text-black p-10 text-center">
         <h3 className="text-3xl font-bold mb-6">Got a question? Want to stay in the loop?</h3>
         <p className="text-lg mb-6">
-          We're building Constructa to help construction professionals quote, plan, and win more work without the admin headache.
-          If you've got a question, suggestion, or want early access—we'd love to hear from you.
+          We&apos;re building Constructa to help construction professionals quote, plan, and win more work without the admin headache.
+          If you&apos;ve got a question, suggestion, or want early access&mdash;we&apos;d love to hear from you.
         </p>
         <div className="flex flex-col items-center space-y-4">
           <p className="text-lg">Direct email: <a href="mailto:hello@constructa.co" className="text-orange-600">hello@constructa.co</a></p>
           <form className="w-full max-w-md">
             <input type="text" placeholder="Name" className="w-full p-3 mb-4 border border-gray-300" />
             <input type="email" placeholder="Email" className="w-full p-3 mb-4 border border-gray-300" />
-            <textarea placeholder="Message" className="w-full p-3 mb-4 border border-gray-300" rows="4"></textarea>
+            <textarea placeholder="Message" className="w-full p-3 mb-4 border border-gray-300" rows={4}></textarea>
             <button type="submit" className="p-3 bg-orange-600 text-white w-full">Send Message</button>
           </form>
           {/* Optional LinkedIn Icon */}
@@ -137,16 +138,16 @@ const Page = () => {
       <section className="bg-white text-black p-10 text-center">
         <h3 className="text-3xl font-bold mb-6">Built by people who know the job.</h3>
         <p className="text-lg mb-4">
-          We've spent years in the construction industry—quoting jobs, planning programmes, and dealing with the same headaches you face every day.
+          We&apos;ve spent years in the construction industry&mdash;quoting jobs, planning programmes, and dealing with the same headaches you face every day.
         </p>
         <p className="text-lg mb-4">
-          Constructa was born out of that experience. It's designed for small construction teams who need simple, reliable tools to quote, plan, and manage work—without the bloat, the cost, or the complexity.
+          Constructa was born out of that experience. It&apos;s designed for small construction teams who need simple, reliable tools to quote, plan, and manage work&mdash;without the bloat, the cost, or the complexity.
         </p>
         <p className="text-lg mb-4">
-          We're building Constructa to be practical, fast, and made for the way construction really works.
+          We&apos;re building Constructa to be practical, fast, and made for the way construction really works.
         </p>
         <p className="text-lg font-bold">
-          Our goal is simple: To give small construction teams the tools they need to work smarter, win more jobs, and stay in control—without getting buried in admin.
+          Our goal is simple: To give small construction teams the tools they need to work smarter, win more jobs, and stay in control&mdash;without getting buried in admin.
         </p>
       </section>
 

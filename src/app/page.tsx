@@ -5,16 +5,16 @@ import Image from 'next/image';
 export default function Home() {
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Header Section */}
-      <header className="w-full py-6 px-8 flex justify-between items-center">
-        <div className="text-3xl">Constructa</div>
-        <nav className="flex space-x-8 text-lg">
-          <a href="#product" className="hover:text-orange-500 transition-colors">Product</a>
-          <a href="#features" className="hover:text-orange-500 transition-colors">Features</a>
-          <a href="#pricing" className="hover:text-orange-500 transition-colors">Pricing</a>
-          <a href="#contact" className="hover:text-orange-500 transition-colors">Contact</a>
-        </nav>
-      </header>
+      {/* Top Navigation */}
+      <div className="w-full py-4 px-8 flex justify-between items-center">
+        <div className="text-2xl">Constructa</div>
+        <div className="flex space-x-8">
+          <a href="#product">Product</a>
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#contact">Contact</a>
+        </div>
+      </div>
 
       {/* Hero Section */}
       <section className="text-center py-20 px-4">

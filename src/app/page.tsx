@@ -73,7 +73,7 @@ export default function Home() {
       </section>
 
       {/* Feature Highlights Section */}
-      <section className="relative bg-gradient-to-b from-black via-gray-900/50 to-black py-16 overflow-hidden">
+      <section className="relative bg-gradient-to-b from-black via-gray-900/50 to-black py-16 overflow-hidden min-h-screen">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="max-w-[600px] mx-auto text-center mb-16">
@@ -83,44 +83,49 @@ export default function Home() {
             </p>
           </div>
           
-          {/* Sticky container for the feature content */}
-          <div className="relative h-[800px]">
-            {/* Sticky image container */}
-            <div className="sticky top-32 w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
-              <Image
-                src="/images/Build your proposal White.png"
-                alt="Build professional proposals quickly"
-                fill
-                className="object-contain transition-opacity duration-500"
-                priority
-                id="feature-image"
-              />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+            {/* Sticky image container - Left side */}
+            <div className="sticky top-32">
+              <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
+                <Image
+                  src="/images/Build your proposal White.png"
+                  alt="Feature highlight"
+                  fill
+                  className="object-contain transition-opacity duration-500"
+                  priority
+                  id="feature-image"
+                />
+              </div>
             </div>
             
-            {/* Scrollable content sections */}
-            <div className="absolute top-0 right-0 w-1/2 h-full">
-              <div className="h-[800px] flex flex-col justify-center">
-                <div className="space-y-6">
-                  <div className="feature-content" data-image="/images/Build your proposal White.png">
-                    <h3 className="text-xl font-bold text-orange-500 mb-4">Fast, accurate proposals</h3>
-                    <p className="text-gray-400">Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.</p>
-                  </div>
-                  
-                  <div className="feature-content" data-image="/images/project Timecard.png">
-                    <h3 className="text-xl font-bold text-orange-500 mb-4">Simple project planning</h3>
-                    <p className="text-gray-400">Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.</p>
-                  </div>
-                  
-                  <div className="feature-content" data-image="/images/One Tap Update White.png">
-                    <h3 className="text-xl font-bold text-orange-500 mb-4">Built-in cost control</h3>
-                    <p className="text-gray-400">Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.</p>
-                  </div>
-                  
-                  <div className="feature-content" data-image="/images/Client-Ready Quote White.png">
-                    <h3 className="text-xl font-bold text-orange-500 mb-4">Build proposals that win work</h3>
-                    <p className="text-gray-400">Build your proposal, showcase your capability, and lock in your terms—all in a clean, consistent format.</p>
-                  </div>
-                </div>
+            {/* Scrollable content - Right side */}
+            <div className="space-y-[70vh]">
+              <div className="feature-content" data-image="/images/Build your proposal White.png">
+                <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Fast, accurate proposals</h3>
+                <p className="text-sm md:text-base text-gray-400">
+                  Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
+                </p>
+              </div>
+              
+              <div className="feature-content" data-image="/images/project Timecard.png">
+                <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Simple project planning</h3>
+                <p className="text-sm md:text-base text-gray-400">
+                  Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
+                </p>
+              </div>
+              
+              <div className="feature-content" data-image="/images/One Tap Update White.png">
+                <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Built-in cost control</h3>
+                <p className="text-sm md:text-base text-gray-400">
+                  Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
+                </p>
+              </div>
+              
+              <div className="feature-content" data-image="/images/Client-Ready Quote White.png">
+                <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Build proposals that win work</h3>
+                <p className="text-sm md:text-base text-gray-400">
+                  Build your proposal, showcase your capability, and lock in your terms—all in a clean, consistent format.
+                </p>
               </div>
             </div>
           </div>

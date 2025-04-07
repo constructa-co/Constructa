@@ -9,18 +9,18 @@ export default function Home() {
       <Script src="/feature-scroll.js" strategy="afterInteractive" />
       
       {/* Hero Section */}
-      <section className="relative py-32 overflow-hidden">
+      <section className="relative py-16 md:py-32 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1)_0%,transparent_100%)]"></div>
         </div>
-        <div className="relative max-w-7xl mx-auto px-8">
-          <div className="grid grid-cols-3">
-            <div className="col-span-2 pl-10">
+        <div className="relative max-w-7xl mx-auto px-4 md:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3">
+            <div className="col-span-1 md:col-span-2 pl-0 md:pl-10">
               <div className="flex flex-col items-start">
-                <h1 className="text-left leading-[1.2] w-[1000px]">
-                  <span className="text-4xl md:text-5xl font-semibold tracking-tight">Constructa: proposal, planning and project<br />tools for construction professionals.</span>
+                <h1 className="text-left leading-[1.2] w-full md:w-[1000px]">
+                  <span className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight">Constructa: proposal, planning and project<br className="hidden md:block" />tools for construction professionals.</span>
                 </h1>
-                <p className="text-lg md:text-xl text-gray-400 mt-6 text-left">
+                <p className="text-base sm:text-lg md:text-xl text-gray-400 mt-4 md:mt-6 text-left">
                   Quote faster, plan smarter, and keep control of every job.
                 </p>
               </div>

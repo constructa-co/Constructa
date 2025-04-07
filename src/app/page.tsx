@@ -295,7 +295,7 @@ export default function Home() {
           </div>
 
           {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-4 mb-16">
+          <div className="flex items-center justify-center gap-4 mb-8">
             <button className="px-4 py-2 rounded-full text-sm font-medium text-gray-400 hover:text-white transition-colors">
               Monthly
             </button>
@@ -309,7 +309,7 @@ export default function Home() {
             </button>
           </div>
 
-          <p className="text-sm text-gray-500 mb-16">
+          <p className="text-sm text-gray-500 mb-8">
             We&apos;re offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
           </p>
 

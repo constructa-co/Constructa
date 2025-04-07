@@ -73,7 +73,7 @@ export default function Home() {
       </section>
 
       {/* Feature Highlights Section */}
-      <section className="relative bg-gradient-to-b from-black via-gray-900/50 to-black py-16 overflow-hidden">
+      <section className="relative bg-gradient-to-b from-black via-gray-900/50 to-black py-16 overflow-hidden h-[400vh]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="max-w-[600px] mx-auto text-left mb-16">
@@ -83,16 +83,16 @@ export default function Home() {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start relative">
             {/* Sticky image container - Left side */}
-            <div className="lg:sticky lg:top-32 h-[500px]">
+            <div className="sticky top-32 h-[500px]">
               <div className="relative w-full h-full rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
                 <div id="feature-images" className="relative w-full h-full">
                   <Image
                     src="/images/Build your proposal White.png"
                     alt="Fast, accurate proposals"
                     fill
-                    className="object-contain transition-opacity duration-500 opacity-100"
+                    className="object-contain transition-opacity duration-500 absolute inset-0 opacity-100"
                     priority
                     id="image-1"
                   />
@@ -100,7 +100,7 @@ export default function Home() {
                     src="/images/project Timecard.png"
                     alt="Simple project planning"
                     fill
-                    className="object-contain transition-opacity duration-500 opacity-0"
+                    className="object-contain transition-opacity duration-500 absolute inset-0 opacity-0"
                     priority
                     id="image-2"
                   />
@@ -108,7 +108,7 @@ export default function Home() {
                     src="/images/One Tap Update White.png"
                     alt="Built-in cost control"
                     fill
-                    className="object-contain transition-opacity duration-500 opacity-0"
+                    className="object-contain transition-opacity duration-500 absolute inset-0 opacity-0"
                     priority
                     id="image-3"
                   />
@@ -116,7 +116,7 @@ export default function Home() {
                     src="/images/Client-Ready Quote White.png"
                     alt="Build proposals that win work"
                     fill
-                    className="object-contain transition-opacity duration-500 opacity-0"
+                    className="object-contain transition-opacity duration-500 absolute inset-0 opacity-0"
                     priority
                     id="image-4"
                   />
@@ -125,40 +125,42 @@ export default function Home() {
             </div>
             
             {/* Scrollable content - Right side */}
-            <div className="space-y-[100vh]">
-              <div className="feature-content text-left min-h-screen flex items-center" data-image="image-1">
-                <div>
-                  <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Fast, accurate proposals</h3>
-                  <p className="text-sm md:text-base text-gray-400">
-                    Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
-                  </p>
+            <div className="relative">
+              <div className="absolute top-0 space-y-[75vh]">
+                <div className="feature-content text-left h-screen flex items-center" data-image="image-1">
+                  <div>
+                    <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Fast, accurate proposals</h3>
+                    <p className="text-sm md:text-base text-gray-400">
+                      Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
+                    </p>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="feature-content text-left min-h-screen flex items-center" data-image="image-2">
-                <div>
-                  <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Simple project planning</h3>
-                  <p className="text-sm md:text-base text-gray-400">
-                    Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
-                  </p>
+                
+                <div className="feature-content text-left h-screen flex items-center" data-image="image-2">
+                  <div>
+                    <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Simple project planning</h3>
+                    <p className="text-sm md:text-base text-gray-400">
+                      Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
+                    </p>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="feature-content text-left min-h-screen flex items-center" data-image="image-3">
-                <div>
-                  <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Built-in cost control</h3>
-                  <p className="text-sm md:text-base text-gray-400">
-                    Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
-                  </p>
+                
+                <div className="feature-content text-left h-screen flex items-center" data-image="image-3">
+                  <div>
+                    <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Built-in cost control</h3>
+                    <p className="text-sm md:text-base text-gray-400">
+                      Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
+                    </p>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="feature-content text-left min-h-screen flex items-center" data-image="image-4">
-                <div>
-                  <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Build proposals that win work</h3>
-                  <p className="text-sm md:text-base text-gray-400">
-                    Build your proposal, showcase your capability, and lock in your terms—all in a clean, consistent format.
-                  </p>
+                
+                <div className="feature-content text-left h-screen flex items-center" data-image="image-4">
+                  <div>
+                    <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Build proposals that win work</h3>
+                    <p className="text-sm md:text-base text-gray-400">
+                      Build your proposal, showcase your capability, and lock in your terms—all in a clean, consistent format.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -550,7 +552,7 @@ export default function Home() {
                     <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
                       <path d="M12 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       <path d="M12 14.5c3.314 0 6-1.343 6-3s-2.686-3-6-3-6 1.343-6 3 2.686 3 6 3z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M3 7V4a1 1 0 011-1h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1v-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M3 7V4a1 1 0 011-1h16a1 1 0 011 1v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
                   <div>

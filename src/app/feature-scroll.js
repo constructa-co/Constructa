@@ -14,29 +14,30 @@ document.addEventListener('DOMContentLoaded', () => {
       if (entry.isIntersecting) {
         const imageId = entry.target.getAttribute('data-image');
         
-        // Hide all images
+        // Hide all images with a fade
         featureImages.forEach(img => {
-          img.style.opacity = '0';
+          if (img.id === imageId) {
+            img.style.opacity = '1';
+            img.style.zIndex = '1';
+          } else {
+            img.style.opacity = '0';
+            img.style.zIndex = '0';
+          }
         });
-        
-        // Show the corresponding image
-        const targetImage = document.getElementById(imageId);
-        if (targetImage) {
-          setTimeout(() => {
-            targetImage.style.opacity = '1';
-          }, 200);
-        }
         
         // Update active state for content
         featureContents.forEach(content => {
-          content.classList.remove('active');
+          if (content === entry.target) {
+            content.classList.add('active');
+          } else {
+            content.classList.remove('active');
+          }
         });
-        entry.target.classList.add('active');
       }
     });
   }, {
-    threshold: 0.5, // Trigger when 50% of the element is visible
-    rootMargin: '-45% 0px -45% 0px' // Adjust the trigger area to be more centered
+    threshold: 0.5,
+    rootMargin: '-35% 0px -35% 0px'
   });
   
   // Observe each feature content

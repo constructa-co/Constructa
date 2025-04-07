@@ -84,80 +84,82 @@ export default function Home() {
           </div>
           
           <div className="relative h-[300vh]">
-            <div className="sticky top-0 h-screen grid grid-cols-1 lg:grid-cols-2 gap-16 items-center max-w-[1400px] mx-auto px-8">
-              <div className="relative w-full h-[500px]">
-                <div className="feature-image absolute inset-0">
-                  <Image
-                    src="/images/Build your proposal White.png"
-                    alt="Fast, accurate proposals"
-                    fill
-                    className="object-contain"
-                    priority
-                  />
-                </div>
-                <div className="feature-image absolute inset-0">
-                  <Image
-                    src="/images/project Timecard.png"
-                    alt="Simple project planning"
-                    fill
-                    className="object-contain"
-                    priority
-                  />
-                </div>
-                <div className="feature-image absolute inset-0">
-                  <Image
-                    src="/images/One Tap Update White.png"
-                    alt="Built-in cost control"
-                    fill
-                    className="object-contain"
-                    priority
-                  />
-                </div>
-                <div className="feature-image absolute inset-0">
-                  <Image
-                    src="/images/Client-Ready Quote White.png"
-                    alt="Build proposals that win work"
-                    fill
-                    className="object-contain"
-                    priority
-                  />
-                </div>
-              </div>
-              
-              <div className="relative">
-                <div className="feature-content absolute inset-0">
-                  <div className="transform transition-all duration-200">
-                    <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Fast, accurate proposals</h3>
-                    <p className="text-sm md:text-base text-gray-400">
-                      Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
-                    </p>
+            <div className="sticky top-0 h-screen bg-black">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center max-w-[1400px] mx-auto px-8 h-full">
+                <div className="relative w-full h-[500px]">
+                  <div className="feature-image absolute inset-0 opacity-0">
+                    <Image
+                      src="/images/Build your proposal White.png"
+                      alt="Fast, accurate proposals"
+                      fill
+                      className="object-contain"
+                      priority
+                    />
+                  </div>
+                  <div className="feature-image absolute inset-0 opacity-0">
+                    <Image
+                      src="/images/project Timecard.png"
+                      alt="Simple project planning"
+                      fill
+                      className="object-contain"
+                      priority
+                    />
+                  </div>
+                  <div className="feature-image absolute inset-0 opacity-0">
+                    <Image
+                      src="/images/One Tap Update White.png"
+                      alt="Built-in cost control"
+                      fill
+                      className="object-contain"
+                      priority
+                    />
+                  </div>
+                  <div className="feature-image absolute inset-0 opacity-0">
+                    <Image
+                      src="/images/Client-Ready Quote White.png"
+                      alt="Build proposals that win work"
+                      fill
+                      className="object-contain"
+                      priority
+                    />
                   </div>
                 </div>
                 
-                <div className="feature-content absolute inset-0">
-                  <div className="transform transition-all duration-200">
-                    <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Simple project planning</h3>
-                    <p className="text-sm md:text-base text-gray-400">
-                      Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
-                    </p>
+                <div className="relative h-[500px]">
+                  <div className="feature-content absolute inset-0 opacity-0">
+                    <div className="transform">
+                      <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Fast, accurate proposals</h3>
+                      <p className="text-sm md:text-base text-gray-400">
+                        Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
+                      </p>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="feature-content absolute inset-0">
-                  <div className="transform transition-all duration-200">
-                    <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Built-in cost control</h3>
-                    <p className="text-sm md:text-base text-gray-400">
-                      Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
-                    </p>
+                  
+                  <div className="feature-content absolute inset-0 opacity-0">
+                    <div className="transform">
+                      <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Simple project planning</h3>
+                      <p className="text-sm md:text-base text-gray-400">
+                        Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
+                      </p>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="feature-content absolute inset-0">
-                  <div className="transform transition-all duration-200">
-                    <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Build proposals that win work</h3>
-                    <p className="text-sm md:text-base text-gray-400">
-                      Build your proposal, showcase your capability, and lock in your terms—all in a clean, consistent format.
-                    </p>
+                  
+                  <div className="feature-content absolute inset-0 opacity-0">
+                    <div className="transform">
+                      <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Built-in cost control</h3>
+                      <p className="text-sm md:text-base text-gray-400">
+                        Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="feature-content absolute inset-0 opacity-0">
+                    <div className="transform">
+                      <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Build proposals that win work</h3>
+                      <p className="text-sm md:text-base text-gray-400">
+                        Build your proposal, showcase your capability, and lock in your terms—all in a clean, consistent format.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

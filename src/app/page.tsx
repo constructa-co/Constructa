@@ -99,33 +99,41 @@ export default function Home() {
             </div>
             
             {/* Scrollable content - Right side */}
-            <div className="space-y-[100vh]">
-              <div className="feature-content text-left min-h-[500px]" data-image="/images/Build your proposal White.png">
-                <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Fast, accurate proposals</h3>
-                <p className="text-sm md:text-base text-gray-400">
-                  Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
-                </p>
+            <div className="space-y-[50vh]">
+              <div className="feature-content text-left min-h-[300px] flex items-center" data-image="/images/Build your proposal White.png">
+                <div>
+                  <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Fast, accurate proposals</h3>
+                  <p className="text-sm md:text-base text-gray-400">
+                    Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
+                  </p>
+                </div>
               </div>
               
-              <div className="feature-content text-left min-h-[500px]" data-image="/images/project Timecard.png">
-                <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Simple project planning</h3>
-                <p className="text-sm md:text-base text-gray-400">
-                  Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
-                </p>
+              <div className="feature-content text-left min-h-[300px] flex items-center" data-image="/images/project Timecard.png">
+                <div>
+                  <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Simple project planning</h3>
+                  <p className="text-sm md:text-base text-gray-400">
+                    Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
+                  </p>
+                </div>
               </div>
               
-              <div className="feature-content text-left min-h-[500px]" data-image="/images/One Tap Update White.png">
-                <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Built-in cost control</h3>
-                <p className="text-sm md:text-base text-gray-400">
-                  Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
-                </p>
+              <div className="feature-content text-left min-h-[300px] flex items-center" data-image="/images/One Tap Update White.png">
+                <div>
+                  <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Built-in cost control</h3>
+                  <p className="text-sm md:text-base text-gray-400">
+                    Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
+                  </p>
+                </div>
               </div>
               
-              <div className="feature-content text-left min-h-[500px]" data-image="/images/Client-Ready Quote White.png">
-                <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Build proposals that win work</h3>
-                <p className="text-sm md:text-base text-gray-400">
-                  Build your proposal, showcase your capability, and lock in your terms—all in a clean, consistent format.
-                </p>
+              <div className="feature-content text-left min-h-[300px] flex items-center" data-image="/images/Client-Ready Quote White.png">
+                <div>
+                  <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Build proposals that win work</h3>
+                  <p className="text-sm md:text-base text-gray-400">
+                    Build your proposal, showcase your capability, and lock in your terms—all in a clean, consistent format.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

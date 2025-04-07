@@ -14,8 +14,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update image source with fade effect
         featureImage.style.opacity = '0';
         setTimeout(() => {
-          featureImage.src = imageSrc;
-          featureImage.style.opacity = '1';
+          // Update the src attribute of the Image component
+          const imgElement = featureImage.querySelector('img');
+          if (imgElement) {
+            imgElement.src = imageSrc;
+            featureImage.style.opacity = '1';
+          }
         }, 300);
         
         // Update active state for content

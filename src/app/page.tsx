@@ -83,8 +83,8 @@ export default function Home() {
             </p>
           </div>
           
-          <div className="space-y-[50vh] pb-[25vh]">
-            <div className="feature-content min-h-screen h-[75vh] sticky top-0 bg-black">
+          <div className="space-y-[25vh] pb-[15vh]">
+            <div className="feature-content min-h-screen h-[60vh] sticky top-0 bg-black">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center">
                 <div className="relative w-full h-[500px]">
                   <Image

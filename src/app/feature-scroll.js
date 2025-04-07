@@ -1,70 +1,64 @@
 // Feature scroll animation
 document.addEventListener('DOMContentLoaded', () => {
-  const featureImages = document.querySelectorAll('.feature-image');
   const featureContents = document.querySelectorAll('.feature-content');
   
   if (featureContents.length === 0) return;
 
-  // Function to update active section
-  const updateActiveSection = (index) => {
-    // Hide all sections first
-    featureImages.forEach(image => {
-      image.style.opacity = '0';
-      image.style.visibility = 'hidden';
-      image.style.zIndex = '0';
-    });
-    
-    featureContents.forEach(content => {
-      content.style.opacity = '0';
-      content.style.visibility = 'hidden';
-      content.style.zIndex = '0';
-    });
-    
-    // Show active section
-    if (featureImages[index]) {
-      featureImages[index].style.opacity = '1';
-      featureImages[index].style.visibility = 'visible';
-      featureImages[index].style.zIndex = '1';
-    }
-    
-    if (featureContents[index]) {
-      featureContents[index].style.opacity = '1';
-      featureContents[index].style.visibility = 'visible';
-      featureContents[index].style.zIndex = '1';
-    }
-  };
-
-  // Set initial styles
-  featureImages.forEach(image => {
-    image.style.transition = 'opacity 0.15s ease-out, visibility 0.15s ease-out';
-  });
-
-  featureContents.forEach(content => {
-    content.style.transition = 'opacity 0.15s ease-out, visibility 0.15s ease-out';
-  });
-
-  // Set initial state
-  updateActiveSection(0);
-
-  // Handle scroll
-  let lastScrollTime = Date.now();
-  let ticking = false;
-
-  window.addEventListener('scroll', () => {
-    const now = Date.now();
-    
-    if (!ticking) {
-      window.requestAnimationFrame(() => {
-        const scrollPosition = window.scrollY;
-        const containerHeight = document.querySelector('.h-[300vh]').offsetHeight;
-        const sectionHeight = containerHeight / 4;
-        const activeIndex = Math.min(3, Math.max(0, Math.floor((scrollPosition / sectionHeight) * 4)));
+  // Create intersection observer
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        // Make current section fully visible
+        entry.target.style.opacity = '1';
+        entry.target.classList.add('active');
         
-        updateActiveSection(activeIndex);
-        ticking = false;
-      });
-      
-      ticking = true;
+        // Fade in content
+        const content = entry.target.querySelector('.transform');
+        if (content) {
+          content.style.opacity = '1';
+          content.style.transform = 'translateY(0)';
+        }
+      } else {
+        // Hide non-visible sections
+        entry.target.style.opacity = '0';
+        entry.target.classList.remove('active');
+        
+        // Fade out content
+        const content = entry.target.querySelector('.transform');
+        if (content) {
+          content.style.opacity = '0';
+          content.style.transform = 'translateY(20px)';
+        }
+      }
+    });
+  }, {
+    threshold: 0.1,
+    rootMargin: '-40% 0px'
+  });
+
+  // Set initial state and observe each feature content
+  featureContents.forEach((content, index) => {
+    // Add transition properties to feature content
+    content.style.transition = 'opacity 0.2s ease-out';
+    
+    // Set initial state
+    if (index === 0) {
+      content.style.opacity = '1';
+      content.classList.add('active');
+      const contentDiv = content.querySelector('.transform');
+      if (contentDiv) {
+        contentDiv.style.opacity = '1';
+        contentDiv.style.transform = 'translateY(0)';
+      }
+    } else {
+      content.style.opacity = '0';
+      const contentDiv = content.querySelector('.transform');
+      if (contentDiv) {
+        contentDiv.style.opacity = '0';
+        contentDiv.style.transform = 'translateY(20px)';
+      }
     }
+    
+    observer.observe(content);
   });
 }); 

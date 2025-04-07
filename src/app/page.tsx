@@ -41,8 +41,8 @@ export default function Home() {
               />
             </div>
             <div className="max-w-[500px]">
-              <h2 className="text-3xl md:text-4xl font-semibold mb-8 text-white leading-tight text-left">No more spreadsheets. Just smart tools for your construction company.</h2>
-              <div className="space-y-6 text-left">
+              <h2 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">No more spreadsheets. Just smart tools for your construction company.</h2>
+              <div className="space-y-4 text-left">
                 <p className="text-sm md:text-base text-gray-400">
                   Running a small construction company means quoting fast, planning tight, and delivering on site&mdash;all while juggling paperwork, messages, and spreadsheets.
                 </p>
@@ -52,7 +52,7 @@ export default function Home() {
                 <p className="text-sm md:text-base text-gray-400">
                   Constructa brings everything into one place. From proposals to planning and project delivery, it gives you the clarity, structure, and control you need&mdash;without the admin overload.
                 </p>
-                <div className="pt-8">
+                <div className="pt-4">
                   <a 
                     href="#" 
                     className="inline-flex items-center px-6 py-3 rounded-lg bg-white text-black font-medium hover:bg-gray-100 transition-colors duration-200"

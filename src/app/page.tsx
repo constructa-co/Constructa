@@ -84,7 +84,7 @@ export default function Home() {
           </div>
           
           <div className="mt-2 space-y-[2vh] pb-[1vh]">
-            <div className="feature-content h-[17.5vh] sticky top-0 bg-black">
+            <div className="feature-content h-[35vh] sticky top-0 bg-black">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
                 <div className="relative w-full h-[375px]">
                   <Image

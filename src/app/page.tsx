@@ -73,20 +73,20 @@ export default function Home() {
       </section>
 
       {/* Feature Highlights Section */}
-      <section className="relative bg-gradient-to-b from-black via-gray-900/50 to-black py-16 overflow-hidden min-h-screen">
+      <section className="relative bg-gradient-to-b from-black via-gray-900/50 to-black py-16 overflow-hidden min-h-[300vh]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
-          <div className="max-w-[600px] mx-auto text-center mb-16">
+          <div className="max-w-[600px] mx-auto text-left mb-16">
             <h2 className="text-3xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Feature Highlights</h2>
             <p className="text-lg text-gray-400">
               Everything you need to quote, plan, and deliver jobs with confidence.
             </p>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start relative">
             {/* Sticky image container - Left side */}
-            <div className="sticky top-32">
-              <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
+            <div className="lg:sticky lg:top-32 h-[500px]">
+              <div className="relative w-full h-full rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
                 <Image
                   src="/images/Build your proposal White.png"
                   alt="Feature highlight"
@@ -100,28 +100,28 @@ export default function Home() {
             
             {/* Scrollable content - Right side */}
             <div className="space-y-[70vh]">
-              <div className="feature-content" data-image="/images/Build your proposal White.png">
+              <div className="feature-content text-left" data-image="/images/Build your proposal White.png">
                 <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Fast, accurate proposals</h3>
                 <p className="text-sm md:text-base text-gray-400">
                   Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
                 </p>
               </div>
               
-              <div className="feature-content" data-image="/images/project Timecard.png">
+              <div className="feature-content text-left" data-image="/images/project Timecard.png">
                 <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Simple project planning</h3>
                 <p className="text-sm md:text-base text-gray-400">
                   Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
                 </p>
               </div>
               
-              <div className="feature-content" data-image="/images/One Tap Update White.png">
+              <div className="feature-content text-left" data-image="/images/One Tap Update White.png">
                 <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Built-in cost control</h3>
                 <p className="text-sm md:text-base text-gray-400">
                   Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
                 </p>
               </div>
               
-              <div className="feature-content" data-image="/images/Client-Ready Quote White.png">
+              <div className="feature-content text-left" data-image="/images/Client-Ready Quote White.png">
                 <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Build proposals that win work</h3>
                 <p className="text-sm md:text-base text-gray-400">
                   Build your proposal, showcase your capability, and lock in your terms—all in a clean, consistent format.
@@ -547,7 +547,7 @@ export default function Home() {
                 <div className="flex items-start space-x-4">
                   <div className="flex-shrink-0 w-6 h-6">
                     <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
-                      <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h-4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                     </svg>
                   </div>
                   <div>

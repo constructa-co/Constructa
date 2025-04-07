@@ -5,10 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   if (!featureImage || featureContents.length === 0) return;
 
-  // Show first content section initially
-  featureContents[0].classList.add('active');
-  featureContents[0].style.opacity = '1';
-
   // Create intersection observer for each feature content
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -27,10 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
         featureContents.forEach(content => {
           if (content === entry.target) {
             content.classList.add('active');
-            content.style.opacity = '1';
           } else {
             content.classList.remove('active');
-            content.style.opacity = '0';
           }
         });
       }

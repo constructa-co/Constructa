@@ -1,37 +1,53 @@
 // Feature scroll animation
 document.addEventListener('DOMContentLoaded', () => {
-  const featureImage = document.getElementById('feature-image');
   const featureContents = document.querySelectorAll('.feature-content');
   
-  if (!featureImage || featureContents.length === 0) return;
-
-  // Set initial data attributes
-  featureContents[0].setAttribute('data-image', '/images/Build your proposal White.png');
-  featureContents[1].setAttribute('data-image', '/images/project Timecard.png');
-  featureContents[2].setAttribute('data-image', '/images/One Tap Update White.png');
-  featureContents[3].setAttribute('data-image', '/images/Client-Ready Quote White.png');
+  if (featureContents.length === 0) return;
 
   // Create intersection observer for each feature content
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
-        const imageSrc = entry.target.getAttribute('data-image');
-        if (imageSrc) {
-          featureImage.style.opacity = '0';
-          setTimeout(() => {
-            featureImage.src = imageSrc;
-            featureImage.style.opacity = '1';
-          }, 200);
+        // Add active class to current section
+        entry.target.classList.add('active');
+        
+        // Fade in content
+        const content = entry.target.querySelector('.transform');
+        if (content) {
+          content.style.opacity = '1';
+          content.style.transform = 'translateY(0)';
+        }
+      } else {
+        // Remove active class from other sections
+        entry.target.classList.remove('active');
+        
+        // Fade out content
+        const content = entry.target.querySelector('.transform');
+        if (content) {
+          content.style.opacity = '0';
+          content.style.transform = 'translateY(20px)';
         }
       }
     });
   }, {
-    threshold: 0.5,
-    rootMargin: '-10% 0px -10% 0px'
+    threshold: 0.5
   });
   
-  // Observe each feature content
-  featureContents.forEach(content => {
+  // Set initial state and observe each feature content
+  featureContents.forEach((content, index) => {
+    // Set initial state
+    const contentDiv = content.querySelector('.transform');
+    if (contentDiv) {
+      if (index === 0) {
+        contentDiv.style.opacity = '1';
+        contentDiv.style.transform = 'translateY(0)';
+        content.classList.add('active');
+      } else {
+        contentDiv.style.opacity = '0';
+        contentDiv.style.transform = 'translateY(20px)';
+      }
+    }
+    
     observer.observe(content);
   });
 }); 

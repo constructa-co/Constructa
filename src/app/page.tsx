@@ -286,33 +286,218 @@ export default function Home() {
       </section>
 
       {/* Pricing Section */}
-      <section className="relative bg-black text-white p-20 text-center overflow-hidden">
+      <section className="relative bg-black text-white py-32 text-center overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
-        <div className="relative">
-          <h2 className="text-3xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Professional tools&mdash;without the big software price tag.</h2>
-          <p className="text-lg mb-12 max-w-3xl mx-auto text-gray-400">
-            We&apos;ll be offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
-          </p>
-          <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="group p-8 rounded-xl border border-gray-800/50 hover:border-gray-700/50 transition-all duration-500 hover:shadow-xl hover:shadow-gray-900/30 bg-black/50 backdrop-blur-sm relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative">
-                <h3 className="text-xl font-bold text-orange-500 mb-4">Built for people who build</h3>
-                <p className="text-gray-400">Whether you&apos;re pricing up a job, planning your programme, or getting stuck in on site - Constructa works the way you do.</p>
+        <div className="relative max-w-7xl mx-auto px-8">
+          <div className="text-center mb-12">
+            <span className="text-sm font-medium tracking-wider uppercase text-gray-400">OUR PRICING</span>
+            <h2 className="text-4xl font-bold mt-4 mb-8">Get Started with Constructa</h2>
+          </div>
+
+          {/* Billing Toggle */}
+          <div className="flex items-center justify-center gap-4 mb-16">
+            <button className="px-4 py-2 rounded-full text-sm font-medium text-gray-400 hover:text-white transition-colors">
+              Monthly
+            </button>
+            <button className="px-4 py-2 rounded-full text-sm font-medium bg-white/10 text-white">
+              Quarterly
+              <span className="ml-2 text-xs px-2 py-0.5 bg-orange-500 text-white rounded-full">15% OFF</span>
+            </button>
+            <button className="px-4 py-2 rounded-full text-sm font-medium text-gray-400 hover:text-white transition-colors">
+              Yearly
+              <span className="ml-2 text-xs px-2 py-0.5 bg-orange-500 text-white rounded-full">30% OFF</span>
+            </button>
+          </div>
+
+          {/* Pricing Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Basic Plan */}
+            <div className="relative p-8 rounded-2xl border border-gray-800/50 bg-black/50 backdrop-blur-sm hover:border-gray-700/50 transition-all duration-300">
+              <div className="text-left">
+                <h3 className="text-xl font-bold mb-2">Basic</h3>
+                <p className="text-sm text-gray-400 mb-6">Essential tools for individual contractors starting their journey.</p>
+                <div className="mb-6">
+                  <span className="text-3xl font-bold">US$25</span>
+                  <span className="text-sm text-gray-400 ml-2">/month</span>
+                  <div className="text-xs text-gray-400 mt-1">Billed quarterly</div>
+                </div>
+                <button className="w-full py-3 px-4 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors mb-8">
+                  Get Started
+                </button>
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-400 font-medium">What's included</div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Up to 15 projects/quarter</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Basic proposal templates</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>4 team members</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Standard support</span>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="group p-8 rounded-xl border border-gray-800/50 hover:border-gray-700/50 transition-all duration-500 hover:shadow-xl hover:shadow-gray-900/30 bg-black/50 backdrop-blur-sm relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative">
-                <h3 className="text-xl font-bold text-orange-500 mb-4">Simple, practical, and made to fit</h3>
-                <p className="text-gray-400">No steep learning curve - just practical tools that work out of the box.</p>
+
+            {/* Standard Plan */}
+            <div className="relative p-8 rounded-2xl border border-gray-800/50 bg-black/50 backdrop-blur-sm hover:border-gray-700/50 transition-all duration-300">
+              <div className="text-left">
+                <h3 className="text-xl font-bold mb-2">Standard</h3>
+                <p className="text-sm text-gray-400 mb-6">Enhanced features for growing construction businesses.</p>
+                <div className="mb-6">
+                  <span className="text-3xl font-bold">US$50</span>
+                  <span className="text-sm text-gray-400 ml-2">/month</span>
+                  <div className="text-xs text-gray-400 mt-1">Billed quarterly</div>
+                </div>
+                <button className="w-full py-3 px-4 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors mb-8">
+                  Get Started
+                </button>
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-400 font-medium">What's included</div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Up to 50 projects/quarter</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Advanced proposal templates</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>8 team members</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Priority support</span>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="group p-8 rounded-xl border border-gray-800/50 hover:border-gray-700/50 transition-all duration-500 hover:shadow-xl hover:shadow-gray-900/30 bg-black/50 backdrop-blur-sm relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative">
-                <h3 className="text-xl font-bold text-orange-500 mb-4">Control from day one</h3>
-                <p className="text-gray-400">Quote, plan, and manage your jobs with confidence&mdash;no missed steps, no mess.</p>
+
+            {/* Professional Plan */}
+            <div className="relative p-8 rounded-2xl border-2 border-orange-500 bg-black/50 backdrop-blur-sm transition-all duration-300">
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-3 py-1 bg-orange-500 text-white text-xs font-medium rounded-full">
+                Best Value
+              </div>
+              <div className="text-left">
+                <h3 className="text-xl font-bold mb-2">Professional</h3>
+                <p className="text-sm text-gray-400 mb-6">Advanced tools and privacy for professional contractors.</p>
+                <div className="mb-6">
+                  <span className="text-3xl font-bold">US$100</span>
+                  <span className="text-sm text-gray-400 ml-2">/month</span>
+                  <div className="text-xs text-gray-400 mt-1">Billed quarterly</div>
+                </div>
+                <button className="w-full py-3 px-4 rounded-xl bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 transition-colors mb-8">
+                  Get Started
+                </button>
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-400 font-medium">What's included</div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Unlimited projects</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Custom proposal templates</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>12 team members</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>24/7 priority support</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Enterprise Plan */}
+            <div className="relative p-8 rounded-2xl border border-gray-800/50 bg-black/50 backdrop-blur-sm hover:border-gray-700/50 transition-all duration-300">
+              <div className="text-left">
+                <h3 className="text-xl font-bold mb-2">Enterprise</h3>
+                <p className="text-sm text-gray-400 mb-6">Custom solutions for large construction companies.</p>
+                <div className="mb-6">
+                  <span className="text-3xl font-bold">Custom</span>
+                  <div className="text-xs text-gray-400 mt-1">Contact for pricing</div>
+                </div>
+                <button className="w-full py-3 px-4 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors mb-8">
+                  Contact Sales
+                </button>
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-400 font-medium">What's included</div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Unlimited everything</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Custom integrations</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Unlimited team members</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Dedicated support team</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -358,7 +543,7 @@ export default function Home() {
                       <path d="M12 2v6m0 14v-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                       <path d="M4.93 4.93l4.24 4.24m5.66 5.66l4.24 4.24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                       <path d="M2 12h6m14 0h-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                      <path d="M4.93 19.07l4.24-4.24m5.66-5.66l4.24-4.24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M4.93 19.07l4.24-4.24m5.66-5.66l4.24-4.24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
                   <div>

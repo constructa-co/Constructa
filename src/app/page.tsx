@@ -83,8 +83,8 @@ export default function Home() {
             </p>
           </div>
           
-          <div className="space-y-[8vh] pb-[4vh]">
-            <div className="feature-content h-[35vh] sticky top-[10vh] bg-black">
+          <div className="space-y-[16vh] pb-[8vh]">
+            <div className="feature-content h-[50vh] sticky top-[10vh] bg-black">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
                 <div className="relative w-full h-[500px]">
                   <Image
@@ -113,7 +113,7 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="feature-content h-[35vh] sticky top-[10vh] bg-black">
+            <div className="feature-content h-[50vh] sticky top-[10vh] bg-black">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
                 <div className="relative w-full h-[500px]">
                   <Image
@@ -142,7 +142,7 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="feature-content h-[35vh] sticky top-[10vh] bg-black">
+            <div className="feature-content h-[50vh] sticky top-[10vh] bg-black">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
                 <div className="relative w-full h-[500px]">
                   <Image
@@ -171,7 +171,7 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="feature-content h-[35vh] sticky top-[10vh] bg-black">
+            <div className="feature-content h-[50vh] sticky top-[10vh] bg-black">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
                 <div className="relative w-full h-[500px]">
                   <Image

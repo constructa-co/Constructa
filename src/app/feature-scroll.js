@@ -34,14 +34,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }, {
-    threshold: 0.5,
-    rootMargin: '-10% 0px'
+    threshold: 0.25,
+    rootMargin: '-20% 0px'
   });
   
   // Set initial state and observe each feature content
   featureContents.forEach((content, index) => {
     // Add transition properties to feature content
-    content.style.transition = 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out';
+    content.style.transition = 'opacity 0.4s ease-in-out, transform 0.4s ease-in-out';
     
     // Set initial state
     if (index === 0) {

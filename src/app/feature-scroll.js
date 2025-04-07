@@ -24,28 +24,39 @@ document.addEventListener('DOMContentLoaded', () => {
             featureImage.style.opacity = '1';
           };
           newImage.src = imageSrc;
-        }, 300);
+        }, 200); // Reduced timing for snappier transitions
         
         // Update active state for content
         featureContents.forEach(content => {
           if (content === entry.target) {
             content.classList.add('active');
+            content.style.opacity = '1';
           } else {
             content.classList.remove('active');
+            content.style.opacity = '0.3'; // Dim non-active sections
           }
         });
       }
     });
   }, {
-    threshold: 0.5,
-    rootMargin: '-35% 0px -35% 0px'
+    threshold: 0.7, // Increased threshold for more precise snapping
+    rootMargin: '-20% 0px -20% 0px' // Adjusted margins for better snap points
   });
   
   // Observe each feature content
   featureContents.forEach(content => {
     observer.observe(content);
   });
-  
+
+  // Set initial state
+  featureContents[0].classList.add('active');
+  featureContents[0].style.opacity = '1';
+  featureContents.forEach((content, index) => {
+    if (index !== 0) {
+      content.style.opacity = '0.3';
+    }
+  });
+
   // Add scroll-linked animation class to the sticky container
   const stickyContainer = document.querySelector('.lg\\:sticky');
   if (stickyContainer) {

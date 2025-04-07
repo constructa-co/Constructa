@@ -1,29 +1,22 @@
 // Feature scroll animation
 document.addEventListener('DOMContentLoaded', () => {
-  const featureImages = document.querySelectorAll('#feature-images img');
+  const featureImage = document.getElementById('feature-image');
   const featureContents = document.querySelectorAll('.feature-content');
   
-  if (featureImages.length === 0 || featureContents.length === 0) return;
+  if (!featureImage || featureContents.length === 0) return;
 
-  // Show first image initially
-  featureImages[0].style.opacity = '1';
-  
   // Create intersection observer for each feature content
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
-        const imageId = entry.target.getAttribute('data-image');
+        const imageSrc = entry.target.getAttribute('data-image');
         
-        // Hide all images with a fade
-        featureImages.forEach(img => {
-          if (img.id === imageId) {
-            img.style.opacity = '1';
-            img.style.zIndex = '1';
-          } else {
-            img.style.opacity = '0';
-            img.style.zIndex = '0';
-          }
-        });
+        // Update image source with fade effect
+        featureImage.style.opacity = '0';
+        setTimeout(() => {
+          featureImage.src = imageSrc;
+          featureImage.style.opacity = '1';
+        }, 300);
         
         // Update active state for content
         featureContents.forEach(content => {

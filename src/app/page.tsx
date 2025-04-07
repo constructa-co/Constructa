@@ -83,9 +83,9 @@ export default function Home() {
             </p>
           </div>
           
-          <div className="space-y-[15vh] pb-[10vh]">
-            <div className="feature-content min-h-screen h-[50vh] sticky top-0 bg-black">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center">
+          <div className="snap-y snap-mandatory h-[100vh] overflow-y-auto">
+            <div className="feature-content snap-start h-screen w-full bg-black">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
                 <div className="relative w-full h-[500px]">
                   <Image
                     src="/images/Build your proposal White.png"
@@ -95,7 +95,7 @@ export default function Home() {
                     priority
                   />
                 </div>
-                <div className="transform transition-all duration-500">
+                <div className="transform transition-all duration-300">
                   <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Fast, accurate proposals</h3>
                   <p className="text-sm md:text-base text-gray-400">
                     Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
@@ -104,8 +104,8 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="feature-content min-h-screen h-[75vh] sticky top-0 bg-black">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center">
+            <div className="feature-content snap-start h-screen w-full bg-black">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
                 <div className="relative w-full h-[500px]">
                   <Image
                     src="/images/project Timecard.png"
@@ -115,7 +115,7 @@ export default function Home() {
                     priority
                   />
                 </div>
-                <div className="transform transition-all duration-500">
+                <div className="transform transition-all duration-300">
                   <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Simple project planning</h3>
                   <p className="text-sm md:text-base text-gray-400">
                     Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
@@ -124,8 +124,8 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="feature-content min-h-screen h-[75vh] sticky top-0 bg-black">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center">
+            <div className="feature-content snap-start h-screen w-full bg-black">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
                 <div className="relative w-full h-[500px]">
                   <Image
                     src="/images/One Tap Update White.png"
@@ -135,7 +135,7 @@ export default function Home() {
                     priority
                   />
                 </div>
-                <div className="transform transition-all duration-500">
+                <div className="transform transition-all duration-300">
                   <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Built-in cost control</h3>
                   <p className="text-sm md:text-base text-gray-400">
                     Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
@@ -144,8 +144,8 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="feature-content min-h-screen h-[75vh] sticky top-0 bg-black">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center">
+            <div className="feature-content snap-start h-screen w-full bg-black">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
                 <div className="relative w-full h-[500px]">
                   <Image
                     src="/images/Client-Ready Quote White.png"
@@ -155,7 +155,7 @@ export default function Home() {
                     priority
                   />
                 </div>
-                <div className="transform transition-all duration-500">
+                <div className="transform transition-all duration-300">
                   <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Build proposals that win work</h3>
                   <p className="text-sm md:text-base text-gray-400">
                     Build your proposal, showcase your capability, and lock in your terms—all in a clean, consistent format.

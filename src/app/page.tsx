@@ -197,30 +197,66 @@ export default function Home() {
             <div className="max-w-[500px] justify-self-end">
               <h2 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">Quote it. Plan it. Run it.</h2>
               <div className="space-y-4 text-left">
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div className="flex items-start space-x-4">
-                    <span className="text-orange-500 font-medium">1.</span>
-                    <p className="text-sm md:text-base text-gray-400">
-                      <span className="text-orange-500 font-medium">Build your quote:</span> Set your price, add your capability statement, and drop in your terms. Done in minutes, not hours.
-                    </p>
+                    <div className="flex-shrink-0 w-6 h-6">
+                      <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                        <path d="M3 7h18M3 7v13a1 1 0 001 1h16a1 1 0 001-1V7M3 7V4a1 1 0 011-1h16a1 1 0 011 1v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M12 11v6m-3-3h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm md:text-base font-medium text-white mb-1">Build your quote</h3>
+                      <p className="text-sm md:text-base text-gray-400">
+                        Set your price, add your capability statement, and drop in your terms. Done in minutes, not hours.
+                      </p>
+                    </div>
                   </div>
+
                   <div className="flex items-start space-x-4">
-                    <span className="text-orange-500 font-medium">2.</span>
-                    <p className="text-sm md:text-base text-gray-400">
-                      <span className="text-orange-500 font-medium">Map out the job:</span> Add key dates, phases, and milestones. Keep everyone&mdash;from client to crew&mdash;on the same page.
-                    </p>
+                    <div className="flex-shrink-0 w-6 h-6">
+                      <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                        <path d="M8 7V3m8 4V3M7 11h10M7 15h10M7 19h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm md:text-base font-medium text-white mb-1">Map out the job</h3>
+                      <p className="text-sm md:text-base text-gray-400">
+                        Add key dates, phases, and milestones. Keep everyone&mdash;from client to crew&mdash;on the same page.
+                      </p>
+                    </div>
                   </div>
+
                   <div className="flex items-start space-x-4">
-                    <span className="text-orange-500 font-medium">3.</span>
-                    <p className="text-sm md:text-base text-gray-400">
-                      <span className="text-orange-500 font-medium">Stay in control:</span> Track changes, stay on schedule, and keep the job moving without the spreadsheet stress.
-                    </p>
+                    <div className="flex-shrink-0 w-6 h-6">
+                      <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                        <path d="M12 8v4l2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M3.34985 16.65C2.48459 15.1164 2 13.3634 2 11.5C2 5.97715 6.47715 1.5 12 1.5C17.5228 1.5 22 5.97715 22 11.5C22 17.0228 17.5228 21.5 12 21.5C10.1366 21.5 8.38356 21.0154 6.84998 20.1502" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M3 14l.34985 2.65L6 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm md:text-base font-medium text-white mb-1">Stay in control</h3>
+                      <p className="text-sm md:text-base text-gray-400">
+                        Track changes, stay on schedule, and keep the job moving without the spreadsheet stress.
+                      </p>
+                    </div>
                   </div>
+
                   <div className="flex items-start space-x-4">
-                    <span className="text-orange-500 font-medium">4.</span>
-                    <p className="text-sm md:text-base text-gray-400">
-                      <span className="text-orange-500 font-medium">Win the work:</span> Show clients you&apos;re ready to deliver&mdash;professional, prepared, and in control from day one.
-                    </p>
+                    <div className="flex-shrink-0 w-6 h-6">
+                      <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                        <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm md:text-base font-medium text-white mb-1">Win the work</h3>
+                      <p className="text-sm md:text-base text-gray-400">
+                        Show clients you&apos;re ready to deliver&mdash;professional, prepared, and in control from day one.
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <div className="pt-4">

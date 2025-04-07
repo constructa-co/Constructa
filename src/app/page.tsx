@@ -86,7 +86,7 @@ export default function Home() {
           <div className="space-y-[8vh] pb-[4vh]">
             <div className="feature-content h-[35vh] sticky top-[10vh] bg-black">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
-                <div className="relative w-full h-[375px]">
+                <div className="relative w-full h-[500px]">
                   <Image
                     src="/images/Build your proposal White.png"
                     alt="Fast, accurate proposals"
@@ -113,9 +113,9 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="feature-content min-h-screen h-[40vh] sticky top-0 bg-black">
+            <div className="feature-content h-[35vh] sticky top-[10vh] bg-black">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
-                <div className="relative w-full h-[375px]">
+                <div className="relative w-full h-[500px]">
                   <Image
                     src="/images/project Timecard.png"
                     alt="Simple project planning"
@@ -142,9 +142,9 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="feature-content min-h-screen h-[40vh] sticky top-0 bg-black">
+            <div className="feature-content h-[35vh] sticky top-[10vh] bg-black">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
-                <div className="relative w-full h-[375px]">
+                <div className="relative w-full h-[500px]">
                   <Image
                     src="/images/One Tap Update White.png"
                     alt="Built-in cost control"
@@ -171,9 +171,9 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="feature-content min-h-screen h-[40vh] sticky top-0 bg-black">
+            <div className="feature-content h-[35vh] sticky top-[10vh] bg-black">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
-                <div className="relative w-full h-[375px]">
+                <div className="relative w-full h-[500px]">
                   <Image
                     src="/images/Client-Ready Quote White.png"
                     alt="Build proposals that win work"
@@ -197,8 +197,8 @@ export default function Home() {
                     </svg>
                   </a>
                 </div>
-          </div>
-          </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -240,8 +240,8 @@ export default function Home() {
                     </svg>
                   </a>
                 </div>
-          </div>
-          </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -688,7 +688,7 @@ export default function Home() {
                   className="w-full p-4 bg-black/50 border border-gray-800/50 rounded-xl text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all duration-300 backdrop-blur-sm" 
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-900/10 to-transparent opacity-0 focus-within:opacity-100 transition-opacity duration-500 rounded-xl"></div>
-          </div>
+              </div>
               <textarea 
                 placeholder="Message" 
                 className="w-full p-4 bg-black/50 border border-gray-800/50 rounded-xl text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all duration-300 backdrop-blur-sm" 

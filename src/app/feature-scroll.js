@@ -13,10 +13,17 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Update image source with fade effect
         featureImage.style.opacity = '0';
+        
+        // Use a different approach to update the image source
         setTimeout(() => {
-          // Update the src attribute of the Image component
-          featureImage.src = imageSrc;
-          featureImage.style.opacity = '1';
+          // Create a new image element to preload the image
+          const newImage = new Image();
+          newImage.onload = () => {
+            // Once loaded, update the src attribute
+            featureImage.src = imageSrc;
+            featureImage.style.opacity = '1';
+          };
+          newImage.src = imageSrc;
         }, 300);
         
         // Update active state for content

@@ -99,7 +99,7 @@ export default function Home() {
             </div>
             
             {/* Scrollable content - Right side */}
-            <div className="space-y-[17.5vh]">
+            <div className="space-y-[10vh]">
               <div className="feature-content text-left min-h-[300px] flex items-center" data-image="/images/Build your proposal White.png">
                 <div>
                   <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Fast, accurate proposals</h3>

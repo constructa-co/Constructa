@@ -153,8 +153,8 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
             <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
               <Image
-                src="/images/Built with experience.png"
-                alt="Built with experience - Constructa team expertise"
+                src="/images/imple Project Overview White.png"
+                alt="What sets Constructa apart"
                 fill
                 className="object-contain"
                 priority

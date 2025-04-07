@@ -505,10 +505,6 @@ export default function Home() {
               </div>
             </div>
           </div>
-
-          <p className="text-lg font-medium text-white mt-12">
-            Early users get priority access and special launch pricing.
-          </p>
         </div>
       </section>
 

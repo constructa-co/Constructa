@@ -30,7 +30,7 @@ export default function Home() {
       </section>
 
       {/* Problem → Solution Section */}
-      <section className="relative bg-black text-white py-16 overflow-hidden">
+      <section className="relative bg-black text-white py-32 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
@@ -73,18 +73,18 @@ export default function Home() {
       </section>
 
       {/* Feature Highlights Section */}
-      <section className="relative bg-gradient-to-b from-black via-gray-900/50 to-black py-16">
+      <section className="relative bg-gradient-to-b from-black via-gray-900/50 to-black py-32">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
-          <div className="max-w-[600px] mx-auto text-left mb-4">
-            <h2 className="text-3xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Feature Highlights</h2>
+          <div className="max-w-[600px] mx-auto text-left mb-16">
+            <h2 className="text-3xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Feature Highlights</h2>
             <p className="text-lg text-gray-400">
               Everything you need to quote, plan, and deliver jobs with confidence.
             </p>
           </div>
           
-          <div className="mt-2 space-y-[2vh] pb-[1vh]">
-            <div className="feature-content h-[35vh] sticky top-0 bg-black">
+          <div className="space-y-[8vh] pb-[4vh]">
+            <div className="feature-content h-[35vh] sticky top-[10vh] bg-black">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
                 <div className="relative w-full h-[375px]">
                   <Image
@@ -197,14 +197,14 @@ export default function Home() {
                     </svg>
                   </a>
                 </div>
-              </div>
-            </div>
+          </div>
+          </div>
           </div>
         </div>
       </section>
 
       {/* What Sets Us Apart Section */}
-      <section className="relative bg-black text-white py-16 overflow-hidden">
+      <section className="relative bg-black text-white py-32 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -240,8 +240,8 @@ export default function Home() {
                     </svg>
                   </a>
                 </div>
-              </div>
-            </div>
+          </div>
+          </div>
           </div>
         </div>
       </section>
@@ -688,7 +688,7 @@ export default function Home() {
                   className="w-full p-4 bg-black/50 border border-gray-800/50 rounded-xl text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all duration-300 backdrop-blur-sm" 
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-900/10 to-transparent opacity-0 focus-within:opacity-100 transition-opacity duration-500 rounded-xl"></div>
-              </div>
+          </div>
               <textarea 
                 placeholder="Message" 
                 className="w-full p-4 bg-black/50 border border-gray-800/50 rounded-xl text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all duration-300 backdrop-blur-sm" 

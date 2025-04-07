@@ -45,8 +45,17 @@ export default function Home() {
       <section className="relative bg-black text-white py-32 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div className="max-w-[500px] justify-self-end">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+            <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
+              <Image
+                src="/images/hero-image.png"
+                alt="Construction Planning Software"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+            <div className="max-w-[500px]">
               <h2 className="text-3xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">No more spreadsheets. Just smart tools for your construction company.</h2>
               <div className="space-y-6 text-gray-400">
                 <p className="text-lg">
@@ -59,14 +68,6 @@ export default function Home() {
                   Constructa brings everything into one place. From proposals to planning and project delivery, it gives you the clarity, structure, and control you need&mdash;without the admin overload.
                 </p>
               </div>
-            </div>
-            <div className="relative w-full h-[600px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
-              <Image
-                src="/images/imple Project Overview White.png"
-                alt="Simple project overview interface"
-                fill
-                className="object-contain"
-              />
             </div>
           </div>
         </div>

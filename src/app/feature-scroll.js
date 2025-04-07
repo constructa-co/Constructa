@@ -2,65 +2,76 @@
 document.addEventListener('DOMContentLoaded', () => {
   const featureImage = document.getElementById('feature-image');
   const featureContents = document.querySelectorAll('.feature-content');
+  const scrollContainer = document.querySelector('.snap-mandatory');
   
-  if (!featureImage || featureContents.length === 0) return;
+  if (!featureImage || !featureContents.length || !scrollContainer) return;
+
+  // Show first content initially
+  featureContents[0].querySelector('div').style.opacity = '1';
+
+  let lastScrollTop = 0;
+  let isScrolling = false;
 
   // Create intersection observer for each feature content
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
-      if (entry.isIntersecting) {
+      if (entry.isIntersecting && !isScrolling) {
         const imageSrc = entry.target.getAttribute('data-image');
+        const contentDiv = entry.target.querySelector('div');
         
-        // Update image source with fade effect
+        // Update image with fade effect
         featureImage.style.opacity = '0';
-        
-        // Use a different approach to update the image source
         setTimeout(() => {
-          // Create a new image element to preload the image
-          const newImage = new Image();
-          newImage.onload = () => {
-            // Once loaded, update the src attribute
-            featureImage.src = imageSrc;
-            featureImage.style.opacity = '1';
-          };
-          newImage.src = imageSrc;
-        }, 200); // Reduced timing for snappier transitions
+          featureImage.src = imageSrc;
+          featureImage.style.opacity = '1';
+        }, 200);
+
+        // Show current content
+        contentDiv.style.opacity = '1';
         
-        // Update active state for content
+        // Hide other content
         featureContents.forEach(content => {
-          if (content === entry.target) {
-            content.classList.add('active');
-            content.style.opacity = '1';
-          } else {
-            content.classList.remove('active');
-            content.style.opacity = '0.3'; // Dim non-active sections
+          if (content !== entry.target) {
+            const otherDiv = content.querySelector('div');
+            otherDiv.style.opacity = '0';
           }
         });
       }
     });
   }, {
-    threshold: 0.7, // Increased threshold for more precise snapping
-    rootMargin: '-20% 0px -20% 0px' // Adjusted margins for better snap points
+    threshold: 0.5,
+    root: scrollContainer,
+    rootMargin: '-10% 0px -10% 0px'
   });
-  
+
   // Observe each feature content
   featureContents.forEach(content => {
     observer.observe(content);
   });
 
-  // Set initial state
-  featureContents[0].classList.add('active');
-  featureContents[0].style.opacity = '1';
-  featureContents.forEach((content, index) => {
-    if (index !== 0) {
-      content.style.opacity = '0.3';
+  // Handle scroll snapping
+  scrollContainer.addEventListener('scroll', () => {
+    if (!isScrolling) {
+      isScrolling = true;
+      window.requestAnimationFrame(() => {
+        const currentScrollTop = scrollContainer.scrollTop;
+        const direction = currentScrollTop > lastScrollTop ? 1 : -1;
+        lastScrollTop = currentScrollTop;
+        
+        // Find the closest snap point
+        const containerHeight = scrollContainer.clientHeight;
+        const targetScroll = Math.round(currentScrollTop / containerHeight) * containerHeight;
+        
+        // Smooth scroll to the target
+        scrollContainer.scrollTo({
+          top: targetScroll,
+          behavior: 'smooth'
+        });
+        
+        setTimeout(() => {
+          isScrolling = false;
+        }, 100);
+      });
     }
-  });
-
-  // Add scroll-linked animation class to the sticky container
-  const stickyContainer = document.querySelector('.lg\\:sticky');
-  if (stickyContainer) {
-    stickyContainer.style.transform = 'translateZ(0)';
-    stickyContainer.style.willChange = 'transform';
-  }
+  }, { passive: true });
 }); 

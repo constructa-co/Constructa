@@ -41,8 +41,8 @@ export default function Home() {
               />
             </div>
             <div className="max-w-[500px]">
-              <h2 className="text-3xl md:text-4xl font-semibold mb-8 text-white leading-tight">No more spreadsheets. Just smart tools for your construction company.</h2>
-              <div className="space-y-6">
+              <h2 className="text-3xl md:text-4xl font-semibold mb-8 text-white leading-tight text-left">No more spreadsheets. Just smart tools for your construction company.</h2>
+              <div className="space-y-6 text-left">
                 <p className="text-sm md:text-base text-gray-400">
                   Running a small construction company means quoting fast, planning tight, and delivering on site&mdash;all while juggling paperwork, messages, and spreadsheets.
                 </p>

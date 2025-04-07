@@ -153,7 +153,7 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
             <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
               <Image
-                src="/images/built with experience.png"
+                src="/images/Built with experience.png"
                 alt="Built with experience - Constructa team expertise"
                 fill
                 className="object-contain"
@@ -326,7 +326,7 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
             <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
               <Image
-                src="/images/built with experience.png"
+                src="/images/Built with experience.png"
                 alt="Built with experience - Constructa team expertise"
                 fill
                 className="object-contain"

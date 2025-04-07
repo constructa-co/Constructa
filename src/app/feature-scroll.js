@@ -1,64 +1,102 @@
 // Feature scroll animation
 document.addEventListener('DOMContentLoaded', () => {
+  const featureImages = document.querySelectorAll('.feature-image');
   const featureContents = document.querySelectorAll('.feature-content');
   
   if (featureContents.length === 0) return;
 
-  // Create intersection observer for each feature content
+  // Create intersection observer
   const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        // Make current section fully visible immediately
-        entry.target.style.opacity = '1';
-        entry.target.classList.add('active');
-        
-        // Show content immediately
-        const content = entry.target.querySelector('.transform');
-        if (content) {
-          content.style.opacity = '1';
-          content.style.transform = 'translateY(0)';
-        }
+    const scrollPosition = window.scrollY;
+    const containerHeight = document.querySelector('.h-[300vh]').offsetHeight;
+    const sectionHeight = containerHeight / 4; // 4 sections
+    
+    // Calculate which section should be active based on scroll position
+    const activeIndex = Math.floor((scrollPosition / sectionHeight) * 4);
+    
+    // Update visibility of images and content
+    featureImages.forEach((image, index) => {
+      if (index === activeIndex) {
+        image.style.opacity = '1';
+        image.style.visibility = 'visible';
       } else {
-        // Hide non-visible sections immediately
-        entry.target.style.opacity = '0';
-        entry.target.classList.remove('active');
-        
-        // Hide content immediately
-        const content = entry.target.querySelector('.transform');
-        if (content) {
-          content.style.opacity = '0';
-          content.style.transform = 'translateY(20px)';
-        }
+        image.style.opacity = '0';
+        image.style.visibility = 'hidden';
+      }
+    });
+    
+    featureContents.forEach((content, index) => {
+      if (index === activeIndex) {
+        content.style.opacity = '1';
+        content.style.visibility = 'visible';
+        content.style.transform = 'translateY(0)';
+      } else {
+        content.style.opacity = '0';
+        content.style.visibility = 'hidden';
+        content.style.transform = 'translateY(20px)';
       }
     });
   }, {
-    threshold: 0.7, // Trigger when section is mostly visible
-    rootMargin: '0px'
+    threshold: [0, 0.25, 0.5, 0.75, 1],
   });
-  
-  // Set initial state and observe each feature content
+
+  // Set initial state
+  featureImages.forEach((image, index) => {
+    image.style.transition = 'opacity 0.2s ease-out, visibility 0.2s ease-out';
+    if (index === 0) {
+      image.style.opacity = '1';
+      image.style.visibility = 'visible';
+    } else {
+      image.style.opacity = '0';
+      image.style.visibility = 'hidden';
+    }
+  });
+
   featureContents.forEach((content, index) => {
-    // Add minimal transition for smoother snap
-    content.style.transition = 'opacity 0.15s ease-out';
-    
-    // Set initial state
+    content.style.transition = 'opacity 0.2s ease-out, visibility 0.2s ease-out, transform 0.2s ease-out';
     if (index === 0) {
       content.style.opacity = '1';
-      content.classList.add('active');
-      const contentDiv = content.querySelector('.transform');
-      if (contentDiv) {
-        contentDiv.style.opacity = '1';
-        contentDiv.style.transform = 'translateY(0)';
-      }
+      content.style.visibility = 'visible';
+      content.style.transform = 'translateY(0)';
     } else {
       content.style.opacity = '0';
-      const contentDiv = content.querySelector('.transform');
-      if (contentDiv) {
-        contentDiv.style.opacity = '0';
-        contentDiv.style.transform = 'translateY(20px)';
-      }
+      content.style.visibility = 'hidden';
+      content.style.transform = 'translateY(20px)';
     }
-    
-    observer.observe(content);
+  });
+
+  // Observe the container
+  observer.observe(document.querySelector('.h-[300vh]'));
+  
+  // Add scroll event listener for smoother transitions
+  window.addEventListener('scroll', () => {
+    requestAnimationFrame(() => {
+      const scrollPosition = window.scrollY;
+      const containerHeight = document.querySelector('.h-[300vh]').offsetHeight;
+      const sectionHeight = containerHeight / 4;
+      const activeIndex = Math.floor((scrollPosition / sectionHeight) * 4);
+      
+      featureImages.forEach((image, index) => {
+        if (index === activeIndex) {
+          image.style.opacity = '1';
+          image.style.visibility = 'visible';
+        } else {
+          image.style.opacity = '0';
+          image.style.visibility = 'hidden';
+        }
+      });
+      
+      featureContents.forEach((content, index) => {
+        if (index === activeIndex) {
+          content.style.opacity = '1';
+          content.style.visibility = 'visible';
+          content.style.transform = 'translateY(0)';
+        } else {
+          content.style.opacity = '0';
+          content.style.visibility = 'hidden';
+          content.style.transform = 'translateY(20px)';
+        }
+      });
+    });
   });
 }); 

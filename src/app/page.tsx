@@ -41,17 +41,28 @@ export default function Home() {
               />
             </div>
             <div className="max-w-[500px]">
-              <h2 className="text-3xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">No more spreadsheets. Just smart tools for your construction company.</h2>
-              <div className="space-y-6 text-gray-400">
-                <p className="text-lg">
+              <h2 className="text-5xl md:text-6xl font-semibold mb-8 text-white leading-tight">No more spreadsheets. Just smart tools for your construction company.</h2>
+              <div className="space-y-6">
+                <p className="text-base md:text-lg text-gray-400">
                   Running a small construction company means quoting fast, planning tight, and delivering on site&mdash;all while juggling paperwork, messages, and spreadsheets.
                 </p>
-                <p className="text-lg">
+                <p className="text-base md:text-lg text-gray-400">
                   Without the right tools, it&apos;s easy for details to slip through the cracks&mdash;quotes get rushed, programmes are missed, and jobs lose momentum.
                 </p>
-                <p className="text-lg">
+                <p className="text-base md:text-lg text-gray-400">
                   Constructa brings everything into one place. From proposals to planning and project delivery, it gives you the clarity, structure, and control you need&mdash;without the admin overload.
                 </p>
+                <div className="pt-8">
+                  <a 
+                    href="#" 
+                    className="inline-flex items-center px-6 py-3 rounded-lg bg-white text-black font-medium hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    Try CONSTRUCTA
+                    <svg className="ml-2 w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
+                </div>
               </div>
             </div>
           </div>

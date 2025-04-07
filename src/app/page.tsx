@@ -324,7 +324,16 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-            <div className="max-w-[500px] justify-self-end">
+            <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
+              <Image
+                src="/images/Build your proposal White.png"
+                alt="About Constructa"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+            <div className="max-w-[500px]">
               <h2 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">About</h2>
               <div className="space-y-6 text-left">
                 <div className="flex items-start space-x-4">
@@ -401,15 +410,6 @@ export default function Home() {
                   </a>
                 </div>
               </div>
-            </div>
-            <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
-              <Image
-                src="/images/imple Project Overview White.png"
-                alt="Simple project overview interface"
-                fill
-                className="object-contain"
-                priority
-              />
             </div>
           </div>
         </div>

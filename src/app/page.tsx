@@ -30,7 +30,7 @@ export default function Home() {
       </section>
 
       {/* Problem → Solution Section */}
-      <section className="relative bg-black text-white py-32 overflow-hidden">
+      <section className="relative bg-black text-white py-16 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
@@ -73,7 +73,7 @@ export default function Home() {
       </section>
 
       {/* Feature Highlights Section */}
-      <section className="relative bg-gradient-to-b from-black via-gray-900/50 to-black py-32">
+      <section className="relative bg-gradient-to-b from-black via-gray-900/50 to-black py-16">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="max-w-[600px] mx-auto text-left mb-16">
@@ -204,7 +204,7 @@ export default function Home() {
       </section>
 
       {/* What Sets Us Apart Section */}
-      <section className="relative bg-black text-white py-32 overflow-hidden">
+      <section className="relative bg-black text-white py-16 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">

@@ -84,7 +84,7 @@ export default function Home() {
           </div>
           
           <div className="snap-y snap-mandatory h-screen overflow-y-auto">
-            <div className="snap-start h-screen relative">
+            <div className="snap-start h-screen relative z-10">
               <div className="feature-content h-screen sticky top-0 bg-black">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
                   <div className="relative w-full h-[500px]">
@@ -115,7 +115,7 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="snap-start h-screen relative">
+            <div className="snap-start h-screen relative z-20">
               <div className="feature-content h-screen sticky top-0 bg-black">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
                   <div className="relative w-full h-[500px]">
@@ -146,7 +146,7 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="snap-start h-screen relative">
+            <div className="snap-start h-screen relative z-30">
               <div className="feature-content h-screen sticky top-0 bg-black">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
                   <div className="relative w-full h-[500px]">
@@ -177,7 +177,7 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="snap-start h-screen relative">
+            <div className="snap-start h-screen relative z-40">
               <div className="feature-content h-screen sticky top-0 bg-black">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
                   <div className="relative w-full h-[500px]">

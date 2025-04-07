@@ -10,22 +10,20 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1)_0%,transparent_100%)]"></div>
         </div>
-        <div className="relative max-w-7xl mx-auto px-8">
-          <div className="grid grid-cols-3">
-            <div className="col-span-2 pl-10">
-              <div className="flex flex-col items-start">
-                <h1 className="text-left leading-[1.2] w-[1000px]">
-                  <span className="text-4xl md:text-5xl font-semibold tracking-tight">Constructa: proposal, planning and project<br />tools for construction professionals.</span>
-                </h1>
-                <p className="text-lg md:text-xl text-gray-400 mt-6 text-left">
-                  Quote faster, plan smarter, and keep control of every job.
-                </p>
-              </div>
+        <div className="relative max-w-[1400px] mx-auto px-8">
+          <div className="max-w-[600px] mx-auto mb-24">
+            <div className="flex flex-col items-center text-center">
+              <h1 className="leading-[1.2]">
+                <span className="text-4xl md:text-5xl font-semibold tracking-tight">Constructa: proposal, planning and project tools for construction professionals.</span>
+              </h1>
+              <p className="text-lg md:text-xl text-gray-400 mt-6">
+                Quote faster, plan smarter, and keep control of every job.
+              </p>
             </div>
           </div>
           
-          <div className="mt-16 flex justify-center">
-            <div className="max-w-[1000px] w-full">
+          <div className="flex justify-center">
+            <div className="w-full max-w-[1200px]">
               <div className="relative rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
                 <Image
                   src="/images/hero-image.png"
@@ -42,88 +40,105 @@ export default function Home() {
       </section>
 
       {/* Problem → Solution Section */}
-      <section className="relative bg-black text-white p-20 text-center overflow-hidden">
+      <section className="relative bg-black text-white py-32 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
-        <div className="relative">
-          <h2 className="text-3xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">No more spreadsheets. Just smart tools for your construction company.</h2>
-          <div className="max-w-3xl mx-auto space-y-6 text-gray-400">
-            <p className="text-lg">
-              Running a small construction company means quoting fast, planning tight, and delivering on site&mdash;all while juggling paperwork, messages, and spreadsheets.
-            </p>
-            <p className="text-lg">
-              Without the right tools, it&apos;s easy for details to slip through the cracks&mdash;quotes get rushed, programmes are missed, and jobs lose momentum.
-            </p>
-            <p className="text-lg">
-              Constructa brings everything into one place. From proposals to planning and project delivery, it gives you the clarity, structure, and control you need&mdash;without the admin overload.
-            </p>
+        <div className="relative max-w-[1400px] mx-auto px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="max-w-[500px] justify-self-end">
+              <h2 className="text-3xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">No more spreadsheets. Just smart tools for your construction company.</h2>
+              <div className="space-y-6 text-gray-400">
+                <p className="text-lg">
+                  Running a small construction company means quoting fast, planning tight, and delivering on site&mdash;all while juggling paperwork, messages, and spreadsheets.
+                </p>
+                <p className="text-lg">
+                  Without the right tools, it&apos;s easy for details to slip through the cracks&mdash;quotes get rushed, programmes are missed, and jobs lose momentum.
+                </p>
+                <p className="text-lg">
+                  Constructa brings everything into one place. From proposals to planning and project delivery, it gives you the clarity, structure, and control you need&mdash;without the admin overload.
+                </p>
+              </div>
+            </div>
+            <div className="relative w-full h-[600px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
+              <Image
+                src="/images/imple Project Overview White.png"
+                alt="Simple project overview interface"
+                fill
+                className="object-contain"
+              />
+            </div>
           </div>
         </div>
       </section>
 
       {/* Feature Highlights Section */}
-      <section className="relative bg-gradient-to-b from-black via-gray-900/50 to-black p-20 overflow-hidden">
+      <section className="relative bg-gradient-to-b from-black via-gray-900/50 to-black py-32 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
-        <div className="relative">
-          <h2 className="text-3xl font-bold text-center mb-16 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Feature Highlights</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
-            <div className="group p-8 rounded-xl border border-gray-800/50 hover:border-gray-700/50 transition-all duration-500 hover:shadow-xl hover:shadow-gray-900/30 bg-black/50 backdrop-blur-sm relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative">
-                <div className="relative w-full h-[300px] mb-6">
-                  <Image
-                    src="/images/Build your proposal White.png"
-                    alt="Build professional proposals quickly"
-                    fill
-                    className="object-contain group-hover:scale-105 transition-transform duration-500"
-                    priority
-                  />
-                </div>
+        <div className="relative max-w-[1400px] mx-auto px-8">
+          <div className="max-w-[600px] mx-auto text-center mb-24">
+            <h2 className="text-3xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Feature Highlights</h2>
+            <p className="text-lg text-gray-400">
+              Everything you need to quote, plan, and deliver jobs with confidence.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-32">
+            <div className="group">
+              <div className="relative w-full h-[400px] mb-8">
+                <Image
+                  src="/images/Build your proposal White.png"
+                  alt="Build professional proposals quickly"
+                  fill
+                  className="object-contain group-hover:scale-105 transition-transform duration-500"
+                  priority
+                />
+              </div>
+              <div className="max-w-[400px]">
                 <h3 className="text-xl font-bold text-orange-500 mb-4">Fast, accurate proposals</h3>
                 <p className="text-gray-400">Create professional quotes in minutes&mdash;not hours. Set clear pricing, scope, and terms so clients know exactly what they&apos;re getting.</p>
               </div>
             </div>
-            <div className="group p-8 rounded-xl border border-gray-800/50 hover:border-gray-700/50 transition-all duration-500 hover:shadow-xl hover:shadow-gray-900/30 bg-black/50 backdrop-blur-sm relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative">
-                <div className="relative w-full h-[300px] mb-6">
-                  <Image
-                    src="/images/project Timecard.png"
-                    alt="Simple project planning interface"
-                    fill
-                    className="object-contain group-hover:scale-105 transition-transform duration-500"
-                    priority
-                  />
-                </div>
+
+            <div className="group lg:mt-32">
+              <div className="relative w-full h-[400px] mb-8">
+                <Image
+                  src="/images/project Timecard.png"
+                  alt="Simple project planning interface"
+                  fill
+                  className="object-contain group-hover:scale-105 transition-transform duration-500"
+                  priority
+                />
+              </div>
+              <div className="max-w-[400px]">
                 <h3 className="text-xl font-bold text-orange-500 mb-4">Simple project planning</h3>
                 <p className="text-gray-400">Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.</p>
               </div>
             </div>
-            <div className="group p-8 rounded-xl border border-gray-800/50 hover:border-gray-700/50 transition-all duration-500 hover:shadow-xl hover:shadow-gray-900/30 bg-black/50 backdrop-blur-sm relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative">
-                <div className="relative w-full h-[300px] mb-6">
-                  <Image
-                    src="/images/One Tap Update White.png"
-                    alt="Built-in cost control features"
-                    fill
-                    className="object-contain group-hover:scale-105 transition-transform duration-500"
-                  />
-                </div>
+
+            <div className="group">
+              <div className="relative w-full h-[400px] mb-8">
+                <Image
+                  src="/images/One Tap Update White.png"
+                  alt="Built-in cost control features"
+                  fill
+                  className="object-contain group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+              <div className="max-w-[400px]">
                 <h3 className="text-xl font-bold text-orange-500 mb-4">Built-in cost control</h3>
                 <p className="text-gray-400">Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.</p>
               </div>
             </div>
-            <div className="group p-8 rounded-xl border border-gray-800/50 hover:border-gray-700/50 transition-all duration-500 hover:shadow-xl hover:shadow-gray-900/30 bg-black/50 backdrop-blur-sm relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative">
-                <div className="relative w-full h-[300px] mb-6">
-                  <Image
-                    src="/images/Client-Ready Quote White.png"
-                    alt="Professional quote builder"
-                    fill
-                    className="object-contain group-hover:scale-105 transition-transform duration-500"
-                  />
-                </div>
+
+            <div className="group lg:mt-32">
+              <div className="relative w-full h-[400px] mb-8">
+                <Image
+                  src="/images/Client-Ready Quote White.png"
+                  alt="Professional quote builder"
+                  fill
+                  className="object-contain group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+              <div className="max-w-[400px]">
                 <h3 className="text-xl font-bold text-orange-500 mb-4">Build proposals that win work</h3>
                 <p className="text-gray-400">Build your proposal, showcase your capability, and lock in your terms&mdash;all in a clean, consistent format.</p>
               </div>

@@ -10,20 +10,22 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1)_0%,transparent_100%)]"></div>
         </div>
-        <div className="relative max-w-[1400px] mx-auto px-8">
-          <div className="max-w-[600px] mx-auto mb-24">
-            <div className="flex flex-col items-center text-center">
-              <h1 className="leading-[1.2]">
-                <span className="text-4xl md:text-5xl font-semibold tracking-tight">Constructa: proposal, planning and project tools for construction professionals.</span>
-              </h1>
-              <p className="text-lg md:text-xl text-gray-400 mt-6">
-                Quote faster, plan smarter, and keep control of every job.
-              </p>
+        <div className="relative max-w-7xl mx-auto px-8">
+          <div className="grid grid-cols-3">
+            <div className="col-span-2 pl-10">
+              <div className="flex flex-col items-start">
+                <h1 className="text-left leading-[1.2] w-[1000px]">
+                  <span className="text-4xl md:text-5xl font-semibold tracking-tight">Constructa: proposal, planning and project<br />tools for construction professionals.</span>
+                </h1>
+                <p className="text-lg md:text-xl text-gray-400 mt-6 text-left">
+                  Quote faster, plan smarter, and keep control of every job.
+                </p>
+              </div>
             </div>
           </div>
           
-          <div className="flex justify-center">
-            <div className="w-full max-w-[1200px]">
+          <div className="mt-16 flex justify-center">
+            <div className="max-w-[1000px] w-full">
               <div className="relative rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
                 <Image
                   src="/images/hero-image.png"

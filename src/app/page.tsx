@@ -147,43 +147,42 @@ export default function Home() {
       </section>
 
       {/* What Sets Us Apart Section */}
-      <section className="relative bg-black text-white p-20 overflow-hidden">
+      <section className="relative bg-black text-white py-32 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
-        <div className="relative">
-          <h2 className="text-3xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">What Sets Us Apart</h2>
-          <div className="max-w-4xl mx-auto mb-16">
-            <div className="relative w-full h-[400px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
+        <div className="relative max-w-[1400px] mx-auto px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+            <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
               <Image
                 src="/images/imple Project Overview White.png"
                 alt="Simple project overview interface"
                 fill
-                className="object-contain hover:scale-105 transition-transform duration-500"
+                className="object-contain"
+                priority
               />
             </div>
-          </div>
-          <p className="text-lg text-center mb-12 text-gray-400">
-            Not just another piece of software&mdash;Constructa is built for how construction really works.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 text-center max-w-6xl mx-auto">
-            <div className="group p-6 rounded-xl border border-gray-800/50 hover:border-gray-700/50 transition-all duration-500 hover:shadow-xl hover:shadow-gray-900/30 bg-black/50 backdrop-blur-sm relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative">
-                <h3 className="text-xl font-bold mb-4 text-orange-500">Built for people who build</h3>
-                <p className="text-gray-400">Whether you&apos;re pricing up a job, planning your programme, or getting stuck in on site&mdash;Constructa works the way you do.</p>
-              </div>
-            </div>
-            <div className="group p-6 rounded-xl border border-gray-800/50 hover:border-gray-700/50 transition-all duration-500 hover:shadow-xl hover:shadow-gray-900/30 bg-black/50 backdrop-blur-sm relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative">
-                <h3 className="text-xl font-bold mb-4 text-orange-500">Simple, practical, and made to fit</h3>
-                <p className="text-gray-400">No steep learning curve&mdash;just practical tools that work out of the box.</p>
-              </div>
-            </div>
-            <div className="group p-6 rounded-xl border border-gray-800/50 hover:border-gray-700/50 transition-all duration-500 hover:shadow-xl hover:shadow-gray-900/30 bg-black/50 backdrop-blur-sm relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative">
-                <h3 className="text-xl font-bold mb-4 text-orange-500">Control from day one</h3>
-                <p className="text-gray-400">Quote, plan, and manage your jobs with confidence&mdash;no missed steps, no mess.</p>
+            <div className="max-w-[500px]">
+              <h2 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">What Sets Us Apart</h2>
+              <div className="space-y-4 text-left">
+                <p className="text-sm md:text-base text-gray-400">
+                  Not just another piece of software&mdash;Constructa is built for how construction really works.
+                </p>
+                <p className="text-sm md:text-base text-gray-400">
+                  Whether you&apos;re pricing up a job, planning your programme, or getting stuck in on site&mdash;Constructa works the way you do.
+                </p>
+                <p className="text-sm md:text-base text-gray-400">
+                  No steep learning curve&mdash;just practical tools that work out of the box. Quote, plan, and manage your jobs with confidence&mdash;no missed steps, no mess.
+                </p>
+                <div className="pt-4">
+                  <a 
+                    href="#" 
+                    className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    Try CONSTRUCTA
+                    <svg className="ml-2 w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -191,49 +190,62 @@ export default function Home() {
       </section>
 
       {/* How It Works Section */}
-      <section className="relative bg-gradient-to-b from-black via-gray-900/50 to-black p-20 overflow-hidden">
+      <section className="relative bg-gradient-to-b from-black via-gray-900/50 to-black py-32 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
-        <div className="relative">
-          <h2 className="text-3xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Quote it. Plan it. Run it.</h2>
-          
-          <div className="max-w-5xl mx-auto mb-12">
+        <div className="relative max-w-[1400px] mx-auto px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
             <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
               <Image
                 src="/images/Quote it Plant it deliver it Black.png"
                 alt="Quote it, Plan it, Deliver it process overview"
                 fill
-                className="object-contain hover:scale-105 transition-transform duration-500"
+                className="object-contain"
                 priority
               />
             </div>
+            <div className="max-w-[500px]">
+              <h2 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">Quote it. Plan it. Run it.</h2>
+              <div className="space-y-4 text-left">
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-4">
+                    <span className="text-orange-500 font-medium">1.</span>
+                    <p className="text-sm md:text-base text-gray-400">
+                      <span className="text-orange-500 font-medium">Build your quote:</span> Set your price, add your capability statement, and drop in your terms. Done in minutes, not hours.
+                    </p>
+                  </div>
+                  <div className="flex items-start space-x-4">
+                    <span className="text-orange-500 font-medium">2.</span>
+                    <p className="text-sm md:text-base text-gray-400">
+                      <span className="text-orange-500 font-medium">Map out the job:</span> Add key dates, phases, and milestones. Keep everyone&mdash;from client to crew&mdash;on the same page.
+                    </p>
+                  </div>
+                  <div className="flex items-start space-x-4">
+                    <span className="text-orange-500 font-medium">3.</span>
+                    <p className="text-sm md:text-base text-gray-400">
+                      <span className="text-orange-500 font-medium">Stay in control:</span> Track changes, stay on schedule, and keep the job moving without the spreadsheet stress.
+                    </p>
+                  </div>
+                  <div className="flex items-start space-x-4">
+                    <span className="text-orange-500 font-medium">4.</span>
+                    <p className="text-sm md:text-base text-gray-400">
+                      <span className="text-orange-500 font-medium">Win the work:</span> Show clients you&apos;re ready to deliver&mdash;professional, prepared, and in control from day one.
+                    </p>
+                  </div>
+                </div>
+                <div className="pt-4">
+                  <a 
+                    href="#" 
+                    className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    Try CONSTRUCTA
+                    <svg className="ml-2 w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
-
-          <ol className="list-decimal list-inside text-lg space-y-6 max-w-3xl mx-auto text-gray-400">
-            <li className="group relative p-4 rounded-lg hover:bg-gray-900/20 transition-colors duration-300">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative">
-                <strong className="text-orange-500 group-hover:text-orange-400 transition-colors">Build your quote:</strong> Set your price, add your capability statement, and drop in your terms. Done in minutes, not hours.
-              </div>
-            </li>
-            <li className="group relative p-4 rounded-lg hover:bg-gray-900/20 transition-colors duration-300">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative">
-                <strong className="text-orange-500 group-hover:text-orange-400 transition-colors">Map out the job:</strong> Add key dates, phases, and milestones. Keep everyone&mdash;from client to crew&mdash;on the same page.
-              </div>
-            </li>
-            <li className="group relative p-4 rounded-lg hover:bg-gray-900/20 transition-colors duration-300">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative">
-                <strong className="text-orange-500 group-hover:text-orange-400 transition-colors">Stay in control:</strong> Track changes, stay on schedule, and keep the job moving without the spreadsheet stress.
-              </div>
-            </li>
-            <li className="group relative p-4 rounded-lg hover:bg-gray-900/20 transition-colors duration-300">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative">
-                <strong className="text-orange-500 group-hover:text-orange-400 transition-colors">Win the work:</strong> Show clients you&apos;re ready to deliver&mdash;professional, prepared, and in control from day one.
-              </div>
-            </li>
-          </ol>
         </div>
       </section>
 

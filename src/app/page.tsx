@@ -153,7 +153,7 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
             <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
               <Image
-                src="/images/imple Project Overview Black.png"
+                src="/images/simple Project Overview Black Cropped.png"
                 alt="What sets Constructa apart"
                 fill
                 className="object-contain"

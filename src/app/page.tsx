@@ -9,7 +9,7 @@ export default function Home() {
       <Script src="/feature-scroll.js" strategy="afterInteractive" />
       
       {/* Hero Section */}
-      <section className="relative pt-24 pb-16 md:pt-32 md:pb-32 overflow-hidden">
+      <section className="relative min-h-screen flex items-center justify-center py-32 md:py-40 px-4 md:px-8">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1)_0%,transparent_100%)]"></div>
         </div>

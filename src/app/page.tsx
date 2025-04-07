@@ -320,31 +320,96 @@ export default function Home() {
       </section>
 
       {/* About Section */}
-      <section id="about" className="relative bg-gradient-to-b from-black via-gray-900/50 to-black p-20 overflow-hidden">
+      <section id="about" className="relative bg-gradient-to-b from-black via-gray-900/50 to-black py-32 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
-        <div className="relative max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold mb-12 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">About</h2>
-          
-          <h3 className="text-2xl font-bold mb-8 text-orange-500">Built by people who know the job.</h3>
-          
-          <div className="space-y-8 text-gray-400">
-            <p className="text-lg">
-              We&apos;ve spent years in the construction industry—quoting jobs, planning programmes, and dealing with the same headaches you face every day.
-            </p>
-            
-            <p className="text-lg">
-              Constructa was born out of that experience. It&apos;s designed for small construction teams who need simple, reliable tools to quote, plan, and manage work—without the bloat, the cost, or the complexity.
-            </p>
-            
-            <p className="text-lg">
-              We&apos;re building Constructa to be practical, fast, and made for the way construction really works.
-            </p>
-            
-            <div className="pt-4">
-              <h4 className="text-xl font-bold mb-3">Our goal is simple:</h4>
-              <p className="text-lg">
-                To give small construction teams the tools they need to work smarter, win more jobs, and stay in control—without getting buried in admin.
-              </p>
+        <div className="relative max-w-[1400px] mx-auto px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+            <div className="max-w-[500px] justify-self-end">
+              <h2 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">About</h2>
+              <div className="space-y-6 text-left">
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0 w-6 h-6">
+                    <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                      <path d="M12 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M12 14.5c3.314 0 6-1.343 6-3s-2.686-3-6-3-6 1.343-6 3 2.686 3 6 3z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M3 7V4a1 1 0 011-1h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1v-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-medium text-white mb-1">Built by people who know the job</h3>
+                    <p className="text-sm md:text-base text-gray-400">
+                      We&apos;ve spent years in the construction industry—quoting jobs, planning programmes, and dealing with the same headaches you face every day.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0 w-6 h-6">
+                    <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                      <path d="M12 2v6m0 14v-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M4.93 4.93l4.24 4.24m5.66 5.66l4.24 4.24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M2 12h6m14 0h-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M4.93 19.07l4.24-4.24m5.66-5.66l4.24-4.24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-medium text-white mb-1">Born from experience</h3>
+                    <p className="text-sm md:text-base text-gray-400">
+                      Constructa was born out of that experience. It&apos;s designed for small construction teams who need simple, reliable tools to quote, plan, and manage work—without the bloat, the cost, or the complexity.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0 w-6 h-6">
+                    <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                      <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-medium text-white mb-1">Practical and fast</h3>
+                    <p className="text-sm md:text-base text-gray-400">
+                      We&apos;re building Constructa to be practical, fast, and made for the way construction really works.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0 w-6 h-6">
+                    <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                      <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-medium text-white mb-1">Our goal is simple</h3>
+                    <p className="text-sm md:text-base text-gray-400">
+                      To give small construction teams the tools they need to work smarter, win more jobs, and stay in control—without getting buried in admin.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <a 
+                    href="#" 
+                    className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    Try CONSTRUCTA
+                    <svg className="ml-2 w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+            <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
+              <Image
+                src="/images/imple Project Overview White.png"
+                alt="Simple project overview interface"
+                fill
+                className="object-contain"
+                priority
+              />
             </div>
           </div>
         </div>

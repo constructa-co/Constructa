@@ -55,7 +55,7 @@ export default function Home() {
                 <div className="pt-4">
                   <a 
                     href="#" 
-                    className="inline-flex items-center px-6 py-3 rounded-lg bg-white text-black font-medium hover:bg-gray-100 transition-colors duration-200"
+                    className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
                   >
                     Try CONSTRUCTA
                     <svg className="ml-2 w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">

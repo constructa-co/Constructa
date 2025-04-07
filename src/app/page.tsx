@@ -78,8 +78,8 @@ export default function Home() {
       <section className="relative bg-gradient-to-b from-black via-gray-900/50 to-black">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
-          <div className="max-w-[600px] mx-auto text-center mb-16">
-            <h2 className="text-4xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Feature Highlights</h2>
+          <div className="max-w-[600px] mx-auto text-center mb-8">
+            <h2 className="text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Feature Highlights</h2>
             <p className="text-lg text-gray-400">
               Everything you need to quote, plan, and deliver jobs with confidence.
             </p>

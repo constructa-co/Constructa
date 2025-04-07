@@ -5,6 +5,10 @@ document.addEventListener('DOMContentLoaded', () => {
   
   if (!featureImage || featureContents.length === 0) return;
 
+  // Show first content section initially
+  featureContents[0].classList.add('active');
+  featureContents[0].style.opacity = '1';
+
   // Create intersection observer for each feature content
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -15,19 +19,18 @@ document.addEventListener('DOMContentLoaded', () => {
         featureImage.style.opacity = '0';
         setTimeout(() => {
           // Update the src attribute of the Image component
-          const imgElement = featureImage.querySelector('img');
-          if (imgElement) {
-            imgElement.src = imageSrc;
-            featureImage.style.opacity = '1';
-          }
+          featureImage.src = imageSrc;
+          featureImage.style.opacity = '1';
         }, 300);
         
         // Update active state for content
         featureContents.forEach(content => {
           if (content === entry.target) {
             content.classList.add('active');
+            content.style.opacity = '1';
           } else {
             content.classList.remove('active');
+            content.style.opacity = '0';
           }
         });
       }

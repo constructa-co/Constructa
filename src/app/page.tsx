@@ -99,8 +99,8 @@ export default function Home() {
             </div>
             
             {/* Scrollable content - Right side */}
-            <div className="space-y-[50vh]">
-              <div className="feature-content text-left min-h-[300px] flex items-center" data-image="/images/Build your proposal White.png">
+            <div className="space-y-[17.5vh]">
+              <div className="feature-content text-left min-h-[300px] flex items-center opacity-0 transition-opacity duration-500" data-image="/images/Build your proposal White.png">
                 <div>
                   <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Fast, accurate proposals</h3>
                   <p className="text-sm md:text-base text-gray-400">
@@ -109,7 +109,7 @@ export default function Home() {
                 </div>
               </div>
               
-              <div className="feature-content text-left min-h-[300px] flex items-center" data-image="/images/project Timecard.png">
+              <div className="feature-content text-left min-h-[300px] flex items-center opacity-0 transition-opacity duration-500" data-image="/images/project Timecard.png">
                 <div>
                   <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Simple project planning</h3>
                   <p className="text-sm md:text-base text-gray-400">
@@ -118,7 +118,7 @@ export default function Home() {
                 </div>
               </div>
               
-              <div className="feature-content text-left min-h-[300px] flex items-center" data-image="/images/One Tap Update White.png">
+              <div className="feature-content text-left min-h-[300px] flex items-center opacity-0 transition-opacity duration-500" data-image="/images/One Tap Update White.png">
                 <div>
                   <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Built-in cost control</h3>
                   <p className="text-sm md:text-base text-gray-400">
@@ -127,7 +127,7 @@ export default function Home() {
                 </div>
               </div>
               
-              <div className="feature-content text-left min-h-[300px] flex items-center" data-image="/images/Client-Ready Quote White.png">
+              <div className="feature-content text-left min-h-[300px] flex items-center opacity-0 transition-opacity duration-500" data-image="/images/Client-Ready Quote White.png">
                 <div>
                   <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Build proposals that win work</h3>
                   <p className="text-sm md:text-base text-gray-400">

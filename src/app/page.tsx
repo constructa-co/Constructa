@@ -100,41 +100,33 @@ export default function Home() {
             
             {/* Scrollable content - Right side */}
             <div className="relative">
-              <div className="space-y-[60vh]">
-                <div className="feature-content min-h-[50vh] flex items-center" data-image="/images/Build your proposal White.png">
-                  <div className="transform transition-all duration-500 opacity-0">
-                    <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Fast, accurate proposals</h3>
-                    <p className="text-sm md:text-base text-gray-400">
-                      Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
-                    </p>
-                  </div>
+              <div className="space-y-[25vh]">
+                <div className="feature-content min-h-[40vh] opacity-100">
+                  <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Fast, accurate proposals</h3>
+                  <p className="text-sm md:text-base text-gray-400">
+                    Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
+                  </p>
                 </div>
                 
-                <div className="feature-content min-h-[50vh] flex items-center" data-image="/images/project Timecard.png">
-                  <div className="transform transition-all duration-500 opacity-0">
-                    <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Simple project planning</h3>
-                    <p className="text-sm md:text-base text-gray-400">
-                      Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
-                    </p>
-                  </div>
+                <div className="feature-content min-h-[40vh] opacity-100">
+                  <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Simple project planning</h3>
+                  <p className="text-sm md:text-base text-gray-400">
+                    Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
+                  </p>
                 </div>
                 
-                <div className="feature-content min-h-[50vh] flex items-center" data-image="/images/One Tap Update White.png">
-                  <div className="transform transition-all duration-500 opacity-0">
-                    <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Built-in cost control</h3>
-                    <p className="text-sm md:text-base text-gray-400">
-                      Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
-                    </p>
-                  </div>
+                <div className="feature-content min-h-[40vh] opacity-100">
+                  <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Built-in cost control</h3>
+                  <p className="text-sm md:text-base text-gray-400">
+                    Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
+                  </p>
                 </div>
                 
-                <div className="feature-content min-h-[50vh] flex items-center" data-image="/images/Client-Ready Quote White.png">
-                  <div className="transform transition-all duration-500 opacity-0">
-                    <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Build proposals that win work</h3>
-                    <p className="text-sm md:text-base text-gray-400">
-                      Build your proposal, showcase your capability, and lock in your terms—all in a clean, consistent format.
-                    </p>
-                  </div>
+                <div className="feature-content min-h-[40vh] opacity-100">
+                  <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Build proposals that win work</h3>
+                  <p className="text-sm md:text-base text-gray-400">
+                    Build your proposal, showcase your capability, and lock in your terms—all in a clean, consistent format.
+                  </p>
                 </div>
               </div>
             </div>

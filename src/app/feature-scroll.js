@@ -5,36 +5,33 @@ document.addEventListener('DOMContentLoaded', () => {
   
   if (!featureImage || featureContents.length === 0) return;
 
+  // Set initial data attributes
+  featureContents[0].setAttribute('data-image', '/images/Build your proposal White.png');
+  featureContents[1].setAttribute('data-image', '/images/project Timecard.png');
+  featureContents[2].setAttribute('data-image', '/images/One Tap Update White.png');
+  featureContents[3].setAttribute('data-image', '/images/Client-Ready Quote White.png');
+
   // Create intersection observer for each feature content
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
-      const contentDiv = entry.target.querySelector('div');
-      
       if (entry.isIntersecting) {
-        // Update image
         const imageSrc = entry.target.getAttribute('data-image');
-        featureImage.src = imageSrc;
-        
-        // Show content with transform
-        contentDiv.style.opacity = '1';
-        contentDiv.style.transform = 'translateY(0)';
-      } else {
-        // Hide content
-        contentDiv.style.opacity = '0';
-        contentDiv.style.transform = 'translateY(20px)';
+        if (imageSrc) {
+          featureImage.style.opacity = '0';
+          setTimeout(() => {
+            featureImage.src = imageSrc;
+            featureImage.style.opacity = '1';
+          }, 200);
+        }
       }
     });
   }, {
     threshold: 0.5,
-    rootMargin: '-20% 0px -20% 0px'
+    rootMargin: '-10% 0px -10% 0px'
   });
   
   // Observe each feature content
   featureContents.forEach(content => {
-    // Set initial state
-    const contentDiv = content.querySelector('div');
-    contentDiv.style.transform = 'translateY(20px)';
-    
     observer.observe(content);
   });
 }); 

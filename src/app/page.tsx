@@ -309,6 +309,10 @@ export default function Home() {
             </button>
           </div>
 
+          <p className="text-sm text-gray-500 mb-16">
+            We&apos;re offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
+          </p>
+
           {/* Pricing Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Basic Plan */}
@@ -501,6 +505,10 @@ export default function Home() {
               </div>
             </div>
           </div>
+
+          <p className="text-lg font-medium text-white mt-12">
+            Early users get priority access and special launch pricing.
+          </p>
         </div>
       </section>
 

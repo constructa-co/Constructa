@@ -86,7 +86,7 @@ export default function Home() {
           <div className="space-y-[15vh] pb-[10vh]">
             <div className="feature-content min-h-screen h-[50vh] sticky top-0 bg-black">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
-                <div className="relative w-full h-[500px]">
+                <div className="relative w-full h-[375px]">
                   <Image
                     src="/images/Build your proposal White.png"
                     alt="Fast, accurate proposals"
@@ -95,18 +95,27 @@ export default function Home() {
                     priority
                   />
                 </div>
-                <div className="transform transition-all duration-200">
+                <div className="transform transition-all duration-200 text-left">
                   <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Fast, accurate proposals</h3>
-                  <p className="text-sm md:text-base text-gray-400">
+                  <p className="text-sm md:text-base text-gray-400 mb-8">
                     Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
                   </p>
+                  <a 
+                    href="#" 
+                    className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    Try CONSTRUCTA
+                    <svg className="ml-2 w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
                 </div>
               </div>
             </div>
             
             <div className="feature-content min-h-screen h-[50vh] sticky top-0 bg-black">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
-                <div className="relative w-full h-[500px]">
+                <div className="relative w-full h-[375px]">
                   <Image
                     src="/images/project Timecard.png"
                     alt="Simple project planning"
@@ -115,18 +124,27 @@ export default function Home() {
                     priority
                   />
                 </div>
-                <div className="transform transition-all duration-200">
+                <div className="transform transition-all duration-200 text-left">
                   <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Simple project planning</h3>
-                  <p className="text-sm md:text-base text-gray-400">
+                  <p className="text-sm md:text-base text-gray-400 mb-8">
                     Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
                   </p>
+                  <a 
+                    href="#" 
+                    className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    Try CONSTRUCTA
+                    <svg className="ml-2 w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
                 </div>
               </div>
             </div>
             
             <div className="feature-content min-h-screen h-[50vh] sticky top-0 bg-black">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
-                <div className="relative w-full h-[500px]">
+                <div className="relative w-full h-[375px]">
                   <Image
                     src="/images/One Tap Update White.png"
                     alt="Built-in cost control"
@@ -135,18 +153,27 @@ export default function Home() {
                     priority
                   />
                 </div>
-                <div className="transform transition-all duration-200">
+                <div className="transform transition-all duration-200 text-left">
                   <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Built-in cost control</h3>
-                  <p className="text-sm md:text-base text-gray-400">
+                  <p className="text-sm md:text-base text-gray-400 mb-8">
                     Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
                   </p>
+                  <a 
+                    href="#" 
+                    className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    Try CONSTRUCTA
+                    <svg className="ml-2 w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
                 </div>
               </div>
             </div>
             
             <div className="feature-content min-h-screen h-[50vh] sticky top-0 bg-black">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full items-center max-w-[1400px] mx-auto px-8">
-                <div className="relative w-full h-[500px]">
+                <div className="relative w-full h-[375px]">
                   <Image
                     src="/images/Client-Ready Quote White.png"
                     alt="Build proposals that win work"
@@ -155,11 +182,20 @@ export default function Home() {
                     priority
                   />
                 </div>
-                <div className="transform transition-all duration-200">
+                <div className="transform transition-all duration-200 text-left">
                   <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight">Build proposals that win work</h3>
-                  <p className="text-sm md:text-base text-gray-400">
+                  <p className="text-sm md:text-base text-gray-400 mb-8">
                     Build your proposal, showcase your capability, and lock in your terms—all in a clean, consistent format.
                   </p>
+                  <a 
+                    href="#" 
+                    className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    Try CONSTRUCTA
+                    <svg className="ml-2 w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
                 </div>
               </div>
             </div>

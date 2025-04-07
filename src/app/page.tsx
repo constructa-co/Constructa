@@ -23,21 +23,6 @@ export default function Home() {
               </div>
             </div>
           </div>
-          
-          <div className="mt-16 flex justify-center">
-            <div className="max-w-[1000px] w-full">
-              <div className="relative rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
-                <Image
-                  src="/images/hero-image.png"
-                  alt="Construction Planning Software"
-                  width={1200}
-                  height={600}
-                  className="w-full h-auto shadow-2xl shadow-black/50"
-                  priority
-                />
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 

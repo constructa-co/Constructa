@@ -5,11 +5,11 @@ import Script from 'next/script';
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="snap-y snap-mandatory h-screen overflow-y-auto">
       <Script src="/feature-scroll.js" strategy="afterInteractive" />
       
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center py-32 md:py-32 px-4 md:px-8">
+      <section className="snap-start h-screen relative flex items-center justify-center py-32 md:py-32 px-4 md:px-8">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
         <div className="relative max-w-7xl mx-auto px-4 md:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3">
@@ -28,7 +28,7 @@ export default function Home() {
       </section>
 
       {/* Problem → Solution Section */}
-      <section className="relative text-white py-32 overflow-hidden">
+      <section className="snap-start h-screen relative py-32 md:py-40 px-4 md:px-8">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
@@ -71,7 +71,7 @@ export default function Home() {
       </section>
 
       {/* Feature Highlights Section */}
-      <section className="relative py-32 md:py-40 px-4 md:px-8">
+      <section className="snap-start h-screen relative py-32 md:py-40 px-4 md:px-8">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="max-w-[600px] mx-auto text-center mb-8">
@@ -210,7 +210,7 @@ export default function Home() {
       </section>
 
       {/* What Sets Us Apart Section */}
-      <section className="relative py-32 md:py-40 px-4 md:px-8">
+      <section className="snap-start h-screen relative py-32 md:py-40 px-4 md:px-8">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -253,7 +253,7 @@ export default function Home() {
       </section>
 
       {/* How It Works Section */}
-      <section className="relative py-32 md:py-40 px-4 md:px-8">
+      <section className="snap-start h-screen relative py-32 md:py-40 px-4 md:px-8">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="max-w-[600px] mx-auto text-center mb-16">
@@ -355,7 +355,7 @@ export default function Home() {
       </section>
 
       {/* Pricing Section */}
-      <section className="relative bg-black text-white py-16 text-center overflow-hidden">
+      <section className="snap-start h-screen relative bg-black text-white py-16 text-center overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
         <div className="relative max-w-7xl mx-auto px-8">
           <div className="text-center mb-12">
@@ -578,7 +578,7 @@ export default function Home() {
       </section>
 
       {/* About Section */}
-      <section className="relative py-32 md:py-40 px-4 md:px-8">
+      <section className="snap-start h-screen relative py-32 md:py-40 px-4 md:px-8">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
@@ -674,7 +674,7 @@ export default function Home() {
       </section>
 
       {/* Contact Us Section */}
-      <section className="relative py-32 md:py-40 px-4 md:px-8">
+      <section className="snap-start h-screen relative py-32 md:py-40 px-4 md:px-8">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">

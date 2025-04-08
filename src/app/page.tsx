@@ -5,7 +5,8 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Script from 'next/script';
 
-export default function Home() {
+// Feature section component with sticky scroll
+const FeatureSection = () => {
   const [activeFeature, setActiveFeature] = useState(0);
 
   useEffect(() => {
@@ -28,6 +29,106 @@ export default function Home() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  return (
+    <section className="py-16 md:py-32 px-4 md:px-8">
+      <div className="max-w-7xl mx-auto">
+        <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">How It Works</h2>
+        
+        {/* Sticky scroll container - only for this section */}
+        <div className="relative">
+          {/* Sticky left side with images - only visible on desktop */}
+          <div className="fixed left-0 top-0 w-1/2 h-screen overflow-hidden hidden md:block">
+            <div className="h-full flex flex-col">
+              <div className="feature-image h-screen flex items-center justify-center transition-opacity duration-500"
+                   style={{ opacity: activeFeature === 0 ? 1 : 0 }}>
+                <Image
+                  src="/images/hero-image.png"
+                  alt="Proposals"
+                  width={800}
+                  height={600}
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              <div className="feature-image h-screen flex items-center justify-center transition-opacity duration-500"
+                   style={{ opacity: activeFeature === 1 ? 1 : 0 }}>
+                <Image
+                  src="/images/Build your proposal White.png"
+                  alt="Planning"
+                  width={800}
+                  height={600}
+                  className="object-contain"
+                />
+              </div>
+              <div className="feature-image h-screen flex items-center justify-center transition-opacity duration-500"
+                   style={{ opacity: activeFeature === 2 ? 1 : 0 }}>
+                <Image
+                  src="/images/project Timecard.png"
+                  alt="Updates"
+                  width={800}
+                  height={600}
+                  className="object-contain"
+                />
+              </div>
+              <div className="feature-image h-screen flex items-center justify-center transition-opacity duration-500"
+                   style={{ opacity: activeFeature === 3 ? 1 : 0 }}>
+                <Image
+                  src="/images/One Tap Update White.png"
+                  alt="Cost Control"
+                  width={800}
+                  height={600}
+                  className="object-contain"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Scrollable right side with content */}
+          <div className="md:ml-[50%]">
+            <div className="feature-container h-screen flex items-center px-4 md:px-16">
+              <div className="max-w-xl">
+                <h3 className="text-2xl md:text-3xl font-semibold mb-4">Fast, accurate proposals</h3>
+                <p className="text-lg text-gray-300">
+                  Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
+                </p>
+              </div>
+            </div>
+
+            <div className="feature-container h-screen flex items-center px-4 md:px-16">
+              <div className="max-w-xl">
+                <h3 className="text-2xl md:text-3xl font-semibold mb-4">Simple project planning</h3>
+                <p className="text-lg text-gray-300">
+                  Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
+                </p>
+              </div>
+            </div>
+
+            <div className="feature-container h-screen flex items-center px-4 md:px-16">
+              <div className="max-w-xl">
+                <h3 className="text-2xl md:text-3xl font-semibold mb-4">One-tap updates</h3>
+                <p className="text-lg text-gray-300">
+                  Keep everyone in the loop with instant updates. Share progress, changes, and important information with your team and clients.
+                </p>
+              </div>
+            </div>
+
+            <div className="feature-container h-screen flex items-center px-4 md:px-16">
+              <div className="max-w-xl">
+                <h3 className="text-2xl md:text-3xl font-semibold mb-4">Built-in cost control</h3>
+                <p className="text-lg text-gray-300">
+                  Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// Main page component
+export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-black to-gray-900 text-white">
       {/* Hero Section */}
@@ -77,100 +178,7 @@ export default function Home() {
       </section>
 
       {/* Feature Highlights Section with Sticky Scroll */}
-      <section className="py-16 md:py-32 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">How It Works</h2>
-          
-          {/* Sticky scroll container - only for this section */}
-          <div className="relative">
-            {/* Sticky left side with images - only visible on desktop */}
-            <div className="fixed left-0 top-0 w-1/2 h-screen overflow-hidden hidden md:block">
-              <div className="h-full flex flex-col">
-                <div className="feature-image h-screen flex items-center justify-center transition-opacity duration-500"
-                     style={{ opacity: activeFeature === 0 ? 1 : 0 }}>
-                  <Image
-                    src="/images/hero-image.png"
-                    alt="Proposals"
-                    width={800}
-                    height={600}
-                    className="object-contain"
-                    priority
-                  />
-                </div>
-                <div className="feature-image h-screen flex items-center justify-center transition-opacity duration-500"
-                     style={{ opacity: activeFeature === 1 ? 1 : 0 }}>
-                  <Image
-                    src="/images/Build your proposal White.png"
-                    alt="Planning"
-                    width={800}
-                    height={600}
-                    className="object-contain"
-                  />
-                </div>
-                <div className="feature-image h-screen flex items-center justify-center transition-opacity duration-500"
-                     style={{ opacity: activeFeature === 2 ? 1 : 0 }}>
-                  <Image
-                    src="/images/project Timecard.png"
-                    alt="Updates"
-                    width={800}
-                    height={600}
-                    className="object-contain"
-                  />
-                </div>
-                <div className="feature-image h-screen flex items-center justify-center transition-opacity duration-500"
-                     style={{ opacity: activeFeature === 3 ? 1 : 0 }}>
-                  <Image
-                    src="/images/One Tap Update White.png"
-                    alt="Cost Control"
-                    width={800}
-                    height={600}
-                    className="object-contain"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Scrollable right side with content */}
-            <div className="md:ml-[50%]">
-              <div className="feature-container h-screen flex items-center px-4 md:px-16">
-                <div className="max-w-xl">
-                  <h3 className="text-2xl md:text-3xl font-semibold mb-4">Fast, accurate proposals</h3>
-                  <p className="text-lg text-gray-300">
-                    Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
-                  </p>
-                </div>
-              </div>
-
-              <div className="feature-container h-screen flex items-center px-4 md:px-16">
-                <div className="max-w-xl">
-                  <h3 className="text-2xl md:text-3xl font-semibold mb-4">Simple project planning</h3>
-                  <p className="text-lg text-gray-300">
-                    Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
-                  </p>
-                </div>
-              </div>
-
-              <div className="feature-container h-screen flex items-center px-4 md:px-16">
-                <div className="max-w-xl">
-                  <h3 className="text-2xl md:text-3xl font-semibold mb-4">One-tap updates</h3>
-                  <p className="text-lg text-gray-300">
-                    Keep everyone in the loop with instant updates. Share progress, changes, and important information with your team and clients.
-                  </p>
-                </div>
-              </div>
-
-              <div className="feature-container h-screen flex items-center px-4 md:px-16">
-                <div className="max-w-xl">
-                  <h3 className="text-2xl md:text-3xl font-semibold mb-4">Built-in cost control</h3>
-                  <p className="text-lg text-gray-300">
-                    Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <FeatureSection />
 
       {/* What Sets Us Apart Section */}
       <section className="py-16 md:py-32 px-4 md:px-8">

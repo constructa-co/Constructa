@@ -35,44 +35,43 @@ const FeatureSection = () => {
       {/* Sticky container for the entire feature section */}
       <div className="sticky top-0 h-screen overflow-hidden">
         <div className="relative h-full">
-          {/* Left side - Sticky images */}
-          <div className="absolute left-0 top-0 w-1/2 h-full hidden md:block">
-            <div className="relative h-full">
+          {/* Left side - Animated image */}
+          <div className="md:ml-[-50%] h-full flex items-center justify-center px-4 md:px-16">
+            <div className="w-full max-w-md h-[50%] relative">
               <div className={`absolute inset-0 transition-opacity duration-500 ${activeFeature === 0 ? 'opacity-100' : 'opacity-0'}`}>
                 <Image
-                  src="/images/Build your proposal White.png"
-                  alt="Proposals"
-                  width={800}
-                  height={600}
-                  className="object-contain w-full h-full"
-                  priority
+                  src="/images/feature-1.png"
+                  alt="Fast, accurate proposals"
+                  width={500}
+                  height={300}
+                  className="w-full h-full object-contain"
                 />
               </div>
               <div className={`absolute inset-0 transition-opacity duration-500 ${activeFeature === 1 ? 'opacity-100' : 'opacity-0'}`}>
                 <Image
-                  src="/images/project Timecard.png"
-                  alt="Planning"
-                  width={800}
-                  height={600}
-                  className="object-contain w-full h-full"
+                  src="/images/feature-2.png"
+                  alt="Simple project planning"
+                  width={500}
+                  height={300}
+                  className="w-full h-full object-contain"
                 />
               </div>
               <div className={`absolute inset-0 transition-opacity duration-500 ${activeFeature === 2 ? 'opacity-100' : 'opacity-0'}`}>
                 <Image
-                  src="/images/One Tap Update White.png"
-                  alt="Updates"
-                  width={800}
-                  height={600}
-                  className="object-contain w-full h-full"
+                  src="/images/feature-3.png"
+                  alt="One-tap updates"
+                  width={500}
+                  height={300}
+                  className="w-full h-full object-contain"
                 />
               </div>
               <div className={`absolute inset-0 transition-opacity duration-500 ${activeFeature === 3 ? 'opacity-100' : 'opacity-0'}`}>
                 <Image
-                  src="/images/Client-Ready Quote White.png"
-                  alt="Cost Control"
-                  width={800}
-                  height={600}
-                  className="object-contain w-full h-full"
+                  src="/images/feature-4.png"
+                  alt="Built-in cost control"
+                  width={500}
+                  height={300}
+                  className="w-full h-full object-contain"
                 />
               </div>
             </div>
@@ -86,7 +85,7 @@ const FeatureSection = () => {
                 <p className="text-lg text-gray-300 text-left">
                   Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
                 </p>
-                <div className="mt-6">
+                <div className="mt-6 text-left">
                   <a 
                     href="#" 
                     className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
@@ -103,7 +102,7 @@ const FeatureSection = () => {
                 <p className="text-lg text-gray-300 text-left">
                   Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
                 </p>
-                <div className="mt-6">
+                <div className="mt-6 text-left">
                   <a 
                     href="#" 
                     className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
@@ -120,7 +119,7 @@ const FeatureSection = () => {
                 <p className="text-lg text-gray-300 text-left">
                   Keep everyone in the loop with instant updates. Share progress, changes, and important information with your team and clients.
                 </p>
-                <div className="mt-6">
+                <div className="mt-6 text-left">
                   <a 
                     href="#" 
                     className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
@@ -137,7 +136,7 @@ const FeatureSection = () => {
                 <p className="text-lg text-gray-300 text-left">
                   Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
                 </p>
-                <div className="mt-6">
+                <div className="mt-6 text-left">
                   <a 
                     href="#" 
                     className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"

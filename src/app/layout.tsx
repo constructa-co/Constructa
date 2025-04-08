@@ -6,7 +6,11 @@ import { useState } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
@@ -16,10 +20,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Fixed Header */}
         <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-b border-gray-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
+            <div className="h-16 grid grid-cols-3 items-center">
               {/* Left column - Logo */}
-              <div className="flex-shrink-0">
-                <a href="/" className="text-white text-xl font-bold">
+              <div className="flex items-center">
+                <a href="/" className="text-2xl font-semibold text-white hover:opacity-90 transition-opacity">
                   CONSTRUCTA
                 </a>
               </div>
@@ -34,8 +38,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
               </nav>
 
-              {/* Right column - Auth buttons */}
-              <div className="flex items-center space-x-4">
+              {/* Right column - Auth buttons and mobile menu */}
+              <div className="flex items-center justify-end space-x-6">
+                {/* Desktop auth buttons */}
+                <div className="hidden md:flex items-center space-x-6">
+                  <a href="#login" className="text-gray-500 hover:text-gray-300 transition-colors duration-200">
+                    Log in
+                  </a>
+                  <a href="#signup" className="px-4 py-1.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors duration-200">
+                    Sign up
+                  </a>
+                </div>
+
                 {/* Mobile menu button */}
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -57,22 +71,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     />
                   </svg>
                 </button>
-
-                {/* Desktop auth buttons */}
-                <div className="hidden md:flex items-center space-x-4">
-                  <a
-                    href="#login"
-                    className="text-gray-300 hover:text-white transition-colors duration-200"
-                  >
-                    Log in
-                  </a>
-                  <a
-                    href="#signup"
-                    className="bg-white text-black px-4 py-2 rounded-md hover:bg-gray-100 transition-colors duration-200"
-                  >
-                    Sign up
-                  </a>
-                </div>
               </div>
             </div>
 
@@ -92,8 +90,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </header>
 
-        {/* Content Section */}
-        {children}
+        <main>{children}</main>
 
         {/* Footer Section */}
         <footer className="bg-black text-white p-10">

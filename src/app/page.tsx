@@ -33,11 +33,11 @@ const FeatureSection = () => {
   return (
     <section id="feature-section" className="relative h-[400vh]">
       {/* Sticky container for the entire feature section */}
-      <div className="sticky top-0 h-screen overflow-hidden">
+      <div className="sticky top-24 h-[calc(100vh-6rem)] overflow-hidden">
         <div className="relative h-full">
           {/* Left side - Sticky images */}
           <div className="absolute left-0 top-0 w-1/2 h-full hidden md:block">
-            <div className="relative h-[50%]">
+            <div className="relative h-[50%] flex items-center">
               <div className={`absolute inset-0 transition-opacity duration-500 ${activeFeature === 0 ? 'opacity-100' : 'opacity-0'}`}>
                 <Image
                   src="/images/Build your proposal White.png"
@@ -80,7 +80,7 @@ const FeatureSection = () => {
 
           {/* Right side - Animated text */}
           <div className="absolute right-0 top-0 w-1/2 h-full hidden md:block">
-            <div className="h-full flex items-center px-16">
+            <div className="h-[50%] flex items-center px-16">
               <div className="max-w-xl">
                 <div className={`transition-opacity duration-500 ${activeFeature === 0 ? 'opacity-100' : 'opacity-0'}`}>
                   <h3 className="text-2xl md:text-3xl font-semibold mb-4 text-left">Fast, accurate proposals</h3>

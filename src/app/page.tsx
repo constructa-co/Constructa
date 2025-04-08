@@ -82,28 +82,72 @@ const FeatureSection = () => {
           <div className="md:ml-[50%] h-full flex items-center px-4 md:px-16">
             <div className="max-w-xl">
               <div className={`transition-opacity duration-500 ${activeFeature === 0 ? 'opacity-100' : 'opacity-0'}`}>
-                <h3 className="text-2xl md:text-3xl font-semibold mb-4">Fast, accurate proposals</h3>
-                <p className="text-lg text-gray-300">
+                <h3 className="text-2xl md:text-3xl font-semibold mb-4 text-left">Fast, accurate proposals</h3>
+                <p className="text-lg text-gray-300 text-left">
                   Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
                 </p>
+                <div className="mt-6">
+                  <a 
+                    href="#" 
+                    className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    Try CONSTRUCTA
+                    <svg className="ml-2 w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
+                </div>
               </div>
               <div className={`transition-opacity duration-500 ${activeFeature === 1 ? 'opacity-100' : 'opacity-0'}`}>
-                <h3 className="text-2xl md:text-3xl font-semibold mb-4">Simple project planning</h3>
-                <p className="text-lg text-gray-300">
+                <h3 className="text-2xl md:text-3xl font-semibold mb-4 text-left">Simple project planning</h3>
+                <p className="text-lg text-gray-300 text-left">
                   Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
                 </p>
+                <div className="mt-6">
+                  <a 
+                    href="#" 
+                    className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    Try CONSTRUCTA
+                    <svg className="ml-2 w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
+                </div>
               </div>
               <div className={`transition-opacity duration-500 ${activeFeature === 2 ? 'opacity-100' : 'opacity-0'}`}>
-                <h3 className="text-2xl md:text-3xl font-semibold mb-4">One-tap updates</h3>
-                <p className="text-lg text-gray-300">
+                <h3 className="text-2xl md:text-3xl font-semibold mb-4 text-left">One-tap updates</h3>
+                <p className="text-lg text-gray-300 text-left">
                   Keep everyone in the loop with instant updates. Share progress, changes, and important information with your team and clients.
                 </p>
+                <div className="mt-6">
+                  <a 
+                    href="#" 
+                    className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    Try CONSTRUCTA
+                    <svg className="ml-2 w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
+                </div>
               </div>
               <div className={`transition-opacity duration-500 ${activeFeature === 3 ? 'opacity-100' : 'opacity-0'}`}>
-                <h3 className="text-2xl md:text-3xl font-semibold mb-4">Built-in cost control</h3>
-                <p className="text-lg text-gray-300">
+                <h3 className="text-2xl md:text-3xl font-semibold mb-4 text-left">Built-in cost control</h3>
+                <p className="text-lg text-gray-300 text-left">
                   Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
                 </p>
+                <div className="mt-6">
+                  <a 
+                    href="#" 
+                    className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    Try CONSTRUCTA
+                    <svg className="ml-2 w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
+                </div>
               </div>
             </div>
           </div>

@@ -1,3 +1,5 @@
+'use client';
+
 // Main page component for Constructa - Latest version
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';

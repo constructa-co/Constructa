@@ -10,9 +10,7 @@ export default function Home() {
       
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center py-32 md:py-32 px-4 md:px-8">
-        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1)_0%,transparent_100%)]"></div>
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
         <div className="relative max-w-7xl mx-auto px-4 md:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3">
             <div className="col-span-1 md:col-span-2 pl-0 md:pl-10">
@@ -31,9 +29,7 @@ export default function Home() {
 
       {/* Problem → Solution Section */}
       <section className="relative text-white py-32 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
             <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
@@ -75,8 +71,8 @@ export default function Home() {
       </section>
 
       {/* Feature Highlights Section */}
-      <section className="relative bg-gradient-to-b from-black via-gray-900/50 to-black">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
+      <section className="relative py-32 md:py-40 px-4 md:px-8">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="max-w-[600px] mx-auto text-center mb-8">
             <h2 className="text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Feature Highlights</h2>
@@ -214,8 +210,8 @@ export default function Home() {
       </section>
 
       {/* What Sets Us Apart Section */}
-      <section className="relative py-32 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
+      <section className="relative py-32 md:py-40 px-4 md:px-8">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
@@ -672,8 +668,8 @@ export default function Home() {
       </section>
 
       {/* Contact Us Section */}
-      <section className="relative py-32 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
+      <section className="relative py-32 md:py-40 px-4 md:px-8">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
             {/* Left side content */}

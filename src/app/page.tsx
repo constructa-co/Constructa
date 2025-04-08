@@ -1,6 +1,5 @@
 'use client';
 
-// Main page component for Constructa - Latest version
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Script from 'next/script';
@@ -114,83 +113,215 @@ const FeatureSection = () => {
   );
 };
 
-// Main page component
 export default function Home() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-black to-gray-900 text-white">
+    <div className="min-h-screen bg-black text-white">
+      <Script src="/feature-scroll.js" strategy="afterInteractive" />
+      
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center py-16 md:py-32 px-4 md:px-8">
-        <div className="absolute inset-0 bg-gradient-to-b from-black to-gray-900 z-0"></div>
-        <div className="relative z-10 max-w-7xl mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6">
-            Constructa
-          </h1>
-          <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
-            Proposal, planning and project tools for construction professionals
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="col-span-1 md:col-span-3 text-center">
-              <p className="text-lg md:text-xl text-gray-400">
-                Quote faster, plan smarter, and keep control of every job.
-              </p>
+      <section className="relative min-h-screen flex items-center justify-center py-32 md:py-32 px-4 md:px-8">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
+        <div className="relative max-w-7xl mx-auto px-4 md:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3">
+            <div className="col-span-1 md:col-span-2 pl-0 md:pl-10">
+              <div className="flex flex-col items-start">
+                <h1 className="text-left leading-[1.2] w-full md:w-[1000px]">
+                  <span className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight">Constructa: proposal, planning and project<br className="hidden md:block" />tools for construction professionals.</span>
+                </h1>
+                <p className="text-base sm:text-lg md:text-xl text-gray-400 mt-4 md:mt-6 text-left">
+                  Quote faster, plan smarter, and keep control of every job.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Problem-Solution Section */}
-      <section className="py-16 md:py-32 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">The Problem</h2>
-              <p className="text-lg text-gray-300 mb-4">
-                Construction professionals are drowning in paperwork and spreadsheets. Quotes take hours to prepare, project timelines are hard to track, and cost control is a constant headache.
-              </p>
-              <p className="text-lg text-gray-300">
-                Without the right tools, you're spending more time on admin than on the work that matters.
-              </p>
-            </div>
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">The Solution</h2>
-              <p className="text-lg text-gray-300 mb-4">
-                Constructa brings all your construction tools into one place. Create professional quotes in minutes, build clear project timelines, and keep track of costs as you go.
-              </p>
-              <p className="text-lg text-gray-300">
-                Spend less time on paperwork and more time on the job.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Feature Highlights Section with Sticky Scroll */}
-      <section className="py-16 md:py-32 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">How It Works</h2>
-          <FeatureSection />
-        </div>
-      </section>
-
-      {/* About Us Section */}
-      <section className="py-16 md:py-32 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">About Us</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div>
-              <p className="text-lg text-gray-300 mb-6">
-                We're a team of construction professionals and software developers who understand the challenges of running a construction business. We built Constructa because we couldn't find tools that were both powerful enough and easy enough to use.
-              </p>
-              <p className="text-lg text-gray-300">
-                Our mission is to help construction professionals spend less time on paperwork and more time on the work that matters.
-              </p>
-            </div>
-            <div className="relative h-[400px]">
+      {/* Problem → Solution Section */}
+      <section className="relative text-white py-32 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
+        <div className="relative max-w-[1400px] mx-auto px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+            <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
               <Image
-                src="/images/about-us.jpg"
-                alt="About Constructa"
+                src="/images/hero-image.png"
+                alt="Construction Planning Software"
                 fill
-                className="object-cover rounded-lg"
+                className="object-contain"
+                priority
+              />
+            </div>
+            <div className="max-w-[500px]">
+              <h2 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">No more spreadsheets. Just smart tools for your construction company.</h2>
+              <div className="space-y-4 text-left">
+                <p className="text-sm md:text-base text-gray-400">
+                  Running a small construction company means quoting fast, planning tight, and delivering on site&mdash;all while juggling paperwork, messages, and spreadsheets.
+                </p>
+                <p className="text-sm md:text-base text-gray-400">
+                  Without the right tools, it&apos;s easy for details to slip through the cracks&mdash;quotes get rushed, programmes are missed, and jobs lose momentum.
+                </p>
+                <p className="text-sm md:text-base text-gray-400">
+                  Constructa brings everything into one place. From proposals to planning and project delivery, it gives you the clarity, structure, and control you need&mdash;without the admin overload.
+                </p>
+                <div className="pt-4">
+                  <a 
+                    href="#" 
+                    className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    Try CONSTRUCTA
+                    <svg className="ml-2 w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Feature Highlights Section */}
+      <FeatureSection />
+
+      {/* What Sets Us Apart Section */}
+      <section className="relative py-32 md:py-40 px-4 md:px-8">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
+        <div className="relative max-w-[1400px] mx-auto px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
+              <Image
+                src="/images/simple Project Overview Black Cropped.png"
+                alt="What sets Constructa apart"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+            <div className="max-w-[500px]">
+              <h2 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">What Sets Us Apart</h2>
+              <div className="space-y-4 text-left">
+                <p className="text-sm md:text-base text-gray-400">
+                  Not just another piece of software&mdash;Constructa is built for how construction really works.
+                </p>
+                <p className="text-sm md:text-base text-gray-400">
+                  Whether you&apos;re pricing up a job, planning your programme, or getting stuck in on site&mdash;Constructa works the way you do.
+                </p>
+                <p className="text-sm md:text-base text-gray-400">
+                  No steep learning curve&mdash;just practical tools that work out of the box. Quote, plan, and manage your jobs with confidence&mdash;no missed steps, no mess.
+                </p>
+                <div className="pt-4">
+                  <a 
+                    href="#" 
+                    className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    Try CONSTRUCTA
+                    <svg className="ml-2 w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
+                </div>
+          </div>
+          </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="relative py-32 md:py-40 px-4 md:px-8">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
+        <div className="relative max-w-[1400px] mx-auto px-8">
+          <div className="max-w-[600px] mx-auto text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">How It Works</h2>
+            <p className="text-gray-400 text-lg">
+              Get started with Constructa in three simple steps
+            </p>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+            <div className="max-w-[500px] justify-self-end">
+              <h2 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">Quote it. Plan it. Run it.</h2>
+              <div className="space-y-4 text-left">
+                <div className="space-y-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0 w-6 h-6">
+                      <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                        <path d="M3 7h18M3 7v13a1 1 0 001 1h16a1 1 0 001-1V7M3 7V4a1 1 0 011-1h16a1 1 0 011 1v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M12 11v6m-3-3h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm md:text-base font-medium text-white mb-1">Build your quote</h3>
+                      <p className="text-sm md:text-base text-gray-400">
+                        Set your price, add your capability statement, and drop in your terms. Done in minutes, not hours.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0 w-6 h-6">
+                      <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                        <path d="M8 7V3m8 4V3M7 11h10M7 15h10M7 19h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm md:text-base font-medium text-white mb-1">Map out the job</h3>
+                      <p className="text-sm md:text-base text-gray-400">
+                        Add key dates, phases, and milestones. Keep everyone&mdash;from client to crew&mdash;on the same page.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0 w-6 h-6">
+                      <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                        <path d="M12 8v4l2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M3.34985 16.65C2.48459 15.1164 2 13.3634 2 11.5C2 5.97715 6.47715 1.5 12 1.5C17.5228 1.5 22 5.97715 22 11.5C22 17.0228 17.5228 21.5 12 21.5C10.1366 21.5 8.38356 21.0154 6.84998 20.1502" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M3 14l.34985 2.65L6 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm md:text-base font-medium text-white mb-1">Stay in control</h3>
+                      <p className="text-sm md:text-base text-gray-400">
+                        Track changes, stay on schedule, and keep the job moving without the spreadsheet stress.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0 w-6 h-6">
+                      <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                        <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm md:text-base font-medium text-white mb-1">Win the work</h3>
+                      <p className="text-sm md:text-base text-gray-400">
+                        Show clients you&apos;re ready to deliver&mdash;professional, prepared, and in control from day one.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="pt-4">
+                  <a 
+                    href="#" 
+                    className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    Try CONSTRUCTA
+                    <svg className="ml-2 w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+            <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
+              <Image
+                src="/images/Quote it Plant it deliver it Black.png"
+                alt="Quote it, Plan it, Deliver it process overview"
+                fill
+                className="object-contain"
+                priority
               />
             </div>
           </div>
@@ -198,131 +329,402 @@ export default function Home() {
       </section>
 
       {/* Pricing Section */}
-      <section className="py-16 md:py-32 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">Simple, Transparent Pricing</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-gray-800 p-8 rounded-lg">
-              <h3 className="text-2xl font-semibold mb-4">Starter</h3>
-              <p className="text-4xl font-bold mb-6">£29<span className="text-lg">/mo</span></p>
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Up to 5 projects
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Basic proposal tools
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Project timeline
-                </li>
-              </ul>
-              <button className="w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 transition-colors">
-                Get Started
-              </button>
+      <section className="relative bg-black text-white py-16 text-center overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
+        <div className="relative max-w-7xl mx-auto px-8">
+          <div className="text-center mb-12">
+            <span className="text-sm font-medium tracking-wider uppercase text-gray-400">OUR PRICING</span>
+            <h2 className="text-4xl font-bold mt-4 mb-8">Get Started with Constructa</h2>
+          </div>
+
+          {/* Billing Toggle */}
+          <div className="flex items-center justify-center gap-4 mb-8">
+            <button className="px-4 py-2 rounded-full text-sm font-medium text-gray-400 hover:text-white transition-colors">
+              Monthly
+            </button>
+            <button className="px-4 py-2 rounded-full text-sm font-medium bg-white/10 text-white">
+              Quarterly
+              <span className="ml-2 text-xs px-2 py-0.5 bg-white text-black rounded-full">15% OFF</span>
+            </button>
+            <button className="px-4 py-2 rounded-full text-sm font-medium text-gray-400 hover:text-white transition-colors">
+              Yearly
+              <span className="ml-2 text-xs px-2 py-0.5 bg-white text-black rounded-full">30% OFF</span>
+            </button>
+          </div>
+
+          <p className="text-sm text-gray-500 mb-8">
+            We&apos;re offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
+          </p>
+
+          {/* Pricing Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Basic Plan */}
+            <div className="relative p-8 rounded-2xl border border-gray-800/50 bg-black/50 backdrop-blur-sm hover:border-gray-700/50 transition-all duration-300">
+              <div className="text-left">
+                <h3 className="text-xl font-bold mb-2">Basic</h3>
+                <p className="text-sm text-gray-400 mb-6">Essential tools for individual contractors starting their journey.</p>
+                <div className="mb-6">
+                  <span className="text-3xl font-bold">£20</span>
+                  <span className="text-sm text-gray-400 ml-2">/month</span>
+                  <div className="text-xs text-gray-400 mt-1">Billed quarterly</div>
+                </div>
+                <button className="w-full py-3 px-4 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors mb-8">
+                  Get Started
+                </button>
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-400 font-medium">What's included</div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Up to 15 projects/quarter</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Basic proposal templates</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>4 team members</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Standard support</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="bg-gray-800 p-8 rounded-lg">
-              <h3 className="text-2xl font-semibold mb-4">Professional</h3>
-              <p className="text-4xl font-bold mb-6">£79<span className="text-lg">/mo</span></p>
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Up to 20 projects
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Advanced proposal tools
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Project timeline
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Cost tracking
-                </li>
-              </ul>
-              <button className="w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 transition-colors">
-                Get Started
-              </button>
+
+            {/* Standard Plan */}
+            <div className="relative p-8 rounded-2xl border border-gray-800/50 bg-black/50 backdrop-blur-sm hover:border-gray-700/50 transition-all duration-300">
+              <div className="text-left">
+                <h3 className="text-xl font-bold mb-2">Standard</h3>
+                <p className="text-sm text-gray-400 mb-6">Enhanced features for growing construction businesses.</p>
+                <div className="mb-6">
+                  <span className="text-3xl font-bold">£40</span>
+                  <span className="text-sm text-gray-400 ml-2">/month</span>
+                  <div className="text-xs text-gray-400 mt-1">Billed quarterly</div>
+                </div>
+                <button className="w-full py-3 px-4 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors mb-8">
+                  Get Started
+                </button>
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-400 font-medium">What's included</div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Up to 50 projects/quarter</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Advanced proposal templates</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>8 team members</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Priority support</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="bg-gray-800 p-8 rounded-lg">
-              <h3 className="text-2xl font-semibold mb-4">Enterprise</h3>
-              <p className="text-4xl font-bold mb-6">Custom</p>
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Unlimited projects
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  All features
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Custom integrations
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Priority support
-                </li>
-              </ul>
-              <button className="w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 transition-colors">
-                Contact Us
-              </button>
+
+            {/* Professional Plan */}
+            <div className="relative p-8 rounded-2xl border-2 border-white bg-white text-black transition-all duration-300">
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-3 py-1 bg-black text-white text-xs font-medium rounded-full">
+                Best Value
+              </div>
+              <div className="text-left">
+                <h3 className="text-xl font-bold mb-2">Professional</h3>
+                <p className="text-sm text-gray-600 mb-6">Advanced tools and privacy for professional contractors.</p>
+                <div className="mb-6">
+                  <span className="text-3xl font-bold">£80</span>
+                  <span className="text-sm text-gray-600 ml-2">/month</span>
+                  <div className="text-xs text-gray-600 mt-1">Billed quarterly</div>
+                </div>
+                <button className="w-full py-3 px-4 rounded-xl bg-black text-white text-sm font-medium hover:bg-gray-900 transition-colors mb-8">
+                  Get Started
+                </button>
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-600 font-medium">What's included</div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-black" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Unlimited projects</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-black" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Custom proposal templates</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-black" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>12 team members</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-black" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>24/7 priority support</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Enterprise Plan */}
+            <div className="relative p-8 rounded-2xl border border-gray-800/50 bg-black/50 backdrop-blur-sm hover:border-gray-700/50 transition-all duration-300">
+              <div className="text-left">
+                <h3 className="text-xl font-bold mb-2">Enterprise</h3>
+                <p className="text-sm text-gray-400 mb-6">Custom solutions for large construction companies.</p>
+                <div className="mb-6">
+                  <span className="text-3xl font-bold">Custom</span>
+                  <div className="text-xs text-gray-400 mt-1">Contact for pricing</div>
+                </div>
+                <button className="w-full py-3 px-4 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors mb-8">
+                  Contact Sales
+                </button>
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-400 font-medium">What's included</div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Unlimited everything</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Custom integrations</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Unlimited team members</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>Dedicated support team</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* What Sets Us Apart Section */}
-      <section className="py-16 md:py-32 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">What Sets Us Apart</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-gray-800 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-4">Built for Construction</h3>
-              <p className="text-gray-300">
-                Designed specifically for construction professionals, with features that match how you actually work.
-              </p>
+      {/* About Section */}
+      <section className="relative py-32 md:py-40 px-4 md:px-8">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
+        <div className="relative max-w-[1400px] mx-auto px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+            <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
+              <Image
+                src="/images/Built with experience.png"
+                alt="Built with experience - Constructa team expertise"
+                fill
+                className="object-contain"
+                priority
+              />
             </div>
-            <div className="bg-gray-800 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-4">Simple Yet Powerful</h3>
-              <p className="text-gray-300">
-                Easy to use but packed with the features you need to run your business efficiently.
-              </p>
-            </div>
-            <div className="bg-gray-800 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-4">All-in-One Solution</h3>
-              <p className="text-gray-300">
-                Everything you need in one place—no more juggling multiple tools and systems.
-              </p>
+            <div className="max-w-[500px]">
+              <h2 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">About</h2>
+              <div className="space-y-6 text-left">
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0 w-6 h-6">
+                    <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                      <path d="M12 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M12 14.5c3.314 0 6-1.343 6-3s-2.686-3-6-3-6 1.343-6 3 2.686 3 6 3z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M3 7V4a1 1 0 011-1h16a1 1 0 011 1v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-medium text-white mb-1">Built by people who know the job</h3>
+                    <p className="text-sm md:text-base text-gray-400">
+                      We&apos;ve spent years in the construction industry—quoting jobs, planning programmes, and dealing with the same headaches you face every day.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0 w-6 h-6">
+                    <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                      <path d="M12 2v6m0 14v-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M4.93 4.93l4.24 4.24m5.66 5.66l4.24 4.24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M2 12h6m14 0h-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M4.93 19.07l4.24-4.24m5.66-5.66l4.24-4.24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-medium text-white mb-1">Born from experience</h3>
+                    <p className="text-sm md:text-base text-gray-400">
+                      Constructa was born out of that experience. It&apos;s designed for small construction teams who need simple, reliable tools to quote, plan, and manage work—without the bloat, the cost, or the complexity.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0 w-6 h-6">
+                    <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                      <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h-4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-medium text-white mb-1">Practical and fast</h3>
+                    <p className="text-sm md:text-base text-gray-400">
+                      We&apos;re building Constructa to be practical, fast, and made for the way construction really works.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0 w-6 h-6">
+                    <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                      <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-medium text-white mb-1">Our goal is simple</h3>
+                    <p className="text-sm md:text-base text-gray-400">
+                      To give small construction teams the tools they need to work smarter, win more jobs, and stay in control—without getting buried in admin.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <a 
+                    href="#" 
+                    className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    Try CONSTRUCTA
+                    <svg className="ml-2 w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Contact Us Section */}
-      <section className="py-16 md:py-32 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">Contact Us</h2>
-          <div className="max-w-xl mx-auto text-center">
-            <p className="text-lg text-gray-300 mb-8">
-              Ready to transform how you manage your construction projects? Get in touch to learn more about Constructa.
-            </p>
-            <div className="flex flex-col items-center space-y-4">
-              <div className="flex items-center space-x-2">
-                <h3 className="text-xl font-semibold">LinkedIn:</h3>
-                <a href="https://www.linkedin.com/company/constructa-co" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
-                  Constructa
-                </a>
+      <section className="relative py-32 md:py-40 px-4 md:px-8">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
+        <div className="relative max-w-[1400px] mx-auto px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+            {/* Left side content */}
+            <div className="max-w-[600px]">
+              <h2 className="text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 text-left">Contact Us</h2>
+              <p className="text-lg text-gray-400 mb-8 text-left">
+                Have questions about Constructa? We're here to help. Reach out to our team and we'll get back to you as soon as possible.
+              </p>
+              <div className="space-y-6">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 rounded-full bg-gray-800/50 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-xl font-semibold text-white">Email Us:</h3>
+                    <p className="text-gray-400">support@constructa.com</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 rounded-full bg-gray-800/50 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                    </svg>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-xl font-semibold text-white">Live Chat:</h3>
+                    <p className="text-gray-400">Available during business hours</p>
+                  </div>
+                </div>
               </div>
+            </div>
+
+            {/* Right side form */}
+            <div className="bg-gray-900/50 p-8 rounded-2xl backdrop-blur-sm">
+              <form className="space-y-6">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">Name</label>
+                  <input
+                    type="text"
+                    id="name"
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all duration-200 text-white placeholder-gray-400"
+                    placeholder="Your name"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                  <input
+                    type="email"
+                    id="email"
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all duration-200 text-white placeholder-gray-400"
+                    placeholder="your@email.com"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="message" className="block text-sm font-medium text-gray-300 mb-2">Message</label>
+                  <textarea
+                    id="message"
+                    rows={4}
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all duration-200 text-white placeholder-gray-400"
+                    placeholder="How can we help you?"
+                  ></textarea>
+                </div>
+                <button
+                  type="submit"
+                  className="w-full px-6 py-3 bg-gradient-to-r from-white to-gray-400 text-black font-medium rounded-lg hover:from-gray-200 hover:to-gray-300 transition-all duration-200"
+                >
+                  Send Message
+                </button>
+              </form>
             </div>
           </div>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

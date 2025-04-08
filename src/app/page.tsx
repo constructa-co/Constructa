@@ -42,7 +42,7 @@ const FeatureSection = () => {
               <div className="feature-image h-screen flex items-center justify-center transition-opacity duration-500"
                    style={{ opacity: activeFeature === 0 ? 1 : 0 }}>
                 <Image
-                  src="/images/hero-image.png"
+                  src="/images/feature-proposals.png"
                   alt="Proposals"
                   width={800}
                   height={600}
@@ -53,7 +53,7 @@ const FeatureSection = () => {
               <div className="feature-image h-screen flex items-center justify-center transition-opacity duration-500"
                    style={{ opacity: activeFeature === 1 ? 1 : 0 }}>
                 <Image
-                  src="/images/Build your proposal White.png"
+                  src="/images/feature-planning.png"
                   alt="Planning"
                   width={800}
                   height={600}
@@ -63,7 +63,7 @@ const FeatureSection = () => {
               <div className="feature-image h-screen flex items-center justify-center transition-opacity duration-500"
                    style={{ opacity: activeFeature === 2 ? 1 : 0 }}>
                 <Image
-                  src="/images/project Timecard.png"
+                  src="/images/feature-updates.png"
                   alt="Updates"
                   width={800}
                   height={600}
@@ -73,7 +73,7 @@ const FeatureSection = () => {
               <div className="feature-image h-screen flex items-center justify-center transition-opacity duration-500"
                    style={{ opacity: activeFeature === 3 ? 1 : 0 }}>
                 <Image
-                  src="/images/One Tap Update White.png"
+                  src="/images/feature-cost-control.png"
                   alt="Cost Control"
                   width={800}
                   height={600}

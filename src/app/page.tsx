@@ -76,13 +76,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Feature Highlights Section */}
+      {/* Feature Highlights Section with Sticky Scroll */}
       <section className="py-16 md:py-32 px-4 md:px-8">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">How It Works</h2>
           
+          {/* Sticky scroll container - only for this section */}
           <div className="relative">
-            {/* Sticky left side with images */}
+            {/* Sticky left side with images - only visible on desktop */}
             <div className="fixed left-0 top-0 w-1/2 h-screen overflow-hidden hidden md:block">
               <div className="h-full flex flex-col">
                 <div className="feature-image h-screen flex items-center justify-center transition-opacity duration-500"

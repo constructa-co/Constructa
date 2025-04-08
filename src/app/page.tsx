@@ -36,48 +36,17 @@ const FeatureSection = () => {
         
         {/* Sticky scroll container - only for this section */}
         <div className="relative">
-          {/* Sticky left side with images - only visible on desktop */}
+          {/* Fixed left side with images - only visible on desktop */}
           <div className="fixed left-0 top-0 w-1/2 h-screen overflow-hidden hidden md:block">
             <div className="h-full flex flex-col">
-              <div className="feature-image h-screen flex items-center justify-center transition-opacity duration-500"
-                   style={{ opacity: activeFeature === 0 ? 1 : 0 }}>
+              <div className="h-screen flex items-center justify-center">
                 <Image
-                  src="/images/feature-proposals.png"
+                  src="/images/Build your proposal White.png"
                   alt="Proposals"
                   width={800}
                   height={600}
                   className="object-contain"
                   priority
-                />
-              </div>
-              <div className="feature-image h-screen flex items-center justify-center transition-opacity duration-500"
-                   style={{ opacity: activeFeature === 1 ? 1 : 0 }}>
-                <Image
-                  src="/images/feature-planning.png"
-                  alt="Planning"
-                  width={800}
-                  height={600}
-                  className="object-contain"
-                />
-              </div>
-              <div className="feature-image h-screen flex items-center justify-center transition-opacity duration-500"
-                   style={{ opacity: activeFeature === 2 ? 1 : 0 }}>
-                <Image
-                  src="/images/feature-updates.png"
-                  alt="Updates"
-                  width={800}
-                  height={600}
-                  className="object-contain"
-                />
-              </div>
-              <div className="feature-image h-screen flex items-center justify-center transition-opacity duration-500"
-                   style={{ opacity: activeFeature === 3 ? 1 : 0 }}>
-                <Image
-                  src="/images/feature-cost-control.png"
-                  alt="Cost Control"
-                  width={800}
-                  height={600}
-                  className="object-contain"
                 />
               </div>
             </div>

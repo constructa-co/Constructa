@@ -34,10 +34,10 @@ const FeatureSection = () => {
       <div className="max-w-7xl mx-auto">
         <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">How It Works</h2>
         
-        {/* Sticky scroll container - only for this section */}
+        {/* Feature section container */}
         <div className="relative">
-          {/* Fixed left side with images - only visible on desktop */}
-          <div className="fixed left-0 top-0 w-1/2 h-screen overflow-hidden hidden md:block">
+          {/* Scrollable left side with images - only visible on desktop */}
+          <div className="fixed left-0 top-0 w-1/2 h-screen overflow-y-auto hidden md:block">
             <div className="h-full flex flex-col">
               <div className="h-screen flex items-center justify-center">
                 <Image
@@ -49,13 +49,40 @@ const FeatureSection = () => {
                   priority
                 />
               </div>
+              <div className="h-screen flex items-center justify-center">
+                <Image
+                  src="/images/project Timecard.png"
+                  alt="Planning"
+                  width={800}
+                  height={600}
+                  className="object-contain"
+                />
+              </div>
+              <div className="h-screen flex items-center justify-center">
+                <Image
+                  src="/images/One Tap Update White.png"
+                  alt="Updates"
+                  width={800}
+                  height={600}
+                  className="object-contain"
+                />
+              </div>
+              <div className="h-screen flex items-center justify-center">
+                <Image
+                  src="/images/Client-Ready Quote White.png"
+                  alt="Cost Control"
+                  width={800}
+                  height={600}
+                  className="object-contain"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Scrollable right side with content */}
+          {/* Fixed right side with animated content */}
           <div className="md:ml-[50%]">
             <div className="feature-container h-screen flex items-center px-4 md:px-16">
-              <div className="max-w-xl">
+              <div className="max-w-xl transition-opacity duration-500" style={{ opacity: activeFeature === 0 ? 1 : 0.3 }}>
                 <h3 className="text-2xl md:text-3xl font-semibold mb-4">Fast, accurate proposals</h3>
                 <p className="text-lg text-gray-300">
                   Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
@@ -64,7 +91,7 @@ const FeatureSection = () => {
             </div>
 
             <div className="feature-container h-screen flex items-center px-4 md:px-16">
-              <div className="max-w-xl">
+              <div className="max-w-xl transition-opacity duration-500" style={{ opacity: activeFeature === 1 ? 1 : 0.3 }}>
                 <h3 className="text-2xl md:text-3xl font-semibold mb-4">Simple project planning</h3>
                 <p className="text-lg text-gray-300">
                   Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
@@ -73,7 +100,7 @@ const FeatureSection = () => {
             </div>
 
             <div className="feature-container h-screen flex items-center px-4 md:px-16">
-              <div className="max-w-xl">
+              <div className="max-w-xl transition-opacity duration-500" style={{ opacity: activeFeature === 2 ? 1 : 0.3 }}>
                 <h3 className="text-2xl md:text-3xl font-semibold mb-4">One-tap updates</h3>
                 <p className="text-lg text-gray-300">
                   Keep everyone in the loop with instant updates. Share progress, changes, and important information with your team and clients.
@@ -82,7 +109,7 @@ const FeatureSection = () => {
             </div>
 
             <div className="feature-container h-screen flex items-center px-4 md:px-16">
-              <div className="max-w-xl">
+              <div className="max-w-xl transition-opacity duration-500" style={{ opacity: activeFeature === 3 ? 1 : 0.3 }}>
                 <h3 className="text-2xl md:text-3xl font-semibold mb-4">Built-in cost control</h3>
                 <p className="text-lg text-gray-300">
                   Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.

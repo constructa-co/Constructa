@@ -253,9 +253,15 @@ export default function Home() {
       </section>
 
       {/* How It Works Section */}
-      <section className="relative bg-gradient-to-b from-black via-gray-900/50 to-black py-16 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
+      <section className="relative py-32 md:py-40 px-4 md:px-8">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
+          <div className="max-w-[600px] mx-auto text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">How It Works</h2>
+            <p className="text-gray-400 text-lg">
+              Get started with Constructa in three simple steps
+            </p>
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
             <div className="max-w-[500px] justify-self-end">
               <h2 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">Quote it. Plan it. Run it.</h2>
@@ -572,8 +578,8 @@ export default function Home() {
       </section>
 
       {/* About Section */}
-      <section id="about" className="relative bg-gradient-to-b from-black via-gray-900/50 to-black py-16 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
+      <section className="relative py-32 md:py-40 px-4 md:px-8">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
             <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">

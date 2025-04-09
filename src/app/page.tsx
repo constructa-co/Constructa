@@ -38,7 +38,7 @@ const FeatureSection = () => {
         <div className="relative h-full flex items-center justify-center max-w-[1400px] mx-auto px-8">
           {/* Left side - Sticky images */}
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1/2 hidden md:block">
-            <div className="relative h-full flex items-center justify-center">
+            <div className="relative h-full flex items-center justify-start">
               <div className={`absolute inset-0 transition-opacity duration-500 flex items-center justify-center ${activeFeature === 0 ? 'opacity-100' : 'opacity-0'}`}>
                 <div className="h-[400px] flex items-center justify-center">
                   <Image
@@ -89,8 +89,8 @@ const FeatureSection = () => {
 
           {/* Right side - Animated text */}
           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/2 hidden md:block">
-            <div className="h-full flex items-center">
-              <div className="max-w-[400px]">
+            <div className="h-full flex items-center justify-end">
+              <div className="max-w-[500px]">
                 <div className={`transition-opacity duration-500 absolute ${activeFeature === 0 ? 'opacity-100' : 'opacity-0'}`}>
                   <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">Fast, accurate proposals</h3>
                   <p className="text-sm md:text-base text-gray-400 text-left">

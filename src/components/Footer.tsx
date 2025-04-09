@@ -100,8 +100,8 @@ const Footer = () => {
         </div>
 
         {/* Bottom Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center pt-8 border-t border-gray-800/40">
-          <div className="space-y-2 md:space-y-0">
+        <div className="flex flex-col items-center pt-8 border-t border-gray-800/40">
+          <div className="text-center space-y-2">
             <p className="text-sm text-gray-400">Constructa © 2025</p>
             <p className="text-sm text-gray-500">Made for construction professionals.</p>
           </div>

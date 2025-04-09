@@ -35,9 +35,9 @@ const FeatureSection = () => {
     <section id="feature-section" className="relative h-[300vh]">
       {/* Sticky container for the entire feature section */}
       <div className="sticky top-16 h-[calc(100vh-4rem)] overflow-hidden">
-        <div className="relative h-full flex items-center justify-center">
+        <div className="relative h-full flex items-center justify-center max-w-[1400px] mx-auto px-8">
           {/* Left side - Sticky images */}
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1/2 h-[60vh] hidden md:block">
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1/2 hidden md:block">
             <div className="relative h-full flex items-center justify-center">
               <div className={`absolute inset-0 transition-opacity duration-500 flex items-center justify-center ${activeFeature === 0 ? 'opacity-100' : 'opacity-0'}`}>
                 <div className="h-[400px] flex items-center justify-center">
@@ -88,15 +88,15 @@ const FeatureSection = () => {
           </div>
 
           {/* Right side - Animated text */}
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/2 h-[60vh] hidden md:block">
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/2 hidden md:block">
             <div className="h-full flex items-center">
-              <div className="max-w-[460px]">
+              <div className="max-w-[400px]">
                 <div className={`transition-opacity duration-500 absolute ${activeFeature === 0 ? 'opacity-100' : 'opacity-0'}`}>
                   <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">Fast, accurate proposals</h3>
                   <p className="text-sm md:text-base text-gray-400 text-left">
                     Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
                   </p>
-                  <div className="pt-4">
+                  <div className="pt-4 text-left">
                     <a 
                       href="#" 
                       className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
@@ -113,7 +113,7 @@ const FeatureSection = () => {
                   <p className="text-sm md:text-base text-gray-400 text-left">
                     Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
                   </p>
-                  <div className="pt-4">
+                  <div className="pt-4 text-left">
                     <a 
                       href="#" 
                       className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
@@ -130,7 +130,7 @@ const FeatureSection = () => {
                   <p className="text-sm md:text-base text-gray-400 text-left">
                     Keep everyone in the loop with instant updates. Share progress, changes, and important information with your team and clients.
                   </p>
-                  <div className="pt-4">
+                  <div className="pt-4 text-left">
                     <a 
                       href="#" 
                       className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
@@ -147,7 +147,7 @@ const FeatureSection = () => {
                   <p className="text-sm md:text-base text-gray-400 text-left">
                     Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
                   </p>
-                  <div className="pt-4">
+                  <div className="pt-4 text-left">
                     <a 
                       href="#" 
                       className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"

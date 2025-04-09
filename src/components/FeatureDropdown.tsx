@@ -108,8 +108,8 @@ const FeatureDropdown = () => {
                 <ul className="space-y-6">
                   {items.map((item) => (
                     <li key={item.title} className="group/item">
-                      <a href="#" className="block space-y-1.5">
-                        <div className="text-sm font-medium text-gray-400 group-hover/item:text-white transition-colors">
+                      <a href="#" className="block">
+                        <div className="text-sm font-medium text-gray-400 group-hover/item:text-white transition-colors mb-1">
                           {item.title}
                         </div>
                         <p className="text-xs text-gray-500 group-hover/item:text-gray-400 transition-colors leading-relaxed">

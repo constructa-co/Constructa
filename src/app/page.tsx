@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Script from 'next/script';
+import FAQ from './components/FAQ';
 
 // Feature section component with sticky scroll
 const FeatureSection = () => {
@@ -687,6 +688,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* FAQ Section */}
+      <FAQ />
 
       {/* Contact Us Section */}
       <section className="relative py-32 md:py-40 px-4 md:px-8">

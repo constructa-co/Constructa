@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import FeatureDropdown from './FeatureDropdown';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -19,7 +20,7 @@ const Header = () => {
           {/* Center column - Navigation (Desktop) */}
           <nav className="hidden md:flex justify-center">
             <div className="flex items-center space-x-8">
-              <a href="#features" className="text-gray-500 hover:text-gray-300 transition-colors duration-200">Features</a>
+              <FeatureDropdown />
               <a href="#pricing" className="text-gray-500 hover:text-gray-300 transition-colors duration-200">Pricing</a>
               <a href="#about" className="text-gray-500 hover:text-gray-300 transition-colors duration-200">About</a>
               <a href="#contact" className="text-gray-500 hover:text-gray-300 transition-colors duration-200">Contact</a>

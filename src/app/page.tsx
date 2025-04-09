@@ -32,55 +32,63 @@ const FeatureSection = () => {
   }, []);
 
   return (
-    <section id="feature-section" className="relative h-[400vh]">
+    <section id="feature-section" className="relative h-[300vh]">
       {/* Sticky container for the entire feature section */}
       <div className="sticky top-16 h-[calc(100vh-4rem)] overflow-hidden">
         <div className="relative h-full flex items-center justify-center">
           {/* Left side - Sticky images */}
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1/2 h-[80vh] hidden md:block">
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1/2 h-[60vh] hidden md:block">
             <div className="relative h-full flex items-center justify-center">
               <div className={`absolute inset-0 transition-opacity duration-500 flex items-center justify-center ${activeFeature === 0 ? 'opacity-100' : 'opacity-0'}`}>
-                <Image
-                  src="/images/Build your proposal White.png"
-                  alt="Proposals"
-                  width={800}
-                  height={600}
-                  className="object-contain max-h-full w-auto"
-                  priority
-                />
+                <div className="h-[400px] flex items-center justify-center">
+                  <Image
+                    src="/images/Build your proposal White.png"
+                    alt="Proposals"
+                    width={600}
+                    height={400}
+                    className="object-contain h-full w-auto"
+                    priority
+                  />
+                </div>
               </div>
               <div className={`absolute inset-0 transition-opacity duration-500 flex items-center justify-center ${activeFeature === 1 ? 'opacity-100' : 'opacity-0'}`}>
-                <Image
-                  src="/images/project Timecard.png"
-                  alt="Planning"
-                  width={800}
-                  height={600}
-                  className="object-contain max-h-full w-auto"
-                />
+                <div className="h-[400px] flex items-center justify-center">
+                  <Image
+                    src="/images/project Timecard.png"
+                    alt="Planning"
+                    width={600}
+                    height={400}
+                    className="object-contain h-full w-auto"
+                  />
+                </div>
               </div>
               <div className={`absolute inset-0 transition-opacity duration-500 flex items-center justify-center ${activeFeature === 2 ? 'opacity-100' : 'opacity-0'}`}>
-                <Image
-                  src="/images/One Tap Update White.png"
-                  alt="Updates"
-                  width={800}
-                  height={600}
-                  className="object-contain max-h-full w-auto"
-                />
+                <div className="h-[400px] flex items-center justify-center">
+                  <Image
+                    src="/images/One Tap Update White.png"
+                    alt="Updates"
+                    width={600}
+                    height={400}
+                    className="object-contain h-full w-auto"
+                  />
+                </div>
               </div>
               <div className={`absolute inset-0 transition-opacity duration-500 flex items-center justify-center ${activeFeature === 3 ? 'opacity-100' : 'opacity-0'}`}>
-                <Image
-                  src="/images/Client-Ready Quote White.png"
-                  alt="Cost Control"
-                  width={800}
-                  height={600}
-                  className="object-contain max-h-full w-auto"
-                />
+                <div className="h-[400px] flex items-center justify-center">
+                  <Image
+                    src="/images/Client-Ready Quote White.png"
+                    alt="Cost Control"
+                    width={600}
+                    height={400}
+                    className="object-contain h-full w-auto"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
           {/* Right side - Animated text */}
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/2 h-[80vh] hidden md:block">
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/2 h-[60vh] hidden md:block">
             <div className="h-full flex items-center px-16">
               <div className="max-w-xl">
                 <div className={`transition-opacity duration-500 absolute ${activeFeature === 0 ? 'opacity-100' : 'opacity-0'}`}>

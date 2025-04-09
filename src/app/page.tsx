@@ -33,7 +33,7 @@ const FeatureSection = () => {
   return (
     <section id="feature-section" className="relative h-[400vh]">
       {/* Sticky container for the entire feature section */}
-      <div className="sticky top-24 h-[calc(100vh-6rem)] overflow-hidden">
+      <div className="sticky top-[50%] translate-y-[-50%] h-[calc(100vh-6rem)] overflow-hidden">
         <div className="relative h-full">
           {/* Left side - Sticky images */}
           <div className="absolute left-0 top-0 w-1/2 h-full hidden md:block">

@@ -66,13 +66,13 @@ const Header = () => {
         {/* Mobile menu */}
         <div className={`md:hidden ${isMenuOpen ? 'block' : 'hidden'}`}>
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <a href="#features" className="block px-3 py-2 text-gray-300 hover:text-white">Features</a>
-            <a href="#pricing" className="block px-3 py-2 text-gray-300 hover:text-white">Pricing</a>
-            <a href="#about" className="block px-3 py-2 text-gray-300 hover:text-white">About</a>
-            <a href="#contact" className="block px-3 py-2 text-gray-300 hover:text-white">Contact</a>
+            <a href="#features" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">Features</a>
+            <a href="#pricing" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">Pricing</a>
+            <a href="#about" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">About</a>
+            <a href="#contact" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">Contact</a>
             <div className="pt-4 space-y-2">
-              <a href="#login" className="block px-3 py-2 text-gray-300 hover:text-white">Log in</a>
-              <a href="#signup" className="block px-3 py-2 bg-white text-black rounded-md hover:bg-gray-100">Sign up</a>
+              <a href="#login" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">Log in</a>
+              <a href="#signup" className="block px-3 py-2 text-sm bg-white text-black rounded-md hover:bg-gray-100">Sign up</a>
             </div>
           </div>
         </div>

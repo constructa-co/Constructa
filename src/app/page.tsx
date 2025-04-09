@@ -90,13 +90,13 @@ const FeatureSection = () => {
           {/* Right side - Animated text */}
           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/2 h-[60vh] hidden md:block">
             <div className="h-full flex items-center px-16">
-              <div className="max-w-xl">
+              <div className="max-w-[500px]">
                 <div className={`transition-opacity duration-500 absolute ${activeFeature === 0 ? 'opacity-100' : 'opacity-0'}`}>
-                  <h3 className="text-2xl md:text-3xl font-semibold mb-4 text-left">Fast, accurate proposals</h3>
-                  <p className="text-lg text-gray-300 text-left">
+                  <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">Fast, accurate proposals</h3>
+                  <p className="text-sm md:text-base text-gray-400 text-left">
                     Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
                   </p>
-                  <div className="mt-6 text-left">
+                  <div className="pt-4">
                     <a 
                       href="#" 
                       className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
@@ -109,11 +109,11 @@ const FeatureSection = () => {
                   </div>
                 </div>
                 <div className={`transition-opacity duration-500 absolute ${activeFeature === 1 ? 'opacity-100' : 'opacity-0'}`}>
-                  <h3 className="text-2xl md:text-3xl font-semibold mb-4 text-left">Simple project planning</h3>
-                  <p className="text-lg text-gray-300 text-left">
+                  <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">Simple project planning</h3>
+                  <p className="text-sm md:text-base text-gray-400 text-left">
                     Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
                   </p>
-                  <div className="mt-6 text-left">
+                  <div className="pt-4">
                     <a 
                       href="#" 
                       className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
@@ -126,11 +126,11 @@ const FeatureSection = () => {
                   </div>
                 </div>
                 <div className={`transition-opacity duration-500 absolute ${activeFeature === 2 ? 'opacity-100' : 'opacity-0'}`}>
-                  <h3 className="text-2xl md:text-3xl font-semibold mb-4 text-left">One-tap updates</h3>
-                  <p className="text-lg text-gray-300 text-left">
+                  <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">One-tap updates</h3>
+                  <p className="text-sm md:text-base text-gray-400 text-left">
                     Keep everyone in the loop with instant updates. Share progress, changes, and important information with your team and clients.
                   </p>
-                  <div className="mt-6 text-left">
+                  <div className="pt-4">
                     <a 
                       href="#" 
                       className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
@@ -143,11 +143,11 @@ const FeatureSection = () => {
                   </div>
                 </div>
                 <div className={`transition-opacity duration-500 absolute ${activeFeature === 3 ? 'opacity-100' : 'opacity-0'}`}>
-                  <h3 className="text-2xl md:text-3xl font-semibold mb-4 text-left">Built-in cost control</h3>
-                  <p className="text-lg text-gray-300 text-left">
+                  <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">Built-in cost control</h3>
+                  <p className="text-sm md:text-base text-gray-400 text-left">
                     Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
                   </p>
-                  <div className="mt-6 text-left">
+                  <div className="pt-4">
                     <a 
                       href="#" 
                       className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"

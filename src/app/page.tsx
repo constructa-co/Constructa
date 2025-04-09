@@ -33,8 +33,8 @@ const FeatureSection = () => {
   return (
     <section id="feature-section" className="relative h-[400vh]">
       {/* Sticky container for the entire feature section */}
-      <div className="sticky top-[50%] translate-y-[-50%] h-[calc(100vh-6rem)] overflow-hidden">
-        <div className="relative h-full">
+      <div className="sticky top-0 h-screen overflow-hidden">
+        <div className="relative h-full flex items-center">
           {/* Left side - Sticky images */}
           <div className="absolute left-0 top-0 w-1/2 h-full hidden md:block">
             <div className="relative h-[50%] flex items-center">
@@ -227,13 +227,7 @@ export default function Home() {
       </section>
 
       {/* Feature Highlights Section */}
-      <div className="relative h-[400vh]">
-        <div className="sticky top-0 h-screen overflow-hidden">
-          <div className="relative h-full flex items-center">
-            <FeatureSection />
-          </div>
-        </div>
-      </div>
+      <FeatureSection />
 
       {/* What Sets Us Apart Section */}
       <section className="relative py-32 md:py-40 px-4 md:px-8">

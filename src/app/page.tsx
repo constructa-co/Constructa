@@ -77,8 +77,8 @@ const FeatureSection = () => {
             </div>
 
             {/* Right side - Animated text */}
-            <div className="max-w-[500px]">
-              <div className={`transition-opacity duration-500 ${activeFeature === 0 ? 'opacity-100' : 'opacity-0 absolute'}`}>
+            <div className="max-w-[500px] relative">
+              <div className={`transition-opacity duration-500 absolute inset-0 ${activeFeature === 0 ? 'opacity-100 relative' : 'opacity-0 pointer-events-none'}`}>
                 <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">Fast, accurate proposals</h3>
                 <p className="text-sm md:text-base text-gray-400 text-left">
                   Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
@@ -95,7 +95,7 @@ const FeatureSection = () => {
                   </a>
                 </div>
               </div>
-              <div className={`transition-opacity duration-500 ${activeFeature === 1 ? 'opacity-100' : 'opacity-0 absolute'}`}>
+              <div className={`transition-opacity duration-500 absolute inset-0 ${activeFeature === 1 ? 'opacity-100 relative' : 'opacity-0 pointer-events-none'}`}>
                 <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">Simple project planning</h3>
                 <p className="text-sm md:text-base text-gray-400 text-left">
                   Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
@@ -112,7 +112,7 @@ const FeatureSection = () => {
                   </a>
                 </div>
               </div>
-              <div className={`transition-opacity duration-500 ${activeFeature === 2 ? 'opacity-100' : 'opacity-0 absolute'}`}>
+              <div className={`transition-opacity duration-500 absolute inset-0 ${activeFeature === 2 ? 'opacity-100 relative' : 'opacity-0 pointer-events-none'}`}>
                 <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">One-tap updates</h3>
                 <p className="text-sm md:text-base text-gray-400 text-left">
                   Keep everyone in the loop with instant updates. Share progress, changes, and important information with your team and clients.
@@ -129,7 +129,7 @@ const FeatureSection = () => {
                   </a>
                 </div>
               </div>
-              <div className={`transition-opacity duration-500 ${activeFeature === 3 ? 'opacity-100' : 'opacity-0 absolute'}`}>
+              <div className={`transition-opacity duration-500 absolute inset-0 ${activeFeature === 3 ? 'opacity-100 relative' : 'opacity-0 pointer-events-none'}`}>
                 <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">Built-in cost control</h3>
                 <p className="text-sm md:text-base text-gray-400 text-left">
                   Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.

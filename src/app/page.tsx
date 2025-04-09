@@ -227,7 +227,13 @@ export default function Home() {
       </section>
 
       {/* Feature Highlights Section */}
-      <FeatureSection />
+      <div className="relative h-[400vh]">
+        <div className="sticky top-0 h-screen overflow-hidden">
+          <div className="relative h-full flex items-center">
+            <FeatureSection />
+          </div>
+        </div>
+      </div>
 
       {/* What Sets Us Apart Section */}
       <section className="relative py-32 md:py-40 px-4 md:px-8">

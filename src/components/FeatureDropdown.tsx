@@ -91,7 +91,7 @@ const FeatureDropdown = () => {
       {/* Dropdown Panel */}
       <div
         onMouseLeave={() => setIsOpen(false)}
-        className={`fixed inset-0 top-16 bg-black/95 backdrop-blur-sm transform transition-all duration-200 ${
+        className={`fixed inset-0 top-16 bg-black transform transition-all duration-200 ${
           isOpen
             ? 'opacity-100 translate-y-0'
             : 'opacity-0 -translate-y-2 pointer-events-none'

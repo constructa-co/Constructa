@@ -54,14 +54,7 @@ export default function FAQ() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
           {/* Left column with header */}
           <div className="text-left">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">Have questions?</h2>
-            <p className="text-2xl md:text-3xl text-gray-400">We have answers!</p>
-            <div className="mt-8">
-              <p className="text-gray-400">Want to know more? You can email us anytime at</p>
-              <a href="mailto:hello@constructa.co" className="text-orange-500 hover:text-orange-400 transition-colors">
-                hello@constructa.co
-              </a>
-            </div>
+            <h2 className="text-4xl md:text-5xl font-bold">Have questions?</h2>
           </div>
 
           {/* Right column with accordion */}

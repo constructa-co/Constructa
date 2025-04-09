@@ -97,18 +97,18 @@ const FeatureDropdown = () => {
             : 'opacity-0 -translate-y-2 pointer-events-none'
         }`}
       >
-        <div className="relative z-50 max-w-7xl mx-auto px-8 py-16 bg-[#000000]">
+        <div className="relative z-50 max-w-7xl mx-auto px-8 py-16 bg-[#000000] text-left">
           <div className="grid grid-cols-4 gap-8">
             {Object.entries(features).map(([group, { icon, items }]) => (
-              <div key={group} className="group">
+              <div key={group} className="group text-left">
                 <div className="flex items-center space-x-2 mb-6">
                   {icon}
                   <h3 className="text-base font-medium text-gray-200 group-hover:text-white transition-colors">{group}</h3>
                 </div>
-                <ul className="space-y-6">
+                <ul className="space-y-6 text-left">
                   {items.map((item) => (
                     <li key={item.title} className="group/item">
-                      <a href="#" className="block">
+                      <a href="#" className="block text-left">
                         <div className="text-sm font-medium text-gray-400 group-hover/item:text-white transition-colors mb-1">
                           {item.title}
                         </div>

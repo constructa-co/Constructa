@@ -8,7 +8,7 @@ const FeatureDropdown = () => {
 
   const features = {
     'Proposal Tools': {
-      icon: <FileText className="w-5 h-5 mb-2 text-gray-400 group-hover:text-white transition-colors" />,
+      icon: <FileText className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />,
       items: [
         {
           title: 'Quick Quote Builder',
@@ -25,7 +25,7 @@ const FeatureDropdown = () => {
       ]
     },
     'Planning Tools': {
-      icon: <Calendar className="w-5 h-5 mb-2 text-gray-400 group-hover:text-white transition-colors" />,
+      icon: <Calendar className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />,
       items: [
         {
           title: 'Visual Programme Editor',
@@ -42,7 +42,7 @@ const FeatureDropdown = () => {
       ]
     },
     'Cost Control': {
-      icon: <PieChart className="w-5 h-5 mb-2 text-gray-400 group-hover:text-white transition-colors" />,
+      icon: <PieChart className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />,
       items: [
         {
           title: 'Budget Tracker',
@@ -55,7 +55,7 @@ const FeatureDropdown = () => {
       ]
     },
     'Communication & Delivery': {
-      icon: <Send className="w-5 h-5 mb-2 text-gray-400 group-hover:text-white transition-colors" />,
+      icon: <Send className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />,
       items: [
         {
           title: 'Client-Ready PDFs',
@@ -91,35 +91,37 @@ const FeatureDropdown = () => {
       {/* Dropdown Panel */}
       <div
         onMouseLeave={() => setIsOpen(false)}
-        className={`absolute left-1/2 -translate-x-1/2 top-full mt-2 w-screen max-w-7xl bg-black border border-gray-800 rounded-lg shadow-xl transform transition-all duration-200 origin-top ${
+        className={`fixed inset-0 top-16 bg-black/95 backdrop-blur-sm transform transition-all duration-200 ${
           isOpen
-            ? 'opacity-100 scale-100 translate-y-0'
-            : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
+            ? 'opacity-100 translate-y-0'
+            : 'opacity-0 -translate-y-2 pointer-events-none'
         }`}
       >
-        <div className="grid grid-cols-4 gap-8 p-8">
-          {Object.entries(features).map(([group, { icon, items }]) => (
-            <div key={group} className="group">
-              <div className="space-y-1 mb-4">
-                {icon}
-                <h3 className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors">{group}</h3>
+        <div className="max-w-7xl mx-auto px-8 py-16">
+          <div className="grid grid-cols-4 gap-8">
+            {Object.entries(features).map(([group, { icon, items }]) => (
+              <div key={group} className="group">
+                <div className="flex items-center space-x-2 mb-6">
+                  {icon}
+                  <h3 className="text-base font-medium text-gray-200 group-hover:text-white transition-colors">{group}</h3>
+                </div>
+                <ul className="space-y-6">
+                  {items.map((item) => (
+                    <li key={item.title} className="group/item">
+                      <a href="#" className="block space-y-1.5">
+                        <div className="text-sm font-medium text-gray-400 group-hover/item:text-white transition-colors">
+                          {item.title}
+                        </div>
+                        <p className="text-xs text-gray-500 group-hover/item:text-gray-400 transition-colors leading-relaxed">
+                          {item.description}
+                        </p>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="space-y-4">
-                {items.map((item) => (
-                  <li key={item.title} className="group/item">
-                    <a href="#" className="block space-y-1">
-                      <div className="text-sm font-medium text-gray-400 group-hover/item:text-white transition-colors">
-                        {item.title}
-                      </div>
-                      <p className="text-xs text-gray-500 group-hover/item:text-gray-400 transition-colors">
-                        {item.description}
-                      </p>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>

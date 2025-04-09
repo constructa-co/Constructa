@@ -1,64 +1,76 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, FileText, Calendar, PieChart, Send } from 'lucide-react';
 
 const FeatureDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const features = {
-    'Proposal Tools': [
-      {
-        title: 'Quick Quote Builder',
-        description: 'Build detailed proposals fast—line items, quantities, and pricing in one place.'
-      },
-      {
-        title: 'Custom Terms & Conditions',
-        description: 'Set your own T&Cs once and reuse them across jobs.'
-      },
-      {
-        title: 'Capability Statement Builder',
-        description: 'Showcase your expertise and experience in every proposal.'
-      }
-    ],
-    'Planning Tools': [
-      {
-        title: 'Visual Programme Editor',
-        description: 'Create clear project timelines without spreadsheets.'
-      },
-      {
-        title: 'Phase & Milestone Mapping',
-        description: 'Break down jobs into manageable chunks and key dates.'
-      },
-      {
-        title: 'Job Overview Dashboard',
-        description: 'See all active and upcoming jobs at a glance.'
-      }
-    ],
-    'Cost Control': [
-      {
-        title: 'Budget Tracker',
-        description: 'Monitor spend, changes, and updates as the job progresses.'
-      },
-      {
-        title: 'Change Log / Variations',
-        description: 'Keep a record of client changes and protect your margin.'
-      }
-    ],
-    'Communication & Delivery': [
-      {
-        title: 'Client-Ready PDFs',
-        description: 'Send branded, professional proposals instantly.'
-      },
-      {
-        title: 'One-Tap Updates',
-        description: 'Update job status or key info in seconds, from anywhere.'
-      },
-      {
-        title: 'Mobile-First Workflow',
-        description: 'Built to work wherever you are—on-site or on the move.'
-      }
-    ]
+    'Proposal Tools': {
+      icon: <FileText className="w-5 h-5 mb-2 text-gray-400 group-hover:text-white transition-colors" />,
+      items: [
+        {
+          title: 'Quick Quote Builder',
+          description: 'Build detailed proposals fast—line items, quantities, and pricing in one place.'
+        },
+        {
+          title: 'Custom Terms & Conditions',
+          description: 'Set your own T&Cs once and reuse them across jobs.'
+        },
+        {
+          title: 'Capability Statement Builder',
+          description: 'Showcase your expertise and experience in every proposal.'
+        }
+      ]
+    },
+    'Planning Tools': {
+      icon: <Calendar className="w-5 h-5 mb-2 text-gray-400 group-hover:text-white transition-colors" />,
+      items: [
+        {
+          title: 'Visual Programme Editor',
+          description: 'Create clear project timelines without spreadsheets.'
+        },
+        {
+          title: 'Phase & Milestone Mapping',
+          description: 'Break down jobs into manageable chunks and key dates.'
+        },
+        {
+          title: 'Job Overview Dashboard',
+          description: 'See all active and upcoming jobs at a glance.'
+        }
+      ]
+    },
+    'Cost Control': {
+      icon: <PieChart className="w-5 h-5 mb-2 text-gray-400 group-hover:text-white transition-colors" />,
+      items: [
+        {
+          title: 'Budget Tracker',
+          description: 'Monitor spend, changes, and updates as the job progresses.'
+        },
+        {
+          title: 'Change Log / Variations',
+          description: 'Keep a record of client changes and protect your margin.'
+        }
+      ]
+    },
+    'Communication & Delivery': {
+      icon: <Send className="w-5 h-5 mb-2 text-gray-400 group-hover:text-white transition-colors" />,
+      items: [
+        {
+          title: 'Client-Ready PDFs',
+          description: 'Send branded, professional proposals instantly.'
+        },
+        {
+          title: 'One-Tap Updates',
+          description: 'Update job status or key info in seconds, from anywhere.'
+        },
+        {
+          title: 'Mobile-First Workflow',
+          description: 'Built to work wherever you are—on-site or on the move.'
+        }
+      ]
+    }
   };
 
   return (
@@ -79,16 +91,19 @@ const FeatureDropdown = () => {
       {/* Dropdown Panel */}
       <div
         onMouseLeave={() => setIsOpen(false)}
-        className={`absolute left-0 top-full mt-2 w-[600px] bg-black border border-gray-800 rounded-lg shadow-xl transform transition-all duration-200 origin-top-left ${
+        className={`absolute left-1/2 -translate-x-1/2 top-full mt-2 w-screen max-w-7xl bg-black border border-gray-800 rounded-lg shadow-xl transform transition-all duration-200 origin-top ${
           isOpen
             ? 'opacity-100 scale-100 translate-y-0'
             : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
         }`}
       >
-        <div className="grid grid-cols-2 gap-6 p-6">
-          {Object.entries(features).map(([group, items]) => (
-            <div key={group} className="space-y-4">
-              <h3 className="text-sm font-medium text-gray-200">{group}</h3>
+        <div className="grid grid-cols-4 gap-8 p-8">
+          {Object.entries(features).map(([group, { icon, items }]) => (
+            <div key={group} className="group">
+              <div className="space-y-1 mb-4">
+                {icon}
+                <h3 className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors">{group}</h3>
+              </div>
               <ul className="space-y-4">
                 {items.map((item) => (
                   <li key={item.title} className="group/item">

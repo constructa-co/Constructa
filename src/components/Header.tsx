@@ -19,7 +19,7 @@ const Header = () => {
 
           {/* Center column - Navigation (Desktop) */}
           <nav className="hidden md:flex justify-center">
-            <div className="flex items-center space-x-8">
+            <div className="flex items-center space-x-8 text-sm">
               <FeatureDropdown />
               <a href="#pricing" className="text-gray-500 hover:text-gray-300 transition-colors duration-200">Pricing</a>
               <a href="#about" className="text-gray-500 hover:text-gray-300 transition-colors duration-200">About</a>
@@ -31,7 +31,7 @@ const Header = () => {
           <div className="flex items-center justify-end space-x-6">
             {/* Desktop auth buttons */}
             <div className="hidden md:flex items-center space-x-6">
-              <a href="#login" className="text-gray-500 hover:text-gray-300 transition-colors duration-200">
+              <a href="#login" className="text-sm text-gray-500 hover:text-gray-300 transition-colors duration-200">
                 Log in
               </a>
               <a href="#signup" className="px-4 py-1.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors duration-200">

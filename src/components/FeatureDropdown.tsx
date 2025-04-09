@@ -91,13 +91,13 @@ const FeatureDropdown = () => {
       {/* Dropdown Panel */}
       <div
         onMouseLeave={() => setIsOpen(false)}
-        className={`fixed inset-0 top-16 bg-black transform transition-all duration-200 ${
+        className={`fixed inset-0 top-16 z-50 bg-[#000000] transform transition-all duration-200 ${
           isOpen
             ? 'opacity-100 translate-y-0'
             : 'opacity-0 -translate-y-2 pointer-events-none'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-8 py-16">
+        <div className="relative z-50 max-w-7xl mx-auto px-8 py-16 bg-[#000000]">
           <div className="grid grid-cols-4 gap-8">
             {Object.entries(features).map(([group, { icon, items }]) => (
               <div key={group} className="group">

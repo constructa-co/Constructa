@@ -23,7 +23,7 @@ export default function RootLayout({
         <Script
           defer
           data-domain="constructa.co"
-          src="https://plausible.io/js/script.outbound-links.tagged-events.js"
+          src="https://plausible.io/js/script.js"
           strategy="afterInteractive"
         />
         <Script id="plausible-events" strategy="afterInteractive">

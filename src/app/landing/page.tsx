@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
+import Script from 'next/script';
 
 export default function LandingPage() {
   const [email, setEmail] = useState('');
@@ -14,6 +15,19 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-black to-gray-900">
+      <Script id="plausible-convertkit" strategy="afterInteractive">
+        {`
+          document.addEventListener("DOMContentLoaded", function () {
+            const form = document.querySelector('form[action*="kit.com"]');
+            if (form) {
+              form.addEventListener("submit", function () {
+                if (window.plausible) plausible("EmailSignup");
+              });
+            }
+          });
+        `}
+      </Script>
+
       {/* Hero Section */}
       <section className="relative py-32 px-4 md:px-8">
         <div className="max-w-7xl mx-auto">

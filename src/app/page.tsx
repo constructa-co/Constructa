@@ -135,6 +135,8 @@ const FeatureSection = () => {
                 <div className="pt-4 text-left">
                   <a 
                     href="#" 
+                    id="try-constructa-proposals"
+                    data-section="proposals"
                     className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
                   >
                     Try CONSTRUCTA
@@ -152,6 +154,8 @@ const FeatureSection = () => {
                 <div className="pt-4 text-left">
                   <a 
                     href="#" 
+                    id="try-constructa-planning"
+                    data-section="planning"
                     className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
                   >
                     Try CONSTRUCTA
@@ -169,6 +173,8 @@ const FeatureSection = () => {
                 <div className="pt-4 text-left">
                   <a 
                     href="#" 
+                    id="try-constructa-updates"
+                    data-section="updates"
                     className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
                   >
                     Try CONSTRUCTA
@@ -186,6 +192,8 @@ const FeatureSection = () => {
                 <div className="pt-4 text-left">
                   <a 
                     href="#" 
+                    id="try-constructa-cost-control"
+                    data-section="cost-control"
                     className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
                   >
                     Try CONSTRUCTA
@@ -269,6 +277,22 @@ export default function Home() {
           });
         `}
       </Script>
+      <Script id="plausible-cta" strategy="afterInteractive">
+        {`
+          document.addEventListener("DOMContentLoaded", function () {
+            // Track all Try CONSTRUCTA buttons
+            document.querySelectorAll('a[id^="try-constructa-"]').forEach(function(button) {
+              button.addEventListener("click", function () {
+                if (window.plausible) plausible("TryConstructaClick", { 
+                  props: { 
+                    location: button.getAttribute('data-section') 
+                  }
+                });
+              });
+            });
+          });
+        `}
+      </Script>
       
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center py-32 md:py-32 px-4 md:px-8">
@@ -318,6 +342,8 @@ export default function Home() {
                 <div className="pt-4">
                   <a 
                     href="#" 
+                    id="try-constructa-proposals"
+                    data-section="proposals"
                     className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
                   >
                     Try CONSTRUCTA
@@ -364,6 +390,8 @@ export default function Home() {
                 <div className="pt-4">
                   <a 
                     href="#" 
+                    id="try-constructa-what-sets-us-apart"
+                    data-section="what-sets-us-apart"
                     className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
                   >
                     Try CONSTRUCTA
@@ -457,6 +485,8 @@ export default function Home() {
                 <div className="pt-4">
                   <a 
                     href="#" 
+                    id="try-constructa-how-it-works"
+                    data-section="how-it-works"
                     className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
                   >
                     Try CONSTRUCTA
@@ -746,6 +776,8 @@ export default function Home() {
                 <div className="pt-4">
                   <a 
                     href="#" 
+                    id="try-constructa-about"
+                    data-section="about"
                     className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
                   >
                     Try CONSTRUCTA

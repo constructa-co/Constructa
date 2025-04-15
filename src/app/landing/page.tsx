@@ -28,6 +28,19 @@ export default function LandingPage() {
         `}
       </Script>
 
+      <Script id="plausible-waitlist" strategy="afterInteractive">
+        {`
+          document.addEventListener("DOMContentLoaded", function () {
+            const waitlistButton = document.querySelector('a[id="join-waitlist"]');
+            if (waitlistButton) {
+              waitlistButton.addEventListener("click", function () {
+                if (window.plausible) plausible("JoinWaitlistClick");
+              });
+            }
+          });
+        `}
+      </Script>
+
       {/* Hero Section */}
       <section className="relative py-32 px-4 md:px-8">
         <div className="max-w-7xl mx-auto">
@@ -40,6 +53,7 @@ export default function LandingPage() {
                 Quote faster, plan smarter, and keep control of every job.
               </p>
               <a
+                id="join-waitlist"
                 href="#early-access"
                 className="inline-block px-8 py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-100 transition-colors duration-200"
               >

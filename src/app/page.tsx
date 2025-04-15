@@ -156,6 +156,33 @@ const FeatureSection = () => {
 };
 
 export default function Home() {
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch('https://formspree.io/f/xnnprlod', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        setIsSubmitted(true);
+        form.reset();
+      } else {
+        console.error('Form submission failed');
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-white">
       <Script src="/feature-scroll.js" strategy="afterInteractive" />
@@ -215,9 +242,9 @@ export default function Home() {
                       <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </a>
-          </div>
-          </div>
-          </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -262,8 +289,8 @@ export default function Home() {
                     </svg>
                   </a>
                 </div>
-          </div>
-          </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -731,50 +758,62 @@ export default function Home() {
 
             {/* Right side form */}
             <div className="bg-gray-900/50 p-8 rounded-2xl backdrop-blur-sm">
-              <form 
-                action="https://formspree.io/f/xnnprlod"
-                method="POST"
-                className="space-y-6"
-              >
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">Name</label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all duration-200 text-white placeholder-gray-400"
-                    placeholder="Your name"
-                  />
+              {isSubmitted ? (
+                <div className="text-center py-8">
+                  <h3 className="text-2xl font-bold text-white mb-4">Thank You!</h3>
+                  <p className="text-gray-400 mb-6">Your message has been sent successfully. We'll get back to you soon.</p>
+                  <button
+                    onClick={() => setIsSubmitted(false)}
+                    className="px-6 py-3 bg-gradient-to-r from-white to-gray-400 text-black font-medium rounded-lg hover:from-gray-200 hover:to-gray-300 transition-all duration-200"
+                  >
+                    Send Another Message
+                  </button>
                 </div>
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">Email</label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    required
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all duration-200 text-white placeholder-gray-400"
-                    placeholder="your@email.com"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-gray-300 mb-2">Message</label>
-                  <textarea
-                    id="message"
-                    name="message"
-                    rows={4}
-                    required
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all duration-200 text-white placeholder-gray-400"
-                    placeholder="How can we help you?"
-                  ></textarea>
-                </div>
-                <button
-                  type="submit"
-                  className="w-full px-6 py-3 bg-gradient-to-r from-white to-gray-400 text-black font-medium rounded-lg hover:from-gray-200 hover:to-gray-300 transition-all duration-200"
+              ) : (
+                <form 
+                  onSubmit={handleSubmit}
+                  className="space-y-6"
                 >
-                  Send Message
-                </button>
-              </form>
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">Name</label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all duration-200 text-white placeholder-gray-400"
+                      placeholder="Your name"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      required
+                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all duration-200 text-white placeholder-gray-400"
+                      placeholder="your@email.com"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="message" className="block text-sm font-medium text-gray-300 mb-2">Message</label>
+                    <textarea
+                      id="message"
+                      name="message"
+                      rows={4}
+                      required
+                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all duration-200 text-white placeholder-gray-400"
+                      placeholder="How can we help you?"
+                    ></textarea>
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full px-6 py-3 bg-gradient-to-r from-white to-gray-400 text-black font-medium rounded-lg hover:from-gray-200 hover:to-gray-300 transition-all duration-200"
+                  >
+                    Send Message
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         </div>

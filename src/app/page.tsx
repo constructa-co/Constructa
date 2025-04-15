@@ -693,81 +693,52 @@ export default function Home() {
       <FAQ />
 
       {/* Contact Us Section */}
-      <section className="relative py-32 md:py-40 px-4 md:px-8">
-        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
-        <div className="relative max-w-[1400px] mx-auto px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-            {/* Left side content */}
-            <div className="max-w-[600px]">
-              <h2 className="text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 text-left">Contact Us</h2>
-              <p className="text-lg text-gray-400 mb-8 text-left">
-                Have questions about Constructa? We're here to help. Reach out to our team and we'll get back to you as soon as possible.
-              </p>
-              <div className="space-y-6">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 rounded-full bg-gray-800/50 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <h3 className="text-xl font-semibold text-white">Email Us:</h3>
-                    <p className="text-gray-400">support@constructa.com</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 rounded-full bg-gray-800/50 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-                    </svg>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <h3 className="text-xl font-semibold text-white">Live Chat:</h3>
-                    <p className="text-gray-400">Available during business hours</p>
-                  </div>
-                </div>
-              </div>
+      <section id="contact" className="py-24 px-4 md:px-8">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+            Contact Us
+          </h2>
+          <p className="text-xl text-gray-400 mb-8">
+            Have a question, suggestion, or want to collaborate? Drop us a message below.
+          </p>
+          <form
+            action="https://formspree.io/f/xnnprlod"
+            method="POST"
+            className="space-y-6 text-left max-w-xl mx-auto"
+          >
+            <div>
+              <label htmlFor="email" className="block mb-2 text-gray-300 font-medium">
+                Your Email
+              </label>
+              <input
+                type="email"
+                name="email"
+                id="email"
+                required
+                className="w-full bg-gray-800 border border-gray-700 rounded-md px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
             </div>
 
-            {/* Right side form */}
-            <div className="bg-gray-900/50 p-8 rounded-2xl backdrop-blur-sm">
-              <form className="space-y-6">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">Name</label>
-                  <input
-                    type="text"
-                    id="name"
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all duration-200 text-white placeholder-gray-400"
-                    placeholder="Your name"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">Email</label>
-                  <input
-                    type="email"
-                    id="email"
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all duration-200 text-white placeholder-gray-400"
-                    placeholder="your@email.com"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-gray-300 mb-2">Message</label>
-                  <textarea
-                    id="message"
-                    rows={4}
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all duration-200 text-white placeholder-gray-400"
-                    placeholder="How can we help you?"
-                  ></textarea>
-                </div>
-                <button
-                  type="submit"
-                  className="w-full px-6 py-3 bg-gradient-to-r from-white to-gray-400 text-black font-medium rounded-lg hover:from-gray-200 hover:to-gray-300 transition-all duration-200"
-                >
-                  Send Message
-                </button>
-              </form>
-          </div>
-          </div>
+            <div>
+              <label htmlFor="message" className="block mb-2 text-gray-300 font-medium">
+                Your Message
+              </label>
+              <textarea
+                name="message"
+                id="message"
+                rows={5}
+                required
+                className="w-full bg-gray-800 border border-gray-700 rounded-md px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              ></textarea>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-orange-500 text-white px-6 py-3 rounded-md hover:bg-orange-600 transition-colors font-medium"
+            >
+              Send Message
+            </button>
+          </form>
         </div>
       </section>
     </div>

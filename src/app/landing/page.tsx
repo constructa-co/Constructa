@@ -34,7 +34,7 @@ export default function LandingPage() {
             const waitlistButton = document.querySelector('a[id="join-waitlist"]');
             if (waitlistButton) {
               waitlistButton.addEventListener("click", function () {
-                if (window.plausible) plausible("JoinWaitlistClick");
+                if (window.plausible) plausible("JoinWaitlistCTA");
               });
             }
           });

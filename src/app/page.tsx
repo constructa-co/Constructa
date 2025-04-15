@@ -257,6 +257,18 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Script src="/feature-scroll.js" strategy="afterInteractive" />
+      <Script id="plausible-contact" strategy="afterInteractive">
+        {`
+          document.addEventListener("DOMContentLoaded", function () {
+            const form = document.querySelector('form[action*="formspree.io"]');
+            if (form) {
+              form.addEventListener("submit", function () {
+                if (window.plausible) plausible("ContactFormSubmit");
+              });
+            }
+          });
+        `}
+      </Script>
       
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center py-32 md:py-32 px-4 md:px-8">

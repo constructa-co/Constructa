@@ -1,15 +1,25 @@
 {
   "version": 2,
-  "rewrites": [
+  "routes": [
     {
-      "source": "/:path*",
+      "src": "/(.*)",
       "has": [
         {
           "type": "host",
           "value": "constructa.co"
         }
       ],
-      "destination": "/landing"
+      "dest": "/landing"
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.constructa.co"
+        }
+      ],
+      "dest": "/landing"
     }
   ],
   "github": {

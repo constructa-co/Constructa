@@ -183,7 +183,7 @@ export default function LandingPage() {
       <section className="relative text-white py-32 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
               <Image
                 src="/images/hero-image.png"

@@ -50,7 +50,7 @@ export default function RootLayout({
         </Script>
       </head>
       <body className={`${inter.className} bg-black text-white antialiased`}>
-        {!isLandingPage && <Header />}
+        <Header />
         <main>{children}</main>
         {!isLandingPage && <Footer />}
       </body>

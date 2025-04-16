@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "routes": [
+    { "src": "/", "dest": "/landing" }
+  ],
+  "github": {
+    "enabled": true,
+    "silent": true
+  }
+} 

@@ -1,5 +1,6 @@
 'use client';
 
+// Trigger new deployment - restore working version
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Script from 'next/script';
@@ -351,9 +352,9 @@ export default function Home() {
                       <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </a>
-          </div>
-          </div>
-          </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -400,8 +401,8 @@ export default function Home() {
                     </svg>
                   </a>
                 </div>
-          </div>
-          </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -890,7 +891,7 @@ export default function Home() {
                   </button>
                 </form>
               )}
-          </div>
+            </div>
           </div>
         </div>
       </section>

@@ -30,7 +30,16 @@ const Header = () => {
                 href="#waitlist-form"
                 onClick={(e) => {
                   e.preventDefault();
-                  document.getElementById('waitlist-form')?.scrollIntoView({ behavior: 'smooth' });
+                  const form = document.getElementById('waitlist-form');
+                  const headerOffset = 100; // Adjust this value to control how far from the top the form should be
+                  if (form) {
+                    const elementPosition = form.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                    window.scrollTo({
+                      top: offsetPosition,
+                      behavior: 'smooth'
+                    });
+                  }
                 }}
                 className="px-4 py-1.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors duration-200"
               >

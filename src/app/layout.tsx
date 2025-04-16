@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Script from 'next/script';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { headers } from 'next/headers';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,6 +18,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = headers();
+  const pathname = headersList.get('x-pathname') || '';
+  const isLandingPage = pathname === '/landing';
+
   return (
     <html lang="en">
       <head>
@@ -45,9 +50,9 @@ export default function RootLayout({
         </Script>
       </head>
       <body className={`${inter.className} bg-black text-white antialiased`}>
-        <Header />
+        {!isLandingPage && <Header />}
         <main>{children}</main>
-        <Footer />
+        {!isLandingPage && <Footer />}
       </body>
     </html>
   );

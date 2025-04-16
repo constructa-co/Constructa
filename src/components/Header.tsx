@@ -27,7 +27,11 @@ const Header = () => {
             {/* Right column - Waitlist CTA */}
             <div className="flex items-center justify-end">
               <a 
-                href="#early-access" 
+                href="#waitlist-form"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('waitlist-form')?.scrollIntoView({ behavior: 'smooth' });
+                }}
                 className="px-4 py-1.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors duration-200"
               >
                 Join the waitlist

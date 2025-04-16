@@ -184,10 +184,6 @@ export default function LandingPage() {
                         <button 
                           type="submit" 
                           className="px-8 py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-100 transition-colors"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            document.getElementById('waitlist-form')?.scrollIntoView({ behavior: 'smooth' });
-                          }}
                         >
                           Join the waitlist
                         </button>

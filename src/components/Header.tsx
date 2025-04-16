@@ -31,7 +31,7 @@ const Header = () => {
                 onClick={(e) => {
                   e.preventDefault();
                   const form = document.getElementById('waitlist-form');
-                  const headerOffset = 100; // Adjust this value to control how far from the top the form should be
+                  const headerOffset = 300; // Increased from 100 to 300 to reduce scroll distance
                   if (form) {
                     const elementPosition = form.getBoundingClientRect().top;
                     const offsetPosition = elementPosition + window.pageYOffset - headerOffset;

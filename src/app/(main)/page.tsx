@@ -1,8 +1,19 @@
-                <div className={`absolute inset-0 transition-opacity duration-500 ${activeFeature === 3 ? 'opacity-100' : 'opacity-0'}`}>
-                  <Image
-                    src="/images/Cost Control 1.png"
-                    alt="Cost Control"
-                    fill
-                    className="object-contain"
-                  />
-                </div> 
+'use client';
+
+import React, { useState } from 'react';
+import Image from 'next/image';
+
+export default function MainPage() {
+  const [activeFeature] = useState(3);
+
+  return (
+    <div className={`absolute inset-0 transition-opacity duration-500 ${activeFeature === 3 ? 'opacity-100' : 'opacity-0'}`}>
+      <Image
+        src="/images/Cost Control 1.png"
+        alt="Cost Control"
+        fill
+        className="object-contain"
+      />
+    </div>
+  );
+} 

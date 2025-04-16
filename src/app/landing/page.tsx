@@ -1,301 +1,264 @@
 'use client';
 
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { useState } from 'react';
 import Script from 'next/script';
 
-export default function LandingPage() {
-  const [email, setEmail] = useState('');
+// Feature section component with sticky scroll
+const FeatureSection = () => {
+  const [activeFeature, setActiveFeature] = useState(0);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Placeholder for form submission
-    console.log('Email submitted:', email);
-  };
+  useEffect(() => {
+    const handleScroll = () => {
+      const section = document.getElementById('feature-section');
+      if (!section) return;
+
+      const rect = section.getBoundingClientRect();
+      const headerHeight = 64; // Height of the header
+      const viewportHeight = window.innerHeight - headerHeight;
+      const scrollPosition = window.scrollY;
+      const sectionTop = section.offsetTop;
+      const sectionHeight = section.offsetHeight;
+
+      // Calculate which feature should be active based on scroll position
+      const progress = (scrollPosition - sectionTop + headerHeight) / (sectionHeight - viewportHeight);
+      const featureIndex = Math.min(Math.max(Math.floor(progress * 4), 0), 3);
+      
+      setActiveFeature(featureIndex);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-black to-gray-900">
-      <Script id="plausible-convertkit" strategy="afterInteractive">
+    <section id="feature-section" className="relative h-[300vh]">
+      {/* Sticky container for the entire feature section */}
+      <div className="sticky top-16 h-[calc(100vh-4rem)] overflow-hidden">
+        <div className="relative h-full max-w-[1400px] mx-auto px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center h-full">
+            {/* Left side - Sticky images */}
+            <div className="relative w-full h-[500px] hidden md:block">
+              <div className="relative h-full">
+                <div className={`absolute inset-0 transition-opacity duration-500 ${activeFeature === 0 ? 'opacity-100' : 'opacity-0'}`}>
+                  <Image
+                    src="/images/Build your proposal White.png"
+                    alt="Proposals"
+                    fill
+                    className="object-contain"
+                    priority
+                  />
+                </div>
+                <div className={`absolute inset-0 transition-opacity duration-500 ${activeFeature === 1 ? 'opacity-100' : 'opacity-0'}`}>
+                  <Image
+                    src="/images/project Timecard.png"
+                    alt="Planning"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+                <div className={`absolute inset-0 transition-opacity duration-500 ${activeFeature === 2 ? 'opacity-100' : 'opacity-0'}`}>
+                  <Image
+                    src="/images/One Tap Update White.png"
+                    alt="Updates"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+                <div className={`absolute inset-0 transition-opacity duration-500 ${activeFeature === 3 ? 'opacity-100' : 'opacity-0'}`}>
+                  <Image
+                    src="/images/Client-Ready Quote White.png"
+                    alt="Cost Control"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Right side - Animated text */}
+            <div className="max-w-[500px] relative">
+              <div className={`transition-opacity duration-500 absolute inset-0 ${activeFeature === 0 ? 'opacity-100 relative' : 'opacity-0 pointer-events-none'}`}>
+                <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">Fast, accurate proposals</h3>
+                <p className="text-sm md:text-base text-gray-400 text-left">
+                  Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.
+                </p>
+              </div>
+              <div className={`transition-opacity duration-500 absolute inset-0 ${activeFeature === 1 ? 'opacity-100 relative' : 'opacity-0 pointer-events-none'}`}>
+                <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">Simple project planning</h3>
+                <p className="text-sm md:text-base text-gray-400 text-left">
+                  Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.
+                </p>
+              </div>
+              <div className={`transition-opacity duration-500 absolute inset-0 ${activeFeature === 2 ? 'opacity-100 relative' : 'opacity-0 pointer-events-none'}`}>
+                <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">One-tap updates</h3>
+                <p className="text-sm md:text-base text-gray-400 text-left">
+                  Keep everyone in the loop with instant updates. Share progress, changes, and important information with your team and clients.
+                </p>
+              </div>
+              <div className={`transition-opacity duration-500 absolute inset-0 ${activeFeature === 3 ? 'opacity-100 relative' : 'opacity-0 pointer-events-none'}`}>
+                <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">Built-in cost control</h3>
+                <p className="text-sm md:text-base text-gray-400 text-left">
+                  Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default function LandingPage() {
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-black text-white">
+      <Script src="/feature-scroll.js" strategy="afterInteractive" />
+      <Script id="plausible-contact" strategy="afterInteractive">
         {`
           document.addEventListener("DOMContentLoaded", function () {
-            const form = document.querySelector('form[action*="kit.com"]');
+            const form = document.querySelector('form[action*="convertkit.com"]');
             if (form) {
               form.addEventListener("submit", function () {
-                if (window.plausible) plausible("EmailSignup");
+                if (window.plausible) plausible("WaitlistSignup");
               });
             }
           });
         `}
       </Script>
-
-      <Script id="plausible-waitlist" strategy="afterInteractive">
-        {`
-          document.addEventListener("DOMContentLoaded", function () {
-            const waitlistButton = document.querySelector('a[id="join-waitlist"]');
-            if (waitlistButton) {
-              waitlistButton.addEventListener("click", function () {
-                if (window.plausible) plausible("JoinWaitlistCTA");
-              });
-            }
-          });
-        `}
-      </Script>
-
+      
       {/* Hero Section */}
-      <section className="relative py-32 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
-            <div className="md:col-span-2 space-y-6">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
-                Constructa: proposal, planning, and project tools for construction professionals.
-              </h1>
-              <p className="text-xl text-gray-400">
-                Quote faster, plan smarter, and keep control of every job.
-              </p>
-              <a
-                id="join-waitlist"
-                href="#early-access"
-                className="inline-block px-8 py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-100 transition-colors duration-200"
-              >
-                Join the waitlist
-              </a>
-            </div>
-            <div className="relative h-64 md:h-96">
-              <Image
-                src="/hero-image.png"
-                alt="Constructa dashboard"
-                fill
-                className="object-contain"
-                priority
-              />
+      <section className="relative min-h-screen flex items-center justify-center py-32 md:py-32 px-4 md:px-8">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
+        <div className="relative max-w-7xl mx-auto px-4 md:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3">
+            <div className="col-span-1 md:col-span-2 pl-0 md:pl-10">
+              <div className="flex flex-col items-start">
+                <h1 className="text-left leading-[1.2] w-full md:w-[1000px]">
+                  <span className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight">Constructa: proposal, planning and project<br className="hidden md:block" />tools for construction professionals.</span>
+                </h1>
+                <p className="text-base sm:text-lg md:text-xl text-gray-400 mt-4 md:mt-6 text-left">
+                  Quote faster, plan smarter, and keep control of every job.
+                </p>
+                <div className="mt-8">
+                  <script src="https://f.convertkit.com/ckjs/ck.5.js"></script>
+                  <form 
+                    action="https://app.convertkit.com/forms/7919715/subscriptions" 
+                    className="seva-form formkit-form" 
+                    method="post" 
+                    data-sv-form="7919715" 
+                    data-uid="0fbf2928bb" 
+                    data-format="inline" 
+                    data-version="5"
+                    min-width="400 500 600 700 800"
+                  >
+                    <div data-style="clean">
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <input 
+                          type="email" 
+                          name="email_address" 
+                          placeholder="Enter your email" 
+                          required 
+                          className="px-6 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/40"
+                        />
+                        <button 
+                          type="submit" 
+                          className="px-8 py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                        >
+                          Join the waitlist
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Problem → Solution Section */}
-      <section className="py-24 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-              No more spreadsheets. Just smart tools for your construction company.
-            </h2>
-            <p className="text-xl text-gray-400">
-              Constructa brings together everything you need to run your construction business—from quoting and planning to project management and reporting. All in one place, designed specifically for construction professionals.
-            </p>
+      <section className="relative text-white py-32 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
+        <div className="relative max-w-[1400px] mx-auto px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+            <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
+              <Image
+                src="/images/hero-image.png"
+                alt="Construction Planning Software"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+            <div className="max-w-[500px]">
+              <h2 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">No more spreadsheets. Just smart tools for your construction company.</h2>
+              <div className="space-y-4 text-left">
+                <p className="text-sm md:text-base text-gray-400">
+                  Running a small construction company means quoting fast, planning tight, and delivering on site&mdash;all while juggling paperwork, messages, and spreadsheets.
+                </p>
+                <p className="text-sm md:text-base text-gray-400">
+                  Without the right tools, it&apos;s easy for details to slip through the cracks&mdash;quotes get rushed, programmes are missed, and jobs lose momentum.
+                </p>
+                <p className="text-sm md:text-base text-gray-400">
+                  Constructa brings everything into one place. From proposals to planning and project delivery, it gives you the clarity, structure, and control you need&mdash;without the admin overload.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="py-24 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-16">
-            Quote it. Plan it. Run it.
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="space-y-4">
-              <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-white">Build your quote</h3>
-              <p className="text-gray-400">Create professional quotes in minutes with our intuitive builder.</p>
-            </div>
-            <div className="space-y-4">
-              <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-white">Map out the job</h3>
-              <p className="text-gray-400">Plan every detail with our visual project mapping tools.</p>
-            </div>
-            <div className="space-y-4">
-              <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-white">Stay in control</h3>
-              <p className="text-gray-400">Monitor progress and make adjustments in real-time.</p>
-            </div>
-            <div className="space-y-4">
-              <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-white">Win the work</h3>
-              <p className="text-gray-400">Close more deals with professional proposals and presentations.</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Feature Highlights Section */}
+      <FeatureSection />
 
       {/* What Sets Us Apart Section */}
-      <section className="py-24 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="max-w-3xl mx-auto text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-              What sets Constructa apart
-            </h2>
-            <p className="text-xl text-gray-400">
-              Not just another piece of software—Constructa is built for how construction really works.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold text-white">Built for Construction</h3>
-              <p className="text-gray-400">
-                Designed specifically for construction professionals, with features that match your workflow.
-              </p>
+      <section className="relative py-32 md:py-40 px-4 md:px-8">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
+        <div className="relative max-w-[1400px] mx-auto px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
+              <Image
+                src="/images/simple Project Overview Black Cropped.png"
+                alt="What sets Constructa apart"
+                fill
+                className="object-contain"
+                priority
+              />
             </div>
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold text-white">Simple Yet Powerful</h3>
-              <p className="text-gray-400">
-                Intuitive interface that's easy to learn but powerful enough for complex projects.
-              </p>
-            </div>
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold text-white">All-in-One Solution</h3>
-              <p className="text-gray-400">
-                Everything you need in one place—no more juggling multiple tools and spreadsheets.
-              </p>
+            <div className="max-w-[500px]">
+              <h2 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">What Sets Us Apart</h2>
+              <div className="space-y-4 text-left">
+                <p className="text-sm md:text-base text-gray-400">
+                  Not just another piece of software&mdash;Constructa is built for how construction really works.
+                </p>
+                <p className="text-sm md:text-base text-gray-400">
+                  Whether you&apos;re pricing up a job, planning your programme, or getting stuck in on site&mdash;Constructa works the way you do.
+                </p>
+                <p className="text-sm md:text-base text-gray-400">
+                  No steep learning curve&mdash;just practical tools that work out of the box. Quote, plan, and manage your jobs with confidence&mdash;no missed steps, no mess.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Early Access CTA Section */}
-      <section id="early-access" className="py-24 px-4 md:px-8">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Be first to try Constructa
-          </h2>
-          <p className="text-xl text-gray-400 mb-8">
-            Early users get priority access and special launch pricing.
-          </p>
-          <script src="https://f.convertkit.com/ckjs/ck.5.js"></script>
-          <form 
-            action="https://app.kit.com/forms/7919715/subscriptions" 
-            className="seva-form formkit-form" 
-            method="post" 
-            data-sv-form="7919715" 
-            data-uid="0fbf2928bb" 
-            data-format="inline" 
-            data-version="5" 
-            data-options='{"settings":{"after_subscribe":{"action":"message","success_message":"Success! Now check your email to confirm your subscription.","redirect_url":""},"analytics":{"google":null,"fathom":null,"facebook":null,"segment":null,"pinterest":null,"sparkloop":null,"googletagmanager":null},"modal":{"trigger":"timer","scroll_percentage":null,"timer":5,"devices":"all","show_once_every":15},"powered_by":{"show":true,"url":"https://kit.com/features/forms?utm_campaign=poweredby&utm_content=form&utm_medium=referral&utm_source=dynamic"},"recaptcha":{"enabled":false},"return_visitor":{"action":"show","custom_content":""},"slide_in":{"display_in":"bottom_right","trigger":"timer","scroll_percentage":null,"timer":5,"devices":"all","show_once_every":15},"sticky_bar":{"display_in":"top","trigger":"timer","scroll_percentage":null,"timer":5,"devices":"all","show_once_every":15}},"version":"5"}' 
-            min-width="400 500 600 700 800"
-            style={{ backgroundColor: 'rgb(255, 255, 255)', borderRadius: '6px' }}
-          >
-            <div data-style="full">
-              <div 
-                data-element="column" 
-                className="formkit-column"
-                style={{ backgroundColor: 'rgb(249, 250, 251)' }}
-              >
-                <div className="formkit-background" style={{ opacity: 0.3 }} />
-                <div 
-                  className="formkit-header" 
-                  data-element="header"
-                  style={{ color: 'rgb(77, 77, 77)', fontSize: '20px', fontWeight: 700 }}
-                >
-                  <h2>Join the Newsletter</h2>
-                </div>
-                <div 
-                  className="formkit-subheader" 
-                  data-element="subheader"
-                  style={{ color: 'rgb(104, 104, 104)', fontSize: '15px' }}
-                >
-                  Subscribe to get our latest content by email.
-                </div>
-              </div>
-              <div data-element="column" className="formkit-column">
-                <ul className="formkit-alert formkit-alert-error" data-element="errors" data-group="alert" />
-                <div data-element="fields" className="seva-fields formkit-fields">
-                  <div className="formkit-field">
-                    <input 
-                      className="formkit-input" 
-                      name="email_address" 
-                      aria-label="Email Address" 
-                      placeholder="Email Address" 
-                      required 
-                      type="email"
-                      style={{ 
-                        color: 'rgb(0, 0, 0)', 
-                        borderColor: 'rgb(227, 227, 227)', 
-                        borderRadius: '4px', 
-                        fontWeight: 400 
-                      }}
-                    />
-                  </div>
-                  <button 
-                    data-element="submit" 
-                    className="formkit-submit formkit-submit"
-                    style={{ 
-                      color: 'rgb(255, 255, 255)', 
-                      backgroundColor: 'rgb(22, 119, 190)', 
-                      borderRadius: '24px', 
-                      fontWeight: 700 
-                    }}
-                  >
-                    <div className="formkit-spinner">
-                      <div />
-                      <div />
-                      <div />
-                    </div>
-                    <span>Subscribe</span>
-                  </button>
-                </div>
-                <div 
-                  className="formkit-guarantee" 
-                  data-element="guarantee"
-                  style={{ 
-                    color: 'rgb(77, 77, 77)', 
-                    fontSize: '13px', 
-                    fontWeight: 400 
-                  }}
-                >
-                  We respect your privacy. Unsubscribe at any time.
-                </div>
-                <div className="formkit-powered-by-convertkit-container">
-                  <a 
-                    href="https://kit.com/features/forms?utm_campaign=poweredby&utm_content=form&utm_medium=referral&utm_source=dynamic" 
-                    data-element="powered-by" 
-                    className="formkit-powered-by-convertkit" 
-                    data-variant="dark" 
-                    target="_blank" 
-                    rel="nofollow"
-                  >
-                    Built with Kit
-                  </a>
-                </div>
-              </div>
-            </div>
-          </form>
-        </div>
-      </section>
-
-      {/* Contact Invite Section */}
-      <section className="py-24 px-4 md:px-8">
+      {/* Footer */}
+      <footer className="py-12 px-4 md:px-8 border-t border-gray-800">
         <div className="max-w-7xl mx-auto">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-              Get in touch
-            </h2>
-            <div className="space-y-4">
-              <p className="text-xl text-gray-400">
-                Email: <a href="mailto:hello@constructa.co" className="text-white hover:text-gray-300">hello@constructa.co</a>
-              </p>
-              <p className="text-xl text-gray-400">
-                LinkedIn: <a href="https://linkedin.com/company/constructa" target="_blank" rel="noopener noreferrer" className="text-white hover:text-gray-300">Constructa</a>
-              </p>
+          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            <div className="text-sm text-gray-400">
+              Constructa © 2025
+            </div>
+            <div className="text-sm text-gray-400">
+              Made for construction professionals.
             </div>
           </div>
         </div>
-      </section>
-    </main>
+      </footer>
+    </div>
   );
 } 

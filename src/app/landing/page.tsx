@@ -51,7 +51,7 @@ const FeatureSection = () => {
                 </div>
                 <div className={`absolute inset-0 transition-opacity duration-500 ${activeFeature === 1 ? 'opacity-100' : 'opacity-0'}`}>
                   <Image
-                    src="/images/Project Timeline.png"
+                    src="/images/Project TImeline.png"
                     alt="Planning"
                     fill
                     className="object-contain"

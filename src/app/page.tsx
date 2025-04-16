@@ -117,7 +117,7 @@ const FeatureSection = () => {
                 </div>
                 <div className={`absolute inset-0 transition-opacity duration-500 ${activeFeature === 3 ? 'opacity-100' : 'opacity-0'}`}>
                   <Image
-                    src="/images/Project Tracker 1.png"
+                    src="/images/Cost Control 1.png"
                     alt="Cost Control"
                     fill
                     className="object-contain"
@@ -352,9 +352,9 @@ export default function Home() {
                       <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </a>
-                </div>
-              </div>
-            </div>
+          </div>
+          </div>
+          </div>
           </div>
         </div>
       </section>
@@ -401,8 +401,8 @@ export default function Home() {
                     </svg>
                   </a>
                 </div>
-              </div>
-            </div>
+          </div>
+          </div>
           </div>
         </div>
       </section>
@@ -891,7 +891,7 @@ export default function Home() {
                   </button>
                 </form>
               )}
-            </div>
+          </div>
           </div>
         </div>
       </section>

@@ -92,7 +92,7 @@ const FeatureSection = () => {
               <div className="relative h-full">
                 <div className={`absolute inset-0 transition-opacity duration-500 ${activeFeature === 0 ? 'opacity-100' : 'opacity-0'}`}>
                   <Image
-                    src="/images/Build your proposal White.png"
+                    src="/images/Proposal Builder 2.png"
                     alt="Proposals"
                     fill
                     className="object-contain"
@@ -101,7 +101,7 @@ const FeatureSection = () => {
                 </div>
                 <div className={`absolute inset-0 transition-opacity duration-500 ${activeFeature === 1 ? 'opacity-100' : 'opacity-0'}`}>
                   <Image
-                    src="/images/project Timecard.png"
+                    src="/images/Project TImeline.png"
                     alt="Planning"
                     fill
                     className="object-contain"
@@ -109,7 +109,7 @@ const FeatureSection = () => {
                 </div>
                 <div className={`absolute inset-0 transition-opacity duration-500 ${activeFeature === 2 ? 'opacity-100' : 'opacity-0'}`}>
                   <Image
-                    src="/images/One Tap Update White.png"
+                    src="/images/One Tap Update.png"
                     alt="Updates"
                     fill
                     className="object-contain"
@@ -117,7 +117,7 @@ const FeatureSection = () => {
                 </div>
                 <div className={`absolute inset-0 transition-opacity duration-500 ${activeFeature === 3 ? 'opacity-100' : 'opacity-0'}`}>
                   <Image
-                    src="/images/Client-Ready Quote White.png"
+                    src="/images/Project Tracker 1.png"
                     alt="Cost Control"
                     fill
                     className="object-contain"

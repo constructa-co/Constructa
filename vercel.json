@@ -2,21 +2,11 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/",
+      "source": "/:path*",
       "has": [
         {
           "type": "host",
           "value": "constructa.co"
-        }
-      ],
-      "destination": "/landing"
-    },
-    {
-      "source": "/",
-      "has": [
-        {
-          "type": "host",
-          "value": "www.constructa.co"
         }
       ],
       "destination": "/landing"

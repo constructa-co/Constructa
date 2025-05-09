@@ -103,7 +103,7 @@ export default function FeaturesPage() {
           </section>
 
           {/* Communication & Delivery */}
-          <section id="communication" className="scroll-mt-24">
+          <section id="communication-&-delivery" className="scroll-mt-24">
             <h2 className="text-2xl font-semibold text-white mb-8">📡 Communication & Delivery</h2>
             <div className="space-y-8">
               <div>

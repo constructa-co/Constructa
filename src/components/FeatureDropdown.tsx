@@ -101,14 +101,17 @@ const FeatureDropdown = () => {
           <div className="grid grid-cols-4 gap-8">
             {Object.entries(features).map(([group, { icon, items }]) => (
               <div key={group} className="group text-left">
-                <div className="flex items-center space-x-2 mb-6">
+                <a 
+                  href={`/features#${group.toLowerCase().replace(/\s+/g, '-')}`}
+                  className="flex items-center space-x-2 mb-6 hover:text-white transition-colors"
+                >
                   {icon}
                   <h3 className="text-base font-medium text-gray-200 group-hover:text-white transition-colors">{group}</h3>
-                </div>
+                </a>
                 <ul className="space-y-6 text-left">
                   {items.map((item) => (
                     <li key={item.title} className="group/item">
-                      <a href="#" className="block text-left">
+                      <a href={`/features#${group.toLowerCase().replace(/\s+/g, '-')}`} className="block text-left">
                         <div className="text-sm font-medium text-gray-400 group-hover/item:text-white transition-colors mb-1">
                           {item.title}
                         </div>

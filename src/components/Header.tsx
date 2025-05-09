@@ -112,7 +112,7 @@ const Header = () => {
         {/* Mobile menu */}
         <div className={`md:hidden ${isMenuOpen ? 'block' : 'hidden'}`}>
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <a href="/features" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">Features</a>
+            <a href="/features#proposal-tools" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">Features</a>
             <a href="/pricing" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">Pricing</a>
             <a href="/about" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">About</a>
             <a href="/contact" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">Contact</a>

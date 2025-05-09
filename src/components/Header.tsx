@@ -67,9 +67,9 @@ const Header = () => {
           <nav className="hidden md:flex justify-center">
             <div className="flex items-center space-x-8 text-sm">
               <FeatureDropdown />
-              <a href="#pricing" className="text-sm text-gray-500 hover:text-gray-300 transition-colors duration-200">Pricing</a>
-              <a href="#about" className="text-sm text-gray-500 hover:text-gray-300 transition-colors duration-200">About</a>
-              <a href="#contact" className="text-sm text-gray-500 hover:text-gray-300 transition-colors duration-200">Contact</a>
+              <a href="/pricing" className="text-sm text-gray-500 hover:text-gray-300 transition-colors duration-200">Pricing</a>
+              <a href="/about" className="text-sm text-gray-500 hover:text-gray-300 transition-colors duration-200">About</a>
+              <a href="/contact" className="text-sm text-gray-500 hover:text-gray-300 transition-colors duration-200">Contact</a>
             </div>
           </nav>
 
@@ -112,10 +112,10 @@ const Header = () => {
         {/* Mobile menu */}
         <div className={`md:hidden ${isMenuOpen ? 'block' : 'hidden'}`}>
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <a href="#features" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">Features</a>
-            <a href="#pricing" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">Pricing</a>
-            <a href="#about" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">About</a>
-            <a href="#contact" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">Contact</a>
+            <a href="/features" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">Features</a>
+            <a href="/pricing" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">Pricing</a>
+            <a href="/about" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">About</a>
+            <a href="/contact" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">Contact</a>
             <div className="pt-4 space-y-2">
               <a href="#login" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">Log in</a>
               <a href="#signup" className="block px-3 py-2 text-sm bg-white text-black rounded-md hover:bg-gray-100">Sign up</a>

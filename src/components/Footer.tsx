@@ -10,23 +10,18 @@ const Footer = () => {
             <h3 className="text-sm font-medium text-gray-200">Product</h3>
             <ul className="space-y-4">
               <li>
-                <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">
+                <a href="/features" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Features
                 </a>
               </li>
               <li>
-                <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">
+                <a href="/pricing" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Pricing
                 </a>
               </li>
               <li>
-                <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  How it Works
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Use Cases
+                <a href="/product" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Product
                 </a>
               </li>
             </ul>
@@ -37,18 +32,13 @@ const Footer = () => {
             <h3 className="text-sm font-medium text-gray-200">Company</h3>
             <ul className="space-y-4">
               <li>
-                <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">
+                <a href="/about" className="text-sm text-gray-400 hover:text-white transition-colors">
                   About
                 </a>
               </li>
               <li>
-                <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">
+                <a href="/customers" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Customers
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Careers
                 </a>
               </li>
             </ul>
@@ -59,17 +49,12 @@ const Footer = () => {
             <h3 className="text-sm font-medium text-gray-200">Resources</h3>
             <ul className="space-y-4">
               <li>
-                <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  FAQs
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">
+                <a href="/privacy-policy" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Privacy
                 </a>
               </li>
               <li>
-                <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">
+                <a href="/terms-of-service" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Terms
                 </a>
               </li>
@@ -81,13 +66,8 @@ const Footer = () => {
             <h3 className="text-sm font-medium text-gray-200">Connect</h3>
             <ul className="space-y-4">
               <li>
-                <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">
+                <a href="/contact" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Contact us
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  LinkedIn
                 </a>
               </li>
               <li>

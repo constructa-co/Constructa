@@ -129,7 +129,7 @@ export default function About() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 pt-2">
             <a href="https://medium.com/" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Follow us on Medium →</a>
-            <a href="https://www.linkedin.com/company/constructa" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Follow us on LinkedIn →</a>
+            <a href="https://www.linkedin.com/company/constructa-co" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Follow us on LinkedIn →</a>
           </div>
         </div>
       </section>

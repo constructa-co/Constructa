@@ -23,7 +23,7 @@ export default function About() {
   return (
     <main className="bg-black text-white">
       {/* Section 1 */}
-      <section className="max-w-6xl mx-auto px-4 pt-32 pb-24 grid grid-cols-1 md:grid-cols-[1fr_3fr] gap-12">
+      <section className="max-w-6xl mx-auto px-4 pt-40 pb-24 grid grid-cols-1 md:grid-cols-[1fr_2.5fr] gap-16">
         <h1 className="col-span-1 text-2xl md:text-3xl font-semibold text-left">Built by people who know the job</h1>
         <div className="col-span-1 space-y-6 text-gray-300 text-left">
           <p>
@@ -39,7 +39,7 @@ export default function About() {
       </section>
 
       {/* Section 2 */}
-      <section className="max-w-6xl mx-auto px-4 py-24 grid grid-cols-1 md:grid-cols-[1fr_3fr] gap-12">
+      <section className="max-w-6xl mx-auto px-4 py-24 grid grid-cols-1 md:grid-cols-[1fr_2.5fr] gap-16">
         <h2 className="col-span-1 text-2xl md:text-3xl font-semibold text-left">The problem we saw</h2>
         <div className="col-span-1 space-y-6 text-gray-300 text-left">
           <p>
@@ -59,7 +59,7 @@ export default function About() {
       </section>
 
       {/* Section 3 */}
-      <section className="max-w-6xl mx-auto px-4 py-24 grid grid-cols-1 md:grid-cols-[1fr_3fr] gap-12">
+      <section className="max-w-6xl mx-auto px-4 py-24 grid grid-cols-1 md:grid-cols-[1fr_2.5fr] gap-16">
         <h2 className="col-span-1 text-2xl md:text-3xl font-semibold text-left">The solution we're building</h2>
         <div className="col-span-1 space-y-6 text-gray-300 text-left">
           <p>
@@ -75,9 +75,9 @@ export default function About() {
         </div>
       </section>
 
-      {/* Section 4 */}
-      <section className="max-w-6xl mx-auto px-4 py-24 grid grid-cols-1 md:grid-cols-[1fr_3fr] gap-12">
-        <h2 className="col-span-1 text-2xl md:text-3xl font-semibold text-left">A message from Rob</h2>
+      {/* Section 4: Founder message */}
+      <section className="max-w-6xl mx-auto px-4 py-24 grid grid-cols-1 md:grid-cols-[1fr_2.5fr] gap-16">
+        <h2 className="col-span-1 text-2xl md:text-3xl font-semibold text-left">A message from the founder</h2>
         <div className="col-span-1 space-y-6 text-gray-300 italic text-left">
           <p>
             "After 25 years in construction, I knew there had to be a better way. I've seen first-hand how
@@ -88,6 +88,7 @@ export default function About() {
             Constructa isn't just software—it's a response to everything I wish I'd had earlier in my career.
             We're building it with care, with clarity, and with builders front and centre."
           </p>
+          <div className="not-italic font-semibold pt-2">— Robert Smith</div>
         </div>
       </section>
 
@@ -114,7 +115,7 @@ export default function About() {
       </section>
 
       {/* What's next section */}
-      <section className="max-w-6xl mx-auto px-4 py-24 grid grid-cols-1 md:grid-cols-[1fr_3fr] gap-12">
+      <section className="max-w-6xl mx-auto px-4 py-24 grid grid-cols-1 md:grid-cols-[1fr_2.5fr] gap-16">
         <h2 className="col-span-1 text-2xl md:text-3xl font-semibold text-left">What's next</h2>
         <div className="col-span-1 space-y-6 text-gray-300 text-left">
           <p>
@@ -127,32 +128,32 @@ export default function About() {
             If you're a small construction team who's ready to simplify how you work—we'd love you to be part of the journey.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 pt-2">
-            <a href="https://your-waitlist-url.com" className="bg-white text-black px-5 py-2 rounded font-semibold text-base hover:opacity-90 transition">Join our waitlist →</a>
-            <a href="https://www.linkedin.com/company/constructa-co/" className="bg-white text-black px-5 py-2 rounded font-semibold text-base hover:opacity-90 transition">Follow us on LinkedIn & Medium →</a>
+            <a href="https://your-waitlist-url.com" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Join our waitlist →</a>
+            <a href="https://medium.com/" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Follow us on Medium →</a>
           </div>
         </div>
       </section>
 
       {/* News section */}
-      <section className="bg-black text-white py-16">
+      <section className="bg-black text-white py-16 border-t border-gray-700">
         <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl font-semibold mb-2 pb-1 underline underline-offset-4 text-left">News</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-y-4 gap-x-6 text-sm text-gray-300 mt-6">
-            <div>How Constructa helps you win more work</div>
-            <div>Early insights from beta testers</div>
-            <div>medium.com</div>
+          <h2 className="text-xl font-bold mb-6 text-left">News</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-y-4 gap-x-6 text-sm text-gray-300 mt-2">
+            <div className="text-left font-medium">How Constructa helps you win more work</div>
+            <div className="text-left">How to stand out and win jobs in a crowded market</div>
+            <div className="text-left text-blue-400 underline"><a href="https://medium.com/">medium.com</a></div>
 
-            <div>Behind the build: Constructa's approach</div>
-            <div>From spreadsheets to smart tools</div>
-            <div>linkedin.com</div>
+            <div className="text-left font-medium">Behind the build: Constructa's approach</div>
+            <div className="text-left">From spreadsheets to smart tools</div>
+            <div className="text-left text-blue-400 underline"><a href="https://linkedin.com/">linkedin.com</a></div>
 
-            <div>Why quoting shouldn't take all day</div>
-            <div>The hidden cost of poor planning</div>
-            <div>constructa.co</div>
+            <div className="text-left font-medium">Why quoting shouldn't take all day</div>
+            <div className="text-left">The hidden cost of poor planning</div>
+            <div className="text-left text-blue-400 underline"><a href="https://constructa.co/">constructa.co</a></div>
 
-            <div>Placeholder</div>
-            <div>More updates coming soon</div>
-            <div>—</div>
+            <div className="text-left font-medium">Placeholder</div>
+            <div className="text-left">More updates coming soon</div>
+            <div className="text-left">—</div>
           </div>
         </div>
       </section>

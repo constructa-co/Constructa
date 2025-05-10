@@ -97,17 +97,17 @@ export default function About() {
         <div className="text-2xl md:text-3xl font-semibold mb-8 text-left">Why now?</div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-gray-300">
           <div className="space-y-2 flex flex-col items-start">
-            <img src="/images/minimalist infographic cluster of small construction buildings.png" alt="Infographic showing cluster of small construction buildings" className="w-16 h-16 mb-4 object-contain" />
+            <img src="/images/minimalist infographic cluster of small construction buildings.png" alt="Infographic showing cluster of small construction buildings" className="w-24 h-24 mb-4 object-contain mx-auto" />
             <div className="text-2xl font-semibold">1M+ small construction firms</div>
             <p>Micro businesses dominate the sector—but have no tailored tools.</p>
           </div>
           <div className="space-y-2 flex flex-col items-start">
-            <img src="/images/stopwatch and swirling paperwork icons.png" alt="Stopwatch with swirling paperwork icons" className="w-16 h-16 mb-4 object-contain" />
+            <img src="/images/stopwatch and swirling paperwork icons.png" alt="Stopwatch with swirling paperwork icons" className="w-24 h-24 mb-4 object-contain mx-auto" />
             <div className="text-2xl font-semibold">60% lose time to admin weekly</div>
             <p>Time spent chasing info kills productivity.</p>
           </div>
           <div className="space-y-2 flex flex-col items-start">
-            <img src="/images/spreadsheet grid and warning & error symbols.png" alt="Spreadsheet with warning and error symbols" className="w-16 h-16 mb-4 object-contain" />
+            <img src="/images/spreadsheet grid and warning & error symbols.png" alt="Spreadsheet with warning and error symbols" className="w-24 h-24 mb-4 object-contain mx-auto" />
             <div className="text-2xl font-semibold">80% still use spreadsheets</div>
             <p>Most platforms are too complex or too generic.</p>
           </div>

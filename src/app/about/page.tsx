@@ -23,9 +23,9 @@ export default function About() {
   return (
     <main className="bg-black text-white">
       {/* Section 1 */}
-      <section className="max-w-6xl mx-auto px-4 py-24 grid grid-cols-1 md:grid-cols-5 gap-8">
-        <h1 className="col-span-1 text-lg font-medium">Built by people who know the job</h1>
-        <div className="col-span-4 space-y-6 text-gray-300">
+      <section className="max-w-6xl mx-auto px-4 pt-32 pb-24 grid grid-cols-1 md:grid-cols-[1fr_3fr] gap-12">
+        <h1 className="col-span-1 text-2xl md:text-3xl font-semibold text-left">Built by people who know the job</h1>
+        <div className="col-span-1 space-y-6 text-gray-300 text-left">
           <p>
             We've spent decades quoting jobs, planning programmes, and juggling the chaos of
             construction—clipboards, emails, spreadsheets, WhatsApp threads, last-minute changes.
@@ -39,9 +39,9 @@ export default function About() {
       </section>
 
       {/* Section 2 */}
-      <section className="max-w-6xl mx-auto px-4 py-24 grid grid-cols-1 md:grid-cols-5 gap-8 border-t border-gray-800">
-        <h2 className="col-span-1 text-lg font-medium">The problem we saw</h2>
-        <div className="col-span-4 space-y-6 text-gray-300">
+      <section className="max-w-6xl mx-auto px-4 py-24 grid grid-cols-1 md:grid-cols-[1fr_3fr] gap-12">
+        <h2 className="col-span-1 text-2xl md:text-3xl font-semibold text-left">The problem we saw</h2>
+        <div className="col-span-1 space-y-6 text-gray-300 text-left">
           <p>
             Running a small construction company means juggling everything—quoting fast, planning
             tight, and keeping things moving on site.
@@ -59,9 +59,9 @@ export default function About() {
       </section>
 
       {/* Section 3 */}
-      <section className="max-w-6xl mx-auto px-4 py-24 grid grid-cols-1 md:grid-cols-5 gap-8 border-t border-gray-800">
-        <h2 className="col-span-1 text-lg font-medium">The solution we're building</h2>
-        <div className="col-span-4 space-y-6 text-gray-300">
+      <section className="max-w-6xl mx-auto px-4 py-24 grid grid-cols-1 md:grid-cols-[1fr_3fr] gap-12">
+        <h2 className="col-span-1 text-2xl md:text-3xl font-semibold text-left">The solution we're building</h2>
+        <div className="col-span-1 space-y-6 text-gray-300 text-left">
           <p>
             Constructa brings quoting, planning, and delivery into one clean, easy-to-use platform.
           </p>
@@ -76,9 +76,9 @@ export default function About() {
       </section>
 
       {/* Section 4 */}
-      <section className="max-w-6xl mx-auto px-4 py-24 grid grid-cols-1 md:grid-cols-5 gap-8 border-t border-gray-800">
-        <h2 className="col-span-1 text-lg font-medium">A message from Rob</h2>
-        <div className="col-span-4 space-y-6 text-gray-300 italic">
+      <section className="max-w-6xl mx-auto px-4 py-24 grid grid-cols-1 md:grid-cols-[1fr_3fr] gap-12">
+        <h2 className="col-span-1 text-2xl md:text-3xl font-semibold text-left">A message from Rob</h2>
+        <div className="col-span-1 space-y-6 text-gray-300 italic text-left">
           <p>
             "After 25 years in construction, I knew there had to be a better way. I've seen first-hand how
             hard it is to manage projects and people while keeping proposals sharp, programmes aligned,
@@ -92,8 +92,8 @@ export default function About() {
       </section>
 
       {/* Why now? Section with icons */}
-      <section className="max-w-6xl mx-auto px-4 py-24 border-t border-gray-800">
-        <div className="text-lg font-medium mb-8">Why now?</div>
+      <section className="max-w-6xl mx-auto px-4 py-24">
+        <div className="text-2xl md:text-3xl font-semibold mb-8 text-left">Why now?</div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-gray-300">
           <div className="space-y-2 flex flex-col items-start">
             <MetricIcon type="building" />
@@ -114,9 +114,9 @@ export default function About() {
       </section>
 
       {/* What's next section */}
-      <section className="max-w-6xl mx-auto px-4 py-24 grid grid-cols-1 md:grid-cols-5 gap-8 border-t border-gray-800">
-        <h2 className="col-span-1 text-lg font-medium">What's next</h2>
-        <div className="col-span-4 space-y-6 text-gray-300">
+      <section className="max-w-6xl mx-auto px-4 py-24 grid grid-cols-1 md:grid-cols-[1fr_3fr] gap-12">
+        <h2 className="col-span-1 text-2xl md:text-3xl font-semibold text-left">What's next</h2>
+        <div className="col-span-1 space-y-6 text-gray-300 text-left">
           <p>
             Constructa's first release will focus on quoting and planning—helping builders win more work and stay on track.
           </p>
@@ -126,14 +126,17 @@ export default function About() {
           <p>
             If you're a small construction team who's ready to simplify how you work—we'd love you to be part of the journey.
           </p>
-          <p className="font-medium">👉 Join our waitlist →  &nbsp; 👉 Follow us on LinkedIn & Medium</p>
+          <div className="flex flex-col sm:flex-row gap-4 pt-2">
+            <a href="https://your-waitlist-url.com" className="bg-white text-black px-5 py-2 rounded font-semibold text-base hover:opacity-90 transition">Join our waitlist →</a>
+            <a href="https://www.linkedin.com/company/constructa-co/" className="bg-white text-black px-5 py-2 rounded font-semibold text-base hover:opacity-90 transition">Follow us on LinkedIn & Medium →</a>
+          </div>
         </div>
       </section>
 
       {/* News section */}
-      <section className="bg-black text-white py-16 border-t border-gray-800">
+      <section className="bg-black text-white py-16">
         <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-lg font-medium mb-2 border-b border-gray-700 pb-1 underline underline-offset-4">News</h2>
+          <h2 className="text-2xl md:text-3xl font-semibold mb-2 pb-1 underline underline-offset-4 text-left">News</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-y-4 gap-x-6 text-sm text-gray-300 mt-6">
             <div>How Constructa helps you win more work</div>
             <div>Early insights from beta testers</div>

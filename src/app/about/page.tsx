@@ -23,7 +23,7 @@ export default function About() {
   return (
     <main className="bg-black text-white">
       {/* Section 1 */}
-      <section className="max-w-6xl mx-auto px-4 pt-40 pb-24 grid grid-cols-1 md:grid-cols-[1fr_2.5fr] gap-16">
+      <section className="max-w-6xl mx-auto px-4 pt-56 pb-24 grid grid-cols-1 md:grid-cols-[1fr_2.5fr] gap-16">
         <h1 className="col-span-1 text-2xl md:text-3xl font-semibold text-left">Built by people who know the job</h1>
         <div className="col-span-1 space-y-6 text-gray-300 text-left">
           <p>
@@ -119,17 +119,17 @@ export default function About() {
         <h2 className="col-span-1 text-2xl md:text-3xl font-semibold text-left">What's next</h2>
         <div className="col-span-1 space-y-6 text-gray-300 text-left">
           <p>
-            Constructa's first release will focus on quoting and planning—helping builders win more work and stay on track.
+            Constructa's first release is now live—helping builders quote, plan, and deliver with confidence.
           </p>
           <p>
-            From there, we'll expand into contracts, resource tracking, client comms, and beyond.
+            From here, we're expanding into contracts, resource tracking, client comms, and more.
           </p>
           <p>
-            If you're a small construction team who's ready to simplify how you work—we'd love you to be part of the journey.
+            If you're a small construction team ready to simplify how you work—give Constructa a try today.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 pt-2">
-            <a href="https://your-waitlist-url.com" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Join our waitlist →</a>
             <a href="https://medium.com/" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Follow us on Medium →</a>
+            <a href="https://www.linkedin.com/company/constructa" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Follow us on LinkedIn →</a>
           </div>
         </div>
       </section>

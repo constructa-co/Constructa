@@ -25,6 +25,7 @@ export default function About() {
     <>
       <Head>
         <meta name="description" content="Learn how Constructa was built for builders. Discover our mission to simplify quoting, planning, and project delivery for small construction teams." />
+        <link rel="canonical" href="https://constructa.co/about" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: `{
   "@context": "https://schema.org",
   "@type": "AboutPage",
@@ -124,7 +125,7 @@ export default function About() {
               <p>Time spent chasing info kills productivity.</p>
             </div>
             <div className="space-y-2 flex flex-col items-start">
-              <img src="/images/spreadsheet grid and warning & error symbols.png" alt="Spreadsheet with warning and error symbols" className="w-64 h-64 mb-4 object-contain mx-auto" />
+              <img src="/images/spreadsheet grid and warning & error symbols.png" alt="Spreadsheet grid with warning and error symbols" className="w-64 h-64 mb-4 object-contain mx-auto" />
               <div className="text-2xl font-semibold">80% still use spreadsheets</div>
               <p>Most platforms are too complex or too generic.</p>
             </div>

@@ -2,18 +2,23 @@
 
 import React from 'react';
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function FeaturesPage() {
-  // Optional: scroll to anchor on load (if not already handled)
+  const router = useRouter();
+
+  // Scroll to anchor on load with a small delay to ensure content is rendered
   useEffect(() => {
     if (window.location.hash) {
       const id = window.location.hash.replace('#', '');
-      const el = document.getElementById(id);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-      }
+      setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
     }
-  }, []);
+  }, [router]);
 
   return (
     <main className="bg-black text-white">

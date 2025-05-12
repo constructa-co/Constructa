@@ -38,14 +38,14 @@ export default function FeaturesPage() {
           </ul>
         </div>
         <div>
-          <img src="/Quote Builder 1.png" alt="Quote builder interface in Constructa" className="w-full h-auto rounded-xl shadow-md" />
+          <img src="/quote-builder.png" alt="Quote builder interface in Constructa" className="w-full h-auto rounded-xl shadow-md" />
         </div>
       </section>
 
       {/* Feature Block: Plan it */}
       <section className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div className="order-2 md:order-1">
-          <img src="/Job Planner Timeline 1.png" alt="Job planner timeline view in Constructa" className="w-full h-auto rounded-xl shadow-md" />
+          <img src="/job-planner-timeline.png" alt="Job planner timeline view in Constructa" className="w-full h-auto rounded-xl shadow-md" />
         </div>
         <div className="order-1 md:order-2">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Plan it</h2>
@@ -74,14 +74,14 @@ export default function FeaturesPage() {
           </ul>
         </div>
         <div>
-          <img src="/Progress Tracker-1.png" alt="Progress tracker dashboard in Constructa" className="w-full h-auto rounded-xl shadow-md" />
+          <img src="/progress-tracker.png" alt="Progress tracker dashboard in Constructa" className="w-full h-auto rounded-xl shadow-md" />
         </div>
       </section>
 
       {/* Feature Block: Deliver it */}
       <section className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div className="order-2 md:order-1">
-          <img src="/Client Delivery Interface 1.png" alt="Client delivery screen in Constructa" className="w-full h-auto rounded-xl shadow-md" />
+          <img src="/client-delivery-interface.png" alt="Client delivery screen in Constructa" className="w-full h-auto rounded-xl shadow-md" />
         </div>
         <div className="order-1 md:order-2">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Deliver it</h2>

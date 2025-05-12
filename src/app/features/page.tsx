@@ -2,7 +2,18 @@
 
 import React from 'react';
 
-export default function Features() {
+export default function FeaturesPage() {
+  // Optional: scroll to anchor on load (if not already handled)
+  useEffect(() => {
+    if (window.location.hash) {
+      const id = window.location.hash.replace('#', '');
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, []);
+
   return (
     <main className="bg-black text-white">
       <section className="max-w-6xl mx-auto px-4 py-32 text-center">
@@ -26,14 +37,14 @@ export default function Features() {
           </ul>
         </div>
         <div>
-          <img src="/images/feature-quote-builder.png" alt="Constructa quote builder" className="w-full h-auto rounded-xl shadow-md" />
+          <img src="/Quote Builder 1.png" alt="Constructa quote builder" className="w-full h-auto rounded-xl shadow-md" />
         </div>
       </section>
 
       {/* Feature Block: Plan it */}
       <section className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div className="order-2 md:order-1">
-          <img src="/images/feature-job-planner.png" alt="Job planning view in Constructa" className="w-full h-auto rounded-xl shadow-md" />
+          <img src="/Job Planner Timeline 1.png" alt="Job planning view in Constructa" className="w-full h-auto rounded-xl shadow-md" />
         </div>
         <div className="order-1 md:order-2">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Plan it</h2>
@@ -62,14 +73,14 @@ export default function Features() {
           </ul>
         </div>
         <div>
-          <img src="/images/feature-progress-tracking.png" alt="Progress tracker in Constructa" className="w-full h-auto rounded-xl shadow-md" />
+          <img src="/Progress Tracker-1.png" alt="Progress tracker in Constructa" className="w-full h-auto rounded-xl shadow-md" />
         </div>
       </section>
 
       {/* Feature Block: Deliver it */}
       <section className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div className="order-2 md:order-1">
-          <img src="/images/feature-client-delivery.png" alt="Client delivery interface" className="w-full h-auto rounded-xl shadow-md" />
+          <img src="/Client Delivery Interface 1.png" alt="Client delivery interface" className="w-full h-auto rounded-xl shadow-md" />
         </div>
         <div className="order-1 md:order-2">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Deliver it</h2>

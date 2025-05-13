@@ -359,7 +359,7 @@ export default function PricingPage() {
               {/* Left image block */}
               <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
                 <Image
-                  src="/images/Built with experience.png"
+                  src="/images/whyconstructa.png"
                   alt="Built with experience"
                   fill
                   className="object-contain"

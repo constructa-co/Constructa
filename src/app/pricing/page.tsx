@@ -108,27 +108,6 @@ export default function PricingPage() {
   return (
     <main className="min-h-screen bg-black text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-        {/* Image First */}
-        <section className="flex justify-center mb-12">
-          <div className="relative w-full max-w-4xl">
-            <img 
-              src="/images/hero-image-pricing.png" 
-              alt="Digital crane over construction city with data overlay" 
-              className="w-full rounded-xl shadow-lg" 
-              onError={(e) => {
-                console.error('Image failed to load:', e);
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                // Show placeholder when image fails
-                const placeholder = document.createElement('div');
-                placeholder.className = 'w-full h-[300px] bg-gray-800 rounded-xl flex items-center justify-center';
-                placeholder.innerHTML = '<p class="text-gray-400">Image loading failed</p>';
-                target.parentNode?.insertBefore(placeholder, target.nextSibling);
-              }}
-            />
-          </div>
-        </section>
-
         {/* Section 1 – Header + Billing Toggle */}
         <section className="text-center mb-12">
           <h1 className="text-4xl font-semibold mb-4">Get Started with Constructa</h1>

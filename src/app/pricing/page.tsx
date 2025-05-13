@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, CheckCircle, Zap, Clock } from 'lucide-react';
 import Image from 'next/image';
 
 type BillingPeriod = 'monthly' | 'quarterly' | 'annual';
@@ -369,7 +369,7 @@ export default function PricingPage() {
               <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
                 <Image
                   src="/images/Built with experience.png"
-                  alt="Why Choose Constructa Visual"
+                  alt="Built with experience"
                   fill
                   className="object-contain"
                   priority
@@ -378,30 +378,34 @@ export default function PricingPage() {
 
               {/* Right content block */}
               <div className="max-w-[500px]">
-                <div className="flex items-center mb-4">
-                  <svg className="w-6 h-6 text-white mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <h2 className="text-3xl md:text-4xl font-semibold text-white leading-tight text-left">Why Choose Constructa</h2>
-                </div>
-                <div className="space-y-6 text-left">
-                  <div>
-                    <h3 className="text-sm md:text-base font-medium text-white mb-1">No lock-in contracts</h3>
-                    <p className="text-sm md:text-base text-gray-400">
-                      Cancel anytime. No hidden fees. Just tools that work.
-                    </p>
+                <h2 className="text-3xl md:text-4xl font-semibold text-white leading-tight text-left mb-8">Why Choose Constructa</h2>
+                <div className="space-y-8 text-left">
+                  <div className="flex gap-4">
+                    <CheckCircle className="w-6 h-6 text-white flex-shrink-0 mt-1" />
+                    <div>
+                      <h3 className="text-sm md:text-base font-medium text-white mb-1">No lock-in contracts</h3>
+                      <p className="text-sm md:text-base text-gray-400">
+                        Cancel anytime. No hidden fees. Just tools that work.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-sm md:text-base font-medium text-white mb-1">Built for small teams</h3>
-                    <p className="text-sm md:text-base text-gray-400">
-                      We know every minute and pound matters. That&apos;s why Constructa is priced for practicality—not just power.
-                    </p>
+                  <div className="flex gap-4">
+                    <Zap className="w-6 h-6 text-white flex-shrink-0 mt-1" />
+                    <div>
+                      <h3 className="text-sm md:text-base font-medium text-white mb-1">Built for small teams</h3>
+                      <p className="text-sm md:text-base text-gray-400">
+                        We know every minute and pound matters. That&apos;s why Constructa is priced for practicality—not just power.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-sm md:text-base font-medium text-white mb-1">Simple setup, no training needed</h3>
-                    <p className="text-sm md:text-base text-gray-400">
-                      Get up and running in minutes. No onboarding calls. Just straightforward tools made for construction.
-                    </p>
+                  <div className="flex gap-4">
+                    <Clock className="w-6 h-6 text-white flex-shrink-0 mt-1" />
+                    <div>
+                      <h3 className="text-sm md:text-base font-medium text-white mb-1">Simple setup, no training needed</h3>
+                      <p className="text-sm md:text-base text-gray-400">
+                        Get up and running in minutes. No onboarding calls. Just straightforward tools made for construction.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

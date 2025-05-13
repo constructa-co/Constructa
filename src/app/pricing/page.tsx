@@ -414,18 +414,16 @@ export default function PricingPage() {
         </section>
 
         {/* Section 4 – FAQ */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-zinc-800 pt-16">
-          <div>
-            <h4 className="text-2xl font-semibold mb-6">Have questions?</h4>
-          </div>
-          <div className="space-y-0">
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-zinc-800 pt-24">
+          <h2 className="text-3xl font-bold mb-10">Have questions?</h2>
+          <div className="divide-y divide-zinc-800">
             {faqs.map((faq, idx) => (
-              <details key={idx} className="group">
-                <summary className="flex items-center justify-between cursor-pointer py-4 border-t border-white/10 first:border-t-0">
-                  <span className="font-medium text-white">{faq.question}</span>
-                  <ChevronDown className="h-4 w-4 text-gray-400 group-open:rotate-180 transition-transform" />
+              <details key={idx} className="py-4 group">
+                <summary className="flex items-center justify-between cursor-pointer font-medium text-white">
+                  <span>{faq.question}</span>
+                  <ChevronDown className="h-4 w-4 text-gray-400 group-open:rotate-180 transition-transform duration-300" />
                 </summary>
-                <p className="text-sm text-gray-400 mt-2 pb-4">{faq.answer}</p>
+                <p className="text-sm text-gray-400 mt-2">{faq.answer}</p>
               </details>
             ))}
           </div>

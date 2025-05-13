@@ -110,10 +110,13 @@ export default function PricingPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         {/* Image First */}
         <section className="flex justify-center mb-12">
-          <img 
+          <Image 
             src="/images/hero-image-pricing.png" 
             alt="Digital crane over construction city with data overlay" 
+            width={1200}
+            height={600}
             className="w-full max-w-4xl rounded-xl shadow-lg" 
+            priority
           />
         </section>
 

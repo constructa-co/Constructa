@@ -1,75 +1,57 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 import Image from 'next/image';
 
-const tiers = [
-  {
+type BillingPeriod = 'monthly' | 'quarterly' | 'annual';
+
+const PLANS = {
+  basic: {
+    monthly: 20,
     name: 'Basic',
-    price: '£20/month',
-    description: 'Essential tools for solo contractors starting out.',
-    billing: 'Billed monthly',
-    buttonText: 'Get Started',
+    description: 'Essential tools for individual contractors starting their journey.',
     features: [
-      '2 projects/quarter',
-      '1 team member',
-      'Branded PDF proposals',
-      'Capability statements',
-      'Customisable terms and conditions',
-      'Export as PDF',
-      'Standard support',
-    ],
+      'Up to 15 projects/quarter',
+      'Basic proposal templates',
+      '4 team members',
+      'Standard support'
+    ]
   },
-  {
+  standard: {
+    monthly: 40,
     name: 'Standard',
-    price: '£40/month',
     description: 'Enhanced features for growing construction businesses.',
-    billing: 'Billed monthly',
-    buttonText: 'Get Started',
     features: [
-      '10 projects/quarter',
-      '2 team members',
-      'All Basic features',
-      'Estimating tool',
-      'Planning tool',
-      'Proposal viewer notifications',
-      'Export as PDF',
-      'Priority support',
-    ],
+      'Up to 50 projects/quarter',
+      'Advanced proposal templates',
+      '8 team members',
+      'Priority support'
+    ]
   },
-  {
+  professional: {
+    monthly: 80,
     name: 'Professional',
-    price: '£80/month',
-    description: 'Advanced tools and collaboration for pros.',
-    billing: 'Billed monthly',
-    buttonText: 'Get Started',
-    bestValue: true,
+    description: 'Advanced tools and privacy for professional contractors.',
     features: [
       'Unlimited projects',
-      '5 team members',
-      'All Standard features',
-      'Client dashboard',
-      'Proposal viewer notifications',
-      'Export as PDF',
-      '24/7 priority support',
-    ],
-  },
-  {
-    name: 'Enterprise',
-    price: 'Custom',
-    description: 'Custom solutions for larger contractors.',
-    billing: 'Contact for pricing',
-    buttonText: 'Contact Sales',
-    features: [
-      'Unlimited',
-      'Unlimited',
-      'All Professional features',
-      'Custom integrations',
-      'Dedicated support',
-    ],
-  },
-];
+      'Custom proposal templates',
+      '12 team members',
+      '24/7 priority support'
+    ]
+  }
+};
+
+const calculatePrice = (basePrice: number, billingPeriod: BillingPeriod): number => {
+  switch (billingPeriod) {
+    case 'quarterly':
+      return Math.round(basePrice * 3 * 0.85);
+    case 'annual':
+      return Math.round(basePrice * 12 * 0.7);
+    default:
+      return basePrice;
+  }
+};
 
 const faqs = [
   {
@@ -99,6 +81,30 @@ const faqs = [
 ];
 
 export default function PricingPage() {
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');
+
+  const getBillingText = (price: number): string => {
+    switch (billingPeriod) {
+      case 'quarterly':
+        return `£${Math.round(price / 3)}/month`;
+      case 'annual':
+        return `£${Math.round(price / 12)}/month`;
+      default:
+        return `£${price}/month`;
+    }
+  };
+
+  const getBillingSubtext = (): string => {
+    switch (billingPeriod) {
+      case 'quarterly':
+        return 'Billed quarterly';
+      case 'annual':
+        return 'Billed annually';
+      default:
+        return 'Billed monthly';
+    }
+  };
+
   return (
     <main className="min-h-screen bg-black text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
@@ -111,13 +117,13 @@ export default function PricingPage() {
           />
         </section>
 
-        {/* Section 1 – Header + Pricing Options */}
+        {/* Section 1 – Header + Billing Toggle */}
         <section className="text-center mb-12">
           <h1 className="text-4xl font-semibold mb-4">Get Started with Constructa</h1>
           <div className="flex justify-center gap-2 mb-4">
-            <button className="bg-white text-black px-4 py-1 rounded">Monthly</button>
-            <button className="bg-zinc-800 text-green-400 px-4 py-1 rounded">Quarterly <span className="text-sm">15% OFF</span></button>
-            <button className="bg-zinc-800 text-green-400 px-4 py-1 rounded">Yearly <span className="text-sm">30% OFF</span></button>
+            <button onClick={() => setBillingPeriod('monthly')} className={`px-4 py-1 rounded ${billingPeriod === 'monthly' ? 'bg-white text-black' : 'bg-zinc-800 text-green-400'}`}>Monthly</button>
+            <button onClick={() => setBillingPeriod('quarterly')} className={`px-4 py-1 rounded ${billingPeriod === 'quarterly' ? 'bg-white text-black' : 'bg-zinc-800 text-green-400'}`}>Quarterly <span className="text-sm">15% OFF</span></button>
+            <button onClick={() => setBillingPeriod('annual')} className={`px-4 py-1 rounded ${billingPeriod === 'annual' ? 'bg-white text-black' : 'bg-zinc-800 text-green-400'}`}>Yearly <span className="text-sm">30% OFF</span></button>
           </div>
           <p className="text-gray-400 max-w-xl mx-auto">
             We\'re offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
@@ -125,19 +131,17 @@ export default function PricingPage() {
         </section>
 
         {/* Pricing Cards */}
-        <section className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-24">
-          {tiers.map((tier) => (
-            <div
-              key={tier.name}
-              className={`border rounded-xl p-6 flex flex-col justify-between transition-all duration-200 hover:scale-105 ${
-                tier.bestValue ? 'bg-white text-black shadow-lg border-white' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
-              }`}
-            >
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-24">
+          {Object.values(PLANS).map((tier, index) => (
+            <div key={index} className={`border rounded-xl p-6 flex flex-col justify-between transition-all duration-200 ${tier.name === 'Professional' ? 'bg-white text-black shadow-lg border-white' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'}`}>
+              {tier.name === 'Professional' && (
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-3 py-1 bg-black text-white text-xs font-medium rounded-full">Best Value</div>
+              )}
               <div>
                 <h2 className="text-xl font-semibold mb-1">{tier.name}</h2>
                 <p className="text-sm text-gray-400 mb-4">{tier.description}</p>
-                <p className="text-2xl font-bold mb-1">{tier.price}</p>
-                <p className="text-xs text-gray-500 mb-4">{tier.billing}</p>
+                <p className="text-2xl font-bold mb-1">{getBillingText(calculatePrice(tier.monthly, billingPeriod))}</p>
+                <p className="text-xs text-gray-500 mb-4">{getBillingSubtext()}</p>
               </div>
               <ul className="text-sm text-gray-300 space-y-2 mb-6">
                 {tier.features.map((feature, idx) => (
@@ -147,21 +151,42 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <button className={`w-full py-2 rounded-md font-semibold transition-colors duration-200 ${tier.bestValue ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-gray-100'}`}>
-                {tier.buttonText}
+              <button className={`w-full py-2 rounded-md font-semibold transition-colors duration-200 ${tier.name === 'Professional' ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-gray-100'}`}>
+                Get Started
               </button>
             </div>
           ))}
+
+          {/* Enterprise Card */}
+          <div className="border rounded-xl p-6 flex flex-col justify-between transition-all duration-200 bg-zinc-900 border-zinc-800 hover:border-zinc-700">
+            <div>
+              <h2 className="text-xl font-semibold mb-1">Enterprise</h2>
+              <p className="text-sm text-gray-400 mb-4">Custom solutions for large construction companies.</p>
+              <p className="text-2xl font-bold mb-1">Custom</p>
+              <p className="text-xs text-gray-500 mb-4">Contact for pricing</p>
+            </div>
+            <ul className="text-sm text-gray-300 space-y-2 mb-6">
+              {['Unlimited everything', 'Custom integrations', 'Unlimited team members', 'Dedicated support team'].map((feature, idx) => (
+                <li key={idx} className="flex items-center">
+                  <Check className="mr-2 h-4 w-4 text-green-500 flex-shrink-0" />
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+            <button className="w-full py-2 rounded-md font-semibold transition-colors duration-200 bg-white text-black hover:bg-gray-100">
+              Contact Sales
+            </button>
+          </div>
         </section>
 
         {/* Feature Comparison */}
         <section className="mb-24">
           <h2 className="text-2xl font-semibold text-center mb-10">Compare Features</h2>
           <div className="grid grid-cols-4 gap-6">
-            {['Projects per quarter', 'Team members', 'Branded PDF proposals', 'Capability statements', 'Customisable T&Cs', 'Estimating tool', 'Planning tool', 'Client dashboard', 'Proposal viewer notifications', 'Export as PDF', 'Support level'].map((feature, index) => (
+            {['Projects per quarter', 'Team members', 'Proposal templates', 'Support level'].map((feature, index) => (
               <div key={index} className="text-sm text-gray-300 border-t border-zinc-700 pt-4">
                 <p className="font-semibold mb-2">{feature}</p>
-                {tiers.map((tier, idx) => (
+                {[...Object.values(PLANS), { name: 'Enterprise', features: ['Unlimited', 'Unlimited', 'Custom', 'Dedicated'] }].map((tier, idx) => (
                   <div key={idx} className="mb-1">
                     {tier.features.some(f => f.toLowerCase().includes(feature.toLowerCase()))
                       ? <span className="text-green-400">✓</span>

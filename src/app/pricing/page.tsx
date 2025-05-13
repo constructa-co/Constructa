@@ -414,18 +414,22 @@ export default function PricingPage() {
         </section>
 
         {/* Section 4 – FAQ */}
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-zinc-800 pt-24">
-          <h2 className="text-3xl font-bold mb-10">Have questions?</h2>
-          <div className="divide-y divide-zinc-800">
-            {faqs.map((faq, idx) => (
-              <details key={idx} className="py-4 group">
-                <summary className="flex items-center justify-between cursor-pointer font-medium text-white">
-                  <span>{faq.question}</span>
-                  <ChevronDown className="h-4 w-4 text-gray-400 group-open:rotate-180 transition-transform duration-300" />
-                </summary>
-                <p className="text-sm text-gray-400 mt-2">{faq.answer}</p>
-              </details>
-            ))}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-zinc-800 pt-24">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 items-start">
+            <div>
+              <h2 className="text-3xl font-bold text-white">Have questions?</h2>
+            </div>
+            <div className="md:col-span-2 divide-y divide-zinc-800">
+              {faqs.map((faq, idx) => (
+                <details key={idx} className="py-4 group">
+                  <summary className="flex justify-between items-center cursor-pointer font-medium text-white">
+                    <span className="text-base">{faq.question}</span>
+                    <ChevronDown className="h-4 w-4 text-gray-400 group-open:rotate-180 transition-transform duration-300" />
+                  </summary>
+                  <p className="text-sm text-gray-400 mt-2 pr-6">{faq.answer}</p>
+                </details>
+              ))}
+            </div>
           </div>
         </section>
       </div>

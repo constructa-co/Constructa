@@ -418,14 +418,14 @@ export default function PricingPage() {
           <div>
             <h4 className="text-2xl font-semibold mb-6">Have questions?</h4>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-0">
             {faqs.map((faq, idx) => (
-              <details key={idx} className="bg-zinc-900 rounded-lg p-4">
-                <summary className="flex items-center justify-between cursor-pointer font-semibold">
-                  {faq.question}
-                  <ChevronDown className="h-4 w-4 text-gray-400" />
+              <details key={idx} className="group">
+                <summary className="flex items-center justify-between cursor-pointer py-4 border-t border-white/10 first:border-t-0">
+                  <span className="font-medium text-white">{faq.question}</span>
+                  <ChevronDown className="h-4 w-4 text-gray-400 group-open:rotate-180 transition-transform" />
                 </summary>
-                <p className="text-sm text-gray-400 mt-2">{faq.answer}</p>
+                <p className="text-sm text-gray-400 mt-2 pb-4">{faq.answer}</p>
               </details>
             ))}
           </div>

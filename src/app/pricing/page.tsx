@@ -264,21 +264,99 @@ export default function PricingPage() {
         </div>
 
         {/* Feature Comparison */}
-        <section className="mb-24">
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
           <h2 className="text-2xl font-semibold text-center mb-10">Compare Features</h2>
-          <div className="grid grid-cols-4 gap-6">
-            {['Projects per quarter', 'Team members', 'Proposal templates', 'Support level'].map((feature, index) => (
-              <div key={index} className="text-sm text-gray-300 border-t border-zinc-700 pt-4">
-                <p className="font-semibold mb-2">{feature}</p>
-                {[...Object.values(PLANS), { name: 'Enterprise', features: ['Unlimited', 'Unlimited', 'Custom', 'Dedicated'] }].map((tier, idx) => (
-                  <div key={idx} className="mb-1">
-                    {tier.features.some(f => f.toLowerCase().includes(feature.toLowerCase()))
-                      ? <span className="text-green-400">✓</span>
-                      : <span className="text-gray-500">–</span>}
-                  </div>
-                ))}
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm text-left text-white border-t border-zinc-700">
+              <thead>
+                <tr className="text-gray-400">
+                  <th className="py-3 pr-4">Feature</th>
+                  <th className="py-3 px-4">Basic</th>
+                  <th className="py-3 px-4">Standard</th>
+                  <th className="py-3 px-4">Professional</th>
+                  <th className="py-3 pl-4">Enterprise</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm divide-y divide-zinc-800">
+                <tr>
+                  <td className="py-3 pr-4 font-medium text-white">Projects per quarter</td>
+                  <td className="py-3 px-4">2</td>
+                  <td className="py-3 px-4">10</td>
+                  <td className="py-3 px-4">Unlimited</td>
+                  <td className="py-3 pl-4">Unlimited</td>
+                </tr>
+                <tr>
+                  <td className="py-3 pr-4 font-medium text-white">Team members</td>
+                  <td className="py-3 px-4">1</td>
+                  <td className="py-3 px-4">2</td>
+                  <td className="py-3 px-4">5</td>
+                  <td className="py-3 pl-4">Unlimited</td>
+                </tr>
+                <tr>
+                  <td className="py-3 pr-4 font-medium text-white">Branded PDF proposals</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 pl-4">✓</td>
+                </tr>
+                <tr>
+                  <td className="py-3 pr-4 font-medium text-white">Capability statements</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 pl-4">✓</td>
+                </tr>
+                <tr>
+                  <td className="py-3 pr-4 font-medium text-white">Customisable T&Cs</td>
+                  <td className="py-3 px-4">–</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 pl-4">✓</td>
+                </tr>
+                <tr>
+                  <td className="py-3 pr-4 font-medium text-white">Estimating tool</td>
+                  <td className="py-3 px-4">–</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 pl-4">✓</td>
+                </tr>
+                <tr>
+                  <td className="py-3 pr-4 font-medium text-white">Planning tool</td>
+                  <td className="py-3 px-4">–</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 pl-4">✓</td>
+                </tr>
+                <tr>
+                  <td className="py-3 pr-4 font-medium text-white">Client dashboard</td>
+                  <td className="py-3 px-4">–</td>
+                  <td className="py-3 px-4">–</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 pl-4">✓</td>
+                </tr>
+                <tr>
+                  <td className="py-3 pr-4 font-medium text-white">Proposal viewer notifications</td>
+                  <td className="py-3 px-4">–</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 pl-4">✓</td>
+                </tr>
+                <tr>
+                  <td className="py-3 pr-4 font-medium text-white">Export as PDF</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 pl-4">✓</td>
+                </tr>
+                <tr>
+                  <td className="py-3 pr-4 font-medium text-white">Support level</td>
+                  <td className="py-3 px-4">Standard</td>
+                  <td className="py-3 px-4">Priority</td>
+                  <td className="py-3 px-4">24/7 Priority</td>
+                  <td className="py-3 pl-4">Dedicated</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
 

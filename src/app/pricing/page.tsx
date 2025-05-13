@@ -111,8 +111,8 @@ export default function PricingPage() {
         {/* Image First */}
         <section className="flex justify-center mb-12">
           <img 
-            src="/images/pricing-visual-placeholder.png" 
-            alt="Constructa pricing visual" 
+            src="/images/hero-image-pricing.png" 
+            alt="Digital crane over construction city with data overlay" 
             className="w-full max-w-4xl rounded-xl shadow-lg" 
           />
         </section>

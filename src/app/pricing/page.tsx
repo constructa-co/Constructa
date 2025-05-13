@@ -360,13 +360,44 @@ export default function PricingPage() {
           </div>
         </section>
 
-        {/* Section 3 – Value Callouts */}
-        <section className="text-center mb-24">
-          <h2 className="text-2xl font-semibold mb-4">Why Choose Constructa?</h2>
-          <div className="space-y-4 max-w-xl mx-auto text-gray-300">
-            <p><strong>No lock-in contracts</strong><br />Cancel anytime. No hidden fees. Just tools that work.</p>
-            <p><strong>Built for small teams</strong><br />We know every minute and pound matters. That\'s why Constructa is priced for practicality—not just power.</p>
-            <p><strong>Simple setup, no training needed</strong><br />Get up and running in minutes. No onboarding calls. Just straightforward tools made for construction.</p>
+        {/* Section – Why Choose Constructa */}
+        <section className="relative py-32 md:py-40 px-4 md:px-8">
+          <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
+          <div className="relative max-w-[1400px] mx-auto px-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+              <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
+                <Image
+                  src="/images/Built with experience.png"
+                  alt="Why Choose Constructa Visual"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              <div className="max-w-[500px]">
+                <h2 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">Why Choose Constructa</h2>
+                <div className="space-y-6 text-left">
+                  <div>
+                    <h3 className="text-sm md:text-base font-medium text-white mb-1">No lock-in contracts</h3>
+                    <p className="text-sm md:text-base text-gray-400">
+                      Cancel anytime. No hidden fees. Just tools that work.
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-medium text-white mb-1">Built for small teams</h3>
+                    <p className="text-sm md:text-base text-gray-400">
+                      We know every minute and pound matters. That&apos;s why Constructa is priced for practicality—not just power.
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-medium text-white mb-1">Simple setup, no training needed</h3>
+                    <p className="text-sm md:text-base text-gray-400">
+                      Get up and running in minutes. No onboarding calls. Just straightforward tools made for construction.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 

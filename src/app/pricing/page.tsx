@@ -365,6 +365,7 @@ export default function PricingPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
           <div className="relative max-w-[1400px] mx-auto px-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+              {/* Left image block */}
               <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
                 <Image
                   src="/images/Built with experience.png"
@@ -374,8 +375,15 @@ export default function PricingPage() {
                   priority
                 />
               </div>
+
+              {/* Right content block */}
               <div className="max-w-[500px]">
-                <h2 className="text-3xl md:text-4xl font-semibold mb-6 text-white leading-tight text-left">Why Choose Constructa</h2>
+                <div className="flex items-center mb-4">
+                  <svg className="w-6 h-6 text-white mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <h2 className="text-3xl md:text-4xl font-semibold text-white leading-tight text-left">Why Choose Constructa</h2>
+                </div>
                 <div className="space-y-6 text-left">
                   <div>
                     <h3 className="text-sm md:text-base font-medium text-white mb-1">No lock-in contracts</h3>

@@ -112,7 +112,7 @@ export default function PricingPage() {
         <section className="flex justify-center mb-12">
           <div className="relative w-full max-w-4xl">
             <img 
-              src="/hero-image-pricing.png" 
+              src="/images/hero-image-pricing.png" 
               alt="Digital crane over construction city with data overlay" 
               className="w-full rounded-xl shadow-lg" 
               onError={(e) => {

@@ -308,29 +308,29 @@ export default function PricingPage() {
                 </tr>
                 <tr>
                   <td className="py-3 pr-4 font-medium text-white">Customisable T&Cs</td>
-                  <td className="py-3 px-4">–</td>
+                  <td className="py-3 px-4">✓</td>
                   <td className="py-3 px-4">✓</td>
                   <td className="py-3 px-4">✓</td>
                   <td className="py-3 pl-4">✓</td>
                 </tr>
                 <tr>
                   <td className="py-3 pr-4 font-medium text-white">Estimating tool</td>
-                  <td className="py-3 px-4">–</td>
+                  <td className="py-3 px-4">✓</td>
                   <td className="py-3 px-4">✓</td>
                   <td className="py-3 px-4">✓</td>
                   <td className="py-3 pl-4">✓</td>
                 </tr>
                 <tr>
                   <td className="py-3 pr-4 font-medium text-white">Planning tool</td>
-                  <td className="py-3 px-4">–</td>
+                  <td className="py-3 px-4">✓</td>
                   <td className="py-3 px-4">✓</td>
                   <td className="py-3 px-4">✓</td>
                   <td className="py-3 pl-4">✓</td>
                 </tr>
                 <tr>
                   <td className="py-3 pr-4 font-medium text-white">Client dashboard</td>
-                  <td className="py-3 px-4">–</td>
-                  <td className="py-3 px-4">–</td>
+                  <td className="py-3 px-4">✓</td>
+                  <td className="py-3 px-4">✓</td>
                   <td className="py-3 px-4">✓</td>
                   <td className="py-3 pl-4">✓</td>
                 </tr>

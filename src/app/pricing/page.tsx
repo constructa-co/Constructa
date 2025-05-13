@@ -1,255 +1,153 @@
 'use client';
 
-import React, { useState } from 'react';
-
-const PLANS = {
-  basic: {
-    monthly: 20,
-    name: 'Basic',
-    description: 'Essential tools for individual contractors starting their journey.',
-    features: [
-      'Up to 15 projects/quarter',
-      'Basic proposal templates',
-      '4 team members',
-      'Standard support'
-    ]
-  },
-  standard: {
-    monthly: 40,
-    name: 'Standard',
-    description: 'Enhanced features for growing construction businesses.',
-    features: [
-      'Up to 50 projects/quarter',
-      'Advanced proposal templates',
-      '8 team members',
-      'Priority support'
-    ]
-  },
-  professional: {
-    monthly: 80,
-    name: 'Professional',
-    description: 'Advanced tools and privacy for professional contractors.',
-    features: [
-      'Unlimited projects',
-      'Custom proposal templates',
-      '12 team members',
-      '24/7 priority support'
-    ]
-  }
-};
-
-const calculatePrice = (basePrice: number, billingPeriod: 'monthly' | 'quarterly' | 'annual') => {
-  switch (billingPeriod) {
-    case 'quarterly':
-      return Math.round(basePrice * 3 * 0.85); // 15% discount
-    case 'annual':
-      return Math.round(basePrice * 12 * 0.7); // 30% discount
-    default:
-      return basePrice;
-  }
-};
+import React from 'react';
+import { Check } from 'lucide-react';
 
 export default function PricingPage() {
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'quarterly' | 'annual'>('monthly');
-
-  const getBillingText = (price: number) => {
-    switch (billingPeriod) {
-      case 'quarterly':
-        return `£${Math.round(price / 3)}/month`;
-      case 'annual':
-        return `£${Math.round(price / 12)}/month`;
-      default:
-        return `£${price}/month`;
-    }
-  };
-
-  const getBillingSubtext = () => {
-    switch (billingPeriod) {
-      case 'quarterly':
-        return 'Billed quarterly';
-      case 'annual':
-        return 'Billed annually';
-      default:
-        return 'Billed monthly';
-    }
-  };
+  const tiers = [
+    {
+      name: 'Basic',
+      price: '£20/month',
+      description: 'Essential tools for solo contractors starting out.',
+      projects: '2 projects/quarter',
+      members: '1 team member',
+      features: [
+        'Branded PDF proposals',
+        'Capability statements',
+        'Customisable terms and conditions',
+      ],
+    },
+    {
+      name: 'Standard',
+      price: '£40/month',
+      description: 'Enhanced features for growing construction businesses.',
+      projects: '10 projects/quarter',
+      members: '2 team members',
+      features: [
+        'All Basic features',
+        'Estimating tool',
+        'Planning tool',
+      ],
+    },
+    {
+      name: 'Professional',
+      price: '£80/month',
+      description: 'Advanced tools and collaboration for pros.',
+      projects: 'Unlimited projects',
+      members: '5 team members',
+      features: [
+        'All Standard features',
+        'Client dashboard',
+        'Priority support',
+      ],
+      bestValue: true,
+    },
+    {
+      name: 'Enterprise',
+      price: 'Custom',
+      description: 'Custom solutions for larger contractors.',
+      projects: 'Unlimited',
+      members: 'Unlimited',
+      features: [
+        'All Professional features',
+        'Custom integrations',
+        'Dedicated support',
+      ],
+    },
+  ];
 
   return (
-    <main className="min-h-screen pt-16 bg-black">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        {/* Introduction Section */}
-        <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-white mb-6">Simple, transparent pricing</h1>
-          <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-            Choose the plan that works for your construction business. All plans include our core features for quoting, planning, and project management.
+    <main className="min-h-screen bg-black text-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        {/* Section 1: Pricing plans */}
+        <section className="text-center mb-16">
+          <h1 className="text-4xl font-semibold mb-4">Professional tools—without the big software price tag</h1>
+          <p className="text-gray-400 max-w-2xl mx-auto">
+            We offer flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
           </p>
-        </div>
+        </section>
 
-        {/* Billing Toggle */}
-        <div className="flex items-center justify-center gap-4 mb-8">
-          <button 
-            onClick={() => setBillingPeriod('monthly')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              billingPeriod === 'monthly' 
-                ? 'bg-white/10 text-white' 
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Monthly
-          </button>
-          <button 
-            onClick={() => setBillingPeriod('quarterly')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              billingPeriod === 'quarterly' 
-                ? 'bg-white/10 text-white' 
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Quarterly
-            <span className="ml-2 text-xs px-2 py-0.5 bg-white text-black rounded-full">15% OFF</span>
-          </button>
-          <button 
-            onClick={() => setBillingPeriod('annual')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              billingPeriod === 'annual' 
-                ? 'bg-white/10 text-white' 
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Yearly
-            <span className="ml-2 text-xs px-2 py-0.5 bg-white text-black rounded-full">30% OFF</span>
-          </button>
-        </div>
+        {/* Placeholder Visual */}
+        <section className="flex justify-center mb-16">
+          <img 
+            src="/images/pricing-visual-placeholder.png" 
+            alt="Constructa pricing visual" 
+            className="w-full max-w-4xl rounded-xl shadow-lg" 
+          />
+        </section>
 
-        <p className="text-sm text-gray-500 text-center mb-12">
-          We're offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
-        </p>
-
-        {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Basic Plan */}
-          <div className="relative p-8 rounded-2xl border border-gray-800/50 bg-black/50 backdrop-blur-sm hover:border-gray-700/50 transition-all duration-300">
-            <div className="text-left">
-              <h3 className="text-xl font-bold mb-2">{PLANS.basic.name}</h3>
-              <p className="text-sm text-gray-400 mb-6">{PLANS.basic.description}</p>
-              <div className="mb-6">
-                <span className="text-3xl font-bold">{getBillingText(calculatePrice(PLANS.basic.monthly, billingPeriod))}</span>
-                <div className="text-xs text-gray-400 mt-1">{getBillingSubtext()}</div>
+        {/* Section 2: Feature table */}
+        <section className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-24">
+          {tiers.map((tier) => (
+            <div
+              key={tier.name}
+              className={`border rounded-xl p-6 flex flex-col justify-between transition-all duration-200 hover:scale-105 ${
+                tier.bestValue 
+                  ? 'bg-white text-black shadow-lg border-white' 
+                  : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+              }`}
+            >
+              <div>
+                <h2 className="text-xl font-semibold mb-1">{tier.name}</h2>
+                <p className="text-sm text-gray-400 mb-6">{tier.description}</p>
+                <p className="text-2xl font-bold mb-1">{tier.price}</p>
+                <p className="text-xs text-gray-500 mb-4">Billed monthly</p>
               </div>
-              <button className="w-full py-3 px-4 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors mb-8">
-                Get Started
-              </button>
-              <div className="space-y-4">
-                <div className="text-sm text-gray-400 font-medium">What's included</div>
-                {PLANS.basic.features.map((feature, index) => (
-                  <div key={index} className="flex items-center gap-2 text-sm">
-                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
-                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
-                    </svg>
+              <ul className="text-sm text-gray-300 space-y-2 mb-6">
+                <li className="flex items-center">
+                  <Check className="mr-2 h-4 w-4 text-green-500 flex-shrink-0" /> 
+                  <span>{tier.projects}</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="mr-2 h-4 w-4 text-green-500 flex-shrink-0" /> 
+                  <span>{tier.members}</span>
+                </li>
+                {tier.features.map((feature, idx) => (
+                  <li key={idx} className="flex items-center">
+                    <Check className="mr-2 h-4 w-4 text-green-500 flex-shrink-0" /> 
                     <span>{feature}</span>
-                  </div>
+                  </li>
                 ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Standard Plan */}
-          <div className="relative p-8 rounded-2xl border border-gray-800/50 bg-black/50 backdrop-blur-sm hover:border-gray-700/50 transition-all duration-300">
-            <div className="text-left">
-              <h3 className="text-xl font-bold mb-2">{PLANS.standard.name}</h3>
-              <p className="text-sm text-gray-400 mb-6">{PLANS.standard.description}</p>
-              <div className="mb-6">
-                <span className="text-3xl font-bold">{getBillingText(calculatePrice(PLANS.standard.monthly, billingPeriod))}</span>
-                <div className="text-xs text-gray-400 mt-1">{getBillingSubtext()}</div>
-              </div>
-              <button className="w-full py-3 px-4 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors mb-8">
-                Get Started
+              </ul>
+              <button 
+                className={`w-full py-2 rounded-md font-semibold transition-colors duration-200 ${
+                  tier.bestValue 
+                    ? 'bg-black text-white hover:bg-zinc-800' 
+                    : 'bg-white text-black hover:bg-gray-100'
+                }`}
+              >
+                {tier.name === 'Enterprise' ? 'Contact Sales' : 'Get Started'}
               </button>
-              <div className="space-y-4">
-                <div className="text-sm text-gray-400 font-medium">What's included</div>
-                {PLANS.standard.features.map((feature, index) => (
-                  <div key={index} className="flex items-center gap-2 text-sm">
-                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
-                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
-                    </svg>
-                    <span>{feature}</span>
-                  </div>
-                ))}
-              </div>
             </div>
-          </div>
+          ))}
+        </section>
 
-          {/* Professional Plan */}
-          <div className="relative p-8 rounded-2xl border-2 border-white bg-white text-black transition-all duration-300">
-            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-3 py-1 bg-black text-white text-xs font-medium rounded-full">
-              Best Value
-            </div>
-            <div className="text-left">
-              <h3 className="text-xl font-bold mb-2">{PLANS.professional.name}</h3>
-              <p className="text-sm text-gray-600 mb-6">{PLANS.professional.description}</p>
-              <div className="mb-6">
-                <span className="text-3xl font-bold">{getBillingText(calculatePrice(PLANS.professional.monthly, billingPeriod))}</span>
-                <div className="text-xs text-gray-600 mt-1">{getBillingSubtext()}</div>
-              </div>
-              <button className="w-full py-3 px-4 rounded-xl bg-black text-white text-sm font-medium hover:bg-gray-900 transition-colors mb-8">
-                Get Started
-              </button>
-              <div className="space-y-4">
-                <div className="text-sm text-gray-600 font-medium">What's included</div>
-                {PLANS.professional.features.map((feature, index) => (
-                  <div key={index} className="flex items-center gap-2 text-sm">
-                    <svg className="w-5 h-5 text-black" viewBox="0 0 20 20" fill="none">
-                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
-                    </svg>
-                    <span>{feature}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+        {/* Section 3: Commitment statement */}
+        <section className="text-center mb-24 max-w-2xl mx-auto">
+          <h3 className="text-xl font-semibold mb-4">Risk-free, cancel anytime, no long-term lock-in.</h3>
+          <p className="text-gray-400">
+            Cancel any time—no long-term contracts to lock you in. Simple, straightforward, and fair.
+          </p>
+        </section>
 
-          {/* Enterprise Plan */}
-          <div className="relative p-8 rounded-2xl border border-gray-800/50 bg-black/50 backdrop-blur-sm hover:border-gray-700/50 transition-all duration-300">
-            <div className="text-left">
-              <h3 className="text-xl font-bold mb-2">Enterprise</h3>
-              <p className="text-sm text-gray-400 mb-6">Custom solutions for large construction companies.</p>
-              <div className="mb-6">
-                <span className="text-3xl font-bold">Custom</span>
-                <div className="text-xs text-gray-400 mt-1">Contact for pricing</div>
-              </div>
-              <button className="w-full py-3 px-4 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors mb-8">
-                Contact Sales
-              </button>
-              <div className="space-y-4">
-                <div className="text-sm text-gray-400 font-medium">What's included</div>
-                <div className="flex items-center gap-2 text-sm">
-                  <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
-                    <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
-                  </svg>
-                  <span>Unlimited everything</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
-                    <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
-                  </svg>
-                  <span>Custom integrations</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
-                    <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
-                  </svg>
-                  <span>Unlimited team members</span>
-                </div>
-              </div>
+        {/* Section 4: Pricing FAQs */}
+        <section className="max-w-3xl mx-auto border-t border-zinc-800 pt-16">
+          <h4 className="text-2xl font-semibold mb-6 text-center">Pricing FAQs</h4>
+          <div className="space-y-6">
+            <div>
+              <h5 className="font-semibold mb-1">How do I pay?</h5>
+              <p className="text-gray-400 text-sm">All plans are billed via Paddle using your preferred payment method. VAT added where applicable.</p>
+            </div>
+            <div>
+              <h5 className="font-semibold mb-1">Can I switch plans later?</h5>
+              <p className="text-gray-400 text-sm">Yes, you can upgrade, downgrade, or cancel your plan at any time.</p>
+            </div>
+            <div>
+              <h5 className="font-semibold mb-1">Is there a free trial?</h5>
+              <p className="text-gray-400 text-sm">We'll be offering a 14-day free trial when we launch—join the waitlist to get early access.</p>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </main>
   );

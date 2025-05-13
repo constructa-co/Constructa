@@ -90,7 +90,7 @@ const faqs = [
   },
   {
     question: 'Will you add more features?',
-    answer: 'Yes. We're actively developing new tools. All plans get regular updates.',
+    answer: 'Yes. We\'re actively developing new tools. All plans get regular updates.',
   },
   {
     question: 'Do I need to install anything?',
@@ -120,7 +120,7 @@ export default function PricingPage() {
             <button className="bg-zinc-800 text-green-400 px-4 py-1 rounded">Yearly <span className="text-sm">30% OFF</span></button>
           </div>
           <p className="text-gray-400 max-w-xl mx-auto">
-            We're offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
+            We\'re offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
           </p>
         </section>
 

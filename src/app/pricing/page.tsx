@@ -131,53 +131,137 @@ export default function PricingPage() {
         </section>
 
         {/* Pricing Cards */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-24">
-          {Object.values(PLANS).map((tier, index) => (
-            <div key={index} className={`border rounded-xl p-6 flex flex-col justify-between transition-all duration-200 ${tier.name === 'Professional' ? 'bg-white text-black shadow-lg border-white' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'}`}>
-              {tier.name === 'Professional' && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-3 py-1 bg-black text-white text-xs font-medium rounded-full">Best Value</div>
-              )}
-              <div>
-                <h2 className="text-xl font-semibold mb-1">{tier.name}</h2>
-                <p className="text-sm text-gray-400 mb-4">{tier.description}</p>
-                <p className="text-2xl font-bold mb-1">{getBillingText(calculatePrice(tier.monthly, billingPeriod))}</p>
-                <p className="text-xs text-gray-500 mb-4">{getBillingSubtext()}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-24">
+          {/* Basic Plan */}
+          <div className="relative p-8 rounded-2xl border border-gray-800/50 bg-black/50 backdrop-blur-sm hover:border-gray-700/50 transition-all duration-300">
+            <div className="text-left">
+              <h3 className="text-xl font-bold mb-2">{PLANS.basic.name}</h3>
+              <p className="text-sm text-gray-400 mb-6">{PLANS.basic.description}</p>
+              <div className="mb-6">
+                <span className="text-3xl font-bold">{getBillingText(calculatePrice(PLANS.basic.monthly, billingPeriod))}</span>
+                <div className="text-xs text-gray-400 mt-1">{getBillingSubtext()}</div>
               </div>
-              <ul className="text-sm text-gray-300 space-y-2 mb-6">
-                {tier.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-center">
-                    <Check className="mr-2 h-4 w-4 text-green-500 flex-shrink-0" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              <button className={`w-full py-2 rounded-md font-semibold transition-colors duration-200 ${tier.name === 'Professional' ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-gray-100'}`}>
+              <button className="w-full py-3 px-4 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors mb-8">
                 Get Started
               </button>
+              <div className="space-y-4">
+                <div className="text-sm text-gray-400 font-medium">What&apos;s included</div>
+                {PLANS.basic.features.map((feature, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>{feature}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
-
-          {/* Enterprise Card */}
-          <div className="border rounded-xl p-6 flex flex-col justify-between transition-all duration-200 bg-zinc-900 border-zinc-800 hover:border-zinc-700">
-            <div>
-              <h2 className="text-xl font-semibold mb-1">Enterprise</h2>
-              <p className="text-sm text-gray-400 mb-4">Custom solutions for large construction companies.</p>
-              <p className="text-2xl font-bold mb-1">Custom</p>
-              <p className="text-xs text-gray-500 mb-4">Contact for pricing</p>
-            </div>
-            <ul className="text-sm text-gray-300 space-y-2 mb-6">
-              {['Unlimited everything', 'Custom integrations', 'Unlimited team members', 'Dedicated support team'].map((feature, idx) => (
-                <li key={idx} className="flex items-center">
-                  <Check className="mr-2 h-4 w-4 text-green-500 flex-shrink-0" />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-            <button className="w-full py-2 rounded-md font-semibold transition-colors duration-200 bg-white text-black hover:bg-gray-100">
-              Contact Sales
-            </button>
           </div>
-        </section>
+
+          {/* Standard Plan */}
+          <div className="relative p-8 rounded-2xl border border-gray-800/50 bg-black/50 backdrop-blur-sm hover:border-gray-700/50 transition-all duration-300">
+            <div className="text-left">
+              <h3 className="text-xl font-bold mb-2">{PLANS.standard.name}</h3>
+              <p className="text-sm text-gray-400 mb-6">{PLANS.standard.description}</p>
+              <div className="mb-6">
+                <span className="text-3xl font-bold">{getBillingText(calculatePrice(PLANS.standard.monthly, billingPeriod))}</span>
+                <div className="text-xs text-gray-400 mt-1">{getBillingSubtext()}</div>
+              </div>
+              <button className="w-full py-3 px-4 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors mb-8">
+                Get Started
+              </button>
+              <div className="space-y-4">
+                <div className="text-sm text-gray-400 font-medium">What&apos;s included</div>
+                {PLANS.standard.features.map((feature, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Professional Plan */}
+          <div className="relative p-8 rounded-2xl border-2 border-white bg-white text-black transition-all duration-300">
+            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-3 py-1 bg-black text-white text-xs font-medium rounded-full">
+              Best Value
+            </div>
+            <div className="text-left">
+              <h3 className="text-xl font-bold mb-2">{PLANS.professional.name}</h3>
+              <p className="text-sm text-gray-600 mb-6">{PLANS.professional.description}</p>
+              <div className="mb-6">
+                <span className="text-3xl font-bold">{getBillingText(calculatePrice(PLANS.professional.monthly, billingPeriod))}</span>
+                <div className="text-xs text-gray-600 mt-1">{getBillingSubtext()}</div>
+              </div>
+              <button className="w-full py-3 px-4 rounded-xl bg-black text-white text-sm font-medium hover:bg-gray-900 transition-colors mb-8">
+                Get Started
+              </button>
+              <div className="space-y-4">
+                <div className="text-sm text-gray-600 font-medium">What&apos;s included</div>
+                {PLANS.professional.features.map((feature, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-black" viewBox="0 0 20 20" fill="none">
+                      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    <span>{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Enterprise Plan */}
+          <div className="relative p-8 rounded-2xl border border-gray-800/50 bg-black/50 backdrop-blur-sm hover:border-gray-700/50 transition-all duration-300">
+            <div className="text-left">
+              <h3 className="text-xl font-bold mb-2">Enterprise</h3>
+              <p className="text-sm text-gray-400 mb-6">Custom solutions for large construction companies.</p>
+              <div className="mb-6">
+                <span className="text-3xl font-bold">Custom</span>
+                <div className="text-xs text-gray-400 mt-1">Contact for pricing</div>
+              </div>
+              <button className="w-full py-3 px-4 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors mb-8">
+                Contact Sales
+              </button>
+              <div className="space-y-4">
+                <div className="text-sm text-gray-400 font-medium">What&apos;s included</div>
+                <div className="flex items-center gap-2 text-sm">
+                  <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                    <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                  </svg>
+                  <span>Unlimited everything</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                    <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                  </svg>
+                  <span>Custom integrations</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                    <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                  </svg>
+                  <span>Unlimited team members</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
+                    <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5"/>
+                  </svg>
+                  <span>Dedicated support team</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Feature Comparison */}
         <section className="mb-24">

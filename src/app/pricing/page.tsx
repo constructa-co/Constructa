@@ -117,6 +117,12 @@ export default function PricingPage() {
             height={600}
             className="w-full max-w-4xl rounded-xl shadow-lg" 
             priority
+            onError={(e) => {
+              console.error('Image failed to load:', e);
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+            }}
+            unoptimized
           />
         </section>
 

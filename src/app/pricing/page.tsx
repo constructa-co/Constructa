@@ -110,20 +110,23 @@ export default function PricingPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         {/* Image First */}
         <section className="flex justify-center mb-12">
-          <Image 
-            src="/images/hero-image-pricing.png" 
-            alt="Digital crane over construction city with data overlay" 
-            width={1200}
-            height={600}
-            className="w-full max-w-4xl rounded-xl shadow-lg" 
-            priority
-            onError={(e) => {
-              console.error('Image failed to load:', e);
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-            }}
-            unoptimized
-          />
+          <div className="relative w-full max-w-4xl">
+            <img 
+              src="/images/hero-image-pricing.png" 
+              alt="Digital crane over construction city with data overlay" 
+              className="w-full rounded-xl shadow-lg" 
+              onError={(e) => {
+                console.error('Image failed to load:', e);
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                // Show placeholder when image fails
+                const placeholder = document.createElement('div');
+                placeholder.className = 'w-full h-[300px] bg-gray-800 rounded-xl flex items-center justify-center';
+                placeholder.innerHTML = '<p class="text-gray-400">Image loading failed</p>';
+                target.parentNode?.insertBefore(placeholder, target.nextSibling);
+              }}
+            />
+          </div>
         </section>
 
         {/* Section 1 – Header + Billing Toggle */}
@@ -135,7 +138,7 @@ export default function PricingPage() {
             <button onClick={() => setBillingPeriod('annual')} className={`px-4 py-1 rounded ${billingPeriod === 'annual' ? 'bg-white text-black' : 'bg-zinc-800 text-green-400'}`}>Yearly <span className="text-sm">30% OFF</span></button>
           </div>
           <p className="text-gray-400 max-w-xl mx-auto">
-            We\'re offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
+            We're offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
           </p>
         </section>
 

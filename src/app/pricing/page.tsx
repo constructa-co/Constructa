@@ -421,8 +421,13 @@ export default function PricingPage() {
             </div>
             <div className="md:col-span-2 divide-y divide-zinc-800">
               {faqs.map((faq, idx) => (
-                <details key={idx} className="py-4 group">
-                  <summary className="flex justify-between items-center cursor-pointer font-medium text-white">
+                <details
+                  key={idx}
+                  className="py-4 group"
+                >
+                  <summary
+                    className="flex justify-between items-center cursor-pointer font-medium text-white list-none text-left"
+                  >
                     <span className="text-base">{faq.question}</span>
                     <ChevronDown className="h-4 w-4 text-gray-400 group-open:rotate-180 transition-transform duration-300" />
                   </summary>

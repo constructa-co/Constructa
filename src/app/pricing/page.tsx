@@ -109,7 +109,7 @@ export default function PricingPage() {
     <main className="min-h-screen bg-black text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         {/* Section 1 – Header + Billing Toggle */}
-        <section className="text-center mb-12">
+        <section className="text-center mb-12 pt-32">
           <h1 className="text-4xl font-semibold mb-4">Get Started with Constructa</h1>
           <div className="flex justify-center gap-2 mb-4">
             <button onClick={() => setBillingPeriod('monthly')} className={`px-4 py-1 rounded ${billingPeriod === 'monthly' ? 'bg-white text-black' : 'bg-zinc-800 text-green-400'}`}>Monthly</button>

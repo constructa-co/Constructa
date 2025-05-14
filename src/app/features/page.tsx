@@ -32,12 +32,14 @@ export default function FeaturesPage() {
         <div>
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Quote it</h2>
           <p className="text-gray-300 text-lg mb-4">
-            Build professional proposals in minutes with pre-set terms, line items, and branding.
+            Build professional proposals in minutes with your pricing, branding, and terms—pre-loaded and ready to reuse.
           </p>
           <ul className="list-disc list-inside text-gray-400 text-sm space-y-2">
-            <li>Insert your pricing, branding, and terms once</li>
-            <li>Send a ready-to-sign PDF or share a link</li>
-            <li>Get notified when clients view your proposal</li>
+            <li>Use the Quick Quote Builder to create detailed, itemized proposals fast</li>
+            <li>Set your own Custom Terms & Conditions and reuse them across jobs</li>
+            <li>Add a Capability Statement to show clients your experience and credibility</li>
+            <li>Send branded, client-ready PDFs with one click</li>
+            <li>Get notified when clients open your proposal</li>
           </ul>
         </div>
         <div>
@@ -53,12 +55,14 @@ export default function FeaturesPage() {
         <div className="order-1 md:order-2">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Plan it</h2>
           <p className="text-gray-300 text-lg mb-4">
-            Lay out job phases, milestones, and delivery dates—without drowning in spreadsheets.
+            Map out your jobs with clarity—from key dates and milestones to a full programme overview. No spreadsheets needed.
           </p>
           <ul className="list-disc list-inside text-gray-400 text-sm space-y-2">
-            <li>Timeline view with key phases and flags</li>
-            <li>Keep teams and clients aligned</li>
-            <li>Adjust schedules on the fly</li>
+            <li>Visual Programme Editor makes timelines easy to build and read</li>
+            <li>Break jobs into phases and milestones for better control</li>
+            <li>Use the Job Dashboard to see all your jobs at a glance</li>
+            <li>Keep teams and clients aligned with shared schedules</li>
+            <li>Make real-time updates to keep projects on track</li>
           </ul>
         </div>
       </section>
@@ -68,12 +72,14 @@ export default function FeaturesPage() {
         <div>
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Track it</h2>
           <p className="text-gray-300 text-lg mb-4">
-            From updates to hold-ups, track job progress and see what's blocking delivery.
+            Stay in control of your costs, changes, and margins as jobs progress. Know where you stand—before issues arise.
           </p>
           <ul className="list-disc list-inside text-gray-400 text-sm space-y-2">
-            <li>Phase-by-phase progress tracking</li>
-            <li>Team updates and issue logging</li>
-            <li>Status at-a-glance dashboard</li>
+            <li>Track job budgets in real-time with the Budget Tracker</li>
+            <li>Monitor client changes with a built-in Change Log</li>
+            <li>Protect your margin by recording variations clearly</li>
+            <li>See updates and financial impacts across every job</li>
+            <li>Gain insight into cost performance phase-by-phase</li>
           </ul>
         </div>
         <div>
@@ -89,12 +95,14 @@ export default function FeaturesPage() {
         <div className="order-1 md:order-2">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Deliver it</h2>
           <p className="text-gray-300 text-lg mb-4">
-            Show up prepared, stay on track, and make handovers clean—from kickoff to sign-off.
+            From updates to handovers, keep clients informed and your team in sync—all from one place.
           </p>
           <ul className="list-disc list-inside text-gray-400 text-sm space-y-2">
-            <li>Client-ready documentation</li>
-            <li>Live updates on job status</li>
-            <li>Instant access to latest changes</li>
+            <li>Share live status updates with One-Tap Updates</li>
+            <li>Provide clients with Client-Ready Documentation instantly</li>
+            <li>Work from anywhere with a Mobile-First Workflow</li>
+            <li>Keep your site and office aligned with shared comms</li>
+            <li>Build trust by showing clients progress in real time</li>
           </ul>
         </div>
       </section>

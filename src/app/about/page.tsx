@@ -145,7 +145,7 @@ export default function About() {
         </section>
 
         {/* What's next */}
-        <section className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
+        <section className="max-w-6xl mx-auto px-4 pt-24 py-24 grid md:grid-cols-2 gap-12 items-center">
           <div className="text-right">
             <h2 className="text-2xl md:text-3xl font-semibold mb-4">What's next</h2>
             <p className="text-gray-300 text-lg mb-4">

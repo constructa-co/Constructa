@@ -162,6 +162,29 @@ export default function About() {
             <img src="/images/whats-next.png" alt="What's next illustration" className="w-full h-auto rounded-xl shadow-md" />
           </div>
         </section>
+        {/* News section */}
+        <section className="bg-black text-white py-16 border-t border-gray-700">
+          <div className="max-w-6xl mx-auto px-4">
+            <h2 className="text-xl font-bold mb-6 text-left">News</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-y-4 gap-x-6 text-sm text-gray-300 mt-2">
+              <div className="text-left font-medium">How Constructa helps you win more work</div>
+              <div className="text-left">How to stand out and win jobs in a crowded market</div>
+              <div className="text-left text-blue-400 underline"><a href="https://medium.com/">medium.com</a></div>
+
+              <div className="text-left font-medium">Behind the build: Constructa's approach</div>
+              <div className="text-left">From spreadsheets to smart tools</div>
+              <div className="text-left text-blue-400 underline"><a href="https://linkedin.com/">linkedin.com</a></div>
+
+              <div className="text-left font-medium">Why quoting shouldn't take all day</div>
+              <div className="text-left">The hidden cost of poor planning</div>
+              <div className="text-left text-blue-400 underline"><a href="https://constructa.co/">constructa.co</a></div>
+
+              <div className="text-left font-medium">Placeholder</div>
+              <div className="text-left">More updates coming soon</div>
+              <div className="text-left">—</div>
+            </div>
+          </div>
+        </section>
       </main>
     </>
   );

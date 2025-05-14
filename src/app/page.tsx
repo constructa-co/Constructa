@@ -13,9 +13,9 @@ const PLANS = {
     name: 'Basic',
     description: 'Essential tools for individual contractors starting their journey.',
     features: [
-      'Up to 15 projects/quarter',
+      'Up to 2 projects/quarter',
       'Basic proposal templates',
-      '4 team members',
+      '1 team members',
       'Standard support'
     ]
   },
@@ -24,9 +24,9 @@ const PLANS = {
     name: 'Standard',
     description: 'Enhanced features for growing construction businesses.',
     features: [
-      'Up to 50 projects/quarter',
+      'Up to 10 projects/quarter',
       'Advanced proposal templates',
-      '8 team members',
+      '2 team members',
       'Priority support'
     ]
   },
@@ -37,7 +37,7 @@ const PLANS = {
     features: [
       'Unlimited projects',
       'Custom proposal templates',
-      '12 team members',
+      '5 team members',
       '24/7 priority support'
     ]
   }

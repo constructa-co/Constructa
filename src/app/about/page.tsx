@@ -45,7 +45,7 @@ export default function About() {
   <div>
     <img src="/images/about-hero.png" alt="About hero visual" className="w-full h-auto rounded-xl shadow-md" />
   </div>
-  <div>
+  <div className="text-left">
     <h2 className="text-2xl md:text-3xl font-semibold mb-4">Built by people who know the job</h2>
     <p className="text-gray-300 text-lg mb-4">
       We've spent decades quoting jobs, planning programmes, and juggling the chaos of construction—clipboards, emails, spreadsheets, WhatsApp threads, last-minute changes.
@@ -86,7 +86,7 @@ export default function About() {
           <div>
             <img src="/images/solution.png" alt="Solution illustration" className="w-full h-auto rounded-xl shadow-md" />
           </div>
-          <div>
+          <div className="text-left">
             <h2 className="text-2xl md:text-3xl font-semibold mb-4">The solution we're building</h2>
             <p className="text-gray-300 text-lg mb-4">
               Constructa brings quoting, planning, and delivery into one clean, easy-to-use platform.

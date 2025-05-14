@@ -41,11 +41,11 @@ export default function About() {
       </Head>
       <main className="bg-black text-white">
         {/* Hero Section */}
-        section className="max-w-6xl mx-auto px-4 pt-32 pb-24 grid md:grid-cols-2 gap-12 items-center">
+        <section className="max-w-6xl mx-auto px-4 pt-32 pb-24 grid md:grid-cols-2 gap-12 items-center">
           <div>
             <h1 className="text-4xl md:text-5xl font-semibold mb-6">Built by people who know the job</h1>
             <p className="text-gray-400 text-lg mb-4">
-              We’ve spent decades quoting jobs, planning programmes, and juggling the chaos of construction—clipboards, emails, spreadsheets, WhatsApp threads, last-minute changes.
+              We've spent decades quoting jobs, planning programmes, and juggling the chaos of construction—clipboards, emails, spreadsheets, WhatsApp threads, last-minute changes.
             </p>
             <p className="text-gray-400 text-lg mb-4">
               Constructa was born out of that reality. Not from a VC boardroom or software incubator—but from site visits, delivery delays, tight margins, and the stress of getting it right.
@@ -73,7 +73,7 @@ export default function About() {
               <li>And admin takes over</li>
             </ul>
             <p className="text-gray-300 text-lg mt-4">
-              Big software platforms are overkill. Manual systems are high risk. And most tools weren’t built for builders.
+              Big software platforms are overkill. Manual systems are high risk. And most tools weren't built for builders.
             </p>
           </div>
           <div>
@@ -87,7 +87,7 @@ export default function About() {
             <img src="/images/solution.png" alt="Solution illustration" className="w-full h-auto rounded-xl shadow-md" />
           </div>
           <div>
-            <h2 className="text-2xl md:text-3xl font-semibold mb-4">The solution we’re building</h2>
+            <h2 className="text-2xl md:text-3xl font-semibold mb-4">The solution we're building</h2>
             <p className="text-gray-300 text-lg mb-4">
               Constructa brings quoting, planning, and delivery into one clean, easy-to-use platform.
             </p>
@@ -97,7 +97,7 @@ export default function About() {
               <li>Track progress and changes without the spreadsheet stress</li>
               <li>Win more work by looking more professional from day one</li>
             </ul>
-            <p className="text-gray-300 text-lg mt-4">We’re starting simple. And growing with our users—brick by brick.</p>
+            <p className="text-gray-300 text-lg mt-4">We're starting simple. And growing with our users—brick by brick.</p>
           </div>
         </section>
 
@@ -106,10 +106,10 @@ export default function About() {
           <div className="text-right">
             <h2 className="text-2xl md:text-3xl font-semibold mb-4">A message from the founder</h2>
             <p className="text-gray-300 text-lg italic mb-4">
-              "After 25 years in construction, I knew there had to be a better way. I’ve seen first-hand how hard it is to manage projects and people while keeping proposals sharp, programmes aligned, and clients happy.
+              "After 25 years in construction, I knew there had to be a better way. I've seen first-hand how hard it is to manage projects and people while keeping proposals sharp, programmes aligned, and clients happy.
             </p>
             <p className="text-gray-300 text-lg italic mb-4">
-              Constructa isn’t just software—it’s a response to everything I wish I’d had earlier in my career. We’re building it with care, with clarity, and with builders front and centre."
+              Constructa isn't just software—it's a response to everything I wish I'd had earlier in my career. We're building it with care, with clarity, and with builders front and centre."
             </p>
             <div className="not-italic font-semibold">— Robert Smith</div>
           </div>
@@ -148,10 +148,10 @@ export default function About() {
               Constructa's first release is now live—helping builders quote, plan, and deliver with confidence.
             </p>
             <p className="text-gray-300 text-lg mb-4">
-              From here, we’re expanding into contracts, resource tracking, client comms, and more.
+              From here, we're expanding into contracts, resource tracking, client comms, and more.
             </p>
             <p className="text-gray-300 text-lg mb-4">
-              If you’re a small construction team ready to simplify how you work—give Constructa a try today.
+              If you're a small construction team ready to simplify how you work—give Constructa a try today.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-2">
               <a href="https://medium.com/" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Follow us on Medium →</a>

@@ -47,13 +47,13 @@ export default function About() {
   </div>
   <div>
     <h2 className="text-2xl md:text-3xl font-semibold mb-4">Built by people who know the job</h2>
-    <p className="text-gray-400 text-lg mb-4">
+    <p className="text-gray-300 text-lg mb-4">
       We've spent decades quoting jobs, planning programmes, and juggling the chaos of construction—clipboards, emails, spreadsheets, WhatsApp threads, last-minute changes.
     </p>
-    <p className="text-gray-400 text-lg mb-4">
+    <p className="text-gray-300 text-lg mb-4">
       Constructa was born out of that reality. Not from a VC boardroom or software incubator—but from site visits, delivery delays, tight margins, and the stress of getting it right.
     </p>
-    <p className="text-gray-400 text-lg">
+    <p className="text-gray-300 text-lg">
       We're not building another tool to add to the pile. We're building the one that ties everything together.
     </p>
   </div>

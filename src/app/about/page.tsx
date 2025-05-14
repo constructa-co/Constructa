@@ -46,7 +46,7 @@ export default function About() {
     <img src="/images/about-hero.png" alt="About hero visual" className="w-full h-auto rounded-xl shadow-md" />
   </div>
   <div>
-    <h1 className="text-4xl md:text-5xl font-semibold mb-6">Built by people who know the job</h1>
+    <h2 className="text-2xl md:text-3xl font-semibold mb-4">Built by people who know the job</h2>
     <p className="text-gray-400 text-lg mb-4">
       We've spent decades quoting jobs, planning programmes, and juggling the chaos of construction—clipboards, emails, spreadsheets, WhatsApp threads, last-minute changes.
     </p>

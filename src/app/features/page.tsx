@@ -29,7 +29,7 @@ export default function FeaturesPage() {
 
       {/* Feature Block: Quote it (Proposal Tools) */}
       <section id="proposal-tools" className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
-        <div className="text-right">
+        <div>
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Quote it</h2>
           <p className="text-gray-300 text-lg mb-4">
             Build professional proposals in minutes with your pricing, branding, and terms—pre-loaded and ready to reuse.
@@ -52,7 +52,7 @@ export default function FeaturesPage() {
         <div className="order-2 md:order-1">
           <img src="/images/job-planner-timeline.png" alt="Job planner timeline view in Constructa" className="w-full h-auto rounded-xl shadow-md" />
         </div>
-        <div className="order-1 md:order-2">
+        <div className="order-1 md:order-2 text-left">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Plan it</h2>
           <p className="text-gray-300 text-lg mb-4">
             Map out your jobs with clarity—from key dates and milestones to a full programme overview. No spreadsheets needed.
@@ -69,7 +69,7 @@ export default function FeaturesPage() {
 
       {/* Feature Block: Track it (Cost Control) */}
       <section id="cost-control" className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
-        <div className="text-right">
+        <div>
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Track it</h2>
           <p className="text-gray-300 text-lg mb-4">
             Stay in control of your costs, changes, and margins as jobs progress. Know where you stand—before issues arise.
@@ -92,7 +92,7 @@ export default function FeaturesPage() {
         <div className="order-2 md:order-1">
           <img src="/images/client-delivery-interface.png" alt="Client delivery screen in Constructa" className="w-full h-auto rounded-xl shadow-md" />
         </div>
-        <div className="order-1 md:order-2">
+        <div className="order-1 md:order-2 text-left">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Deliver it</h2>
           <p className="text-gray-300 text-lg mb-4">
             From updates to handovers, keep clients informed and your team in sync—all from one place.

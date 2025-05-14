@@ -82,7 +82,7 @@ export default function FeaturesPage() {
       </section>
 
       {/* Feature Block: Deliver it (Communication & Delivery) */}
-      <section id="communication & delivery" className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
+      <section id="communication-&-delivery" className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div className="order-2 md:order-1">
           <img src="/images/client-delivery-interface.png" alt="Client delivery screen in Constructa" className="w-full h-auto rounded-xl shadow-md" />
         </div>

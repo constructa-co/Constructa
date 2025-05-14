@@ -50,7 +50,7 @@ export default function FeaturesPage() {
       {/* Feature Block: Plan it (Planning Tools) */}
       <section id="planning-tools" className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div className="order-2 md:order-1">
-          <img src="/images/job-plan-it.png" alt="Job planner timeline view in Constructa" className="w-full h-auto rounded-xl shadow-md" />
+          <img src="/images/plan-it.png" alt="Job planner timeline view in Constructa" className="w-full h-auto rounded-xl shadow-md" />
         </div>
         <div className="order-1 md:order-2 text-left">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Plan it</h2>

@@ -40,24 +40,24 @@ export default function About() {
 }` }} />
       </Head>
       <main className="bg-black text-white">
-        {/* Hero Section */}
-        <section className="max-w-6xl mx-auto px-4 pt-32 pb-24 grid md:grid-cols-2 gap-12 items-center">
-          <div>
-            <h1 className="text-4xl md:text-5xl font-semibold mb-6">Built by people who know the job</h1>
-            <p className="text-gray-400 text-lg mb-4">
-              We've spent decades quoting jobs, planning programmes, and juggling the chaos of construction—clipboards, emails, spreadsheets, WhatsApp threads, last-minute changes.
-            </p>
-            <p className="text-gray-400 text-lg mb-4">
-              Constructa was born out of that reality. Not from a VC boardroom or software incubator—but from site visits, delivery delays, tight margins, and the stress of getting it right.
-            </p>
-            <p className="text-gray-400 text-lg">
-              We're not building another tool to add to the pile. We're building the one that ties everything together.
-            </p>
-          </div>
-          <div>
-            <img src="/images/about-hero.png" alt="About hero visual" className="w-full h-auto rounded-xl shadow-md" />
-          </div>
-        </section>
+{/* Hero Section */}
+<section className="max-w-6xl mx-auto px-4 pt-32 pb-24 grid md:grid-cols-2 gap-12 items-center">
+  <div>
+    <img src="/images/about-hero.png" alt="About hero visual" className="w-full h-auto rounded-xl shadow-md" />
+  </div>
+  <div>
+    <h1 className="text-4xl md:text-5xl font-semibold mb-6">Built by people who know the job</h1>
+    <p className="text-gray-400 text-lg mb-4">
+      We've spent decades quoting jobs, planning programmes, and juggling the chaos of construction—clipboards, emails, spreadsheets, WhatsApp threads, last-minute changes.
+    </p>
+    <p className="text-gray-400 text-lg mb-4">
+      Constructa was born out of that reality. Not from a VC boardroom or software incubator—but from site visits, delivery delays, tight margins, and the stress of getting it right.
+    </p>
+    <p className="text-gray-400 text-lg">
+      We're not building another tool to add to the pile. We're building the one that ties everything together.
+    </p>
+  </div>
+</section>
 
         {/* Section 1 */}
         <section className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">

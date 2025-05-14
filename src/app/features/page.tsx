@@ -43,14 +43,14 @@ export default function FeaturesPage() {
           </ul>
         </div>
         <div>
-          <img src="/images/quote-builder.png" alt="Quote builder interface in Constructa" className="w-full h-auto rounded-xl shadow-md" />
+          <img src="/images/quote-it.png" alt="Quote builder interface in Constructa" className="w-full h-auto rounded-xl shadow-md" />
         </div>
       </section>
 
       {/* Feature Block: Plan it (Planning Tools) */}
       <section id="planning-tools" className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div className="order-2 md:order-1">
-          <img src="/images/job-planner-timeline.png" alt="Job planner timeline view in Constructa" className="w-full h-auto rounded-xl shadow-md" />
+          <img src="/images/job-plan-it.png" alt="Job planner timeline view in Constructa" className="w-full h-auto rounded-xl shadow-md" />
         </div>
         <div className="order-1 md:order-2 text-left">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Plan it</h2>
@@ -83,14 +83,14 @@ export default function FeaturesPage() {
           </ul>
         </div>
         <div>
-          <img src="/images/progress-tracker.png" alt="Progress tracker dashboard in Constructa" className="w-full h-auto rounded-xl shadow-md" />
+          <img src="/images/track-it.png" alt="Progress tracker dashboard in Constructa" className="w-full h-auto rounded-xl shadow-md" />
         </div>
       </section>
 
       {/* Feature Block: Deliver it (Communication & Delivery) */}
       <section id="communication-&-delivery" className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div className="order-2 md:order-1">
-          <img src="/images/client-delivery-interface.png" alt="Client delivery screen in Constructa" className="w-full h-auto rounded-xl shadow-md" />
+          <img src="/images/deliver-it.png" alt="Client delivery screen in Constructa" className="w-full h-auto rounded-xl shadow-md" />
         </div>
         <div className="order-1 md:order-2 text-left">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Deliver it</h2>

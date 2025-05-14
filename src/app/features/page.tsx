@@ -29,7 +29,7 @@ export default function FeaturesPage() {
 
       {/* Feature Block: Quote it (Proposal Tools) */}
       <section id="proposal-tools" className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
-        <div>
+        <div className="text-right">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Quote it</h2>
           <p className="text-gray-300 text-lg mb-4">
             Build professional proposals in minutes with your pricing, branding, and terms—pre-loaded and ready to reuse.
@@ -69,7 +69,7 @@ export default function FeaturesPage() {
 
       {/* Feature Block: Track it (Cost Control) */}
       <section id="cost-control" className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
-        <div>
+        <div className="text-right">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Track it</h2>
           <p className="text-gray-300 text-lg mb-4">
             Stay in control of your costs, changes, and margins as jobs progress. Know where you stand—before issues arise.

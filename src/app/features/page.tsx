@@ -1,13 +1,11 @@
 'use client';
 
-import React from 'react';
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function FeaturesPage() {
   const router = useRouter();
 
-  // Scroll to anchor on load with a small delay to ensure content is rendered
   useEffect(() => {
     if (window.location.hash) {
       const id = window.location.hash.replace('#', '');
@@ -29,8 +27,8 @@ export default function FeaturesPage() {
         </p>
       </section>
 
-      {/* Feature Block: Quote it */}
-      <section className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
+      {/* Feature Block: Quote it (Proposal Tools) */}
+      <section id="proposal-tools" className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div>
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Quote it</h2>
           <p className="text-gray-300 text-lg mb-4">
@@ -47,8 +45,8 @@ export default function FeaturesPage() {
         </div>
       </section>
 
-      {/* Feature Block: Plan it */}
-      <section className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
+      {/* Feature Block: Plan it (Planning Tools) */}
+      <section id="planning-tools" className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div className="order-2 md:order-1">
           <img src="/images/job-planner-timeline.png" alt="Job planner timeline view in Constructa" className="w-full h-auto rounded-xl shadow-md" />
         </div>
@@ -65,8 +63,8 @@ export default function FeaturesPage() {
         </div>
       </section>
 
-      {/* Feature Block: Track it */}
-      <section className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
+      {/* Feature Block: Track it (Cost Control) */}
+      <section id="cost-control" className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div>
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Track it</h2>
           <p className="text-gray-300 text-lg mb-4">
@@ -83,8 +81,8 @@ export default function FeaturesPage() {
         </div>
       </section>
 
-      {/* Feature Block: Deliver it */}
-      <section className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
+      {/* Feature Block: Deliver it (Communication & Delivery) */}
+      <section id="communication-delivery" className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div className="order-2 md:order-1">
           <img src="/images/client-delivery-interface.png" alt="Client delivery screen in Constructa" className="w-full h-auto rounded-xl shadow-md" />
         </div>
@@ -110,4 +108,4 @@ export default function FeaturesPage() {
       </section>
     </main>
   );
-} 
+}

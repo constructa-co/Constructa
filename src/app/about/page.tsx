@@ -40,6 +40,10 @@ export default function About() {
 }` }} />
       </Head>
       <main className="bg-black text-white">
+        <section className="max-w-6xl mx-auto px-4 pt-20 pb-8 text-center">
+          <h1 className="text-3xl md:text-4xl font-semibold">Why we built Constructa—and what comes next.</h1>
+        </section>
+
 {/* Hero Section */}
 <section className="max-w-6xl mx-auto px-4 pt-32 pb-24 grid md:grid-cols-2 gap-12 items-center">
   <div>

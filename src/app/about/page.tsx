@@ -81,7 +81,7 @@ export default function About() {
             </p>
           </div>
           <div>
-            <img src="/images/problem.png" alt="Problem illustration" className="w-full h-auto rounded-xl shadow-md" />
+            <img src="/images/about-problem.png" alt="Problem illustration" className="w-full h-auto rounded-xl shadow-md" />
           </div>
         </section>
 

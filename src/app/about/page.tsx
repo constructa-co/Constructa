@@ -127,17 +127,17 @@ export default function About() {
           <h2 className="text-3xl font-semibold mb-10">Why now?</h2>
           <div className="grid md:grid-cols-3 gap-12 text-gray-300">
             <div className="text-left">
-              <img src="/images/minimalist infographic cluster of small construction buildings.png" alt="Small firms" className="w-40 h-40 mx-auto mb-4" />
+              <img src="/images/about-1m-construction-firms.png" alt="Small firms" className="w-40 h-40 mx-auto mb-4" />
               <h3 className="text-2xl font-semibold mb-2">1M+ small construction firms</h3>
               <p>Micro businesses dominate the sector—but have no tailored tools.</p>
             </div>
             <div className="text-left">
-              <img src="/images/stopwatch and swirling paperwork icons.png" alt="Stopwatch and paperwork" className="w-40 h-40 mx-auto mb-4" />
+              <img src="/images/about-weekly-admin.png" alt="Stopwatch and paperwork" className="w-40 h-40 mx-auto mb-4" />
               <h3 className="text-2xl font-semibold mb-2">60% lose time to admin weekly</h3>
               <p>Time spent chasing info kills productivity.</p>
             </div>
             <div className="text-left">
-              <img src="/images/spreadsheet grid and warning & error symbols.png" alt="Spreadsheet errors" className="w-40 h-40 mx-auto mb-4" />
+              <img src="/images/about-spreadsheets.png" alt="Spreadsheet errors" className="w-40 h-40 mx-auto mb-4" />
               <h3 className="text-2xl font-semibold mb-2">80% still use spreadsheets</h3>
               <p>Most platforms are too complex or too generic.</p>
             </div>

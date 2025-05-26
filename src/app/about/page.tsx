@@ -163,7 +163,7 @@ export default function About() {
             </div>
           </div>
           <div>
-            <img src="/images/whats-next.png" alt="What's next illustration" className="w-full h-auto rounded-xl shadow-md" />
+            <img src="/images/about-whats-next.png" alt="What's next illustration" className="w-full h-auto rounded-xl shadow-md" />
           </div>
         </section>
         {/* News section */}

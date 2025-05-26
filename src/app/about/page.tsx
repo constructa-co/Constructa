@@ -88,7 +88,7 @@ export default function About() {
         {/* Section 2 */}
         <section className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
           <div>
-            <img src="/images/solution.png" alt="Solution illustration" className="w-full h-auto rounded-xl shadow-md" />
+            <img src="/images/about-solution.png" alt="Solution illustration" className="w-full h-auto rounded-xl shadow-md" />
           </div>
           <div className="text-left">
             <h2 className="text-2xl md:text-3xl font-semibold mb-4">The solution we're building</h2>

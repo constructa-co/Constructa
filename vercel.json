@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "constructa.co"
+        }
+      ],
+      "destination": "/landing"
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.constructa.co"
+        }
+      ],
+      "destination": "/landing"
+    }
+  ],
+  "github": {
+    "enabled": true,
+    "silent": true
+  }
+} 

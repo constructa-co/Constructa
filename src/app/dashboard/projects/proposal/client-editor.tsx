@@ -25,8 +25,20 @@ export default function ClientEditor({ projectId, initialScope, initialExclusion
 
     const handleAutoWrite = async () => {
         setGenerating(true);
-        const text = await generateAiScopeAction(projectId);
-        setScope((prev: string) => prev + (prev ? "\n\n" : "") + text);
+        const result = await generateAiScopeAction(projectId);
+        // Populate all three fields from the structured AI response
+        if (typeof result === 'object' && result.scope_narrative) {
+            setScope((prev: string) => prev + (prev ? "\n\n" : "") + result.scope_narrative);
+            if (result.suggested_exclusions) {
+                setExclusions((prev: string) => prev + (prev ? "\n" : "") + result.suggested_exclusions);
+            }
+            if (result.suggested_clarifications) {
+                setClarifications((prev: string) => prev + (prev ? "\n" : "") + result.suggested_clarifications);
+            }
+        } else {
+            // Fallback for plain string (error messages)
+            setScope((prev: string) => prev + (prev ? "\n\n" : "") + String(result));
+        }
         setGenerating(false);
     };
 

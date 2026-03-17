@@ -118,3 +118,51 @@ export async function bulkAddMoMItemsAction(items: any[]) {
     revalidatePath("/dashboard/library");
     return { count };
 }
+
+// ── SPRINT 1: Custom Rate Override Actions ────────────────────────────────────
+
+export async function upsertRateOverrideAction(formData: FormData) {
+    "use server";
+    const supabase = createClient();
+    const orgId = await getActiveOrganizationId();
+
+    const momItemId = formData.get("mom_item_id") as string;
+    const customRate = parseFloat(formData.get("custom_rate") as string);
+    const notes = (formData.get("notes") as string) || null;
+
+    if (!momItemId || isNaN(customRate) || customRate < 0) {
+        return { error: "Invalid rate value." };
+    }
+
+    const { error } = await supabase
+        .from("mom_item_overrides")
+        .upsert({
+            organization_id: orgId,
+            mom_item_id: momItemId,
+            custom_rate: customRate,
+            notes,
+            updated_at: new Date().toISOString(),
+        }, { onConflict: "organization_id,mom_item_id" });
+
+    if (error) return { error: error.message };
+
+    revalidatePath("/dashboard/library");
+    return { success: true };
+}
+
+export async function deleteRateOverrideAction(formData: FormData) {
+    "use server";
+    const supabase = createClient();
+    const orgId = await getActiveOrganizationId();
+
+    const momItemId = formData.get("mom_item_id") as string;
+
+    await supabase
+        .from("mom_item_overrides")
+        .delete()
+        .eq("organization_id", orgId)
+        .eq("mom_item_id", momItemId);
+
+    revalidatePath("/dashboard/library");
+    return { success: true };
+}

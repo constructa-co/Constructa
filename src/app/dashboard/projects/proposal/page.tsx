@@ -1,8 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getActiveOrganizationId } from "@/lib/supabase/auth-utils";
-import Link from "next/link";
 import ProjectNavBar from "@/components/project-navbar";
-import ProposalPdfButton from "./proposal-pdf-button";
 import ClientEditor from "./client-editor";
 
 export const dynamic = "force-dynamic";
@@ -44,24 +42,21 @@ export default async function ProposalPage({ searchParams }: { searchParams: { p
                         <h1 className="text-3xl font-bold">Proposal Editor</h1>
                         <p className="text-muted-foreground text-slate-500">Drafting for: <span className="font-semibold text-black">{project?.name}</span></p>
                     </div>
-                    {/* THE PDF BUTTON - NOW AVAILABLE HERE */}
-                    <ProposalPdfButton
-                        estimates={estimates || []}
-                        project={project}
-                        profile={profile}
-                    />
                 </div>
 
                 {/* THE NEW NAV BAR */}
                 <ProjectNavBar projectId={projectId} activeTab="proposal" />
             </div>
 
-            {/* THE EDITOR FORM (Must be Client Component) */}
+            {/* THE EDITOR FORM (Must be Client Component) — now includes PDF controls */}
             <ClientEditor
                 projectId={projectId}
                 initialScope={project?.scope_text || ""}
                 initialExclusions={project?.exclusions_text || ""}
                 initialClarifications={project?.clarifications_text || ""}
+                estimates={estimates || []}
+                project={project}
+                profile={profile}
             />
         </div>
     );

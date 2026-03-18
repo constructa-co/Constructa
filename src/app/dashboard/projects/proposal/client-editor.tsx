@@ -5,23 +5,38 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Sparkles, Save, FileText, AlertCircle, Info } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { saveProposalAction, generateAiScopeAction } from "./actions";
-
+import ProposalPdfButton from "./proposal-pdf-button";
 
 interface Props {
     projectId: string;
     initialScope: string;
     initialExclusions: string;
     initialClarifications: string;
+    estimates: any[];
+    project: any;
+    profile: any;
 }
 
-export default function ClientEditor({ projectId, initialScope, initialExclusions, initialClarifications }: Props) {
+export default function ClientEditor({
+    projectId,
+    initialScope,
+    initialExclusions,
+    initialClarifications,
+    estimates,
+    project,
+    profile,
+}: Props) {
     const [scope, setScope] = useState(initialScope);
     const [exclusions, setExclusions] = useState(initialExclusions);
     const [clarifications, setClarifications] = useState(initialClarifications);
     const [generating, setGenerating] = useState(false);
+
+    // PDF generation controls
+    const [pricingMode, setPricingMode] = useState<"full" | "summary">("full");
+    const [validityDays, setValidityDays] = useState(30);
 
     const handleAutoWrite = async () => {
         setGenerating(true);
@@ -40,6 +55,14 @@ export default function ClientEditor({ projectId, initialScope, initialExclusion
             setScope((prev: string) => prev + (prev ? "\n\n" : "") + String(result));
         }
         setGenerating(false);
+    };
+
+    // Build a live project snapshot that includes the editor state
+    const liveProject = {
+        ...project,
+        scope_text: scope,
+        exclusions_text: exclusions,
+        clarifications_text: clarifications,
     };
 
     return (
@@ -117,6 +140,71 @@ export default function ClientEditor({ projectId, initialScope, initialExclusion
                                 onChange={(e) => setClarifications(e.target.value)}
                                 className="w-full p-4 text-sm border-none focus-visible:ring-0 shadow-none min-h-[180px] text-slate-700 bg-white"
                                 placeholder="Any assumptions made (e.g. Standard working hours, Water/Power provided by client)..."
+                            />
+                        </CardContent>
+                    </Card>
+
+                    {/* ─── PDF GENERATION PANEL ─── */}
+                    <Card className="border-slate-200 shadow-lg border-l-4 border-l-slate-900">
+                        <CardHeader className="py-4 px-6 bg-slate-50/50 border-b">
+                            <div className="flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-slate-700" />
+                                <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-600">PDF Generation</CardTitle>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-5 space-y-5">
+                            {/* Pricing Detail Toggle */}
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Pricing Detail</Label>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setPricingMode("full")}
+                                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+                                            pricingMode === "full"
+                                                ? "bg-slate-900 text-white shadow-md"
+                                                : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                        }`}
+                                    >
+                                        Full Breakdown
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPricingMode("summary")}
+                                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+                                            pricingMode === "summary"
+                                                ? "bg-slate-900 text-white shadow-md"
+                                                : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                        }`}
+                                    >
+                                        Category Summary
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Validity Period */}
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Quote valid for</Label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        type="number"
+                                        min={7}
+                                        max={90}
+                                        value={validityDays}
+                                        onChange={(e) => setValidityDays(Math.min(90, Math.max(7, Number(e.target.value) || 30)))}
+                                        className="w-20 text-center font-bold"
+                                    />
+                                    <span className="text-sm text-slate-500 font-medium">days</span>
+                                </div>
+                            </div>
+
+                            {/* Generate Button */}
+                            <ProposalPdfButton
+                                estimates={estimates}
+                                project={liveProject}
+                                profile={profile}
+                                pricingMode={pricingMode}
+                                validityDays={validityDays}
                             />
                         </CardContent>
                     </Card>

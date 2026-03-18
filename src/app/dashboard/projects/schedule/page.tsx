@@ -5,7 +5,8 @@ export const dynamic = "force-dynamic";
 
 export default async function SchedulePage() {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
 
     if (!user) return <div>Please log in</div>;
 

@@ -109,7 +109,8 @@ async function deleteExpenseAction(formData: FormData) {
 // --- UI COMPONENT ---
 export default async function CostControlPage({ searchParams }: { searchParams: { projectId?: string } }) {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
 
     if (!user) return <div>Please log in</div>;
 

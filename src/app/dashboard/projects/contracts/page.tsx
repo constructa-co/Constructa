@@ -14,7 +14,8 @@ export default async function ContractsPage({ searchParams }: { searchParams: { 
     const { data: project } = await supabase.from("projects").select("*").eq("id", projectId).single();
     const { data: estimates } = await supabase.from("estimates").select("*").eq("project_id", projectId);
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
     let profile = null;
     if (user) {
         const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();

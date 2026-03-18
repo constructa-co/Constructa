@@ -18,7 +18,8 @@ function Button({ children, className }: { children: React.ReactNode; className?
 async function updateProfileAction(formData: FormData) {
     "use server";
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
     if (!user) return;
 
     const logoFile = formData.get("logo") as File;
@@ -56,7 +57,8 @@ async function updateProfileAction(formData: FormData) {
 
 export default async function ProfilePage() {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: authData2 } = await supabase.auth.getUser();
+    const user = authData2?.user;
     const { data: profile } = await supabase.from("profiles").select("*").eq("user_id", user?.id).single();
 
     return (

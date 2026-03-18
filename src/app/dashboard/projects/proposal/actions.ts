@@ -1,20 +1,22 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getActiveOrganizationId } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function saveProposalAction(formData: FormData) {
     const supabase = createClient();
-    const orgId = await getActiveOrganizationId();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
+    if (!user) return { success: false };
+
     const id = formData.get("projectId") as string;
 
     await supabase.from("projects").update({
         scope_text: formData.get("scope"),
         exclusions_text: formData.get("exclusions"),
         clarifications_text: formData.get("clarifications")
-    }).eq("id", id).eq("organization_id", orgId);
+    }).eq("id", id).eq("user_id", user.id);
 
     revalidatePath(`/dashboard/projects/proposal?projectId=${id}`);
     return { success: true };
@@ -22,13 +24,15 @@ export async function saveProposalAction(formData: FormData) {
 
 export async function generateAiScopeAction(projectId: string) {
     const supabase = createClient();
-    const orgId = await getActiveOrganizationId();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
+    if (!user) return "Error: Not authenticated.";
 
     const { data: project } = await supabase
         .from("projects")
         .select("*")
         .eq("id", projectId)
-        .eq("organization_id", orgId)
+        .eq("user_id", user.id)
         .single();
 
     if (!project) return "Error: Project not found or unauthorized.";
@@ -36,8 +40,7 @@ export async function generateAiScopeAction(projectId: string) {
     const { data: estimates } = await supabase
         .from("estimates")
         .select("*, estimate_lines(*)")
-        .eq("project_id", projectId)
-        .eq("organization_id", orgId);
+        .eq("project_id", projectId);
 
     if (!estimates || estimates.length === 0) return "Error: No Estimates found.";
 

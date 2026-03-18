@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   const headersList = headers();
   const pathname = headersList.get('x-pathname') || '';
-  const isLandingPage = pathname === '/landing' || pathname === '/';
+  const isLandingPage = pathname === '/landing';
 
   return (
     <html lang="en">

@@ -7,7 +7,7 @@ import FeatureDropdown from './FeatureDropdown';
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
-  const isLandingPage = pathname === '/landing' || pathname === '/';
+  const isLandingPage = pathname === '/landing';
   const isDashboard = pathname?.startsWith('/dashboard');
 
   if (isDashboard) return null;

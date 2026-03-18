@@ -163,3 +163,142 @@ export async function saveToProjectAction(formData: FormData) {
     revalidatePath("/dashboard/foundations");
     redirect("/dashboard/foundations");
 }
+
+// --- SERVER ACTION: ADD LINE FROM LIBRARY (Sprint 2) ---
+export async function addLineFromLibraryAction(estimateId: string, itemId: string, orgId: string) {
+    const supabase = createClient();
+
+    // Fetch item details
+    const { data: item, error: itemError } = await supabase
+        .from("mom_items")
+        .select("id, code, description, unit, base_rate")
+        .eq("id", itemId)
+        .single();
+
+    if (itemError || !item) throw new Error("Item not found.");
+
+    // Check for org-level rate override (snapshot the value)
+    const { data: override } = await supabase
+        .from("mom_item_overrides")
+        .select("custom_rate")
+        .eq("mom_item_id", itemId)
+        .eq("organization_id", orgId)
+        .single();
+
+    const effectiveRate = override?.custom_rate ?? item.base_rate;
+
+    // Get next sort_order
+    const { data: maxLine } = await supabase
+        .from("estimate_lines")
+        .select("sort_order")
+        .eq("estimate_id", estimateId)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .single();
+
+    const nextSort = (maxLine?.sort_order ?? 0) + 1;
+
+    // Insert estimate line with snapshotted rate
+    const { error: insertError } = await supabase
+        .from("estimate_lines")
+        .insert({
+            estimate_id: estimateId,
+            organization_id: orgId,
+            description: item.description,
+            unit: item.unit,
+            quantity: 1,
+            unit_rate: effectiveRate,
+            line_total: effectiveRate,
+            mom_item_id: item.id,
+            mom_item_code: item.code,
+            sort_order: nextSort,
+        });
+
+    if (insertError) throw new Error(insertError.message);
+
+    // Recalculate estimate total
+    const { data: allLines } = await supabase
+        .from("estimate_lines")
+        .select("line_total")
+        .eq("estimate_id", estimateId);
+
+    if (allLines) {
+        const { data: estimate } = await supabase
+            .from("estimates")
+            .select("overhead_pct, profit_pct, risk_pct")
+            .eq("id", estimateId)
+            .single();
+
+        const netTotal = allLines.reduce((sum, l) => sum + Number(l.line_total), 0);
+        const markupPct = (estimate?.overhead_pct ?? 0) + (estimate?.profit_pct ?? 0) + (estimate?.risk_pct ?? 0);
+        const totalCost = netTotal * (1 + markupPct / 100);
+
+        await supabase
+            .from("estimates")
+            .update({ total_cost: totalCost })
+            .eq("id", estimateId);
+    }
+
+    revalidatePath("/dashboard/foundations");
+    return { success: true };
+}
+
+// --- SERVER ACTION: SEARCH LIBRARY ITEMS (Sprint 2) ---
+export async function searchLibraryItemsAction(query: string, categoryId: string | null, orgId: string) {
+    const supabase = createClient();
+
+    let q = supabase
+        .from("mom_items")
+        .select(`
+            id, code, description, unit, base_rate, is_featured, category_id,
+            category:mom_categories!category_id ( id, name )
+        `)
+        .eq("organization_id", orgId)
+        .order("sort_order")
+        .limit(50);
+
+    if (query && query.trim().length > 0) {
+        q = q.or(`description.ilike.%${query}%,code.ilike.%${query}%`);
+    } else if (!categoryId) {
+        // Default view: featured items only
+        q = q.eq("is_featured", true);
+    }
+
+    if (categoryId) {
+        q = q.eq("category_id", categoryId);
+    }
+
+    const { data: items, error } = await q;
+    if (error) throw new Error(error.message);
+
+    // Fetch all overrides for this org in one query
+    const itemIds = (items || []).map(i => i.id);
+    let overridesMap: Record<string, number> = {};
+
+    if (itemIds.length > 0) {
+        const { data: overrides } = await supabase
+            .from("mom_item_overrides")
+            .select("mom_item_id, custom_rate")
+            .eq("organization_id", orgId)
+            .in("mom_item_id", itemIds);
+
+        if (overrides) {
+            overridesMap = overrides.reduce((acc: Record<string, number>, o) => {
+                acc[o.mom_item_id] = o.custom_rate;
+                return acc;
+            }, {});
+        }
+    }
+
+    return (items || []).map(item => ({
+        id: item.id,
+        code: item.code,
+        description: item.description,
+        unit: item.unit,
+        base_rate: item.base_rate,
+        category_name: (item.category as any)?.name || "Uncategorized",
+        is_featured: item.is_featured,
+        effective_rate: overridesMap[item.id] ?? item.base_rate,
+        has_override: item.id in overridesMap,
+    }));
+}

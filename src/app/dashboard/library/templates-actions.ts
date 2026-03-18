@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 
 export async function createTemplateAction(formData: FormData) {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
 
     if (!user) throw new Error("Unauthorized");
 
@@ -26,7 +27,8 @@ export async function createTemplateAction(formData: FormData) {
 
 export async function deleteTemplateAction(templateId: string) {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
 
     if (!user) throw new Error("Unauthorized");
 
@@ -39,7 +41,8 @@ export async function deleteTemplateAction(templateId: string) {
 
 export async function addItemsToTemplateAction(templateId: string, items: { category: string; description: string; unit: string; unit_cost: number; quantity: number }[]) {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
 
     if (!user) throw new Error("Unauthorized");
 
@@ -61,7 +64,8 @@ export async function addItemsToTemplateAction(templateId: string, items: { cate
 
 export async function removeTemplateItemAction(itemId: string, templateId: string) {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
 
     if (!user) throw new Error("Unauthorized");
 
@@ -74,7 +78,8 @@ export async function removeTemplateItemAction(itemId: string, templateId: strin
 
 export async function applyTemplateAction(templateId: string, projectId: string) {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
 
     if (!user) throw new Error("Unauthorized");
 

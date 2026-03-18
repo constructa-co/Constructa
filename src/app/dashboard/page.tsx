@@ -23,7 +23,8 @@ function Button({ children, className, variant, size }: { children: React.ReactN
 
 export default async function Dashboard({ searchParams }: { searchParams: { view?: string } }) {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
 
     // Resolve the active organisation — the correct scope for all data
     let orgId: string | null = null;

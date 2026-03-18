@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getActiveOrganizationId } from "@/lib/supabase/auth-utils";
+import { redirect } from "next/navigation";
 import ProjectNavBar from "@/components/project-navbar";
 import ClientEditor from "./client-editor";
 
@@ -7,7 +8,15 @@ export const dynamic = "force-dynamic";
 
 export default async function ProposalPage({ searchParams }: { searchParams: { projectId: string } }) {
     const supabase = createClient();
-    const orgId = await getActiveOrganizationId();
+
+    // Safe org ID retrieval
+    let orgId: string | null = null;
+    try {
+        orgId = await getActiveOrganizationId();
+    } catch {
+        redirect('/login');
+    }
+
     const { projectId } = searchParams;
 
     if (!projectId) return <div>Missing Project ID</div>;
@@ -26,7 +35,8 @@ export default async function ProposalPage({ searchParams }: { searchParams: { p
         .eq("project_id", projectId)
         .eq("organization_id", orgId);
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user ?? null;
     let profile = null;
     if (user) {
         const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getActiveOrganizationId } from "@/lib/supabase/auth-utils";
 import Link from "next/link";
 import ProjectBoard from "./project-board";
 import ProjectList from "./project-list"; // Import the list view
@@ -24,12 +25,23 @@ export default async function Dashboard({ searchParams }: { searchParams: { view
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    // 1. Fetch Projects
-    const { data: projects } = await supabase
+    // Resolve the active organisation — the correct scope for all data
+    let orgId: string | null = null;
+    try {
+        orgId = await getActiveOrganizationId();
+    } catch {
+        // Falls back gracefully if no org is set up yet
+    }
+
+    // 1. Fetch Projects — use organization_id if available, fall back to user_id
+    const projectQuery = supabase
         .from("projects")
         .select("*")
-        .eq("user_id", user?.id)
         .order("created_at", { ascending: false });
+
+    const { data: projects } = orgId
+        ? await projectQuery.eq("organization_id", orgId)
+        : await projectQuery.eq("user_id", user?.id);
 
     // 2. Fetch Financials
     const { data: allEstimates } = await supabase

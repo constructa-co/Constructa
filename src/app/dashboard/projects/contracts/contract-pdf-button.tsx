@@ -1,8 +1,19 @@
 "use client";
 
+/**
+ * Constructa — Contract PDF Button
+ * Uses shared pdf-utils for consistent branding.
+ */
+
 import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
 import { FileDown } from "lucide-react";
+import {
+    buildDocHeader,
+    buildDocFooter,
+    checkPageBreak,
+    BRAND,
+} from "@/lib/pdf/pdf-utils";
 
 interface Props {
     project: any;
@@ -14,49 +25,38 @@ export default function ContractPdfButton({ project, contractText, profile }: Pr
 
     const generatePDF = async () => {
         const doc = new jsPDF();
-        let currentY = 25;
 
-        // --- HEADER ---
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(22);
-        doc.setTextColor(15, 23, 42);
-        doc.text(profile?.company_name || "CONSTRUCTA", 14, currentY);
-
-        currentY += 15;
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(100);
-        doc.text("CONSTRUCTION AGREEMENT", 14, currentY);
-
-        currentY += 10;
-        doc.setDrawColor(226, 232, 240);
-        doc.line(14, currentY, 196, currentY);
-
-        // --- CONTENT ---
-        currentY += 15;
-        doc.setFontSize(14);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(15, 23, 42);
-        doc.text("Project: " + (project?.name || "Ref: Agreement"), 14, currentY);
-
-        currentY += 10;
-        doc.setFontSize(10);
-        doc.setFont("times", "normal"); // Using serif font for legal look
-        doc.setTextColor(30, 41, 59);
-
-        const splitText = doc.splitTextToSize(contractText || "No contract text found.", 180);
-
-        // Loop through lines and handle page breaks
-        splitText.forEach((line: string) => {
-            if (currentY > 275) {
-                doc.addPage();
-                currentY = 25;
-            }
-            doc.text(line, 14, currentY);
-            currentY += 6;
+        let y = buildDocHeader(doc, {
+            documentTitle: "Construction Agreement",
+            profile,
+            rightBlockLines: [
+                `Date: ${new Date().toLocaleDateString("en-GB")}`,
+                `Project: ${project?.name || "N/A"}`,
+            ],
         });
 
-        doc.save(`CONTRACT-${project?.name.replace(/\s+/g, '_')}.pdf`);
+        y += 4;
+
+        // Render contract text with serif font for legal look, with page breaks
+        doc.setFont("times", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(...BRAND.slate);
+
+        const lines = doc.splitTextToSize(contractText || "No contract text found.", BRAND.contentW);
+        lines.forEach((line: string) => {
+            y = checkPageBreak(doc, y, 7);
+            doc.text(line, BRAND.marginL, y);
+            y += 6;
+        });
+
+        // Footers on all pages
+        const totalPages = doc.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+            doc.setPage(i);
+            buildDocFooter(doc, i, totalPages, "Constructa — Construction Agreement");
+        }
+
+        doc.save(`CONTRACT-${(project?.name || "Agreement").replace(/\s+/g, "_")}.pdf`);
     };
 
     return (

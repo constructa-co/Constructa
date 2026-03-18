@@ -87,13 +87,19 @@ export async function generateAiScopeAction(projectId: string) {
 
         const result = await model.generateContent(prompt);
         const response = JSON.parse(result.response.text());
-        
-        // We return the narrative but the UI might want the arrays too
-        // For now, let's format it for the text area as requested in previous logic, 
-        // but we now have the structured data.
-        return response.scope_narrative;
+
+        // Return all three structured fields so the UI can populate each section
+        return {
+            scope_narrative: response.scope_narrative || "",
+            suggested_exclusions: Array.isArray(response.suggested_exclusions)
+                ? response.suggested_exclusions.join("\n")
+                : "",
+            suggested_clarifications: Array.isArray(response.suggested_clarifications)
+                ? response.suggested_clarifications.join("\n")
+                : "",
+        };
     } catch (error: any) {
         console.error("AI Error:", error);
-        return `Error generating scope: ${error.message}`;
+        return { scope_narrative: `Error generating scope: ${error.message}`, suggested_exclusions: "", suggested_clarifications: "" };
     }
 }

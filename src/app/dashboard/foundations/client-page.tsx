@@ -27,7 +27,8 @@ import {
     Package,
     Sparkles,
     CheckCircle2,
-    Hammer
+    Hammer,
+    BookOpen
 } from "lucide-react";
 import { applyTemplateAction } from "../library/templates-actions";
 import { useRouter } from "next/navigation";
@@ -36,6 +37,7 @@ import { toast } from "sonner"; // Assuming sonner is used or we use simple feed
 
 import PdfGeneratorButton from "./pdf-generator";
 import VisionTakeoff from "./vision-takeoff";
+import LibraryDrawer from "./library-drawer";
 
 const exportToExcel = (estimates: any[]) => {
     // 1. Flatten the Data
@@ -87,7 +89,8 @@ export default function ClientEstimator({
     activeProject,
     dependencies = [],
     templates = [],
-    approvedVariationsTotal
+    approvedVariationsTotal,
+    categories = []
 }: {
     assemblies: any[],
     savedEstimates: any[],
@@ -99,10 +102,12 @@ export default function ClientEstimator({
     activeProject?: any,
     dependencies?: any[],
     templates?: any[],
-    approvedVariationsTotal?: number
+    approvedVariationsTotal?: number,
+    categories?: { id: string; name: string; sort_order: number }[]
 }) {
     const router = useRouter();
     const [applyingKit, setApplyingKit] = useState<string | null>(null);
+    const [isLibraryOpen, setIsLibraryOpen] = useState(false);
 
     // Parse initial result if present
     const initialResult = resultJson ? (() => {
@@ -293,7 +298,36 @@ export default function ClientEstimator({
                 {/* 2. EDITABLE TABLE (Middle - 5 cols) */}
                 <div className="xl:col-span-5 space-y-6">
                     {draft ? (
-                        <EditableTable data={draft} saveAction={saveToProjectAction} resourceLibrary={resourceLibrary || []} globalLibrary={globalLibrary || []} />
+                        <>
+                            <EditableTable data={draft} saveAction={saveToProjectAction} resourceLibrary={resourceLibrary || []} globalLibrary={globalLibrary || []} />
+                            {savedEstimates.length > 0 && (
+                                <Button
+                                    type="button"
+                                    onClick={() => setIsLibraryOpen(true)}
+                                    className="h-11 px-5 bg-slate-700 hover:bg-slate-600 text-white font-bold gap-2"
+                                >
+                                    <BookOpen className="w-4 h-4" />
+                                    Add from Library
+                                </Button>
+                            )}
+                        </>
+                    ) : savedEstimates.length > 0 ? (
+                        <div className="space-y-4">
+                            <div className="h-full flex items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-lg bg-slate-50 min-h-[300px]">
+                                <div className="text-center">
+                                    <div className="text-4xl mb-2">📋</div>
+                                    <div>Enter dimensions to generate a draft.</div>
+                                </div>
+                            </div>
+                            <Button
+                                type="button"
+                                onClick={() => setIsLibraryOpen(true)}
+                                className="h-11 px-5 bg-slate-700 hover:bg-slate-600 text-white font-bold gap-2"
+                            >
+                                <BookOpen className="w-4 h-4" />
+                                Add from Library
+                            </Button>
+                        </div>
                     ) : (
                         <div className="h-full flex items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-lg bg-slate-50 min-h-[400px]">
                             <div className="text-center">
@@ -381,7 +415,12 @@ export default function ClientEstimator({
                                     <ul className="space-y-2">
                                         {est.estimate_lines.slice(0, 3).map((l: any) => (
                                             <li key={l.id} className="flex justify-between text-[11px] text-slate-500 font-medium">
-                                                <span className="truncate max-w-[140px]">{l.description}</span>
+                                                <span className="truncate max-w-[140px]">
+                                                    {l.mom_item_code && (
+                                                        <span className="text-slate-500 font-mono text-[10px] mr-1">[{l.mom_item_code}]</span>
+                                                    )}
+                                                    {l.description}
+                                                </span>
                                                 <span className="text-slate-400">{l.quantity.toFixed(1)} {l.unit}</span>
                                             </li>
                                         ))}
@@ -397,6 +436,17 @@ export default function ClientEstimator({
                     </div>
                 </div>
             </div>
+
+            {savedEstimates.length > 0 && (
+                <LibraryDrawer
+                    isOpen={isLibraryOpen}
+                    onClose={() => setIsLibraryOpen(false)}
+                    estimateId={savedEstimates[0].id}
+                    orgId={savedEstimates[0].organization_id}
+                    categories={categories || []}
+                    onItemAdded={() => router.refresh()}
+                />
+            )}
         </div>
     );
 }

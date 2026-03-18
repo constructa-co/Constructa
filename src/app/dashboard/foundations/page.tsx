@@ -57,10 +57,28 @@ export default async function Page({ searchParams }: { searchParams: { asm?: str
         .eq("organization_id", orgId)
         .order("description");
 
+    // Fetch org rate overrides to merge effective rates
+    const { data: overrides } = await supabase
+        .from("mom_item_overrides")
+        .select("mom_item_id, custom_rate")
+        .eq("organization_id", orgId);
+
+    const overridesMap: Record<string, number> = {};
+    if (overrides) {
+        overrides.forEach(o => { overridesMap[o.mom_item_id] = o.custom_rate; });
+    }
+
     const globalLibrary = items?.map(i => ({
         ...i,
-        unit_cost: i.base_rate
+        unit_cost: overridesMap[i.id] ?? i.base_rate,
+        effective_rate: overridesMap[i.id] ?? i.base_rate,
     })) || [];
+
+    // 5b. Fetch Categories for Library Drawer
+    const { data: categories } = await supabase
+        .from("mom_categories")
+        .select("id, name, sort_order")
+        .order("sort_order");
 
     // 6. Fetch Active Project (For PDF)
     const query = supabase
@@ -120,6 +138,7 @@ export default async function Page({ searchParams }: { searchParams: { asm?: str
                 dependencies={dependencies || []}
                 templates={templates || []}
                 approvedVariationsTotal={approvedVariationsTotal}
+                categories={categories || []}
             />
         </div>
     );

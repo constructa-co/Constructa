@@ -16,20 +16,28 @@ interface Props {
 
 // ─── Colour palette ───────────────────────────────────────────
 const C = {
-    navy: [15, 23, 42] as [number, number, number],       // #0F172A
-    slate700: [51, 65, 85] as [number, number, number],    // #334155
-    slate500: [100, 116, 139] as [number, number, number], // #64748B
-    slate50: [248, 250, 252] as [number, number, number],  // #F8FAFC
-    slate100: [241, 245, 249] as [number, number, number], // #F1F5F9
-    border: [226, 232, 240] as [number, number, number],   // #E2E8F0
+    navy: [15, 23, 42] as [number, number, number],
+    slate700: [51, 65, 85] as [number, number, number],
+    slate500: [100, 116, 139] as [number, number, number],
+    slate50: [248, 250, 252] as [number, number, number],
+    slate100: [241, 245, 249] as [number, number, number],
+    border: [226, 232, 240] as [number, number, number],
     white: [255, 255, 255] as [number, number, number],
+};
+
+const GANTT_COLORS: Record<string, [number, number, number]> = {
+    blue: [59, 130, 246],
+    green: [34, 197, 94],
+    orange: [249, 115, 22],
+    purple: [168, 85, 247],
+    slate: [100, 116, 139],
 };
 
 const PAGE_W = 210;
 const PAGE_H = 297;
-const ML = 14;   // margin left
-const MR = 196;  // margin right
-const CW = 182;  // content width
+const ML = 14;
+const MR = 196;
+const CW = 182;
 
 function formatGBP(n: number): string {
     return "£" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -38,6 +46,19 @@ function formatGBP(n: number): string {
 function formatDate(d: Date): string {
     return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
+
+// Standard 9 T&C clauses
+const STANDARD_TC_CLAUSES = [
+    ["1 — Jurisdiction", "The law of Contract is the Law of England and Wales. The Language of this Contract is English."],
+    ["2 — Responsibilities", "The Works are detailed within the Scope of Works attached to this Proposal. All Works are to meet Statutory Requirements, including all applicable British and European Standards, and industry best practices."],
+    ["3 — Alternative Dispute Resolution", "Should any dispute arise which cannot be resolved by negotiation, escalation shall be via Adjudication. The Adjudicating Nominated Body is the Royal Institute of Chartered Surveyors (RICS), under the RICS Homeowner Adjudication Scheme."],
+    ["4 — Liability", "The Defect Liability Period is 12 months from the date of Completion Certificate. Any Defects notified within the Defect Period are to be promptly rectified by the Contractor."],
+    ["5 — Workmanship", "All Works are to be performed using reasonable skill and care to that of a competent Contractor with experience on projects of similar size and scope."],
+    ["6 — Insurances", "The Contractor shall maintain throughout the Works: Public Liability Insurance; Employers Liability Insurance; Contractors All Risk Insurance. Evidence of current policies available on request."],
+    ["7 — Payments", "Payment dates are 21 Calendar days from receipt of Application. Any deductions by the Client must be formally notified as a 'Pay-Less-Notice' no later than 7 days following receipt of Application."],
+    ["8 — Change Management", "Any Variations to the Scope must be issued in writing. The Contractor will respond within 7 Calendar days with any Cost and/or Time implications."],
+    ["9 — Health, Safety & CDM", "The Client is a Domestic Client under the Construction Design Management (CDM) Regulations 2015. The Contractor shall act as Principal Contractor and comply with all CDM requirements."],
+];
 
 export default function ProposalPdfButton({ estimates, project, profile, pricingMode, validityDays }: Props) {
     const [generating, setGenerating] = useState(false);
@@ -55,7 +76,7 @@ export default function ProposalPdfButton({ estimates, project, profile, pricing
         <Button
             onClick={generatePDF}
             disabled={generating}
-            className="bg-slate-900 hover:bg-slate-800 text-white font-bold gap-2 shadow-lg h-12 px-6"
+            className="bg-slate-700 hover:bg-slate-600 text-white font-bold gap-2 shadow-lg h-12 px-6 w-full"
         >
             {generating ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -73,30 +94,38 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     const companyName = profile?.company_name || "CONSTRUCTA";
     const clientName = project?.client_name || "Valued Client";
     const projectName = project?.name || "Project Proposal";
-    const address = project?.address || "";
+    const address = project?.site_address || project?.address || "";
     const projectType = project?.project_type || "Construction Works";
     const today = new Date();
     const validUntil = new Date(Date.now() + validityDays * 86400000);
     const refCode = (project?.id || "00000000").substring(0, 8).toUpperCase();
     const docTitle = `Proposal — ${projectName}`;
 
-    // Track page content sections so we can add headers/footers after
     let totalPages = 1;
 
     // ═══════════════════════════════════════════════════════════
     // PAGE 1 — COVER PAGE
     // ═══════════════════════════════════════════════════════════
-
-    // Dark navy top block (top 40%)
     const navyBlockH = 120;
     doc.setFillColor(...C.navy);
     doc.rect(0, 0, PAGE_W, navyBlockH, "F");
 
-    // Company name in white
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(28);
-    doc.setTextColor(...C.white);
-    doc.text(companyName, ML + 4, 40);
+    // Company logo or name
+    if (profile?.logo_url) {
+        try {
+            doc.addImage(profile.logo_url, "PNG", ML + 4, 20, 50, 25);
+        } catch {
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(28);
+            doc.setTextColor(...C.white);
+            doc.text(companyName, ML + 4, 40);
+        }
+    } else {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(28);
+        doc.setTextColor(...C.white);
+        doc.text(companyName, ML + 4, 40);
+    }
 
     // Label
     doc.setFontSize(10);
@@ -109,7 +138,6 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     doc.setLineWidth(0.3);
     doc.line(ML + 4, 62, 120, 62);
 
-    // Bottom 60%: white area
     let y = navyBlockH + 20;
 
     // Project name (large)
@@ -120,21 +148,19 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     doc.text(titleLines, ML, y);
     y += titleLines.length * 14 + 12;
 
-    // PREPARED FOR label
+    // PREPARED FOR
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(...C.slate500);
     doc.text("PREPARED FOR:", ML, y);
     y += 8;
 
-    // Client name
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
     doc.setTextColor(...C.navy);
     doc.text(clientName, ML, y);
     y += 8;
 
-    // Address
     if (address) {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(11);
@@ -179,46 +205,95 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     doc.setDrawColor(...C.navy);
     doc.setLineWidth(0.5);
     doc.line(ML, PAGE_H - 18, MR, PAGE_H - 18);
-
     doc.setFontSize(7);
     doc.setTextColor(...C.slate500);
     doc.text(companyName, ML, PAGE_H - 12);
     doc.text("Confidential", MR, PAGE_H - 12, { align: "right" });
 
     // ═══════════════════════════════════════════════════════════
-    // PAGE 2 — INTRODUCTION
+    // PAGE 2 — ABOUT US / CAPABILITY STATEMENT (NEW)
+    // ═══════════════════════════════════════════════════════════
+    if (profile?.capability_statement) {
+        doc.addPage();
+        totalPages++;
+        y = addPageHeader(doc, companyName, docTitle, totalPages);
+
+        y = renderSectionHeading(doc, y, `About ${companyName}`);
+
+        y = renderBodyText(doc, y, profile.capability_statement);
+        y += 8;
+
+        // Two-column info table
+        const infoRows: string[][] = [];
+        if (profile.years_trading) infoRows.push(["Years Trading", String(profile.years_trading)]);
+        if (profile.specialisms) infoRows.push(["Specialisms", profile.specialisms]);
+        if (profile.accreditations) infoRows.push(["Accreditations", profile.accreditations]);
+        if (profile.insurance_details) infoRows.push(["Insurance", profile.insurance_details]);
+        if (profile.company_number) infoRows.push(["Registration", profile.company_number]);
+        if (profile.website) infoRows.push(["Website", profile.website]);
+
+        if (infoRows.length > 0) {
+            autoTable(doc, {
+                startY: y,
+                head: [["", ""]],
+                body: infoRows,
+                theme: "plain",
+                showHead: false,
+                margin: { left: ML, right: PAGE_W - MR },
+                bodyStyles: {
+                    fontSize: 10,
+                    textColor: C.slate700,
+                    cellPadding: 4,
+                },
+                columnStyles: {
+                    0: { fontStyle: "bold", cellWidth: 45, textColor: C.slate500 },
+                },
+                alternateRowStyles: { fillColor: C.slate50 },
+                didDrawPage: () => { totalPages = doc.getNumberOfPages(); },
+            });
+            y = (doc as any).lastAutoTable.finalY + 8;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // PAGE 3 — INTRODUCTION / THE ASK (NEW)
     // ═══════════════════════════════════════════════════════════
     doc.addPage();
     totalPages++;
     y = addPageHeader(doc, companyName, docTitle, totalPages);
 
-    // Section heading
     y = renderSectionHeading(doc, y, "Introduction");
 
-    // Dear client letter
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(...C.navy);
     doc.text(`Dear ${clientName},`, ML, y);
     y += 10;
 
-    const para1 = `Thank you for the opportunity to submit this Proposal for ${projectName} at ${address || "the project site"}. We have carefully reviewed your requirements and are pleased to present our comprehensive fee proposal for the Works described herein.`;
-    const para2 = `This document sets out our Scope of Works, commercial terms, and the basis upon which we propose to undertake this project. We are committed to delivering these Works to the highest standard, on time and within budget. We look forward to working with you.`;
-
-    y = renderBodyText(doc, y, para1);
-    y += 4;
-    y = renderBodyText(doc, y, para2);
+    if (project?.proposal_introduction) {
+        y = renderBodyText(doc, y, project.proposal_introduction);
+    } else {
+        const para1 = `Thank you for the opportunity to submit this Proposal for ${projectName} at ${address || "the project site"}. We have carefully reviewed your requirements and are pleased to present our comprehensive fee proposal for the Works described herein.`;
+        const para2 = `This document sets out our Scope of Works, commercial terms, and the basis upon which we propose to undertake this project. We are committed to delivering these Works to the highest standard, on time and within budget. We look forward to working with you.`;
+        y = renderBodyText(doc, y, para1);
+        y += 4;
+        y = renderBodyText(doc, y, para2);
+    }
     y += 12;
 
     // Project Overview Table
     y = renderSectionHeading(doc, y, "Project Overview");
+
+    const startDate = project?.start_date
+        ? formatDate(new Date(project.start_date))
+        : "TBC — to be agreed on acceptance";
 
     const overviewRows = [
         ["Project", projectName],
         ["Client", clientName],
         ["Site Address", address || "—"],
         ["Project Type", projectType],
-        ["Proposed Start", "TBC — to be agreed on acceptance"],
+        ["Proposed Start", startDate],
         ["Contract Duration", "TBC — to be confirmed following acceptance"],
     ];
 
@@ -243,10 +318,11 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             0: { fontStyle: "bold", cellWidth: 45, textColor: C.slate500 },
         },
         alternateRowStyles: { fillColor: C.slate50 },
+        didDrawPage: () => { totalPages = doc.getNumberOfPages(); },
     });
 
     // ═══════════════════════════════════════════════════════════
-    // PAGE 3+ — SCOPE OF WORKS
+    // PAGE 4 — SCOPE OF WORKS
     // ═══════════════════════════════════════════════════════════
     doc.addPage();
     totalPages++;
@@ -266,7 +342,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     }
 
     // ═══════════════════════════════════════════════════════════
-    // PRICING SUMMARY PAGE
+    // PAGE 5+ — FEE PROPOSAL
     // ═══════════════════════════════════════════════════════════
     doc.addPage();
     totalPages++;
@@ -280,14 +356,12 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     doc.text("All prices exclusive of VAT unless stated", ML, y);
     y += 10;
 
-    // Calculate grand total
     const grandTotal = estimates.reduce((sum, est) => {
         const markup = 1 + ((est.profit_pct || 0) + (est.overhead_pct || 0) + (est.risk_pct || 0)) / 100;
         return sum + ((est.total_cost || 0) * markup);
     }, 0);
 
     if (pricingMode === "full") {
-        // Full breakdown: one table per estimate
         estimates.forEach((est) => {
             const markup = 1 + ((est.profit_pct || 0) + (est.overhead_pct || 0) + (est.risk_pct || 0)) / 100;
             const estTotal = (est.total_cost || 0) * markup;
@@ -342,26 +416,21 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
                 alternateRowStyles: { fillColor: C.slate50 },
                 tableLineColor: C.border,
                 tableLineWidth: 0.2,
-                didDrawPage: () => {
-                    totalPages = doc.getNumberOfPages();
-                },
+                didDrawPage: () => { totalPages = doc.getNumberOfPages(); },
             });
 
             y = (doc as any).lastAutoTable.finalY + 3;
 
-            // Markup note
             doc.setFont("helvetica", "normal");
             doc.setFontSize(8);
             doc.setTextColor(...C.slate500);
             doc.text(
                 `Overhead: ${est.overhead_pct || 0}%  |  Profit: ${est.profit_pct || 0}%  |  Risk: ${est.risk_pct || 0}%`,
-                ML,
-                y
+                ML, y
             );
             y += 10;
         });
     } else {
-        // Summary mode: single table with estimates as rows
         const summaryRows = estimates.map((est) => {
             const markup = 1 + ((est.profit_pct || 0) + (est.overhead_pct || 0) + (est.risk_pct || 0)) / 100;
             return [est.version_name || "Estimate", formatGBP((est.total_cost || 0) * markup)];
@@ -397,9 +466,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             alternateRowStyles: { fillColor: C.slate50 },
             tableLineColor: C.border,
             tableLineWidth: 0.2,
-            didDrawPage: () => {
-                totalPages = doc.getNumberOfPages();
-            },
+            didDrawPage: () => { totalPages = doc.getNumberOfPages(); },
         });
 
         y = (doc as any).lastAutoTable.finalY + 8;
@@ -407,7 +474,6 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
     // Grand total box (full mode)
     if (pricingMode === "full") {
-        // Check for page break
         if (y + 20 > PAGE_H - 30) {
             doc.addPage();
             totalPages++;
@@ -431,6 +497,111 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     const validityText = `This Proposal is valid for ${validityDays} days from the date of issue (${formatDate(today)}). After this period, rates may be subject to review.`;
     const validityLines = doc.splitTextToSize(validityText, CW);
     doc.text(validityLines, ML, y);
+
+    // ═══════════════════════════════════════════════════════════
+    // PROJECT TIMELINE / GANTT (NEW)
+    // ═══════════════════════════════════════════════════════════
+    const phases: any[] = project?.gantt_phases || [];
+    if (phases.length > 0) {
+        doc.addPage();
+        totalPages++;
+        y = addPageHeader(doc, companyName, docTitle, totalPages);
+
+        y = renderSectionHeading(doc, y, "Project Timeline");
+
+        // Calculate timeline bounds
+        const allPhasesWithDates = phases.map((p: any, idx: number) => {
+            let startMs: number;
+            if (p.start_date) {
+                startMs = new Date(p.start_date).getTime();
+            } else if (project?.start_date) {
+                // Stack phases sequentially if no start date
+                const projectStart = new Date(project.start_date).getTime();
+                const prevDays = phases.slice(0, idx).reduce((sum: number, prev: any) => sum + (prev.duration_days || 7), 0);
+                startMs = projectStart + prevDays * 86400000;
+            } else {
+                const baseDate = Date.now();
+                const prevDays = phases.slice(0, idx).reduce((sum: number, prev: any) => sum + (prev.duration_days || 7), 0);
+                startMs = baseDate + prevDays * 86400000;
+            }
+            return {
+                ...p,
+                startMs,
+                endMs: startMs + (p.duration_days || 7) * 86400000,
+            };
+        });
+
+        const timelineStart = Math.min(...allPhasesWithDates.map((p: any) => p.startMs));
+        const timelineEnd = Math.max(...allPhasesWithDates.map((p: any) => p.endMs));
+        const totalDays = Math.max(1, Math.ceil((timelineEnd - timelineStart) / 86400000));
+        const totalWeeks = Math.ceil(totalDays / 7);
+
+        // Layout
+        const labelColW = 55;
+        const chartX = ML + labelColW;
+        const chartW = CW - labelColW;
+        const rowH = 12;
+        const headerH = 14;
+
+        // Navy header bar with week labels
+        doc.setFillColor(...C.navy);
+        doc.rect(ML, y, CW, headerH, "F");
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(...C.white);
+        doc.text("Phase", ML + 3, y + 9);
+
+        // Week labels
+        const weekW = chartW / Math.max(1, totalWeeks);
+        for (let w = 0; w < totalWeeks && w < 30; w++) {
+            const wx = chartX + w * weekW;
+            const weekDate = new Date(timelineStart + w * 7 * 86400000);
+            const label = `W${w + 1}`;
+            if (weekW > 8) {
+                doc.text(label, wx + weekW / 2, y + 9, { align: "center" });
+            } else if (w % 2 === 0) {
+                doc.text(label, wx + weekW / 2, y + 9, { align: "center" });
+            }
+        }
+        y += headerH;
+
+        // Phase rows
+        allPhasesWithDates.forEach((phase: any, idx: number) => {
+            // Alternating row background
+            if (idx % 2 === 0) {
+                doc.setFillColor(...C.slate50);
+                doc.rect(ML, y, CW, rowH, "F");
+            }
+
+            // Phase name
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8);
+            doc.setTextColor(...C.slate700);
+            doc.text(
+                doc.splitTextToSize(phase.name || `Phase ${idx + 1}`, labelColW - 6)[0],
+                ML + 3,
+                y + 8
+            );
+
+            // Bar
+            const startOffset = (phase.startMs - timelineStart) / 86400000;
+            const durationDays = phase.duration_days || 7;
+            const barX = chartX + (startOffset / totalDays) * chartW;
+            const barW = Math.max(2, (durationDays / totalDays) * chartW);
+            const barColor = GANTT_COLORS[phase.color] || GANTT_COLORS.blue;
+
+            doc.setFillColor(...barColor);
+            doc.roundedRect(barX, y + 2, barW, rowH - 4, 1.5, 1.5, "F");
+
+            y += rowH;
+        });
+
+        // Border around chart
+        doc.setDrawColor(...C.border);
+        doc.setLineWidth(0.3);
+        doc.rect(ML, y - phases.length * rowH - headerH, CW, phases.length * rowH + headerH, "S");
+    }
 
     // ═══════════════════════════════════════════════════════════
     // EXCLUSIONS & CLARIFICATIONS
@@ -495,7 +666,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     }
 
     // ═══════════════════════════════════════════════════════════
-    // SITE VISIT & PROJECT CONCEPTS (Photos Placeholder)
+    // SITE VISIT & PHOTOS (ENHANCED)
     // ═══════════════════════════════════════════════════════════
     doc.addPage();
     totalPages++;
@@ -503,48 +674,102 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
     y = renderSectionHeading(doc, y, "Site Visit & Project Concepts");
 
-    const introText = "Photographs and concept visuals captured during the site visit are included below. AI-assisted concept overlays showing proposed works will be available in a future update.";
-    y = renderBodyText(doc, y, introText);
-    y += 6;
+    const sitePhotos: any[] = project?.site_photos || [];
+    const hasPhotos = sitePhotos.some((p: any) => p.url);
 
-    // 2x2 grid of placeholder boxes
-    const boxW = 80;
-    const boxH = 60;
-    const gap = 10;
-    const startX1 = ML + 2;
-    const startX2 = ML + boxW + gap + 2;
+    if (hasPhotos) {
+        const introText = "Photographs captured during the site visit are included below for reference.";
+        y = renderBodyText(doc, y, introText);
+        y += 6;
 
-    for (let row = 0; row < 2; row++) {
-        for (let col = 0; col < 2; col++) {
+        // 2x3 grid
+        const boxW = 80;
+        const boxH = 60;
+        const gap = 10;
+        const startX1 = ML + 2;
+        const startX2 = ML + boxW + gap + 2;
+
+        const photosToRender = sitePhotos.filter((p: any) => p.url).slice(0, 6);
+
+        for (let i = 0; i < photosToRender.length; i++) {
+            const col = i % 2;
+            const row = Math.floor(i / 2);
             const bx = col === 0 ? startX1 : startX2;
             const by = y + row * (boxH + gap);
 
-            doc.setFillColor(...C.slate100);
-            doc.rect(bx, by, boxW, boxH, "F");
+            if (by + boxH > PAGE_H - 25) {
+                doc.addPage();
+                totalPages++;
+                y = addPageHeader(doc, companyName, docTitle, totalPages);
+                // Reset i offset — simplified: just break for now
+                break;
+            }
 
-            doc.setDrawColor(...C.border);
-            doc.setLineWidth(0.5);
-            // Dashed border effect: draw the rect outline
-            doc.setLineDashPattern([3, 2], 0);
-            doc.rect(bx, by, boxW, boxH, "S");
-            doc.setLineDashPattern([], 0); // reset
+            const photo = photosToRender[i];
 
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            doc.setTextColor(148, 163, 184); // slate-400
-            doc.text("Photo Placeholder", bx + boxW / 2, by + boxH / 2, { align: "center" });
+            try {
+                doc.addImage(photo.url, "JPEG", bx, by, boxW, boxH);
+            } catch {
+                // Fallback: placeholder box
+                doc.setFillColor(...C.slate100);
+                doc.rect(bx, by, boxW, boxH, "F");
+                doc.setDrawColor(...C.border);
+                doc.setLineWidth(0.5);
+                doc.setLineDashPattern([3, 2], 0);
+                doc.rect(bx, by, boxW, boxH, "S");
+                doc.setLineDashPattern([], 0);
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9);
+                doc.setTextColor(148, 163, 184);
+                doc.text(photo.caption || "Photo", bx + boxW / 2, by + boxH / 2, { align: "center" });
+            }
+
+            // Caption below image
+            if (photo.caption) {
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(7);
+                doc.setTextColor(...C.slate500);
+                doc.text(photo.caption, bx + boxW / 2, by + boxH + 4, { align: "center" });
+            }
         }
+
+        const rows = Math.ceil(photosToRender.length / 2);
+        y += rows * (boxH + gap) + 8;
+    } else {
+        const introText = "Photographs and concept visuals captured during the site visit are included below. AI-assisted concept overlays showing proposed works will be available in a future update.";
+        y = renderBodyText(doc, y, introText);
+        y += 6;
+
+        // Placeholder boxes (2x2)
+        const boxW = 80;
+        const boxH = 60;
+        const gap = 10;
+        const startX1 = ML + 2;
+        const startX2 = ML + boxW + gap + 2;
+
+        for (let row = 0; row < 2; row++) {
+            for (let col = 0; col < 2; col++) {
+                const bx = col === 0 ? startX1 : startX2;
+                const by = y + row * (boxH + gap);
+
+                doc.setFillColor(...C.slate100);
+                doc.rect(bx, by, boxW, boxH, "F");
+                doc.setDrawColor(...C.border);
+                doc.setLineWidth(0.5);
+                doc.setLineDashPattern([3, 2], 0);
+                doc.rect(bx, by, boxW, boxH, "S");
+                doc.setLineDashPattern([], 0);
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+                doc.setTextColor(148, 163, 184);
+                doc.text("Photo Placeholder", bx + boxW / 2, by + boxH / 2, { align: "center" });
+            }
+        }
+        y += 2 * boxH + gap + 12;
     }
 
-    y += 2 * boxH + gap + 12;
-
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(8);
-    doc.setTextColor(...C.slate500);
-    doc.text("Upload site photos via the Project Settings page (coming soon).", ML, y);
-
     // ═══════════════════════════════════════════════════════════
-    // TERMS & CONDITIONS
+    // TERMS & CONDITIONS (ENHANCED)
     // ═══════════════════════════════════════════════════════════
     doc.addPage();
     totalPages++;
@@ -560,17 +785,16 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     doc.text(tcIntroLines, ML, y);
     y += tcIntroLines.length * 4.5 + 6;
 
-    const tcClauses = [
-        ["1 — Jurisdiction", "The law of Contract is the Law of England and Wales. The Language of this Contract is English. All acts stated within these Terms & Conditions are obligatory unless the term 'may' is used."],
-        ["2 — Responsibilities", "The Works are detailed within the Scope of Works attached to this Proposal. All Works are to meet Statutory Requirements, including all applicable British and European Standards, and industry best practices."],
-        ["3 — Alternative Dispute Resolution", "Should any dispute arise which cannot be resolved by negotiation, escalation shall be via Adjudication. The Adjudicating Nominated Body is the Royal Institute of Chartered Surveyors (RICS), under the RICS Homeowner Adjudication Scheme. The Adjudicator's name shall be determined by the President of the RICS and a determination issued within 21 Calendar days of appointment."],
-        ["4 — Liability", "The Defect Liability Period is 12 months from the date of Completion Certificate. Any Defects notified within the Defect Period are to be promptly rectified by the Contractor. The Contractor's obligations extend to future owners of the property in accordance with the Contracts (Rights of Third Parties) Act 1999."],
-        ["5 — Workmanship", "All Works are to be performed using reasonable skill and care to that of a competent Contractor with experience on projects of similar size and scope. Works are to be completed by the Contractor and not Sub-Contractors unless authorised in writing."],
-        ["6 — Insurances", "The Contractor shall maintain throughout the Works: Public Liability Insurance; Employers Liability Insurance; Contractors All Risk Insurance. Evidence of current policies available on request."],
-        ["7 — Payments", "Payment dates are 21 Calendar days from receipt of Application. Any deductions by the Client must be formally notified as a 'Pay-Less-Notice' no later than 7 days following receipt of Application. Late payments shall incur interest under the Late Payment of Commercial Debts (Interest) Act 1998 at 8% above Bank of England base rate."],
-        ["8 — Change Management", "Any Variations to the Scope must be issued in writing. The Contractor will respond within 7 Calendar days with any Cost and/or Time implications. Variations may include omissions as well as additions to Scope."],
-        ["9 — Health, Safety & CDM", "The Client is a Domestic Client under the Construction Design Management (CDM) Regulations 2015. The Contractor shall act as Principal Contractor and comply with all CDM requirements and the Health and Safety at Work Act 1974."],
-    ];
+    // Use tc_overrides if set, else standard clauses
+    let tcClauses: string[][];
+    if (project?.tc_overrides && Array.isArray(project.tc_overrides)) {
+        tcClauses = project.tc_overrides.map((c: any) => [
+            `${c.clause_number} — ${c.title}`,
+            c.body,
+        ]);
+    } else {
+        tcClauses = STANDARD_TC_CLAUSES;
+    }
 
     autoTable(doc, {
         startY: y,
@@ -595,9 +819,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         alternateRowStyles: { fillColor: C.slate50 },
         tableLineColor: C.border,
         tableLineWidth: 0.2,
-        didDrawPage: () => {
-            totalPages = doc.getNumberOfPages();
-        },
+        didDrawPage: () => { totalPages = doc.getNumberOfPages(); },
     });
 
     // ═══════════════════════════════════════════════════════════
@@ -622,7 +844,6 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     const col2X = ML + 96;
     const sigBlockW = 82;
 
-    // Left: Contractor
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.setTextColor(...C.navy);
@@ -662,7 +883,6 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
     y = sigY + 40;
 
-    // Bottom footer
     doc.setDrawColor(...C.navy);
     doc.setLineWidth(0.5);
     doc.line(ML, y, MR, y);
@@ -710,14 +930,11 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
 // ─── Helper: Add page header (returns Y for content start) ───
 function addPageHeader(doc: jsPDF, _companyName: string, _docTitle: string, _pageNum: number): number {
-    // The actual header band is painted in the final loop.
-    // We just return the starting Y below the header area.
     return 18;
 }
 
 // ─── Helper: Section heading with navy left border accent ────
 function renderSectionHeading(doc: jsPDF, y: number, title: string): number {
-    // Navy left border accent
     doc.setFillColor(...C.navy);
     doc.rect(ML, y - 4, 3, 10, "F");
 

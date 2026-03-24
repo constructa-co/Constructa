@@ -12,14 +12,80 @@ export async function saveProposalAction(formData: FormData) {
 
     const id = formData.get("projectId") as string;
 
-    await supabase.from("projects").update({
+    const updateData: Record<string, any> = {
         scope_text: formData.get("scope"),
         exclusions_text: formData.get("exclusions"),
-        clarifications_text: formData.get("clarifications")
-    }).eq("id", id).eq("user_id", user.id);
+        clarifications_text: formData.get("clarifications"),
+        proposal_introduction: formData.get("proposal_introduction"),
+    };
+
+    // Gantt phases
+    const ganttRaw = formData.get("gantt_phases") as string;
+    if (ganttRaw) {
+        try { updateData.gantt_phases = JSON.parse(ganttRaw); } catch { /* skip */ }
+    }
+
+    // T&C overrides
+    const tcRaw = formData.get("tc_overrides") as string;
+    if (tcRaw) {
+        try { updateData.tc_overrides = JSON.parse(tcRaw); } catch { /* skip */ }
+    } else {
+        updateData.tc_overrides = null;
+    }
+
+    // Site photos
+    const photosRaw = formData.get("site_photos") as string;
+    if (photosRaw) {
+        try { updateData.site_photos = JSON.parse(photosRaw); } catch { /* skip */ }
+    }
+
+    // Generate proposal_token if it doesn't exist yet
+    const { data: existing } = await supabase
+        .from("projects")
+        .select("proposal_token")
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .single();
+
+    if (!existing?.proposal_token) {
+        updateData.proposal_token = crypto.randomUUID();
+    }
+
+    await supabase.from("projects").update(updateData).eq("id", id).eq("user_id", user.id);
 
     revalidatePath(`/dashboard/projects/proposal?projectId=${id}`);
     return { success: true };
+}
+
+export async function sendProposalAction(projectId: string) {
+    const supabase = createClient();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
+    if (!user) return { success: false };
+
+    // Get or generate token
+    const { data: project } = await supabase
+        .from("projects")
+        .select("proposal_token")
+        .eq("id", projectId)
+        .eq("user_id", user.id)
+        .single();
+
+    let token = project?.proposal_token;
+    if (!token) {
+        token = crypto.randomUUID();
+        await supabase.from("projects").update({
+            proposal_token: token,
+            proposal_sent_at: new Date().toISOString(),
+        }).eq("id", projectId).eq("user_id", user.id);
+    } else {
+        await supabase.from("projects").update({
+            proposal_sent_at: new Date().toISOString(),
+        }).eq("id", projectId).eq("user_id", user.id);
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app";
+    return { success: true, url: `${baseUrl}/proposal/${token}` };
 }
 
 export async function generateAiScopeAction(projectId: string) {
@@ -64,10 +130,10 @@ export async function generateAiScopeAction(projectId: string) {
     CLIENT: ${project?.client_name || "Valued Client"}
     PROJECT TYPE: ${project?.project_type || "Construction Works"}
     SITE ADDRESS: ${project?.address || "As per project details"}
-    
+
     BILL OF QUANTITIES DATA:
     ${itemsList}
-    
+
     INSTRUCTION: Write a professional, comprehensive construction proposal.
     Return ONLY a JSON object with:
     1. "scope_narrative": A full technical narrative (3+ paragraphs).
@@ -81,7 +147,7 @@ export async function generateAiScopeAction(projectId: string) {
     `;
 
     try {
-        const model = genAI.getGenerativeModel({ 
+        const model = genAI.getGenerativeModel({
             model: "gemini-1.5-flash",
             generationConfig: {
                 responseMimeType: "application/json",
@@ -91,7 +157,6 @@ export async function generateAiScopeAction(projectId: string) {
         const result = await model.generateContent(prompt);
         const response = JSON.parse(result.response.text());
 
-        // Return all three structured fields so the UI can populate each section
         return {
             scope_narrative: response.scope_narrative || "",
             suggested_exclusions: Array.isArray(response.suggested_exclusions)

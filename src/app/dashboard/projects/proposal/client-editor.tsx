@@ -199,10 +199,13 @@ export default function ClientEditor({
         }
     }
 
+    const [aiError, setAiError] = useState("");
+
     const handleAutoWrite = async () => {
         setGenerating(true);
+        setAiError("");
         const result = await generateAiScopeAction(projectId);
-        if (typeof result === "object" && result.scope_narrative) {
+        if (typeof result === "object" && result.scope_narrative && !result.scope_narrative.startsWith("Error")) {
             setScope((prev: string) => prev + (prev ? "\n\n" : "") + result.scope_narrative);
             if (result.suggested_exclusions) {
                 setExclusions((prev: string) => prev + (prev ? "\n" : "") + result.suggested_exclusions);
@@ -211,7 +214,9 @@ export default function ClientEditor({
                 setClarifications((prev: string) => prev + (prev ? "\n" : "") + result.suggested_clarifications);
             }
         } else {
-            setScope((prev: string) => prev + (prev ? "\n\n" : "") + String(result));
+            // Show error in UI — never write it to the scope textarea
+            const errMsg = typeof result === "object" ? result.scope_narrative : String(result);
+            setAiError(errMsg || "AI unavailable — please try again");
         }
         setGenerating(false);
     };
@@ -479,6 +484,11 @@ export default function ClientEditor({
                     </div>
                     <div className="p-6">
                         <p className="text-xs text-slate-500 mb-3">Full scope narrative describing all works to be carried out.</p>
+                        {aiError && (
+                            <div className="mb-3 px-3 py-2 bg-red-950/50 border border-red-800 rounded-lg text-xs text-red-400">
+                                {aiError.includes("not configured") ? "AI service unavailable — please try again in a moment." : aiError}
+                            </div>
+                        )}
                         <Textarea
                             value={scope}
                             onChange={(e) => setScope(e.target.value)}

@@ -13,8 +13,26 @@ export const PROJECT_TYPES_BY_TRADE: Record<string, string[]> = {
 };
 
 export function getProjectTypes(businessType?: string | null): string[] {
-    if (businessType && PROJECT_TYPES_BY_TRADE[businessType]) {
-        return PROJECT_TYPES_BY_TRADE[businessType];
+    if (!businessType) return PROJECT_TYPES_BY_TRADE["default"];
+
+    // Support comma-joined multi-trade strings (e.g. "Groundworks & Civils, Landscaping & Fencing")
+    const trades = businessType.split(",").map(t => t.trim()).filter(Boolean);
+    const merged = new Set<string>();
+
+    for (const trade of trades) {
+        const types = PROJECT_TYPES_BY_TRADE[trade];
+        if (types) types.forEach(t => merged.add(t));
     }
-    return PROJECT_TYPES_BY_TRADE["default"];
+
+    if (merged.size === 0) return PROJECT_TYPES_BY_TRADE["default"];
+
+    // Always include "Other" at the end
+    merged.delete("Other");
+    return [...Array.from(merged), "Other"];
+}
+
+// Returns all trades from a comma-joined business_type string
+export function getTrades(businessType?: string | null): string[] {
+    if (!businessType) return [];
+    return businessType.split(",").map(t => t.trim()).filter(Boolean);
 }

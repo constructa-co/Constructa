@@ -92,11 +92,12 @@ export default function NewProjectWizard({ businessType }: Props) {
     const set = (field: keyof FormState, value: string) =>
         setForm((prev) => ({ ...prev, [field]: value }));
 
-    // Filter templates to match selected project type
+    // Filter templates to match selected project type OR any of the contractor's trades
+    const trades = businessType ? businessType.split(",").map((t: string) => t.trim()) : [];
     const filteredTemplates = PROJECT_TEMPLATES.filter(t =>
         t.projectTypes.length === 0 || // blank always shows
         t.projectTypes.includes(form.projectType) ||
-        (businessType && t.projectTypes.includes(businessType))
+        trades.some((trade: string) => t.projectTypes.includes(trade))
     );
     const templatesToShow = filteredTemplates.length > 1 ? filteredTemplates : PROJECT_TEMPLATES;
     const showNoMatchNote = filteredTemplates.length <= 1 && PROJECT_TEMPLATES.length > 1;

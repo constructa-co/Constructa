@@ -35,8 +35,8 @@ export default function PostcodeLookup({ onAddressFound, theme = "light" }: Post
             if (data.status === 200 && data.result) {
                 const r = data.result;
                 // postcodes.io returns area-level data only — no street name
-                const area = [r.admin_district, r.admin_county || r.region, r.postcode]
-                    .filter(Boolean).join(", ");
+                const area = [r.admin_district, r.admin_county || r.region, r.postcode.toUpperCase()]
+                    .filter(Boolean).map(toTitleCase).join(", ");
                 setAreaResult(area);
                 setStatus("success");
                 setMessage("Area found — add your street number and name above");
@@ -62,6 +62,10 @@ export default function PostcodeLookup({ onAddressFound, theme = "light" }: Post
             onAddressFound(val ? `${val}\n${areaResult}` : areaResult);
         }
     };
+
+    // Capitalise first letter of each word for display
+    const toTitleCase = (str: string) =>
+        str.replace(/\b\w/g, c => c.toUpperCase());
 
     return (
         <div className="space-y-2">

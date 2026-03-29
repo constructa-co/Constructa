@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getActiveOrganizationId } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateText, generateJSON } from "@/lib/ai";
 
 export async function generateContractAction(projectId: string) {
     const supabase = createClient();
@@ -29,36 +29,21 @@ export async function generateContractAction(projectId: string) {
     const latestEstimate = estimates?.[0];
     const contractSum = latestEstimate?.total_cost || 0;
 
-    // 2. Initialize Gemini
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
-    if (!apiKey) throw new Error("GEMINI_API_KEY is missing.");
-
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash-latest",
-        generationConfig: {
-            responseMimeType: "application/json",
-        }
-    });
-
-    const prompt = `
-        ROLE: Senior Construction Lawyer / Expert Contract Administrator.
-        TASK: Generate a professional construction contract agreement.
-        
-        PROJECT DATA:
-        - CLIENT: ${project.name}
-        - SITE ADDRESS: ${project.address || "As specified"}
-        - CONTRACT SUM: £${contractSum.toLocaleString('en-GB')}
-        - SCOPE: ${project.scope_text || "As per proposal"}
-        
-        Return ONLY a JSON object with:
-        "contract_html": The full contract text in professional formatting.
-        "summary": A 2-sentence summary of the terms.
-    `;
+    const prompt = `You are a Senior Construction Lawyer and Expert Contract Administrator.
+    Generate a professional UK construction contract agreement.
+    
+    PROJECT DATA:
+    - CLIENT: ${project.name}
+    - SITE ADDRESS: ${project.address || "As specified"}
+    - CONTRACT SUM: £${contractSum.toLocaleString('en-GB')}
+    - SCOPE: ${project.scope_text || "As per proposal"}
+    
+    Return a JSON object with:
+    "contract_html": The full contract text in professional HTML formatting.
+    "summary": A 2-sentence summary of the terms.`;
 
     try {
-        const result = await model.generateContent(prompt);
-        const response = JSON.parse(result.response.text());
+        const response = await generateJSON<{contract_html: string; summary: string}>(prompt);
         return response.contract_html;
     } catch (error: any) {
         console.error("Contract Generation Error:", error);

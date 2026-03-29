@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateJSON, generateText } from "@/lib/ai";
 
 // ── Types for AI Wizard ──────────────────────────────────────
 export interface ProposalAnswers {
@@ -60,10 +60,7 @@ export async function generateFullProposalAction(
 
     if (!project) return { success: false, error: "Project not found" };
 
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
-    if (!apiKey) return { success: false, error: "AI not configured" };
-
-    const genAI = new GoogleGenerativeAI(apiKey);
+    // AI key check handled by generateJSON utility
 
     const prompt = `You are a senior UK construction quantity surveyor generating a professional proposal.
 
@@ -96,13 +93,7 @@ Rules:
 - Return ONLY the JSON object, no markdown`;
 
     try {
-        const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash-latest",
-            generationConfig: { responseMimeType: "application/json" },
-        });
-        const result = await model.generateContent(prompt);
-        const raw = result.response.text();
-        const parsed = JSON.parse(raw) as GeneratedProposal;
+        const parsed = await generateJSON<GeneratedProposal>(prompt);
 
         // Normalise gantt phases — ensure duration_days is set
         const ganttPhases = (parsed.gantt_phases || []).map((p, i) => ({
@@ -260,10 +251,7 @@ export async function generateAiScopeAction(projectId: string) {
         .select("*, estimate_lines(*)")
         .eq("project_id", projectId);
 
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
-    if (!apiKey) return { scope_narrative: "Error: AI not configured.", suggested_exclusions: "", suggested_clarifications: "" };
-
-    const genAI = new GoogleGenerativeAI(apiKey);
+    // AI via OpenAI utility
 
     // Build context from all available info
     let contextSection = "";
@@ -318,15 +306,7 @@ export async function generateAiScopeAction(projectId: string) {
     `;
 
     try {
-        const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash-latest",
-            generationConfig: {
-                responseMimeType: "application/json",
-            }
-        });
-
-        const result = await model.generateContent(prompt);
-        const response = JSON.parse(result.response.text());
+        const response = await generateJSON<{scope_narrative: string; suggested_exclusions: string[]; suggested_clarifications: string[]}>(prompt);
 
         return {
             scope_narrative: response.scope_narrative || "",
@@ -349,10 +329,7 @@ export async function rewriteIntroductionAction(projectId: string, currentText: 
     const user = authData?.user;
     if (!user) return { error: "Not authenticated" };
 
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
-    if (!apiKey) return { error: "AI not configured" };
-
-    const genAI = new GoogleGenerativeAI(apiKey);
+    // AI via OpenAI utility
 
     const prompt = `Rewrite this contractor proposal introduction to be more professional and persuasive, maintaining the factual content. Return plain text only, no markdown, no JSON.
 
@@ -360,9 +337,8 @@ Original text:
 ${currentText}`;
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-        const result = await model.generateContent(prompt);
-        return { text: result.response.text().trim() };
+        const text = await generateText(prompt);
+        return { text };
     } catch (error: any) {
         return { error: error.message };
     }

@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateText, generateJSON } from "@/lib/ai";
 
 export async function saveOnboardingAction(formData: FormData) {
     const supabase = createClient();
@@ -56,10 +56,7 @@ export async function saveOnboardingAction(formData: FormData) {
 }
 
 export async function generateCapabilityStatementAction(trade: string, specialisms: string): Promise<string> {
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
-    if (!apiKey) return "AI not configured. Please add your capability statement manually.";
-
-    const genAI = new GoogleGenerativeAI(apiKey);
+    // Uses OpenAI via shared utility
 
     const prompt = `Write a 2-paragraph professional capability statement for a UK building contractor with the following profile:
 Primary Trade: ${trade}
@@ -74,9 +71,7 @@ The statement should:
 - Return plain text only, no markdown, no headings`;
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-        const result = await model.generateContent(prompt);
-        return result.response.text().trim();
+        return await generateText(prompt);
     } catch (error: any) {
         return `Error generating statement: ${error.message}`;
     }

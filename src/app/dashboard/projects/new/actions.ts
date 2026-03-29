@@ -14,14 +14,31 @@ export async function createProjectFromTemplateAction(formData: FormData) {
         const client = formData.get("client") as string;
         const typeId = formData.get("typeId") as string;
 
+        // New fields
+        const clientEmail = formData.get("clientEmail") as string || null;
+        const clientPhone = formData.get("clientPhone") as string || null;
+        const clientAddress = formData.get("clientAddress") as string || null;
+        const siteAddress = formData.get("siteAddress") as string || null;
+        const projectType = formData.get("projectType") as string || "Extension";
+        const startDateRaw = formData.get("startDate") as string;
+        const startDate = startDateRaw || null;
+        const potentialValueRaw = formData.get("potentialValue") as string;
+        const potentialValue = potentialValueRaw ? parseFloat(potentialValueRaw) : null;
+
         // 1. Create Project
         const { data: project, error: projError } = await supabase.from("projects").insert({
             user_id: user?.id,
-            tenant_id: user?.id, // <--- Added Tenant ID
+            tenant_id: user?.id,
             name,
             client_name: client,
+            client_email: clientEmail,
+            client_phone: clientPhone,
+            client_address: clientAddress,
+            site_address: siteAddress,
+            project_type: projectType,
+            start_date: startDate,
+            potential_value: potentialValue,
             status: 'Estimating',
-            project_type: typeId === 'extension_1' ? 'Extension' : typeId === 'renovation' ? 'Renovation' : 'Other'
         }).select().single();
 
         if (projError) return { success: false, error: "DB Error: " + projError.message };
@@ -34,7 +51,7 @@ export async function createProjectFromTemplateAction(formData: FormData) {
             for (const item of template.items) {
                 const { data: estimate, error: estError } = await supabase.from("estimates").insert({
                     project_id: project.id,
-                    tenant_id: user?.id, // <--- Added Tenant ID to Estimate as well for consistency
+                    tenant_id: user?.id,
                     version_name: item.name,
                     status: 'Draft',
                     total_cost: item.cost,
@@ -49,7 +66,7 @@ export async function createProjectFromTemplateAction(formData: FormData) {
                         description: line.desc,
                         quantity: line.qty,
                         unit: line.unit,
-                        unit_rate: line.rate, // Kept unit_rate consistent
+                        unit_rate: line.rate,
                         line_total: line.qty * line.rate,
                         resource_type: 'Material'
                     }));
@@ -58,7 +75,7 @@ export async function createProjectFromTemplateAction(formData: FormData) {
             }
         }
 
-        // SUCCESS: Return the ID so the client can redirect
+        // SUCCESS: Return the ID so the client can redirect to proposal
         return { success: true, projectId: project.id };
 
     } catch (err: any) {

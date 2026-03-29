@@ -39,6 +39,12 @@ export async function saveProposalAction(formData: FormData) {
         try { updateData.site_photos = JSON.parse(photosRaw); } catch { /* skip */ }
     }
 
+    // Payment schedule
+    const paymentRaw = formData.get("payment_schedule") as string;
+    if (paymentRaw) {
+        try { updateData.payment_schedule = JSON.parse(paymentRaw); } catch { /* skip */ }
+    }
+
     // Generate proposal_token if it doesn't exist yet
     const { data: existing } = await supabase
         .from("projects")

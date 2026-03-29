@@ -32,7 +32,7 @@ export default async function ProposalPage({ searchParams }: { searchParams: { p
         .select("*, estimate_lines(*)")
         .eq("project_id", projectId);
 
-    // Fetch profile with all new capability fields
+    // Fetch profile with all capability fields
     const { data: profile } = await supabase
         .from("profiles")
         .select("*")
@@ -40,12 +40,14 @@ export default async function ProposalPage({ searchParams }: { searchParams: { p
         .single();
 
     return (
-        <div className="max-w-6xl mx-auto p-8 min-h-screen flex flex-col">
+        <div className="max-w-7xl mx-auto px-6 py-8 min-h-screen">
             <div className="flex flex-col gap-4 mb-6">
                 <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-3xl font-bold text-slate-900">Proposal Editor</h1>
-                        <p className="text-slate-500">Drafting for: <span className="font-semibold text-slate-800">{project?.name}</span></p>
+                        <h1 className="text-2xl font-bold text-slate-100">Proposal Editor</h1>
+                        <p className="text-slate-500 text-sm mt-0.5">
+                            Drafting for: <span className="font-semibold text-slate-300">{project?.name}</span>
+                        </p>
                     </div>
                 </div>
                 <ProjectNavBar projectId={projectId} activeTab="proposal" />

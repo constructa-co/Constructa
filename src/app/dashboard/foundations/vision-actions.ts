@@ -10,8 +10,8 @@ export async function analyzeDrawingAction(base64Image: string) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Using gemini-1.5-flash as it is fast and supports vision well
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Using gemini-2.0-flash as it is fast and supports vision well
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const prompt = `
         ROLE: Expert Quantity Surveyor / Construction Estimator.

@@ -97,7 +97,7 @@ Rules:
 
     try {
         const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash",
+            model: "gemini-2.0-flash",
             generationConfig: { responseMimeType: "application/json" },
         });
         const result = await model.generateContent(prompt);
@@ -319,7 +319,7 @@ export async function generateAiScopeAction(projectId: string) {
 
     try {
         const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash",
+            model: "gemini-2.0-flash",
             generationConfig: {
                 responseMimeType: "application/json",
             }
@@ -360,7 +360,7 @@ Original text:
 ${currentText}`;
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
         const result = await model.generateContent(prompt);
         return { text: result.response.text().trim() };
     } catch (error: any) {

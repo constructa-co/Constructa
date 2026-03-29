@@ -208,7 +208,10 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             // White background pill
             doc.setFillColor(...C.white);
             doc.roundedRect(PAGE_W / 2 - 37, y, 74, 27, 3, 3, "F");
-            doc.addImage(profile.logo_url, "PNG", PAGE_W / 2 - 34, y + 1, 68, 25);
+            // Detect image format from URL extension
+            const logoExt = profile.logo_url.split(".").pop()?.toLowerCase() || "png";
+            const logoFormat = logoExt === "jpg" || logoExt === "jpeg" ? "JPEG" : "PNG";
+            doc.addImage(profile.logo_url, logoFormat, PAGE_W / 2 - 34, y + 1, 68, 25);
             logoLoaded = true;
             y += 35;
         } catch {
@@ -440,7 +443,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(9);
                 doc.setTextColor(...C.slate700);
-                doc.text(`✓  ${acc}`, rightX, rightY);
+                doc.text(`- ${acc}`, rightX, rightY);
                 rightY += 6;
             });
         }

@@ -48,7 +48,7 @@ export async function saveOnboardingAction(formData: FormData) {
         return { error: error.message };
     }
 
-    redirect("/dashboard");
+    return { success: true };
 }
 
 export async function generateCapabilityStatementAction(trade: string, specialisms: string): Promise<string> {

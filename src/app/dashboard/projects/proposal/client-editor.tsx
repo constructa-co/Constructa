@@ -245,7 +245,7 @@ export default function ClientEditor({
         setAiError("");
         const result = await generateAiScopeAction(projectId);
         if (typeof result === "object" && result.scope_narrative && !result.scope_narrative.startsWith("Error")) {
-            setScope((prev: string) => prev + (prev ? "\n\n" : "") + result.scope_narrative);
+            setScope(result.scope_narrative); // Replace, not append
             if (result.suggested_exclusions) {
                 setExclusions((prev: string) => prev + (prev ? "\n" : "") + result.suggested_exclusions);
             }

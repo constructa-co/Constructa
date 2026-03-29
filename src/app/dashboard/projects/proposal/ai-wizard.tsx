@@ -181,19 +181,16 @@ export default function AiWizard({ projectId, project, onComplete, onClose }: Ai
             }
 
             setDone(true);
-
-            // Small delay to show success state
-            setTimeout(() => {
-                onComplete({
-                    introduction: result.data.introduction,
-                    scope_narrative: result.data.scope_narrative,
-                    exclusions: result.data.exclusions,
-                    clarifications: result.data.clarifications,
-                    gantt_phases: result.data.gantt_phases as any[],
-                    payment_stages: result.data.payment_stages as any[],
-                });
-                toast.success("Proposal pre-filled ✓");
-            }, 800);
+            // Call onComplete immediately — no setTimeout which can lose state
+            onComplete({
+                introduction: result.data.introduction,
+                scope_narrative: result.data.scope_narrative,
+                exclusions: result.data.exclusions,
+                clarifications: result.data.clarifications,
+                gantt_phases: result.data.gantt_phases as any[],
+                payment_stages: result.data.payment_stages as any[],
+            });
+            toast.success("Proposal pre-filled ✓");
         } catch (e: any) {
             if (loadingIntervalRef.current) clearInterval(loadingIntervalRef.current);
             toast.error("Error: " + e.message);

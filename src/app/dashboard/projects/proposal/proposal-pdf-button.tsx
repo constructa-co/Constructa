@@ -175,8 +175,12 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     const companyName = profile?.company_name || "The Contractor";
     const clientName = project?.client_name || "Valued Client";
     const projectName = project?.name || "Project Proposal";
-    const address = project?.site_address || project?.client_address || "";
-    const clientAddress = project?.client_address || address;
+    // Normalise addresses — replace comma-separated run-ons with newlines
+    const normaliseAddress = (addr: string) => addr
+        ? addr.replace(/,\s*/g, "\n").replace(/\n+/g, "\n").trim()
+        : "";
+    const address = normaliseAddress(project?.site_address || project?.client_address || "");
+    const clientAddress = normaliseAddress(project?.client_address || project?.site_address || "");
     const projectType = project?.project_type || "Construction Works";
     const today = new Date();
     const validUntil = new Date(Date.now() + validityDays * 86400000);

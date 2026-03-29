@@ -16,10 +16,12 @@ interface Props {
 
 // ─── Colour palette ───────────────────────────────────────────
 const C = {
-    navy: [15, 26, 46] as [number, number, number],       // #0f1a2e
-    navyLight: [30, 48, 80] as [number, number, number],  // lighter navy for accents
+    navy: [15, 26, 46] as [number, number, number],
+    navyLight: [22, 38, 68] as [number, number, number],
+    navyMid: [30, 50, 90] as [number, number, number],
     slate700: [51, 65, 85] as [number, number, number],
     slate500: [100, 116, 139] as [number, number, number],
+    slate400: [148, 163, 184] as [number, number, number],
     slate300: [203, 213, 225] as [number, number, number],
     slate50: [248, 250, 252] as [number, number, number],
     slate100: [241, 245, 249] as [number, number, number],
@@ -27,6 +29,7 @@ const C = {
     border: [226, 232, 240] as [number, number, number],
     white: [255, 255, 255] as [number, number, number],
     green: [22, 163, 74] as [number, number, number],
+    blue: [59, 130, 246] as [number, number, number],
 };
 
 const GANTT_COLORS: Record<string, [number, number, number]> = {
@@ -36,6 +39,7 @@ const GANTT_COLORS: Record<string, [number, number, number]> = {
     purple: [168, 85, 247],
     slate: [100, 116, 139],
     red: [239, 68, 68],
+    teal: [20, 184, 166],
 };
 
 const PAGE_W = 210;
@@ -43,10 +47,12 @@ const PAGE_H = 297;
 const ML = 14;
 const MR = 196;
 const CW = 182;
-const HEADER_H = 10;  // slim navy header band height
-const FOOTER_H = 10;  // slim footer height
-const CONTENT_TOP = HEADER_H + 8; // first y after header
+const HEADER_H = 10;
+const FOOTER_H = 10;
+const CONTENT_TOP = HEADER_H + 8;
 const CONTENT_BOTTOM = PAGE_H - FOOTER_H - 6;
+
+let sectionCounter = 0;
 
 function formatGBP(n: number): string {
     return "£" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -56,7 +62,6 @@ function formatDate(d: Date): string {
     return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
 
-// Standard 9 T&C clauses
 const STANDARD_TC_CLAUSES = [
     ["1 — Jurisdiction", "The law of Contract is the Law of England and Wales. The Language of this Contract is English."],
     ["2 — Responsibilities", "The Works are detailed within the Scope of Works attached to this Proposal. All Works are to meet Statutory Requirements, including all applicable British and European Standards, and industry best practices."],
@@ -99,12 +104,9 @@ export default function ProposalPdfButton({ estimates, project, profile, pricing
 
 // ─── Helpers ─────────────────────────────────────────────────
 
-/** Add page header band (navy) + footer. Returns the y position to start content. */
 function addPageHeader(doc: jsPDF, companyName: string, docTitle: string, pageNum: number, totalPagesRef: { n: number }): number {
-    // Navy header band
     doc.setFillColor(...C.navy);
     doc.rect(0, 0, PAGE_W, HEADER_H, "F");
-
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
     doc.setTextColor(...C.white);
@@ -112,7 +114,6 @@ function addPageHeader(doc: jsPDF, companyName: string, docTitle: string, pageNu
     doc.text(docTitle, PAGE_W / 2, 6.5, { align: "center" });
     doc.text(`${pageNum}`, MR, 6.5, { align: "right" });
 
-    // Slim footer
     doc.setDrawColor(...C.slate300);
     doc.setLineWidth(0.2);
     doc.line(ML, PAGE_H - FOOTER_H, MR, PAGE_H - FOOTER_H);
@@ -124,36 +125,40 @@ function addPageHeader(doc: jsPDF, companyName: string, docTitle: string, pageNu
     return CONTENT_TOP;
 }
 
-/** Section heading with left navy accent bar */
+/** C3: Numbered section heading with full-width navy rule */
 function renderSectionHeading(doc: jsPDF, y: number, text: string): number {
-    // Navy accent bar
-    doc.setFillColor(...C.navy);
-    doc.rect(ML, y - 1, 3, 8, "F");
+    const num = String(sectionCounter).padStart(2, "0");
+    sectionCounter++;
 
+    // Section number
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...C.slate300);
+    doc.text(num, ML, y + 5);
+
+    // Section title
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
+    doc.setFontSize(18);
     doc.setTextColor(...C.navy);
-    doc.text(text, ML + 6, y + 5.5);
+    doc.text(text, ML + 10, y + 7);
 
-    // Thin line below
-    doc.setDrawColor(...C.slate200);
-    doc.setLineWidth(0.3);
-    doc.line(ML, y + 10, MR, y + 10);
+    // Full-width thin navy rule
+    doc.setDrawColor(...C.navy);
+    doc.setLineWidth(0.5);
+    doc.line(ML, y + 11, MR, y + 11);
 
-    return y + 16;
+    return y + 20;
 }
 
-/** Render body text with wrapping */
-function renderBodyText(doc: jsPDF, y: number, text: string, maxWidth = CW): number {
+function renderBodyText(doc: jsPDF, y: number, text: string, maxWidth = CW, x = ML): number {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(...C.slate700);
     const lines = doc.splitTextToSize(text, maxWidth);
-    doc.text(lines, ML, y);
+    doc.text(lines, x, y);
     return y + lines.length * 5.5;
 }
 
-/** Ensure there's enough space, add page if not */
 function ensureSpace(doc: jsPDF, y: number, needed: number, companyName: string, docTitle: string, totalPagesRef: { n: number }): number {
     if (y + needed > CONTENT_BOTTOM) {
         doc.addPage();
@@ -165,6 +170,7 @@ function ensureSpace(doc: jsPDF, y: number, needed: number, companyName: string,
 
 // ─── Main PDF builder ─────────────────────────────────────────
 async function buildProposalPDF({ estimates, project, profile, pricingMode, validityDays }: Props) {
+    sectionCounter = 1; // reset section counter
     const doc = new jsPDF({ unit: "mm", format: "a4" });
     const companyName = profile?.company_name || "The Contractor";
     const clientName = project?.client_name || "Valued Client";
@@ -186,180 +192,371 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     const contractValue = project?.potential_value || grandTotal || 0;
 
     // ═══════════════════════════════════════════════════════════
-    // PAGE 1 — COVER PAGE
+    // PAGE 1 — COVER PAGE (C1: Full-page navy)
     // ═══════════════════════════════════════════════════════════
-    const coverNavyH = PAGE_H * 0.40; // 40% navy
 
-    // Navy top block
+    // Full-page navy background
     doc.setFillColor(...C.navy);
-    doc.rect(0, 0, PAGE_W, coverNavyH, "F");
+    doc.rect(0, 0, PAGE_W, PAGE_H, "F");
 
-    // Company logo or name (in navy area)
+    let y = 15;
+
+    // Company logo or name (centered, white pill box)
     let logoLoaded = false;
     if (profile?.logo_url) {
         try {
-            doc.addImage(profile.logo_url, "PNG", ML + 4, 18, 60, 20);
+            // White background pill
+            doc.setFillColor(...C.white);
+            doc.roundedRect(PAGE_W / 2 - 37, y, 74, 27, 3, 3, "F");
+            doc.addImage(profile.logo_url, "PNG", PAGE_W / 2 - 34, y + 1, 68, 25);
             logoLoaded = true;
+            y += 35;
         } catch {
             logoLoaded = false;
         }
     }
     if (!logoLoaded) {
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(26);
+        doc.setFontSize(32);
         doc.setTextColor(...C.white);
-        doc.text(companyName.toUpperCase(), ML + 4, 36);
+        doc.text(companyName.toUpperCase(), PAGE_W / 2, y + 12, { align: "center" });
+        y += 22;
     }
-
-    // "PROPOSAL & FEE PROPOSAL" small caps
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(180, 200, 220);
-    doc.text("PROPOSAL & FEE PROPOSAL", ML + 4, logoLoaded ? 46 : 48);
 
     // Thin white rule
     doc.setDrawColor(...C.white);
-    doc.setLineWidth(0.3);
-    doc.line(ML + 4, logoLoaded ? 52 : 54, MR - 4, logoLoaded ? 52 : 54);
+    doc.setLineWidth(0.5);
+    doc.line(ML + 20, y, MR - 20, y);
+    y += 8;
 
-    // White area content
-    let y = coverNavyH + 18;
-
-    // Project name — very large
+    // "PROPOSAL & FEE PROPOSAL" small uppercase
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(34);
-    doc.setTextColor(...C.navy);
-    const titleLines = doc.splitTextToSize(projectName, CW);
-    doc.text(titleLines, ML, y);
-    y += titleLines.length * 13 + 10;
+    doc.setFontSize(8);
+    doc.setTextColor(180, 210, 240);
+    doc.text("PROPOSAL & FEE PROPOSAL", PAGE_W / 2, y, { align: "center" });
+    y += 6;
 
-    // "Prepared for:"
+    // ── Center of page: project name ──
+    y = 110;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(38);
+    doc.setTextColor(...C.white);
+    const titleLines = doc.splitTextToSize(projectName, CW - 20);
+    const titleLineH = 14;
+    titleLines.forEach((line: string, i: number) => {
+        doc.text(line, PAGE_W / 2, y + i * titleLineH, { align: "center" });
+    });
+    y += titleLines.length * titleLineH + 10;
+
+    // "Prepared exclusively for"
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
-    doc.setTextColor(...C.slate500);
-    doc.text("PREPARED FOR:", ML, y);
-    y += 7;
+    doc.setFontSize(9);
+    doc.setTextColor(...C.slate300);
+    doc.text("Prepared exclusively for", PAGE_W / 2, y, { align: "center" });
+    y += 8;
 
+    // Client name
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(17);
-    doc.setTextColor(...C.navy);
-    doc.text(clientName, ML, y);
-    y += 7;
+    doc.setFontSize(20);
+    doc.setTextColor(...C.white);
+    doc.text(clientName, PAGE_W / 2, y, { align: "center" });
+    y += 8;
 
+    // Client address
     if (clientAddress) {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
-        doc.setTextColor(...C.slate700);
-        const addrLines = doc.splitTextToSize(clientAddress, 100);
-        doc.text(addrLines, ML, y);
-        y += addrLines.length * 5 + 6;
+        doc.setTextColor(...C.slate300);
+        const addrLines = doc.splitTextToSize(clientAddress, 120);
+        addrLines.forEach((line: string, i: number) => {
+            doc.text(line, PAGE_W / 2, y + i * 5.5, { align: "center" });
+        });
+        y += addrLines.length * 5.5 + 4;
     }
 
-    // Two-column bottom info
-    y += 4;
-    const col2X = PAGE_W / 2 + 5;
+    // ── Bottom info boxes (y=230) ──
+    const boxY = 230;
+    const boxH = 22;
+    const boxW = (CW - 6) / 2;
+    const box1X = ML;
+    const box2X = ML + boxW + 6;
 
+    // Left box
+    doc.setFillColor(...C.navyLight);
+    doc.roundedRect(box1X, boxY, boxW, boxH, 2, 2, "F");
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
-    doc.setTextColor(...C.slate500);
-    doc.text("DATE ISSUED:", ML, y);
-    doc.text("REFERENCE:", col2X, y);
-    y += 6;
-
+    doc.setFontSize(7);
+    doc.setTextColor(...C.slate300);
+    doc.text("DATE ISSUED", box1X + 4, boxY + 6);
+    doc.text("VALID UNTIL", box1X + boxW / 2 + 4, boxY + 6);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(...C.navy);
-    doc.text(formatDate(today), ML, y);
-    doc.text(refCode, col2X, y);
-    y += 8;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
-    doc.setTextColor(...C.slate500);
-    doc.text("VALID UNTIL:", ML, y);
-    y += 6;
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(...C.navy);
-    doc.text(formatDate(validUntil), ML, y);
-
-    // Company footer bar (thin navy strip at bottom)
-    doc.setFillColor(...C.navy);
-    doc.rect(0, PAGE_H - 12, PAGE_W, 12, "F");
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
+    doc.setFontSize(9);
     doc.setTextColor(...C.white);
-    doc.text(companyName, ML, PAGE_H - 4.5);
-    doc.text("Confidential", MR, PAGE_H - 4.5, { align: "right" });
+    doc.text(formatDate(today), box1X + 4, boxY + 15);
+    doc.text(formatDate(validUntil), box1X + boxW / 2 + 4, boxY + 15);
+
+    // Right box
+    doc.setFillColor(...C.navyLight);
+    doc.roundedRect(box2X, boxY, boxW, boxH, 2, 2, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(...C.slate300);
+    doc.text("REFERENCE", box2X + 4, boxY + 6);
+    if (contractValue > 0) {
+        doc.text("CONTRACT VALUE", box2X + boxW / 2 + 4, boxY + 6);
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...C.white);
+    doc.text(refCode, box2X + 4, boxY + 15);
+    if (contractValue > 0) {
+        doc.text(formatGBP(contractValue), box2X + boxW / 2 + 4, boxY + 15);
+    }
+
+    // Very bottom
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...C.white);
+    doc.text(companyName, ML, 284);
+    if (profile?.website) {
+        doc.text(profile.website, MR, 284, { align: "right" });
+    } else {
+        doc.text("Confidential", MR, 284, { align: "right" });
+    }
 
     // ═══════════════════════════════════════════════════════════
-    // PAGE 2 — ABOUT US (only if capability_statement exists)
+    // PAGE 2 — ABOUT US (C2: Two-column capability profile)
     // ═══════════════════════════════════════════════════════════
     if (profile?.capability_statement) {
         doc.addPage();
         totalPagesRef.n++;
         y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef);
 
-        y = renderSectionHeading(doc, y, `About ${companyName}`);
+        // C2: Large section heading without number bar
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(22);
+        doc.setTextColor(...C.navy);
+        doc.text(`About ${companyName}`, ML, y + 8);
+        y += 18;
+
+        // Two-column layout: left 55%, right 45%
+        const leftW = CW * 0.55;
+        const rightW = CW * 0.43;
+        const rightX = ML + leftW + CW * 0.02;
+        let leftY = y;
+        let rightY = y;
+
+        // Left column
+        // Capability statement
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(...C.slate700);
+        const capLines = doc.splitTextToSize(profile.capability_statement, leftW);
+        doc.text(capLines, ML, leftY);
+        leftY += capLines.length * 5.5 + 8;
+
+        // Specialisms as pill badges
+        if (profile.specialisms) {
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.setTextColor(...C.navy);
+            doc.text("Specialisms", ML, leftY);
+            leftY += 7;
+
+            const specs = profile.specialisms.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean);
+            let badgeX = ML;
+            specs.forEach((spec: string) => {
+                const badgeW = doc.getTextWidth(spec) + 8;
+                if (badgeX + badgeW > ML + leftW) {
+                    badgeX = ML;
+                    leftY += 9;
+                }
+                doc.setFillColor(...C.navyLight);
+                doc.roundedRect(badgeX, leftY - 4.5, badgeW, 7, 1.5, 1.5, "F");
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(8);
+                doc.setTextColor(...C.white);
+                doc.text(spec, badgeX + 4, leftY);
+                badgeX += badgeW + 3;
+            });
+            leftY += 14;
+        }
 
         // Years trading badge
         if (profile.years_trading) {
+            const badge = `Est. ${profile.years_trading} years trading`;
+            const badgeW = doc.getTextWidth(badge) + 8;
             doc.setFillColor(...C.slate100);
-            doc.roundedRect(ML, y, 50, 10, 2, 2, "F");
+            doc.roundedRect(ML, leftY, badgeW, 8, 2, 2, "F");
             doc.setFont("helvetica", "bold");
             doc.setFontSize(8);
             doc.setTextColor(...C.navy);
-            doc.text(`${profile.years_trading} years trading`, ML + 4, y + 6.5);
-            y += 15;
+            doc.text(badge, ML + 4, leftY + 5.5);
+            leftY += 14;
         }
 
-        // Specialisms as bullet list
-        if (profile.specialisms) {
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(10);
-            doc.setTextColor(...C.navy);
-            doc.text("Specialisms", ML, y);
-            y += 6;
-            const specs = profile.specialisms.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean);
-            specs.forEach((spec: string) => {
+        // Right column
+        // Contact info box
+        const contactRows: string[][] = [];
+        if (profile.phone) contactRows.push(["Phone", profile.phone]);
+        if (profile.website) contactRows.push(["Website", profile.website]);
+        if (profile.address) contactRows.push(["Address", profile.address]);
+        if (profile.company_number) contactRows.push(["Company Reg.", profile.company_number]);
+        if (profile.vat_number) contactRows.push(["VAT Number", profile.vat_number]);
+
+        if (contactRows.length > 0) {
+            doc.setFillColor(...C.slate50);
+            doc.roundedRect(rightX, rightY, rightW, contactRows.length * 9 + 8, 3, 3, "F");
+            doc.setDrawColor(...C.slate200);
+            doc.setLineWidth(0.3);
+            doc.roundedRect(rightX, rightY, rightW, contactRows.length * 9 + 8, 3, 3, "S");
+            rightY += 6;
+            contactRows.forEach(([label, val]) => {
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(7.5);
+                doc.setTextColor(...C.slate500);
+                doc.text(label, rightX + 4, rightY + 4);
                 doc.setFont("helvetica", "normal");
-                doc.setFontSize(9.5);
+                doc.setFontSize(8.5);
                 doc.setTextColor(...C.slate700);
-                doc.text(`• ${spec}`, ML + 3, y);
-                y += 5.5;
+                const valLines = doc.splitTextToSize(val, rightW - 30);
+                doc.text(valLines[0], rightX + 28, rightY + 4);
+                rightY += 9;
             });
-            y += 4;
+            rightY += 6;
         }
 
-        // Capability statement
-        y = renderBodyText(doc, y, profile.capability_statement);
-        y += 8;
+        // Accreditations box
+        if (profile.accreditations) {
+            rightY += 4;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.setTextColor(...C.navy);
+            doc.text("Accreditations", rightX, rightY);
+            rightY += 6;
 
-        // Insurance / accreditation info box
-        const infoRows: string[][] = [];
-        if (profile.years_trading) infoRows.push(["Years Trading", String(profile.years_trading)]);
-        if (profile.accreditations) infoRows.push(["Accreditations", profile.accreditations]);
-        if (profile.insurance_details) infoRows.push(["Insurance", profile.insurance_details]);
-        if (profile.company_number) infoRows.push(["Company Reg.", profile.company_number]);
-        if (profile.vat_number) infoRows.push(["VAT Number", profile.vat_number]);
-        if (profile.website) infoRows.push(["Website", profile.website]);
-        if (profile.phone) infoRows.push(["Phone", profile.phone]);
-
-        if (infoRows.length > 0) {
-            autoTable(doc, {
-                startY: y,
-                body: infoRows,
-                theme: "plain",
-                margin: { left: ML, right: PAGE_W - MR },
-                bodyStyles: { fontSize: 9.5, textColor: C.slate700, cellPadding: 3.5 },
-                columnStyles: {
-                    0: { fontStyle: "bold", cellWidth: 45, textColor: C.slate500, fontSize: 8.5 },
-                },
-                alternateRowStyles: { fillColor: C.slate50 },
-                didDrawPage: () => { totalPagesRef.n = doc.getNumberOfPages(); },
+            const accreds = profile.accreditations.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean);
+            accreds.forEach((acc: string) => {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9);
+                doc.setTextColor(...C.slate700);
+                doc.text(`✓  ${acc}`, rightX, rightY);
+                rightY += 6;
             });
-            y = (doc as any).lastAutoTable.finalY + 8;
+        }
+
+        y = Math.max(leftY, rightY) + 8;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // CASE STUDIES (B3) — after About Us
+    // ═══════════════════════════════════════════════════════════
+    const caseStudies = profile?.case_studies || [];
+    if (caseStudies.length > 0) {
+        doc.addPage();
+        totalPagesRef.n++;
+        y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef);
+        y = renderSectionHeading(doc, y, "Our Work");
+
+        for (let ci = 0; ci < caseStudies.length; ci++) {
+            const cs = caseStudies[ci];
+            if (!cs.projectName) continue;
+
+            // Ensure space for at least header + some content
+            y = ensureSpace(doc, y, 50, companyName, docTitle, totalPagesRef);
+
+            // Navy full-width header bar
+            doc.setFillColor(...C.navy);
+            doc.rect(ML, y, CW, 10, "F");
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(12);
+            doc.setTextColor(...C.white);
+            doc.text(cs.projectName, ML + 4, y + 7);
+            y += 13;
+
+            // Two-column layout: left 60%, right 40%
+            const csLeftW = CW * 0.57;
+            const csRightW = CW * 0.38;
+            const csRightX = ML + csLeftW + CW * 0.05;
+            let csLeftY = y;
+            let csRightY = y;
+
+            // Left: badges
+            const badges = [
+                cs.projectType && `Type: ${cs.projectType}`,
+                cs.contractValue && `Value: £${Number(cs.contractValue).toLocaleString("en-GB")}`,
+                cs.programmeDuration && `Programme: ${cs.programmeDuration}`,
+                cs.location && cs.location,
+            ].filter(Boolean);
+
+            let bx = ML;
+            badges.forEach((badge) => {
+                if (!badge) return;
+                const bw = doc.getTextWidth(badge) + 6;
+                if (bx + bw > ML + csLeftW) {
+                    bx = ML;
+                    csLeftY += 8;
+                }
+                doc.setFillColor(...C.slate100);
+                doc.roundedRect(bx, csLeftY, bw, 6.5, 1.5, 1.5, "F");
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(7.5);
+                doc.setTextColor(...C.slate700);
+                doc.text(badge, bx + 3, csLeftY + 4.5);
+                bx += bw + 3;
+            });
+            csLeftY += 10;
+
+            // What We Delivered
+            if (cs.whatWeDelivered) {
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(8.5);
+                doc.setTextColor(...C.navy);
+                doc.text("What We Delivered", ML, csLeftY);
+                csLeftY += 5;
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9);
+                doc.setTextColor(...C.slate700);
+                const wdLines = doc.splitTextToSize(cs.whatWeDelivered, csLeftW);
+                doc.text(wdLines, ML, csLeftY);
+                csLeftY += wdLines.length * 4.8 + 4;
+            }
+
+            // Value Added
+            if (cs.valueAdded) {
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8.5);
+                doc.setTextColor(...C.slate500);
+                const vaLines = doc.splitTextToSize(`Value Added: ${cs.valueAdded}`, csLeftW);
+                doc.text(vaLines, ML, csLeftY);
+                csLeftY += vaLines.length * 4.8;
+            }
+
+            // Right: first photo
+            const firstPhoto = (cs.photos || []).find((p: string) => p);
+            if (firstPhoto) {
+                try {
+                    const imgH = Math.min(50, csRightW * 0.7);
+                    doc.addImage(firstPhoto, "JPEG", csRightX, csRightY, csRightW, imgH);
+                    csRightY += imgH + 2;
+                } catch {
+                    doc.setFillColor(...C.slate100);
+                    doc.rect(csRightX, csRightY, csRightW, 40, "F");
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(8);
+                    doc.setTextColor(...C.slate500);
+                    doc.text("Photo unavailable", csRightX + csRightW / 2, csRightY + 22, { align: "center" });
+                    csRightY += 42;
+                }
+            }
+
+            y = Math.max(csLeftY, csRightY) + 4;
+
+            // Separator line
+            doc.setDrawColor(...C.slate200);
+            doc.setLineWidth(0.3);
+            doc.line(ML, y, MR, y);
+            y += 8;
         }
     }
 
@@ -369,7 +566,6 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     doc.addPage();
     totalPagesRef.n++;
     y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef);
-
     y = renderSectionHeading(doc, y, "Introduction");
 
     doc.setFont("helvetica", "bold");
@@ -389,7 +585,6 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     }
     y += 12;
 
-    // Project Overview Table
     y = renderSectionHeading(doc, y, "Project Overview");
 
     const startDate = project?.start_date
@@ -428,7 +623,6 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     doc.addPage();
     totalPagesRef.n++;
     y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef);
-
     y = renderSectionHeading(doc, y, "Scope of Works");
 
     if (project?.scope_text) {
@@ -442,12 +636,11 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     }
 
     // ═══════════════════════════════════════════════════════════
-    // PAGE 5+ — FEE PROPOSAL
+    // PAGE 5+ — FEE PROPOSAL (C5: Better total section)
     // ═══════════════════════════════════════════════════════════
     doc.addPage();
     totalPagesRef.n++;
     y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef);
-
     y = renderSectionHeading(doc, y, "Fee Proposal");
 
     doc.setFont("helvetica", "italic");
@@ -508,16 +701,87 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             y += 9;
         });
 
-        // Grand total box
-        y = ensureSpace(doc, y, 20, companyName, docTitle, totalPagesRef);
-        doc.setFillColor(...C.navy);
-        doc.rect(ML, y, CW, 13, "F");
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
-        doc.setTextColor(...C.white);
-        doc.text("TOTAL CONTRACT SUM (EXC. VAT):", ML + 4, y + 8.5);
-        doc.text(formatGBP(grandTotal), MR - 4, y + 8.5, { align: "right" });
-        y += 20;
+        // C5: Better total summary box
+        y = ensureSpace(doc, y, 50, companyName, docTitle, totalPagesRef);
+        y += 4;
+
+        // Calculate totals
+        const labourTotal = estimates.reduce((sum, est) => {
+            const lines = est.estimate_lines || [];
+            return sum + lines
+                .filter((l: any) => l.cost_type === "labour" || l.unit === "hr" || l.unit === "hrs")
+                .reduce((s: number, l: any) => s + (l.line_total || 0), 0);
+        }, 0);
+
+        const materialsTotal = estimates.reduce((sum, est) => {
+            const lines = est.estimate_lines || [];
+            return sum + lines
+                .filter((l: any) => l.cost_type === "material" || l.unit === "m2" || l.unit === "m3" || l.unit === "nr")
+                .reduce((s: number, l: any) => s + (l.line_total || 0), 0);
+        }, 0);
+
+        const subtotal = estimates.reduce((sum, est) => sum + (est.total_cost || 0), 0);
+        const avgOverhead = estimates.length > 0 ? estimates.reduce((s, e) => s + (e.overhead_pct || 0), 0) / estimates.length : 0;
+        const avgProfit = estimates.length > 0 ? estimates.reduce((s, e) => s + (e.profit_pct || 0), 0) / estimates.length : 0;
+        const totalMarkup = grandTotal - subtotal;
+        const vatAmount = grandTotal * 0.20;
+        const totalIncVat = grandTotal * 1.20;
+
+        // Summary box
+        const sumBoxH = 62;
+        const sumBoxX = ML + CW * 0.38;
+        const sumBoxW = CW * 0.62;
+
+        doc.setFillColor(...C.slate50);
+        doc.roundedRect(sumBoxX, y, sumBoxW, sumBoxH, 3, 3, "F");
+        doc.setDrawColor(...C.slate200);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(sumBoxX, y, sumBoxW, sumBoxH, 3, 3, "S");
+
+        const rows: [string, string, boolean?][] = [
+            ...(subtotal > 0 && avgOverhead + avgProfit > 0 ? [
+                ["Subtotal (cost)", formatGBP(subtotal)],
+                [`Overhead & Profit (${Math.round(avgOverhead + avgProfit)}%)`, formatGBP(totalMarkup)],
+            ] as [string, string][] : []),
+            ["TOTAL EXCL. VAT", formatGBP(grandTotal), true],
+            ["VAT @ 20%", formatGBP(vatAmount)],
+            ["TOTAL INCL. VAT", formatGBP(totalIncVat), true],
+        ];
+
+        let rowY = y + 8;
+        rows.forEach(([label, val, bold]) => {
+            if (bold && label === "TOTAL INCL. VAT") {
+                // Largest row
+                doc.setFillColor(...C.navy);
+                doc.rect(sumBoxX, rowY - 3, sumBoxW, 11, "F");
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(11);
+                doc.setTextColor(...C.white);
+                doc.text(label, sumBoxX + 4, rowY + 4.5);
+                doc.text(val, sumBoxX + sumBoxW - 4, rowY + 4.5, { align: "right" });
+                rowY += 13;
+            } else if (bold && label === "TOTAL EXCL. VAT") {
+                doc.setDrawColor(...C.slate300);
+                doc.setLineWidth(0.3);
+                doc.line(sumBoxX + 4, rowY - 2, sumBoxX + sumBoxW - 4, rowY - 2);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(10.5);
+                doc.setTextColor(...C.navy);
+                doc.text(label, sumBoxX + 4, rowY + 4);
+                doc.text(val, sumBoxX + sumBoxW - 4, rowY + 4, { align: "right" });
+                rowY += 10;
+            } else {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9);
+                doc.setTextColor(...C.slate700);
+                doc.text(label, sumBoxX + 4, rowY + 4);
+                doc.text(val, sumBoxX + sumBoxW - 4, rowY + 4, { align: "right" });
+                rowY += 8;
+            }
+        });
+
+        y += sumBoxH + 10;
+
     } else {
         const summaryRows = estimates.map((est) => {
             const markup = 1 + ((est.profit_pct || 0) + (est.overhead_pct || 0) + (est.risk_pct || 0)) / 100;
@@ -528,12 +792,10 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             startY: y,
             head: [["Trade / Phase", "Total (£)"]],
             body: summaryRows,
-            foot: [["TOTAL CONTRACT SUM (EXC. VAT)", formatGBP(grandTotal)]],
             theme: "grid",
             margin: { left: ML, right: PAGE_W - MR },
             headStyles: { fillColor: C.navy, textColor: C.white, fontStyle: "bold", fontSize: 9 },
             bodyStyles: { fontSize: 10, textColor: C.slate700, cellPadding: 4 },
-            footStyles: { fillColor: C.navy, textColor: C.white, fontStyle: "bold", fontSize: 10 },
             columnStyles: { 1: { halign: "right" as const, cellWidth: 45 } },
             alternateRowStyles: { fillColor: C.slate50 },
             tableLineColor: C.border,
@@ -541,9 +803,51 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             didDrawPage: () => { totalPagesRef.n = doc.getNumberOfPages(); },
         });
         y = (doc as any).lastAutoTable.finalY + 8;
+
+        // C5: Summary total box
+        y = ensureSpace(doc, y, 40, companyName, docTitle, totalPagesRef);
+        const vatAmount = grandTotal * 0.20;
+        const totalIncVat = grandTotal * 1.20;
+
+        const stbX = ML + CW * 0.4;
+        const stbW = CW * 0.6;
+        doc.setFillColor(...C.slate50);
+        doc.roundedRect(stbX, y, stbW, 36, 3, 3, "F");
+        doc.setDrawColor(...C.slate200);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(stbX, y, stbW, 36, 3, 3, "S");
+
+        let ry = y + 6;
+        // TOTAL EXCL VAT
+        doc.setDrawColor(...C.slate300);
+        doc.line(stbX + 4, ry, stbX + stbW - 4, ry);
+        ry += 4;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10.5);
+        doc.setTextColor(...C.navy);
+        doc.text("TOTAL EXCL. VAT", stbX + 4, ry + 4);
+        doc.text(formatGBP(grandTotal), stbX + stbW - 4, ry + 4, { align: "right" });
+        ry += 8;
+        // VAT
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(...C.slate500);
+        doc.text("VAT @ 20%", stbX + 4, ry + 4);
+        doc.text(formatGBP(vatAmount), stbX + stbW - 4, ry + 4, { align: "right" });
+        ry += 7;
+        // Total incl. VAT
+        doc.setFillColor(...C.navy);
+        doc.rect(stbX, ry, stbW, 10, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(...C.white);
+        doc.text("TOTAL INCL. VAT", stbX + 4, ry + 6.5);
+        doc.text(formatGBP(totalIncVat), stbX + stbW - 4, ry + 6.5, { align: "right" });
+
+        y += 46;
     }
 
-    // Payment Schedule (if present) — at bottom of fee section
+    // Payment Schedule
     const paymentSchedule = project?.payment_schedule;
     if (paymentSchedule && paymentSchedule.length > 0) {
         y = ensureSpace(doc, y, 30, companyName, docTitle, totalPagesRef);
@@ -596,25 +900,27 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     doc.text(validityLines, ML, y);
 
     // ═══════════════════════════════════════════════════════════
-    // TIMELINE / GANTT
+    // TIMELINE / GANTT (C4: Proper sequential bars)
     // ═══════════════════════════════════════════════════════════
     const phases: any[] = project?.gantt_phases || [];
     if (phases.length > 0) {
         doc.addPage();
         totalPagesRef.n++;
         y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef);
-
         y = renderSectionHeading(doc, y, "Project Timeline");
 
+        // C4: Calculate start dates properly
         const allPhasesWithDates = phases.map((p: any, idx: number) => {
             let startMs: number;
             if (p.start_date) {
                 startMs = new Date(p.start_date).getTime();
             } else if (project?.start_date) {
+                // Sequential from project start date
                 const projectStart = new Date(project.start_date).getTime();
                 const prevDays = phases.slice(0, idx).reduce((sum: number, prev: any) => sum + (prev.duration_days || 7), 0);
                 startMs = projectStart + prevDays * 86400000;
             } else {
+                // No dates: sequential from today
                 const baseDate = Date.now();
                 const prevDays = phases.slice(0, idx).reduce((sum: number, prev: any) => sum + (prev.duration_days || 7), 0);
                 startMs = baseDate + prevDays * 86400000;
@@ -626,9 +932,10 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             };
         });
 
-        const timelineStart = Math.min(...allPhasesWithDates.map((p: any) => p.startMs));
-        const timelineEnd = Math.max(...allPhasesWithDates.map((p: any) => p.endMs));
-        const totalDays = Math.max(1, Math.ceil((timelineEnd - timelineStart) / 86400000));
+        // C4: Find earliest start across ALL phases
+        const earliestStart = Math.min(...allPhasesWithDates.map((p: any) => p.startMs));
+        const latestEnd = Math.max(...allPhasesWithDates.map((p: any) => p.endMs));
+        const totalDays = Math.max(1, Math.ceil((latestEnd - earliestStart) / 86400000));
         const totalWeeks = Math.ceil(totalDays / 7);
 
         const labelColW = 55;
@@ -648,9 +955,10 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         doc.text("Phase", ML + 3, y + 8);
         doc.text("Duration", ML + labelColW + 3, y + 8);
 
-        // Week labels
-        const weekW = chartW / Math.max(1, Math.min(totalWeeks, 24));
-        for (let w = 0; w < Math.min(totalWeeks, 24); w++) {
+        // C4: Week labels calculated from earliest date
+        const cappedWeeks = Math.min(totalWeeks, 24);
+        const weekW = chartW / Math.max(1, cappedWeeks);
+        for (let w = 0; w < cappedWeeks; w++) {
             const wx = chartX + w * weekW;
             const label = `W${w + 1}`;
             if (weekW > 6) {
@@ -660,6 +968,8 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             }
         }
         y += headerH;
+
+        const cappedTotalDays = cappedWeeks * 7;
 
         allPhasesWithDates.forEach((phase: any, idx: number) => {
             if (idx % 2 === 0) {
@@ -681,12 +991,10 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             doc.setTextColor(...C.slate500);
             doc.text(`${weeks} wk${weeks !== 1 ? "s" : ""}`, ML + labelColW + 3, y + 7);
 
-            // Bar
-            const startOffset = (phase.startMs - timelineStart) / 86400000;
-            const cappedWeeks = Math.min(totalWeeks, 24);
-            const cappedTotalDays = cappedWeeks * 7;
+            // C4: Bar positioned relative to earliest start
+            const startOffset = (phase.startMs - earliestStart) / 86400000;
             const barX = chartX + Math.min(startOffset / cappedTotalDays, 0.95) * chartW;
-            const barW = Math.max(3, Math.min((phase.duration_days / cappedTotalDays) * chartW, chartW * 0.98));
+            const barW = Math.max(3, Math.min((phase.duration_days / cappedTotalDays) * chartW, chartW * 0.98 - (barX - chartX)));
             const barColor = GANTT_COLORS[phase.color] || GANTT_COLORS.blue;
 
             doc.setFillColor(...barColor);
@@ -704,12 +1012,11 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             y += rowH;
         });
 
-        // Border
+        // Border around gantt
         doc.setDrawColor(...C.slate200);
         doc.setLineWidth(0.3);
         doc.rect(ML, y - phases.length * rowH - headerH, CW, phases.length * rowH + headerH, "S");
 
-        // Legend
         y += 5;
         doc.setFont("helvetica", "italic");
         doc.setFontSize(7.5);
@@ -724,17 +1031,14 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         doc.addPage();
         totalPagesRef.n++;
         y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef);
-
         y = renderSectionHeading(doc, y, "Exclusions & Clarifications");
 
-        // Two side-by-side boxes
         const halfW = (CW - 8) / 2;
         const boxX2 = ML + halfW + 8;
         const boxStartY = y;
         let leftY = y + 8;
         let rightY = y + 8;
 
-        // Exclusions box (left)
         if (project?.exclusions_text) {
             doc.setFillColor(...C.navy);
             doc.rect(ML, y, halfW, 10, "F");
@@ -755,7 +1059,6 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             });
         }
 
-        // Clarifications box (right)
         if (project?.clarifications_text) {
             doc.setFillColor(...C.navy);
             doc.rect(boxX2, boxStartY, halfW, 10, "F");
@@ -778,7 +1081,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     }
 
     // ═══════════════════════════════════════════════════════════
-    // SITE PHOTOS (only if photos exist)
+    // SITE PHOTOS
     // ═══════════════════════════════════════════════════════════
     const sitePhotos: any[] = project?.site_photos || [];
     const hasPhotos = sitePhotos.some((p: any) => p.url);
@@ -787,7 +1090,6 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         doc.addPage();
         totalPagesRef.n++;
         y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef);
-
         y = renderSectionHeading(doc, y, "Site Photographs");
 
         const introText = "Photographs captured during the site visit and survey are included below for reference.";
@@ -837,7 +1139,6 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     doc.addPage();
     totalPagesRef.n++;
     y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef);
-
     y = renderSectionHeading(doc, y, "Terms & Conditions of Contract");
 
     doc.setFont("helvetica", "italic");
@@ -876,7 +1177,6 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     doc.addPage();
     totalPagesRef.n++;
     y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef);
-
     y = renderSectionHeading(doc, y, "Acceptance & Signatures");
 
     // Summary box
@@ -907,10 +1207,8 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         sumCol2 + 3, y + 21
     );
     doc.text(formatDate(validUntil), sumCol3 + 3, y + 21);
-
     y += 36;
 
-    // Signing statement
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9.5);
     doc.setTextColor(...C.slate700);
@@ -919,11 +1217,9 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     doc.text(sigLines, ML, y);
     y += sigLines.length * 5.5 + 10;
 
-    // Two signature blocks side by side
     const sigBoxW = (CW - 10) / 2;
     const sigBoxX2 = ML + sigBoxW + 10;
 
-    // Left: Contractor
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.setTextColor(...C.navy);
@@ -945,15 +1241,12 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     doc.setLineWidth(0.3);
     doc.line(ML, y, ML + sigBoxW, y);
     y += 5;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
     doc.text("Print Name", ML, y);
     y += 8;
     doc.line(ML, y, ML + sigBoxW, y);
     y += 5;
     doc.text("Date", ML, y);
 
-    // Right: Client (reset y to same row start)
     const rightStartY = y - 26 - 8 - 8 - 5 - 5 - 5 - 16 - 5 - 6;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
@@ -977,7 +1270,6 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     doc.line(sigBoxX2, rightStartY + 48, sigBoxX2 + sigBoxW, rightStartY + 48);
     doc.text("Date", sigBoxX2, rightStartY + 53);
 
-    // Small print footer
     y += 16;
     doc.setFont("helvetica", "italic");
     doc.setFontSize(7.5);
@@ -985,10 +1277,6 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     const smallPrint = `This Proposal was generated by ${companyName} using Constructa. Acceptance of this proposal constitutes a binding agreement to the stated terms. Ref: ${refCode}.`;
     const spLines = doc.splitTextToSize(smallPrint, CW);
     doc.text(spLines, ML, y);
-
-    // ─── Retroactively update page numbers ───────────────────
-    // (jsPDF doesn't support this natively without a second pass,
-    //  but our page numbers are already accurate from totalPagesRef.n)
 
     const filename = `${projectName.replace(/[^a-z0-9]/gi, "_")}_Proposal_${refCode}.pdf`;
     doc.save(filename);

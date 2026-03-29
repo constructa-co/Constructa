@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2 } from "lucide-react";
 import { saveProposalAction, generateAiScopeAction, sendProposalAction, rewriteIntroductionAction } from "./actions";
 import ProposalPdfButton from "./proposal-pdf-button";
+import AiWizard from "./ai-wizard";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
@@ -181,6 +182,44 @@ export default function ClientEditor({
     const [validityDays, setValidityDays] = useState(30);
     const [linkCopied, setLinkCopied] = useState(false);
     const [sending, setSending] = useState(false);
+
+    // AI Wizard state
+    const isFirstTime = !initialScope && !project?.proposal_introduction && !project?.gantt_phases?.length && !project?.payment_schedule?.length;
+    const [showFirstTimeModal, setShowFirstTimeModal] = useState(isFirstTime);
+    const [showWizard, setShowWizard] = useState(false);
+
+    function handleWizardComplete(data: {
+        introduction: string;
+        scope_narrative: string;
+        exclusions: string;
+        clarifications: string;
+        gantt_phases: any[];
+        payment_stages: any[];
+    }) {
+        setIntroduction(data.introduction || "");
+        setScope(data.scope_narrative || "");
+        setExclusions(data.exclusions || "");
+        setClarifications(data.clarifications || "");
+        if (data.gantt_phases?.length) {
+            setGanttPhases(data.gantt_phases.map((p: any) => ({
+                id: p.id || crypto.randomUUID(),
+                name: p.name,
+                start_date: p.start_date || "",
+                duration_days: p.duration_days || 14,
+                duration_unit: (p.duration_unit as DurationUnit) || "Weeks",
+                color: p.color || "blue",
+            })));
+        }
+        if (data.payment_stages?.length) {
+            setPaymentSchedule(data.payment_stages.map((p: any) => ({
+                id: p.id || crypto.randomUUID(),
+                stage: p.stage,
+                description: p.description,
+                percentage: p.percentage,
+            })));
+        }
+        setShowWizard(false);
+    }
 
     const contractValue = useEstimatedTotal && estimatedTotal > 0
         ? estimatedTotal
@@ -361,6 +400,46 @@ export default function ClientEditor({
 
     return (
         <div className="grid lg:grid-cols-3 gap-8 items-start pb-20">
+            {/* ── AI First-Time Modal ── */}
+            {showFirstTimeModal && !showWizard && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg p-8 text-center">
+                        <div className="w-14 h-14 rounded-2xl bg-blue-600/20 flex items-center justify-center mx-auto mb-5">
+                            <Sparkles className="w-7 h-7 text-blue-400" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-slate-100 mb-2">Let AI build your proposal</h2>
+                        <p className="text-slate-400 text-sm mb-8 max-w-sm mx-auto">
+                            Answer a few quick questions and we&apos;ll pre-fill your scope, timeline, payment schedule and introduction.
+                        </p>
+                        <div className="flex flex-col gap-3">
+                            <Button
+                                onClick={() => { setShowFirstTimeModal(false); setShowWizard(true); }}
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 text-base gap-2"
+                            >
+                                <Sparkles className="w-4 h-4" />
+                                Build with AI →
+                            </Button>
+                            <button
+                                onClick={() => setShowFirstTimeModal(false)}
+                                className="h-12 text-slate-400 hover:text-slate-300 text-sm font-medium transition-colors"
+                            >
+                                Fill manually
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── AI Wizard Modal ── */}
+            {showWizard && (
+                <AiWizard
+                    projectId={projectId}
+                    project={project}
+                    onComplete={handleWizardComplete}
+                    onClose={() => setShowWizard(false)}
+                />
+            )}
+
             {/* ── MAIN CONTENT COL ── */}
             <div className="lg:col-span-2 space-y-6">
 
@@ -920,6 +999,16 @@ export default function ClientEditor({
                         ) : (
                             <><Copy className="w-4 h-4" /> Copy Proposal Link</>
                         )}
+                    </button>
+
+                    {/* AI Assistant Button */}
+                    <button
+                        type="button"
+                        onClick={() => setShowWizard(true)}
+                        className="w-full h-12 bg-slate-800 hover:bg-slate-700 border border-blue-700/50 text-blue-300 hover:text-blue-200 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
+                    >
+                        <Sparkles className="w-4 h-4" />
+                        ✨ AI Assistant
                     </button>
 
                     {/* PDF Button */}

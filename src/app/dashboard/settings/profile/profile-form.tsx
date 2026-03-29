@@ -3,6 +3,21 @@
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { updateProfileAction } from "./actions";
+import { createClient } from "@/lib/supabase/client";
+import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Loader2 } from "lucide-react";
+
+interface CaseStudy {
+    id: string;
+    projectName: string;
+    projectType: string;
+    contractValue: string;
+    programmeDuration: string;
+    client: string;
+    location: string;
+    whatWeDelivered: string;
+    valueAdded: string;
+    photos: string[]; // up to 3 URLs
+}
 
 interface Profile {
     full_name?: string | null;
@@ -19,6 +34,7 @@ interface Profile {
     capability_statement?: string | null;
     logo_url?: string | null;
     business_type?: string | null;
+    case_studies?: CaseStudy[] | null;
 }
 
 const BUSINESS_TYPES = [
@@ -34,13 +50,198 @@ const BUSINESS_TYPES = [
     "Multi-trade / Other",
 ];
 
+function CaseStudyCard({
+    cs,
+    index,
+    onChange,
+    onRemove,
+}: {
+    cs: CaseStudy;
+    index: number;
+    onChange: (updated: CaseStudy) => void;
+    onRemove: () => void;
+}) {
+    const [expanded, setExpanded] = useState(true);
+    const [uploading, setUploading] = useState<number | null>(null);
+
+    const update = (field: keyof CaseStudy, value: string | string[]) =>
+        onChange({ ...cs, [field]: value });
+
+    const handlePhotoUpload = async (slot: number, file: File) => {
+        setUploading(slot);
+        const supabase = createClient();
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `case-studies/${cs.id}/${slot}.${ext}`;
+        const { error } = await supabase.storage
+            .from("proposal-photos")
+            .upload(path, file, { upsert: true });
+        if (!error) {
+            const { data } = supabase.storage.from("proposal-photos").getPublicUrl(path);
+            const newPhotos = [...(cs.photos || ["", "", ""])];
+            newPhotos[slot] = data.publicUrl;
+            update("photos", newPhotos);
+        } else {
+            toast.error("Upload failed: " + error.message);
+        }
+        setUploading(null);
+    };
+
+    const inputCls = "w-full h-10 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600";
+    const labelCls = "text-xs font-medium text-slate-400 block mb-1";
+
+    return (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            {/* Card Header */}
+            <div className="flex items-center justify-between px-5 py-3 bg-slate-800/60 border-b border-slate-700">
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Case Study {index + 1}</span>
+                    {cs.projectName && (
+                        <span className="text-sm font-semibold text-slate-200">— {cs.projectName}</span>
+                    )}
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setExpanded(e => !e)}
+                        className="text-slate-500 hover:text-slate-300 p-1 rounded"
+                    >
+                        {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onRemove}
+                        className="text-slate-600 hover:text-red-400 p-1 rounded transition-colors"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+
+            {expanded && (
+                <div className="p-5 space-y-4">
+                    {/* Row 1: Project Name + Type */}
+                    <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className={labelCls}>Project Name</label>
+                            <input value={cs.projectName} onChange={e => update("projectName", e.target.value)} placeholder="Rear Extension, 42 Oak Avenue" className={inputCls} />
+                        </div>
+                        <div>
+                            <label className={labelCls}>Project Type</label>
+                            <input value={cs.projectType} onChange={e => update("projectType", e.target.value)} placeholder="Extension" className={inputCls} />
+                        </div>
+                    </div>
+
+                    {/* Row 2: Value + Duration + Client + Location */}
+                    <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className={labelCls}>Contract Value (£)</label>
+                            <input type="number" value={cs.contractValue} onChange={e => update("contractValue", e.target.value)} placeholder="45000" className={inputCls} />
+                        </div>
+                        <div>
+                            <label className={labelCls}>Programme Duration</label>
+                            <input value={cs.programmeDuration} onChange={e => update("programmeDuration", e.target.value)} placeholder="6 weeks" className={inputCls} />
+                        </div>
+                        <div>
+                            <label className={labelCls}>Client (optional)</label>
+                            <input value={cs.client} onChange={e => update("client", e.target.value)} placeholder="Mr & Mrs Johnson" className={inputCls} />
+                        </div>
+                        <div>
+                            <label className={labelCls}>Location</label>
+                            <input value={cs.location} onChange={e => update("location", e.target.value)} placeholder="Guildford, Surrey" className={inputCls} />
+                        </div>
+                    </div>
+
+                    {/* What We Delivered */}
+                    <div>
+                        <label className={labelCls}>What We Delivered</label>
+                        <textarea
+                            value={cs.whatWeDelivered}
+                            onChange={e => update("whatWeDelivered", e.target.value)}
+                            rows={3}
+                            placeholder="3-4 sentences describing the works..."
+                            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        />
+                    </div>
+
+                    {/* Value Added */}
+                    <div>
+                        <label className={labelCls}>Value Added</label>
+                        <textarea
+                            value={cs.valueAdded}
+                            onChange={e => update("valueAdded", e.target.value)}
+                            rows={2}
+                            placeholder="What made this project special..."
+                            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        />
+                    </div>
+
+                    {/* Photos */}
+                    <div>
+                        <label className={labelCls}>Photos (up to 3)</label>
+                        <div className="grid grid-cols-3 gap-3">
+                            {[0, 1, 2].map(slot => {
+                                const url = (cs.photos || [])[slot] || "";
+                                return (
+                                    <div key={slot} className="relative">
+                                        {url ? (
+                                            <div className="relative group">
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img src={url} alt={`Photo ${slot + 1}`} className="w-full h-24 object-cover rounded-lg border border-slate-700" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const newPhotos = [...(cs.photos || ["", "", ""])];
+                                                        newPhotos[slot] = "";
+                                                        update("photos", newPhotos);
+                                                    }}
+                                                    className="absolute top-1 right-1 bg-red-600 text-white rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <Trash2 className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <label className="flex flex-col items-center justify-center w-full h-24 rounded-lg border-2 border-dashed border-slate-700 bg-slate-800/50 cursor-pointer hover:border-blue-600 transition-colors">
+                                                {uploading === slot ? (
+                                                    <Loader2 className="w-5 h-5 text-slate-500 animate-spin" />
+                                                ) : (
+                                                    <>
+                                                        <Upload className="w-5 h-5 text-slate-500 mb-1" />
+                                                        <span className="text-xs text-slate-500">Photo {slot + 1}</span>
+                                                    </>
+                                                )}
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={e => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) handlePhotoUpload(slot, file);
+                                                    }}
+                                                />
+                                            </label>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function ProfileForm({ profile, userEmail }: { profile: Profile | null; userEmail: string }) {
     const [saving, setSaving] = useState(false);
+    const [caseStudies, setCaseStudies] = useState<CaseStudy[]>(
+        (profile?.case_studies as CaseStudy[] | null | undefined) || []
+    );
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setSaving(true);
         const fd = new FormData(e.currentTarget);
+        fd.set("case_studies", JSON.stringify(caseStudies));
         const result = await updateProfileAction(fd);
         setSaving(false);
         if (result?.success) {
@@ -49,6 +250,21 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
             toast.error("Save failed: " + (result?.error || "Unknown error"));
         }
     };
+
+    function addCaseStudy() {
+        setCaseStudies(prev => [...prev, {
+            id: crypto.randomUUID(),
+            projectName: "",
+            projectType: "",
+            contractValue: "",
+            programmeDuration: "",
+            client: "",
+            location: "",
+            whatWeDelivered: "",
+            valueAdded: "",
+            photos: ["", "", ""],
+        }]);
+    }
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -222,6 +438,49 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
                             <img src={profile.logo_url} alt="Logo preview" className="h-16 w-auto object-contain" />
                         </div>
                     )}
+                </div>
+            </div>
+
+            {/* Section C — Past Projects & Case Studies */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-100">Past Projects &amp; Case Studies</h2>
+                        <p className="text-xs text-slate-500 mt-0.5">These appear in your proposal PDF to showcase your work.</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={addCaseStudy}
+                        className="flex items-center gap-1.5 text-sm font-semibold text-blue-400 hover:text-blue-300 bg-blue-900/20 hover:bg-blue-900/40 border border-blue-700/40 rounded-lg px-3 py-1.5 transition-colors"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add Case Study
+                    </button>
+                </div>
+
+                {caseStudies.length === 0 && (
+                    <div className="text-center py-10 border-2 border-dashed border-slate-800 rounded-xl">
+                        <p className="text-slate-500 text-sm">No case studies yet. Add your first to showcase past work in proposals.</p>
+                        <button
+                            type="button"
+                            onClick={addCaseStudy}
+                            className="mt-3 text-sm font-semibold text-blue-400 hover:text-blue-300"
+                        >
+                            + Add Case Study
+                        </button>
+                    </div>
+                )}
+
+                <div className="space-y-4">
+                    {caseStudies.map((cs, i) => (
+                        <CaseStudyCard
+                            key={cs.id}
+                            cs={cs}
+                            index={i}
+                            onChange={updated => setCaseStudies(prev => prev.map((c, idx) => idx === i ? updated : c))}
+                            onRemove={() => setCaseStudies(prev => prev.filter((_, idx) => idx !== i))}
+                        />
+                    ))}
                 </div>
             </div>
 

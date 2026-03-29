@@ -4,6 +4,152 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+// ── Types for AI Wizard ──────────────────────────────────────
+export interface ProposalAnswers {
+    description: string;
+    client: string;
+    siteAddress: string;
+    value: string;
+    startDate: string;
+    duration: string; // e.g. "6 weeks"
+    extras: string;
+}
+
+export interface GanttPhaseResult {
+    name: string;
+    duration_days: number;
+    duration_unit: string;
+}
+
+export interface PaymentStageResult {
+    stage: string;
+    description: string;
+    percentage: number;
+}
+
+export interface GeneratedProposal {
+    introduction: string;
+    scope_narrative: string;
+    exclusions: string;
+    clarifications: string;
+    gantt_phases: GanttPhaseResult[];
+    payment_stages: PaymentStageResult[];
+}
+
+export async function generateFullProposalAction(
+    answers: ProposalAnswers,
+    projectId: string
+): Promise<{ success: false; error: string } | { success: true; data: GeneratedProposal }> {
+    const supabase = createClient();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
+    if (!user) return { success: false, error: "Not authenticated" };
+
+    const { data: project } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", projectId)
+        .eq("user_id", user.id)
+        .single();
+
+    const { data: profile } = await supabase
+        .from("profiles")
+        .select("business_type, specialisms")
+        .eq("id", user.id)
+        .single();
+
+    if (!project) return { success: false, error: "Project not found" };
+
+    const apiKey = process.env.GEMINI_API_KEY?.trim();
+    if (!apiKey) return { success: false, error: "AI not configured" };
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+
+    const prompt = `You are a senior UK construction quantity surveyor generating a professional proposal.
+
+PROJECT DETAILS:
+- Description: ${answers.description}
+- Client: ${answers.client || project?.client_name || "The Client"}
+- Site: ${answers.siteAddress || project?.site_address || "As agreed"}
+- Value: £${answers.value || project?.potential_value || "TBC"}
+- Start: ${answers.startDate || "TBC"}
+- Duration: ${answers.duration}
+- Highlights/Exclusions: ${answers.extras || "None specified"}
+- Contractor Trade: ${profile?.business_type || "General Contractor"}
+- Contractor Specialisms: ${profile?.specialisms || "Construction Works"}
+
+Generate a complete proposal package. Return ONLY valid JSON:
+{
+  "introduction": "2-sentence personalised opening paragraph starting with Dear [Client],",
+  "scope_narrative": "3 professional paragraphs describing the works technically",
+  "exclusions": "item1\nitem2\nitem3\nitem4\nitem5",
+  "clarifications": "item1\nitem2\nitem3",
+  "gantt_phases": [{"name": "Phase Name", "duration_days": 14, "duration_unit": "Weeks"}],
+  "payment_stages": [{"stage": "Stage Name", "description": "trigger description", "percentage": 20}]
+}
+
+Rules:
+- Use "The Contractor" and "The Client" throughout
+- Professional UK construction tone
+- gantt_phases: 4-6 phases appropriate to the work type
+- payment_stages: 4-5 stages, percentages must sum to exactly 100
+- Return ONLY the JSON object, no markdown`;
+
+    try {
+        const model = genAI.getGenerativeModel({
+            model: "gemini-1.5-flash",
+            generationConfig: { responseMimeType: "application/json" },
+        });
+        const result = await model.generateContent(prompt);
+        const raw = result.response.text();
+        const parsed = JSON.parse(raw) as GeneratedProposal;
+
+        // Normalise gantt phases — ensure duration_days is set
+        const ganttPhases = (parsed.gantt_phases || []).map((p, i) => ({
+            id: String(Date.now() + i),
+            name: p.name,
+            start_date: answers.startDate || "",
+            duration_days: p.duration_days || 14,
+            duration_unit: (p.duration_unit as "Hours" | "Days" | "Weeks") || "Weeks",
+            color: ["blue", "green", "orange", "purple", "slate", "red"][i % 6],
+        }));
+
+        const paymentStages = (parsed.payment_stages || []).map((p, i) => ({
+            id: String(Date.now() + i + 100),
+            stage: p.stage,
+            description: p.description,
+            percentage: p.percentage,
+        }));
+
+        // Persist to DB immediately
+        await supabase.from("projects").update({
+            scope_text: parsed.scope_narrative,
+            exclusions_text: parsed.exclusions,
+            clarifications_text: parsed.clarifications,
+            proposal_introduction: parsed.introduction,
+            gantt_phases: ganttPhases,
+            payment_schedule: paymentStages,
+        }).eq("id", projectId).eq("user_id", user.id);
+
+        revalidatePath(`/dashboard/projects/proposal?projectId=${projectId}`);
+
+        return {
+            success: true,
+            data: {
+                introduction: parsed.introduction,
+                scope_narrative: parsed.scope_narrative,
+                exclusions: parsed.exclusions,
+                clarifications: parsed.clarifications,
+                gantt_phases: ganttPhases,
+                payment_stages: paymentStages,
+            },
+        };
+    } catch (error: any) {
+        console.error("generateFullProposalAction error:", error);
+        return { success: false, error: error.message };
+    }
+}
+
 export async function saveProposalAction(formData: FormData) {
     const supabase = createClient();
     const { data: authData } = await supabase.auth.getUser();

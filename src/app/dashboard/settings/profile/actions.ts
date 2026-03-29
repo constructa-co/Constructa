@@ -27,6 +27,18 @@ export async function updateProfileAction(formData: FormData) {
         business_type: formData.get("business_type") as string,
     };
 
+    // Case studies — stored as JSONB
+    const caseStudiesRaw = formData.get("case_studies") as string;
+    if (caseStudiesRaw) {
+        try {
+            (profileData as Record<string, any>).case_studies = JSON.parse(caseStudiesRaw);
+        } catch {
+            // skip malformed JSON
+        }
+    } else {
+        (profileData as Record<string, any>).case_studies = [];
+    }
+
     const { error } = await supabase.from("profiles").upsert(profileData, { onConflict: "id" });
 
     if (error) {

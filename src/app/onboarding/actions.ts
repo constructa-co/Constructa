@@ -26,23 +26,27 @@ export async function saveOnboardingAction(formData: FormData) {
 
     const years_trading_raw = formData.get("years_trading") as string;
 
-    const profileData: Record<string, any> = {
-        id: user.id,
-        full_name: formData.get("full_name") as string,
-        company_name: formData.get("company_name") as string,
-        phone: formData.get("phone") as string,
-        address: formData.get("address") as string,
-        website: formData.get("website") as string,
+    const updateData: Record<string, any> = {
+        full_name: formData.get("full_name") as string || null,
+        company_name: formData.get("company_name") as string || null,
+        phone: formData.get("phone") as string || null,
+        address: formData.get("address") as string || null,
+        website: formData.get("website") as string || null,
+        logo_url: formData.get("logo_url") as string || null,
         years_trading: years_trading_raw ? parseInt(years_trading_raw, 10) : null,
-        business_type: formData.get("business_type") as string,
-        specialisms: formData.get("specialisms") as string,
-        capability_statement: formData.get("capability_statement") as string,
-        accreditations: formData.get("accreditations") as string,
+        business_type: formData.get("business_type") as string || null,
+        specialisms: formData.get("specialisms") as string || null,
+        capability_statement: formData.get("capability_statement") as string || null,
+        accreditations: formData.get("accreditations") as string || null,
         insurance_schedule,
         default_tc_overrides,
     };
 
-    const { error } = await supabase.from("profiles").upsert(profileData, { onConflict: "id" });
+    // Use UPDATE (not upsert) — profile row already exists from signup trigger
+    const { error } = await supabase
+        .from("profiles")
+        .update(updateData)
+        .eq("id", user.id);
 
     if (error) {
         return { error: error.message };

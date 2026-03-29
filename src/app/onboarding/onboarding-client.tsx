@@ -88,11 +88,29 @@ export default function OnboardingClient({ initialFullName }: { initialFullName:
     const [logoUploading, setLogoUploading] = useState(false);
     const logoInputRef = useRef<HTMLInputElement>(null);
 
-    // Step 2
-    const [businessType, setBusinessType] = useState("");
+    // Step 2 — multiple trades allowed
+    const [selectedTrades, setSelectedTrades] = useState<string[]>([]);
+    const businessType = selectedTrades.join(", "); // comma-joined for storage
 
-    // Step 3
-    const [specialisms, setSpecialisms] = useState("");
+    const toggleTrade = (val: string) => {
+        setSelectedTrades(prev =>
+            prev.includes(val) ? prev.filter(t => t !== val) : [...prev, val]
+        );
+    };
+
+    // Step 3 — structured specialisms as tags
+    const [specialismTags, setSpecialismTags] = useState<string[]>([]);
+    const [specialismInput, setSpecialismInput] = useState("");
+    const specialisms = specialismTags.join(", "); // comma-joined for storage
+
+    const addSpecialism = (val: string) => {
+        const trimmed = val.trim();
+        if (trimmed && !specialismTags.includes(trimmed)) {
+            setSpecialismTags(prev => [...prev, trimmed]);
+        }
+        setSpecialismInput("");
+    };
+    const removeSpecialism = (tag: string) => setSpecialismTags(prev => prev.filter(t => t !== tag));
     const [capabilityStatement, setCapabilityStatement] = useState("");
     const [generatingCapability, setGeneratingCapability] = useState(false);
     const [accreditations, setAccreditations] = useState("");
@@ -280,19 +298,28 @@ export default function OnboardingClient({ initialFullName }: { initialFullName:
                             <h2 className="text-xl font-bold text-slate-900">What type of work do you specialise in?</h2>
                             <p className="text-sm text-slate-500 mt-1">Select your primary trade — this customises project types and templates for your work.</p>
                         </div>
+                        <p className="text-xs text-slate-400 -mt-4">Select all that apply — your project types will be tailored to your choices.</p>
                         <div className="grid sm:grid-cols-2 gap-3">
-                            {TRADES.map(trade => (
-                                <label key={trade.value} className="cursor-pointer block">
-                                    <input type="radio" name="trade" value={trade.value} checked={businessType === trade.value} onChange={() => setBusinessType(trade.value)} className="sr-only peer" />
-                                    <div className="border-2 border-slate-200 peer-checked:border-blue-600 peer-checked:bg-blue-50 hover:border-slate-300 rounded-xl p-4 transition-all cursor-pointer">
-                                        <p className="text-sm font-semibold text-slate-800">{trade.label}</p>
-                                    </div>
-                                </label>
-                            ))}
+                            {TRADES.map(trade => {
+                                const isSelected = selectedTrades.includes(trade.value);
+                                return (
+                                    <button key={trade.value} type="button" onClick={() => toggleTrade(trade.value)}
+                                        className={`border-2 rounded-xl p-4 text-left transition-all cursor-pointer ${
+                                            isSelected ? "border-blue-600 bg-blue-50" : "border-slate-200 hover:border-slate-300"
+                                        }`}>
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-sm font-semibold text-slate-800">{trade.label}</p>
+                                            {isSelected && <span className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                            </span>}
+                                        </div>
+                                    </button>
+                                );
+                            })}
                         </div>
                         <div className="flex items-center justify-between pt-2">
                             <button type="button" onClick={() => setStep(1)} className="px-5 py-2.5 text-slate-600 text-sm font-semibold hover:text-slate-900 transition-colors">← Back</button>
-                            <button type="button" disabled={!businessType} onClick={() => setStep(3)}
+                            <button type="button" disabled={selectedTrades.length === 0} onClick={() => setStep(3)}
                                 className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg transition-all">
                                 Next: Capabilities →
                             </button>
@@ -308,10 +335,36 @@ export default function OnboardingClient({ initialFullName }: { initialFullName:
                             <p className="text-sm text-slate-500 mt-1">This reassures clients and appears on your proposals.</p>
                         </div>
 
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <label className="text-sm font-semibold text-slate-700">Specialisms</label>
-                            <input value={specialisms} onChange={e => setSpecialisms(e.target.value)}
-                                placeholder="e.g. Victorian terrace extensions, loft conversions, conservation area work" className={ic} />
+                            <p className="text-xs text-slate-400">Add each specialism as a tag — these appear in your project type dropdown later.</p>
+                            {/* Tag display */}
+                            {specialismTags.length > 0 && (
+                                <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200 min-h-[44px]">
+                                    {specialismTags.map(tag => (
+                                        <span key={tag} className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+                                            {tag}
+                                            <button type="button" onClick={() => removeSpecialism(tag)} className="text-blue-500 hover:text-blue-700 ml-0.5">
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                            {/* Input to add new tag */}
+                            <div className="flex gap-2">
+                                <input
+                                    value={specialismInput}
+                                    onChange={e => setSpecialismInput(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addSpecialism(specialismInput); } }}
+                                    placeholder="e.g. Driveways — press Enter to add"
+                                    className={ic}
+                                />
+                                <button type="button" onClick={() => addSpecialism(specialismInput)} disabled={!specialismInput.trim()}
+                                    className="h-10 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold flex-shrink-0 transition-colors">
+                                    Add
+                                </button>
+                            </div>
                         </div>
 
                         <div className="space-y-2">

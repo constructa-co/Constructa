@@ -452,114 +452,183 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     }
 
     // ═══════════════════════════════════════════════════════════
-    // CASE STUDIES (B3) — after About Us
+    // ═══════════════════════════════════════════════════════════
+    // CASE STUDIES — one full page per case study
     // ═══════════════════════════════════════════════════════════
     const caseStudies = profile?.case_studies || [];
     if (caseStudies.length > 0) {
-        doc.addPage();
-        totalPagesRef.n++;
-        y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef);
-        y = renderSectionHeading(doc, y, "Our Work");
-
         for (let ci = 0; ci < caseStudies.length; ci++) {
             const cs = caseStudies[ci];
             if (!cs.projectName) continue;
 
-            // Ensure space for at least header + some content
-            y = ensureSpace(doc, y, 50, companyName, docTitle, totalPagesRef);
+            // Each case study gets its OWN full page
+            doc.addPage();
+            totalPagesRef.n++;
 
-            // Navy full-width header bar
+            // ── FULL-BLEED NAVY TOP BAND (top 35% of page) ──
+            const bandH = PAGE_H * 0.36;
             doc.setFillColor(...C.navy);
-            doc.rect(ML, y, CW, 10, "F");
+            doc.rect(0, 0, PAGE_W, bandH, "F");
+
+            // Section label (top-left in band)
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(7.5);
+            doc.setTextColor(...C.slate400);
+            doc.text(`OUR WORK  —  ${String(ci + 1).padStart(2, "0")} / ${String(caseStudies.filter((c: any) => c.projectName).length).padStart(2, "0")}`, ML, 10);
+
+            // Company name top-right
             doc.setFont("helvetica", "bold");
-            doc.setFontSize(12);
+            doc.setFontSize(7.5);
+            doc.setTextColor(...C.slate400);
+            doc.text(companyName.toUpperCase(), MR, 10, { align: "right" });
+
+            // Project name — large white, vertically centred in top band
+            const titleY = bandH * 0.42;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(28);
             doc.setTextColor(...C.white);
-            doc.text(cs.projectName, ML + 4, y + 7);
-            y += 13;
+            const titleLines = doc.splitTextToSize(cs.projectName, CW);
+            doc.text(titleLines, ML, titleY);
 
-            // Two-column layout: left 60%, right 40%
-            const csLeftW = CW * 0.57;
-            const csRightW = CW * 0.38;
-            const csRightX = ML + csLeftW + CW * 0.05;
-            let csLeftY = y;
-            let csRightY = y;
-
-            // Left: badges
-            const badges = [
-                cs.projectType && `Type: ${cs.projectType}`,
-                cs.contractValue && `Value: £${Number(cs.contractValue).toLocaleString("en-GB")}`,
-                cs.programmeDuration && `Programme: ${cs.programmeDuration}`,
-                cs.location && cs.location,
-            ].filter(Boolean);
-
-            let bx = ML;
-            badges.forEach((badge) => {
-                if (!badge) return;
-                const bw = doc.getTextWidth(badge) + 6;
-                if (bx + bw > ML + csLeftW) {
-                    bx = ML;
-                    csLeftY += 8;
-                }
-                doc.setFillColor(...C.slate100);
-                doc.roundedRect(bx, csLeftY, bw, 6.5, 1.5, 1.5, "F");
+            // Location / client subtitle
+            const subParts = [cs.location, cs.client].filter(Boolean);
+            if (subParts.length > 0) {
                 doc.setFont("helvetica", "normal");
-                doc.setFontSize(7.5);
-                doc.setTextColor(...C.slate700);
-                doc.text(badge, bx + 3, csLeftY + 4.5);
-                bx += bw + 3;
-            });
-            csLeftY += 10;
+                doc.setFontSize(10);
+                doc.setTextColor(180, 200, 220);
+                doc.text(subParts.join("  |  "), ML, titleY + titleLines.length * 10 + 4);
+            }
 
-            // What We Delivered
-            if (cs.whatWeDelivered) {
+            // ── STAT PILLS ROW (at bottom of navy band) ──
+            const statItems = [
+                cs.projectType   && { label: "TYPE", value: cs.projectType },
+                cs.contractValue && { label: "VALUE", value: `£${Number(cs.contractValue).toLocaleString("en-GB")}` },
+                cs.programmeDuration && { label: "PROGRAMME", value: cs.programmeDuration },
+                cs.client        && { label: "CLIENT", value: cs.client },
+            ].filter(Boolean) as { label: string; value: string }[];
+
+            const pillY = bandH - 18;
+            const pillH = 14;
+            const pillGap = 4;
+            let pillX = ML;
+            statItems.forEach(stat => {
+                const valW = doc.getTextWidth(stat.value);
+                const lblW = doc.getTextWidth(stat.label);
+                const pW = Math.max(valW, lblW) + 10;
+                // Light navy pill background
+                doc.setFillColor(...C.navyMid);
+                doc.roundedRect(pillX, pillY, pW, pillH, 2, 2, "F");
+                // Label
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(6.5);
+                doc.setTextColor(...C.slate400);
+                doc.text(stat.label, pillX + 5, pillY + 4.5);
+                // Value
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(8.5);
-                doc.setTextColor(...C.navy);
-                doc.text("What We Delivered", ML, csLeftY);
-                csLeftY += 5;
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(9);
-                doc.setTextColor(...C.slate700);
-                const wdLines = doc.splitTextToSize(cs.whatWeDelivered, csLeftW);
-                doc.text(wdLines, ML, csLeftY);
-                csLeftY += wdLines.length * 4.8 + 4;
-            }
+                doc.setTextColor(...C.white);
+                doc.text(stat.value, pillX + 5, pillY + 11);
+                pillX += pW + pillGap;
+            });
 
-            // Value Added
-            if (cs.valueAdded) {
-                doc.setFont("helvetica", "italic");
-                doc.setFontSize(8.5);
-                doc.setTextColor(...C.slate500);
-                const vaLines = doc.splitTextToSize(`Value Added: ${cs.valueAdded}`, csLeftW);
-                doc.text(vaLines, ML, csLeftY);
-                csLeftY += vaLines.length * 4.8;
-            }
+            // ── WHITE CONTENT AREA ──
+            let cy = bandH + 14; // content start Y
 
-            // Right: first photo
-            const firstPhoto = (cs.photos || []).find((p: string) => p);
-            if (firstPhoto) {
-                try {
-                    const imgH = Math.min(50, csRightW * 0.7);
-                    doc.addImage(firstPhoto, "JPEG", csRightX, csRightY, csRightW, imgH);
-                    csRightY += imgH + 2;
-                } catch {
-                    doc.setFillColor(...C.slate100);
-                    doc.rect(csRightX, csRightY, csRightW, 40, "F");
-                    doc.setFont("helvetica", "normal");
-                    doc.setFontSize(8);
-                    doc.setTextColor(...C.slate500);
-                    doc.text("Photo unavailable", csRightX + csRightW / 2, csRightY + 22, { align: "center" });
-                    csRightY += 42;
+            // Photos: if photos exist, show as a row
+            const photos = (cs.photos || []).filter((p: string) => p);
+            if (photos.length > 0) {
+                const numPhotos = Math.min(photos.length, 3);
+                const photoGap = 4;
+                const totalGap = photoGap * (numPhotos - 1);
+                const photoW = (CW - totalGap) / numPhotos;
+                const photoH = photoW * 0.62; // ~16:10 ratio
+                let px = ML;
+
+                for (let pi = 0; pi < numPhotos; pi++) {
+                    const photoUrl = photos[pi];
+                    try {
+                        const imgExt = photoUrl.split(".").pop()?.toLowerCase() || "jpg";
+                        const imgFmt = imgExt === "png" ? "PNG" : "JPEG";
+                        doc.addImage(photoUrl, imgFmt, px, cy, photoW, photoH);
+                    } catch {
+                        // Placeholder box if image fails
+                        doc.setFillColor(...C.slate100);
+                        doc.rect(px, cy, photoW, photoH, "F");
+                        doc.setFont("helvetica", "normal");
+                        doc.setFontSize(7);
+                        doc.setTextColor(...C.slate400);
+                        doc.text("Photo", px + photoW / 2, cy + photoH / 2, { align: "center" });
+                    }
+                    px += photoW + photoGap;
                 }
+                cy += photoH + 10;
             }
 
-            y = Math.max(csLeftY, csRightY) + 4;
+            // ── TWO-COLUMN NARRATIVE ──
+            const colGap = 8;
+            const colW = (CW - colGap) / 2;
+            const col2X = ML + colW + colGap;
+            let col1Y = cy;
+            let col2Y = cy;
 
-            // Separator line
-            doc.setDrawColor(...C.slate200);
-            doc.setLineWidth(0.3);
-            doc.line(ML, y, MR, y);
-            y += 8;
+            // Left column: What We Delivered
+            if (cs.whatWeDelivered) {
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(9);
+                doc.setTextColor(...C.navy);
+                doc.text("WHAT WE DELIVERED", ML, col1Y);
+                col1Y += 1.5;
+                doc.setDrawColor(...C.navy);
+                doc.setLineWidth(0.5);
+                doc.line(ML, col1Y, ML + colW, col1Y);
+                col1Y += 5;
+
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9.5);
+                doc.setTextColor(...C.slate700);
+                const wdLines = doc.splitTextToSize(cs.whatWeDelivered, colW);
+                doc.text(wdLines, ML, col1Y);
+                col1Y += wdLines.length * 5 + 6;
+            }
+
+            // Right column: Value Added
+            if (cs.valueAdded) {
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(9);
+                doc.setTextColor(...C.navy);
+                doc.text("VALUE ADDED", col2X, col2Y);
+                col2Y += 1.5;
+                doc.setDrawColor(...C.navy);
+                doc.setLineWidth(0.5);
+                doc.line(col2X, col2Y, col2X + colW, col2Y);
+                col2Y += 5;
+
+                // Value Added box — slate-50 background with left navy accent
+                const vaLines = doc.splitTextToSize(cs.valueAdded, colW - 8);
+                const vaBoxH = vaLines.length * 5 + 10;
+                doc.setFillColor(...C.slate50);
+                doc.rect(col2X, col2Y, colW, vaBoxH, "F");
+                doc.setFillColor(...C.navy);
+                doc.rect(col2X, col2Y, 2.5, vaBoxH, "F");
+
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(9.5);
+                doc.setTextColor(...C.slate700);
+                doc.text(vaLines, col2X + 6, col2Y + 6);
+                col2Y += vaBoxH + 6;
+            }
+
+            cy = Math.max(col1Y, col2Y);
+
+            // ── FOOTER BAR ──
+            doc.setFillColor(...C.navy);
+            doc.rect(0, PAGE_H - 10, PAGE_W, 10, "F");
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(7);
+            doc.setTextColor(...C.white);
+            doc.text(companyName, ML, PAGE_H - 3.5);
+            doc.text(docTitle, PAGE_W / 2, PAGE_H - 3.5, { align: "center" });
+            doc.text(String(totalPagesRef.n), MR, PAGE_H - 3.5, { align: "right" });
         }
     }
 

@@ -66,9 +66,23 @@ export async function middleware(request: NextRequest) {
 
     const { data: authData } = await supabase.auth.getUser()
     const user = authData?.user
+    const pathname = request.nextUrl.pathname
 
-    if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
+    if (pathname.startsWith('/dashboard') && !user) {
       return NextResponse.redirect(new URL('/login', request.url))
+    }
+
+    // Onboarding redirect: if authenticated + accessing dashboard + no company_name + not already on onboarding
+    if (user && pathname.startsWith('/dashboard') && !pathname.startsWith('/onboarding')) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_name')
+        .eq('id', user.id)
+        .single()
+
+      if (!profile?.company_name) {
+        return NextResponse.redirect(new URL('/onboarding', request.url))
+      }
     }
   } catch (error) {
     console.error('Middleware Supabase error:', error);

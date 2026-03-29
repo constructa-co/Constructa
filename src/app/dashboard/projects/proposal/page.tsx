@@ -32,6 +32,11 @@ export default async function ProposalPage({ searchParams }: { searchParams: { p
         .select("*, estimate_lines(*)")
         .eq("project_id", projectId);
 
+    // Calculate estimated total from all estimates
+    const estimatedTotal = (estimates || []).reduce((sum: number, est: any) => {
+        return sum + (est.total_cost || 0);
+    }, 0);
+
     // Fetch profile with all capability fields
     const { data: profile } = await supabase
         .from("profiles")
@@ -60,6 +65,7 @@ export default async function ProposalPage({ searchParams }: { searchParams: { p
                 estimates={estimates || []}
                 project={project}
                 profile={profile}
+                estimatedTotal={estimatedTotal}
             />
         </div>
     );

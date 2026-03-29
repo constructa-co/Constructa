@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info } from "lucide-react";
-import { saveProposalAction, generateAiScopeAction, sendProposalAction } from "./actions";
+import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2 } from "lucide-react";
+import { saveProposalAction, generateAiScopeAction, sendProposalAction, rewriteIntroductionAction } from "./actions";
 import ProposalPdfButton from "./proposal-pdf-button";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 
 // Standard 9 T&C clauses
 const STANDARD_CLAUSES = [
@@ -21,22 +22,16 @@ const STANDARD_CLAUSES = [
     { clause_number: 9, title: "Health, Safety & CDM", body: "The Client is a Domestic Client under the Construction Design Management (CDM) Regulations 2015. The Contractor shall act as Principal Contractor and comply with all CDM requirements." },
 ];
 
-const DEFAULT_PHASES = [
-    { id: "1", name: "Groundworks", start_date: "", duration_days: 14, color: "blue" },
-    { id: "2", name: "Structure", start_date: "", duration_days: 21, color: "green" },
-    { id: "3", name: "Roofing", start_date: "", duration_days: 14, color: "orange" },
-    { id: "4", name: "First Fix", start_date: "", duration_days: 14, color: "purple" },
-    { id: "5", name: "Plastering", start_date: "", duration_days: 7, color: "slate" },
-    { id: "6", name: "Second Fix & Finish", start_date: "", duration_days: 14, color: "blue" },
-];
+// Auto-assigned phase colours cycling by index
+const AUTO_COLORS = ["blue", "green", "orange", "purple", "slate", "teal"];
 
-const PHASE_COLORS = [
-    { value: "blue", label: "Blue", hex: "#3B82F6" },
-    { value: "green", label: "Green", hex: "#22C55E" },
-    { value: "orange", label: "Orange", hex: "#F97316" },
-    { value: "purple", label: "Purple", hex: "#A855F7" },
-    { value: "slate", label: "Slate", hex: "#64748B" },
-    { value: "red", label: "Red", hex: "#EF4444" },
+const DEFAULT_PHASES = [
+    { id: "1", name: "Groundworks", start_date: "", duration_days: 14, duration_unit: "Weeks" as const, color: "blue" },
+    { id: "2", name: "Structure", start_date: "", duration_days: 21, duration_unit: "Weeks" as const, color: "green" },
+    { id: "3", name: "Roofing", start_date: "", duration_days: 14, duration_unit: "Weeks" as const, color: "orange" },
+    { id: "4", name: "First Fix", start_date: "", duration_days: 14, duration_unit: "Weeks" as const, color: "purple" },
+    { id: "5", name: "Plastering", start_date: "", duration_days: 7, duration_unit: "Weeks" as const, color: "slate" },
+    { id: "6", name: "Second Fix & Finish", start_date: "", duration_days: 14, duration_unit: "Weeks" as const, color: "teal" },
 ];
 
 const DEFAULT_PAYMENT_SCHEDULE = [
@@ -47,11 +42,14 @@ const DEFAULT_PAYMENT_SCHEDULE = [
     { id: "5", stage: "Completion", description: "On practical completion / handover", percentage: 15 },
 ];
 
+type DurationUnit = "Hours" | "Days" | "Weeks";
+
 interface GanttPhase {
     id: string;
     name: string;
     start_date: string;
     duration_days: number;
+    duration_unit: DurationUnit;
     color: string;
 }
 
@@ -64,6 +62,8 @@ interface TcOverride {
     clause_number: number;
     title: string;
     body: string;
+    hidden?: boolean;
+    custom?: boolean;
 }
 
 interface PaymentRow {
@@ -81,6 +81,37 @@ interface Props {
     estimates: any[];
     project: any;
     profile: any;
+    estimatedTotal?: number;
+}
+
+function unitToDays(value: number, unit: DurationUnit): number {
+    if (unit === "Hours") return value / 8; // 8-hour days
+    if (unit === "Days") return value;
+    return value * 7; // Weeks
+}
+
+function daysToUnit(days: number, unit: DurationUnit): number {
+    if (unit === "Hours") return Math.round(days * 8);
+    if (unit === "Days") return days;
+    return Math.round(days / 7);
+}
+
+function addDays(dateStr: string, days: number): string {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    d.setDate(d.getDate() + Math.round(days));
+    return d.toISOString().split("T")[0];
+}
+
+function migratePhase(p: any): GanttPhase {
+    return {
+        id: p.id,
+        name: p.name,
+        start_date: p.start_date || "",
+        duration_days: p.duration_days || 7,
+        duration_unit: (p.duration_unit as DurationUnit) || "Weeks",
+        color: p.color || "blue",
+    };
 }
 
 function SectionHeading({ icon: Icon, label, completed, id }: { icon: any; label: string; completed: boolean; id: string }) {
@@ -109,6 +140,7 @@ export default function ClientEditor({
     estimates,
     project,
     profile,
+    estimatedTotal = 0,
 }: Props) {
     const [scope, setScope] = useState(initialScope);
     const [exclusions, setExclusions] = useState(initialExclusions);
@@ -118,29 +150,54 @@ export default function ClientEditor({
     const [saved, setSaved] = useState(false);
 
     const [introduction, setIntroduction] = useState(project?.proposal_introduction || "");
+    const [rewritingIntro, setRewritingIntro] = useState(false);
+
     const [ganttPhases, setGanttPhases] = useState<GanttPhase[]>(
-        project?.gantt_phases?.length ? project.gantt_phases : DEFAULT_PHASES.map(p => ({
-            ...p,
-            start_date: project?.start_date || "",
-        }))
+        project?.gantt_phases?.length
+            ? project.gantt_phases.map(migratePhase)
+            : DEFAULT_PHASES.map(p => ({
+                ...p,
+                start_date: project?.start_date || "",
+            }))
     );
+    const [sequentialMode, setSequentialMode] = useState(false);
+
     const [useCustomTc, setUseCustomTc] = useState(!!project?.tc_overrides);
     const [tcOverrides, setTcOverrides] = useState<TcOverride[]>(
         project?.tc_overrides || STANDARD_CLAUSES.map(c => ({ ...c }))
     );
+
     const [sitePhotos, setSitePhotos] = useState<SitePhoto[]>(
         project?.site_photos?.length ? project.site_photos : Array.from({ length: 6 }, () => ({ url: "", caption: "" }))
     );
+    const [uploadingPhoto, setUploadingPhoto] = useState<number | null>(null);
+
     const [paymentSchedule, setPaymentSchedule] = useState<PaymentRow[]>(
         project?.payment_schedule?.length ? project.payment_schedule : DEFAULT_PAYMENT_SCHEDULE
     );
+    const [useEstimatedTotal, setUseEstimatedTotal] = useState(false);
 
     const [pricingMode, setPricingMode] = useState<"full" | "summary">("full");
     const [validityDays, setValidityDays] = useState(30);
     const [linkCopied, setLinkCopied] = useState(false);
     const [sending, setSending] = useState(false);
 
-    const contractValue = project?.potential_value || 0;
+    const contractValue = useEstimatedTotal && estimatedTotal > 0
+        ? estimatedTotal
+        : (project?.potential_value || 0);
+
+    // Sequential mode: compute start dates iteratively
+    const computedPhases: GanttPhase[] = [];
+    for (let i = 0; i < ganttPhases.length; i++) {
+        const phase = ganttPhases[i];
+        if (!sequentialMode || i === 0) {
+            computedPhases.push(phase);
+        } else {
+            const prev = computedPhases[i - 1];
+            const newStart = addDays(prev.start_date, prev.duration_days);
+            computedPhases.push({ ...phase, start_date: newStart });
+        }
+    }
 
     const handleAutoWrite = async () => {
         setGenerating(true);
@@ -157,6 +214,15 @@ export default function ClientEditor({
             setScope((prev: string) => prev + (prev ? "\n\n" : "") + String(result));
         }
         setGenerating(false);
+    };
+
+    const handleRewriteIntro = async () => {
+        setRewritingIntro(true);
+        const result = await rewriteIntroductionAction(projectId, introduction);
+        if (result.text) {
+            setIntroduction(result.text);
+        }
+        setRewritingIntro(false);
     };
 
     const handleCopyLink = async () => {
@@ -178,7 +244,7 @@ export default function ClientEditor({
         fd.set("exclusions", exclusions);
         fd.set("clarifications", clarifications);
         fd.set("proposal_introduction", introduction);
-        fd.set("gantt_phases", JSON.stringify(ganttPhases));
+        fd.set("gantt_phases", JSON.stringify(sequentialMode ? computedPhases : ganttPhases));
         fd.set("tc_overrides", useCustomTc ? JSON.stringify(tcOverrides) : "");
         fd.set("site_photos", JSON.stringify(sitePhotos.filter(p => p.url)));
         fd.set("payment_schedule", JSON.stringify(paymentSchedule));
@@ -190,12 +256,14 @@ export default function ClientEditor({
 
     // Phase management
     const addPhase = () => {
+        const colorIndex = ganttPhases.length % AUTO_COLORS.length;
         setGanttPhases(prev => [...prev, {
             id: crypto.randomUUID(),
             name: "",
             start_date: project?.start_date || "",
             duration_days: 7,
-            color: "blue",
+            duration_unit: "Weeks",
+            color: AUTO_COLORS[colorIndex],
         }]);
     };
     const removePhase = (id: string) => setGanttPhases(prev => prev.filter(p => p.id !== id));
@@ -204,16 +272,44 @@ export default function ClientEditor({
     };
 
     // T&C management
-    const updateTcClause = (n: number, body: string) =>
-        setTcOverrides(prev => prev.map(c => c.clause_number === n ? { ...c, body } : c));
+    const updateTcClause = (n: number, field: "body" | "title", value: string) =>
+        setTcOverrides(prev => prev.map(c => c.clause_number === n ? { ...c, [field]: value } : c));
     const resetTcClause = (n: number) => {
         const std = STANDARD_CLAUSES.find(c => c.clause_number === n);
-        if (std) updateTcClause(n, std.body);
+        if (std) setTcOverrides(prev => prev.map(c => c.clause_number === n ? { ...c, body: std.body, title: std.title, hidden: false } : c));
     };
+    const hideTcClause = (n: number) =>
+        setTcOverrides(prev => prev.map(c => c.clause_number === n ? { ...c, hidden: !c.hidden } : c));
+    const addCustomClause = () => {
+        const maxNum = Math.max(...tcOverrides.map(c => c.clause_number), 0);
+        setTcOverrides(prev => [...prev, {
+            clause_number: maxNum + 1,
+            title: "Custom Clause",
+            body: "",
+            custom: true,
+        }]);
+    };
+    const removeCustomClause = (n: number) =>
+        setTcOverrides(prev => prev.filter(c => c.clause_number !== n));
 
     // Photo management
     const updatePhoto = (i: number, field: "url" | "caption", value: string) =>
         setSitePhotos(prev => prev.map((p, idx) => idx === i ? { ...p, [field]: value } : p));
+
+    const handlePhotoUpload = async (i: number, file: File) => {
+        setUploadingPhoto(i);
+        const supabase = createClient();
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `${projectId}/${Date.now()}-${i}.${ext}`;
+        const { error } = await supabase.storage
+            .from("proposal-photos")
+            .upload(path, file, { upsert: true });
+        if (!error) {
+            const { data } = supabase.storage.from("proposal-photos").getPublicUrl(path);
+            updatePhoto(i, "url", data.publicUrl);
+        }
+        setUploadingPhoto(null);
+    };
 
     // Payment schedule management
     const addPaymentRow = () => {
@@ -237,7 +333,7 @@ export default function ClientEditor({
         exclusions_text: exclusions,
         clarifications_text: clarifications,
         proposal_introduction: introduction,
-        gantt_phases: ganttPhases,
+        gantt_phases: sequentialMode ? computedPhases : ganttPhases,
         tc_overrides: useCustomTc ? tcOverrides : null,
         site_photos: sitePhotos.filter(p => p.url),
         payment_schedule: paymentSchedule,
@@ -298,11 +394,11 @@ export default function ClientEditor({
                             <span className="text-sm text-green-400 font-medium">Company profile complete — {profile.company_name}</span>
                         </div>
                     ) : (
-                        <div className="flex items-center gap-3 px-4 py-3 bg-amber-900/20 border border-amber-700/50 rounded-xl">
-                            <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
+                        <div className="flex items-center gap-3 px-4 py-3 bg-amber-950/40 border border-amber-700 rounded-xl">
+                            <AlertCircle className="w-5 h-5 text-amber-300 flex-shrink-0" />
                             <div className="flex-1">
-                                <p className="text-sm font-semibold text-amber-300">Company profile incomplete</p>
-                                <p className="text-xs text-amber-400/80 mt-0.5">Your proposal PDF will show &ldquo;The Contractor&rdquo; instead of your company name.</p>
+                                <p className="text-sm font-semibold text-amber-200">Company profile incomplete</p>
+                                <p className="text-xs text-amber-300 mt-0.5">Your proposal PDF will show &ldquo;The Contractor&rdquo; instead of your company name.</p>
                             </div>
                             <Link href="/dashboard/settings/profile" className="text-xs font-bold text-amber-300 hover:text-amber-200 whitespace-nowrap flex items-center gap-1">
                                 Complete Profile <ExternalLink className="w-3 h-3" />
@@ -310,6 +406,25 @@ export default function ClientEditor({
                         </div>
                     )}
                 </div>
+
+                {/* Estimator total banner */}
+                {estimatedTotal > 0 && !project?.potential_value && !useEstimatedTotal && (
+                    <div className="flex items-center gap-3 px-4 py-3 bg-blue-950/40 border border-blue-700 rounded-xl">
+                        <Info className="w-5 h-5 text-blue-300 flex-shrink-0" />
+                        <div className="flex-1">
+                            <p className="text-sm font-semibold text-blue-200">
+                                Your estimator total is £{Number(estimatedTotal).toLocaleString("en-GB")} — use this as the contract value?
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setUseEstimatedTotal(true)}
+                            className="text-xs font-bold text-blue-300 hover:text-blue-200 whitespace-nowrap border border-blue-700 rounded-lg px-3 py-1.5 hover:bg-blue-900/30 transition-colors"
+                        >
+                            Yes, use it
+                        </button>
+                    </div>
+                )}
 
                 {/* SECTION 3: Client Introduction */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
@@ -319,6 +434,18 @@ export default function ClientEditor({
                             <MessageSquare className="w-4 h-4 text-slate-400" />
                             <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Client Introduction</span>
                         </div>
+                        {introduction.trim().length > 20 && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleRewriteIntro}
+                                disabled={rewritingIntro}
+                                className="h-8 px-3 border-purple-700 bg-purple-900/30 text-purple-300 hover:bg-purple-800/40 text-xs font-bold gap-1.5"
+                            >
+                                {rewritingIntro ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                {rewritingIntro ? "Rewriting..." : "✨ Rewrite with AI"}
+                            </Button>
+                        )}
                     </div>
                     <div className="p-6">
                         <p className="text-xs text-slate-500 mb-3">Opening paragraph — personalised for this client. Appears first in the proposal PDF.</p>
@@ -394,59 +521,86 @@ export default function ClientEditor({
 
                 {/* SECTION 6: Project Timeline */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center gap-2">
-                        {checks.timeline ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4 text-slate-600" />}
-                        <CalendarDays className="w-4 h-4 text-slate-400" />
-                        <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Project Timeline</span>
+                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            {checks.timeline ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4 text-slate-600" />}
+                            <CalendarDays className="w-4 h-4 text-slate-400" />
+                            <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Project Timeline</span>
+                        </div>
+                        {/* Sequential toggle */}
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-400">Sequential</span>
+                            <button
+                                type="button"
+                                onClick={() => setSequentialMode(!sequentialMode)}
+                                className={`relative w-10 h-5 rounded-full transition-colors ${sequentialMode ? "bg-blue-600" : "bg-slate-700"}`}
+                            >
+                                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${sequentialMode ? "translate-x-5" : ""}`} />
+                            </button>
+                        </div>
                     </div>
                     <div className="p-6 space-y-3">
                         {/* Column headers */}
-                        <div className="grid gap-3 text-xs font-bold uppercase tracking-wider text-slate-500 pb-1 border-b border-slate-800" style={{ gridTemplateColumns: "1fr 140px 80px 90px 40px" }}>
+                        <div className="grid gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 pb-1 border-b border-slate-800" style={{ gridTemplateColumns: "1fr 140px 80px 90px 40px" }}>
                             <span>Phase Name</span>
                             <span>Start Date</span>
-                            <span>Weeks</span>
-                            <span>Colour</span>
+                            <span>Duration</span>
+                            <span>Unit</span>
                             <span></span>
                         </div>
-                        {ganttPhases.map((phase) => (
-                            <div key={phase.id} className="grid gap-3 items-center" style={{ gridTemplateColumns: "1fr 140px 80px 90px 40px" }}>
-                                <input
-                                    value={phase.name}
-                                    onChange={(e) => updatePhase(phase.id, "name", e.target.value)}
-                                    className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                    placeholder="Phase name"
-                                />
-                                <input
-                                    type="date"
-                                    value={phase.start_date}
-                                    onChange={(e) => updatePhase(phase.id, "start_date", e.target.value)}
-                                    className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                />
-                                <input
-                                    type="number"
-                                    min={1}
-                                    value={Math.round(phase.duration_days / 7)}
-                                    onChange={(e) => updatePhase(phase.id, "duration_days", (parseInt(e.target.value) || 1) * 7)}
-                                    className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-2 text-sm text-slate-100 text-center focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                />
-                                <select
-                                    value={phase.color}
-                                    onChange={(e) => updatePhase(phase.id, "color", e.target.value)}
-                                    className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                >
-                                    {PHASE_COLORS.map(c => (
-                                        <option key={c.value} value={c.value}>{c.label}</option>
-                                    ))}
-                                </select>
-                                <button
-                                    type="button"
-                                    onClick={() => removePhase(phase.id)}
-                                    className="h-9 w-9 rounded-lg bg-red-900/20 text-red-400 hover:bg-red-900/40 flex items-center justify-center transition-colors text-lg font-bold"
-                                >
-                                    ×
-                                </button>
-                            </div>
-                        ))}
+                        {ganttPhases.map((phase, idx) => {
+                            const computed = computedPhases[idx];
+                            const displayStart = sequentialMode && idx > 0 ? computed.start_date : phase.start_date;
+                            const unitValue = daysToUnit(phase.duration_days, phase.duration_unit);
+                            return (
+                                <div key={phase.id} className="grid gap-2 items-center" style={{ gridTemplateColumns: "1fr 140px 80px 90px 40px" }}>
+                                    <input
+                                        value={phase.name}
+                                        onChange={(e) => updatePhase(phase.id, "name", e.target.value)}
+                                        className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                        placeholder="Phase name"
+                                    />
+                                    {sequentialMode && idx > 0 ? (
+                                        <div className="h-9 rounded-lg border border-slate-700 bg-slate-950 px-2 text-sm text-slate-500 flex items-center">
+                                            {displayStart || "—"}
+                                        </div>
+                                    ) : (
+                                        <input
+                                            type="date"
+                                            value={phase.start_date}
+                                            onChange={(e) => updatePhase(phase.id, "start_date", e.target.value)}
+                                            className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                        />
+                                    )}
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        value={unitValue}
+                                        onChange={(e) => {
+                                            const v = parseInt(e.target.value) || 1;
+                                            updatePhase(phase.id, "duration_days", unitToDays(v, phase.duration_unit));
+                                        }}
+                                        className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-2 text-sm text-slate-100 text-center focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                    />
+                                    <select
+                                        value={phase.duration_unit}
+                                        onChange={(e) => updatePhase(phase.id, "duration_unit", e.target.value)}
+                                        className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                    >
+                                        <option value="Hours">Hours</option>
+                                        <option value="Days">Days</option>
+                                        <option value="Weeks">Weeks</option>
+                                    </select>
+                                    <button
+                                        type="button"
+                                        onClick={() => removePhase(phase.id)}
+                                        className="h-9 w-9 rounded-lg bg-red-900/20 text-red-400 hover:bg-red-900/40 flex items-center justify-center transition-colors text-lg font-bold"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            );
+                        })}
                         <button
                             type="button"
                             onClick={addPhase}
@@ -533,6 +687,7 @@ export default function ClientEditor({
                                 Total: {totalPct}% {totalPct !== 100 && <span className="font-normal text-xs">(should equal 100%)</span>}
                             </div>
                         </div>
+                        <p className="text-xs text-slate-600">£ amounts calculated from contract value</p>
                     </div>
                 </div>
 
@@ -544,24 +699,50 @@ export default function ClientEditor({
                         <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Site Photos</span>
                         <span className="text-xs text-slate-600 ml-1">(optional — max 6)</span>
                     </div>
-                    <div className="p-6 space-y-3">
-                        {sitePhotos.map((photo, i) => (
-                            <div key={i} className="flex items-center gap-3">
-                                <span className="text-xs text-slate-600 font-bold w-5 text-center">{i + 1}</span>
-                                <input
-                                    value={photo.url}
-                                    onChange={(e) => updatePhoto(i, "url", e.target.value)}
-                                    className="flex-1 h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                    placeholder="Image URL (https://...)"
-                                />
-                                <input
-                                    value={photo.caption}
-                                    onChange={(e) => updatePhoto(i, "caption", e.target.value)}
-                                    className="w-48 h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                    placeholder="Caption (optional)"
-                                />
-                            </div>
-                        ))}
+                    <div className="p-6">
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            {sitePhotos.map((photo, i) => (
+                                <div key={i} className="space-y-2">
+                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Photo {i + 1}</p>
+                                    {/* Drop zone */}
+                                    <label className={`block relative rounded-lg border-2 border-dashed transition-colors cursor-pointer ${photo.url ? "border-slate-700 bg-slate-800" : "border-slate-700 bg-slate-800/50 hover:border-blue-600 hover:bg-slate-800"}`}>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="sr-only"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) handlePhotoUpload(i, file);
+                                            }}
+                                        />
+                                        {photo.url ? (
+                                            <div className="relative">
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img src={photo.url} alt={`Site photo ${i + 1}`} className="w-full h-36 object-cover rounded-lg" />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 rounded-lg flex items-center justify-center transition-opacity">
+                                                    <span className="text-white text-xs font-semibold">Click to replace</span>
+                                                </div>
+                                            </div>
+                                        ) : uploadingPhoto === i ? (
+                                            <div className="h-36 flex items-center justify-center">
+                                                <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                                            </div>
+                                        ) : (
+                                            <div className="h-36 flex flex-col items-center justify-center gap-2 text-slate-500">
+                                                <Camera className="w-8 h-8" />
+                                                <span className="text-xs font-medium">Drop image here or click to upload</span>
+                                            </div>
+                                        )}
+                                    </label>
+                                    <input
+                                        value={photo.caption}
+                                        onChange={(e) => updatePhoto(i, "caption", e.target.value)}
+                                        className="w-full h-8 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                        placeholder="Caption (optional)"
+                                    />
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
@@ -590,25 +771,64 @@ export default function ClientEditor({
                         ) : (
                             <div className="space-y-3">
                                 {tcOverrides.map((clause) => (
-                                    <div key={clause.clause_number} className="bg-slate-800 border border-slate-700 rounded-lg p-4 space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm font-bold text-slate-200">{clause.clause_number}. {clause.title}</span>
-                                            <button
-                                                type="button"
-                                                onClick={() => resetTcClause(clause.clause_number)}
-                                                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                                            >
-                                                Reset to Standard
-                                            </button>
+                                    <div
+                                        key={clause.clause_number}
+                                        className={`bg-slate-800 border border-slate-700 rounded-lg p-4 space-y-2 transition-opacity ${clause.hidden ? "opacity-40" : ""}`}
+                                    >
+                                        <div className="flex items-center justify-between gap-2">
+                                            <input
+                                                value={clause.title}
+                                                onChange={(e) => updateTcClause(clause.clause_number, "title", e.target.value)}
+                                                className="text-sm font-bold text-slate-200 bg-transparent border-b border-slate-600 focus:outline-none focus:border-blue-500 flex-1 pb-0.5"
+                                            />
+                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                                {!clause.custom && (
+                                                    <>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => resetTcClause(clause.clause_number)}
+                                                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                                                        >
+                                                            Reset
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => hideTcClause(clause.clause_number)}
+                                                            className="text-xs text-slate-400 hover:text-slate-300 transition-colors"
+                                                        >
+                                                            {clause.hidden ? "Show" : "Hide"}
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {clause.custom && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeCustomClause(clause.clause_number)}
+                                                        className="w-6 h-6 rounded bg-red-900/30 text-red-400 hover:bg-red-900/50 flex items-center justify-center text-sm font-bold transition-colors"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                        <textarea
-                                            value={clause.body}
-                                            onChange={(e) => updateTcClause(clause.clause_number, e.target.value)}
-                                            rows={3}
-                                            className="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                        />
+                                        {!clause.hidden && (
+                                            <textarea
+                                                value={clause.body}
+                                                onChange={(e) => updateTcClause(clause.clause_number, "body", e.target.value)}
+                                                rows={3}
+                                                className="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                            />
+                                        )}
                                     </div>
                                 ))}
+                                <button
+                                    type="button"
+                                    onClick={addCustomClause}
+                                    className="w-full h-10 rounded-lg border border-dashed border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors text-sm font-semibold flex items-center justify-center gap-2"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Add Custom Clause
+                                </button>
                             </div>
                         )}
                     </div>
@@ -641,100 +861,74 @@ export default function ClientEditor({
                                 { key: "introduction", label: "Client Introduction" },
                                 { key: "scope", label: "Scope of Works" },
                                 { key: "exclusions", label: "Exclusions" },
-                                { key: "timeline", label: "Timeline Phases" },
+                                { key: "timeline", label: "Timeline" },
                                 { key: "payment", label: "Payment Schedule" },
                                 { key: "photos", label: "Site Photos" },
                                 { key: "terms", label: "T&Cs" },
                             ].map(({ key, label }) => (
                                 <div key={key} className="flex items-center gap-2">
                                     {checks[key as keyof typeof checks] ? (
-                                        <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                        <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
                                     ) : (
-                                        <Circle className="w-4 h-4 text-slate-700 flex-shrink-0" />
+                                        <Circle className="w-3.5 h-3.5 text-slate-700 flex-shrink-0" />
                                     )}
-                                    <span className={`text-xs ${checks[key as keyof typeof checks] ? "text-slate-300" : "text-slate-600"}`}>{label}</span>
+                                    <span className={`text-xs ${checks[key as keyof typeof checks] ? "text-slate-300" : "text-slate-600"}`}>
+                                        {label}
+                                    </span>
                                 </div>
                             ))}
                         </div>
-                        {/* Progress bar */}
-                        <div className="mt-3 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-green-500 rounded-full transition-all"
-                                style={{ width: `${(completedCount / Object.keys(checks).length) * 100}%` }}
-                            />
-                        </div>
                     </div>
 
-                    {/* PDF Controls */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">PDF Options</p>
-                        <div className="flex gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setPricingMode("summary")}
-                                className={`flex-1 h-8 rounded-lg text-xs font-semibold transition-all ${pricingMode === "summary" ? "bg-slate-700 text-slate-100" : "text-slate-500 hover:text-slate-300"}`}
-                            >
-                                Summary
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setPricingMode("full")}
-                                className={`flex-1 h-8 rounded-lg text-xs font-semibold transition-all ${pricingMode === "full" ? "bg-slate-700 text-slate-100" : "text-slate-500 hover:text-slate-300"}`}
-                            >
-                                Full Detail
-                            </button>
-                        </div>
+                    {/* Save Button */}
+                    <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="w-full h-12 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2"
+                    >
+                        {saving ? (
+                            <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+                        ) : saved ? (
+                            <><Check className="w-4 h-4" /> Saved!</>
+                        ) : (
+                            <><Save className="w-4 h-4" /> Save Proposal</>
+                        )}
+                    </button>
+
+                    {/* Copy Link Button */}
+                    <button
+                        type="button"
+                        onClick={handleCopyLink}
+                        disabled={sending}
+                        className="w-full h-12 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 rounded-xl font-bold transition-all flex items-center justify-center gap-2"
+                    >
+                        {sending ? (
+                            <><Loader2 className="w-4 h-4 animate-spin" /> Getting link...</>
+                        ) : linkCopied ? (
+                            <><Check className="w-4 h-4 text-green-400" /> Link Copied!</>
+                        ) : (
+                            <><Copy className="w-4 h-4" /> Copy Proposal Link</>
+                        )}
+                    </button>
+
+                    {/* PDF Button */}
+                    <ProposalPdfButton project={liveProject} profile={profile} estimates={estimates} pricingMode={pricingMode} validityDays={validityDays} />
+
+                    {/* Validity days */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Proposal Validity</label>
                         <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-500 flex-shrink-0">Valid for</span>
                             <input
                                 type="number"
+                                min={1}
+                                max={365}
                                 value={validityDays}
-                                onChange={(e) => setValidityDays(Number(e.target.value) || 30)}
-                                className="w-16 h-8 rounded-lg border border-slate-700 bg-slate-800 px-2 text-sm text-slate-100 text-center focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                onChange={(e) => setValidityDays(parseInt(e.target.value) || 30)}
+                                className="w-20 h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 text-center focus:outline-none focus:ring-2 focus:ring-blue-600"
                             />
-                            <span className="text-xs text-slate-500">days</span>
+                            <span className="text-sm text-slate-400">days</span>
                         </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="space-y-2">
-                        <ProposalPdfButton
-                            estimates={estimates}
-                            project={liveProject}
-                            profile={profile}
-                            pricingMode={pricingMode}
-                            validityDays={validityDays}
-                        />
-
-                        <button
-                            type="button"
-                            onClick={handleCopyLink}
-                            disabled={sending}
-                            className="w-full h-11 rounded-lg border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 text-sm font-semibold flex items-center justify-center gap-2 transition-all"
-                        >
-                            {linkCopied ? (
-                                <><Check className="w-4 h-4 text-green-400" /> Link Copied!</>
-                            ) : sending ? (
-                                "Generating link..."
-                            ) : (
-                                <><Copy className="w-4 h-4" /> Copy Client Link</>
-                            )}
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={handleSave}
-                            disabled={saving}
-                            className="w-full h-11 rounded-lg border border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700 text-sm font-semibold flex items-center justify-center gap-2 transition-all"
-                        >
-                            {saved ? (
-                                <><Check className="w-4 h-4 text-green-400" /> Saved!</>
-                            ) : saving ? (
-                                "Saving..."
-                            ) : (
-                                <><Save className="w-4 h-4" /> Save All</>
-                            )}
-                        </button>
                     </div>
                 </div>
             </div>

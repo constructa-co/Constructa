@@ -7,7 +7,7 @@ export async function updateProfileAction(formData: FormData) {
     const supabase = createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
-    if (!user) return;
+    if (!user) return { success: false, error: "Not authenticated" };
 
     const profileData: Record<string, any> = {
         id: user.id,
@@ -24,9 +24,15 @@ export async function updateProfileAction(formData: FormData) {
         insurance_details: formData.get("insurance_details") as string,
         accreditations: formData.get("accreditations") as string,
         logo_url: formData.get("logo_url") as string,
+        business_type: formData.get("business_type") as string,
     };
 
-    await supabase.from("profiles").upsert(profileData, { onConflict: "id" });
+    const { error } = await supabase.from("profiles").upsert(profileData, { onConflict: "id" });
+
+    if (error) {
+        return { success: false, error: error.message };
+    }
 
     revalidatePath("/dashboard/settings/profile");
+    return { success: true };
 }

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import ProjectBoard from "./project-board";
 import ProjectList from "./project-list";
+import { useTheme } from "@/lib/theme-context";
 
 type Period = "week" | "month" | "quarter" | "year";
 
@@ -138,6 +139,9 @@ const PERIOD_OPTIONS: { value: Period; label: string }[] = [
 ];
 
 export default function DashboardClient({ projects, financials, metrics: serverMetrics, companyName }: Props) {
+    const { theme } = useTheme();
+    const isDark = theme === "dark";
+
     const [view, setView] = useState<"board" | "list">("board");
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState("all");
@@ -176,8 +180,8 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             value: formatCurrency(metrics.totalPipelineValue),
             subtitle: "Open opportunities",
             color: "text-blue-600",
-            bgColor: "bg-blue-50",
-            borderColor: "border-blue-100",
+            bgColor: isDark ? "bg-blue-500/10" : "bg-blue-50",
+            borderColor: isDark ? "border-blue-500/20" : "border-blue-100",
         },
         {
             icon: Send,
@@ -185,8 +189,8 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             value: metrics.proposalsSent.toString(),
             subtitle: "Awaiting client decision",
             color: "text-purple-600",
-            bgColor: "bg-purple-50",
-            borderColor: "border-purple-100",
+            bgColor: isDark ? "bg-purple-500/10" : "bg-purple-50",
+            borderColor: isDark ? "border-purple-500/20" : "border-purple-100",
         },
         {
             icon: Trophy,
@@ -194,8 +198,8 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             value: metrics.wonThisMonth.toString(),
             subtitle: "Accepted proposals",
             color: "text-green-600",
-            bgColor: "bg-green-50",
-            borderColor: "border-green-100",
+            bgColor: isDark ? "bg-green-500/10" : "bg-green-50",
+            borderColor: isDark ? "border-green-500/20" : "border-green-100",
         },
         {
             icon: Hammer,
@@ -203,8 +207,8 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             value: metrics.activeJobs.toString(),
             subtitle: "Currently on site",
             color: "text-amber-600",
-            bgColor: "bg-amber-50",
-            borderColor: "border-amber-100",
+            bgColor: isDark ? "bg-amber-500/10" : "bg-amber-50",
+            borderColor: isDark ? "border-amber-500/20" : "border-amber-100",
         },
         {
             icon: TrendingUp,
@@ -212,8 +216,8 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             value: `${metrics.winRate}%`,
             subtitle: "Proposals accepted",
             color: "text-teal-600",
-            bgColor: "bg-teal-50",
-            borderColor: "border-teal-100",
+            bgColor: isDark ? "bg-teal-500/10" : "bg-teal-50",
+            borderColor: isDark ? "border-teal-500/20" : "border-teal-100",
         },
         {
             icon: PoundSterling,
@@ -221,25 +225,29 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             value: formatCurrency(metrics.totalRevenueSigned),
             subtitle: "Contracted value",
             color: "text-emerald-600",
-            bgColor: "bg-emerald-50",
-            borderColor: "border-emerald-100",
+            bgColor: isDark ? "bg-emerald-500/10" : "bg-emerald-50",
+            borderColor: isDark ? "border-emerald-500/20" : "border-emerald-100",
         },
     ];
 
     return (
-        <div className="pt-8 px-8 pb-12 space-y-8">
+        <div className={`pt-8 px-8 pb-12 space-y-8 ${isDark ? "bg-[#0d0d0d] text-white" : "bg-white text-gray-900"}`}>
 
             {/* SECTION A — Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">
+                    <h1 className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
                         {getGreeting()}, {companyName}
                     </h1>
-                    <p className="text-sm text-slate-500 mt-0.5">Here&apos;s your pipeline overview for today</p>
+                    <p className={`text-sm mt-0.5 ${isDark ? "text-[#a0a0a0]" : "text-gray-500"}`}>Here&apos;s your pipeline overview for today</p>
                 </div>
                 <Link
                     href="/dashboard/projects/new"
-                    className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-sm transition-colors"
+                    className={`inline-flex items-center gap-2 font-semibold text-sm px-5 py-2.5 rounded-xl shadow-sm transition-colors ${
+                        isDark
+                            ? "bg-white text-[#0d0d0d] hover:bg-gray-200"
+                            : "bg-blue-600 hover:bg-blue-700 text-white"
+                    }`}
                 >
                     + New Project
                 </Link>
@@ -249,18 +257,26 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             <div className="space-y-3">
                 {/* Period selector header */}
                 <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-slate-600">
-                        Performance — <span className="text-slate-900">{periodLabel}</span>
+                    <h2 className={`text-sm font-semibold ${isDark ? "text-[#a0a0a0]" : "text-gray-500"}`}>
+                        Performance — <span className={isDark ? "text-white" : "text-gray-900"}>{periodLabel}</span>
                     </h2>
-                    <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+                    <div className={`flex items-center gap-1 rounded-lg p-1 shadow-sm ${
+                        isDark
+                            ? "bg-[#1a1a1a] border border-[#2a2a2a]"
+                            : "bg-white border border-gray-200"
+                    }`}>
                         {PERIOD_OPTIONS.map(opt => (
                             <button
                                 key={opt.value}
                                 onClick={() => setPeriod(opt.value)}
                                 className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                                     period === opt.value
-                                        ? "bg-blue-600 text-white shadow-sm"
-                                        : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                                        ? isDark
+                                            ? "bg-white text-[#0d0d0d] shadow-sm"
+                                            : "bg-gray-900 text-white shadow-sm"
+                                        : isDark
+                                            ? "text-[#a0a0a0] hover:text-white"
+                                            : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
                                 }`}
                             >
                                 {opt.label}
@@ -275,19 +291,23 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                         return (
                             <div
                                 key={card.label}
-                                className={`bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col gap-3 hover:shadow-md transition-shadow`}
+                                className={`rounded-xl border p-4 flex flex-col gap-3 transition-shadow ${
+                                    isDark
+                                        ? "bg-[#1a1a1a] border-[#2a2a2a] hover:shadow-lg hover:shadow-black/20"
+                                        : "bg-white border-gray-200 shadow-sm hover:shadow-md"
+                                }`}
                             >
                                 <div className={`w-9 h-9 rounded-lg ${card.bgColor} flex items-center justify-center`}>
                                     <Icon className={`w-4 h-4 ${card.color}`} />
                                 </div>
                                 <div>
-                                    <div className="text-2xl font-black text-slate-900 leading-none">
+                                    <div className={`text-2xl font-bold leading-none ${isDark ? "text-white" : "text-gray-900"}`}>
                                         {card.value}
                                     </div>
-                                    <div className="text-xs font-semibold text-slate-600 mt-1">
+                                    <div className={`text-sm font-medium uppercase tracking-wide mt-1 ${isDark ? "text-[#a0a0a0]" : "text-gray-500"}`}>
                                         {card.label}
                                     </div>
-                                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">
+                                    <div className={`text-[10px] mt-0.5 leading-tight ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>
                                         {card.subtitle}
                                     </div>
                                 </div>
@@ -298,17 +318,25 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             </div>
 
             {/* SECTION C — Search & Filter Bar */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div className={`rounded-xl border p-4 ${
+                isDark
+                    ? "bg-[#1a1a1a] border-[#2a2a2a]"
+                    : "bg-white border-gray-200 shadow-sm"
+            }`}>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                     {/* Search */}
                     <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`} />
                         <input
                             type="text"
                             placeholder="Search by client or project name..."
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className={`w-full pl-9 pr-4 py-2 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                                isDark
+                                    ? "bg-[#0d0d0d] border border-[#2a2a2a] text-white placeholder-[#a0a0a0]"
+                                    : "bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400"
+                            }`}
                         />
                     </div>
 
@@ -316,7 +344,11 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     <select
                         value={typeFilter}
                         onChange={e => setTypeFilter(e.target.value)}
-                        className="text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className={`text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            isDark
+                                ? "bg-[#0d0d0d] border border-[#2a2a2a] text-white"
+                                : "bg-gray-50 border border-gray-200 text-gray-700"
+                        }`}
                     >
                         <option value="all">All Types</option>
                         {projectTypes.map(type => (
@@ -328,7 +360,11 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     <select
                         value={statusFilter}
                         onChange={e => setStatusFilter(e.target.value)}
-                        className="text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className={`text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            isDark
+                                ? "bg-[#0d0d0d] border border-[#2a2a2a] text-white"
+                                : "bg-gray-50 border border-gray-200 text-gray-700"
+                        }`}
                     >
                         <option value="all">All Stages</option>
                         {STATUS_OPTIONS.map(s => (
@@ -337,13 +373,17 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     </select>
 
                     {/* View Toggle */}
-                    <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+                    <div className={`flex items-center gap-1 rounded-lg p-1 ${isDark ? "bg-[#0d0d0d]" : "bg-gray-100"}`}>
                         <button
                             onClick={() => setView("board")}
                             className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                                 view === "board"
-                                    ? "bg-white text-slate-900 shadow-sm"
-                                    : "text-slate-500 hover:text-slate-700"
+                                    ? isDark
+                                        ? "bg-[#2a2a2a] text-white shadow-sm"
+                                        : "bg-white text-gray-900 shadow-sm"
+                                    : isDark
+                                        ? "text-[#a0a0a0] hover:text-white"
+                                        : "text-gray-500 hover:text-gray-700"
                             }`}
                         >
                             <LayoutGrid className="w-3.5 h-3.5" />
@@ -353,8 +393,12 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                             onClick={() => setView("list")}
                             className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                                 view === "list"
-                                    ? "bg-white text-slate-900 shadow-sm"
-                                    : "text-slate-500 hover:text-slate-700"
+                                    ? isDark
+                                        ? "bg-[#2a2a2a] text-white shadow-sm"
+                                        : "bg-white text-gray-900 shadow-sm"
+                                    : isDark
+                                        ? "text-[#a0a0a0] hover:text-white"
+                                        : "text-gray-500 hover:text-gray-700"
                             }`}
                         >
                             <List className="w-3.5 h-3.5" />
@@ -376,38 +420,58 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             {/* SECTION E — Bottom Placeholder Panels */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Resource Management */}
-                <div className="bg-white rounded-xl border-2 border-dashed border-slate-200 p-8 flex flex-col items-center justify-center text-center gap-4">
-                    <div className="w-14 h-14 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center">
-                        <Users className="w-6 h-6 text-slate-300" />
+                <div className={`rounded-xl border-2 border-dashed p-8 flex flex-col items-center justify-center text-center gap-4 ${
+                    isDark
+                        ? "bg-[#1a1a1a] border-[#2a2a2a]"
+                        : "bg-gray-50 border-gray-200"
+                }`}>
+                    <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
+                        isDark ? "bg-[#0d0d0d] border border-[#2a2a2a]" : "bg-white border border-gray-100"
+                    }`}>
+                        <Users className={`w-6 h-6 ${isDark ? "text-[#a0a0a0]" : "text-gray-300"}`} />
                     </div>
                     <div>
-                        <h3 className="text-base font-semibold text-slate-400">Resource Management</h3>
-                        <p className="text-sm text-slate-400 mt-1.5 max-w-xs leading-relaxed">
+                        <h3 className={`text-base font-semibold ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>Resource Management</h3>
+                        <p className={`text-sm mt-1.5 max-w-xs leading-relaxed ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>
                             Labour allocation, plant scheduling and subcontractor management — coming in a future update.
                         </p>
                     </div>
                     <button
                         disabled
-                        className="text-xs font-medium text-slate-400 border border-slate-200 rounded-lg px-4 py-2 cursor-not-allowed opacity-50"
+                        className={`text-xs font-medium rounded-lg px-4 py-2 cursor-not-allowed opacity-50 ${
+                            isDark
+                                ? "text-[#a0a0a0] border border-[#2a2a2a]"
+                                : "text-gray-400 border border-gray-200"
+                        }`}
                     >
                         Notify me
                     </button>
                 </div>
 
                 {/* Financial Dashboard */}
-                <div className="bg-white rounded-xl border-2 border-dashed border-slate-200 p-8 flex flex-col items-center justify-center text-center gap-4">
-                    <div className="w-14 h-14 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center">
-                        <BarChart3 className="w-6 h-6 text-slate-300" />
+                <div className={`rounded-xl border-2 border-dashed p-8 flex flex-col items-center justify-center text-center gap-4 ${
+                    isDark
+                        ? "bg-[#1a1a1a] border-[#2a2a2a]"
+                        : "bg-gray-50 border-gray-200"
+                }`}>
+                    <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
+                        isDark ? "bg-[#0d0d0d] border border-[#2a2a2a]" : "bg-white border border-gray-100"
+                    }`}>
+                        <BarChart3 className={`w-6 h-6 ${isDark ? "text-[#a0a0a0]" : "text-gray-300"}`} />
                     </div>
                     <div>
-                        <h3 className="text-base font-semibold text-slate-400">Financial Dashboard</h3>
-                        <p className="text-sm text-slate-400 mt-1.5 max-w-xs leading-relaxed">
+                        <h3 className={`text-base font-semibold ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>Financial Dashboard</h3>
+                        <p className={`text-sm mt-1.5 max-w-xs leading-relaxed ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>
                             P&amp;L by project, cash flow, margin analysis and management accounts — coming in a future update.
                         </p>
                     </div>
                     <button
                         disabled
-                        className="text-xs font-medium text-slate-400 border border-slate-200 rounded-lg px-4 py-2 cursor-not-allowed opacity-50"
+                        className={`text-xs font-medium rounded-lg px-4 py-2 cursor-not-allowed opacity-50 ${
+                            isDark
+                                ? "text-[#a0a0a0] border border-[#2a2a2a]"
+                                : "text-gray-400 border border-gray-200"
+                        }`}
                     >
                         Notify me
                     </button>

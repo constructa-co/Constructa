@@ -3,11 +3,32 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { useTheme } from "@/lib/theme-context";
 
 type SortKey = "name" | "client_name" | "project_type" | "status" | "value" | "proposal_sent_at" | "days_open";
 type SortDir = "asc" | "desc";
 
-function getStatusBadgeClass(status: string | null): string {
+function getStatusBadgeClass(status: string | null, isDark: boolean): string {
+    if (isDark) {
+        switch (status) {
+            case "Lead":
+                return "bg-white/5 text-[#a0a0a0] border-[#2a2a2a]";
+            case "Estimating":
+                return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+            case "Proposal Sent":
+                return "bg-purple-500/10 text-purple-400 border-purple-500/20";
+            case "Active":
+                return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+            case "Won":
+                return "bg-green-500/10 text-green-400 border-green-500/20";
+            case "Completed":
+                return "bg-white/5 text-[#a0a0a0] border-[#2a2a2a]";
+            case "Lost":
+                return "bg-red-500/10 text-red-400 border-red-500/20";
+            default:
+                return "bg-white/5 text-[#a0a0a0] border-[#2a2a2a]";
+        }
+    }
     switch (status) {
         case "Lead":
             return "bg-slate-50 text-slate-500 border-slate-200";
@@ -36,7 +57,7 @@ function getDaysOpen(createdAt: string | null): number {
 }
 
 function formatDate(dateStr: string | null): string {
-    if (!dateStr) return "—";
+    if (!dateStr) return "\u2014";
     return new Date(dateStr).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
@@ -47,13 +68,16 @@ interface SortHeaderProps {
     currentDir: SortDir;
     onSort: (key: SortKey) => void;
     align?: "left" | "right";
+    isDark: boolean;
 }
 
-function SortHeader({ label, sortKey, currentSort, currentDir, onSort, align = "left" }: SortHeaderProps) {
+function SortHeader({ label, sortKey, currentSort, currentDir, onSort, align = "left", isDark }: SortHeaderProps) {
     const isActive = currentSort === sortKey;
     return (
         <th
-            className={`px-4 py-3 font-medium cursor-pointer select-none hover:bg-slate-100 transition-colors ${align === "right" ? "text-right" : "text-left"}`}
+            className={`px-4 py-3 font-medium cursor-pointer select-none transition-colors ${
+                align === "right" ? "text-right" : "text-left"
+            } ${isDark ? "hover:bg-[#1a1a1a]" : "hover:bg-gray-100"}`}
             onClick={() => onSort(sortKey)}
         >
             <span className="inline-flex items-center gap-1">
@@ -69,6 +93,8 @@ function SortHeader({ label, sortKey, currentSort, currentDir, onSort, align = "
 }
 
 export default function ProjectList({ projects, financials }: { projects: any[], financials: any }) {
+    const { theme } = useTheme();
+    const isDark = theme === "dark";
     const [sortKey, setSortKey] = useState<SortKey>("name");
     const [sortDir, setSortDir] = useState<SortDir>("asc");
 
@@ -124,50 +150,60 @@ export default function ProjectList({ projects, financials }: { projects: any[],
     });
 
     return (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className={`rounded-xl border overflow-hidden ${
+            isDark
+                ? "bg-[#1a1a1a] border-[#2a2a2a]"
+                : "bg-white border-gray-200 shadow-sm"
+        }`}>
             <table className="w-full text-sm text-left">
-                <thead className="bg-slate-50 border-b text-slate-500 uppercase text-xs">
+                <thead className={`border-b uppercase text-xs ${
+                    isDark
+                        ? "bg-[#0d0d0d] text-[#a0a0a0] border-[#2a2a2a]"
+                        : "bg-gray-50 text-gray-500 border-gray-200"
+                }`}>
                     <tr>
-                        <SortHeader label="Project Name" sortKey="name" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
-                        <SortHeader label="Client" sortKey="client_name" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
-                        <SortHeader label="Type" sortKey="project_type" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
-                        <SortHeader label="Status" sortKey="status" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
-                        <SortHeader label="Value" sortKey="value" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} align="right" />
-                        <SortHeader label="Sent Date" sortKey="proposal_sent_at" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
-                        <SortHeader label="Days Open" sortKey="days_open" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} align="right" />
-                        <th className="px-4 py-3 font-medium text-right">Actions</th>
+                        <SortHeader label="Project Name" sortKey="name" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} isDark={isDark} />
+                        <SortHeader label="Client" sortKey="client_name" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} isDark={isDark} />
+                        <SortHeader label="Type" sortKey="project_type" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} isDark={isDark} />
+                        <SortHeader label="Status" sortKey="status" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} isDark={isDark} />
+                        <SortHeader label="Value" sortKey="value" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} align="right" isDark={isDark} />
+                        <SortHeader label="Sent Date" sortKey="proposal_sent_at" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} isDark={isDark} />
+                        <SortHeader label="Days Open" sortKey="days_open" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} align="right" isDark={isDark} />
+                        <th className={`px-4 py-3 font-medium text-right ${isDark ? "text-[#a0a0a0]" : ""}`}>Actions</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className={`divide-y ${isDark ? "divide-[#2a2a2a]" : "divide-gray-100"}`}>
                     {sorted.map((p) => {
                         const value = getValue(p);
                         const days = getDaysOpen(p.created_at);
                         return (
                             <tr
                                 key={p.id}
-                                className="hover:bg-slate-50 group transition-colors cursor-pointer"
+                                className={`group transition-colors cursor-pointer ${
+                                    isDark ? "hover:bg-[#0d0d0d]" : "hover:bg-gray-50"
+                                }`}
                                 onClick={() => {
                                     window.location.href = `/dashboard/projects/proposal?projectId=${p.id}`;
                                 }}
                             >
-                                <td className="px-4 py-3 font-semibold text-slate-900">
+                                <td className={`px-4 py-3 font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
                                     {p.name}
                                 </td>
-                                <td className="px-4 py-3 text-slate-600">{p.client_name || "—"}</td>
-                                <td className="px-4 py-3 text-slate-500 text-xs">{p.project_type || "—"}</td>
+                                <td className={`px-4 py-3 ${isDark ? "text-[#a0a0a0]" : "text-gray-600"}`}>{p.client_name || "\u2014"}</td>
+                                <td className={`px-4 py-3 text-xs ${isDark ? "text-[#a0a0a0]" : "text-gray-500"}`}>{p.project_type || "\u2014"}</td>
                                 <td className="px-4 py-3">
-                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${getStatusBadgeClass(p.status)}`}>
+                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${getStatusBadgeClass(p.status, isDark)}`}>
                                         {p.status || "Lead"}
                                     </span>
                                 </td>
-                                <td className="px-4 py-3 text-right font-mono text-slate-700 text-xs">
-                                    {value ? `£${value.toLocaleString("en-GB", { maximumFractionDigits: 0 })}` : "—"}
+                                <td className={`px-4 py-3 text-right font-mono text-xs ${isDark ? "text-[#a0a0a0]" : "text-gray-700"}`}>
+                                    {value ? `£${value.toLocaleString("en-GB", { maximumFractionDigits: 0 })}` : "\u2014"}
                                 </td>
-                                <td className="px-4 py-3 text-slate-500 text-xs">
+                                <td className={`px-4 py-3 text-xs ${isDark ? "text-[#a0a0a0]" : "text-gray-500"}`}>
                                     {formatDate(p.proposal_sent_at)}
                                 </td>
                                 <td className="px-4 py-3 text-right">
-                                    <span className={`text-xs font-semibold ${days > 30 ? "text-amber-500" : "text-slate-400"}`}>
+                                    <span className={`text-xs font-semibold ${days > 30 ? "text-amber-500" : isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>
                                         {days}d
                                     </span>
                                 </td>
@@ -184,7 +220,7 @@ export default function ProjectList({ projects, financials }: { projects: any[],
                     })}
                     {sorted.length === 0 && (
                         <tr>
-                            <td colSpan={8} className="p-8 text-center text-slate-400 text-sm">
+                            <td colSpan={8} className={`p-8 text-center text-sm ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>
                                 No projects match your filters.
                             </td>
                         </tr>

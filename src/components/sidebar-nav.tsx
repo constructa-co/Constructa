@@ -98,7 +98,7 @@ export default function SidebarNav({ user, projects }: SidebarNavProps) {
     const is = (path: string) => pathname === path || pathname.startsWith(path + "/") || pathname.startsWith(path + "?");
 
     return (
-        <aside className="w-64 bg-[#0f1a2e] hidden md:flex flex-col h-screen fixed z-30">
+        <aside className="w-64 bg-[#0d0d0d] hidden md:flex flex-col h-screen fixed z-30">
             {/* Logo */}
             <div className="p-5 pb-3">
                 <Link href="/dashboard" className="flex items-center gap-2.5 group">

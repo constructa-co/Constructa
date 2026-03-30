@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { generateText } from "@/lib/ai";
 
 export async function updateProfileAction(formData: FormData) {
     const supabase = createClient();
@@ -51,4 +52,15 @@ export async function updateProfileAction(formData: FormData) {
 
     revalidatePath("/dashboard/settings/profile");
     return { success: true };
+}
+
+export async function rewriteWithAIAction(text: string, fieldName: string): Promise<{ text: string }> {
+    const prompts: Record<string, string> = {
+        capability_statement: `Rewrite this construction company capability statement to be more compelling, professional and concise. Keep it to 3-4 sentences. Focus on what makes them specialists. Original: "${text}"`,
+        accreditations: text,
+    };
+    const prompt = prompts[fieldName] || `Rewrite this text to be more professional and compelling for a construction company proposal: "${text}"`;
+    if (fieldName === "accreditations") return { text };
+    const result = await generateText(prompt);
+    return { text: result };
 }

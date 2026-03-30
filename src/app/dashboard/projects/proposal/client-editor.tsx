@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2 } from "lucide-react";
-import { saveProposalAction, generateAiScopeAction, sendProposalAction, rewriteIntroductionAction } from "./actions";
+import { saveProposalAction, generateAiScopeAction, sendProposalAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction } from "./actions";
 import ProposalPdfButton from "./proposal-pdf-button";
 import AiWizard from "./ai-wizard";
 import Link from "next/link";
@@ -143,14 +143,14 @@ export default function ClientEditor({
     profile,
     estimatedTotal = 0,
 }: Props) {
-    const [scope, setScope] = useState(initialScope);
-    const [exclusions, setExclusions] = useState(initialExclusions);
-    const [clarifications, setClarifications] = useState(initialClarifications);
+    const [scope, setScope] = useState(initialScope ?? '');
+    const [exclusions, setExclusions] = useState(initialExclusions ?? '');
+    const [clarifications, setClarifications] = useState(initialClarifications ?? '');
     const [generating, setGenerating] = useState(false);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
 
-    const [introduction, setIntroduction] = useState(project?.proposal_introduction || "");
+    const [introduction, setIntroduction] = useState(project?.proposal_introduction ?? "");
     const [rewritingIntro, setRewritingIntro] = useState(false);
 
     const [ganttPhases, setGanttPhases] = useState<GanttPhase[]>(
@@ -188,6 +188,23 @@ export default function ClientEditor({
     const [showFirstTimeModal, setShowFirstTimeModal] = useState(isFirstTime);
     const [showWizard, setShowWizard] = useState(false);
 
+    // Case study selection
+    const allCaseStudies: { id: string; projectName: string; projectType: string; contractValue: string }[] = profile?.case_studies || [];
+    const [selectedCaseStudyIds, setSelectedCaseStudyIds] = useState<(number | string)[]>(
+        project?.selected_case_study_ids?.length ? project.selected_case_study_ids : []
+    );
+    const toggleCaseStudy = async (index: number) => {
+        const updated = selectedCaseStudyIds.includes(index)
+            ? selectedCaseStudyIds.filter((id) => id !== index)
+            : [...selectedCaseStudyIds, index];
+        setSelectedCaseStudyIds(updated);
+        await updateCaseStudySelectionAction(projectId, updated);
+    };
+    const isCaseStudyRecommended = (cs: { projectType: string }) => {
+        const projectType = (project?.project_type || "").toLowerCase();
+        return projectType && cs.projectType?.toLowerCase().includes(projectType.toLowerCase());
+    };
+
     function handleWizardComplete(data: {
         introduction: string;
         scope_narrative: string;
@@ -196,29 +213,49 @@ export default function ClientEditor({
         gantt_phases: any[];
         payment_stages: any[];
     }) {
-        setIntroduction(data.introduction || "");
-        setScope(data.scope_narrative || "");
-        setExclusions(data.exclusions || "");
-        setClarifications(data.clarifications || "");
-        if (data.gantt_phases?.length) {
-            setGanttPhases(data.gantt_phases.map((p: any) => ({
+        const intro = data.introduction || "";
+        const scopeNarrative = data.scope_narrative || "";
+        const excl = data.exclusions || "";
+        const clar = data.clarifications || "";
+
+        setIntroduction(intro);
+        setScope(scopeNarrative);
+        setExclusions(excl);
+        setClarifications(clar);
+
+        const mappedPhases = data.gantt_phases?.length
+            ? data.gantt_phases.map((p: any) => ({
                 id: p.id || crypto.randomUUID(),
                 name: p.name,
                 start_date: p.start_date || "",
                 duration_days: p.duration_days || 14,
                 duration_unit: (p.duration_unit as DurationUnit) || "Weeks",
                 color: p.color || "blue",
-            })));
-        }
-        if (data.payment_stages?.length) {
-            setPaymentSchedule(data.payment_stages.map((p: any) => ({
+            }))
+            : undefined;
+
+        const mappedPayment = data.payment_stages?.length
+            ? data.payment_stages.map((p: any) => ({
                 id: p.id || crypto.randomUUID(),
                 stage: p.stage,
                 description: p.description,
                 percentage: p.percentage,
-            })));
-        }
+            }))
+            : undefined;
+
+        if (mappedPhases) setGanttPhases(mappedPhases);
+        if (mappedPayment) setPaymentSchedule(mappedPayment);
         setShowWizard(false);
+
+        // Persist wizard results to DB as a safety net
+        saveWizardResultsAction(projectId, {
+            proposal_introduction: intro,
+            scope_text: scopeNarrative,
+            exclusions_text: excl,
+            clarifications_text: clar,
+            ...(mappedPhases ? { gantt_phases: mappedPhases } : {}),
+            ...(mappedPayment ? { payment_schedule: mappedPayment } : {}),
+        });
     }
 
     const contractValue = useEstimatedTotal && estimatedTotal > 0
@@ -267,6 +304,38 @@ export default function ClientEditor({
             setIntroduction(result.text);
         }
         setRewritingIntro(false);
+    };
+
+    const [generatingClarifications, setGeneratingClarifications] = useState(false);
+    const [generatingExclusions, setGeneratingExclusions] = useState(false);
+
+    const handleSuggestClarifications = async () => {
+        setGeneratingClarifications(true);
+        try {
+            const result = await generateClarificationsAction(
+                project?.project_type || "",
+                scope,
+                clarifications
+            );
+            if (result.clarifications) {
+                setClarifications(result.clarifications.replace(/^- /gm, ''));
+            }
+        } catch { /* ignore */ }
+        setGeneratingClarifications(false);
+    };
+
+    const handleSuggestExclusions = async () => {
+        setGeneratingExclusions(true);
+        try {
+            const result = await generateExclusionsAction(
+                project?.project_type || "",
+                scope
+            );
+            if (result.exclusions) {
+                setExclusions(result.exclusions.replace(/^- /gm, ''));
+            }
+        } catch { /* ignore */ }
+        setGeneratingExclusions(false);
     };
 
     const handleCopyLink = async () => {
@@ -381,6 +450,7 @@ export default function ClientEditor({
         tc_overrides: useCustomTc ? tcOverrides : null,
         site_photos: sitePhotos.filter(p => p.url),
         payment_schedule: paymentSchedule,
+        selected_case_study_ids: selectedCaseStudyIds,
     };
 
     // Completion checks
@@ -586,7 +656,18 @@ export default function ClientEditor({
                     </div>
                     <div className="p-6 grid sm:grid-cols-2 gap-5">
                         <div>
-                            <p className="text-xs font-semibold text-slate-400 mb-2">Exclusions</p>
+                            <div className="flex items-center justify-between mb-2">
+                                <p className="text-xs font-semibold text-slate-400">Exclusions</p>
+                                <button
+                                    type="button"
+                                    onClick={handleSuggestExclusions}
+                                    disabled={generatingExclusions}
+                                    className="flex items-center gap-1 h-6 px-2 rounded border border-purple-700 bg-purple-900/30 text-purple-300 hover:bg-purple-800/40 text-[10px] font-bold transition-colors disabled:opacity-60"
+                                >
+                                    {generatingExclusions ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                                    {generatingExclusions ? "Generating..." : "Suggest with AI"}
+                                </button>
+                            </div>
                             <p className="text-xs text-slate-600 mb-2">Items NOT included in this proposal</p>
                             <Textarea
                                 value={exclusions}
@@ -596,7 +677,18 @@ export default function ClientEditor({
                             />
                         </div>
                         <div>
-                            <p className="text-xs font-semibold text-slate-400 mb-2">Clarifications</p>
+                            <div className="flex items-center justify-between mb-2">
+                                <p className="text-xs font-semibold text-slate-400">Clarifications</p>
+                                <button
+                                    type="button"
+                                    onClick={handleSuggestClarifications}
+                                    disabled={generatingClarifications}
+                                    className="flex items-center gap-1 h-6 px-2 rounded border border-purple-700 bg-purple-900/30 text-purple-300 hover:bg-purple-800/40 text-[10px] font-bold transition-colors disabled:opacity-60"
+                                >
+                                    {generatingClarifications ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                                    {generatingClarifications ? "Generating..." : "Suggest with AI"}
+                                </button>
+                            </div>
                             <p className="text-xs text-slate-600 mb-2">Assumptions and qualifications</p>
                             <Textarea
                                 value={clarifications}
@@ -834,6 +926,51 @@ export default function ClientEditor({
                         </div>
                     </div>
                 </div>
+
+                {/* SECTION 8b: Case Studies Selection */}
+                {allCaseStudies.length > 0 && (
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-slate-400" />
+                            <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Case Studies for Proposal</span>
+                            <span className="text-xs text-slate-600 ml-1">({selectedCaseStudyIds.length || 'All'} selected)</span>
+                        </div>
+                        <div className="p-6 space-y-3">
+                            <p className="text-xs text-slate-500 mb-2">Choose which case studies appear in this proposal. When none are selected, all are included.</p>
+                            {allCaseStudies.map((cs, idx) => {
+                                const isSelected = selectedCaseStudyIds.includes(idx);
+                                const recommended = isCaseStudyRecommended(cs);
+                                return (
+                                    <label
+                                        key={cs.id || idx}
+                                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                                            isSelected ? "border-blue-600 bg-blue-950/30" : "border-slate-700 bg-slate-800 hover:border-slate-600"
+                                        }`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={isSelected}
+                                            onChange={() => toggleCaseStudy(idx)}
+                                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-600"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-semibold text-slate-100 truncate">{cs.projectName || `Case Study ${idx + 1}`}</span>
+                                                {recommended && (
+                                                    <span className="text-[10px] font-bold px-1.5 py-0.5 bg-green-900/40 text-green-400 rounded">Recommended</span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
+                                                {cs.projectType && <span>{cs.projectType}</span>}
+                                                {cs.contractValue && <span>£{Number(cs.contractValue).toLocaleString("en-GB")}</span>}
+                                            </div>
+                                        </div>
+                                    </label>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 {/* SECTION 9: Terms & Conditions */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">

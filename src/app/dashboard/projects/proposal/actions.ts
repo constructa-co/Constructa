@@ -359,6 +359,84 @@ export async function extractScopeBulletsAction(scopeText: string): Promise<stri
     }
 }
 
+export async function saveWizardResultsAction(projectId: string, data: {
+    proposal_introduction?: string;
+    scope_text?: string;
+    exclusions_text?: string;
+    clarifications_text?: string;
+    gantt_phases?: any[];
+    payment_schedule?: any[];
+}) {
+    const supabase = createClient();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
+    if (!user) return { success: false, error: "Not authenticated" };
+
+    const { error } = await supabase
+        .from("projects")
+        .update(data)
+        .eq("id", projectId)
+        .eq("user_id", user.id);
+
+    if (error) return { success: false, error: error.message };
+    revalidatePath(`/dashboard/projects/proposal?projectId=${projectId}`);
+    return { success: true };
+}
+
+export async function generateClarificationsAction(
+    projectType: string,
+    scopeText: string,
+    existingClarifications: string
+): Promise<{ clarifications: string }> {
+    const prompt = `You are an expert construction contract manager. Generate 5-7 professional clarifications for a construction proposal.
+  Project type: ${projectType}
+  Scope: ${scopeText?.substring(0, 500) || 'Not provided'}
+
+  Clarifications are items the contractor needs the client to confirm or that set out the basis of the quote.
+  Examples: "Works based on drawings ref X dated Y", "Assumes clear site access 7am-6pm", "PC sums allowances for X", "Excludes statutory utility diversions unless stated"
+
+  Return as a bullet list, one clarification per line, starting each with "- ".
+  Keep each clarification concise (one sentence). Make them specific to the project type.`;
+
+    const text = await generateText(prompt);
+    return { clarifications: text };
+}
+
+export async function generateExclusionsAction(
+    projectType: string,
+    scopeText: string
+): Promise<{ exclusions: string }> {
+    const prompt = `You are an expert construction contract manager. Generate 5-8 standard exclusions for a construction proposal.
+  Project type: ${projectType}
+  Scope: ${scopeText?.substring(0, 500) || 'Not provided'}
+
+  Exclusions are items NOT included in the contractor's price.
+  Examples: "Planning and Building Control fees", "Floor finishes and decorating", "Furniture and soft furnishings", "External landscaping beyond the site boundary"
+
+  Return as a bullet list, one exclusion per line, starting each with "- ".
+  Keep each exclusion concise. Make them specific to the project type.`;
+
+    const text = await generateText(prompt);
+    return { exclusions: text };
+}
+
+export async function updateCaseStudySelectionAction(projectId: string, selectedIds: (number | string)[]) {
+    const supabase = createClient();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
+    if (!user) return { success: false, error: "Not authenticated" };
+
+    const { error } = await supabase
+        .from("projects")
+        .update({ selected_case_study_ids: selectedIds })
+        .eq("id", projectId)
+        .eq("user_id", user.id);
+
+    if (error) return { success: false, error: error.message };
+    revalidatePath(`/dashboard/projects/proposal?projectId=${projectId}`);
+    return { success: true };
+}
+
 export async function uploadPhotoAction(formData: FormData) {
     const supabase = createClient();
     const { data: authData } = await supabase.auth.getUser();

@@ -2,9 +2,9 @@
 
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { updateProfileAction } from "./actions";
+import { updateProfileAction, rewriteWithAIAction } from "./actions";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Loader2 } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Loader2, Sparkles } from "lucide-react";
 
 interface CaseStudy {
     id: string;
@@ -265,6 +265,44 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
         (profile?.case_studies as CaseStudy[] | null | undefined) || []
     );
     const [pdfTheme, setPdfTheme] = useState(profile?.pdf_theme || 'slate');
+    const [logoUrl, setLogoUrl] = useState(profile?.logo_url || '');
+    const [uploadingLogo, setUploadingLogo] = useState(false);
+    const logoInputRef = useRef<HTMLInputElement>(null);
+    const [capabilityStatement, setCapabilityStatement] = useState(profile?.capability_statement || '');
+    const [rewritingCapability, setRewritingCapability] = useState(false);
+
+    const handleRewriteCapability = async () => {
+        if (!capabilityStatement.trim()) return;
+        setRewritingCapability(true);
+        try {
+            const result = await rewriteWithAIAction(capabilityStatement, "capability_statement");
+            if (result.text) setCapabilityStatement(result.text);
+        } catch {
+            toast.error("AI rewrite failed");
+        }
+        setRewritingCapability(false);
+    };
+
+    const handleLogoUpload = async (file: File) => {
+        setUploadingLogo(true);
+        try {
+            const supabase = createClient();
+            const { data: authData } = await supabase.auth.getUser();
+            const userId = authData?.user?.id;
+            if (!userId) { toast.error("Not authenticated"); return; }
+            const ext = file.name.split(".").pop() || "png";
+            const path = `logos/${userId}/${Date.now()}.${ext}`;
+            const { error } = await supabase.storage
+                .from("proposal-photos")
+                .upload(path, file, { upsert: true });
+            if (error) { toast.error("Upload failed: " + error.message); return; }
+            const { data } = supabase.storage.from("proposal-photos").getPublicUrl(path);
+            setLogoUrl(data.publicUrl);
+            toast.success("Logo uploaded");
+        } finally {
+            setUploadingLogo(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -470,10 +508,24 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
                 </div>
 
                 <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-400">Capability Statement</label>
+                    <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-slate-400">Capability Statement</label>
+                        {capabilityStatement.trim().length > 20 && (
+                            <button
+                                type="button"
+                                onClick={handleRewriteCapability}
+                                disabled={rewritingCapability}
+                                className="flex items-center gap-1.5 h-7 px-3 rounded-lg border border-purple-700 bg-purple-900/30 text-purple-300 hover:bg-purple-800/40 text-xs font-bold transition-colors disabled:opacity-60"
+                            >
+                                {rewritingCapability ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                {rewritingCapability ? "Rewriting..." : "Rewrite with AI"}
+                            </button>
+                        )}
+                    </div>
                     <textarea
                         name="capability_statement"
-                        defaultValue={profile?.capability_statement || ""}
+                        value={capabilityStatement}
+                        onChange={(e) => setCapabilityStatement(e.target.value)}
                         rows={5}
                         className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
                         placeholder="We are a family-run business with over 20 years of experience in residential and commercial construction across the South East..."
@@ -484,19 +536,38 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
                 </div>
 
                 <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-400">Logo URL (paste a direct image link)</label>
-                    <input
-                        name="logo_url"
-                        defaultValue={profile?.logo_url || ""}
-                        className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                        placeholder="https://example.com/logo.png"
-                    />
-                    {profile?.logo_url && (
-                        <div className="mt-2 p-2 bg-slate-800 rounded-lg inline-block border border-slate-700">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={profile.logo_url} alt="Logo preview" className="h-16 w-auto object-contain" />
+                    <label className="text-sm font-medium text-slate-400">Company Logo</label>
+                    <input name="logo_url" type="hidden" value={logoUrl} />
+                    <div className="flex items-start gap-4">
+                        {logoUrl && (
+                            <div className="p-2 bg-slate-800 rounded-lg border border-slate-700 flex-shrink-0">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={logoUrl} alt="Logo preview" className="h-16 w-auto object-contain" />
+                            </div>
+                        )}
+                        <div className="flex flex-col gap-2">
+                            <button
+                                type="button"
+                                onClick={() => logoInputRef.current?.click()}
+                                disabled={uploadingLogo}
+                                className="flex items-center gap-2 h-10 px-4 rounded-lg border border-slate-700 bg-slate-800 text-sm text-slate-100 hover:bg-slate-700 transition-colors disabled:opacity-60"
+                            >
+                                {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                {uploadingLogo ? "Uploading..." : "Upload Logo"}
+                            </button>
+                            <input
+                                ref={logoInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleLogoUpload(file);
+                                }}
+                            />
+                            <p className="text-xs text-slate-500">PNG or JPG, max 2MB recommended</p>
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
 

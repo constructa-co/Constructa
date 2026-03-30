@@ -510,7 +510,11 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     // ═══════════════════════════════════════════════════════════
     // PAGE 3 — CASE STUDIES
     // ═══════════════════════════════════════════════════════════
-    const caseStudies = profile?.case_studies || [];
+    const selectedIds: (number | string)[] = project?.selected_case_study_ids || [];
+    const allCaseStudies = profile?.case_studies || [];
+    const caseStudies = selectedIds.length > 0
+        ? allCaseStudies.filter((_cs: any, i: number) => selectedIds.includes(i))
+        : allCaseStudies;
     if (caseStudies.length > 0) {
         for (let ci = 0; ci < caseStudies.length; ci++) {
             const cs = caseStudies[ci];
@@ -682,15 +686,27 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     totalPagesRef.n++;
     y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef, T);
 
+    // Full-width section heading for the page
+    y = renderSectionHeading(doc, y, "Project Brief & Scope", T);
+
     // Left column (55%) — Project Brief
     const leftColW = CW * 0.55;
     const rightColW = CW * 0.42;
     const rightColX = ML + leftColW + CW * 0.03;
-    let leftY = y;
-    let rightY = y;
+    const columnStartY = y;
+    let leftY = columnStartY;
+    let rightY = columnStartY;
 
-    // Left: Section heading
-    leftY = renderSectionHeading(doc, leftY, "Project Brief", T);
+    // Left: inline sub-label "Project Brief"
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(...T.textDark);
+    doc.text("Project Brief", ML, leftY);
+    leftY += 2;
+    doc.setDrawColor(...T.primary);
+    doc.setLineWidth(0.5);
+    doc.line(ML, leftY, ML + 30, leftY);
+    leftY += 8;
 
     // Introduction sub-heading
     doc.setFont("helvetica", "bold");
@@ -755,19 +771,26 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         leftY += 7;
     });
 
-    // Right column — Scope of Works
-    rightY = renderSectionHeading(doc, rightY, "Scope of Works", T);
+    // Right column — inline sub-label "Scope of Works"
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(...T.textDark);
+    doc.text("Scope of Works", rightColX, rightY);
+    rightY += 2;
+    doc.setDrawColor(...T.primary);
+    doc.setLineWidth(0.5);
+    doc.line(rightColX, rightY, rightColX + 30, rightY);
+    rightY += 8;
 
     if (scopeBullets.length > 0) {
         scopeBullets.forEach((bullet: string) => {
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(6);
-            doc.setTextColor(...T.primary);
-            doc.text("\u25A0", rightColX, rightY);
+            // Draw a small filled square as bullet (avoids unicode issues)
+            doc.setFillColor(...T.primary);
+            doc.rect(rightColX, rightY - 2.5, 2.5, 2.5, 'F');
             doc.setFont("helvetica", "normal");
             doc.setFontSize(9);
             doc.setTextColor(...T.textDark);
-            const bulletLines = doc.splitTextToSize(bullet, rightColW - 6);
+            const bulletLines = doc.splitTextToSize(bullet, rightColW - 8);
             doc.text(bulletLines, rightColX + 5, rightY);
             rightY += bulletLines.length * 5.5;
         });
@@ -1261,58 +1284,46 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     doc.text(sigLines, ML, y);
     y += sigLines.length * 5.5 + 10;
 
+    // Two signature columns side by side — use the same y for both
     const sigBoxW = (CW - 10) / 2;
     const sigBoxX2 = ML + sigBoxW + 10;
+    const sigStartY = y;
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(...T.textDark);
-    doc.text("FOR AND ON BEHALF OF THE CONTRACTOR", ML, y);
-    y += 6;
-    doc.text(companyName, ML, y);
-    y += 16;
+    // Helper to draw a signature block at a given x
+    function drawSigBlock(x: number, startY: number, heading: string, name: string) {
+        let sy = startY;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(...T.textDark);
+        doc.text(heading, x, sy);
+        sy += 6;
+        doc.text(name, x, sy);
+        sy += 16;
 
-    doc.setDrawColor(...T.textDark);
-    doc.setLineWidth(0.5);
-    doc.line(ML, y, ML + sigBoxW, y);
-    y += 5;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(...T.textMid);
-    doc.text("Signature", ML, y);
-    y += 8;
-    doc.setDrawColor(...T.muted);
-    doc.setLineWidth(0.3);
-    doc.line(ML, y, ML + sigBoxW, y);
-    y += 5;
-    doc.text("Print Name", ML, y);
-    y += 8;
-    doc.line(ML, y, ML + sigBoxW, y);
-    y += 5;
-    doc.text("Date", ML, y);
+        doc.setDrawColor(...T.textDark);
+        doc.setLineWidth(0.5);
+        doc.line(x, sy, x + sigBoxW, sy);
+        sy += 5;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(...T.textMid);
+        doc.text("Signature", x, sy);
+        sy += 8;
+        doc.setDrawColor(...T.muted);
+        doc.setLineWidth(0.3);
+        doc.line(x, sy, x + sigBoxW, sy);
+        sy += 5;
+        doc.text("Print Name", x, sy);
+        sy += 8;
+        doc.line(x, sy, x + sigBoxW, sy);
+        sy += 5;
+        doc.text("Date", x, sy);
+        return sy;
+    }
 
-    const rightStartY = y - 26 - 8 - 8 - 5 - 5 - 5 - 16 - 5 - 6;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(...T.textDark);
-    doc.text("FOR AND ON BEHALF OF THE CLIENT", sigBoxX2, rightStartY);
-    doc.text(clientName, sigBoxX2, rightStartY + 6);
-
-    doc.setDrawColor(...T.textDark);
-    doc.setLineWidth(0.5);
-    doc.line(sigBoxX2, rightStartY + 22, sigBoxX2 + sigBoxW, rightStartY + 22);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(...T.textMid);
-    doc.text("Signature", sigBoxX2, rightStartY + 27);
-
-    doc.setDrawColor(...T.muted);
-    doc.setLineWidth(0.3);
-    doc.line(sigBoxX2, rightStartY + 35, sigBoxX2 + sigBoxW, rightStartY + 35);
-    doc.text("Print Name", sigBoxX2, rightStartY + 40);
-
-    doc.line(sigBoxX2, rightStartY + 48, sigBoxX2 + sigBoxW, rightStartY + 48);
-    doc.text("Date", sigBoxX2, rightStartY + 53);
+    const leftSigEnd = drawSigBlock(ML, sigStartY, "FOR AND ON BEHALF OF THE CONTRACTOR", companyName);
+    drawSigBlock(sigBoxX2, sigStartY, "FOR AND ON BEHALF OF THE CLIENT", clientName);
+    y = leftSigEnd;
 
     y += 16;
     doc.setFont("helvetica", "italic");

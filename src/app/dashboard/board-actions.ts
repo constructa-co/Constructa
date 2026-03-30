@@ -2,7 +2,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+const VALID_STATUSES = ["Lead", "Estimating", "Proposal Sent", "Active", "Won", "Completed", "Lost"];
+
 export async function updateStatusAction(projectId: string, newStatus: string) {
+    if (!VALID_STATUSES.includes(newStatus)) {
+        return { success: false, error: "Invalid status" };
+    }
     const supabase = createClient();
     await supabase.from("projects").update({ status: newStatus }).eq("id", projectId);
     revalidatePath("/dashboard");

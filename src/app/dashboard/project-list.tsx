@@ -1,66 +1,193 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
-// Inline Button Component
-function Button({ children, className, variant, size }: { children: React.ReactNode; className?: string; variant?: 'default' | 'outline' | 'ghost'; size?: 'sm' | 'default' }) {
-    const base = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
-    const sizes = size === 'sm' ? "h-8 px-3 text-xs" : "h-10 px-4 py-2";
-    const variants = {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 bg-slate-900 text-white",
-        outline: "border border-input hover:bg-accent hover:text-accent-foreground border-slate-200",
-        ghost: "hover:bg-accent hover:text-accent-foreground hover:bg-slate-100"
-    };
-    const variantStyle = variants[variant || 'default'];
+type SortKey = "name" | "client_name" | "project_type" | "status" | "value" | "proposal_sent_at" | "days_open";
+type SortDir = "asc" | "desc";
 
-    return <button className={`${base} ${sizes} ${variantStyle} ${className}`}>{children}</button>;
+function getStatusBadgeClass(status: string | null): string {
+    switch (status) {
+        case "Lead":
+            return "bg-slate-50 text-slate-500 border-slate-200";
+        case "Estimating":
+            return "bg-blue-50 text-blue-600 border-blue-200";
+        case "Proposal Sent":
+            return "bg-purple-50 text-purple-600 border-purple-200";
+        case "Active":
+            return "bg-emerald-50 text-emerald-600 border-emerald-200";
+        case "Won":
+            return "bg-green-50 text-green-600 border-green-200";
+        case "Completed":
+            return "bg-zinc-50 text-zinc-600 border-zinc-200";
+        case "Lost":
+            return "bg-red-50 text-red-600 border-red-200";
+        default:
+            return "bg-slate-50 text-slate-500 border-slate-200";
+    }
+}
+
+function getDaysOpen(createdAt: string | null): number {
+    if (!createdAt) return 0;
+    const created = new Date(createdAt);
+    const now = new Date();
+    return Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function formatDate(dateStr: string | null): string {
+    if (!dateStr) return "—";
+    return new Date(dateStr).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+interface SortHeaderProps {
+    label: string;
+    sortKey: SortKey;
+    currentSort: SortKey;
+    currentDir: SortDir;
+    onSort: (key: SortKey) => void;
+    align?: "left" | "right";
+}
+
+function SortHeader({ label, sortKey, currentSort, currentDir, onSort, align = "left" }: SortHeaderProps) {
+    const isActive = currentSort === sortKey;
+    return (
+        <th
+            className={`px-4 py-3 font-medium cursor-pointer select-none hover:bg-slate-100 transition-colors ${align === "right" ? "text-right" : "text-left"}`}
+            onClick={() => onSort(sortKey)}
+        >
+            <span className="inline-flex items-center gap-1">
+                {label}
+                {isActive ? (
+                    currentDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                ) : (
+                    <ArrowUpDown className="w-3 h-3 opacity-40" />
+                )}
+            </span>
+        </th>
+    );
 }
 
 export default function ProjectList({ projects, financials }: { projects: any[], financials: any }) {
+    const [sortKey, setSortKey] = useState<SortKey>("name");
+    const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+    const handleSort = (key: SortKey) => {
+        if (sortKey === key) {
+            setSortDir(d => d === "asc" ? "desc" : "asc");
+        } else {
+            setSortKey(key);
+            setSortDir("asc");
+        }
+    };
+
+    const getValue = (p: any): number => p.potential_value || financials[p.id] || 0;
+
+    const sorted = [...projects].sort((a, b) => {
+        let aVal: string | number = "";
+        let bVal: string | number = "";
+
+        switch (sortKey) {
+            case "name":
+                aVal = (a.name || "").toLowerCase();
+                bVal = (b.name || "").toLowerCase();
+                break;
+            case "client_name":
+                aVal = (a.client_name || "").toLowerCase();
+                bVal = (b.client_name || "").toLowerCase();
+                break;
+            case "project_type":
+                aVal = (a.project_type || "").toLowerCase();
+                bVal = (b.project_type || "").toLowerCase();
+                break;
+            case "status":
+                aVal = (a.status || "Lead").toLowerCase();
+                bVal = (b.status || "Lead").toLowerCase();
+                break;
+            case "value":
+                aVal = getValue(a);
+                bVal = getValue(b);
+                break;
+            case "proposal_sent_at":
+                aVal = a.proposal_sent_at ? new Date(a.proposal_sent_at).getTime() : 0;
+                bVal = b.proposal_sent_at ? new Date(b.proposal_sent_at).getTime() : 0;
+                break;
+            case "days_open":
+                aVal = getDaysOpen(a.created_at);
+                bVal = getDaysOpen(b.created_at);
+                break;
+        }
+
+        if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
+        if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
+        return 0;
+    });
+
     return (
-        <div className="bg-white rounded-md border shadow-sm border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <table className="w-full text-sm text-left">
                 <thead className="bg-slate-50 border-b text-slate-500 uppercase text-xs">
                     <tr>
-                        <th className="px-4 py-3 font-medium">Project Name</th>
-                        <th className="px-4 py-3 font-medium">Client</th>
-                        <th className="px-4 py-3 font-medium">Status</th>
-                        <th className="px-4 py-3 text-right font-medium">Value</th>
-                        <th className="px-4 py-3 text-right font-medium">Action</th>
+                        <SortHeader label="Project Name" sortKey="name" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
+                        <SortHeader label="Client" sortKey="client_name" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
+                        <SortHeader label="Type" sortKey="project_type" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
+                        <SortHeader label="Status" sortKey="status" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
+                        <SortHeader label="Value" sortKey="value" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} align="right" />
+                        <SortHeader label="Sent Date" sortKey="proposal_sent_at" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
+                        <SortHeader label="Days Open" sortKey="days_open" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} align="right" />
+                        <th className="px-4 py-3 font-medium text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                    {projects.map((p) => (
-                        <tr key={p.id} className="hover:bg-slate-50 group transition-colors">
-                            <td className="px-4 py-3 font-medium">
-                                <Link href={`/dashboard/projects/costs?projectId=${p.id}`} className="text-blue-600 hover:underline">
+                    {sorted.map((p) => {
+                        const value = getValue(p);
+                        const days = getDaysOpen(p.created_at);
+                        return (
+                            <tr
+                                key={p.id}
+                                className="hover:bg-slate-50 group transition-colors cursor-pointer"
+                                onClick={() => {
+                                    window.location.href = `/dashboard/projects/proposal?projectId=${p.id}`;
+                                }}
+                            >
+                                <td className="px-4 py-3 font-semibold text-slate-900">
                                     {p.name}
-                                </Link>
-                            </td>
-                            <td className="px-4 py-3 text-slate-600">{p.client_name || '-'}</td>
-                            <td className="px-4 py-3">
-                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border
-                    ${p.status === 'Lead' ? 'bg-slate-50 text-slate-500 border-slate-200' :
-                                        p.status === 'Estimating' ? 'bg-blue-50 text-blue-600 border-blue-200' :
-                                            p.status === 'Proposal Sent' ? 'bg-purple-50 text-purple-600 border-purple-200' :
-                                                p.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
-                                                    'bg-zinc-50 text-zinc-600 border-zinc-200'}`}>
-                                    {p.status || 'Lead'}
-                                </span>
-                            </td>
-                            <td className="px-4 py-3 text-right font-mono text-slate-700">
-                                {financials[p.id] ? `£${financials[p.id].toLocaleString()}` : '-'}
-                            </td>
-                            <td className="px-4 py-3 text-right flex justify-end gap-2">
-                                <Link href={`/dashboard/projects/costs?projectId=${p.id}`}>
-                                    <Button size="sm" variant="ghost" className="h-7 text-xs text-slate-500 hover:text-green-600">Cost Control</Button>
-                                </Link>
-                                <Link href={`/dashboard/foundations?projectId=${p.id}`}>
-                                    <Button size="sm" variant="ghost" className="h-7 text-xs text-slate-500 hover:text-blue-600">Estimator</Button>
-                                </Link>
+                                </td>
+                                <td className="px-4 py-3 text-slate-600">{p.client_name || "—"}</td>
+                                <td className="px-4 py-3 text-slate-500 text-xs">{p.project_type || "—"}</td>
+                                <td className="px-4 py-3">
+                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${getStatusBadgeClass(p.status)}`}>
+                                        {p.status || "Lead"}
+                                    </span>
+                                </td>
+                                <td className="px-4 py-3 text-right font-mono text-slate-700 text-xs">
+                                    {value ? `£${value.toLocaleString("en-GB", { maximumFractionDigits: 0 })}` : "—"}
+                                </td>
+                                <td className="px-4 py-3 text-slate-500 text-xs">
+                                    {formatDate(p.proposal_sent_at)}
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                    <span className={`text-xs font-semibold ${days > 30 ? "text-amber-500" : "text-slate-400"}`}>
+                                        {days}d
+                                    </span>
+                                </td>
+                                <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
+                                    <Link
+                                        href={`/dashboard/projects/proposal?projectId=${p.id}`}
+                                        className="text-xs font-semibold text-blue-600 hover:underline"
+                                    >
+                                        Proposal →
+                                    </Link>
+                                </td>
+                            </tr>
+                        );
+                    })}
+                    {sorted.length === 0 && (
+                        <tr>
+                            <td colSpan={8} className="p-8 text-center text-slate-400 text-sm">
+                                No projects match your filters.
                             </td>
                         </tr>
-                    ))}
-                    {projects.length === 0 && (
-                        <tr><td colSpan={5} className="p-8 text-center text-slate-500">No projects found.</td></tr>
                     )}
                 </tbody>
             </table>

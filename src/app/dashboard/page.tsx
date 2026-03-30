@@ -1,45 +1,30 @@
 import { createClient } from "@/lib/supabase/server";
-import Link from "next/link";
-import ProjectBoard from "./project-board";
-import ProjectList from "./project-list"; // Import the list view
+import DashboardClient from "./dashboard-client";
 
 export const dynamic = "force-dynamic";
 
-// Inline Button Component (Enhanced to support variants)
-function Button({ children, className, variant, size }: { children: React.ReactNode; className?: string; variant?: 'default' | 'outline' | 'ghost' | 'secondary'; size?: 'sm' | 'default' }) {
-    const base = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
-    const sizes = size === 'sm' ? "h-8 px-3 text-xs" : "h-10 px-4 py-2";
-    const variants = {
-        default: "bg-blue-600 text-white hover:bg-blue-700 shadow-sm",
-        outline: "border border-input hover:bg-accent hover:text-accent-foreground border-slate-200 bg-white text-slate-700",
-        ghost: "hover:bg-slate-100 text-slate-600 hover:text-slate-900",
-        secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200"
-    };
-    const variantStyle = variants[variant || 'default'];
-
-    return <button className={`${base} ${sizes} ${variantStyle} ${className}`}>{children}</button>;
-}
-
-export default async function Dashboard({ searchParams }: { searchParams: { view?: string } }) {
+export default async function Dashboard() {
     const supabase = createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
 
-    // 1. Fetch Projects — scoped to user_id (projects table has no organization_id column)
+    // 1. Fetch all projects with relevant fields
     const { data: projects } = await supabase
         .from("projects")
-        .select("*")
+        .select("id, name, client_name, client_email, client_phone, status, project_type, potential_value, created_at, proposal_sent_at, proposal_accepted_at, site_address, client_address")
         .eq("user_id", user?.id)
         .order("created_at", { ascending: false });
 
-    // 2. Fetch Financials
+    const safeProjects = projects || [];
+
+    // 2. Fetch Financials (estimates-based value)
     const { data: allEstimates } = await supabase
         .from("estimates")
         .select("project_id, total_cost, profit_pct, overhead_pct, risk_pct")
-        .in("project_id", projects?.map(p => p.id) || []);
+        .in("project_id", safeProjects.map(p => p.id));
 
     const financialMap: Record<string, number> = {};
-    projects?.forEach(p => {
+    safeProjects.forEach(p => {
         const projEsts = allEstimates?.filter(e => e.project_id === p.id) || [];
         const total = projEsts.reduce((sum, e) => {
             const markup = 1 + ((e.profit_pct || 0) + (e.overhead_pct || 0) + (e.risk_pct || 0)) / 100;
@@ -48,58 +33,56 @@ export default async function Dashboard({ searchParams }: { searchParams: { view
         financialMap[p.id] = total;
     });
 
-    const currentView = searchParams.view || 'board';
+    // 3. Fetch company name from profile
+    const { data: profile } = await supabase
+        .from("profiles")
+        .select("company_name, full_name")
+        .eq("id", user?.id)
+        .single();
+
+    const companyName = profile?.company_name || profile?.full_name || user?.email?.split("@")[0] || "Constructa";
+
+    // 4. Calculate KPI metrics server-side
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    const totalPipelineValue = safeProjects
+        .filter(p => p.status !== "Lost" && p.status !== "Completed")
+        .reduce((sum, p) => sum + (p.potential_value || 0), 0);
+
+    const proposalsSent = safeProjects.filter(p => p.proposal_sent_at !== null && p.proposal_sent_at !== undefined).length;
+
+    const wonThisMonth = safeProjects.filter(p => {
+        if (!p.proposal_accepted_at) return false;
+        const acceptedDate = new Date(p.proposal_accepted_at);
+        return acceptedDate >= startOfMonth && acceptedDate <= endOfMonth;
+    }).length;
+
+    const activeJobs = safeProjects.filter(p => p.status === "Active" || p.status === "Won").length;
+
+    const accepted = safeProjects.filter(p => p.proposal_accepted_at !== null && p.proposal_accepted_at !== undefined).length;
+    const winRate = proposalsSent > 0 ? Math.round((accepted / proposalsSent) * 100) : 0;
+
+    const totalRevenueSigned = safeProjects
+        .filter(p => p.proposal_accepted_at !== null && p.proposal_accepted_at !== undefined)
+        .reduce((sum, p) => sum + (p.potential_value || 0), 0);
+
+    const metrics = {
+        totalPipelineValue,
+        proposalsSent,
+        wonThisMonth,
+        activeJobs,
+        winRate,
+        totalRevenueSigned,
+    };
 
     return (
-        <div className="p-8 pt-24 h-screen flex flex-col space-y-6">
-
-            {/* HEADER & QUICK ACTIONS */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">Business Command</h1>
-                    <p className="text-slate-500">Welcome back, {user?.email}</p>
-                </div>
-
-                {/* GLOBAL TOOLBAR */}
-                <div className="flex items-center gap-2">
-                    <Link href="/dashboard/data/labor">
-                        <Button variant="outline" size="sm">👤 Labour Rates</Button>
-                    </Link>
-                    <Link href="/dashboard/data/materials">
-                        <Button variant="outline" size="sm">🧱 Materials</Button>
-                    </Link>
-                    <Link href="/dashboard/data/plant">
-                        <Button variant="outline" size="sm">🚜 Plant</Button>
-                    </Link>
-                    <Link href="/dashboard/projects/new">
-                        <Button className="ml-2">+ New Project</Button>
-                    </Link>
-                </div>
-            </div>
-
-            {/* VIEW TOGGLE */}
-            <div className="flex items-center gap-2 border-b border-slate-200 pb-4">
-                <span className="text-sm font-bold text-slate-500 mr-2">VIEW:</span>
-                <Link href="/dashboard?view=board">
-                    <Button variant={currentView === 'board' ? 'secondary' : 'ghost'} size="sm" className="h-7 text-xs">
-                        Kanban Board
-                    </Button>
-                </Link>
-                <Link href="/dashboard?view=list">
-                    <Button variant={currentView === 'list' ? 'secondary' : 'ghost'} size="sm" className="h-7 text-xs">
-                        List Table
-                    </Button>
-                </Link>
-            </div>
-
-            {/* CONTENT AREA */}
-            <div className="flex-1 overflow-x-auto pb-4">
-                {currentView === 'board' ? (
-                    <ProjectBoard projects={projects || []} financials={financialMap} />
-                ) : (
-                    <ProjectList projects={projects || []} financials={financialMap} />
-                )}
-            </div>
-        </div>
+        <DashboardClient
+            projects={safeProjects}
+            financials={financialMap}
+            metrics={metrics}
+            companyName={companyName}
+        />
     );
 }

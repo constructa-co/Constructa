@@ -25,6 +25,9 @@ export async function updateProfileAction(formData: FormData) {
         accreditations: formData.get("accreditations") as string,
         logo_url: formData.get("logo_url") as string,
         business_type: formData.get("business_type") as string,
+        sales_email: formData.get("sales_email") as string,
+        sales_phone: formData.get("sales_phone") as string,
+        accounts_email: formData.get("accounts_email") as string,
     };
 
     // Case studies — stored as JSONB

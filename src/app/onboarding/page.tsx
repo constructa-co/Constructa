@@ -4,7 +4,11 @@ import OnboardingClient from "./onboarding-client";
 
 export const dynamic = "force-dynamic";
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+    searchParams,
+}: {
+    searchParams?: { force?: string };
+}) {
     const supabase = createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
@@ -17,8 +21,9 @@ export default async function OnboardingPage() {
         .eq("id", user.id)
         .single();
 
-    // If onboarding already done (company_name set), redirect to dashboard
-    if (profile?.company_name) {
+    // Only redirect if company_name is set AND force param is not present
+    const forceParam = searchParams?.force;
+    if (profile?.company_name && !forceParam) {
         redirect("/dashboard");
     }
 

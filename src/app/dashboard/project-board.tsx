@@ -70,7 +70,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                 const colTotal = items.reduce((sum, p) => sum + (p.potential_value || financials[p.id] || 0), 0);
 
                 return (
-                    <div key={col.id} className="flex flex-col h-full gap-3">
+                    <div key={col.id} className="flex flex-col h-[calc(100vh-280px)] gap-3">
                         {/* COLUMN HEADER */}
                         <div className="flex flex-col gap-1 px-1">
                             <div className="flex items-center justify-between">
@@ -88,7 +88,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                         </div>
 
                         {/* CARDS LIST */}
-                        <div className={`flex-1 rounded-2xl border-2 border-dashed ${col.border} ${col.color} p-2.5 space-y-3 transition-colors min-h-[400px]`}>
+                        <div className={`flex-1 overflow-y-auto rounded-2xl border-2 border-dashed ${col.border} ${col.color} p-2.5 space-y-3 transition-colors scrollbar-thin scrollbar-thumb-slate-200`}>
                             {items.map(p => {
                                 const days = getDaysInStage(p.created_at);
                                 const value = p.potential_value || financials[p.id] || 0;

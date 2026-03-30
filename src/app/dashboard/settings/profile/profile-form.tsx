@@ -35,6 +35,9 @@ interface Profile {
     logo_url?: string | null;
     business_type?: string | null;
     case_studies?: CaseStudy[] | null;
+    sales_email?: string | null;
+    sales_phone?: string | null;
+    accounts_email?: string | null;
 }
 
 const BUSINESS_TYPES = [
@@ -296,6 +299,35 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
                             defaultValue={profile?.phone || ""}
                             className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
                             placeholder="07700 900123"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-400">Sales Contact Email</label>
+                        <input
+                            name="sales_email"
+                            type="email"
+                            defaultValue={profile?.sales_email || ""}
+                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            placeholder="sales@example.co.uk"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-400">Sales Contact Phone</label>
+                        <input
+                            name="sales_phone"
+                            defaultValue={profile?.sales_phone || ""}
+                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            placeholder="07700 900456"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-400">Accounts / Credit Control Email</label>
+                        <input
+                            name="accounts_email"
+                            type="email"
+                            defaultValue={profile?.accounts_email || ""}
+                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            placeholder="accounts@example.co.uk"
                         />
                     </div>
                 </div>

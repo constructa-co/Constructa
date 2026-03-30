@@ -8,7 +8,7 @@ import {
     Trophy,
     Hammer,
     TrendingUp,
-    DollarSign,
+    PoundSterling,
     Search,
     LayoutGrid,
     List,
@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import ProjectBoard from "./project-board";
 import ProjectList from "./project-list";
+
+type Period = "week" | "month" | "quarter" | "year";
 
 interface Metrics {
     totalPipelineValue: number;
@@ -51,13 +53,96 @@ function getGreeting(): string {
     return "Good evening";
 }
 
+function getPeriodRange(period: Period): { start: Date; end: Date; label: string } {
+    const now = new Date();
+    let start: Date;
+    let end: Date;
+    let label: string;
+
+    switch (period) {
+        case "week": {
+            const dayOfWeek = now.getDay(); // 0 = Sunday
+            const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diff);
+            end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6, 23, 59, 59);
+            label = "This Week";
+            break;
+        }
+        case "month":
+            start = new Date(now.getFullYear(), now.getMonth(), 1);
+            end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+            label = "This Month";
+            break;
+        case "quarter": {
+            const quarter = Math.floor(now.getMonth() / 3);
+            start = new Date(now.getFullYear(), quarter * 3, 1);
+            end = new Date(now.getFullYear(), quarter * 3 + 3, 0, 23, 59, 59);
+            label = "This Quarter";
+            break;
+        }
+        case "year":
+            start = new Date(now.getFullYear(), 0, 1);
+            end = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+            label = "This Year";
+            break;
+    }
+
+    return { start, end, label };
+}
+
+function calculateMetrics(projects: any[], financials: Record<string, number>, period: Period): Metrics {
+    const { start, end } = getPeriodRange(period);
+
+    const inPeriod = (dateStr: string | null | undefined) => {
+        if (!dateStr) return false;
+        const d = new Date(dateStr);
+        return d >= start && d <= end;
+    };
+
+    const totalPipelineValue = projects
+        .filter(p => p.status !== "Lost" && p.status !== "Completed")
+        .filter(p => inPeriod(p.created_at))
+        .reduce((sum, p) => sum + (p.potential_value || financials[p.id] || 0), 0);
+
+    const proposalsSent = projects.filter(p => inPeriod(p.proposal_sent_at)).length;
+
+    const wonInPeriod = projects.filter(p => inPeriod(p.proposal_accepted_at));
+    const wonThisMonth = wonInPeriod.length;
+
+    const activeJobs = projects.filter(p => p.status === "Active" || p.status === "Won").length;
+
+    const accepted = projects.filter(p => p.proposal_accepted_at != null).length;
+    const allProposalsSent = projects.filter(p => p.proposal_sent_at != null).length;
+    const winRate = allProposalsSent > 0 ? Math.round((accepted / allProposalsSent) * 100) : 0;
+
+    const totalRevenueSigned = wonInPeriod
+        .reduce((sum, p) => sum + (p.potential_value || financials[p.id] || 0), 0);
+
+    return {
+        totalPipelineValue,
+        proposalsSent,
+        wonThisMonth,
+        activeJobs,
+        winRate,
+        totalRevenueSigned,
+    };
+}
+
 const STATUS_OPTIONS = ["Lead", "Estimating", "Proposal Sent", "Active", "Won", "Completed", "Lost"];
 
-export default function DashboardClient({ projects, financials, metrics, companyName }: Props) {
+const PERIOD_OPTIONS: { value: Period; label: string }[] = [
+    { value: "week", label: "This Week" },
+    { value: "month", label: "This Month" },
+    { value: "quarter", label: "This Quarter" },
+    { value: "year", label: "This Year" },
+];
+
+export default function DashboardClient({ projects, financials, metrics: serverMetrics, companyName }: Props) {
     const [view, setView] = useState<"board" | "list">("board");
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState("all");
     const [statusFilter, setStatusFilter] = useState("all");
+    const [period, setPeriod] = useState<Period>("month");
 
     // Unique project types from data
     const projectTypes = useMemo(() => {
@@ -65,7 +150,7 @@ export default function DashboardClient({ projects, financials, metrics, company
         return types.sort();
     }, [projects]);
 
-    // Filtered projects
+    // Filtered projects for pipeline board (all projects regardless of period)
     const filteredProjects = useMemo(() => {
         return projects.filter(p => {
             const searchLower = search.toLowerCase();
@@ -79,12 +164,17 @@ export default function DashboardClient({ projects, financials, metrics, company
         });
     }, [projects, search, typeFilter, statusFilter]);
 
+    // KPI metrics calculated based on the selected period
+    const metrics = useMemo(() => calculateMetrics(projects, financials, period), [projects, financials, period]);
+
+    const periodLabel = getPeriodRange(period).label;
+
     const kpiCards = [
         {
             icon: Briefcase,
             label: "Pipeline Value",
             value: formatCurrency(metrics.totalPipelineValue),
-            subtitle: "Total open opportunities",
+            subtitle: "Open opportunities",
             color: "text-blue-600",
             bgColor: "bg-blue-50",
             borderColor: "border-blue-100",
@@ -100,7 +190,7 @@ export default function DashboardClient({ projects, financials, metrics, company
         },
         {
             icon: Trophy,
-            label: "Won This Month",
+            label: "Projects Won",
             value: metrics.wonThisMonth.toString(),
             subtitle: "Accepted proposals",
             color: "text-green-600",
@@ -126,7 +216,7 @@ export default function DashboardClient({ projects, financials, metrics, company
             borderColor: "border-teal-100",
         },
         {
-            icon: DollarSign,
+            icon: PoundSterling,
             label: "Revenue Signed",
             value: formatCurrency(metrics.totalRevenueSigned),
             subtitle: "Contracted value",
@@ -155,32 +245,56 @@ export default function DashboardClient({ projects, financials, metrics, company
                 </Link>
             </div>
 
-            {/* SECTION B — KPI Strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
-                {kpiCards.map((card) => {
-                    const Icon = card.icon;
-                    return (
-                        <div
-                            key={card.label}
-                            className={`bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col gap-3 hover:shadow-md transition-shadow`}
-                        >
-                            <div className={`w-9 h-9 rounded-lg ${card.bgColor} flex items-center justify-center`}>
-                                <Icon className={`w-4 h-4 ${card.color}`} />
+            {/* SECTION B — KPI Strip with period selector */}
+            <div className="space-y-3">
+                {/* Period selector header */}
+                <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold text-slate-600">
+                        Performance — <span className="text-slate-900">{periodLabel}</span>
+                    </h2>
+                    <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+                        {PERIOD_OPTIONS.map(opt => (
+                            <button
+                                key={opt.value}
+                                onClick={() => setPeriod(opt.value)}
+                                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                                    period === opt.value
+                                        ? "bg-blue-600 text-white shadow-sm"
+                                        : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                                }`}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
+                    {kpiCards.map((card) => {
+                        const Icon = card.icon;
+                        return (
+                            <div
+                                key={card.label}
+                                className={`bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col gap-3 hover:shadow-md transition-shadow`}
+                            >
+                                <div className={`w-9 h-9 rounded-lg ${card.bgColor} flex items-center justify-center`}>
+                                    <Icon className={`w-4 h-4 ${card.color}`} />
+                                </div>
+                                <div>
+                                    <div className="text-2xl font-black text-slate-900 leading-none">
+                                        {card.value}
+                                    </div>
+                                    <div className="text-xs font-semibold text-slate-600 mt-1">
+                                        {card.label}
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">
+                                        {card.subtitle}
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <div className="text-2xl font-black text-slate-900 leading-none">
-                                    {card.value}
-                                </div>
-                                <div className="text-xs font-semibold text-slate-600 mt-1">
-                                    {card.label}
-                                </div>
-                                <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">
-                                    {card.subtitle}
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
 
             {/* SECTION C — Search & Filter Bar */}

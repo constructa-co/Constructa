@@ -28,6 +28,7 @@ export async function updateProfileAction(formData: FormData) {
         sales_email: formData.get("sales_email") as string,
         sales_phone: formData.get("sales_phone") as string,
         accounts_email: formData.get("accounts_email") as string,
+        pdf_theme: formData.get("pdf_theme") as string || "slate",
     };
 
     // Case studies — stored as JSONB

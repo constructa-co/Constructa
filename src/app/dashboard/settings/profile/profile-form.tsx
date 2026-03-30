@@ -38,7 +38,32 @@ interface Profile {
     sales_email?: string | null;
     sales_phone?: string | null;
     accounts_email?: string | null;
+    pdf_theme?: string | null;
 }
+
+const THEMES = [
+    {
+        id: 'slate',
+        name: 'Slate',
+        subtitle: 'Modern & Premium',
+        primary: '#0D0D0D',
+        accent: '#FFFFFF',
+    },
+    {
+        id: 'navy',
+        name: 'Navy',
+        subtitle: 'Established & Traditional',
+        primary: '#0A1628',
+        accent: '#C9A84C',
+    },
+    {
+        id: 'forest',
+        name: 'Forest',
+        subtitle: 'Craft & Heritage',
+        primary: '#1A3A2A',
+        accent: '#E8E0D0',
+    },
+];
 
 const BUSINESS_TYPES = [
     "General Builder / Extensions",
@@ -239,12 +264,14 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
     const [caseStudies, setCaseStudies] = useState<CaseStudy[]>(
         (profile?.case_studies as CaseStudy[] | null | undefined) || []
     );
+    const [pdfTheme, setPdfTheme] = useState(profile?.pdf_theme || 'slate');
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setSaving(true);
         const fd = new FormData(e.currentTarget);
         fd.set("case_studies", JSON.stringify(caseStudies));
+        fd.set("pdf_theme", pdfTheme);
         const result = await updateProfileAction(fd);
         setSaving(false);
         if (result?.success) {
@@ -473,7 +500,38 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
                 </div>
             </div>
 
-            {/* Section C — Past Projects & Case Studies */}
+            {/* Section C — Proposal Theme */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">
+                <div>
+                    <h2 className="text-lg font-bold text-slate-100">Proposal Theme</h2>
+                    <p className="text-xs text-slate-500 mt-0.5">Choose the colour scheme for your PDF proposals.</p>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                    {THEMES.map(theme => (
+                        <button
+                            key={theme.id}
+                            type="button"
+                            onClick={() => setPdfTheme(theme.id)}
+                            className={`relative flex items-stretch rounded-xl border transition-all text-left overflow-hidden ${
+                                pdfTheme === theme.id
+                                    ? 'ring-2 ring-gray-900 border-slate-500'
+                                    : 'border-slate-700 hover:border-slate-500'
+                            }`}
+                        >
+                            <div className="w-1 shrink-0" style={{ backgroundColor: theme.primary }} />
+                            <div className="flex-1 p-3">
+                                <div className="text-sm font-semibold text-slate-100">{theme.name}</div>
+                                <div className="text-xs text-slate-400 mt-0.5">{theme.subtitle}</div>
+                            </div>
+                            <div className="flex items-center pr-3">
+                                <div className="w-3 h-3 rounded-full border border-slate-600" style={{ backgroundColor: theme.accent }} />
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Section D — Past Projects & Case Studies */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">
                 <div className="flex items-center justify-between">
                     <div>

@@ -344,6 +344,21 @@ ${currentText}`;
     }
 }
 
+export async function extractScopeBulletsAction(scopeText: string): Promise<string[]> {
+    if (!scopeText || scopeText.length <= 100) return [];
+    try {
+        const result = await generateJSON<{ bullets: string[] }>(
+            `Extract 5-7 concise scope-of-works bullet points from this construction project scope text.
+             Each bullet should be a short actionable deliverable (max 10 words).
+             Return JSON with key "bullets" containing an array of strings.
+             Scope text: ${scopeText.substring(0, 1500)}`
+        );
+        return result.bullets || [];
+    } catch {
+        return [];
+    }
+}
+
 export async function uploadPhotoAction(formData: FormData) {
     const supabase = createClient();
     const { data: authData } = await supabase.auth.getUser();

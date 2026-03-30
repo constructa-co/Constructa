@@ -16,20 +16,24 @@ interface Props {
 
 // ─── Colour palette ───────────────────────────────────────────
 const C = {
-    navy: [15, 26, 46] as [number, number, number],
-    navyLight: [22, 38, 68] as [number, number, number],
-    navyMid: [30, 50, 90] as [number, number, number],
-    slate700: [51, 65, 85] as [number, number, number],
-    slate500: [100, 116, 139] as [number, number, number],
-    slate400: [148, 163, 184] as [number, number, number],
-    slate300: [203, 213, 225] as [number, number, number],
-    slate50: [248, 250, 252] as [number, number, number],
-    slate100: [241, 245, 249] as [number, number, number],
-    slate200: [226, 232, 240] as [number, number, number],
-    border: [226, 232, 240] as [number, number, number],
-    white: [255, 255, 255] as [number, number, number],
-    green: [22, 163, 74] as [number, number, number],
-    blue: [59, 130, 246] as [number, number, number],
+    // Core charcoal (replaces navy)
+    black:      [13, 13, 13] as [number, number, number],      // #0D0D0D  — cover bg, page headers
+    charcoal:   [26, 26, 26] as [number, number, number],      // #1A1A1A  — card fills, pill fills
+    charcoalMid:[42, 42, 42] as [number, number, number],      // #2A2A2A  — borders, subtle fills
+    charcoalLight:[60, 60, 60] as [number, number, number],    // #3C3C3C  — stat pill backgrounds on cover
+    // Text
+    white:      [255, 255, 255] as [number, number, number],
+    muted:      [160, 160, 160] as [number, number, number],   // #A0A0A0  — subheadings, labels on dark bg
+    textDark:   [20, 20, 20] as [number, number, number],      // near-black body text on white pages
+    textMid:    [80, 80, 80] as [number, number, number],      // secondary body text
+    textLight:  [130, 130, 130] as [number, number, number],   // captions, fine print
+    // Light page surfaces
+    surface:    [248, 248, 248] as [number, number, number],   // #F8F8F8  — alternate row bg
+    surfaceMid: [240, 240, 240] as [number, number, number],   // #F0F0F0  — contact box bg
+    borderLight:[220, 220, 220] as [number, number, number],   // light-page borders
+    // Accent (keep green + blue for Gantt)
+    green:      [22, 163, 74] as [number, number, number],
+    blue:       [59, 130, 246] as [number, number, number],
 };
 
 const GANTT_COLORS: Record<string, [number, number, number]> = {
@@ -47,7 +51,7 @@ const PAGE_H = 297;
 const ML = 14;
 const MR = 196;
 const CW = 182;
-const HEADER_H = 10;
+const HEADER_H = 12;
 const FOOTER_H = 10;
 const CONTENT_TOP = HEADER_H + 8;
 const CONTENT_BOTTOM = PAGE_H - FOOTER_H - 6;
@@ -105,58 +109,59 @@ export default function ProposalPdfButton({ estimates, project, profile, pricing
 // ─── Helpers ─────────────────────────────────────────────────
 
 function addPageHeader(doc: jsPDF, companyName: string, docTitle: string, pageNum: number, totalPagesRef: { n: number }): number {
-    doc.setFillColor(...C.navy);
+    doc.setFillColor(...C.black);
     doc.rect(0, 0, PAGE_W, HEADER_H, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
     doc.setTextColor(...C.white);
-    doc.text(companyName.toUpperCase(), ML, 6.5);
-    doc.text(docTitle, PAGE_W / 2, 6.5, { align: "center" });
-    doc.text(`${pageNum}`, MR, 6.5, { align: "right" });
+    doc.text(companyName.toUpperCase(), ML, 7.5);
+    doc.text(docTitle, PAGE_W / 2, 7.5, { align: "center" });
+    doc.setTextColor(...C.muted);
+    doc.text(`${pageNum}`, MR, 7.5, { align: "right" });
 
-    doc.setDrawColor(...C.slate300);
+    doc.setDrawColor(...C.borderLight);
     doc.setLineWidth(0.2);
     doc.line(ML, PAGE_H - FOOTER_H, MR, PAGE_H - FOOTER_H);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6.5);
-    doc.setTextColor(...C.slate500);
+    doc.setTextColor(...C.textLight);
     doc.text(`Page ${pageNum} | ${companyName} | Confidential`, PAGE_W / 2, PAGE_H - 4, { align: "center" });
 
     return CONTENT_TOP;
 }
 
-/** C3: Numbered section heading with full-width navy rule */
+/** Section heading — editorial short accent bar */
 function renderSectionHeading(doc: jsPDF, y: number, text: string): number {
     const num = String(sectionCounter).padStart(2, "0");
     sectionCounter++;
 
     // Section number
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(...C.slate300);
+    doc.setFontSize(7);
+    doc.setTextColor(...C.muted);
     doc.text(num, ML, y + 5);
 
     // Section title
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.setTextColor(...C.navy);
+    doc.setFontSize(20);
+    doc.setTextColor(...C.textDark);
     doc.text(text, ML + 10, y + 7);
 
-    // Full-width thin navy rule
-    doc.setDrawColor(...C.navy);
+    // Short 30mm accent bar
+    doc.setDrawColor(...C.black);
     doc.setLineWidth(0.5);
-    doc.line(ML, y + 11, MR, y + 11);
+    doc.line(ML, y + 11, ML + 30, y + 11);
 
-    return y + 20;
+    return y + 22;
 }
 
 function renderBodyText(doc: jsPDF, y: number, text: string, maxWidth = CW, x = ML): number {
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(...C.slate700);
+    doc.setFontSize(10.5);
+    doc.setTextColor(...C.textDark);
     const lines = doc.splitTextToSize(text, maxWidth);
     doc.text(lines, x, y);
-    return y + lines.length * 5.5;
+    return y + lines.length * 5.8;
 }
 
 function ensureSpace(doc: jsPDF, y: number, needed: number, companyName: string, docTitle: string, totalPagesRef: { n: number }): number {
@@ -200,7 +205,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     // ═══════════════════════════════════════════════════════════
 
     // Full-page navy background
-    doc.setFillColor(...C.navy);
+    doc.setFillColor(...C.black);
     doc.rect(0, 0, PAGE_W, PAGE_H, "F");
 
     let y = 15;
@@ -239,14 +244,14 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     // "PROPOSAL & FEE PROPOSAL" small uppercase
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.setTextColor(180, 210, 240);
+    doc.setTextColor(...C.muted);
     doc.text("PROPOSAL & FEE PROPOSAL", PAGE_W / 2, y, { align: "center" });
     y += 6;
 
     // ── Center of page: project name ──
     y = 110;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(38);
+    doc.setFontSize(42);
     doc.setTextColor(...C.white);
     const titleLines = doc.splitTextToSize(projectName, CW - 20);
     const titleLineH = 14;
@@ -258,7 +263,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     // "Prepared exclusively for"
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.setTextColor(...C.slate300);
+    doc.setTextColor(...C.muted);
     doc.text("Prepared exclusively for", PAGE_W / 2, y, { align: "center" });
     y += 8;
 
@@ -273,7 +278,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     if (clientAddress) {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
-        doc.setTextColor(...C.slate300);
+        doc.setTextColor(...C.muted);
         const addrLines = doc.splitTextToSize(clientAddress, 120);
         addrLines.forEach((line: string, i: number) => {
             doc.text(line, PAGE_W / 2, y + i * 5.5, { align: "center" });
@@ -281,44 +286,30 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         y += addrLines.length * 5.5 + 4;
     }
 
-    // ── Bottom info boxes (y=230) ──
-    const boxY = 230;
-    const boxH = 22;
-    const boxW = (CW - 6) / 2;
-    const box1X = ML;
-    const box2X = ML + boxW + 6;
+    // ── Bottom info strip (y=225) — horizontal rule + 4 inline stats ──
+    const infoY = 225;
+    doc.setDrawColor(...C.white);
+    doc.setLineWidth(0.3);
+    doc.line(ML, infoY, MR, infoY);
 
-    // Left box
-    doc.setFillColor(...C.navyLight);
-    doc.roundedRect(box1X, boxY, boxW, boxH, 2, 2, "F");
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(...C.slate300);
-    doc.text("DATE ISSUED", box1X + 4, boxY + 6);
-    doc.text("VALID UNTIL", box1X + boxW / 2 + 4, boxY + 6);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(...C.white);
-    doc.text(formatDate(today), box1X + 4, boxY + 15);
-    doc.text(formatDate(validUntil), box1X + boxW / 2 + 4, boxY + 15);
-
-    // Right box
-    doc.setFillColor(...C.navyLight);
-    doc.roundedRect(box2X, boxY, boxW, boxH, 2, 2, "F");
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(...C.slate300);
-    doc.text("REFERENCE", box2X + 4, boxY + 6);
-    if (contractValue > 0) {
-        doc.text("CONTRACT VALUE", box2X + boxW / 2 + 4, boxY + 6);
-    }
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(...C.white);
-    doc.text(refCode, box2X + 4, boxY + 15);
-    if (contractValue > 0) {
-        doc.text(formatGBP(contractValue), box2X + boxW / 2 + 4, boxY + 15);
-    }
+    const statCols = [
+        { label: "DATE ISSUED", value: formatDate(today) },
+        { label: "VALID UNTIL", value: formatDate(validUntil) },
+        { label: "REFERENCE", value: refCode },
+        ...(contractValue > 0 ? [{ label: "CONTRACT VALUE", value: formatGBP(contractValue) }] : []),
+    ];
+    const colW = CW / statCols.length;
+    statCols.forEach((stat, i) => {
+        const sx = ML + i * colW;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(6.5);
+        doc.setTextColor(...C.muted);
+        doc.text(stat.label, sx, infoY + 7);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(...C.white);
+        doc.text(stat.value, sx, infoY + 13);
+    });
 
     // Very bottom
     doc.setFont("helvetica", "normal");
@@ -341,10 +332,14 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
         // C2: Large section heading without number bar
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(22);
-        doc.setTextColor(...C.navy);
+        doc.setFontSize(26);
+        doc.setTextColor(...C.textDark);
         doc.text(`About ${companyName}`, ML, y + 8);
-        y += 18;
+        // Thin accent rule under title
+        doc.setDrawColor(...C.black);
+        doc.setLineWidth(0.3);
+        doc.line(ML, y + 12, ML + 40, y + 12);
+        y += 22;
 
         // Two-column layout: left 55%, right 45%
         const leftW = CW * 0.55;
@@ -357,7 +352,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         // Capability statement
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
-        doc.setTextColor(...C.slate700);
+        doc.setTextColor(...C.textDark);
         const capLines = doc.splitTextToSize(profile.capability_statement, leftW);
         doc.text(capLines, ML, leftY);
         leftY += capLines.length * 5.5 + 8;
@@ -366,7 +361,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         if (profile.specialisms) {
             doc.setFont("helvetica", "bold");
             doc.setFontSize(9);
-            doc.setTextColor(...C.navy);
+            doc.setTextColor(...C.textDark);
             doc.text("Specialisms", ML, leftY);
             leftY += 7;
 
@@ -378,7 +373,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
                     badgeX = ML;
                     leftY += 9;
                 }
-                doc.setFillColor(...C.navyLight);
+                doc.setFillColor(...C.charcoalMid);
                 doc.roundedRect(badgeX, leftY - 4.5, badgeW, 7, 1.5, 1.5, "F");
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(8);
@@ -393,11 +388,11 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         if (profile.years_trading) {
             const badge = `Est. ${profile.years_trading} years trading`;
             const badgeW = doc.getTextWidth(badge) + 8;
-            doc.setFillColor(...C.slate100);
+            doc.setFillColor(...C.surfaceMid);
             doc.roundedRect(ML, leftY, badgeW, 8, 2, 2, "F");
             doc.setFont("helvetica", "bold");
             doc.setFontSize(8);
-            doc.setTextColor(...C.navy);
+            doc.setTextColor(...C.textDark);
             doc.text(badge, ML + 4, leftY + 5.5);
             leftY += 14;
         }
@@ -412,20 +407,20 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         if (profile.vat_number) contactRows.push(["VAT Number", profile.vat_number]);
 
         if (contactRows.length > 0) {
-            doc.setFillColor(...C.slate50);
-            doc.roundedRect(rightX, rightY, rightW, contactRows.length * 9 + 8, 3, 3, "F");
-            doc.setDrawColor(...C.slate200);
+            doc.setFillColor(...C.white);
+            doc.roundedRect(rightX, rightY, rightW, contactRows.length * 10 + 8, 3, 3, "F");
+            doc.setDrawColor(...C.borderLight);
             doc.setLineWidth(0.3);
-            doc.roundedRect(rightX, rightY, rightW, contactRows.length * 9 + 8, 3, 3, "S");
-            rightY += 6;
+            doc.roundedRect(rightX, rightY, rightW, contactRows.length * 10 + 8, 3, 3, "S");
+            rightY += 7;
             contactRows.forEach(([label, val]) => {
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(7.5);
-                doc.setTextColor(...C.slate500);
+                doc.setTextColor(...C.textMid);
                 doc.text(label, rightX + 4, rightY + 4);
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(8.5);
-                doc.setTextColor(...C.slate700);
+                doc.setTextColor(...C.textDark);
                 const valLines = doc.splitTextToSize(val, rightW - 30);
                 doc.text(valLines[0], rightX + 28, rightY + 4);
                 rightY += 9;
@@ -438,16 +433,16 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             rightY += 4;
             doc.setFont("helvetica", "bold");
             doc.setFontSize(9);
-            doc.setTextColor(...C.navy);
+            doc.setTextColor(...C.textDark);
             doc.text("Accreditations", rightX, rightY);
             rightY += 6;
 
             const accreds = profile.accreditations.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean);
             accreds.forEach((acc: string) => {
                 doc.setFont("helvetica", "normal");
-                doc.setFontSize(9);
-                doc.setTextColor(...C.slate700);
-                doc.text(`- ${acc}`, rightX, rightY);
+                doc.setFontSize(8);
+                doc.setTextColor(...C.textDark);
+                doc.text(`\u25CF  ${acc}`, rightX, rightY);
                 rightY += 6;
             });
         }
@@ -471,25 +466,25 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
             // ── FULL-BLEED NAVY TOP BAND (top 35% of page) ──
             const bandH = PAGE_H * 0.36;
-            doc.setFillColor(...C.navy);
+            doc.setFillColor(...C.black);
             doc.rect(0, 0, PAGE_W, bandH, "F");
 
             // Section label (top-left in band)
             doc.setFont("helvetica", "normal");
             doc.setFontSize(7.5);
-            doc.setTextColor(...C.slate400);
+            doc.setTextColor(...C.muted);
             doc.text(`OUR WORK  —  ${String(ci + 1).padStart(2, "0")} / ${String(caseStudies.filter((c: any) => c.projectName).length).padStart(2, "0")}`, ML, 10);
 
             // Company name top-right
             doc.setFont("helvetica", "bold");
             doc.setFontSize(7.5);
-            doc.setTextColor(...C.slate400);
+            doc.setTextColor(...C.muted);
             doc.text(companyName.toUpperCase(), MR, 10, { align: "right" });
 
             // Project name — large white, vertically centred in top band
             const titleY = bandH * 0.42;
             doc.setFont("helvetica", "bold");
-            doc.setFontSize(28);
+            doc.setFontSize(32);
             doc.setTextColor(...C.white);
             const titleLines = doc.splitTextToSize(cs.projectName, CW);
             doc.text(titleLines, ML, titleY);
@@ -499,7 +494,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             if (subParts.length > 0) {
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(10);
-                doc.setTextColor(180, 200, 220);
+                doc.setTextColor(...C.muted);
                 doc.text(subParts.join("  |  "), ML, titleY + titleLines.length * 10 + 4);
             }
 
@@ -511,27 +506,27 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
                 cs.client        && { label: "CLIENT", value: cs.client },
             ].filter(Boolean) as { label: string; value: string }[];
 
-            const pillY = bandH - 18;
-            const pillH = 14;
+            const pillY = bandH - 19;
+            const pillH = 15;
             const pillGap = 4;
             let pillX = ML;
             statItems.forEach(stat => {
                 const valW = doc.getTextWidth(stat.value);
                 const lblW = doc.getTextWidth(stat.label);
                 const pW = Math.max(valW, lblW) + 10;
-                // Light navy pill background
-                doc.setFillColor(...C.navyMid);
+                // Charcoal pill background
+                doc.setFillColor(...C.charcoalLight);
                 doc.roundedRect(pillX, pillY, pW, pillH, 2, 2, "F");
                 // Label
                 doc.setFont("helvetica", "normal");
-                doc.setFontSize(6.5);
-                doc.setTextColor(...C.slate400);
-                doc.text(stat.label, pillX + 5, pillY + 4.5);
+                doc.setFontSize(7);
+                doc.setTextColor(...C.muted);
+                doc.text(stat.label, pillX + 5, pillY + 5);
                 // Value
                 doc.setFont("helvetica", "bold");
-                doc.setFontSize(8.5);
+                doc.setFontSize(9);
                 doc.setTextColor(...C.white);
-                doc.text(stat.value, pillX + 5, pillY + 11);
+                doc.text(stat.value, pillX + 5, pillY + 12);
                 pillX += pW + pillGap;
             });
 
@@ -556,11 +551,11 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
                         doc.addImage(photoUrl, imgFmt, px, cy, photoW, photoH);
                     } catch {
                         // Placeholder box if image fails
-                        doc.setFillColor(...C.slate100);
+                        doc.setFillColor(...C.surfaceMid);
                         doc.rect(px, cy, photoW, photoH, "F");
                         doc.setFont("helvetica", "normal");
                         doc.setFontSize(7);
-                        doc.setTextColor(...C.slate400);
+                        doc.setTextColor(...C.muted);
                         doc.text("Photo", px + photoW / 2, cy + photoH / 2, { align: "center" });
                     }
                     px += photoW + photoGap;
@@ -578,18 +573,18 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             // Left column: What We Delivered
             if (cs.whatWeDelivered) {
                 doc.setFont("helvetica", "bold");
-                doc.setFontSize(9);
-                doc.setTextColor(...C.navy);
+                doc.setFontSize(10);
+                doc.setTextColor(...C.black);
                 doc.text("WHAT WE DELIVERED", ML, col1Y);
                 col1Y += 1.5;
-                doc.setDrawColor(...C.navy);
+                doc.setDrawColor(...C.black);
                 doc.setLineWidth(0.5);
-                doc.line(ML, col1Y, ML + colW, col1Y);
+                doc.line(ML, col1Y, ML + 30, col1Y);
                 col1Y += 5;
 
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(9.5);
-                doc.setTextColor(...C.slate700);
+                doc.setTextColor(...C.textDark);
                 const wdLines = doc.splitTextToSize(cs.whatWeDelivered, colW);
                 doc.text(wdLines, ML, col1Y);
                 col1Y += wdLines.length * 5 + 6;
@@ -598,26 +593,26 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             // Right column: Value Added
             if (cs.valueAdded) {
                 doc.setFont("helvetica", "bold");
-                doc.setFontSize(9);
-                doc.setTextColor(...C.navy);
+                doc.setFontSize(10);
+                doc.setTextColor(...C.black);
                 doc.text("VALUE ADDED", col2X, col2Y);
                 col2Y += 1.5;
-                doc.setDrawColor(...C.navy);
+                doc.setDrawColor(...C.black);
                 doc.setLineWidth(0.5);
-                doc.line(col2X, col2Y, col2X + colW, col2Y);
+                doc.line(col2X, col2Y, col2X + 30, col2Y);
                 col2Y += 5;
 
-                // Value Added box — slate-50 background with left navy accent
+                // Value Added box — surface background with left charcoalMid accent
                 const vaLines = doc.splitTextToSize(cs.valueAdded, colW - 8);
                 const vaBoxH = vaLines.length * 5 + 10;
-                doc.setFillColor(...C.slate50);
+                doc.setFillColor(...C.surface);
                 doc.rect(col2X, col2Y, colW, vaBoxH, "F");
-                doc.setFillColor(...C.navy);
+                doc.setFillColor(...C.charcoalMid);
                 doc.rect(col2X, col2Y, 2.5, vaBoxH, "F");
 
                 doc.setFont("helvetica", "italic");
                 doc.setFontSize(9.5);
-                doc.setTextColor(...C.slate700);
+                doc.setTextColor(...C.textMid);
                 doc.text(vaLines, col2X + 6, col2Y + 6);
                 col2Y += vaBoxH + 6;
             }
@@ -625,7 +620,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             cy = Math.max(col1Y, col2Y);
 
             // ── FOOTER BAR ──
-            doc.setFillColor(...C.navy);
+            doc.setFillColor(...C.black);
             doc.rect(0, PAGE_H - 10, PAGE_W, 10, "F");
             doc.setFont("helvetica", "normal");
             doc.setFontSize(7);
@@ -646,7 +641,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
-    doc.setTextColor(...C.navy);
+    doc.setTextColor(...C.textDark);
     doc.text(`Dear ${clientName},`, ML, y);
     y += 9;
 
@@ -683,12 +678,12 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         body: overviewRows,
         theme: "plain",
         margin: { left: ML, right: PAGE_W - MR },
-        bodyStyles: { fontSize: 10, textColor: C.slate700, cellPadding: 4 },
+        bodyStyles: { fontSize: 10, textColor: C.textDark, cellPadding: 4 },
         columnStyles: {
-            0: { fontStyle: "bold", cellWidth: 55, textColor: C.slate500, fontSize: 8.5 },
+            0: { fontStyle: "bold", cellWidth: 55, textColor: C.textMid, fontSize: 8.5 },
         },
-        alternateRowStyles: { fillColor: C.slate50 },
-        tableLineColor: C.border,
+        alternateRowStyles: { fillColor: C.surface },
+        tableLineColor: C.borderLight,
         tableLineWidth: 0.2,
         didDrawPage: () => { totalPagesRef.n = doc.getNumberOfPages(); },
     });
@@ -706,7 +701,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     } else {
         doc.setFont("helvetica", "italic");
         doc.setFontSize(10);
-        doc.setTextColor(...C.slate500);
+        doc.setTextColor(...C.textMid);
         doc.text("Scope to be completed in the Proposal Editor.", ML, y);
         y += 8;
     }
@@ -721,7 +716,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
     doc.setFont("helvetica", "italic");
     doc.setFontSize(9);
-    doc.setTextColor(...C.slate500);
+    doc.setTextColor(...C.textMid);
     doc.text("All prices exclusive of VAT unless stated.", ML, y);
     y += 10;
 
@@ -744,14 +739,17 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
             autoTable(doc, {
                 startY: y,
-                head: [[{ content: est.version_name || "Estimate", colSpan: 5, styles: { halign: "left" as const } }]],
+                head: [
+                    [{ content: est.version_name || "Estimate", colSpan: 5, styles: { halign: "left" as const, fillColor: C.black, textColor: C.white, fontSize: 10, fontStyle: "bold" as const } }],
+                    ["Description", "Qty", "Unit", "Rate", "Total"],
+                ],
                 body: bodyRows,
                 foot: [["Subtotal", "", "", "", formatGBP(estTotal)]],
                 theme: "grid",
                 margin: { left: ML, right: PAGE_W - MR },
-                headStyles: { fillColor: C.navy, textColor: C.white, fontStyle: "bold", fontSize: 9 },
-                bodyStyles: { fontSize: 9, textColor: C.slate700, cellPadding: 3 },
-                footStyles: { fillColor: C.slate100, textColor: C.navy, fontStyle: "bold", fontSize: 9 },
+                headStyles: { fillColor: C.charcoalMid, textColor: C.white, fontStyle: "bold", fontSize: 8.5 },
+                bodyStyles: { fontSize: 9, textColor: C.textDark, cellPadding: 3 },
+                footStyles: { fillColor: C.surface, textColor: C.textDark, fontStyle: "bold", fontSize: 9 },
                 columnStyles: {
                     0: { cellWidth: 70 },
                     1: { cellWidth: 18, halign: "center" as const },
@@ -759,8 +757,8 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
                     3: { cellWidth: 30, halign: "right" as const },
                     4: { cellWidth: 30, halign: "right" as const },
                 },
-                alternateRowStyles: { fillColor: C.slate50 },
-                tableLineColor: C.border,
+                alternateRowStyles: { fillColor: C.surface },
+                tableLineColor: C.borderLight,
                 tableLineWidth: 0.2,
                 didDrawPage: () => { totalPagesRef.n = doc.getNumberOfPages(); },
             });
@@ -769,7 +767,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
             doc.setFont("helvetica", "normal");
             doc.setFontSize(7.5);
-            doc.setTextColor(...C.slate500);
+            doc.setTextColor(...C.textMid);
             doc.text(
                 `Overhead: ${est.overhead_pct || 0}%  |  Profit: ${est.profit_pct || 0}%  |  Risk: ${est.risk_pct || 0}%`,
                 ML, y
@@ -803,60 +801,39 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         const vatAmount = grandTotal * 0.20;
         const totalIncVat = grandTotal * 1.20;
 
-        // Summary box
-        const sumBoxH = 62;
-        const sumBoxX = ML + CW * 0.38;
-        const sumBoxW = CW * 0.62;
+        // Grand total section — full-width premium box
+        const gtX = ML;
+        const gtW = CW;
 
-        doc.setFillColor(...C.slate50);
-        doc.roundedRect(sumBoxX, y, sumBoxW, sumBoxH, 3, 3, "F");
-        doc.setDrawColor(...C.slate200);
-        doc.setLineWidth(0.3);
-        doc.roundedRect(sumBoxX, y, sumBoxW, sumBoxH, 3, 3, "S");
+        // TOTAL (exc. VAT) label + value
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(...C.muted);
+        doc.text("TOTAL (exc. VAT)", gtX, y + 4);
+        y += 6;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(16);
+        doc.setTextColor(...C.textDark);
+        doc.text(formatGBP(grandTotal), gtX, y + 6);
+        y += 10;
 
-        const rows: [string, string, boolean?][] = [
-            ...(subtotal > 0 && avgOverhead + avgProfit > 0 ? [
-                ["Subtotal (cost)", formatGBP(subtotal)],
-                [`Overhead & Profit (${Math.round(avgOverhead + avgProfit)}%)`, formatGBP(totalMarkup)],
-            ] as [string, string][] : []),
-            ["TOTAL EXCL. VAT", formatGBP(grandTotal), true],
-            ["VAT @ 20%", formatGBP(vatAmount)],
-            ["TOTAL INCL. VAT", formatGBP(totalIncVat), true],
-        ];
+        // VAT row
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(...C.muted);
+        doc.text(`VAT @ 20%: ${formatGBP(vatAmount)}`, gtX, y + 4);
+        y += 8;
 
-        let rowY = y + 8;
-        rows.forEach(([label, val, bold]) => {
-            if (bold && label === "TOTAL INCL. VAT") {
-                // Largest row
-                doc.setFillColor(...C.navy);
-                doc.rect(sumBoxX, rowY - 3, sumBoxW, 11, "F");
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(11);
-                doc.setTextColor(...C.white);
-                doc.text(label, sumBoxX + 4, rowY + 4.5);
-                doc.text(val, sumBoxX + sumBoxW - 4, rowY + 4.5, { align: "right" });
-                rowY += 13;
-            } else if (bold && label === "TOTAL EXCL. VAT") {
-                doc.setDrawColor(...C.slate300);
-                doc.setLineWidth(0.3);
-                doc.line(sumBoxX + 4, rowY - 2, sumBoxX + sumBoxW - 4, rowY - 2);
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(10.5);
-                doc.setTextColor(...C.navy);
-                doc.text(label, sumBoxX + 4, rowY + 4);
-                doc.text(val, sumBoxX + sumBoxW - 4, rowY + 4, { align: "right" });
-                rowY += 10;
-            } else {
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(9);
-                doc.setTextColor(...C.slate700);
-                doc.text(label, sumBoxX + 4, rowY + 4);
-                doc.text(val, sumBoxX + sumBoxW - 4, rowY + 4, { align: "right" });
-                rowY += 8;
-            }
-        });
+        // Total inc. VAT — black fill bar
+        doc.setFillColor(...C.black);
+        doc.rect(gtX, y, gtW, 14, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.setTextColor(...C.white);
+        doc.text("TOTAL INCL. VAT", gtX + 4, y + 9.5);
+        doc.text(formatGBP(totalIncVat), gtX + gtW - 4, y + 9.5, { align: "right" });
 
-        y += sumBoxH + 10;
+        y += 24;
 
     } else {
         const summaryRows = estimates.map((est) => {
@@ -870,57 +847,50 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             body: summaryRows,
             theme: "grid",
             margin: { left: ML, right: PAGE_W - MR },
-            headStyles: { fillColor: C.navy, textColor: C.white, fontStyle: "bold", fontSize: 9 },
-            bodyStyles: { fontSize: 10, textColor: C.slate700, cellPadding: 4 },
+            headStyles: { fillColor: C.black, textColor: C.white, fontStyle: "bold", fontSize: 9 },
+            bodyStyles: { fontSize: 10, textColor: C.textDark, cellPadding: 4 },
             columnStyles: { 1: { halign: "right" as const, cellWidth: 45 } },
-            alternateRowStyles: { fillColor: C.slate50 },
-            tableLineColor: C.border,
+            alternateRowStyles: { fillColor: C.surface },
+            tableLineColor: C.borderLight,
             tableLineWidth: 0.2,
             didDrawPage: () => { totalPagesRef.n = doc.getNumberOfPages(); },
         });
         y = (doc as any).lastAutoTable.finalY + 8;
 
-        // C5: Summary total box
+        // C5: Summary total box — premium layout
         y = ensureSpace(doc, y, 40, companyName, docTitle, totalPagesRef);
         const vatAmount = grandTotal * 0.20;
         const totalIncVat = grandTotal * 1.20;
 
-        const stbX = ML + CW * 0.4;
-        const stbW = CW * 0.6;
-        doc.setFillColor(...C.slate50);
-        doc.roundedRect(stbX, y, stbW, 36, 3, 3, "F");
-        doc.setDrawColor(...C.slate200);
-        doc.setLineWidth(0.3);
-        doc.roundedRect(stbX, y, stbW, 36, 3, 3, "S");
-
-        let ry = y + 6;
-        // TOTAL EXCL VAT
-        doc.setDrawColor(...C.slate300);
-        doc.line(stbX + 4, ry, stbX + stbW - 4, ry);
-        ry += 4;
+        // TOTAL (exc. VAT)
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(...C.muted);
+        doc.text("TOTAL (exc. VAT)", ML, y + 4);
+        y += 6;
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(10.5);
-        doc.setTextColor(...C.navy);
-        doc.text("TOTAL EXCL. VAT", stbX + 4, ry + 4);
-        doc.text(formatGBP(grandTotal), stbX + stbW - 4, ry + 4, { align: "right" });
-        ry += 8;
+        doc.setFontSize(16);
+        doc.setTextColor(...C.textDark);
+        doc.text(formatGBP(grandTotal), ML, y + 6);
+        y += 10;
+
         // VAT
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        doc.setTextColor(...C.slate500);
-        doc.text("VAT @ 20%", stbX + 4, ry + 4);
-        doc.text(formatGBP(vatAmount), stbX + stbW - 4, ry + 4, { align: "right" });
-        ry += 7;
-        // Total incl. VAT
-        doc.setFillColor(...C.navy);
-        doc.rect(stbX, ry, stbW, 10, "F");
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
-        doc.setTextColor(...C.white);
-        doc.text("TOTAL INCL. VAT", stbX + 4, ry + 6.5);
-        doc.text(formatGBP(totalIncVat), stbX + stbW - 4, ry + 6.5, { align: "right" });
+        doc.setFontSize(10);
+        doc.setTextColor(...C.muted);
+        doc.text(`VAT @ 20%: ${formatGBP(vatAmount)}`, ML, y + 4);
+        y += 8;
 
-        y += 46;
+        // Total inc. VAT — black fill bar
+        doc.setFillColor(...C.black);
+        doc.rect(ML, y, CW, 14, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.setTextColor(...C.white);
+        doc.text("TOTAL INCL. VAT", ML + 4, y + 9.5);
+        doc.text(formatGBP(totalIncVat), ML + CW - 4, y + 9.5, { align: "right" });
+
+        y += 24;
     }
 
     // Payment Schedule
@@ -931,7 +901,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
-        doc.setTextColor(...C.navy);
+        doc.setTextColor(...C.textDark);
         doc.text("Payment Schedule", ML, y);
         y += 8;
 
@@ -951,15 +921,15 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             body: payRows,
             theme: "grid",
             margin: { left: ML, right: PAGE_W - MR },
-            headStyles: { fillColor: C.navy, textColor: C.white, fontStyle: "bold", fontSize: 9 },
-            bodyStyles: { fontSize: 9.5, textColor: C.slate700, cellPadding: 3.5 },
+            headStyles: { fillColor: C.black, textColor: C.white, fontStyle: "bold", fontSize: 9 },
+            bodyStyles: { fontSize: 9.5, textColor: C.textDark, cellPadding: 3.5 },
             columnStyles: {
                 0: { cellWidth: 45, fontStyle: "bold" },
                 2: { cellWidth: 18, halign: "center" as const },
                 3: { cellWidth: 35, halign: "right" as const, fontStyle: "bold" },
             },
-            alternateRowStyles: { fillColor: C.slate50 },
-            tableLineColor: C.border,
+            alternateRowStyles: { fillColor: C.surface },
+            tableLineColor: C.borderLight,
             tableLineWidth: 0.2,
             didDrawPage: () => { totalPagesRef.n = doc.getNumberOfPages(); },
         });
@@ -970,7 +940,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     y = ensureSpace(doc, y, 15, companyName, docTitle, totalPagesRef);
     doc.setFont("helvetica", "italic");
     doc.setFontSize(8.5);
-    doc.setTextColor(...C.slate500);
+    doc.setTextColor(...C.textMid);
     const validityText = `This Proposal is valid for ${validityDays} days from the date of issue (${formatDate(today)}). After this period, rates may be subject to review.`;
     const validityLines = doc.splitTextToSize(validityText, CW);
     doc.text(validityLines, ML, y);
@@ -1022,7 +992,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         const headerH = 13;
 
         // Navy header bar
-        doc.setFillColor(...C.navy);
+        doc.setFillColor(...C.black);
         doc.rect(ML, y, CW, headerH, "F");
 
         doc.setFont("helvetica", "bold");
@@ -1049,13 +1019,13 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
         allPhasesWithDates.forEach((phase: any, idx: number) => {
             if (idx % 2 === 0) {
-                doc.setFillColor(...C.slate50);
+                doc.setFillColor(...C.surface);
                 doc.rect(ML, y, CW, rowH, "F");
             }
 
             doc.setFont("helvetica", "normal");
             doc.setFontSize(8);
-            doc.setTextColor(...C.slate700);
+            doc.setTextColor(...C.textDark);
             doc.text(
                 doc.splitTextToSize(phase.name || `Phase ${idx + 1}`, labelColW - 4)[0],
                 ML + 3, y + 7
@@ -1064,7 +1034,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             // Duration label
             const weeks = Math.round((phase.duration_days || 7) / 7);
             doc.setFontSize(7.5);
-            doc.setTextColor(...C.slate500);
+            doc.setTextColor(...C.textMid);
             doc.text(`${weeks} wk${weeks !== 1 ? "s" : ""}`, ML + labelColW + 3, y + 7);
 
             // C4: Bar positioned relative to earliest start
@@ -1089,14 +1059,14 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         });
 
         // Border around gantt
-        doc.setDrawColor(...C.slate200);
+        doc.setDrawColor(...C.borderLight);
         doc.setLineWidth(0.3);
         doc.rect(ML, y - phases.length * rowH - headerH, CW, phases.length * rowH + headerH, "S");
 
         y += 5;
         doc.setFont("helvetica", "italic");
         doc.setFontSize(7.5);
-        doc.setTextColor(...C.slate500);
+        doc.setTextColor(...C.textMid);
         doc.text("Note: Timeline is indicative. Final programme subject to agreement on acceptance.", ML, y);
     }
 
@@ -1116,7 +1086,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         let rightY = y + 8;
 
         if (project?.exclusions_text) {
-            doc.setFillColor(...C.navy);
+            doc.setFillColor(...C.black);
             doc.rect(ML, y, halfW, 10, "F");
             doc.setFont("helvetica", "bold");
             doc.setFontSize(8.5);
@@ -1129,14 +1099,14 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
                 const bulletLines = doc.splitTextToSize(`•  ${item.trim()}`, halfW - 6);
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(9);
-                doc.setTextColor(...C.slate700);
+                doc.setTextColor(...C.textDark);
                 doc.text(bulletLines, ML + 4, leftY);
                 leftY += bulletLines.length * 4.8 + 1.5;
             });
         }
 
         if (project?.clarifications_text) {
-            doc.setFillColor(...C.navy);
+            doc.setFillColor(...C.black);
             doc.rect(boxX2, boxStartY, halfW, 10, "F");
             doc.setFont("helvetica", "bold");
             doc.setFontSize(8.5);
@@ -1149,7 +1119,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
                 const bulletLines = doc.splitTextToSize(`•  ${item.trim()}`, halfW - 6);
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(9);
-                doc.setTextColor(...C.slate700);
+                doc.setTextColor(...C.textDark);
                 doc.text(bulletLines, boxX2 + 4, rightY);
                 rightY += bulletLines.length * 4.8 + 1.5;
             });
@@ -1192,18 +1162,18 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             try {
                 doc.addImage(photo.url, "JPEG", bx, by, boxW, boxH);
             } catch {
-                doc.setFillColor(...C.slate100);
+                doc.setFillColor(...C.surfaceMid);
                 doc.rect(bx, by, boxW, boxH, "F");
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(8.5);
-                doc.setTextColor(...C.slate500);
+                doc.setTextColor(...C.textMid);
                 doc.text(photo.caption || "Photo", bx + boxW / 2, by + boxH / 2, { align: "center" });
             }
 
             if (photo.caption) {
                 doc.setFont("helvetica", "italic");
                 doc.setFontSize(7);
-                doc.setTextColor(...C.slate500);
+                doc.setTextColor(...C.textMid);
                 doc.text(photo.caption, bx + boxW / 2, by + boxH + 4, { align: "center" });
             }
         }
@@ -1219,7 +1189,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
     doc.setFont("helvetica", "italic");
     doc.setFontSize(9);
-    doc.setTextColor(...C.slate500);
+    doc.setTextColor(...C.textMid);
     doc.text("The following standard clauses form part of this Proposal and the Contract upon acceptance.", ML, y);
     y += 10;
 
@@ -1236,13 +1206,13 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         body: tcRows,
         theme: "grid",
         margin: { left: ML, right: PAGE_W - MR },
-        headStyles: { fillColor: C.navy, textColor: C.white, fontStyle: "bold", fontSize: 9 },
-        bodyStyles: { fontSize: 8.5, textColor: C.slate700, cellPadding: 4 },
+        headStyles: { fillColor: C.black, textColor: C.white, fontStyle: "bold", fontSize: 9 },
+        bodyStyles: { fontSize: 8.5, textColor: C.textDark, cellPadding: 4 },
         columnStyles: {
-            0: { cellWidth: 55, fontStyle: "bold", textColor: C.navy, fontSize: 8.5 },
+            0: { cellWidth: 55, fontStyle: "bold", textColor: C.textDark, fontSize: 8.5 },
         },
-        alternateRowStyles: { fillColor: C.slate50 },
-        tableLineColor: C.border,
+        alternateRowStyles: { fillColor: C.surface },
+        tableLineColor: C.borderLight,
         tableLineWidth: 0.2,
         didDrawPage: () => { totalPagesRef.n = doc.getNumberOfPages(); },
     });
@@ -1256,9 +1226,9 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     y = renderSectionHeading(doc, y, "Acceptance & Signatures");
 
     // Summary box
-    doc.setFillColor(...C.slate50);
+    doc.setFillColor(...C.surface);
     doc.roundedRect(ML, y, CW, 28, 3, 3, "F");
-    doc.setDrawColor(...C.slate200);
+    doc.setDrawColor(...C.borderLight);
     doc.setLineWidth(0.3);
     doc.roundedRect(ML, y, CW, 28, 3, 3, "S");
 
@@ -1267,14 +1237,14 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.setTextColor(...C.slate500);
+    doc.setTextColor(...C.textMid);
     doc.text("CONTRACT VALUE", ML + 6, y + 8);
     doc.text("PROPOSED START", sumCol2 + 3, y + 8);
     doc.text("VALID UNTIL", sumCol3 + 3, y + 8);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
-    doc.setTextColor(...C.navy);
+    doc.setTextColor(...C.textDark);
     doc.text(contractValue > 0 ? formatGBP(contractValue) : "TBC", ML + 6, y + 21);
 
     doc.setFontSize(11);
@@ -1287,7 +1257,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9.5);
-    doc.setTextColor(...C.slate700);
+    doc.setTextColor(...C.textDark);
     const sigText = "By signing below, both parties agree to the Scope of Works, Fee Proposal, and Terms & Conditions set out in this document.";
     const sigLines = doc.splitTextToSize(sigText, CW);
     doc.text(sigLines, ML, y);
@@ -1298,22 +1268,22 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
-    doc.setTextColor(...C.navy);
+    doc.setTextColor(...C.textDark);
     doc.text("FOR AND ON BEHALF OF THE CONTRACTOR", ML, y);
     y += 6;
     doc.text(companyName, ML, y);
     y += 16;
 
-    doc.setDrawColor(...C.slate700);
+    doc.setDrawColor(...C.textDark);
     doc.setLineWidth(0.5);
     doc.line(ML, y, ML + sigBoxW, y);
     y += 5;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
-    doc.setTextColor(...C.slate500);
+    doc.setTextColor(...C.textMid);
     doc.text("Signature", ML, y);
     y += 8;
-    doc.setDrawColor(...C.slate300);
+    doc.setDrawColor(...C.muted);
     doc.setLineWidth(0.3);
     doc.line(ML, y, ML + sigBoxW, y);
     y += 5;
@@ -1326,19 +1296,19 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     const rightStartY = y - 26 - 8 - 8 - 5 - 5 - 5 - 16 - 5 - 6;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
-    doc.setTextColor(...C.navy);
+    doc.setTextColor(...C.textDark);
     doc.text("FOR AND ON BEHALF OF THE CLIENT", sigBoxX2, rightStartY);
     doc.text(clientName, sigBoxX2, rightStartY + 6);
 
-    doc.setDrawColor(...C.slate700);
+    doc.setDrawColor(...C.textDark);
     doc.setLineWidth(0.5);
     doc.line(sigBoxX2, rightStartY + 22, sigBoxX2 + sigBoxW, rightStartY + 22);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
-    doc.setTextColor(...C.slate500);
+    doc.setTextColor(...C.textMid);
     doc.text("Signature", sigBoxX2, rightStartY + 27);
 
-    doc.setDrawColor(...C.slate300);
+    doc.setDrawColor(...C.muted);
     doc.setLineWidth(0.3);
     doc.line(sigBoxX2, rightStartY + 35, sigBoxX2 + sigBoxW, rightStartY + 35);
     doc.text("Print Name", sigBoxX2, rightStartY + 40);
@@ -1349,7 +1319,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     y += 16;
     doc.setFont("helvetica", "italic");
     doc.setFontSize(7.5);
-    doc.setTextColor(...C.slate500);
+    doc.setTextColor(...C.textMid);
     const smallPrint = `This Proposal was generated by ${companyName} using Constructa. Acceptance of this proposal constitutes a binding agreement to the stated terms. Ref: ${refCode}.`;
     const spLines = doc.splitTextToSize(smallPrint, CW);
     doc.text(spLines, ML, y);

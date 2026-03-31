@@ -420,6 +420,23 @@ export async function generateExclusionsAction(
     return { exclusions: text };
 }
 
+export async function updatePaymentScheduleTypeAction(projectId: string, type: string) {
+    const supabase = createClient();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
+    if (!user) return { success: false, error: "Not authenticated" };
+
+    const { error } = await supabase
+        .from("projects")
+        .update({ payment_schedule_type: type })
+        .eq("id", projectId)
+        .eq("user_id", user.id);
+
+    if (error) return { success: false, error: error.message };
+    revalidatePath(`/dashboard/projects/proposal?projectId=${projectId}`);
+    return { success: true };
+}
+
 export async function updateCaseStudySelectionAction(projectId: string, selectedIds: (number | string)[]) {
     const supabase = createClient();
     const { data: authData } = await supabase.auth.getUser();

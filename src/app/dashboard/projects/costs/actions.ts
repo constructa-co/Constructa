@@ -27,7 +27,8 @@ export async function updateEstimateMarginsAction(
     estimateId: string,
     overhead: number,
     profit: number,
-    risk: number
+    risk: number,
+    prelims: number = 0
 ) {
     const supabase = createClient();
     const { error } = await supabase
@@ -36,6 +37,7 @@ export async function updateEstimateMarginsAction(
             overhead_pct: overhead,
             profit_pct: profit,
             risk_pct: risk,
+            prelims_pct: prelims,
         })
         .eq("id", estimateId);
 
@@ -62,6 +64,7 @@ export async function addLineItemAction(
         quantity: number;
         unit: string;
         unit_rate: number;
+        line_type?: string;
         cost_library_item_id?: string | null;
         mom_item_code?: string | null;
         notes?: string | null;
@@ -80,6 +83,7 @@ export async function addLineItemAction(
             unit: data.unit,
             unit_rate: data.unit_rate,
             line_total,
+            line_type: data.line_type || "general",
             cost_library_item_id: data.cost_library_item_id || null,
             mom_item_code: data.mom_item_code || null,
             notes: data.notes || null,
@@ -103,6 +107,7 @@ export async function updateLineItemAction(
         unit?: string;
         unit_rate?: number;
         trade_section?: string;
+        line_type?: string;
         mom_item_code?: string | null;
         notes?: string | null;
     }

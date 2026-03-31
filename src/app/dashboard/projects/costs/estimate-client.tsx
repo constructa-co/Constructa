@@ -11,7 +11,8 @@ import {
     setActiveEstimateAction,
     deleteEstimateAction,
 } from "./actions";
-import { Plus, Trash2, Check, Star, Loader2 } from "lucide-react";
+import { Plus, Trash2, Check, Star, Loader2, FileText } from "lucide-react";
+import Link from "next/link";
 
 // ─── Types ───────────────────────────────────────────────
 interface EstimateLine {
@@ -23,6 +24,7 @@ interface EstimateLine {
     unit_rate: number;
     line_total: number;
     trade_section: string;
+    line_type: string;
     cost_library_item_id?: string | null;
     mom_item_code?: string | null;
     notes?: string | null;
@@ -35,6 +37,7 @@ interface Estimate {
     overhead_pct: number;
     profit_pct: number;
     risk_pct: number;
+    prelims_pct: number;
     total_cost: number;
     is_active: boolean;
     estimate_lines: EstimateLine[];
@@ -76,6 +79,8 @@ const TRADE_SECTIONS = [
 
 const UNITS = ["m", "m2", "m3", "nr", "item", "day", "week", "tonne", "kg", "lm"];
 
+const LINE_TYPES = ["general", "labour", "plant", "material", "subcontract", "consultancy"];
+
 function formatGBP(n: number): string {
     return "\u00A3" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -113,6 +118,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     overhead_pct: result.overhead_pct ?? 10,
                     profit_pct: result.profit_pct ?? 15,
                     risk_pct: result.risk_pct ?? 0,
+                    prelims_pct: result.prelims_pct ?? 0,
                     total_cost: 0,
                     is_active: false,
                 };
@@ -149,13 +155,13 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
     };
 
     // ─── Margin updates ─────────────────────────────────
-    const handleMarginBlur = (field: "overhead_pct" | "profit_pct" | "risk_pct", value: number) => {
+    const handleMarginBlur = (field: "overhead_pct" | "profit_pct" | "risk_pct" | "prelims_pct", value: number) => {
         if (!currentEstimate) return;
         const updated = { ...currentEstimate, [field]: value };
         setEstimates((prev) => prev.map((e) => (e.id === currentEstimate.id ? updated : e)));
         startTransition(async () => {
             showSaving();
-            await updateEstimateMarginsAction(currentEstimate.id, updated.overhead_pct, updated.profit_pct, updated.risk_pct);
+            await updateEstimateMarginsAction(currentEstimate.id, updated.overhead_pct, updated.profit_pct, updated.risk_pct, updated.prelims_pct);
             showSaved();
         });
     };
@@ -175,6 +181,12 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
     // ─── Line item CRUD ─────────────────────────────────
     const handleAddLine = (section: string) => {
         if (!currentEstimate) return;
+        // Validate: only add if previous line in section has a description
+        const sectionLines = currentEstimate.estimate_lines.filter(l => l.trade_section === section);
+        const lastLine = sectionLines[sectionLines.length - 1];
+        if (lastLine && (!lastLine.description || lastLine.description === "" || lastLine.description === "\u2014")) {
+            return; // Don't add another blank row
+        }
         startTransition(async () => {
             showSaving();
             const result = await addLineItemAction(currentEstimate.id, section, {
@@ -182,12 +194,13 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                 quantity: 1,
                 unit: "nr",
                 unit_rate: 0,
+                line_type: "general",
             });
             if (result) {
                 setEstimates((prev) =>
                     prev.map((e) =>
                         e.id === currentEstimate.id
-                            ? { ...e, estimate_lines: [...e.estimate_lines, { ...result, trade_section: section }] }
+                            ? { ...e, estimate_lines: [...e.estimate_lines, { ...result, trade_section: section, line_type: result.line_type || "general" }] }
                             : e
                     )
                 );
@@ -270,20 +283,46 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
         });
     };
 
-    // ─── Calculations ───────────────────────────────────
+    // ─── CORRECT QS COST HIERARCHY ──────────────────────
     const lines = currentEstimate?.estimate_lines || [];
-    const netCost = lines.reduce((s, l) => s + (l.line_total || 0), 0);
+    // Filter out blank lines for display
+    const displayLines = lines.filter(l => l.description && l.description !== "" && l.description !== "\u2014");
+
+    const prelimsPct = currentEstimate?.prelims_pct || 0;
     const overheadPct = currentEstimate?.overhead_pct || 0;
     const profitPct = currentEstimate?.profit_pct || 0;
     const riskPct = currentEstimate?.risk_pct || 0;
-    const overheadVal = netCost * (overheadPct / 100);
-    const profitVal = netCost * (profitPct / 100);
-    const riskVal = netCost * (riskPct / 100);
-    const totalExVat = netCost + overheadVal + profitVal + riskVal;
-    const vat = totalExVat * 0.2;
-    const totalIncVat = totalExVat + vat;
 
-    // Group lines by trade section
+    // Step 1: Direct Construction Cost = sum of all line item totals (excluding Preliminaries section)
+    const directCost = lines
+        .filter(l => l.trade_section !== "Preliminaries" && l.line_total > 0)
+        .reduce((sum, l) => sum + l.line_total, 0);
+
+    // Step 2: Prelims = either explicit Prelims section lines OR prelims_pct % of direct cost
+    const explicitPrelimsLines = lines.filter(l => l.trade_section === "Preliminaries");
+    const explicitPrelimsTotal = explicitPrelimsLines.reduce((sum, l) => sum + l.line_total, 0);
+    const prelimsFromPct = directCost * (prelimsPct / 100);
+    const prelimsTotal = explicitPrelimsLines.length > 0 ? explicitPrelimsTotal : prelimsFromPct;
+
+    // Step 3: Total Construction Cost
+    const totalConstructionCost = directCost + prelimsTotal;
+
+    // Step 4: Overhead applied to Total Construction Cost
+    const overheadAmount = totalConstructionCost * (overheadPct / 100);
+    const costPlusOverhead = totalConstructionCost + overheadAmount;
+
+    // Step 5: Risk applied to (Construction Cost + Overhead)
+    const riskAmount = costPlusOverhead * (riskPct / 100);
+    const adjustedTotal = costPlusOverhead + riskAmount;
+
+    // Step 6: Profit applied to Adjusted Total
+    const profitAmount = adjustedTotal * (profitPct / 100);
+    const contractSum = adjustedTotal + profitAmount;
+
+    const vat = contractSum * 0.2;
+    const totalIncVat = contractSum + vat;
+
+    // Group lines by trade section (only display lines with descriptions)
     const sectionGroups: Record<string, EstimateLine[]> = {};
     lines.forEach((l) => {
         const sec = l.trade_section || "General";
@@ -300,6 +339,21 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
 
     return (
         <div className="space-y-6">
+            {/* HEADER WITH CTA */}
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold text-slate-900">Estimating</h1>
+                <div className="flex items-center gap-3">
+                    {contractSum > 0 && (
+                        <span className="text-sm text-gray-500">Contract Sum: <strong>{formatGBP(contractSum)}</strong></span>
+                    )}
+                    <Link href={`/dashboard/projects/proposal?projectId=${projectId}`}
+                        className="bg-gray-900 text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-gray-700 flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Go to Proposal →
+                    </Link>
+                </div>
+            </div>
+
             {/* TABS */}
             <div className="flex items-center gap-2 flex-wrap">
                 {estimates.map((est) => (
@@ -358,6 +412,16 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                 />
                             </div>
                             <div className="w-24">
+                                <label className="text-xs font-bold uppercase text-slate-500 block mb-1">Prelims %</label>
+                                <input
+                                    type="number"
+                                    step="0.5"
+                                    defaultValue={currentEstimate.prelims_pct}
+                                    onBlur={(e) => handleMarginBlur("prelims_pct", parseFloat(e.target.value) || 0)}
+                                    className="w-full h-10 px-3 border border-slate-200 rounded-md text-slate-900 text-sm text-center"
+                                />
+                            </div>
+                            <div className="w-24">
                                 <label className="text-xs font-bold uppercase text-slate-500 block mb-1">Overhead %</label>
                                 <input
                                     type="number"
@@ -368,22 +432,22 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                 />
                             </div>
                             <div className="w-24">
-                                <label className="text-xs font-bold uppercase text-slate-500 block mb-1">Profit %</label>
-                                <input
-                                    type="number"
-                                    step="0.5"
-                                    defaultValue={currentEstimate.profit_pct}
-                                    onBlur={(e) => handleMarginBlur("profit_pct", parseFloat(e.target.value) || 0)}
-                                    className="w-full h-10 px-3 border border-slate-200 rounded-md text-slate-900 text-sm text-center"
-                                />
-                            </div>
-                            <div className="w-24">
                                 <label className="text-xs font-bold uppercase text-slate-500 block mb-1">Risk %</label>
                                 <input
                                     type="number"
                                     step="0.5"
                                     defaultValue={currentEstimate.risk_pct}
                                     onBlur={(e) => handleMarginBlur("risk_pct", parseFloat(e.target.value) || 0)}
+                                    className="w-full h-10 px-3 border border-slate-200 rounded-md text-slate-900 text-sm text-center"
+                                />
+                            </div>
+                            <div className="w-24">
+                                <label className="text-xs font-bold uppercase text-slate-500 block mb-1">Profit %</label>
+                                <input
+                                    type="number"
+                                    step="0.5"
+                                    defaultValue={currentEstimate.profit_pct}
+                                    onBlur={(e) => handleMarginBlur("profit_pct", parseFloat(e.target.value) || 0)}
                                     className="w-full h-10 px-3 border border-slate-200 rounded-md text-slate-900 text-sm text-center"
                                 />
                             </div>
@@ -432,15 +496,16 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                         );
 
                         return (
-                            <div key={section} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                            <div key={section} className="bg-white border border-slate-200 rounded-xl" style={{ overflow: "visible" }}>
                                 {/* Section header */}
-                                <div className="flex items-center justify-between px-5 py-3 bg-slate-900 text-white">
+                                <div className="flex items-center justify-between px-5 py-3 bg-slate-900 text-white rounded-t-xl">
                                     <h3 className="font-bold text-sm uppercase tracking-wide">{section}</h3>
                                     <span className="font-bold text-sm">{formatGBP(sectionTotal)}</span>
                                 </div>
 
                                 {/* Table header */}
-                                <div className="grid grid-cols-[1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 bg-slate-50 border-b border-slate-200 text-xs font-bold uppercase text-slate-500">
+                                <div className="grid grid-cols-[70px_1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 bg-slate-50 border-b border-slate-200 text-xs font-bold uppercase text-slate-500">
+                                    <div>Type</div>
                                     <div>Description</div>
                                     <div className="text-center">Qty</div>
                                     <div className="text-center">Unit</div>
@@ -475,19 +540,34 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     })}
 
                     {/* SUMMARY STRIP */}
-                    <div className="bg-white border border-slate-200 rounded-xl p-5">
-                        <h3 className="font-bold text-sm uppercase tracking-wide text-slate-500 mb-4">Summary</h3>
+                    <div className="bg-white border border-slate-200 rounded-xl p-5 sticky bottom-0 shadow-lg">
+                        <h3 className="font-bold text-sm uppercase tracking-wide text-slate-500 mb-4">Cost Summary</h3>
                         <div className="space-y-2">
-                            <SummaryRow label="Net Cost" value={netCost} />
-                            <SummaryRow label={`Overhead (${overheadPct}%)`} value={overheadVal} />
-                            <SummaryRow label={`Profit (${profitPct}%)`} value={profitVal} />
-                            <SummaryRow label={`Risk (${riskPct}%)`} value={riskVal} />
+                            <SummaryRow label="Direct Construction Cost" value={directCost} />
+                            {(prelimsTotal > 0 || prelimsPct > 0) && (
+                                <SummaryRow
+                                    label={explicitPrelimsLines.length > 0 ? "Preliminaries (line items)" : `Preliminaries (${prelimsPct}%)`}
+                                    value={prelimsTotal}
+                                />
+                            )}
                             <div className="border-t border-slate-200 pt-2 mt-2">
-                                <SummaryRow label="TOTAL (exc VAT)" value={totalExVat} bold />
+                                <SummaryRow label="Total Construction Cost" value={totalConstructionCost} bold />
+                            </div>
+                            {overheadPct > 0 && (
+                                <SummaryRow label={`Overhead (${overheadPct}%)`} value={overheadAmount} />
+                            )}
+                            {riskPct > 0 && (
+                                <SummaryRow label={`Risk (${riskPct}%)`} value={riskAmount} />
+                            )}
+                            {profitPct > 0 && (
+                                <SummaryRow label={`Profit (${profitPct}%)`} value={profitAmount} />
+                            )}
+                            <div className="border-t-2 border-slate-900 pt-2 mt-2">
+                                <SummaryRow label="CONTRACT SUM (exc. VAT)" value={contractSum} bold />
                             </div>
                             <SummaryRow label="VAT (20%)" value={vat} />
-                            <div className="border-t-2 border-slate-900 pt-2 mt-2">
-                                <SummaryRow label="TOTAL incl VAT" value={totalIncVat} bold large />
+                            <div className="border-t border-slate-200 pt-2 mt-2">
+                                <SummaryRow label="TOTAL inc. VAT" value={totalIncVat} bold large />
                             </div>
                         </div>
                     </div>
@@ -520,39 +600,61 @@ function LineItemRow({
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     // Use all library items for search, but prioritize section matches
-    const filtered = allLibrary
-        .filter((c) => {
-            const q = search.toLowerCase();
-            return (
-                c.description.toLowerCase().includes(q) ||
-                c.code.toLowerCase().includes(q) ||
-                c.category.toLowerCase().includes(q)
-            );
-        })
-        .sort((a, b) => {
-            // Section matches first
-            const aMatch = a.category === section ? 0 : 1;
-            const bMatch = b.category === section ? 0 : 1;
-            return aMatch - bMatch;
-        })
-        .slice(0, 15);
+    const filtered = search.length > 0
+        ? allLibrary
+            .filter((c) => {
+                const q = search.toLowerCase();
+                return (
+                    c.description.toLowerCase().includes(q) ||
+                    c.code.toLowerCase().includes(q) ||
+                    c.category.toLowerCase().includes(q)
+                );
+            })
+            .sort((a, b) => {
+                // Section matches first
+                const aMatch = a.category === section ? 0 : 1;
+                const bMatch = b.category === section ? 0 : 1;
+                return aMatch - bMatch;
+            })
+            .slice(0, 15)
+        : [];
 
     return (
-        <div className="grid grid-cols-[1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 border-b border-slate-100 items-center hover:bg-slate-50/50">
-            {/* Description with library search */}
-            <div className="relative" ref={dropdownRef}>
+        <div className="grid grid-cols-[70px_1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 border-b border-slate-100 items-center hover:bg-slate-50/50">
+            {/* Line type badge */}
+            <select
+                value={line.line_type || "general"}
+                onChange={(e) => onUpdate(line.id, { line_type: e.target.value })}
+                className="h-8 px-1 border border-slate-200 rounded text-xs text-slate-600 bg-white truncate"
+            >
+                {LINE_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                        {t.charAt(0).toUpperCase() + t.slice(1)}
+                    </option>
+                ))}
+            </select>
+
+            {/* Description with library search — free-text supported */}
+            <div className="relative" ref={dropdownRef} style={{ overflow: "visible" }}>
                 <input
                     type="text"
                     value={search}
                     onChange={(e) => {
                         setSearch(e.target.value);
-                        setShowDropdown(true);
+                        if (e.target.value.length > 0) {
+                            setShowDropdown(true);
+                        } else {
+                            setShowDropdown(false);
+                        }
                     }}
-                    onFocus={() => search.length === 0 && setShowDropdown(true)}
-                    onBlur={(e) => {
+                    onFocus={() => {
+                        if (search.length > 0) setShowDropdown(true);
+                    }}
+                    onBlur={() => {
                         // Delay so click on dropdown registers
                         setTimeout(() => {
                             setShowDropdown(false);
+                            // Free-text mode: keep whatever was typed
                             if (search !== line.description) {
                                 onUpdate(line.id, { description: search });
                             }
@@ -562,7 +664,7 @@ function LineItemRow({
                     className="w-full h-8 px-2 border border-slate-200 rounded text-sm text-slate-900 focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                 />
                 {showDropdown && filtered.length > 0 && (
-                    <div className="absolute z-50 top-9 left-0 right-0 bg-white border border-slate-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                    <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
                         {filtered.map((item) => (
                             <button
                                 key={item.id}

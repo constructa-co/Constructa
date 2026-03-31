@@ -250,9 +250,32 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     const activeEstimate = estimates.find((est: any) => est.is_active);
     const pdfEstimates = activeEstimate ? [activeEstimate] : estimates;
 
+    // CORRECT QS COST HIERARCHY for PDF
+    const computeContractSum = (est: any) => {
+        const allLines = est.estimate_lines || [];
+        const directCost = allLines
+            .filter((l: any) => l.trade_section !== "Preliminaries" && (l.line_total || 0) > 0)
+            .reduce((sum: number, l: any) => sum + (l.line_total || 0), 0);
+        const explicitPrelimsLines = allLines.filter((l: any) => l.trade_section === "Preliminaries");
+        const explicitPrelimsTotal = explicitPrelimsLines.reduce((sum: number, l: any) => sum + (l.line_total || 0), 0);
+        const prelimsFromPct = directCost * ((est.prelims_pct || 0) / 100);
+        const prelimsTotal = explicitPrelimsLines.length > 0 ? explicitPrelimsTotal : prelimsFromPct;
+        const totalConstructionCost = directCost + prelimsTotal;
+        const overheadAmount = totalConstructionCost * ((est.overhead_pct || 0) / 100);
+        const costPlusOverhead = totalConstructionCost + overheadAmount;
+        const riskAmount = costPlusOverhead * ((est.risk_pct || 0) / 100);
+        const adjustedTotal = costPlusOverhead + riskAmount;
+        const profitAmount = adjustedTotal * ((est.profit_pct || 0) / 100);
+        return {
+            directCost,
+            prelimsTotal,
+            totalConstructionCost,
+            contractSum: adjustedTotal + profitAmount,
+        };
+    };
+
     const grandTotal = pdfEstimates.reduce((sum: number, est: any) => {
-        const markup = 1 + ((est.profit_pct || 0) + (est.overhead_pct || 0) + (est.risk_pct || 0)) / 100;
-        return sum + ((est.total_cost || 0) * markup);
+        return sum + computeContractSum(est).contractSum;
     }, 0);
 
     const displayTotal = grandTotal > 0 ? grandTotal : (project?.potential_value || project?.contract_value || 0);
@@ -867,70 +890,100 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     y += 10;
 
     if (pricingMode === "full" && pdfEstimates.some((est: any) => (est.estimate_lines || []).length > 0)) {
+        // FULL MODE: show line items with all-in rates (margins baked in)
         pdfEstimates.forEach((est: any) => {
-            const markup = 1 + ((est.profit_pct || 0) + (est.overhead_pct || 0) + (est.risk_pct || 0)) / 100;
-            const estTotal = (est.total_cost || 0) * markup;
-            const lines = est.estimate_lines || [];
+            const { directCost, prelimsTotal, totalConstructionCost, contractSum: estContractSum } = computeContractSum(est);
+            const totalDirectIncPrelims = totalConstructionCost;
+            const markupMultiplier = totalDirectIncPrelims > 0 ? estContractSum / totalDirectIncPrelims : 1;
+            const allLines = (est.estimate_lines || []).filter((l: any) => l.description && l.description !== "\u2014" && (l.line_total || 0) > 0);
 
-            const bodyRows = lines.map((line: any) => {
-                const desc = line.mom_item_code ? `[${line.mom_item_code}] ${line.description}` : line.description;
-                return [
-                    desc || "\u2014",
-                    String(line.quantity ?? ""),
-                    line.unit || "",
-                    formatGBP(line.unit_rate || 0),
-                    formatGBP(line.line_total || 0),
-                ];
+            // Group by trade section
+            const sectionMap: Record<string, any[]> = {};
+            allLines.forEach((line: any) => {
+                const sec = line.trade_section || "General";
+                if (!sectionMap[sec]) sectionMap[sec] = [];
+                sectionMap[sec].push(line);
             });
 
-            autoTable(doc, {
-                startY: y,
-                head: [
-                    [{ content: est.version_name || "Estimate", colSpan: 5, styles: { halign: "left" as const, fillColor: T.primary as any, textColor: T.accent as any, fontSize: 10, fontStyle: "bold" as const } }],
-                    ["Description", "Qty", "Unit", "Rate", "Total"],
-                ],
-                body: bodyRows,
-                foot: [["Subtotal", "", "", "", formatGBP(estTotal)]],
-                theme: "grid",
-                margin: { left: ML, right: PAGE_W - MR },
-                headStyles: { fillColor: T.primaryMid as any, textColor: T.white as any, fontStyle: "bold", fontSize: 8.5 },
-                bodyStyles: { fontSize: 9, textColor: T.textDark as any, cellPadding: 3 },
-                footStyles: { fillColor: T.surface as any, textColor: T.textDark as any, fontStyle: "bold", fontSize: 9 },
-                columnStyles: {
-                    0: { cellWidth: 70 },
-                    1: { cellWidth: 18, halign: "center" as const },
-                    2: { cellWidth: 20, halign: "center" as const },
-                    3: { cellWidth: 30, halign: "right" as const },
-                    4: { cellWidth: 30, halign: "right" as const },
-                },
-                alternateRowStyles: { fillColor: T.surface as any },
-                tableLineColor: T.borderLight as any,
-                tableLineWidth: 0.2,
-                didDrawPage: () => { totalPagesRef.n = doc.getNumberOfPages(); },
+            Object.entries(sectionMap).forEach(([sectionName, sectionLines]) => {
+                const bodyRows = sectionLines.map((line: any) => {
+                    const desc = line.mom_item_code ? `[${line.mom_item_code}] ${line.description}` : line.description;
+                    const allInRate = (line.unit_rate || 0) * markupMultiplier;
+                    const allInTotal = (line.line_total || 0) * markupMultiplier;
+                    return [
+                        desc || "",
+                        String(line.quantity ?? ""),
+                        line.unit || "",
+                        formatGBP(allInRate),
+                        formatGBP(allInTotal),
+                    ];
+                });
+
+                const sectionAllInTotal = sectionLines.reduce((s: number, l: any) => s + ((l.line_total || 0) * markupMultiplier), 0);
+
+                autoTable(doc, {
+                    startY: y,
+                    head: [
+                        [{ content: sectionName, colSpan: 5, styles: { halign: "left" as const, fillColor: T.primary as any, textColor: T.accent as any, fontSize: 10, fontStyle: "bold" as const } }],
+                        ["Description", "Qty", "Unit", "Rate", "Total"],
+                    ],
+                    body: bodyRows,
+                    foot: [[sectionName + " Subtotal", "", "", "", formatGBP(sectionAllInTotal)]],
+                    theme: "grid",
+                    margin: { left: ML, right: PAGE_W - MR },
+                    headStyles: { fillColor: T.primaryMid as any, textColor: T.white as any, fontStyle: "bold", fontSize: 8.5 },
+                    bodyStyles: { fontSize: 9, textColor: T.textDark as any, cellPadding: 3 },
+                    footStyles: { fillColor: T.surface as any, textColor: T.textDark as any, fontStyle: "bold", fontSize: 9 },
+                    columnStyles: {
+                        0: { cellWidth: 70 },
+                        1: { cellWidth: 18, halign: "center" as const },
+                        2: { cellWidth: 20, halign: "center" as const },
+                        3: { cellWidth: 30, halign: "right" as const },
+                        4: { cellWidth: 30, halign: "right" as const },
+                    },
+                    alternateRowStyles: { fillColor: T.surface as any },
+                    tableLineColor: T.borderLight as any,
+                    tableLineWidth: 0.2,
+                    didDrawPage: () => { totalPagesRef.n = doc.getNumberOfPages(); },
+                });
+
+                y = (doc as any).lastAutoTable.finalY + 5;
             });
-
-            y = (doc as any).lastAutoTable.finalY + 3;
-
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(7.5);
-            doc.setTextColor(...T.textMid);
-            doc.text(
-                `Overhead: ${est.overhead_pct || 0}%  |  Profit: ${est.profit_pct || 0}%  |  Risk: ${est.risk_pct || 0}%`,
-                ML, y
-            );
-            y += 9;
         });
     } else {
-        // Summary mode or no lines
-        const summaryRows = pdfEstimates.map((est: any) => {
-            const markup = 1 + ((est.profit_pct || 0) + (est.overhead_pct || 0) + (est.risk_pct || 0)) / 100;
-            return [est.version_name || "Estimate", formatGBP((est.total_cost || 0) * markup)];
+        // SUMMARY MODE: show section totals with margins baked in proportionally
+        const summaryRows: string[][] = [];
+
+        pdfEstimates.forEach((est: any) => {
+            const { directCost, prelimsTotal, totalConstructionCost, contractSum: estContractSum } = computeContractSum(est);
+            const allLines = (est.estimate_lines || []).filter((l: any) => l.description && l.description !== "\u2014" && (l.line_total || 0) > 0);
+            const totalDirectCost = directCost;
+
+            // Group by trade section
+            const sectionTotals: Record<string, number> = {};
+            allLines.forEach((line: any) => {
+                const sec = line.trade_section || "General";
+                if (sec === "Preliminaries") return; // Handled separately
+                sectionTotals[sec] = (sectionTotals[sec] || 0) + (line.line_total || 0);
+            });
+
+            // Each section's all-in total = section_direct_cost / total_direct_cost * contractSum
+            Object.entries(sectionTotals).forEach(([sectionName, sectionDirectCost]) => {
+                const sectionAllIn = totalDirectCost > 0 ? (sectionDirectCost / totalDirectCost) * estContractSum : sectionDirectCost;
+                summaryRows.push([sectionName, formatGBP(sectionAllIn)]);
+            });
+
+            // Prelims as its own line if present
+            if (prelimsTotal > 0) {
+                const prelimsAllIn = totalDirectCost > 0 ? (prelimsTotal / totalConstructionCost) * estContractSum : prelimsTotal;
+                summaryRows.push(["Preliminaries", formatGBP(prelimsAllIn)]);
+            }
         });
 
         if (summaryRows.length > 0) {
             autoTable(doc, {
                 startY: y,
-                head: [["Trade / Phase", "Total (\u00A3)"]],
+                head: [["Section", "Amount (\u00A3)"]],
                 body: summaryRows,
                 theme: "grid",
                 margin: { left: ML, right: PAGE_W - MR },
@@ -946,39 +999,47 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         }
     }
 
-    // Grand total box
+    // Grand total box — full width from ML to MR
     y = ensureSpace(doc, y, 50, companyName, docTitle, totalPagesRef, T);
     y += 4;
 
-    // Full-width primary fill rectangle for grand total
+    // CONTRACT SUM box
     doc.setFillColor(...T.primary);
-    doc.rect(ML, y, CW, 16, "F");
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
+    doc.rect(ML, y, MR - ML, 16, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
     doc.setTextColor(...T.muted);
-    doc.text("TOTAL (exc. VAT)", ML + 4, y + 7);
+    doc.text("CONTRACT SUM (exc. VAT)", ML + 4, y + 7);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
     doc.setTextColor(...T.accent);
-    doc.text(formatGBP(displayTotal), ML + CW - 4, y + 11, { align: "right" });
+    doc.text(formatGBP(displayTotal), MR - 4, y + 11, { align: "right" });
     y += 20;
 
     // VAT line
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(...T.textMid);
-    doc.text(`VAT @ 20%: ${formatGBP(displayTotal * 0.2)}`, ML, y);
-    y += 6;
+    doc.text("VAT @ 20%", ML + 4, y);
+    doc.text(formatGBP(displayTotal * 0.2), MR - 4, y, { align: "right" });
+    y += 7;
 
-    // Inc VAT line
+    // Total inc VAT box
+    doc.setFillColor(...T.surface);
+    doc.rect(ML, y - 1, MR - ML, 12, "F");
+    doc.setDrawColor(...T.primary);
+    doc.setLineWidth(0.5);
+    doc.rect(ML, y - 1, MR - ML, 12, "S");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(...T.textDark);
-    doc.text(`Total inc. VAT: ${formatGBP(displayTotal * 1.2)}`, ML, y);
-    y += 12;
+    doc.text("TOTAL INC. VAT", ML + 4, y + 7);
+    doc.text(formatGBP(displayTotal * 1.2), MR - 4, y + 7, { align: "right" });
+    y += 16;
 
     // Payment Schedule
     const paymentSchedule = project?.payment_schedule;
+    const paymentScheduleType = project?.payment_schedule_type || "percentage";
     if (paymentSchedule && paymentSchedule.length > 0) {
         y = ensureSpace(doc, y, 30, companyName, docTitle, totalPagesRef, T);
         y += 4;
@@ -989,34 +1050,62 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         doc.text("Payment Schedule", ML, y);
         y += 8;
 
-        const payRows = paymentSchedule.map((row: any) => {
-            const amount = displayTotal ? (displayTotal * row.percentage) / 100 : 0;
-            return [
+        if (paymentScheduleType === "milestone") {
+            // Milestone mode: show £ amounts and triggers
+            const payRows = paymentSchedule.map((row: any) => [
                 row.stage || "",
                 row.description || "",
-                `${row.percentage}%`,
-                amount > 0 ? formatGBP(amount) : "\u2014",
-            ];
-        });
+                row.amount ? formatGBP(row.amount) : "\u2014",
+            ]);
 
-        autoTable(doc, {
-            startY: y,
-            head: [["Stage", "Description", "%", "\u00A3 Amount"]],
-            body: payRows,
-            theme: "grid",
-            margin: { left: ML, right: PAGE_W - MR },
-            headStyles: { fillColor: T.primary as any, textColor: T.accent as any, fontStyle: "bold", fontSize: 9 },
-            bodyStyles: { fontSize: 9.5, textColor: T.textDark as any, cellPadding: 3.5 },
-            columnStyles: {
-                0: { cellWidth: 45, fontStyle: "bold" },
-                2: { cellWidth: 18, halign: "center" as const },
-                3: { cellWidth: 35, halign: "right" as const, fontStyle: "bold" },
-            },
-            alternateRowStyles: { fillColor: T.surface as any },
-            tableLineColor: T.borderLight as any,
-            tableLineWidth: 0.2,
-            didDrawPage: () => { totalPagesRef.n = doc.getNumberOfPages(); },
-        });
+            autoTable(doc, {
+                startY: y,
+                head: [["Stage", "Trigger", "\u00A3 Amount"]],
+                body: payRows,
+                theme: "grid",
+                margin: { left: ML, right: PAGE_W - MR },
+                headStyles: { fillColor: T.primary as any, textColor: T.accent as any, fontStyle: "bold", fontSize: 9 },
+                bodyStyles: { fontSize: 9.5, textColor: T.textDark as any, cellPadding: 3.5 },
+                columnStyles: {
+                    0: { cellWidth: 45, fontStyle: "bold" },
+                    2: { cellWidth: 35, halign: "right" as const, fontStyle: "bold" },
+                },
+                alternateRowStyles: { fillColor: T.surface as any },
+                tableLineColor: T.borderLight as any,
+                tableLineWidth: 0.2,
+                didDrawPage: () => { totalPagesRef.n = doc.getNumberOfPages(); },
+            });
+        } else {
+            // Percentage mode
+            const payRows = paymentSchedule.map((row: any) => {
+                const amount = displayTotal ? (displayTotal * row.percentage) / 100 : 0;
+                return [
+                    row.stage || "",
+                    row.description || "",
+                    `${row.percentage}%`,
+                    amount > 0 ? formatGBP(amount) : "\u2014",
+                ];
+            });
+
+            autoTable(doc, {
+                startY: y,
+                head: [["Stage", "Description", "%", "\u00A3 Amount"]],
+                body: payRows,
+                theme: "grid",
+                margin: { left: ML, right: PAGE_W - MR },
+                headStyles: { fillColor: T.primary as any, textColor: T.accent as any, fontStyle: "bold", fontSize: 9 },
+                bodyStyles: { fontSize: 9.5, textColor: T.textDark as any, cellPadding: 3.5 },
+                columnStyles: {
+                    0: { cellWidth: 45, fontStyle: "bold" },
+                    2: { cellWidth: 18, halign: "center" as const },
+                    3: { cellWidth: 35, halign: "right" as const, fontStyle: "bold" },
+                },
+                alternateRowStyles: { fillColor: T.surface as any },
+                tableLineColor: T.borderLight as any,
+                tableLineWidth: 0.2,
+                didDrawPage: () => { totalPagesRef.n = doc.getNumberOfPages(); },
+            });
+        }
         y = (doc as any).lastAutoTable.finalY + 8;
     }
 

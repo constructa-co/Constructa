@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2 } from "lucide-react";
-import { saveProposalAction, generateAiScopeAction, sendProposalAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction } from "./actions";
+import { saveProposalAction, generateAiScopeAction, sendProposalAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction, updatePaymentScheduleTypeAction } from "./actions";
 import ProposalPdfButton from "./proposal-pdf-button";
 import AiWizard from "./ai-wizard";
 import Link from "next/link";
@@ -72,6 +72,7 @@ interface PaymentRow {
     stage: string;
     description: string;
     percentage: number;
+    amount?: number;
 }
 
 interface Props {
@@ -175,6 +176,9 @@ export default function ClientEditor({
 
     const [paymentSchedule, setPaymentSchedule] = useState<PaymentRow[]>(
         project?.payment_schedule?.length ? project.payment_schedule : DEFAULT_PAYMENT_SCHEDULE
+    );
+    const [paymentScheduleType, setPaymentScheduleType] = useState<"percentage" | "milestone">(
+        project?.payment_schedule_type || "percentage"
     );
     const [useEstimatedTotal, setUseEstimatedTotal] = useState(false);
 
@@ -450,6 +454,7 @@ export default function ClientEditor({
         tc_overrides: useCustomTc ? tcOverrides : null,
         site_photos: sitePhotos.filter(p => p.url),
         payment_schedule: paymentSchedule,
+        payment_schedule_type: paymentScheduleType,
         selected_case_study_ids: selectedCaseStudyIds,
     };
 
@@ -805,70 +810,166 @@ export default function ClientEditor({
                         )}
                     </div>
                     <div className="p-6 space-y-3">
-                        {/* Column headers */}
-                        <div className="grid gap-3 text-xs font-bold uppercase tracking-wider text-slate-500 pb-1 border-b border-slate-800" style={{ gridTemplateColumns: "1fr 2fr 80px 100px 40px" }}>
-                            <span>Stage</span>
-                            <span>Description</span>
-                            <span className="text-right">%</span>
-                            <span className="text-right">£ Amount</span>
-                            <span></span>
-                        </div>
-                        {paymentSchedule.map((row) => {
-                            const amount = contractValue ? (contractValue * row.percentage) / 100 : null;
-                            return (
-                                <div key={row.id} className="grid gap-3 items-center" style={{ gridTemplateColumns: "1fr 2fr 80px 100px 40px" }}>
-                                    <input
-                                        value={row.stage}
-                                        onChange={(e) => updatePaymentRow(row.id, "stage", e.target.value)}
-                                        className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                        placeholder="Stage name"
-                                    />
-                                    <input
-                                        value={row.description}
-                                        onChange={(e) => updatePaymentRow(row.id, "description", e.target.value)}
-                                        className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                        placeholder="When this stage is due..."
-                                    />
-                                    <div className="flex items-center gap-1">
-                                        <input
-                                            type="number"
-                                            min={0}
-                                            max={100}
-                                            value={row.percentage}
-                                            onChange={(e) => updatePaymentRow(row.id, "percentage", parseFloat(e.target.value) || 0)}
-                                            className="h-9 w-full rounded-lg border border-slate-700 bg-slate-800 px-2 text-sm text-slate-100 text-right focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                        />
-                                        <span className="text-xs text-slate-500">%</span>
-                                    </div>
-                                    <div className="text-right text-sm font-semibold text-slate-300 tabular-nums">
-                                        {amount !== null
-                                            ? `£${amount.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-                                            : <span className="text-slate-600">—</span>
-                                        }
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => removePaymentRow(row.id)}
-                                        className="h-9 w-9 rounded-lg bg-red-900/20 text-red-400 hover:bg-red-900/40 flex items-center justify-center transition-colors text-lg font-bold"
-                                    >
-                                        ×
-                                    </button>
-                                </div>
-                            );
-                        })}
-                        <div className="flex items-center justify-between pt-2">
+                        {/* Payment type toggle */}
+                        <div className="flex items-center gap-4 pb-3 border-b border-slate-800">
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Payment Type:</span>
                             <button
                                 type="button"
-                                onClick={addPaymentRow}
-                                className="h-9 px-4 rounded-lg border border-dashed border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors text-sm font-semibold"
+                                onClick={() => {
+                                    setPaymentScheduleType("percentage");
+                                    updatePaymentScheduleTypeAction(projectId, "percentage");
+                                }}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                                    paymentScheduleType === "percentage"
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-slate-800 text-slate-400 border border-slate-700 hover:border-slate-500"
+                                }`}
                             >
-                                + Add Stage
+                                <span className={`w-2.5 h-2.5 rounded-full border-2 ${paymentScheduleType === "percentage" ? "border-white bg-white" : "border-slate-500"}`} />
+                                Percentage of contract value
                             </button>
-                            <div className={`text-sm font-bold ${totalPct === 100 ? "text-green-400" : totalPct > 100 ? "text-red-400" : "text-amber-400"}`}>
-                                Total: {totalPct}% {totalPct !== 100 && <span className="font-normal text-xs">(should equal 100%)</span>}
-                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setPaymentScheduleType("milestone");
+                                    updatePaymentScheduleTypeAction(projectId, "milestone");
+                                }}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                                    paymentScheduleType === "milestone"
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-slate-800 text-slate-400 border border-slate-700 hover:border-slate-500"
+                                }`}
+                            >
+                                <span className={`w-2.5 h-2.5 rounded-full border-2 ${paymentScheduleType === "milestone" ? "border-white bg-white" : "border-slate-500"}`} />
+                                Milestone-based
+                            </button>
                         </div>
-                        <p className="text-xs text-slate-600">£ amounts calculated from contract value</p>
+
+                        {paymentScheduleType === "percentage" ? (
+                            <>
+                                {/* Column headers */}
+                                <div className="grid gap-3 text-xs font-bold uppercase tracking-wider text-slate-500 pb-1 border-b border-slate-800" style={{ gridTemplateColumns: "1fr 2fr 80px 100px 40px" }}>
+                                    <span>Stage</span>
+                                    <span>Description</span>
+                                    <span className="text-right">%</span>
+                                    <span className="text-right">£ Amount</span>
+                                    <span></span>
+                                </div>
+                                {paymentSchedule.map((row) => {
+                                    const amount = contractValue ? (contractValue * row.percentage) / 100 : null;
+                                    return (
+                                        <div key={row.id} className="grid gap-3 items-center" style={{ gridTemplateColumns: "1fr 2fr 80px 100px 40px" }}>
+                                            <input
+                                                value={row.stage}
+                                                onChange={(e) => updatePaymentRow(row.id, "stage", e.target.value)}
+                                                className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                                placeholder="Stage name"
+                                            />
+                                            <input
+                                                value={row.description}
+                                                onChange={(e) => updatePaymentRow(row.id, "description", e.target.value)}
+                                                className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                                placeholder="When this stage is due..."
+                                            />
+                                            <div className="flex items-center gap-1">
+                                                <input
+                                                    type="number"
+                                                    min={0}
+                                                    max={100}
+                                                    value={row.percentage}
+                                                    onChange={(e) => updatePaymentRow(row.id, "percentage", parseFloat(e.target.value) || 0)}
+                                                    className="h-9 w-full rounded-lg border border-slate-700 bg-slate-800 px-2 text-sm text-slate-100 text-right focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                                />
+                                                <span className="text-xs text-slate-500">%</span>
+                                            </div>
+                                            <div className="text-right text-sm font-semibold text-slate-300 tabular-nums">
+                                                {amount !== null
+                                                    ? `£${amount.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                                                    : <span className="text-slate-600">—</span>
+                                                }
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => removePaymentRow(row.id)}
+                                                className="h-9 w-9 rounded-lg bg-red-900/20 text-red-400 hover:bg-red-900/40 flex items-center justify-center transition-colors text-lg font-bold"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                                <div className="flex items-center justify-between pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={addPaymentRow}
+                                        className="h-9 px-4 rounded-lg border border-dashed border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors text-sm font-semibold"
+                                    >
+                                        + Add Stage
+                                    </button>
+                                    <div className={`text-sm font-bold ${totalPct === 100 ? "text-green-400" : totalPct > 100 ? "text-red-400" : "text-amber-400"}`}>
+                                        Total: {totalPct}% {totalPct !== 100 && <span className="font-normal text-xs">(should equal 100%)</span>}
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-600">£ amounts calculated from contract value</p>
+                            </>
+                        ) : (
+                            <>
+                                {/* Milestone mode */}
+                                <div className="grid gap-3 text-xs font-bold uppercase tracking-wider text-slate-500 pb-1 border-b border-slate-800" style={{ gridTemplateColumns: "1fr 2fr 100px 40px" }}>
+                                    <span>Stage</span>
+                                    <span>Trigger</span>
+                                    <span className="text-right">£ Amount</span>
+                                    <span></span>
+                                </div>
+                                {paymentSchedule.map((row) => (
+                                    <div key={row.id} className="grid gap-3 items-center" style={{ gridTemplateColumns: "1fr 2fr 100px 40px" }}>
+                                        <input
+                                            value={row.stage}
+                                            onChange={(e) => updatePaymentRow(row.id, "stage", e.target.value)}
+                                            className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                            placeholder="Stage name"
+                                        />
+                                        <input
+                                            value={row.description}
+                                            onChange={(e) => updatePaymentRow(row.id, "description", e.target.value)}
+                                            className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                            placeholder="Trigger / completion criteria..."
+                                        />
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-xs text-slate-500">£</span>
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                step="0.01"
+                                                value={row.amount || 0}
+                                                onChange={(e) => updatePaymentRow(row.id, "amount" as keyof PaymentRow, parseFloat(e.target.value) || 0)}
+                                                className="h-9 w-full rounded-lg border border-slate-700 bg-slate-800 px-2 text-sm text-slate-100 text-right focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => removePaymentRow(row.id)}
+                                            className="h-9 w-9 rounded-lg bg-red-900/20 text-red-400 hover:bg-red-900/40 flex items-center justify-center transition-colors text-lg font-bold"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ))}
+                                <div className="flex items-center justify-between pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={addPaymentRow}
+                                        className="h-9 px-4 rounded-lg border border-dashed border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors text-sm font-semibold"
+                                    >
+                                        + Add Stage
+                                    </button>
+                                    <div className="text-sm font-semibold text-slate-400">
+                                        Total: £{paymentSchedule.reduce((s, r) => s + (r.amount || 0), 0).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-600">Fixed amounts per milestone stage</p>
+                            </>
+                        )}
                     </div>
                 </div>
 

@@ -246,7 +246,11 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     const docTitle = `Proposal \u2014 ${projectName}`;
     const totalPagesRef = { n: 1 };
 
-    const grandTotal = estimates.reduce((sum: number, est: any) => {
+    // Use active estimate if one is marked, otherwise use all estimates
+    const activeEstimate = estimates.find((est: any) => est.is_active);
+    const pdfEstimates = activeEstimate ? [activeEstimate] : estimates;
+
+    const grandTotal = pdfEstimates.reduce((sum: number, est: any) => {
         const markup = 1 + ((est.profit_pct || 0) + (est.overhead_pct || 0) + (est.risk_pct || 0)) / 100;
         return sum + ((est.total_cost || 0) * markup);
     }, 0);
@@ -862,8 +866,8 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     doc.text("All prices exclusive of VAT unless stated.", ML, y);
     y += 10;
 
-    if (pricingMode === "full" && estimates.some((est: any) => (est.estimate_lines || []).length > 0)) {
-        estimates.forEach((est: any) => {
+    if (pricingMode === "full" && pdfEstimates.some((est: any) => (est.estimate_lines || []).length > 0)) {
+        pdfEstimates.forEach((est: any) => {
             const markup = 1 + ((est.profit_pct || 0) + (est.overhead_pct || 0) + (est.risk_pct || 0)) / 100;
             const estTotal = (est.total_cost || 0) * markup;
             const lines = est.estimate_lines || [];
@@ -918,7 +922,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         });
     } else {
         // Summary mode or no lines
-        const summaryRows = estimates.map((est: any) => {
+        const summaryRows = pdfEstimates.map((est: any) => {
             const markup = 1 + ((est.profit_pct || 0) + (est.overhead_pct || 0) + (est.risk_pct || 0)) / 100;
             return [est.version_name || "Estimate", formatGBP((est.total_cost || 0) * markup)];
         });
@@ -1029,105 +1033,135 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     // Check if there's space for timeline, if not add new page
     const phases: any[] = project?.gantt_phases || [];
     if (phases.length > 0) {
-        const ganttNeeded = 20 + phases.length * 11 + 15;
+        const ganttNeeded = 25 + phases.length * 11 + 15;
         y = ensureSpace(doc, y, ganttNeeded, companyName, docTitle, totalPagesRef, T);
 
         y = renderSectionHeading(doc, y, "Project Timeline", T);
 
-        const allPhasesWithDates = phases.map((p: any, idx: number) => {
-            let startMs: number;
-            if (p.start_date) {
-                startMs = new Date(p.start_date).getTime();
-            } else if (project?.start_date) {
-                const projectStart = new Date(project.start_date).getTime();
-                const prevDays = phases.slice(0, idx).reduce((sum: number, prev: any) => sum + (prev.duration_days || 7), 0);
-                startMs = projectStart + prevDays * 86400000;
+        // Calculate sequential start offsets if not provided
+        const projectStartDate = new Date(project?.start_date || Date.now());
+        let cumulativeWeeks = 0;
+        const phasesWithOffsets = phases.map((phase: any) => {
+            const durationDays = phase.duration_days || 7;
+            const durationWeeks = Math.ceil(durationDays / 7);
+            let startWeek: number;
+
+            if (phase.startOffset !== undefined) {
+                startWeek = phase.startOffset;
+            } else if (phase.start_date) {
+                const pStart = new Date(phase.start_date).getTime();
+                const projStart = projectStartDate.getTime();
+                startWeek = Math.max(0, Math.round((pStart - projStart) / (7 * 86400000)));
             } else {
-                const baseDate = Date.now();
-                const prevDays = phases.slice(0, idx).reduce((sum: number, prev: any) => sum + (prev.duration_days || 7), 0);
-                startMs = baseDate + prevDays * 86400000;
+                startWeek = cumulativeWeeks;
             }
-            return {
-                ...p,
-                startMs,
-                endMs: startMs + (p.duration_days || 7) * 86400000,
-            };
+
+            const p = { ...phase, startWeek, durationWeeks };
+            cumulativeWeeks = startWeek + durationWeeks;
+            return p;
         });
 
-        const earliestStart = Math.min(...allPhasesWithDates.map((p: any) => p.startMs));
-        const latestEnd = Math.max(...allPhasesWithDates.map((p: any) => p.endMs));
-        const totalDays = Math.max(1, Math.ceil((latestEnd - earliestStart) / 86400000));
-        const totalWeeks = Math.ceil(totalDays / 7);
+        // Total project duration in weeks
+        const totalWeeks = Math.max(
+            phasesWithOffsets.reduce((max: number, p: any) => Math.max(max, p.startWeek + p.durationWeeks), 0),
+            4
+        );
 
         const labelColW = 55;
-        const durationColW = 25;
+        const durationColW = 20;
         const chartX = ML + labelColW + durationColW;
         const chartW = CW - labelColW - durationColW;
         const rowH = 11;
-        const headerH = 13;
+        const headerH = 14;
+        const visibleWeeks = Math.min(totalWeeks, 20);
+        const weekW = chartW / Math.max(1, visibleWeeks);
+        const ganttColorKeys = Object.keys(GANTT_COLORS);
 
+        // Header row
         doc.setFillColor(...T.primary);
         doc.rect(ML, y, CW, headerH, "F");
 
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(7);
-        doc.setTextColor(...T.white);
-        doc.text("Phase", ML + 3, y + 8);
-        doc.text("Duration", ML + labelColW + 3, y + 8);
+        doc.setFontSize(7.5);
+        doc.setTextColor(...T.accent);
+        doc.text("Phase", ML + 3, y + 6.5);
+        doc.text("Duration", ML + labelColW + 2, y + 6.5);
 
-        const cappedWeeks = Math.min(totalWeeks, 24);
-        const weekW = chartW / Math.max(1, cappedWeeks);
-        for (let w = 0; w < cappedWeeks; w++) {
-            const wx = chartX + w * weekW;
-            const label = `W${w + 1}`;
-            if (weekW > 6) {
-                doc.text(label, wx + weekW / 2, y + 8, { align: "center" });
-            } else if (w % 2 === 0) {
-                doc.text(label, wx + weekW / 2, y + 8, { align: "center" });
+        // Week columns with dates
+        for (let w = 0; w < visibleWeeks; w++) {
+            const weekDate = new Date(projectStartDate);
+            weekDate.setDate(weekDate.getDate() + w * 7);
+            const weekLabel = `W${w + 1}`;
+            const xPos = chartX + w * weekW + weekW / 2;
+
+            if (weekW >= 6 || w % 2 === 0) {
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(7);
+                doc.setTextColor(...T.accent);
+                doc.text(weekLabel, xPos, y + 5, { align: "center" });
+
+                doc.setFontSize(5.5);
+                doc.setTextColor(...T.muted);
+                const dateLabel = `${weekDate.getDate()} ${weekDate.toLocaleString("en-GB", { month: "short" })}`;
+                doc.text(dateLabel, xPos, y + 10, { align: "center" });
             }
         }
         y += headerH;
 
-        const cappedTotalDays = cappedWeeks * 7;
+        // Phase rows
+        phasesWithOffsets.forEach((phase: any, idx: number) => {
+            const isEven = idx % 2 === 0;
 
-        allPhasesWithDates.forEach((phase: any, idx: number) => {
-            if (idx % 2 === 0) {
-                doc.setFillColor(...T.surface);
-                doc.rect(ML, y, CW, rowH, "F");
-            }
+            // Row background
+            doc.setFillColor(...(isEven ? T.surface : T.white));
+            doc.rect(ML, y, CW, rowH, "F");
 
+            // Phase name
             doc.setFont("helvetica", "normal");
-            doc.setFontSize(8);
+            doc.setFontSize(8.5);
             doc.setTextColor(...T.textDark);
-            doc.text(
-                doc.splitTextToSize(phase.name || `Phase ${idx + 1}`, labelColW - 4)[0],
-                ML + 3, y + 7
-            );
+            const phaseName = doc.splitTextToSize(phase.name || `Phase ${idx + 1}`, labelColW - 4);
+            doc.text(phaseName[0], ML + 3, y + 6.5);
 
-            const weeks = Math.round((phase.duration_days || 7) / 7);
+            // Duration
             doc.setFontSize(7.5);
             doc.setTextColor(...T.textMid);
-            doc.text(`${weeks} wk${weeks !== 1 ? "s" : ""}`, ML + labelColW + 3, y + 7);
+            const durLabel = `${phase.durationWeeks} ${phase.durationWeeks === 1 ? "wk" : "wks"}`;
+            doc.text(durLabel, ML + labelColW + 2, y + 6.5);
 
-            const startOffset = (phase.startMs - earliestStart) / 86400000;
-            const barX = chartX + Math.min(startOffset / cappedTotalDays, 0.95) * chartW;
-            const barW = Math.max(3, Math.min((phase.duration_days / cappedTotalDays) * chartW, chartW * 0.98 - (barX - chartX)));
-            const barColor = GANTT_COLORS[phase.color] || GANTT_COLORS.blue;
+            // Gantt bar
+            const barX = chartX + phase.startWeek * weekW;
+            const barW = Math.max(phase.durationWeeks * weekW - 2, weekW * 0.8);
+            const clampedBarW = Math.min(barW, chartX + chartW - barX - 2);
+            const barColor = GANTT_COLORS[phase.color] || GANTT_COLORS[ganttColorKeys[idx % ganttColorKeys.length]];
 
-            doc.setFillColor(...barColor);
-            doc.roundedRect(barX, y + 2, barW, rowH - 4, 1.5, 1.5, "F");
+            if (clampedBarW > 0) {
+                doc.setFillColor(...barColor);
+                doc.roundedRect(barX, y + 2, clampedBarW, rowH - 4, 1.5, 1.5, "F");
 
-            if (phase.start_date && barW > 20) {
-                const startLabel = new Date(phase.start_date).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(6);
-                doc.setTextColor(...T.white);
-                doc.text(startLabel, barX + 3, y + 7);
+                // Start date label on bar
+                if (clampedBarW > 18) {
+                    const barStartDate = new Date(projectStartDate);
+                    barStartDate.setDate(barStartDate.getDate() + phase.startWeek * 7);
+                    const barLabel = `${barStartDate.getDate()} ${barStartDate.toLocaleString("en-GB", { month: "short" })}`;
+                    doc.setFont("helvetica", "bold");
+                    doc.setFontSize(6.5);
+                    doc.setTextColor(...T.white);
+                    doc.text(barLabel, barX + 3, y + 6.5);
+                }
+            }
+
+            // Vertical grid lines
+            for (let w = 0; w <= visibleWeeks; w++) {
+                doc.setDrawColor(...T.borderLight);
+                doc.setLineWidth(0.15);
+                doc.line(chartX + w * weekW, y, chartX + w * weekW, y + rowH);
             }
 
             y += rowH;
         });
 
+        // Border around whole table
         doc.setDrawColor(...T.borderLight);
         doc.setLineWidth(0.3);
         doc.rect(ML, y - phases.length * rowH - headerH, CW, phases.length * rowH + headerH, "S");
@@ -1137,6 +1171,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         doc.setFontSize(7.5);
         doc.setTextColor(...T.textMid);
         doc.text("Note: Timeline is indicative. Final programme subject to agreement on acceptance.", ML, y);
+        y += 8;
     }
 
     // ═══════════════════════════════════════════════════════════

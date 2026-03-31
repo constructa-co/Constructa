@@ -3,69 +3,203 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function addExpenseAction(formData: FormData) {
+export async function createEstimateAction(projectId: string, name: string) {
     const supabase = createClient();
+    const { data, error } = await supabase
+        .from("estimates")
+        .insert({
+            project_id: projectId,
+            version_name: name,
+            overhead_pct: 10,
+            profit_pct: 15,
+            risk_pct: 0,
+            is_active: false,
+        })
+        .select()
+        .single();
 
-    const projectId = formData.get("projectId") as string;
-    const assemblyId = formData.get("assemblyId") as string;
-    const receiptFile = formData.get("receipt") as File; // Get the file
+    if (error) console.error("Create estimate error:", error);
+    revalidatePath("/dashboard/projects/costs");
+    return data;
+}
 
-    // 1. Handle File Upload (If exists)
-    let receiptUrl = null;
-    if (receiptFile && receiptFile.size > 0) {
-        const fileExt = receiptFile.name.split('.').pop();
-        const fileName = `${projectId}/${Date.now()}.${fileExt}`; // Organize by Project
+export async function updateEstimateMarginsAction(
+    estimateId: string,
+    overhead: number,
+    profit: number,
+    risk: number
+) {
+    const supabase = createClient();
+    const { error } = await supabase
+        .from("estimates")
+        .update({
+            overhead_pct: overhead,
+            profit_pct: profit,
+            risk_pct: risk,
+        })
+        .eq("id", estimateId);
 
-        const { data, error } = await supabase.storage
-            .from('receipts')
-            .upload(fileName, receiptFile);
-
-        if (!error && data) {
-            // Get Public URL
-            const { data: { publicUrl } } = supabase.storage
-                .from('receipts')
-                .getPublicUrl(fileName);
-
-            receiptUrl = publicUrl;
-        } else {
-            console.error("Upload Error:", error);
-        }
-    }
-
-    // Parse Detailed Costs
-    const qty = parseFloat(formData.get("quantity") as string) || 0;
-    const rate = parseFloat(formData.get("rate") as string) || 0;
-    const delivery = parseFloat(formData.get("delivery") as string) || 0;
-    const surcharge = parseFloat(formData.get("surcharge") as string) || 0;
-
-    // Calculate Grand Total
-    const total = (qty * rate) + delivery + surcharge;
-
-    // UUID Check: If "General", send NULL for assembly_id
-    const targetAssembly = assemblyId === "General" ? null : assemblyId;
-
-    const { error } = await supabase.from("project_expenses").insert({
-        project_id: projectId,
-        assembly_id: targetAssembly,
-        description: formData.get("description") as string,
-        supplier: formData.get("supplier") as string,
-        quantity: qty,
-        unit_rate: rate,
-        unit: formData.get("unit") as string,
-        delivery_cost: delivery,
-        surcharge_cost: surcharge,
-        amount: total,
-        expense_date: formData.get("date") as string,
-        receipt_url: receiptUrl
-    });
-
-    if (error) console.error("Expense Error:", error);
+    if (error) console.error("Update margins error:", error);
     revalidatePath("/dashboard/projects/costs");
 }
 
-export async function deleteExpenseAction(formData: FormData) {
+export async function updateEstimateNameAction(estimateId: string, name: string) {
     const supabase = createClient();
-    const id = formData.get("id") as string;
-    await supabase.from("project_expenses").delete().eq("id", id);
+    const { error } = await supabase
+        .from("estimates")
+        .update({ version_name: name })
+        .eq("id", estimateId);
+
+    if (error) console.error("Update estimate name error:", error);
     revalidatePath("/dashboard/projects/costs");
+}
+
+export async function addLineItemAction(
+    estimateId: string,
+    tradeSection: string,
+    data: {
+        description: string;
+        quantity: number;
+        unit: string;
+        unit_rate: number;
+        cost_library_item_id?: string | null;
+        mom_item_code?: string | null;
+        notes?: string | null;
+    }
+) {
+    const supabase = createClient();
+    const line_total = data.quantity * data.unit_rate;
+
+    const { data: result, error } = await supabase
+        .from("estimate_lines")
+        .insert({
+            estimate_id: estimateId,
+            trade_section: tradeSection,
+            description: data.description,
+            quantity: data.quantity,
+            unit: data.unit,
+            unit_rate: data.unit_rate,
+            line_total,
+            cost_library_item_id: data.cost_library_item_id || null,
+            mom_item_code: data.mom_item_code || null,
+            notes: data.notes || null,
+        })
+        .select()
+        .single();
+
+    if (error) console.error("Add line error:", error);
+
+    // Update estimate total_cost
+    await recalcEstimateTotal(estimateId);
+    revalidatePath("/dashboard/projects/costs");
+    return result;
+}
+
+export async function updateLineItemAction(
+    lineId: string,
+    data: {
+        description?: string;
+        quantity?: number;
+        unit?: string;
+        unit_rate?: number;
+        trade_section?: string;
+        mom_item_code?: string | null;
+        notes?: string | null;
+    }
+) {
+    const supabase = createClient();
+
+    const updateData: Record<string, unknown> = { ...data };
+    if (data.quantity !== undefined && data.unit_rate !== undefined) {
+        updateData.line_total = data.quantity * data.unit_rate;
+    }
+
+    const { data: line, error } = await supabase
+        .from("estimate_lines")
+        .update(updateData)
+        .eq("id", lineId)
+        .select("estimate_id")
+        .single();
+
+    if (error) console.error("Update line error:", error);
+
+    if (line?.estimate_id) {
+        await recalcEstimateTotal(line.estimate_id);
+    }
+    revalidatePath("/dashboard/projects/costs");
+}
+
+export async function deleteLineItemAction(lineId: string) {
+    const supabase = createClient();
+
+    // Get estimate_id before deleting
+    const { data: line } = await supabase
+        .from("estimate_lines")
+        .select("estimate_id")
+        .eq("id", lineId)
+        .single();
+
+    const { error } = await supabase
+        .from("estimate_lines")
+        .delete()
+        .eq("id", lineId);
+
+    if (error) console.error("Delete line error:", error);
+
+    if (line?.estimate_id) {
+        await recalcEstimateTotal(line.estimate_id);
+    }
+    revalidatePath("/dashboard/projects/costs");
+}
+
+export async function setActiveEstimateAction(estimateId: string, projectId: string) {
+    const supabase = createClient();
+
+    // Unmark all other estimates for this project
+    await supabase
+        .from("estimates")
+        .update({ is_active: false })
+        .eq("project_id", projectId);
+
+    // Mark the selected one
+    const { error } = await supabase
+        .from("estimates")
+        .update({ is_active: true })
+        .eq("id", estimateId);
+
+    if (error) console.error("Set active error:", error);
+    revalidatePath("/dashboard/projects/costs");
+}
+
+export async function deleteEstimateAction(estimateId: string) {
+    const supabase = createClient();
+
+    // Lines cascade-delete if FK is set, but let's be safe
+    await supabase
+        .from("estimate_lines")
+        .delete()
+        .eq("estimate_id", estimateId);
+
+    const { error } = await supabase
+        .from("estimates")
+        .delete()
+        .eq("id", estimateId);
+
+    if (error) console.error("Delete estimate error:", error);
+    revalidatePath("/dashboard/projects/costs");
+}
+
+async function recalcEstimateTotal(estimateId: string) {
+    const supabase = createClient();
+    const { data: lines } = await supabase
+        .from("estimate_lines")
+        .select("line_total")
+        .eq("estimate_id", estimateId);
+
+    const total = (lines || []).reduce((sum, l) => sum + (l.line_total || 0), 0);
+
+    await supabase
+        .from("estimates")
+        .update({ total_cost: total })
+        .eq("id", estimateId);
 }

@@ -52,7 +52,7 @@ export default function ProjectNavBar({ projectId, activeTab }: Props) {
             </Link>
             <Link href={`/dashboard/projects/costs?projectId=${projectId}`}>
                 <button className={getClass("costing")}>
-                    💰 Costing
+                    💰 Estimating
                 </button>
             </Link>
             <Link href={`/dashboard/projects/proposal?projectId=${projectId}`}>

@@ -16,17 +16,29 @@ export async function updateDependencyAction(formData: FormData) {
 
     // 2. Update Link (If selected)
     if (predecessor && predecessor !== "none") {
-        // Upsert logic or simple insert for MVP
-        // First clear existing predecessors for this MVP (Single predecessor chain is easier to manage)
         await supabase.from("estimate_dependencies").delete().eq("successor_id", successor);
         await supabase.from("estimate_dependencies").insert({
             predecessor_id: predecessor,
             successor_id: successor,
-            lag_days: 0 // Default
+            lag_days: 0
         });
     } else if (predecessor === "none") {
         await supabase.from("estimate_dependencies").delete().eq("successor_id", successor);
     }
 
+    revalidatePath("/dashboard/projects/schedule");
+}
+
+export async function updatePhasesAction(
+    projectId: string,
+    phases: { name: string; calculatedDays: number; manualDays: number | null; manhours: number; startOffset: number }[]
+): Promise<void> {
+    const supabase = createClient();
+    const { error } = await supabase
+        .from("projects")
+        .update({ timeline_phases: phases })
+        .eq("id", projectId);
+
+    if (error) console.error("Update phases error:", error);
     revalidatePath("/dashboard/projects/schedule");
 }

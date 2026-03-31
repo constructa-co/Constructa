@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getActiveOrganizationId } from "@/lib/supabase/auth-utils";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import ProjectNavBar from "@/components/project-navbar";
@@ -12,6 +13,14 @@ export default async function EstimatingPage({ searchParams }: { searchParams: {
     const user = authData?.user;
 
     if (!user) redirect("/login");
+
+    // Fetch org ID for rate library
+    let orgId: string | null = null;
+    try {
+        orgId = await getActiveOrganizationId();
+    } catch {
+        // User may not have an org yet — continue without
+    }
 
     // Fetch all projects for the switcher
     const { data: allProjects } = await supabase
@@ -33,12 +42,26 @@ export default async function EstimatingPage({ searchParams }: { searchParams: {
         return <div className="p-8 text-slate-400">No projects found. Create one in the dashboard first.</div>;
     }
 
-    // Fetch estimates with lines
+    // Fetch estimates with lines and components
     const { data: estimates } = await supabase
         .from("estimates")
-        .select("*, estimate_lines(*)")
+        .select("*, estimate_lines(*, estimate_line_components(*))")
         .eq("project_id", project.id)
         .order("created_at");
+
+    // Fetch rate buildups library (system defaults + org items)
+    const rateBuildupQuery = supabase
+        .from("rate_buildups")
+        .select("*")
+        .order("usage_count", { ascending: false });
+
+    if (orgId) {
+        rateBuildupQuery.or(`is_system_default.eq.true,organization_id.eq.${orgId}`);
+    } else {
+        rateBuildupQuery.eq("is_system_default", true);
+    }
+
+    const { data: rateBuildups } = await rateBuildupQuery;
 
     // Fetch cost library (system defaults + user org items)
     const { data: costLibrary } = await supabase
@@ -101,7 +124,11 @@ export default async function EstimatingPage({ searchParams }: { searchParams: {
             <EstimateClient
                 estimates={(estimates || []).map((e: any) => ({
                     ...e,
-                    estimate_lines: e.estimate_lines || [],
+                    estimate_lines: (e.estimate_lines || []).map((l: any) => ({
+                        ...l,
+                        pricing_mode: l.pricing_mode || "simple",
+                        estimate_line_components: l.estimate_line_components || [],
+                    })),
                     overhead_pct: e.overhead_pct ?? 10,
                     profit_pct: e.profit_pct ?? 15,
                     risk_pct: e.risk_pct ?? 0,
@@ -117,6 +144,16 @@ export default async function EstimatingPage({ searchParams }: { searchParams: {
                     category: c.category || "General",
                 }))}
                 projectId={project.id}
+                orgId={orgId || ""}
+                rateBuildups={(rateBuildups || []).map((rb: any) => ({
+                    id: rb.id,
+                    name: rb.name || "",
+                    unit: rb.unit || "nr",
+                    built_up_rate: rb.built_up_rate || 0,
+                    trade_section: rb.trade_section || "",
+                    components: rb.components || [],
+                    total_manhours_per_unit: rb.total_manhours_per_unit || 0,
+                }))}
             />
 
         </div>

@@ -10,11 +10,31 @@ import {
     deleteLineItemAction,
     setActiveEstimateAction,
     deleteEstimateAction,
+    addComponentAction,
+    updateComponentAction,
+    deleteComponentAction,
+    setPricingModeAction,
+    saveRateBuildupAction,
+    updateLineBuiltUpRateAction,
 } from "./actions";
 import { Plus, Trash2, Check, Star, Loader2, FileText } from "lucide-react";
 import Link from "next/link";
 
 // ─── Types ───────────────────────────────────────────────
+interface EstimateLineComponent {
+    id: string;
+    estimate_line_id: string;
+    component_type: "labour" | "plant" | "material" | "consumable" | "temp_works" | "subcontract";
+    description: string;
+    quantity: number;
+    unit: string;
+    unit_rate: number;
+    line_total: number;
+    manhours_per_unit: number;
+    total_manhours: number;
+    sort_order: number;
+}
+
 interface EstimateLine {
     id: string;
     estimate_id: string;
@@ -28,6 +48,8 @@ interface EstimateLine {
     cost_library_item_id?: string | null;
     mom_item_code?: string | null;
     notes?: string | null;
+    pricing_mode: "simple" | "buildup";
+    estimate_line_components: EstimateLineComponent[];
 }
 
 interface Estimate {
@@ -52,10 +74,22 @@ interface CostLibraryItem {
     category: string;
 }
 
+interface RateBuildup {
+    id: string;
+    name: string;
+    unit: string;
+    built_up_rate: number;
+    trade_section: string;
+    components: { type: string; description: string; quantity: number; unit: string; unit_rate: number; manhours_per_unit: number }[];
+    total_manhours_per_unit: number;
+}
+
 interface Props {
     estimates: Estimate[];
     costLibrary: CostLibraryItem[];
     projectId: string;
+    orgId: string;
+    rateBuildups: RateBuildup[];
 }
 
 const TRADE_SECTIONS = [
@@ -85,7 +119,7 @@ function formatGBP(n: number): string {
 }
 
 // ─── Main Component ──────────────────────────────────────
-export default function EstimateClient({ estimates: initialEstimates, costLibrary, projectId }: Props) {
+export default function EstimateClient({ estimates: initialEstimates, costLibrary, projectId, orgId, rateBuildups }: Props) {
     const [estimates, setEstimates] = useState<Estimate[]>(initialEstimates);
     const [activeTab, setActiveTab] = useState<string>(estimates[0]?.id || "");
     const [isPending, startTransition] = useTransition();
@@ -284,6 +318,208 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
             unit: item.unit,
             unit_rate: item.base_rate,
             cost_library_item_id: item.id,
+        });
+    };
+
+    // ─── Build-Up Handlers ───────────────────────────────
+    const handleTogglePricingMode = (lineId: string, currentMode: string) => {
+        const newMode = currentMode === "buildup" ? "simple" : "buildup";
+        setEstimates((prev) =>
+            prev.map((e) =>
+                e.id === currentEstimate?.id
+                    ? { ...e, estimate_lines: e.estimate_lines.map((l) => (l.id === lineId ? { ...l, pricing_mode: newMode as "simple" | "buildup" } : l)) }
+                    : e
+            )
+        );
+        startTransition(async () => {
+            await setPricingModeAction(lineId, newMode as "simple" | "buildup");
+        });
+    };
+
+    const handleAddComponent = (lineId: string, componentType: string) => {
+        startTransition(async () => {
+            showSaving();
+            const result = await addComponentAction(lineId, {
+                component_type: componentType,
+                description: "",
+                quantity: 1,
+                unit: componentType === "labour" || componentType === "plant" ? "day" : "nr",
+                unit_rate: 0,
+                manhours_per_unit: componentType === "labour" ? 8 : 0,
+                sort_order: 0,
+            });
+            if (result) {
+                setEstimates((prev) =>
+                    prev.map((e) =>
+                        e.id === currentEstimate?.id
+                            ? {
+                                  ...e,
+                                  estimate_lines: e.estimate_lines.map((l) =>
+                                      l.id === lineId
+                                          ? {
+                                                ...l,
+                                                estimate_line_components: [
+                                                    ...(l.estimate_line_components || []),
+                                                    {
+                                                        id: result.id,
+                                                        estimate_line_id: lineId,
+                                                        component_type: componentType as EstimateLineComponent["component_type"],
+                                                        description: "",
+                                                        quantity: 1,
+                                                        unit: componentType === "labour" || componentType === "plant" ? "day" : "nr",
+                                                        unit_rate: 0,
+                                                        line_total: 0,
+                                                        manhours_per_unit: componentType === "labour" ? 8 : 0,
+                                                        total_manhours: 0,
+                                                        sort_order: 0,
+                                                    },
+                                                ],
+                                            }
+                                          : l
+                                  ),
+                              }
+                            : e
+                    )
+                );
+            }
+            showSaved();
+        });
+    };
+
+    const handleUpdateComponent = (componentId: string, updates: Partial<EstimateLineComponent>) => {
+        setEstimates((prev) =>
+            prev.map((e) =>
+                e.id === currentEstimate?.id
+                    ? {
+                          ...e,
+                          estimate_lines: e.estimate_lines.map((l) => ({
+                              ...l,
+                              estimate_line_components: (l.estimate_line_components || []).map((c) =>
+                                  c.id === componentId
+                                      ? { ...c, ...updates, line_total: (updates.quantity ?? c.quantity) * (updates.unit_rate ?? c.unit_rate) }
+                                      : c
+                              ),
+                          })),
+                      }
+                    : e
+            )
+        );
+        startTransition(async () => {
+            await updateComponentAction(componentId, updates);
+        });
+    };
+
+    const handleDeleteComponent = (componentId: string) => {
+        setEstimates((prev) =>
+            prev.map((e) =>
+                e.id === currentEstimate?.id
+                    ? {
+                          ...e,
+                          estimate_lines: e.estimate_lines.map((l) => ({
+                              ...l,
+                              estimate_line_components: (l.estimate_line_components || []).filter((c) => c.id !== componentId),
+                          })),
+                      }
+                    : e
+            )
+        );
+        startTransition(async () => {
+            await deleteComponentAction(componentId);
+        });
+    };
+
+    const handleUpdateBuiltUpRate = (lineId: string, ratePerUnit: number) => {
+        handleUpdateLine(lineId, { unit_rate: ratePerUnit });
+        startTransition(async () => {
+            await updateLineBuiltUpRateAction(lineId, ratePerUnit);
+        });
+    };
+
+    const handleSaveToLibrary = (line: EstimateLine) => {
+        const components = line.estimate_line_components || [];
+        const componentTotal = components.reduce((s, c) => s + (c.line_total || 0), 0);
+        const ratePerUnit = line.quantity > 0 ? componentTotal / line.quantity : 0;
+        const totalManhoursPerUnit = components
+            .filter((c) => c.component_type === "labour")
+            .reduce((s, c) => s + (c.manhours_per_unit || 0), 0);
+
+        const name = prompt("Save as (name for this built-up rate):", line.description || "Built-up rate");
+        if (!name) return;
+
+        startTransition(async () => {
+            showSaving();
+            await saveRateBuildupAction(
+                orgId,
+                name,
+                line.unit,
+                line.trade_section,
+                components.map((c) => ({
+                    type: c.component_type,
+                    description: c.description,
+                    quantity: c.quantity,
+                    unit: c.unit,
+                    unit_rate: c.unit_rate,
+                    manhours_per_unit: c.manhours_per_unit,
+                })),
+                ratePerUnit,
+                totalManhoursPerUnit
+            );
+            showSaved();
+        });
+    };
+
+    const handleLoadFromLibrary = (lineId: string, buildupId: string) => {
+        const rb = rateBuildups.find((r) => r.id === buildupId);
+        if (!rb) return;
+        // Add each component from the library template
+        rb.components.forEach((comp) => {
+            startTransition(async () => {
+                showSaving();
+                const result = await addComponentAction(lineId, {
+                    component_type: comp.type,
+                    description: comp.description,
+                    quantity: comp.quantity,
+                    unit: comp.unit,
+                    unit_rate: comp.unit_rate,
+                    manhours_per_unit: comp.manhours_per_unit,
+                    sort_order: 0,
+                });
+                if (result) {
+                    setEstimates((prev) =>
+                        prev.map((e) =>
+                            e.id === currentEstimate?.id
+                                ? {
+                                      ...e,
+                                      estimate_lines: e.estimate_lines.map((l) =>
+                                          l.id === lineId
+                                              ? {
+                                                    ...l,
+                                                    estimate_line_components: [
+                                                        ...(l.estimate_line_components || []),
+                                                        {
+                                                            id: result.id,
+                                                            estimate_line_id: lineId,
+                                                            component_type: comp.type as EstimateLineComponent["component_type"],
+                                                            description: comp.description,
+                                                            quantity: comp.quantity,
+                                                            unit: comp.unit,
+                                                            unit_rate: comp.unit_rate,
+                                                            line_total: comp.quantity * comp.unit_rate,
+                                                            manhours_per_unit: comp.manhours_per_unit,
+                                                            total_manhours: comp.quantity * comp.manhours_per_unit,
+                                                            sort_order: 0,
+                                                        },
+                                                    ],
+                                                }
+                                              : l
+                                      ),
+                                  }
+                                : e
+                        )
+                    );
+                }
+                showSaved();
+            });
         });
     };
 
@@ -524,16 +760,48 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
 
                                 {/* Line items */}
                                 {sectionLines.map((line) => (
-                                    <LineItemRow
-                                        key={line.id}
-                                        line={line}
-                                        library={sectionLibrary}
-                                        allLibrary={costLibrary}
-                                        section={section}
-                                        onUpdate={handleUpdateLine}
-                                        onDelete={handleDeleteLine}
-                                        onLibrarySelect={handleLibrarySelect}
-                                    />
+                                    <div key={line.id}>
+                                        <div className="flex items-stretch">
+                                            {/* Mode toggle button */}
+                                            <div className="flex items-center px-2 border-b border-slate-100">
+                                                <button
+                                                    onClick={() => handleTogglePricingMode(line.id, line.pricing_mode)}
+                                                    title={line.pricing_mode === "buildup" ? "Switch to simple rate" : "Build up from first principles"}
+                                                    className={`flex-shrink-0 w-5 h-5 rounded text-xs font-bold border transition-colors ${
+                                                        line.pricing_mode === "buildup"
+                                                            ? "bg-blue-600 text-white border-blue-600"
+                                                            : "bg-white text-gray-400 border-gray-300 hover:border-blue-400"
+                                                    }`}
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                            <div className="flex-1">
+                                                <LineItemRow
+                                                    line={line}
+                                                    library={sectionLibrary}
+                                                    allLibrary={costLibrary}
+                                                    section={section}
+                                                    onUpdate={handleUpdateLine}
+                                                    onDelete={handleDeleteLine}
+                                                    onLibrarySelect={handleLibrarySelect}
+                                                />
+                                            </div>
+                                        </div>
+                                        {/* Build-up panel */}
+                                        {line.pricing_mode === "buildup" && (
+                                            <BuildUpPanel
+                                                line={line}
+                                                rateBuildups={rateBuildups}
+                                                onAddComponent={handleAddComponent}
+                                                onUpdateComponent={handleUpdateComponent}
+                                                onDeleteComponent={handleDeleteComponent}
+                                                onSaveToLibrary={handleSaveToLibrary}
+                                                onUpdateBuiltUpRate={handleUpdateBuiltUpRate}
+                                                onLoadFromLibrary={handleLoadFromLibrary}
+                                            />
+                                        )}
+                                    </div>
                                 ))}
 
                                 {/* Add line button */}
@@ -728,13 +996,20 @@ function LineItemRow({
             </select>
 
             {/* Rate */}
-            <input
-                type="number"
-                step="0.01"
-                defaultValue={line.unit_rate}
-                onBlur={(e) => onUpdate(line.id, { unit_rate: parseFloat(e.target.value) || 0 })}
-                className="h-8 px-2 border border-slate-200 rounded text-sm text-right text-slate-900"
-            />
+            {line.pricing_mode === "buildup" ? (
+                <div className="h-8 px-2 rounded text-sm text-right font-medium text-blue-700 bg-blue-50 flex flex-col items-end justify-center leading-tight">
+                    <span>{formatGBP(line.unit_rate)}</span>
+                    <span className="text-[9px] text-blue-400">built up</span>
+                </div>
+            ) : (
+                <input
+                    type="number"
+                    step="0.01"
+                    defaultValue={line.unit_rate}
+                    onBlur={(e) => onUpdate(line.id, { unit_rate: parseFloat(e.target.value) || 0 })}
+                    className="h-8 px-2 border border-slate-200 rounded text-sm text-right text-slate-900"
+                />
+            )}
 
             {/* Total (readonly) */}
             <div className="text-sm font-medium text-slate-900 text-right pr-2">
@@ -748,6 +1023,181 @@ function LineItemRow({
             >
                 <Trash2 className="w-3.5 h-3.5" />
             </button>
+        </div>
+    );
+}
+
+// ─── Build-Up Panel ─────────────────────────────────────
+function BuildUpPanel({
+    line,
+    rateBuildups,
+    onAddComponent,
+    onUpdateComponent,
+    onDeleteComponent,
+    onSaveToLibrary,
+    onUpdateBuiltUpRate,
+    onLoadFromLibrary,
+}: {
+    line: EstimateLine;
+    rateBuildups: RateBuildup[];
+    onAddComponent: (lineId: string, componentType: string) => void;
+    onUpdateComponent: (componentId: string, updates: Partial<EstimateLineComponent>) => void;
+    onDeleteComponent: (componentId: string) => void;
+    onSaveToLibrary: (line: EstimateLine) => void;
+    onUpdateBuiltUpRate: (lineId: string, ratePerUnit: number) => void;
+    onLoadFromLibrary: (lineId: string, buildupId: string) => void;
+}) {
+    const COMPONENT_TYPE_COLORS: Record<string, string> = {
+        material: "bg-green-100 text-green-700",
+        labour: "bg-blue-100 text-blue-700",
+        plant: "bg-orange-100 text-orange-700",
+        consumable: "bg-purple-100 text-purple-700",
+        temp_works: "bg-yellow-100 text-yellow-700",
+        subcontract: "bg-gray-100 text-gray-700",
+    };
+
+    const COMP_UNITS = ["m", "m\u00B2", "m\u00B3", "nr", "item", "day", "hr", "week", "tonne", "kg"];
+
+    const components = line.estimate_line_components || [];
+    const componentTotal = components.reduce((s, c) => s + (c.line_total || 0), 0);
+    const ratePerUnit = line.quantity > 0 ? componentTotal / line.quantity : 0;
+    const totalManhours = components.reduce((s, c) => s + (c.total_manhours || 0), 0);
+
+    return (
+        <div className="ml-10 mr-5 mb-3 border border-blue-200 rounded-lg bg-blue-50/30 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-3 py-2 bg-blue-50 border-b border-blue-200">
+                <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Rate Build-Up</span>
+                <div className="flex items-center gap-3 text-xs text-blue-600">
+                    <span>Components total: <strong>{formatGBP(componentTotal)}</strong></span>
+                    <span>Rate/unit: <strong>{formatGBP(ratePerUnit)}</strong></span>
+                    {totalManhours > 0 && <span>Manhours: <strong>{totalManhours.toFixed(1)}h</strong></span>}
+                </div>
+            </div>
+
+            {/* Load from library */}
+            {rateBuildups.length > 0 && components.length === 0 && (
+                <div className="px-3 py-2 border-b border-blue-100">
+                    <select
+                        className="text-xs border border-blue-200 rounded px-2 py-1 bg-white text-blue-700"
+                        onChange={(e) => e.target.value && onLoadFromLibrary(line.id, e.target.value)}
+                        defaultValue=""
+                    >
+                        <option value="">Load from rate library...</option>
+                        {rateBuildups.map((rb) => (
+                            <option key={rb.id} value={rb.id}>
+                                {rb.name} — {formatGBP(rb.built_up_rate)}/{rb.unit}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
+            {/* Component rows */}
+            <div className="divide-y divide-blue-100">
+                {components.map((comp) => (
+                    <div key={comp.id} className="flex items-center gap-2 px-3 py-1.5 text-xs">
+                        {/* Type badge */}
+                        <span
+                            className={`px-1.5 py-0.5 rounded text-xs font-medium capitalize flex-shrink-0 w-20 text-center ${
+                                COMPONENT_TYPE_COLORS[comp.component_type] || "bg-gray-100 text-gray-700"
+                            }`}
+                        >
+                            {comp.component_type}
+                        </span>
+                        {/* Description */}
+                        <input
+                            className="flex-1 border border-transparent hover:border-blue-200 rounded px-1 py-0.5 bg-transparent text-gray-700 text-xs"
+                            defaultValue={comp.description}
+                            onBlur={(e) => onUpdateComponent(comp.id, { description: e.target.value })}
+                            placeholder="Description..."
+                        />
+                        {/* Qty */}
+                        <input
+                            type="number"
+                            className="w-16 border border-transparent hover:border-blue-200 rounded px-1 py-0.5 bg-transparent text-right text-xs"
+                            defaultValue={comp.quantity}
+                            onBlur={(e) => onUpdateComponent(comp.id, { quantity: Number(e.target.value) })}
+                        />
+                        {/* Unit */}
+                        <select
+                            className="w-14 border border-transparent hover:border-blue-200 rounded px-1 py-0.5 bg-transparent text-xs"
+                            defaultValue={comp.unit}
+                            onChange={(e) => onUpdateComponent(comp.id, { unit: e.target.value })}
+                        >
+                            {COMP_UNITS.map((u) => (
+                                <option key={u}>{u}</option>
+                            ))}
+                        </select>
+                        {/* Rate */}
+                        <input
+                            type="number"
+                            className="w-20 border border-transparent hover:border-blue-200 rounded px-1 py-0.5 bg-transparent text-right text-xs"
+                            defaultValue={comp.unit_rate}
+                            onBlur={(e) => onUpdateComponent(comp.id, { unit_rate: Number(e.target.value) })}
+                        />
+                        {/* Manhours (labour only) */}
+                        {comp.component_type === "labour" && (
+                            <input
+                                type="number"
+                                title="Manhours per parent unit"
+                                className="w-16 border border-transparent hover:border-blue-200 rounded px-1 py-0.5 bg-blue-100 text-right text-xs"
+                                defaultValue={comp.manhours_per_unit}
+                                onBlur={(e) => onUpdateComponent(comp.id, { manhours_per_unit: Number(e.target.value) })}
+                                placeholder="hrs/unit"
+                            />
+                        )}
+                        {/* Total */}
+                        <span className="w-20 text-right text-xs font-medium text-gray-700">
+                            {formatGBP(comp.line_total || 0)}
+                        </span>
+                        {/* Delete */}
+                        <button onClick={() => onDeleteComponent(comp.id)} className="text-red-400 hover:text-red-600 flex-shrink-0 text-sm">
+                            ×
+                        </button>
+                    </div>
+                ))}
+            </div>
+
+            {/* Add component row */}
+            <AddComponentRow onAdd={(type) => onAddComponent(line.id, type)} />
+
+            {/* Footer: apply rate + save to library */}
+            {components.length > 0 && (
+                <div className="flex items-center justify-between px-3 py-2 bg-blue-50 border-t border-blue-200">
+                    <button
+                        onClick={() => onSaveToLibrary(line)}
+                        className="text-xs text-blue-600 hover:text-blue-800 underline"
+                    >
+                        Save to rate library
+                    </button>
+                    <button
+                        onClick={() => onUpdateBuiltUpRate(line.id, ratePerUnit)}
+                        className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded hover:bg-blue-700 font-medium"
+                    >
+                        Apply rate ({formatGBP(ratePerUnit)}/unit)
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Add Component Row ──────────────────────────────────
+function AddComponentRow({ onAdd }: { onAdd: (type: string) => void }) {
+    const types = ["material", "labour", "plant", "consumable", "temp_works", "subcontract"];
+    return (
+        <div className="flex items-center gap-1 px-3 py-2">
+            <span className="text-xs text-gray-500 mr-1">Add:</span>
+            {types.map((type) => (
+                <button
+                    key={type}
+                    onClick={() => onAdd(type)}
+                    className="text-xs px-2 py-0.5 rounded border border-gray-200 text-gray-600 hover:bg-gray-100 capitalize"
+                >
+                    + {type.replace("_", " ")}
+                </button>
+            ))}
         </div>
     );
 }

@@ -1,24 +1,56 @@
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import ProjectNavBar from "@/components/project-navbar";
 import ClientSchedulePage from "./client-page";
 
 export const dynamic = "force-dynamic";
 
-export default async function SchedulePage() {
+export default async function SchedulePage({ searchParams }: { searchParams: { projectId?: string } }) {
     const supabase = createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
 
-    if (!user) return <div>Please log in</div>;
+    if (!user) redirect("/login");
 
-    // 1. Fetch Active Project
-    const { data: project } = await supabase.from("projects").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).single();
-    if (!project) return <div>No active project.</div>;
+    // Fetch all projects for the switcher
+    const { data: allProjects } = await supabase
+        .from("projects")
+        .select("id, name")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
 
-    // 2. Fetch Estimates & Dependencies
-    const { data: estimates } = await supabase.from("estimates").select("*, estimate_lines(*)").eq("project_id", project.id);
-    const { data: dependencies } = await supabase.from("estimate_dependencies").select("*");
+    const activeProjectId = searchParams.projectId || allProjects?.[0]?.id;
 
-    if (!estimates) return <div>No Estimates</div>;
+    // Fetch active project
+    const { data: project } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", activeProjectId)
+        .single();
 
-    return <ClientSchedulePage project={project} estimates={estimates} dependencies={dependencies || []} />;
+    if (!project) {
+        return <div className="p-8 text-slate-400">No projects found. Create one in the dashboard first.</div>;
+    }
+
+    // Fetch active estimate with lines and components (for manhours)
+    const { data: estimates } = await supabase
+        .from("estimates")
+        .select("*, estimate_lines(*, estimate_line_components(*))")
+        .eq("project_id", project.id)
+        .order("created_at");
+
+    // Find the active estimate, or fall back to the first one
+    const activeEstimate = (estimates || []).find((e: any) => e.is_active) || (estimates || [])[0] || null;
+
+    return (
+        <div className="max-w-7xl mx-auto p-8 pt-24 space-y-8">
+            <ProjectNavBar projectId={activeProjectId} activeTab="programme" />
+
+            <ClientSchedulePage
+                project={project}
+                estimate={activeEstimate}
+                projectId={activeProjectId}
+            />
+        </div>
+    );
 }

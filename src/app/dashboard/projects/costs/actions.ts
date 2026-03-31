@@ -194,6 +194,99 @@ export async function deleteEstimateAction(estimateId: string) {
     revalidatePath("/dashboard/projects/costs");
 }
 
+// ─── Component CRUD (Rate Build-Up) ─────────────────────
+
+export async function addComponentAction(
+    lineId: string,
+    data: {
+        component_type: string;
+        description: string;
+        quantity: number;
+        unit: string;
+        unit_rate: number;
+        manhours_per_unit: number;
+        sort_order: number;
+    }
+): Promise<{ id: string; line_total: number; total_manhours: number } | null> {
+    const supabase = createClient();
+    const { data: result, error } = await supabase
+        .from("estimate_line_components")
+        .insert({ estimate_line_id: lineId, ...data })
+        .select("id, line_total, total_manhours")
+        .single();
+    if (error) { console.error("Add component error:", error); return null; }
+    revalidatePath("/dashboard/projects/costs");
+    return result;
+}
+
+export async function updateComponentAction(
+    componentId: string,
+    data: Partial<{
+        description: string;
+        quantity: number;
+        unit: string;
+        unit_rate: number;
+        manhours_per_unit: number;
+    }>
+): Promise<void> {
+    const supabase = createClient();
+    await supabase.from("estimate_line_components").update(data).eq("id", componentId);
+    revalidatePath("/dashboard/projects/costs");
+}
+
+export async function deleteComponentAction(componentId: string): Promise<void> {
+    const supabase = createClient();
+    await supabase.from("estimate_line_components").delete().eq("id", componentId);
+    revalidatePath("/dashboard/projects/costs");
+}
+
+export async function setPricingModeAction(lineId: string, mode: "simple" | "buildup"): Promise<void> {
+    const supabase = createClient();
+    await supabase.from("estimate_lines").update({ pricing_mode: mode }).eq("id", lineId);
+    revalidatePath("/dashboard/projects/costs");
+}
+
+export async function saveRateBuildupAction(
+    orgId: string,
+    name: string,
+    unit: string,
+    tradeSection: string,
+    components: { type: string; description: string; quantity: number; unit: string; unit_rate: number; manhours_per_unit: number }[],
+    builtUpRate: number,
+    totalManhoursPerUnit: number
+): Promise<void> {
+    const supabase = createClient();
+    await supabase.from("rate_buildups").insert({
+        organization_id: orgId,
+        name,
+        unit,
+        trade_section: tradeSection,
+        components,
+        built_up_rate: builtUpRate,
+        total_manhours_per_unit: totalManhoursPerUnit,
+        is_system_default: false,
+    });
+    revalidatePath("/dashboard/projects/costs");
+}
+
+export async function updateLineBuiltUpRateAction(lineId: string, builtUpRate: number): Promise<void> {
+    const supabase = createClient();
+    const { data: line } = await supabase
+        .from("estimate_lines")
+        .select("quantity, estimate_id")
+        .eq("id", lineId)
+        .single();
+    const qty = line?.quantity || 1;
+    await supabase.from("estimate_lines").update({
+        unit_rate: builtUpRate,
+        line_total: qty * builtUpRate,
+    }).eq("id", lineId);
+    if (line?.estimate_id) {
+        await recalcEstimateTotal(line.estimate_id);
+    }
+    revalidatePath("/dashboard/projects/costs");
+}
+
 async function recalcEstimateTotal(estimateId: string) {
     const supabase = createClient();
     const { data: lines } = await supabase

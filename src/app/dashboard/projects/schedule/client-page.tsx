@@ -1,148 +1,309 @@
 "use client";
 
-import { updateDependencyAction } from "./actions";
-import { useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo } from "react";
+import { updatePhasesAction } from "./actions";
 
-// --- Inline UI Components ---
-function Card({ children, className }: { children: React.ReactNode; className?: string }) {
-    return <div className={`rounded-xl border bg-card text-card-foreground shadow-sm bg-white overflow-hidden ${className}`}>{children}</div>;
-}
-function CardHeader({ children, className }: { children: React.ReactNode, className?: string }) {
-    return <div className={`flex flex-col space-y-1.5 p-6 ${className}`}>{children}</div>;
-}
-function CardTitle({ children, className }: { children: React.ReactNode; className?: string }) {
-    return <h3 className={`font-semibold leading-none tracking-tight text-lg ${className}`}>{children}</h3>;
-}
-function CardContent({ children, className }: { children: React.ReactNode; className?: string }) {
-    return <div className={`p-6 pt-0 ${className}`}>{children}</div>;
-}
-function Input({ ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
-    return (
-        <input
-            {...props}
-            className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 border-slate-200 text-slate-900 ${props.className}`}
-        />
-    );
+// ─── Types ──────────────────────────────────────────────
+interface Phase {
+    name: string;
+    calculatedDays: number;
+    manualDays: number | null;
+    manhours: number;
+    startOffset: number; // days from project start
 }
 
-// --- LOGIC: THE CRITICAL PATH ENGINE ---
-const calculateSchedule = (estimates: any[], dependencies: any[]) => {
-    // 1. Map Data
-    const tasks = estimates.map(e => ({
-        id: e.id,
-        name: e.version_name,
-        duration: e.manual_duration_days || Math.ceil((e.estimate_lines.reduce((acc: number, l: any) => {
-            // Simple heuristic for auto-duration
-            if (l.unit?.includes('hour')) return acc + (l.quantity / 8);
-            if (l.unit?.includes('day')) return acc + l.quantity;
-            return acc;
-        }, 0)) || 1),
-        startDay: 0,
-        endDay: 0,
-        predecessors: dependencies.filter(d => d.successor_id === e.id)
-    }));
+interface EstimateLineComponent {
+    component_type: string;
+    total_manhours: number;
+}
 
-    // 2. Forward Pass (Iterative approach to resolve chains)
-    let changed = true;
-    let iterations = 0;
+interface EstimateLine {
+    trade_section: string;
+    quantity: number;
+    estimate_line_components: EstimateLineComponent[];
+}
 
-    while (changed && iterations < 100) { // Limit to prevent infinite loops
-        changed = false;
-        tasks.forEach(task => {
-            let maxPrevEnd = 0;
+interface Estimate {
+    id: string;
+    version_name: string;
+    estimate_lines: EstimateLine[];
+}
 
-            // Find end day of all predecessors
-            task.predecessors.forEach(dep => {
-                const prevTask = tasks.find(t => t.id === dep.predecessor_id);
-                if (prevTask) {
-                    maxPrevEnd = Math.max(maxPrevEnd, prevTask.endDay + (dep.lag_days || 0));
-                }
-            });
+interface Props {
+    project: {
+        id: string;
+        name: string;
+        start_date?: string;
+        timeline_phases?: Phase[];
+    };
+    estimate: Estimate | null;
+    projectId: string;
+}
 
-            const newStart = maxPrevEnd;
-            const newEnd = newStart + task.duration;
+const SECTION_COLORS = [
+    "bg-blue-500",
+    "bg-green-500",
+    "bg-orange-500",
+    "bg-purple-500",
+    "bg-red-500",
+    "bg-teal-500",
+    "bg-indigo-500",
+    "bg-pink-500",
+    "bg-yellow-500",
+    "bg-cyan-500",
+];
 
-            if (task.startDay !== newStart || task.endDay !== newEnd) {
-                task.startDay = newStart;
-                task.endDay = newEnd;
-                changed = true;
-            }
-        });
-        iterations++;
-    }
+function formatGBP(n: number): string {
+    return "\u00A3" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
-    return tasks.sort((a, b) => a.startDay - b.startDay); // Critical: Sort visuals by time
-};
+function addDays(date: Date, days: number): Date {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+}
 
-export default function ClientSchedulePage({ project, estimates, dependencies }: { project: any, estimates: any[], dependencies: any[] }) {
+function formatDate(date: Date): string {
+    return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+// ─── Build phases from estimate manhours ────────────────
+function buildPhasesFromEstimate(estimate: Estimate | null, existingPhases?: Phase[]): Phase[] {
+    if (!estimate) return existingPhases || [];
+
+    // Group manhours by trade section
+    const sectionManhours: Record<string, number> = {};
+    (estimate.estimate_lines || []).forEach((line) => {
+        const section = line.trade_section || "General";
+        const lineManHours = (line.estimate_line_components || []).reduce(
+            (sum, c) => sum + (c.total_manhours || 0),
+            0
+        );
+        // Multiply by parent line quantity for total manhours for this line
+        const totalForLine = lineManHours * (line.quantity || 1);
+        sectionManhours[section] = (sectionManhours[section] || 0) + totalForLine;
+    });
+
+    // Build phases — use existing manual overrides if available
+    const existingMap = new Map<string, Phase>();
+    (existingPhases || []).forEach((p) => existingMap.set(p.name, p));
+
+    const sections = Object.keys(sectionManhours).filter((s) => sectionManhours[s] > 0);
+    if (sections.length === 0 && existingPhases && existingPhases.length > 0) return existingPhases;
+
+    let offset = 0;
+    return sections.map((section) => {
+        const manhours = sectionManhours[section];
+        // 1 operative, 8hr day
+        const calculatedDays = Math.ceil(manhours / 8);
+        const existing = existingMap.get(section);
+        const manualDays = existing?.manualDays ?? null;
+        const duration = manualDays ?? calculatedDays;
+
+        const phase: Phase = {
+            name: section,
+            calculatedDays,
+            manualDays,
+            manhours,
+            startOffset: offset,
+        };
+        offset += duration;
+        return phase;
+    });
+}
+
+// ─── Main Component ─────────────────────────────────────
+export default function ClientSchedulePage({ project, estimate, projectId }: Props) {
     const [isPending, startTransition] = useTransition();
+    const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
-    // Memoize logic
-    const schedule = useMemo(() => calculateSchedule(estimates, dependencies), [estimates, dependencies]);
-    const maxDay = Math.max(...schedule.map(s => s.endDay), 20);
+    const initialPhases = useMemo(
+        () => buildPhasesFromEstimate(estimate, project.timeline_phases as Phase[] | undefined),
+        [estimate, project.timeline_phases]
+    );
 
-    const handleSubmit = (formData: FormData) => {
-        startTransition(async () => {
-            await updateDependencyAction(formData);
+    const [phases, setPhases] = useState<Phase[]>(initialPhases);
+
+    const projectStart = project.start_date ? new Date(project.start_date) : new Date();
+
+    // Total project duration
+    const totalDays = phases.reduce((sum, p) => {
+        const dur = p.manualDays ?? p.calculatedDays;
+        return Math.max(sum, p.startOffset + dur);
+    }, 0);
+    const totalWeeks = Math.ceil(totalDays / 7) || 1;
+
+    // Week headers
+    const weekHeaders = Array.from({ length: totalWeeks }, (_, i) => {
+        const weekStart = addDays(projectStart, i * 7);
+        return formatDate(weekStart);
+    });
+
+    const handleManualDuration = (index: number, value: string) => {
+        const days = value === "" ? null : parseInt(value);
+        setPhases((prev) => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], manualDays: days };
+            // Recalculate offsets
+            let offset = 0;
+            for (let i = 0; i < updated.length; i++) {
+                updated[i] = { ...updated[i], startOffset: offset };
+                offset += updated[i].manualDays ?? updated[i].calculatedDays;
+            }
+            return updated;
         });
     };
 
+    const handleRegenerate = () => {
+        const regenerated = buildPhasesFromEstimate(estimate, undefined);
+        setPhases(regenerated);
+    };
+
+    const handleSave = () => {
+        startTransition(async () => {
+            setSaveStatus("saving");
+            await updatePhasesAction(project.id, phases);
+            setSaveStatus("saved");
+            setTimeout(() => setSaveStatus("idle"), 2000);
+        });
+    };
+
+    const totalManhours = phases.reduce((sum, p) => sum + p.manhours, 0);
+
     return (
-        <div className="max-w-6xl mx-auto p-8 space-y-6">
-            <h1 className="text-3xl font-bold text-slate-900">Programme: {project.name}</h1>
-            <Card>
-                <CardHeader><CardTitle>Task Dependencies & Critical Path</CardTitle></CardHeader>
-                <CardContent>
-                    <div className="space-y-6">
-                        {schedule.map((task) => (
-                            <form key={task.id} action={handleSubmit} className="grid grid-cols-12 gap-4 items-center border-b border-slate-100 pb-4 last:border-0 text-sm">
-                                <input type="hidden" name="successor" value={task.id} />
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900">Programme</h1>
+                    <p className="text-sm text-slate-500">
+                        {project.name} — {estimate ? `From: ${estimate.version_name}` : "No active estimate"}
+                    </p>
+                </div>
+                <div className="flex items-center gap-3">
+                    {saveStatus === "saving" && <span className="text-xs text-slate-400 animate-pulse">Saving...</span>}
+                    {saveStatus === "saved" && <span className="text-xs text-green-500">Saved</span>}
+                    <button
+                        onClick={handleRegenerate}
+                        className="px-4 py-2 rounded-lg text-sm font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                    >
+                        Regenerate from estimate
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        disabled={isPending}
+                        className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-50"
+                    >
+                        Save to Proposal
+                    </button>
+                </div>
+            </div>
 
-                                {/* Info */}
-                                <div className="col-span-3">
-                                    <div className="font-bold text-slate-900">{task.name}</div>
-                                    <div className="text-xs text-slate-500">Day {task.startDay} → Day {task.endDay}</div>
+            {/* Info */}
+            {totalManhours > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-center gap-6 text-sm text-blue-700">
+                    <span>Total manhours: <strong>{totalManhours.toFixed(0)}h</strong></span>
+                    <span>Total duration: <strong>{totalDays} days</strong> ({totalWeeks} weeks)</span>
+                    <span>Start: <strong>{formatDate(projectStart)}</strong></span>
+                    <span>End: <strong>{formatDate(addDays(projectStart, totalDays))}</strong></span>
+                </div>
+            )}
+
+            {phases.length === 0 ? (
+                <div className="text-center py-20 text-slate-400">
+                    <p className="text-lg mb-2">No programme phases</p>
+                    <p className="text-sm">
+                        {estimate
+                            ? "Add labour components with manhours to your estimate lines to auto-generate a programme."
+                            : "Set an estimate as active to generate the programme."}
+                    </p>
+                </div>
+            ) : (
+                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                    {/* Week headers */}
+                    <div className="flex border-b border-slate-200">
+                        <div className="w-64 flex-shrink-0 bg-slate-50 px-4 py-2 border-r border-slate-200">
+                            <span className="text-xs font-bold uppercase text-slate-500">Phase / Trade</span>
+                        </div>
+                        <div className="w-20 flex-shrink-0 bg-slate-50 px-2 py-2 border-r border-slate-200 text-center">
+                            <span className="text-xs font-bold uppercase text-slate-500">Days</span>
+                        </div>
+                        <div className="w-20 flex-shrink-0 bg-slate-50 px-2 py-2 border-r border-slate-200 text-center">
+                            <span className="text-xs font-bold uppercase text-slate-500">Override</span>
+                        </div>
+                        <div className="flex-1 bg-slate-50 flex">
+                            {weekHeaders.map((wk, i) => (
+                                <div
+                                    key={i}
+                                    className="flex-1 text-center text-[10px] text-slate-500 font-medium py-2 border-r border-slate-100 last:border-0"
+                                    style={{ minWidth: 40 }}
+                                >
+                                    {wk}
                                 </div>
+                            ))}
+                        </div>
+                    </div>
 
-                                {/* Duration Input */}
-                                <div className="col-span-2">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Duration</label>
-                                    <Input name="duration" type="number" defaultValue={task.duration} className="h-8" onChange={(e) => e.target.form?.requestSubmit()} />
-                                </div>
+                    {/* Phase rows */}
+                    {phases.map((phase, idx) => {
+                        const duration = phase.manualDays ?? phase.calculatedDays;
+                        const barLeft = totalDays > 0 ? (phase.startOffset / totalDays) * 100 : 0;
+                        const barWidth = totalDays > 0 ? Math.max((duration / totalDays) * 100, 1) : 0;
+                        const color = SECTION_COLORS[idx % SECTION_COLORS.length];
+                        const phaseStart = addDays(projectStart, phase.startOffset);
+                        const phaseEnd = addDays(projectStart, phase.startOffset + duration);
 
-                                {/* Dependency Dropdown */}
-                                <div className="col-span-3">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Start After...</label>
-                                    <select name="predecessor" className="w-full h-8 text-sm border border-slate-200 rounded text-slate-700 bg-white"
-                                        defaultValue={task.predecessors[0]?.predecessor_id || "none"}
-                                        onChange={(e) => e.target.form?.requestSubmit()}
-                                    >
-                                        <option value="none">-- Start of Project --</option>
-                                        {schedule.filter(t => t.id !== task.id).map(opt => (
-                                            <option key={opt.id} value={opt.id}>{opt.name} (Ends Day {opt.endDay})</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {/* Visual Bar */}
-                                <div className="col-span-4 relative h-8 bg-slate-100 rounded overflow-hidden mt-4">
-                                    <div
-                                        className="absolute h-full bg-blue-600 rounded opacity-90 text-white text-[10px] flex items-center justify-center whitespace-nowrap transition-all duration-500"
-                                        style={{
-                                            left: `${(task.startDay / maxDay) * 100}%`,
-                                            width: `${Math.max((task.duration / maxDay) * 100, 2)}%`
-                                        }}
-                                    >
-                                        {task.duration}d
+                        return (
+                            <div key={idx} className="flex border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
+                                {/* Phase name */}
+                                <div className="w-64 flex-shrink-0 px-4 py-3 border-r border-slate-100">
+                                    <div className="text-sm font-medium text-slate-900">{phase.name}</div>
+                                    <div className="text-[10px] text-slate-400">
+                                        {formatDate(phaseStart)} – {formatDate(phaseEnd)}
+                                        {phase.manhours > 0 && <span className="ml-2">{phase.manhours.toFixed(0)}h</span>}
                                     </div>
                                 </div>
-                            </form>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
 
-            {isPending && <div className="fixed bottom-4 right-4 bg-slate-900 text-white px-4 py-2 rounded-lg shadow-lg text-sm animate-pulse">Calculating Schedule...</div>}
+                                {/* Calculated duration */}
+                                <div className="w-20 flex-shrink-0 px-2 py-3 border-r border-slate-100 text-center text-sm text-slate-600">
+                                    {phase.calculatedDays}d
+                                </div>
+
+                                {/* Manual override */}
+                                <div className="w-20 flex-shrink-0 px-2 py-3 border-r border-slate-100 flex items-center justify-center">
+                                    <input
+                                        type="number"
+                                        className="w-14 h-7 px-1 text-center text-xs border border-slate-200 rounded bg-white text-slate-700"
+                                        value={phase.manualDays ?? ""}
+                                        onChange={(e) => handleManualDuration(idx, e.target.value)}
+                                        placeholder="—"
+                                    />
+                                </div>
+
+                                {/* Gantt bar */}
+                                <div className="flex-1 relative py-3 px-1">
+                                    <div className="relative h-7 bg-slate-100 rounded overflow-hidden">
+                                        <div
+                                            className={`absolute h-full ${color} rounded opacity-90 text-white text-[10px] flex items-center justify-center whitespace-nowrap transition-all duration-300`}
+                                            style={{
+                                                left: `${barLeft}%`,
+                                                width: `${barWidth}%`,
+                                            }}
+                                        >
+                                            {duration}d
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* Note */}
+            <p className="text-xs text-slate-400">
+                Durations calculated from estimated manhours (1 operative, 8hr day). Adjust manually if needed.
+            </p>
         </div>
     );
 }

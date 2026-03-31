@@ -31,7 +31,7 @@ import Link from "next/link";
 
 interface Props {
     projectId: string;
-    activeTab: "overview" | "costing" | "proposal" | "billing" | "contracts" | "variations";
+    activeTab: "overview" | "costing" | "proposal" | "billing" | "contracts" | "variations" | "programme";
 }
 
 export default function ProjectNavBar({ projectId, activeTab }: Props) {
@@ -73,6 +73,11 @@ export default function ProjectNavBar({ projectId, activeTab }: Props) {
             <Link href={`/dashboard/projects/variations?projectId=${projectId}`}>
                 <button className={getClass("variations")}>
                     🚧 Variations
+                </button>
+            </Link>
+            <Link href={`/dashboard/projects/schedule?projectId=${projectId}`}>
+                <button className={getClass("programme")}>
+                    📅 Programme
                 </button>
             </Link>
         </div>

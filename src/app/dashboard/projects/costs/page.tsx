@@ -49,6 +49,8 @@ export default async function EstimatingPage({ searchParams }: { searchParams: {
 
     return (
         <div className="max-w-7xl mx-auto p-8 pt-24 space-y-8">
+            <ProjectNavBar projectId={activeProjectId} activeTab="costing" />
+
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
@@ -82,16 +84,15 @@ export default async function EstimatingPage({ searchParams }: { searchParams: {
                         </select>
                         <button
                             type="submit"
-                            className="h-10 px-4 rounded-md text-sm font-medium border border-slate-200 hover:bg-slate-50"
+                            className="h-10 px-4 rounded-md text-sm font-medium bg-gray-900 text-white hover:bg-gray-700"
                         >
                             Go
                         </button>
                     </form>
 
-                    <Link href={`/dashboard/projects/proposal?projectId=${activeProjectId}`}>
-                        <button className="h-10 px-4 rounded-md text-sm font-medium border border-purple-200 text-purple-700 hover:bg-purple-50">
-                            Write Proposal
-                        </button>
+                    <Link href={`/dashboard/projects/proposal?projectId=${activeProjectId}`}
+                        className="h-10 px-4 rounded-md text-sm font-semibold bg-gray-900 text-white hover:bg-gray-700 flex items-center gap-2">
+                        Next: Build Proposal →
                     </Link>
                 </div>
             </div>
@@ -118,10 +119,6 @@ export default async function EstimatingPage({ searchParams }: { searchParams: {
                 projectId={project.id}
             />
 
-            {/* Project Nav */}
-            <div className="mb-6">
-                <ProjectNavBar projectId={activeProjectId} activeTab="costing" />
-            </div>
         </div>
     );
 }

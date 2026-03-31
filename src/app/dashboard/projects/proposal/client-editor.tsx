@@ -86,6 +86,53 @@ interface Props {
     estimatedTotal?: number;
 }
 
+const MILESTONE_TRIGGERS = [
+    'On acceptance of proposal',
+    'On mobilisation / site start',
+    'On completion of groundworks',
+    'On completion of drainage works',
+    'On completion of utilities',
+    'On completion of structure',
+    'On completion of fit-out',
+    'On practical completion',
+    'On final account agreement',
+    'On handover',
+    'Custom...',
+];
+
+function computeEstimateContractSum(est: any) {
+    const allLines = est.estimate_lines || [];
+    const directCost = allLines
+        .filter((l: any) => l.trade_section !== "Preliminaries" && (l.line_total || 0) > 0)
+        .reduce((sum: number, l: any) => sum + (l.line_total || 0), 0);
+    const explicitPrelimsLines = allLines.filter((l: any) => l.trade_section === "Preliminaries");
+    const explicitPrelimsTotal = explicitPrelimsLines.reduce((sum: number, l: any) => sum + (l.line_total || 0), 0);
+    const prelimsFromPct = directCost * ((est.prelims_pct || 0) / 100);
+    const prelimsTotal = explicitPrelimsLines.length > 0 ? explicitPrelimsTotal : prelimsFromPct;
+    const totalConstructionCost = directCost + prelimsTotal;
+    const overheadAmount = totalConstructionCost * ((est.overhead_pct || 0) / 100);
+    const costPlusOverhead = totalConstructionCost + overheadAmount;
+    const riskAmount = costPlusOverhead * ((est.risk_pct || 0) / 100);
+    const adjustedTotal = costPlusOverhead + riskAmount;
+    const profitAmount = adjustedTotal * ((est.profit_pct || 0) / 100);
+    const contractSum = adjustedTotal + profitAmount;
+    const ohRiskProfitMultiplier = (1 + (est.overhead_pct || 0) / 100) * (1 + (est.risk_pct || 0) / 100) * (1 + (est.profit_pct || 0) / 100);
+
+    // Section totals
+    const sectionTotals: Record<string, number> = {};
+    allLines.forEach((l: any) => {
+        const sec = l.trade_section || "General";
+        if (sec === "Preliminaries") return;
+        sectionTotals[sec] = (sectionTotals[sec] || 0) + (l.line_total || 0);
+    });
+
+    return { directCost, prelimsTotal, contractSum, ohRiskProfitMultiplier, sectionTotals };
+}
+
+function formatGBP(n: number): string {
+    return "\u00A3" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function unitToDays(value: number, unit: DurationUnit): number {
     if (unit === "Hours") return value / 8; // 8-hour days
     if (unit === "Days") return value;
@@ -186,6 +233,34 @@ export default function ClientEditor({
     const [validityDays, setValidityDays] = useState(30);
     const [linkCopied, setLinkCopied] = useState(false);
     const [sending, setSending] = useState(false);
+
+    // Active estimate computation
+    const activeEstimateRaw = estimates.find((e: any) => e.is_active) || estimates[0];
+    const activeEstimate = activeEstimateRaw ? {
+        ...computeEstimateContractSum(activeEstimateRaw),
+        estimate: activeEstimateRaw,
+    } : null;
+
+    // Populate payment schedule from estimate sections
+    const populateFromEstimate = () => {
+        if (!activeEstimate) return;
+        const { contractSum, ohRiskProfitMultiplier, sectionTotals } = activeEstimate;
+        const depositAmount = contractSum * 0.1;
+        const retentionAmount = contractSum * 0.05;
+        const stagesFromSections = Object.entries(sectionTotals).map(([section, directTotal]) => ({
+            id: crypto.randomUUID(),
+            stage: section,
+            description: `On completion of ${section.toLowerCase()}`,
+            percentage: 0,
+            amount: directTotal * ohRiskProfitMultiplier,
+        }));
+        const newSchedule: PaymentRow[] = [
+            { id: crypto.randomUUID(), stage: "Deposit", description: "On acceptance of proposal", percentage: 0, amount: depositAmount },
+            ...stagesFromSections,
+            { id: crypto.randomUUID(), stage: "Final Retention", description: "On final account agreement", percentage: 0, amount: retentionAmount },
+        ];
+        setPaymentSchedule(newSchedule);
+    };
 
     // AI Wizard state
     const isFirstTime = !initialScope && !project?.proposal_introduction && !project?.gantt_phases?.length && !project?.payment_schedule?.length;
@@ -810,6 +885,15 @@ export default function ClientEditor({
                         )}
                     </div>
                     <div className="p-6 space-y-3">
+                        {/* Active estimate context banner */}
+                        {activeEstimate && (
+                            <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm">
+                                <span className="text-gray-500">Active estimate contract sum: </span>
+                                <span className="font-bold text-gray-900">{formatGBP(activeEstimate.contractSum)}</span>
+                                <span className="text-gray-500 ml-3">inc. VAT: </span>
+                                <span className="font-bold text-gray-900">{formatGBP(activeEstimate.contractSum * 1.2)}</span>
+                            </div>
+                        )}
                         {/* Payment type toggle */}
                         <div className="flex items-center gap-4 pb-3 border-b border-slate-800">
                             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Payment Type:</span>
@@ -915,46 +999,83 @@ export default function ClientEditor({
                         ) : (
                             <>
                                 {/* Milestone mode */}
+                                {activeEstimate && (
+                                    <button
+                                        type="button"
+                                        onClick={populateFromEstimate}
+                                        className="mb-3 h-9 px-4 rounded-lg border border-blue-600 bg-blue-900/30 text-blue-300 hover:bg-blue-800/40 text-xs font-bold transition-colors flex items-center gap-2"
+                                    >
+                                        <Plus className="w-3.5 h-3.5" />
+                                        Populate from estimate sections
+                                    </button>
+                                )}
                                 <div className="grid gap-3 text-xs font-bold uppercase tracking-wider text-slate-500 pb-1 border-b border-slate-800" style={{ gridTemplateColumns: "1fr 2fr 100px 40px" }}>
                                     <span>Stage</span>
                                     <span>Trigger</span>
                                     <span className="text-right">£ Amount</span>
                                     <span></span>
                                 </div>
-                                {paymentSchedule.map((row) => (
-                                    <div key={row.id} className="grid gap-3 items-center" style={{ gridTemplateColumns: "1fr 2fr 100px 40px" }}>
-                                        <input
-                                            value={row.stage}
-                                            onChange={(e) => updatePaymentRow(row.id, "stage", e.target.value)}
-                                            className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                            placeholder="Stage name"
-                                        />
-                                        <input
-                                            value={row.description}
-                                            onChange={(e) => updatePaymentRow(row.id, "description", e.target.value)}
-                                            className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                            placeholder="Trigger / completion criteria..."
-                                        />
-                                        <div className="flex items-center gap-1">
-                                            <span className="text-xs text-slate-500">£</span>
-                                            <input
-                                                type="number"
-                                                min={0}
-                                                step="0.01"
-                                                value={row.amount || 0}
-                                                onChange={(e) => updatePaymentRow(row.id, "amount" as keyof PaymentRow, parseFloat(e.target.value) || 0)}
-                                                className="h-9 w-full rounded-lg border border-slate-700 bg-slate-800 px-2 text-sm text-slate-100 text-right focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                            />
+                                {paymentSchedule.map((row) => {
+                                    const isCustomTrigger = row.description && !MILESTONE_TRIGGERS.slice(0, -1).includes(row.description);
+                                    const selectValue = isCustomTrigger ? 'Custom...' : (row.description || '');
+                                    return (
+                                        <div key={row.id} className="space-y-1">
+                                            <div className="grid gap-3 items-center" style={{ gridTemplateColumns: "1fr 2fr 100px 40px" }}>
+                                                <input
+                                                    value={row.stage}
+                                                    onChange={(e) => updatePaymentRow(row.id, "stage", e.target.value)}
+                                                    className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                                    placeholder="Stage name"
+                                                />
+                                                <select
+                                                    value={selectValue}
+                                                    onChange={(e) => {
+                                                        const v = e.target.value;
+                                                        if (v === 'Custom...') {
+                                                            updatePaymentRow(row.id, "description", row.description || "");
+                                                        } else {
+                                                            updatePaymentRow(row.id, "description", v);
+                                                        }
+                                                    }}
+                                                    className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                                >
+                                                    <option value="">Select trigger...</option>
+                                                    {MILESTONE_TRIGGERS.map((t) => (
+                                                        <option key={t} value={t}>{t}</option>
+                                                    ))}
+                                                </select>
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-xs text-slate-500">£</span>
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        step="0.01"
+                                                        value={row.amount || 0}
+                                                        onChange={(e) => updatePaymentRow(row.id, "amount" as keyof PaymentRow, parseFloat(e.target.value) || 0)}
+                                                        className="h-9 w-full rounded-lg border border-slate-700 bg-slate-800 px-2 text-sm text-slate-100 text-right focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removePaymentRow(row.id)}
+                                                    className="h-9 w-9 rounded-lg bg-red-900/20 text-red-400 hover:bg-red-900/40 flex items-center justify-center transition-colors text-lg font-bold"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                            {selectValue === 'Custom...' && (
+                                                <div className="pl-0" style={{ gridColumn: "2" }}>
+                                                    <input
+                                                        value={row.description}
+                                                        onChange={(e) => updatePaymentRow(row.id, "description", e.target.value)}
+                                                        className="h-8 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                                        placeholder="Enter custom trigger description..."
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => removePaymentRow(row.id)}
-                                            className="h-9 w-9 rounded-lg bg-red-900/20 text-red-400 hover:bg-red-900/40 flex items-center justify-center transition-colors text-lg font-bold"
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                                 <div className="flex items-center justify-between pt-2">
                                     <button
                                         type="button"

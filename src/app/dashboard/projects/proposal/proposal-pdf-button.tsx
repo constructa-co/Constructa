@@ -261,16 +261,21 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         const prelimsFromPct = directCost * ((est.prelims_pct || 0) / 100);
         const prelimsTotal = explicitPrelimsLines.length > 0 ? explicitPrelimsTotal : prelimsFromPct;
         const totalConstructionCost = directCost + prelimsTotal;
-        const overheadAmount = totalConstructionCost * ((est.overhead_pct || 0) / 100);
+        const overheadPct = est.overhead_pct || 0;
+        const riskPct = est.risk_pct || 0;
+        const profitPct = est.profit_pct || 0;
+        const ohRiskProfitMultiplier = (1 + overheadPct / 100) * (1 + riskPct / 100) * (1 + profitPct / 100);
+        const overheadAmount = totalConstructionCost * (overheadPct / 100);
         const costPlusOverhead = totalConstructionCost + overheadAmount;
-        const riskAmount = costPlusOverhead * ((est.risk_pct || 0) / 100);
+        const riskAmount = costPlusOverhead * (riskPct / 100);
         const adjustedTotal = costPlusOverhead + riskAmount;
-        const profitAmount = adjustedTotal * ((est.profit_pct || 0) / 100);
+        const profitAmount = adjustedTotal * (profitPct / 100);
         return {
             directCost,
             prelimsTotal,
             totalConstructionCost,
             contractSum: adjustedTotal + profitAmount,
+            ohRiskProfitMultiplier,
         };
     };
 
@@ -384,7 +389,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         { label: "DATE ISSUED", value: formatDate(today) },
         { label: "VALID UNTIL", value: formatDate(validUntil) },
         { label: "REFERENCE", value: refCode },
-        ...(displayTotal > 0 ? [{ label: "CONTRACT VALUE", value: formatGBP(displayTotal) }] : []),
+        ...(displayTotal > 0 ? [{ label: "CONTRACT VALUE (inc. VAT)", value: formatGBP(displayTotal * 1.2) }] : []),
     ];
     const colW = CW / statCols.length;
     statCols.forEach((stat, i) => {
@@ -776,7 +781,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         ["Site Address", address || "\u2014"],
         ["Project Type", projectType],
         ["Proposed Start", startDate],
-        ...(displayTotal > 0 ? [["Contract Sum", formatGBP(displayTotal)]] : []),
+        ...(displayTotal > 0 ? [["Contract Sum (exc. VAT)", formatGBP(displayTotal)], ["Total inc. VAT", formatGBP(displayTotal * 1.2)]] : []),
     ];
 
     overviewData.forEach(([label, value], idx) => {
@@ -892,15 +897,14 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     if (pricingMode === "full" && pdfEstimates.some((est: any) => (est.estimate_lines || []).length > 0)) {
         // FULL MODE: show line items with all-in rates (margins baked in)
         pdfEstimates.forEach((est: any) => {
-            const { directCost, prelimsTotal, totalConstructionCost, contractSum: estContractSum } = computeContractSum(est);
-            const totalDirectIncPrelims = totalConstructionCost;
-            const markupMultiplier = totalDirectIncPrelims > 0 ? estContractSum / totalDirectIncPrelims : 1;
+            const { directCost, prelimsTotal, contractSum: estContractSum, ohRiskProfitMultiplier } = computeContractSum(est);
             const allLines = (est.estimate_lines || []).filter((l: any) => l.description && l.description !== "\u2014" && (l.line_total || 0) > 0);
 
-            // Group by trade section
+            // Group by trade section — separate out Preliminaries
             const sectionMap: Record<string, any[]> = {};
             allLines.forEach((line: any) => {
                 const sec = line.trade_section || "General";
+                if (sec === "Preliminaries") return; // handled separately
                 if (!sectionMap[sec]) sectionMap[sec] = [];
                 sectionMap[sec].push(line);
             });
@@ -908,8 +912,8 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             Object.entries(sectionMap).forEach(([sectionName, sectionLines]) => {
                 const bodyRows = sectionLines.map((line: any) => {
                     const desc = line.mom_item_code ? `[${line.mom_item_code}] ${line.description}` : line.description;
-                    const allInRate = (line.unit_rate || 0) * markupMultiplier;
-                    const allInTotal = (line.line_total || 0) * markupMultiplier;
+                    const allInRate = (line.unit_rate || 0) * ohRiskProfitMultiplier;
+                    const allInTotal = (line.line_total || 0) * ohRiskProfitMultiplier;
                     return [
                         desc || "",
                         String(line.quantity ?? ""),
@@ -919,7 +923,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
                     ];
                 });
 
-                const sectionAllInTotal = sectionLines.reduce((s: number, l: any) => s + ((l.line_total || 0) * markupMultiplier), 0);
+                const sectionAllInTotal = sectionLines.reduce((s: number, l: any) => s + ((l.line_total || 0) * ohRiskProfitMultiplier), 0);
 
                 autoTable(doc, {
                     startY: y,
@@ -949,6 +953,36 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
                 y = (doc as any).lastAutoTable.finalY + 5;
             });
+
+            // Show prelims as a separate line if present
+            if (prelimsTotal > 0) {
+                const prelimsAllIn = prelimsTotal * ohRiskProfitMultiplier;
+                autoTable(doc, {
+                    startY: y,
+                    head: [
+                        [{ content: "Preliminaries", colSpan: 5, styles: { halign: "left" as const, fillColor: T.primary as any, textColor: T.accent as any, fontSize: 10, fontStyle: "bold" as const } }],
+                    ],
+                    body: [["Preliminaries", "1", "item", formatGBP(prelimsAllIn), formatGBP(prelimsAllIn)]],
+                    foot: [["Preliminaries Subtotal", "", "", "", formatGBP(prelimsAllIn)]],
+                    theme: "grid",
+                    margin: { left: ML, right: PAGE_W - MR },
+                    headStyles: { fillColor: T.primaryMid as any, textColor: T.white as any, fontStyle: "bold", fontSize: 8.5 },
+                    bodyStyles: { fontSize: 9, textColor: T.textDark as any, cellPadding: 3 },
+                    footStyles: { fillColor: T.surface as any, textColor: T.textDark as any, fontStyle: "bold", fontSize: 9 },
+                    columnStyles: {
+                        0: { cellWidth: 70 },
+                        1: { cellWidth: 18, halign: "center" as const },
+                        2: { cellWidth: 20, halign: "center" as const },
+                        3: { cellWidth: 30, halign: "right" as const },
+                        4: { cellWidth: 30, halign: "right" as const },
+                    },
+                    alternateRowStyles: { fillColor: T.surface as any },
+                    tableLineColor: T.borderLight as any,
+                    tableLineWidth: 0.2,
+                    didDrawPage: () => { totalPagesRef.n = doc.getNumberOfPages(); },
+                });
+                y = (doc as any).lastAutoTable.finalY + 5;
+            }
         });
     } else {
         // SUMMARY MODE: show section totals with margins baked in proportionally
@@ -1003,18 +1037,18 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     y = ensureSpace(doc, y, 50, companyName, docTitle, totalPagesRef, T);
     y += 4;
 
-    // CONTRACT SUM box
-    doc.setFillColor(...T.primary);
-    doc.rect(ML, y, MR - ML, 16, "F");
+    // CONTRACT SUM (exc. VAT) — secondary, smaller
+    doc.setFillColor(...T.surface);
+    doc.rect(ML, y, MR - ML, 10, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...T.textMid);
+    doc.text("CONTRACT SUM (exc. VAT)", ML + 4, y + 6.5);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(...T.muted);
-    doc.text("CONTRACT SUM (exc. VAT)", ML + 4, y + 7);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor(...T.accent);
-    doc.text(formatGBP(displayTotal), MR - 4, y + 11, { align: "right" });
-    y += 20;
+    doc.setFontSize(10);
+    doc.setTextColor(...T.textDark);
+    doc.text(formatGBP(displayTotal), MR - 4, y + 6.5, { align: "right" });
+    y += 12;
 
     // VAT line
     doc.setFont("helvetica", "normal");
@@ -1022,20 +1056,26 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     doc.setTextColor(...T.textMid);
     doc.text("VAT @ 20%", ML + 4, y);
     doc.text(formatGBP(displayTotal * 0.2), MR - 4, y, { align: "right" });
-    y += 7;
+    y += 4;
 
-    // Total inc VAT box
-    doc.setFillColor(...T.surface);
-    doc.rect(ML, y - 1, MR - ML, 12, "F");
+    // Separator
     doc.setDrawColor(...T.primary);
-    doc.setLineWidth(0.5);
-    doc.rect(ML, y - 1, MR - ML, 12, "S");
+    doc.setLineWidth(0.8);
+    doc.line(ML, y, MR, y);
+    y += 4;
+
+    // TOTAL PAYABLE INC. VAT — primary, large, bold, dark bar
+    doc.setFillColor(...T.primary);
+    doc.rect(ML, y, MR - ML, 18, "F");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.setTextColor(...T.textDark);
-    doc.text("TOTAL INC. VAT", ML + 4, y + 7);
-    doc.text(formatGBP(displayTotal * 1.2), MR - 4, y + 7, { align: "right" });
-    y += 16;
+    doc.setFontSize(9);
+    doc.setTextColor(...T.muted);
+    doc.text("TOTAL PAYABLE INC. VAT", ML + 4, y + 7);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(...T.accent);
+    doc.text(formatGBP(displayTotal * 1.2), MR - 4, y + 13, { align: "right" });
+    y += 22;
 
     // Payment Schedule
     const paymentSchedule = project?.payment_schedule;

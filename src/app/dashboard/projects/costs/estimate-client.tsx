@@ -71,9 +71,8 @@ const TRADE_SECTIONS = [
     "Plumbing",
     "Finishes",
     "External Works",
+    "Subcontract",
     "Provisional Sums",
-    "Labour",
-    "Plant",
     "General",
 ];
 
@@ -155,6 +154,11 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
     };
 
     // ─── Margin updates ─────────────────────────────────
+    const handleMarginChange = (field: "overhead_pct" | "profit_pct" | "risk_pct" | "prelims_pct", value: number) => {
+        if (!currentEstimate) return;
+        const updated = { ...currentEstimate, [field]: value };
+        setEstimates((prev) => prev.map((e) => (e.id === currentEstimate.id ? updated : e)));
+    };
     const handleMarginBlur = (field: "overhead_pct" | "profit_pct" | "risk_pct" | "prelims_pct", value: number) => {
         if (!currentEstimate) return;
         const updated = { ...currentEstimate, [field]: value };
@@ -349,7 +353,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     <Link href={`/dashboard/projects/proposal?projectId=${projectId}`}
                         className="bg-gray-900 text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-gray-700 flex items-center gap-2">
                         <FileText className="w-4 h-4" />
-                        Go to Proposal →
+                        Next: Build Proposal →
                     </Link>
                 </div>
             </div>
@@ -416,7 +420,8 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                 <input
                                     type="number"
                                     step="0.5"
-                                    defaultValue={currentEstimate.prelims_pct}
+                                    value={currentEstimate.prelims_pct}
+                                    onChange={(e) => handleMarginChange("prelims_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("prelims_pct", parseFloat(e.target.value) || 0)}
                                     className="w-full h-10 px-3 border border-slate-200 rounded-md text-slate-900 text-sm text-center"
                                 />
@@ -426,7 +431,8 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                 <input
                                     type="number"
                                     step="0.5"
-                                    defaultValue={currentEstimate.overhead_pct}
+                                    value={currentEstimate.overhead_pct}
+                                    onChange={(e) => handleMarginChange("overhead_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("overhead_pct", parseFloat(e.target.value) || 0)}
                                     className="w-full h-10 px-3 border border-slate-200 rounded-md text-slate-900 text-sm text-center"
                                 />
@@ -436,7 +442,8 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                 <input
                                     type="number"
                                     step="0.5"
-                                    defaultValue={currentEstimate.risk_pct}
+                                    value={currentEstimate.risk_pct}
+                                    onChange={(e) => handleMarginChange("risk_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("risk_pct", parseFloat(e.target.value) || 0)}
                                     className="w-full h-10 px-3 border border-slate-200 rounded-md text-slate-900 text-sm text-center"
                                 />
@@ -446,7 +453,8 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                 <input
                                     type="number"
                                     step="0.5"
-                                    defaultValue={currentEstimate.profit_pct}
+                                    value={currentEstimate.profit_pct}
+                                    onChange={(e) => handleMarginChange("profit_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("profit_pct", parseFloat(e.target.value) || 0)}
                                     className="w-full h-10 px-3 border border-slate-200 rounded-md text-slate-900 text-sm text-center"
                                 />
@@ -570,6 +578,14 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                 <SummaryRow label="TOTAL inc. VAT" value={totalIncVat} bold large />
                             </div>
                         </div>
+                    </div>
+
+                    {/* Bottom CTA */}
+                    <div className="mt-8 flex justify-end">
+                        <Link href={`/dashboard/projects/proposal?projectId=${projectId}`}
+                            className="bg-gray-900 text-white px-6 py-3 rounded-lg font-semibold text-sm hover:bg-gray-700 flex items-center gap-2">
+                            Next: Build Proposal →
+                        </Link>
                     </div>
                 </>
             )}

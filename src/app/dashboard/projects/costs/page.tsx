@@ -70,6 +70,20 @@ export default async function EstimatingPage({ searchParams }: { searchParams: {
         .or("is_system_default.eq.true")
         .order("category,description");
 
+    // Fetch labour rates (system defaults + org rates)
+    const labourRateQuery = supabase
+        .from("labour_rates")
+        .select("*")
+        .order("trade,role");
+
+    if (orgId) {
+        labourRateQuery.or(`is_system_default.eq.true,organization_id.eq.${orgId}`);
+    } else {
+        labourRateQuery.eq("is_system_default", true);
+    }
+
+    const { data: labourRates } = await labourRateQuery;
+
     return (
         <div className="max-w-7xl mx-auto p-8 pt-24 space-y-8">
             <ProjectNavBar projectId={activeProjectId} activeTab="costing" />
@@ -153,6 +167,16 @@ export default async function EstimatingPage({ searchParams }: { searchParams: {
                     trade_section: rb.trade_section || "",
                     components: rb.components || [],
                     total_manhours_per_unit: rb.total_manhours_per_unit || 0,
+                }))}
+                labourRates={(labourRates || []).map((lr: any) => ({
+                    id: lr.id,
+                    trade: lr.trade || "",
+                    role: lr.role || "",
+                    day_rate: lr.day_rate || 0,
+                    hourly_rate: lr.hourly_rate || 0,
+                    region: lr.region || "national",
+                    organization_id: lr.organization_id || null,
+                    is_system_default: lr.is_system_default ?? true,
                 }))}
             />
 

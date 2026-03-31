@@ -74,6 +74,17 @@ interface CostLibraryItem {
     category: string;
 }
 
+interface LabourRate {
+    id: string;
+    trade: string;
+    role: string;
+    day_rate: number;
+    hourly_rate: number;
+    region: string;
+    organization_id: string | null;
+    is_system_default: boolean;
+}
+
 interface RateBuildup {
     id: string;
     name: string;
@@ -90,6 +101,7 @@ interface Props {
     projectId: string;
     orgId: string;
     rateBuildups: RateBuildup[];
+    labourRates: LabourRate[];
 }
 
 const TRADE_SECTIONS = [
@@ -114,12 +126,25 @@ const UNITS = ["m", "m2", "m3", "nr", "item", "day", "week", "tonne", "kg", "lm"
 
 const LINE_TYPES = ["general", "labour", "plant", "material", "subcontract", "consultancy"];
 
+const PLANT_RATES = [
+    { name: '5t excavator (day)', rate: 380, unit: 'day' },
+    { name: '13t excavator (day)', rate: 550, unit: 'day' },
+    { name: 'Dumper 9t (day)', rate: 185, unit: 'day' },
+    { name: 'Vibrating roller (day)', rate: 220, unit: 'day' },
+    { name: 'Telehandler (day)', rate: 420, unit: 'day' },
+    { name: 'Poker vibrator (day)', rate: 45, unit: 'day' },
+    { name: 'Generator (day)', rate: 65, unit: 'day' },
+    { name: 'Concrete skip (day)', rate: 35, unit: 'day' },
+    { name: 'Skip 8yd\u00B3 (collect)', rate: 285, unit: 'nr' },
+    { name: 'Traffic management (simple, day)', rate: 650, unit: 'day' },
+];
+
 function formatGBP(n: number): string {
     return "\u00A3" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // ─── Main Component ──────────────────────────────────────
-export default function EstimateClient({ estimates: initialEstimates, costLibrary, projectId, orgId, rateBuildups }: Props) {
+export default function EstimateClient({ estimates: initialEstimates, costLibrary, projectId, orgId, rateBuildups, labourRates }: Props) {
     const [estimates, setEstimates] = useState<Estimate[]>(initialEstimates);
     const [activeTab, setActiveTab] = useState<string>(estimates[0]?.id || "");
     const [isPending, startTransition] = useTransition();
@@ -368,9 +393,9 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                                         quantity: 1,
                                                         unit: componentType === "labour" || componentType === "plant" ? "day" : "nr",
                                                         unit_rate: 0,
-                                                        line_total: 0,
+                                                        line_total: 1 * 0,
                                                         manhours_per_unit: componentType === "labour" ? 8 : 0,
-                                                        total_manhours: 0,
+                                                        total_manhours: 1 * (componentType === "labour" ? 8 : 0),
                                                         sort_order: 0,
                                                     },
                                                 ],
@@ -388,21 +413,34 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
 
     const handleUpdateComponent = (componentId: string, updates: Partial<EstimateLineComponent>) => {
         setEstimates((prev) =>
-            prev.map((e) =>
-                e.id === currentEstimate?.id
-                    ? {
-                          ...e,
-                          estimate_lines: e.estimate_lines.map((l) => ({
-                              ...l,
-                              estimate_line_components: (l.estimate_line_components || []).map((c) =>
-                                  c.id === componentId
-                                      ? { ...c, ...updates, line_total: (updates.quantity ?? c.quantity) * (updates.unit_rate ?? c.unit_rate) }
-                                      : c
-                              ),
-                          })),
-                      }
-                    : e
-            )
+            prev.map((e) => {
+                if (e.id !== currentEstimate?.id) return e;
+                return {
+                    ...e,
+                    estimate_lines: e.estimate_lines.map((l) => {
+                        const updatedComponents = (l.estimate_line_components || []).map((c) => {
+                            if (c.id !== componentId) return c;
+                            const newQty = updates.quantity ?? c.quantity;
+                            const newRate = updates.unit_rate ?? c.unit_rate;
+                            const newMph = updates.manhours_per_unit ?? c.manhours_per_unit;
+                            return { ...c, ...updates, line_total: newQty * newRate, total_manhours: newQty * newMph };
+                        });
+
+                        // If this line is in buildup mode, recalculate unit_rate from components
+                        if (l.pricing_mode === 'buildup' && updatedComponents.some(c => c.id === componentId)) {
+                            const componentTotal = updatedComponents.reduce((s, c) => s + (c.line_total || 0), 0);
+                            const newUnitRate = l.quantity > 0 ? componentTotal / l.quantity : 0;
+                            return {
+                                ...l,
+                                estimate_line_components: updatedComponents,
+                                unit_rate: newUnitRate,
+                                line_total: l.quantity * newUnitRate,
+                            };
+                        }
+                        return { ...l, estimate_line_components: updatedComponents };
+                    }),
+                };
+            })
         );
         startTransition(async () => {
             await updateComponentAction(componentId, updates);
@@ -411,17 +449,28 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
 
     const handleDeleteComponent = (componentId: string) => {
         setEstimates((prev) =>
-            prev.map((e) =>
-                e.id === currentEstimate?.id
-                    ? {
-                          ...e,
-                          estimate_lines: e.estimate_lines.map((l) => ({
-                              ...l,
-                              estimate_line_components: (l.estimate_line_components || []).filter((c) => c.id !== componentId),
-                          })),
-                      }
-                    : e
-            )
+            prev.map((e) => {
+                if (e.id !== currentEstimate?.id) return e;
+                return {
+                    ...e,
+                    estimate_lines: e.estimate_lines.map((l) => {
+                        const remainingComponents = (l.estimate_line_components || []).filter((c) => c.id !== componentId);
+
+                        // If this line is in buildup mode, recalculate unit_rate from remaining components
+                        if (l.pricing_mode === 'buildup' && (l.estimate_line_components || []).some(c => c.id === componentId)) {
+                            const componentTotal = remainingComponents.reduce((s, c) => s + (c.line_total || 0), 0);
+                            const newUnitRate = l.quantity > 0 ? componentTotal / l.quantity : 0;
+                            return {
+                                ...l,
+                                estimate_line_components: remainingComponents,
+                                unit_rate: newUnitRate,
+                                line_total: l.quantity * newUnitRate,
+                            };
+                        }
+                        return { ...l, estimate_line_components: remainingComponents };
+                    }),
+                };
+            })
         );
         startTransition(async () => {
             await deleteComponentAction(componentId);
@@ -598,6 +647,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
             <div className="flex items-center gap-2 flex-wrap">
                 {estimates.map((est) => (
                     <button
+                        type="button"
                         key={est.id}
                         onClick={() => setActiveTab(est.id)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
@@ -611,6 +661,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     </button>
                 ))}
                 <button
+                    type="button"
                     onClick={handleCreateEstimate}
                     className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1.5"
                 >
@@ -697,6 +748,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                             </div>
                             <div className="flex gap-2">
                                 <button
+                                    type="button"
                                     onClick={() => handleSetActive(currentEstimate.id)}
                                     className={`h-10 px-4 rounded-md text-sm font-medium flex items-center gap-1.5 ${
                                         currentEstimate.is_active
@@ -708,6 +760,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                     {currentEstimate.is_active ? "Active" : "Use in Proposal"}
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={() => handleDeleteEstimate(currentEstimate.id)}
                                     className="h-10 px-3 rounded-md text-red-500 hover:bg-red-50 border border-slate-200"
                                 >
@@ -722,6 +775,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                         <span className="text-xs font-bold uppercase text-slate-500">Add Section:</span>
                         {TRADE_SECTIONS.filter((s) => !sectionGroups[s]?.length).map((section) => (
                             <button
+                                type="button"
                                 key={section}
                                 onClick={() => handleAddLine(section)}
                                 className="px-3 py-1.5 rounded-md text-xs font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors"
@@ -765,6 +819,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                             {/* Mode toggle button */}
                                             <div className="flex items-center px-2 border-b border-slate-100">
                                                 <button
+                                                    type="button"
                                                     onClick={() => handleTogglePricingMode(line.id, line.pricing_mode)}
                                                     title={line.pricing_mode === "buildup" ? "Switch to simple rate" : "Build up from first principles"}
                                                     className={`flex-shrink-0 w-5 h-5 rounded text-xs font-bold border transition-colors ${
@@ -793,6 +848,8 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                             <BuildUpPanel
                                                 line={line}
                                                 rateBuildups={rateBuildups}
+                                                labourRates={labourRates}
+                                                materialLibrary={costLibrary}
                                                 onAddComponent={handleAddComponent}
                                                 onUpdateComponent={handleUpdateComponent}
                                                 onDeleteComponent={handleDeleteComponent}
@@ -806,6 +863,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
 
                                 {/* Add line button */}
                                 <button
+                                    type="button"
                                     onClick={() => handleAddLine(section)}
                                     className="w-full px-5 py-2.5 text-left text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-1.5 transition-colors"
                                 >
@@ -951,6 +1009,7 @@ function LineItemRow({
                     <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
                         {filtered.map((item) => (
                             <button
+                                type="button"
                                 key={item.id}
                                 onMouseDown={(e) => {
                                     e.preventDefault();
@@ -1018,6 +1077,7 @@ function LineItemRow({
 
             {/* Delete */}
             <button
+                type="button"
                 onClick={() => onDelete(line.id)}
                 className="h-8 w-8 flex items-center justify-center rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
             >
@@ -1031,6 +1091,8 @@ function LineItemRow({
 function BuildUpPanel({
     line,
     rateBuildups,
+    labourRates,
+    materialLibrary,
     onAddComponent,
     onUpdateComponent,
     onDeleteComponent,
@@ -1040,6 +1102,8 @@ function BuildUpPanel({
 }: {
     line: EstimateLine;
     rateBuildups: RateBuildup[];
+    labourRates: LabourRate[];
+    materialLibrary: CostLibraryItem[];
     onAddComponent: (lineId: string, componentType: string) => void;
     onUpdateComponent: (componentId: string, updates: Partial<EstimateLineComponent>) => void;
     onDeleteComponent: (componentId: string) => void;
@@ -1105,13 +1169,119 @@ function BuildUpPanel({
                         >
                             {comp.component_type}
                         </span>
-                        {/* Description */}
-                        <input
-                            className="flex-1 border border-transparent hover:border-blue-200 rounded px-1 py-0.5 bg-transparent text-gray-700 text-xs"
-                            defaultValue={comp.description}
-                            onBlur={(e) => onUpdateComponent(comp.id, { description: e.target.value })}
-                            placeholder="Description..."
-                        />
+                        {/* Description — type-specific picker */}
+                        {comp.component_type === 'labour' ? (
+                            <div className="flex-1 flex items-center gap-1">
+                                <select
+                                    className="flex-1 border border-transparent hover:border-blue-200 rounded px-1 py-0.5 bg-transparent text-xs text-gray-700"
+                                    value={comp.description || ''}
+                                    onChange={(e) => {
+                                        if (e.target.value === '__custom__') {
+                                            onUpdateComponent(comp.id, { description: '__custom__' });
+                                        } else {
+                                            const selected = labourRates.find(lr => lr.role === e.target.value);
+                                            if (selected) {
+                                                onUpdateComponent(comp.id, {
+                                                    description: selected.role,
+                                                    unit_rate: selected.day_rate,
+                                                    unit: 'day',
+                                                });
+                                            } else {
+                                                onUpdateComponent(comp.id, { description: e.target.value });
+                                            }
+                                        }
+                                    }}
+                                >
+                                    <option value="">Select trade / staff member...</option>
+                                    {Array.from(new Set(labourRates.map(lr => lr.trade))).map(trade => (
+                                        <optgroup key={trade} label={trade}>
+                                            {labourRates.filter(lr => lr.trade === trade).map(lr => (
+                                                <option key={lr.id} value={lr.role}>
+                                                    {lr.role} — £{lr.day_rate}/day (£{lr.hourly_rate?.toFixed(2)}/hr) {lr.region !== 'national' ? `[${lr.region}]` : ''}
+                                                </option>
+                                            ))}
+                                        </optgroup>
+                                    ))}
+                                    <option value="__custom__">Custom / Other...</option>
+                                </select>
+                                {(comp.description === '__custom__' || (!labourRates.some(lr => lr.role === comp.description) && comp.description)) ? (
+                                    <input
+                                        className="w-32 border border-blue-200 rounded px-1 py-0.5 bg-white text-xs"
+                                        value={comp.description === '__custom__' ? '' : comp.description}
+                                        onChange={(e) => onUpdateComponent(comp.id, { description: e.target.value })}
+                                        placeholder="Custom description..."
+                                    />
+                                ) : null}
+                            </div>
+                        ) : comp.component_type === 'plant' ? (
+                            <div className="flex-1 flex items-center gap-1">
+                                <select
+                                    className="flex-1 border border-transparent hover:border-blue-200 rounded px-1 py-0.5 bg-transparent text-xs text-gray-700"
+                                    value={comp.description || ''}
+                                    onChange={(e) => {
+                                        if (e.target.value === '__custom__') {
+                                            onUpdateComponent(comp.id, { description: '__custom__' });
+                                        } else {
+                                            const selected = PLANT_RATES.find(p => p.name === e.target.value);
+                                            if (selected) {
+                                                onUpdateComponent(comp.id, {
+                                                    description: selected.name,
+                                                    unit_rate: selected.rate,
+                                                    unit: selected.unit,
+                                                });
+                                            } else {
+                                                onUpdateComponent(comp.id, { description: e.target.value });
+                                            }
+                                        }
+                                    }}
+                                >
+                                    <option value="">Select plant item...</option>
+                                    {PLANT_RATES.map(p => (
+                                        <option key={p.name} value={p.name}>
+                                            {p.name} — £{p.rate}/{p.unit}
+                                        </option>
+                                    ))}
+                                    <option value="__custom__">Custom / Other...</option>
+                                </select>
+                                {(comp.description === '__custom__' || (!PLANT_RATES.some(p => p.name === comp.description) && comp.description)) ? (
+                                    <input
+                                        className="w-32 border border-blue-200 rounded px-1 py-0.5 bg-white text-xs"
+                                        value={comp.description === '__custom__' ? '' : comp.description}
+                                        onChange={(e) => onUpdateComponent(comp.id, { description: e.target.value })}
+                                        placeholder="Custom description..."
+                                    />
+                                ) : null}
+                            </div>
+                        ) : comp.component_type === 'material' ? (
+                            <>
+                                <input
+                                    list={`material-list-${comp.id}`}
+                                    className="flex-1 border border-transparent hover:border-blue-200 rounded px-1 py-0.5 bg-transparent text-gray-700 text-xs"
+                                    defaultValue={comp.description}
+                                    onBlur={(e) => {
+                                        const match = materialLibrary.find(m => m.description === e.target.value);
+                                        if (match) {
+                                            onUpdateComponent(comp.id, { description: match.description, unit_rate: match.base_rate, unit: match.unit });
+                                        } else {
+                                            onUpdateComponent(comp.id, { description: e.target.value });
+                                        }
+                                    }}
+                                    placeholder="Search materials or type description..."
+                                />
+                                <datalist id={`material-list-${comp.id}`}>
+                                    {materialLibrary.filter(m => m.category !== 'Labour').map(m => (
+                                        <option key={m.id} value={m.description}>{m.description} — £{m.base_rate}/{m.unit}</option>
+                                    ))}
+                                </datalist>
+                            </>
+                        ) : (
+                            <input
+                                className="flex-1 border border-transparent hover:border-blue-200 rounded px-1 py-0.5 bg-transparent text-gray-700 text-xs"
+                                defaultValue={comp.description}
+                                onBlur={(e) => onUpdateComponent(comp.id, { description: e.target.value })}
+                                placeholder="Description..."
+                            />
+                        )}
                         {/* Qty */}
                         <input
                             type="number"
@@ -1152,7 +1322,7 @@ function BuildUpPanel({
                             {formatGBP(comp.line_total || 0)}
                         </span>
                         {/* Delete */}
-                        <button onClick={() => onDeleteComponent(comp.id)} className="text-red-400 hover:text-red-600 flex-shrink-0 text-sm">
+                        <button type="button" onClick={() => onDeleteComponent(comp.id)} className="text-red-400 hover:text-red-600 flex-shrink-0 text-sm">
                             ×
                         </button>
                     </div>
@@ -1166,12 +1336,14 @@ function BuildUpPanel({
             {components.length > 0 && (
                 <div className="flex items-center justify-between px-3 py-2 bg-blue-50 border-t border-blue-200">
                     <button
+                        type="button"
                         onClick={() => onSaveToLibrary(line)}
                         className="text-xs text-blue-600 hover:text-blue-800 underline"
                     >
                         Save to rate library
                     </button>
                     <button
+                        type="button"
                         onClick={() => onUpdateBuiltUpRate(line.id, ratePerUnit)}
                         className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded hover:bg-blue-700 font-medium"
                     >
@@ -1191,6 +1363,7 @@ function AddComponentRow({ onAdd }: { onAdd: (type: string) => void }) {
             <span className="text-xs text-gray-500 mr-1">Add:</span>
             {types.map((type) => (
                 <button
+                    type="button"
                     key={type}
                     onClick={() => onAdd(type)}
                     className="text-xs px-2 py-0.5 rounded border border-gray-200 text-gray-600 hover:bg-gray-100 capitalize"

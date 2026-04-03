@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Constructa
 
-## Getting Started
+Construction proposal, estimating, and project management platform for UK SME contractors.
 
-First, run the development server:
+**Live app:** https://constructa-nu.vercel.app  
+**Marketing site:** https://www.constructa.co
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## What it does
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Constructa guides contractors through a five-step pre-construction workflow:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Brief** — AI-assisted project brief from natural language description
+2. **Estimating** — Full Bill of Quantities with first-principles rate build-up (Labour + Plant + Materials)
+3. **Programme** — Gantt chart auto-generated from estimated manhours
+4. **Contracts** — T&C tier selection, AI risk register, contract review chatbot
+5. **Proposal** — Professional PDF proposal pulling all the above together automatically
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Tech stack
 
-## Learn More
+- **Framework:** Next.js 14 App Router, TypeScript, Tailwind CSS
+- **Backend:** Supabase (PostgreSQL + RLS + Auth + Storage)
+- **AI:** OpenAI gpt-4o-mini via `src/lib/ai.ts`
+- **PDF:** jsPDF + jspdf-autotable
+- **Deployment:** Vercel (auto-deploys from main branch)
 
-To learn more about Next.js, take a look at the following resources:
+## Getting started
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Clone the repo
+2. Copy `env.local.example` to `.env.local` and fill in credentials (ask project owner)
+3. `npm install`
+4. `npm run dev`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project context
 
-## Deploy on Vercel
+See `CLAUDE.md` for full architecture documentation, database schema, workflow details, rules, and sprint backlog. This file is the canonical reference for any developer or AI assistant working on the project.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Important
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Do NOT modify anything in `src/app/(marketing)/` — that is the constructa.co landing page and is deployed separately.

@@ -42,7 +42,6 @@ interface Profile {
     preferred_trades?: string[] | null;
     md_name?: string | null;
     md_message?: string | null;
-    closing_statement?: string | null;
 }
 
 const THEMES = [
@@ -736,6 +735,33 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
                             onRemove={() => setCaseStudies(prev => prev.filter((_, idx) => idx !== i))}
                         />
                     ))}
+                </div>
+            </div>
+
+            {/* Section — MD Message (for PDF proposals) */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">
+                <h2 className="text-lg font-bold text-slate-100">Managing Director Message</h2>
+                <p className="text-sm text-slate-400">This message appears in your PDF proposals as a personal note from the MD.</p>
+                <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-400">MD / Director Name</label>
+                        <input
+                            name="md_name"
+                            defaultValue={profile?.md_name || ""}
+                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            placeholder="John Smith, Managing Director"
+                        />
+                    </div>
+                </div>
+                <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-400">Personal Message</label>
+                    <textarea
+                        name="md_message"
+                        defaultValue={profile?.md_message || ""}
+                        rows={4}
+                        className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        placeholder="Thank you for considering us for this project. We pride ourselves on delivering quality work on time and within budget..."
+                    />
                 </div>
             </div>
 

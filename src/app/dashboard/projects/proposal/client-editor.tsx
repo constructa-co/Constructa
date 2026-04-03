@@ -194,6 +194,7 @@ export default function ClientEditor({
     const [scope, setScope] = useState(initialScope ?? '');
     const [exclusions, setExclusions] = useState(initialExclusions ?? '');
     const [clarifications, setClarifications] = useState(initialClarifications ?? '');
+    const [closingStatement, setClosingStatement] = useState(project?.closing_statement ?? '');
     const [generating, setGenerating] = useState(false);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -263,6 +264,7 @@ export default function ClientEditor({
     };
 
     // AI Wizard state
+    const [showFirstTimeModal, setShowFirstTimeModal] = useState(false);
     const [showWizard, setShowWizard] = useState(false);
 
     // Case study selection
@@ -438,6 +440,7 @@ export default function ClientEditor({
         fd.set("tc_overrides", useCustomTc ? JSON.stringify(tcOverrides) : "");
         fd.set("site_photos", JSON.stringify(sitePhotos.filter(p => p.url)));
         fd.set("payment_schedule", JSON.stringify(paymentSchedule));
+        fd.set("closing_statement", closingStatement);
         await saveProposalAction(fd);
         setSaved(true);
         setSaving(false);
@@ -745,6 +748,22 @@ export default function ClientEditor({
                                 placeholder={"e.g. Works based on drawings ref. A100\nNo asbestos assumed\nExisting drainage is serviceable"}
                             />
                         </div>
+                    </div>
+                </div>
+
+                {/* Closing Statement */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center gap-2">
+                        <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Closing Statement</span>
+                        <span className="text-xs text-slate-500">(appears before signatures in PDF)</span>
+                    </div>
+                    <div className="px-6 py-4">
+                        <Textarea
+                            value={closingStatement}
+                            onChange={(e) => setClosingStatement(e.target.value)}
+                            className="w-full border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-600 focus-visible:ring-blue-600 min-h-[80px] text-sm"
+                            placeholder="We look forward to working with you on this project and delivering exceptional results..."
+                        />
                     </div>
                 </div>
 

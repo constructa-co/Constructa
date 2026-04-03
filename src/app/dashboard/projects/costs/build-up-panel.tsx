@@ -101,8 +101,6 @@ export default function BuildUpPanel({
             .filter(p => !PLANT_RATES.some(pr => pr.name === p.name))
     ];
 
-    const consumableItems = materialLibrary.filter(m => m.category === 'Consumables');
-
     const componentTotal = components.reduce((s, c) => s + c.quantity * c.unit_rate, 0);
     const ratePerUnit = line.quantity > 0 ? componentTotal / line.quantity : 0;
     const totalManhours = components

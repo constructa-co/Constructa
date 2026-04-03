@@ -163,6 +163,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             if (serverPhases.length > 0) {
                 setPhases(serverPhases);
             } else {
+                // Fallback to local computation
                 const regenerated = buildPhasesFromEstimate(estimate, undefined);
                 setPhases(regenerated);
             }

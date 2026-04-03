@@ -237,7 +237,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     const normaliseAddress = (addr: string) => {
         if (!addr) return "";
         return addr
-            .replace(/([a-z])([A-Z])/g, "$1\n$2")   // split camelCase joins
+            .replace(/([a-z])([A-Z])/g, "$1 $2")   // fix camelCase joins
             .replace(/,\s*/g, "\n")
             .replace(/\n+/g, "\n")
             .trim();
@@ -516,8 +516,10 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
                 doc.setFontSize(8.5);
                 doc.setTextColor(...T.textDark);
                 const valLines = doc.splitTextToSize(val, rightW - 30);
-                doc.text(valLines[0], rightX + 28, rightY + 4);
-                rightY += 9;
+                valLines.forEach((vl: string, vi: number) => {
+                    doc.text(vl, rightX + 28, rightY + 4 + vi * 4);
+                });
+                rightY += 9 + Math.max(0, (valLines.length - 1) * 4);
             });
             rightY += 6;
         }
@@ -564,6 +566,37 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         } else {
             y = Math.max(leftY, rightY) + 8;
         }
+    }
+
+    // ─── MD / Director Message ─────────────────────────────────
+    if (profile?.md_message) {
+        if (y > PAGE_H - 80) {
+            doc.addPage();
+            totalPagesRef.n++;
+            y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef, T);
+        }
+        y = renderSectionHeading(doc, y, "A Message from Our Director", T);
+
+        doc.setFillColor(...T.surface);
+        const msgLines = doc.splitTextToSize(sanitiseText(profile.md_message), CW - 16);
+        const msgH = msgLines.length * 5 + 16;
+        doc.roundedRect(ML, y, CW, msgH, 3, 3, "F");
+        doc.setDrawColor(...T.borderLight);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(ML, y, CW, msgH, 3, 3, "S");
+
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(9.5);
+        doc.setTextColor(...T.textDark);
+        doc.text(msgLines, ML + 8, y + 10);
+
+        if (profile.md_name) {
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.setTextColor(...T.textDark);
+            doc.text(`— ${profile.md_name}`, ML + 8, y + msgH - 4);
+        }
+        y += msgH + 10;
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -1428,6 +1461,22 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             termLeftY = newY; // reset left too since it's a new page
         }
     });
+
+    // ─── Closing Statement ──────────────────────────────────────
+    if (project?.closing_statement) {
+        if (y > PAGE_H - 60) {
+            doc.addPage();
+            totalPagesRef.n++;
+            y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef, T);
+        }
+        y += 6;
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(10);
+        doc.setTextColor(...T.textDark);
+        const closingLines = doc.splitTextToSize(sanitiseText(project.closing_statement), CW);
+        doc.text(closingLines, ML, y);
+        y += closingLines.length * 5.5 + 10;
+    }
 
     // ═══════════════════════════════════════════════════════════
     // WHY CHOOSE US / CLOSING STATEMENT PAGE

@@ -181,6 +181,7 @@ export default function AiWizard({ projectId, project, onComplete, onClose }: Ai
             }
 
             setDone(true);
+            setGenerating(false);
             // Call onComplete immediately — no setTimeout which can lose state
             onComplete({
                 introduction: result.data.introduction,

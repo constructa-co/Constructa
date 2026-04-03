@@ -182,6 +182,12 @@ export async function saveProposalAction(formData: FormData) {
         try { updateData.payment_schedule = JSON.parse(paymentRaw); } catch { /* skip */ }
     }
 
+    // Closing statement
+    const closingStatement = formData.get("closing_statement") as string;
+    if (closingStatement !== null) {
+        updateData.closing_statement = closingStatement || null;
+    }
+
     // Generate proposal_token if it doesn't exist yet
     const { data: existing } = await supabase
         .from("projects")

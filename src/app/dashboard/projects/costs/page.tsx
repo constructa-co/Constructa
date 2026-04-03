@@ -139,9 +139,9 @@ export default async function EstimatingPage({ searchParams }: { searchParams: {
                         className="h-10 px-4 rounded-md text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2">
                         View Programme
                     </Link>
-                    <Link href={`/dashboard/projects/proposal?projectId=${activeProjectId}`}
+                    <Link href={`/dashboard/projects/schedule?projectId=${activeProjectId}`}
                         className="h-10 px-4 rounded-md text-sm font-semibold bg-gray-900 text-white hover:bg-gray-700 flex items-center gap-2">
-                        Next: Build Proposal →
+                        Next: Programme →
                     </Link>
                 </div>
             </div>

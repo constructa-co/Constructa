@@ -22,18 +22,17 @@ import {
     FileText,
     CreditCard,
     GitBranch,
+    Eye,
+    BarChart3,
+    RefreshCw,
+    FileCheck,
+    FolderOpen,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 
-interface Project {
-    id: string;
-    name: string;
-    client_name?: string;
-}
-
 interface SidebarNavProps {
     user: { email?: string };
-    projects: Project[];
+    projects: any[];
 }
 
 function NavItem({
@@ -104,7 +103,7 @@ function SectionLabel({ label }: { label: string }) {
     );
 }
 
-export default function SidebarNav({ user, projects }: SidebarNavProps) {
+export default function SidebarNav({ user }: SidebarNavProps) {
     const pathname = usePathname();
     const { theme, setTheme } = useTheme();
     const isDark = theme === "dark";
@@ -146,6 +145,12 @@ export default function SidebarNav({ user, projects }: SidebarNavProps) {
                 {/* Pre-Construction */}
                 <SectionLabel label="Pre-Construction" />
                 <div className="space-y-0.5">
+                    <NavItem href="/dashboard/projects/brief" icon={ClipboardList} label="Brief" active={is("/dashboard/projects/brief")} />
+                    <NavItem href="/dashboard/projects/costs" icon={Calculator} label="Estimating" active={is("/dashboard/projects/costs")} />
+                    <NavItem href="/dashboard/projects/schedule" icon={CalendarDays} label="Programme" active={is("/dashboard/projects/schedule")} />
+                    <NavItem href="/dashboard/projects/contracts" icon={Scale} label="Contracts" active={is("/dashboard/projects/contracts")} />
+                    <NavItem href="/dashboard/projects/proposal" icon={FileText} label="Proposal" active={is("/dashboard/projects/proposal")} />
+                    <div className="my-2 border-t border-white/10" />
                     <NavItem href="/dashboard/library" icon={BookOpen} label="Cost Library" active={is("/dashboard/library")} />
                     <NavItem href="/dashboard/resources" icon={Wrench} label="Resources" active={is("/dashboard/resources")} />
                 </div>
@@ -153,40 +158,21 @@ export default function SidebarNav({ user, projects }: SidebarNavProps) {
                 {/* Live Projects */}
                 <SectionLabel label="Live Projects" />
                 <div className="space-y-0.5">
-                    {projects.length > 0 ? (
-                        projects.slice(0, 5).map(p => (
-                            <div key={p.id} className="space-y-0.5">
-                                <NavItem
-                                    href={`/dashboard/projects/brief?projectId=${p.id}`}
-                                    icon={HardHat}
-                                    label={p.name}
-                                    sublabel={p.client_name}
-                                    active={pathname.includes(p.id)}
-                                />
-                                {pathname.includes(p.id) && (
-                                    <div className="ml-5 pl-3 border-l border-white/10 space-y-0.5">
-                                        <NavItem href={`/dashboard/projects/brief?projectId=${p.id}`} icon={ClipboardList} label="Brief" active={is("/dashboard/projects/brief") && pathname.includes(p.id)} />
-                                        <NavItem href={`/dashboard/projects/costs?projectId=${p.id}`} icon={Calculator} label="Estimating" active={is("/dashboard/projects/costs") && pathname.includes(p.id)} />
-                                        <NavItem href={`/dashboard/projects/schedule?projectId=${p.id}`} icon={CalendarDays} label="Programme" active={is("/dashboard/projects/schedule") && pathname.includes(p.id)} />
-                                        <NavItem href={`/dashboard/projects/contracts?projectId=${p.id}`} icon={Scale} label="Contracts" active={is("/dashboard/projects/contracts") && pathname.includes(p.id)} />
-                                        <NavItem href={`/dashboard/projects/proposal?projectId=${p.id}`} icon={FileText} label="Proposal" active={is("/dashboard/projects/proposal") && pathname.includes(p.id)} />
-                                    </div>
-                                )}
-                            </div>
-                        ))
-                    ) : (
-                        <div className="px-3 py-2 text-xs text-slate-600 italic">
-                            Your active projects appear here
-                        </div>
-                    )}
+                    <NavItem href="/dashboard/live" icon={Eye} label="Overview" active={is("/dashboard/live")} />
+                    <NavItem href="#" icon={BarChart3} label="Finance" disabled badge="Soon" />
+                    <NavItem href="#" icon={CalendarDays} label="Programme" disabled badge="Soon" />
+                    <NavItem href="#" icon={RefreshCw} label="Change Mgmt" disabled badge="Soon" />
+                    <NavItem href="#" icon={CreditCard} label="Billing" disabled badge="Soon" />
+                    <NavItem href="#" icon={GitBranch} label="Variations" disabled badge="Soon" />
                 </div>
 
                 {/* Post-Construction */}
                 <SectionLabel label="Post-Construction" />
                 <div className="space-y-0.5">
-                    <NavItem href="#" icon={CreditCard} label="Billing" disabled badge="Soon" />
-                    <NavItem href="#" icon={GitBranch} label="Variations" disabled badge="Soon" />
-                    <NavItem href="#" icon={Archive} label="Closeout" disabled badge="Soon" />
+                    <NavItem href="#" icon={FileCheck} label="Close-Out" disabled badge="Soon" />
+                    <NavItem href="#" icon={Archive} label="Final Account" disabled badge="Soon" />
+                    <NavItem href="#" icon={FolderOpen} label="Handover Docs" disabled badge="Soon" />
+                    <NavItem href="#" icon={HardHat} label="Records" disabled badge="Soon" />
                 </div>
 
             </div>

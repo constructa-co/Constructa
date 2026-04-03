@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2, RefreshCw } from "lucide-react";
-import { saveProposalAction, generateAiScopeAction, sendProposalAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction, updatePaymentScheduleTypeAction } from "./actions";
+import { saveProposalAction, generateAiScopeAction, sendProposalAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction, updatePaymentScheduleTypeAction, generateClosingStatementAction, saveClosingStatementAction } from "./actions";
 import ProposalPdfButton from "./proposal-pdf-button";
 import AiWizard from "./ai-wizard";
 import Link from "next/link";
@@ -219,6 +219,7 @@ export default function ClientEditor({
     const clarificationsPreFilled = !initialClarifications && !!initialContractClarifications;
 
     const [closingStatement, setClosingStatement] = useState(project?.closing_statement ?? '');
+    const [isGeneratingClosing, setIsGeneratingClosing] = useState(false);
     const [generating, setGenerating] = useState(false);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -375,6 +376,27 @@ export default function ClientEditor({
             computedPhases.push({ ...phase, start_date: newStart });
         }
     }
+
+    const handleGenerateClosing = async () => {
+        setIsGeneratingClosing(true);
+        try {
+            const result = await generateClosingStatementAction(projectId, {
+                companyName: profile?.company_name || '',
+                capability: profile?.capability_statement || '',
+                projectName: project?.name || '',
+                clientName: project?.client_name || '',
+                contractValue: contractValue || 0,
+                discountPct: project?.discount_pct || 0,
+                discountReason: project?.discount_reason || '',
+                mdName: profile?.md_name || '',
+            });
+            setClosingStatement(result.text);
+        } catch {
+            // silently fail
+        } finally {
+            setIsGeneratingClosing(false);
+        }
+    };
 
     const [aiError, setAiError] = useState("");
 
@@ -861,109 +883,61 @@ export default function ClientEditor({
 
                 {/* Closing Statement */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center gap-2">
-                        <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Closing Statement</span>
-                        <span className="text-xs text-slate-500">(appears before signatures in PDF)</span>
+                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <CheckCircle className={`w-4 h-4 ${closingStatement ? 'text-green-500' : 'text-slate-600'}`} />
+                            <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Closing Statement</span>
+                            <span className="text-xs text-slate-500">(appears before signatures in PDF)</span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleGenerateClosing}
+                            disabled={isGeneratingClosing}
+                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                        >
+                            <Sparkles className="w-4 h-4" />
+                            {isGeneratingClosing ? 'Generating...' : closingStatement ? 'Regenerate with AI' : 'Generate with AI'}
+                        </button>
                     </div>
                     <div className="px-6 py-4">
-                        <Textarea
-                            value={closingStatement}
-                            onChange={(e) => setClosingStatement(e.target.value)}
-                            className="w-full border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-600 focus-visible:ring-blue-600 min-h-[80px] text-sm"
-                            placeholder="We look forward to working with you on this project and delivering exceptional results..."
-                        />
+                        {closingStatement ? (
+                            <Textarea
+                                value={closingStatement}
+                                onChange={(e) => setClosingStatement(e.target.value)}
+                                onBlur={() => saveClosingStatementAction(projectId, closingStatement)}
+                                className="w-full border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-600 focus-visible:ring-blue-600 min-h-[80px] text-sm"
+                                placeholder="We look forward to working with you on this project and delivering exceptional results..."
+                            />
+                        ) : (
+                            <div className="h-20 flex items-center justify-center text-slate-500 text-sm border-2 border-dashed border-slate-700 rounded-lg">
+                                Click &ldquo;Generate with AI&rdquo; to create a personalised closing statement
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* SECTION 6: Project Timeline */}
+                {/* Programme summary — read only, managed in Programme tab */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
                     <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            {checks.timeline ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4 text-slate-600" />}
+                            <CheckCircle className={`w-4 h-4 ${project?.programme_phases?.length > 0 ? 'text-green-500' : 'text-slate-600'}`} />
                             <CalendarDays className="w-4 h-4 text-slate-400" />
-                            <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Project Timeline</span>
+                            <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Programme</span>
                         </div>
-                        {/* Sequential toggle */}
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-400">Sequential</span>
-                            <button
-                                type="button"
-                                onClick={() => setSequentialMode(!sequentialMode)}
-                                className={`relative w-10 h-5 rounded-full transition-colors ${sequentialMode ? "bg-blue-600" : "bg-slate-700"}`}
-                            >
-                                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${sequentialMode ? "translate-x-5" : ""}`} />
-                            </button>
-                        </div>
+                        <Link href={`/dashboard/projects/schedule?projectId=${projectId}`}
+                            className="text-xs text-blue-400 hover:text-blue-300">
+                            Edit in Programme tab &rarr;
+                        </Link>
                     </div>
-                    <div className="p-6 space-y-3">
-                        {/* Column headers */}
-                        <div className="grid gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 pb-1 border-b border-slate-800" style={{ gridTemplateColumns: "1fr 140px 80px 90px 40px" }}>
-                            <span>Phase Name</span>
-                            <span>Start Date</span>
-                            <span>Duration</span>
-                            <span>Unit</span>
-                            <span></span>
-                        </div>
-                        {ganttPhases.map((phase, idx) => {
-                            const computed = computedPhases[idx];
-                            const displayStart = sequentialMode && idx > 0 ? computed.start_date : phase.start_date;
-                            const unitValue = daysToUnit(phase.duration_days, phase.duration_unit);
-                            return (
-                                <div key={phase.id} className="grid gap-2 items-center" style={{ gridTemplateColumns: "1fr 140px 80px 90px 40px" }}>
-                                    <input
-                                        value={phase.name}
-                                        onChange={(e) => updatePhase(phase.id, "name", e.target.value)}
-                                        className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                        placeholder="Phase name"
-                                    />
-                                    {sequentialMode && idx > 0 ? (
-                                        <div className="h-9 rounded-lg border border-slate-700 bg-slate-950 px-2 text-sm text-slate-500 flex items-center">
-                                            {displayStart || "—"}
-                                        </div>
-                                    ) : (
-                                        <input
-                                            type="date"
-                                            value={phase.start_date}
-                                            onChange={(e) => updatePhase(phase.id, "start_date", e.target.value)}
-                                            className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                        />
-                                    )}
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        value={unitValue}
-                                        onChange={(e) => {
-                                            const v = parseInt(e.target.value) || 1;
-                                            updatePhase(phase.id, "duration_days", unitToDays(v, phase.duration_unit));
-                                        }}
-                                        className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-2 text-sm text-slate-100 text-center focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                    />
-                                    <select
-                                        value={phase.duration_unit}
-                                        onChange={(e) => updatePhase(phase.id, "duration_unit", e.target.value)}
-                                        className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                    >
-                                        <option value="Hours">Hours</option>
-                                        <option value="Days">Days</option>
-                                        <option value="Weeks">Weeks</option>
-                                    </select>
-                                    <button
-                                        type="button"
-                                        onClick={() => removePhase(phase.id)}
-                                        className="h-9 w-9 rounded-lg bg-red-900/20 text-red-400 hover:bg-red-900/40 flex items-center justify-center transition-colors text-lg font-bold"
-                                    >
-                                        ×
-                                    </button>
-                                </div>
-                            );
-                        })}
-                        <button
-                            type="button"
-                            onClick={addPhase}
-                            className="w-full h-10 rounded-lg border border-dashed border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors text-sm font-semibold"
-                        >
-                            + Add Phase
-                        </button>
+                    <div className="px-6 py-4">
+                        {project?.programme_phases?.length > 0 ? (
+                            <div className="text-sm text-slate-400">
+                                {project.programme_phases.length} phases &middot; {project.programme_phases.reduce((s: number, p: any) => s + (p.manualDays ?? p.calculatedDays ?? p.duration_days ?? 0), 0)} days total
+                                &middot; starts {project.start_date ? new Date(project.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'TBC'}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-slate-500">No programme phases yet. <Link href={`/dashboard/projects/schedule?projectId=${projectId}`} className="text-blue-400 hover:text-blue-300">Build your programme &rarr;</Link></p>
+                        )}
                     </div>
                 </div>
 
@@ -1289,91 +1263,28 @@ export default function ClientEditor({
                     </div>
                 )}
 
-                {/* SECTION 9: Terms & Conditions */}
+                {/* T&C summary — read only, managed in Contracts tab */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
                     <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <CheckCircle className="w-4 h-4 text-green-500" />
+                            <CheckCircle className={`w-4 h-4 ${project?.tc_tier ? 'text-green-500' : 'text-slate-600'}`} />
                             <Scale className="w-4 h-4 text-slate-400" />
                             <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Terms & Conditions</span>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <span className="text-xs text-slate-500">{useCustomTc ? "Custom" : "Standard"}</span>
-                            <button
-                                type="button"
-                                onClick={() => setUseCustomTc(!useCustomTc)}
-                                className={`relative w-10 h-5 rounded-full transition-colors ${useCustomTc ? "bg-blue-600" : "bg-slate-700"}`}
-                            >
-                                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${useCustomTc ? "translate-x-5" : ""}`} />
-                            </button>
-                        </div>
+                        <Link href={`/dashboard/projects/contracts?projectId=${projectId}`}
+                            className="text-xs text-blue-400 hover:text-blue-300">
+                            Edit in Contracts tab &rarr;
+                        </Link>
                     </div>
-                    <div className="p-6">
-                        {!useCustomTc ? (
-                            <p className="text-sm text-slate-400">Using standard 9-clause T&Cs. Toggle &ldquo;Custom&rdquo; to edit individual clauses.</p>
-                        ) : (
-                            <div className="space-y-3">
-                                {tcOverrides.map((clause) => (
-                                    <div
-                                        key={clause.clause_number}
-                                        className={`bg-slate-800 border border-slate-700 rounded-lg p-4 space-y-2 transition-opacity ${clause.hidden ? "opacity-40" : ""}`}
-                                    >
-                                        <div className="flex items-center justify-between gap-2">
-                                            <input
-                                                value={clause.title}
-                                                onChange={(e) => updateTcClause(clause.clause_number, "title", e.target.value)}
-                                                className="text-sm font-bold text-slate-200 bg-transparent border-b border-slate-600 focus:outline-none focus:border-blue-500 flex-1 pb-0.5"
-                                            />
-                                            <div className="flex items-center gap-2 flex-shrink-0">
-                                                {!clause.custom && (
-                                                    <>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => resetTcClause(clause.clause_number)}
-                                                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                                                        >
-                                                            Reset
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => hideTcClause(clause.clause_number)}
-                                                            className="text-xs text-slate-400 hover:text-slate-300 transition-colors"
-                                                        >
-                                                            {clause.hidden ? "Show" : "Hide"}
-                                                        </button>
-                                                    </>
-                                                )}
-                                                {clause.custom && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeCustomClause(clause.clause_number)}
-                                                        className="w-6 h-6 rounded bg-red-900/30 text-red-400 hover:bg-red-900/50 flex items-center justify-center text-sm font-bold transition-colors"
-                                                    >
-                                                        ✕
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                        {!clause.hidden && (
-                                            <textarea
-                                                value={clause.body}
-                                                onChange={(e) => updateTcClause(clause.clause_number, "body", e.target.value)}
-                                                rows={3}
-                                                className="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                            />
-                                        )}
-                                    </div>
-                                ))}
-                                <button
-                                    type="button"
-                                    onClick={addCustomClause}
-                                    className="w-full h-10 rounded-lg border border-dashed border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors text-sm font-semibold flex items-center justify-center gap-2"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                    Add Custom Clause
-                                </button>
-                            </div>
-                        )}
+                    <div className="px-6 py-4">
+                        <p className="text-sm text-slate-400">
+                            {project?.tc_tier
+                                ? `${project.tc_tier.charAt(0).toUpperCase() + project.tc_tier.slice(1)} terms selected`
+                                : 'No T&C tier selected yet.'}
+                            {!project?.tc_tier && (
+                                <Link href={`/dashboard/projects/contracts?projectId=${projectId}`} className="text-blue-400 hover:text-blue-300 ml-1">Select T&Cs &rarr;</Link>
+                            )}
+                        </p>
                     </div>
                 </div>
             </div>

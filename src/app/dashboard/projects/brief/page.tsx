@@ -5,6 +5,12 @@ import BriefClient from "./brief-client";
 
 export const dynamic = "force-dynamic";
 
+// Extract postcode from site_address if separate postcode field doesn't exist
+function extractPostcode(address: string): string {
+    const match = address?.match(/[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}/i);
+    return match ? match[0].toUpperCase() : '';
+}
+
 export default async function BriefPage({ searchParams }: { searchParams: { projectId?: string } }) {
     const supabase = createClient();
     const { data: authData } = await supabase.auth.getUser();
@@ -41,6 +47,9 @@ export default async function BriefPage({ searchParams }: { searchParams: { proj
 
     const activeEstimate = (estimates || []).find((e: any) => e.is_active) || (estimates || [])[0] || null;
 
+    const siteAddress = project.site_address || project.address || "";
+    const postcode = project.postcode || extractPostcode(siteAddress) || "";
+
     return (
         <div className="max-w-7xl mx-auto p-8 pt-24 space-y-8">
             <ProjectNavBar projectId={activeProjectId} activeTab="brief" />
@@ -50,8 +59,8 @@ export default async function BriefPage({ searchParams }: { searchParams: { proj
                     id: project.id,
                     name: project.name || "",
                     client_name: project.client_name || "",
-                    site_address: project.site_address || project.address || "",
-                    postcode: project.postcode || "",
+                    site_address: siteAddress,
+                    postcode,
                     potential_value: project.potential_value || 0,
                     start_date: project.start_date || "",
                     brief_scope: project.brief_scope || "",

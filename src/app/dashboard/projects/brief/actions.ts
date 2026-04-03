@@ -82,30 +82,103 @@ export async function saveBriefAction(projectId: string, data: {
 }
 
 export async function suggestEstimateLineItemsAction(
+  projectId: string,
   scope: string,
   tradeSections: string[]
-): Promise<{
-  sections: Array<{
-    trade: string;
-    lines: Array<{ description: string; unit: string; quantity: number }>
-  }>
-}> {
-  return generateJSON<{
-    sections: Array<{
-      trade: string;
-      lines: Array<{ description: string; unit: string; quantity: number }>
-    }>
-  }>(
-    `You are a UK construction estimator. Based on this project scope, suggest specific line items for a Bill of Quantities.
+): Promise<{ success: boolean; sectionsCreated: number; linesCreated: number; error?: string }> {
+  try {
+    const supabase = createClient();
 
-    Scope: "${scope?.substring(0, 800) || "General construction works"}"
-    Trade sections: ${tradeSections.slice(0, 8).join(", ")}
+    // Step 1: Find or create estimate
+    const { data: existingEstimate } = await supabase
+      .from('estimates')
+      .select('id')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
 
-    For each relevant trade section, suggest 3-5 specific measurable line items.
-    Use standard UK construction units (m, m², m³, nr, item, m run).
-    Make descriptions specific and professional (e.g. "Excavate topsoil 150mm deep" not just "Excavation").
+    let estimateId = existingEstimate?.id;
 
-    Return JSON: { "sections": [{ "trade": "trade name", "lines": [{ "description": "item description", "unit": "m²", "quantity": 10 }] }] }
-    Only include trades from the provided list.`
-  );
+    if (!estimateId) {
+      const { data: newEst, error: estErr } = await supabase
+        .from('estimates')
+        .insert({
+          project_id: projectId,
+          version_name: 'Estimate v1',
+          overhead_pct: 10,
+          profit_pct: 15,
+          risk_pct: 5,
+          prelims_pct: 10,
+          is_active: true,
+        })
+        .select('id')
+        .single();
+
+      if (estErr || !newEst) {
+        return { success: false, sectionsCreated: 0, linesCreated: 0, error: `Estimate creation failed: ${estErr?.message}` };
+      }
+      estimateId = newEst.id;
+    }
+
+    // Step 2: AI suggestions
+    const scopeText = scope?.substring(0, 1000) || 'General construction works';
+    const tradesText = tradeSections.slice(0, 6).join(', ') || 'General';
+
+    const result = await generateJSON<{
+      sections: Array<{
+        trade: string;
+        lines: Array<{ description: string; unit: string; quantity: number }>
+      }>
+    }>(
+      `You are a UK construction estimator. Generate a Bill of Quantities for this project.
+
+      Scope: "${scopeText}"
+      Trade sections: ${tradesText}
+
+      For each relevant trade section (max 4 sections), provide 3-5 specific measurable line items.
+      Use UK construction standard: descriptions should be specific activities with materials
+      (e.g. "Excavate topsoil 150mm by machine" not just "Excavation").
+      Units: m, m², m³, nr, item, lm, tonne.
+      Quantities should be realistic estimates based on typical project scale.
+
+      Return ONLY valid JSON: { "sections": [{ "trade": "trade name from the list", "lines": [{ "description": "...", "unit": "m²", "quantity": 10 }] }] }`
+    );
+
+    // Step 3: Delete any existing zero-rate suggested lines to avoid duplicates
+    await supabase
+      .from('estimate_lines')
+      .delete()
+      .eq('estimate_id', estimateId)
+      .eq('unit_rate', 0)
+      .eq('pricing_mode', 'simple');
+
+    // Step 4: Insert new lines
+    let linesCreated = 0;
+    for (const section of result.sections || []) {
+      for (const line of section.lines || []) {
+        if (!line.description) continue;
+        const { error } = await supabase.from('estimate_lines').insert({
+          estimate_id: estimateId,
+          trade_section: section.trade,
+          description: line.description,
+          quantity: Number(line.quantity) || 1,
+          unit: line.unit || 'nr',
+          unit_rate: 0,
+          line_total: 0,
+          pricing_mode: 'simple',
+        });
+        if (!error) linesCreated++;
+      }
+    }
+
+    return {
+      success: true,
+      sectionsCreated: result.sections?.length || 0,
+      linesCreated,
+    };
+  } catch (err: any) {
+    console.error('suggestEstimateLineItemsAction error:', err);
+    return { success: false, sectionsCreated: 0, linesCreated: 0, error: err.message };
+  }
 }

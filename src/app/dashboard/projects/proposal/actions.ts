@@ -483,3 +483,45 @@ export async function uploadPhotoAction(formData: FormData) {
     const { data } = supabase.storage.from("proposal-photos").getPublicUrl(path);
     return { url: data.publicUrl };
 }
+
+export async function generateClosingStatementAction(
+    projectId: string,
+    context: {
+        companyName: string;
+        capability: string;
+        projectName: string;
+        clientName: string;
+        contractValue: number;
+        discountPct: number;
+        discountReason: string;
+        mdName: string;
+    }
+): Promise<{ text: string }> {
+    const discount = context.discountPct > 0
+        ? `We are also pleased to offer a ${context.discountPct}% ${context.discountReason || 'discount'} on this proposal.`
+        : '';
+
+    const text = await generateText(
+        `Write a compelling, personal closing statement for a construction proposal "Why Choose Us" page.
+    Company: ${context.companyName}
+    About the company: ${context.capability?.substring(0, 200) || 'specialist construction contractor'}
+    Project: ${context.projectName} for ${context.clientName}
+    Contract value: £${context.contractValue.toLocaleString()}
+    ${discount}
+    ${context.mdName ? `Written from the perspective of ${context.mdName}` : ''}
+
+    Write 2 paragraphs. First: why this company is the right choice (expertise, approach, track record).
+    Second: genuine enthusiasm for this project, clear call to action to accept.
+    Tone: warm, professional, confident. Avoid cliches. Max 150 words.`
+    );
+
+    const supabase = createClient();
+    await supabase.from('projects').update({ closing_statement: text }).eq('id', projectId);
+
+    return { text };
+}
+
+export async function saveClosingStatementAction(projectId: string, text: string) {
+    const supabase = createClient();
+    await supabase.from('projects').update({ closing_statement: text }).eq('id', projectId);
+}

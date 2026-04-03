@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { Send, Loader2, Sparkles, ArrowRight, Save, MapPin } from "lucide-react";
 import { processBriefChatAction, saveBriefAction, suggestEstimateLineItemsAction } from "./actions";
-import { addLineItemAction, createEstimateAction } from "../costs/actions";
 
 const ALL_TRADES = [
     'Site Setup & Preliminaries', 'Demolition & Strip Out', 'Asbestos Removal',
@@ -81,6 +80,7 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
 
     // Suggest estimate lines state
     const [suggesting, setSuggesting] = useState(false);
+    const [suggestResult, setSuggestResult] = useState<{ success: boolean; message: string } | null>(null);
 
     const handlePostcodeLookup = async (postcode: string) => {
         if (!postcode || postcode.length < 5) return;
@@ -153,40 +153,29 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
             return;
         }
         setSuggesting(true);
+        setSuggestResult(null);
         try {
-            const result = await suggestEstimateLineItemsAction(scope, selectedTrades);
-
-            // Ensure there's an estimate to add lines to
-            let estId = activeEstimateId;
-            if (!estId) {
-                const newEst = await createEstimateAction(projectId, "From Brief");
-                if (newEst?.id) {
-                    estId = newEst.id;
-                } else {
-                    toast.error("Failed to create estimate");
-                    setSuggesting(false);
-                    return;
-                }
+            const result = await suggestEstimateLineItemsAction(
+                projectId,
+                scope,
+                selectedTrades
+            );
+            if (result.success) {
+                setSuggestResult({
+                    success: true,
+                    message: `Created ${result.linesCreated} line items across ${result.sectionsCreated} sections in your Estimating tab.`
+                });
+            } else {
+                setSuggestResult({
+                    success: false,
+                    message: `Failed to create estimate lines: ${result.error || 'Unknown error'}`
+                });
             }
-
-            // Add the suggested lines
-            let lineCount = 0;
-            for (const section of result.sections) {
-                for (const line of section.lines) {
-                    await addLineItemAction(estId!, section.trade, {
-                        description: line.description,
-                        quantity: line.quantity,
-                        unit: line.unit,
-                        unit_rate: 0,
-                    });
-                    lineCount++;
-                }
-            }
-            toast.success(`Added ${lineCount} suggested line items to estimate`);
-        } catch {
-            toast.error("Failed to suggest estimate lines");
+        } catch (err: any) {
+            setSuggestResult({ success: false, message: err.message });
+        } finally {
+            setSuggesting(false);
         }
-        setSuggesting(false);
     };
 
     const inputCls = "w-full h-11 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900";
@@ -350,6 +339,16 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
                         <ArrowRight className="w-4 h-4" />
                     </Link>
                 </div>
+
+                {suggestResult && (
+                    <div className={`mt-3 px-4 py-3 rounded-lg text-sm font-medium ${
+                        suggestResult.success
+                            ? "bg-green-50 border border-green-200 text-green-800"
+                            : "bg-red-50 border border-red-200 text-red-800"
+                    }`}>
+                        {suggestResult.message}
+                    </div>
+                )}
             </div>
 
             {/* RIGHT — AI Chat Assistant (2 cols) */}

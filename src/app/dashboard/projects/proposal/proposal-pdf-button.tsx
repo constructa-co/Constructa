@@ -1223,7 +1223,8 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     y += validityLines.length * 5 + 6;
 
     // Check if there's space for timeline, if not add new page
-    const phases: any[] = project?.gantt_phases || [];
+    const programmePhasesRaw = project?.programme_phases || project?.gantt_phases || project?.timeline_phases || [];
+    const phases: any[] = Array.isArray(programmePhasesRaw) ? programmePhasesRaw : [];
     if (phases.length > 0) {
         const ganttNeeded = 25 + phases.length * 11 + 15;
         y = ensureSpace(doc, y, ganttNeeded, companyName, docTitle, totalPagesRef, T);

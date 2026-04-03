@@ -25,7 +25,7 @@ export default async function VariationsPage({ searchParams }: { searchParams: {
                     </div>
                 </div>
 
-                <ProjectNavBar projectId={projectId} activeTab="variations" showPostCon />
+                <ProjectNavBar projectId={projectId} activeTab="proposal" />
             </div>
 
             <ClientVariations

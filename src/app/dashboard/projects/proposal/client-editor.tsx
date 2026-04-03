@@ -198,19 +198,30 @@ export default function ClientEditor({
     profile,
     estimatedTotal = 0,
 }: Props) {
-    const [scope, setScope] = useState(initialScope || initialBriefScope || '');
-    const [exclusions, setExclusions] = useState(initialExclusions || initialContractExclusions || '');
-    const [clarifications, setClarifications] = useState(initialClarifications || initialContractClarifications || '');
-    const [closingStatement, setClosingStatement] = useState(project?.closing_statement ?? '');
-    const [generating, setGenerating] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [saved, setSaved] = useState(false);
+    // Pre-fill from Brief/Contracts if proposal fields are empty
+    const [introduction, setIntroduction] = useState(
+        project?.proposal_introduction || initialBriefScope || ""
+    );
+    const [scope, setScope] = useState(
+        initialScope || initialBriefScope || ""
+    );
+    const [exclusions, setExclusions] = useState(
+        initialExclusions || initialContractExclusions || ""
+    );
+    const [clarifications, setClarifications] = useState(
+        initialClarifications || initialContractClarifications || ""
+    );
 
+    // Track whether fields were pre-filled from other tabs
+    const introPreFilled = !project?.proposal_introduction && !!initialBriefScope;
     const scopePreFilled = !initialScope && !!initialBriefScope;
     const exclusionsPreFilled = !initialExclusions && !!initialContractExclusions;
     const clarificationsPreFilled = !initialClarifications && !!initialContractClarifications;
 
-    const [introduction, setIntroduction] = useState(project?.proposal_introduction || initialBriefScope || "");
+    const [closingStatement, setClosingStatement] = useState(project?.closing_statement ?? '');
+    const [generating, setGenerating] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [saved, setSaved] = useState(false);
     const [rewritingIntro, setRewritingIntro] = useState(false);
 
     const [ganttPhases, setGanttPhases] = useState<GanttPhase[]>(
@@ -396,6 +407,27 @@ export default function ClientEditor({
         setRewritingIntro(false);
     };
 
+    const handleSyncFromBriefContracts = () => {
+        let synced = 0;
+        if (initialBriefScope) {
+            setIntroduction((prev: string) => prev || initialBriefScope);
+            setScope(prev => prev || initialBriefScope);
+            synced++;
+        }
+        if (initialContractExclusions) {
+            setExclusions(initialContractExclusions);
+            synced++;
+        }
+        if (initialContractClarifications) {
+            setClarifications(initialContractClarifications);
+            synced++;
+        }
+        if (synced > 0) {
+            // Dynamic import toast to avoid issues
+            import("sonner").then(({ toast }) => toast.success("Synced from Brief & Contracts"));
+        }
+    };
+
     const [generatingClarifications, setGeneratingClarifications] = useState(false);
     const [generatingExclusions, setGeneratingExclusions] = useState(false);
 
@@ -575,24 +607,20 @@ export default function ClientEditor({
             {/* ── MAIN CONTENT COL ── */}
             <div className="lg:col-span-2 space-y-6">
 
-                {/* Sync from Brief & Contracts */}
+                {/* Sync from Brief & Contracts banner */}
                 {(initialBriefScope || initialContractExclusions || initialContractClarifications) && (
-                    <button
-                        type="button"
-                        onClick={() => {
-                            if (initialBriefScope) {
-                                if (!scope || scope === initialBriefScope) setScope(initialBriefScope);
-                                if (!introduction || introduction === initialBriefScope) setIntroduction(initialBriefScope);
-                            }
-                            if (initialContractExclusions) setExclusions(initialContractExclusions);
-                            if (initialContractClarifications) setClarifications(initialContractClarifications);
-                            toast.success("Synced from Brief & Contracts");
-                        }}
-                        className="w-full text-sm text-blue-400 bg-blue-500/10 border border-blue-500/30 rounded-lg px-4 py-2.5 hover:bg-blue-500/20 transition-colors flex items-center justify-center gap-2"
-                    >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                        Sync from Brief & Contracts
-                    </button>
+                    <div className="flex items-center justify-between bg-blue-900/20 border border-blue-800/40 rounded-xl px-4 py-3">
+                        <div className="flex items-center gap-2">
+                            <Info className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                            <span className="text-sm text-blue-300 font-medium">Data available from Brief & Contracts tabs</span>
+                        </div>
+                        <button
+                            onClick={handleSyncFromBriefContracts}
+                            className="text-xs font-bold text-blue-400 hover:text-blue-300 bg-blue-900/40 px-3 py-1.5 rounded-lg border border-blue-700/40 transition-colors"
+                        >
+                            Sync from Brief & Contracts
+                        </button>
+                    </div>
                 )}
 
                 {/* SECTION 1: Project Summary */}
@@ -690,6 +718,11 @@ export default function ClientEditor({
                             </div>
                         )}
                         <p className="text-xs text-slate-500 mb-3">Opening paragraph — personalised for this client. Appears first in the proposal PDF.</p>
+                        {introPreFilled && (
+                            <div className="text-xs text-blue-400 bg-blue-900/20 border border-blue-800/30 px-3 py-1.5 rounded mb-2">
+                                Pre-filled from Brief — edit as needed
+                            </div>
+                        )}
                         <Textarea
                             value={introduction}
                             onChange={(e) => setIntroduction(e.target.value)}
@@ -725,6 +758,11 @@ export default function ClientEditor({
                             </div>
                         )}
                         <p className="text-xs text-slate-500 mb-3">Full scope narrative describing all works to be carried out.</p>
+                        {scopePreFilled && (
+                            <div className="text-xs text-blue-400 bg-blue-900/20 border border-blue-800/30 px-3 py-1.5 rounded mb-2">
+                                Pre-filled from Brief — edit as needed
+                            </div>
+                        )}
                         {aiError && (
                             <div className="mb-3 px-3 py-2 bg-red-950/50 border border-red-800 rounded-lg text-xs text-red-400">
                                 {aiError.includes("not configured") ? "AI service unavailable — please try again in a moment." : aiError}
@@ -766,6 +804,11 @@ export default function ClientEditor({
                                 </button>
                             </div>
                             <p className="text-xs text-slate-600 mb-2">Items NOT included in this proposal</p>
+                            {exclusionsPreFilled && (
+                                <div className="text-xs text-blue-400 bg-blue-900/20 border border-blue-800/30 px-3 py-1.5 rounded mb-2">
+                                    Pre-filled from Contracts tab
+                                </div>
+                            )}
                             <Textarea
                                 value={exclusions}
                                 onChange={(e) => setExclusions(e.target.value)}
@@ -787,6 +830,11 @@ export default function ClientEditor({
                                 </button>
                             </div>
                             <p className="text-xs text-slate-600 mb-2">Assumptions and qualifications</p>
+                            {clarificationsPreFilled && (
+                                <div className="text-xs text-blue-400 bg-blue-900/20 border border-blue-800/30 px-3 py-1.5 rounded mb-2">
+                                    Pre-filled from Contracts tab
+                                </div>
+                            )}
                             <Textarea
                                 value={clarifications}
                                 onChange={(e) => setClarifications(e.target.value)}

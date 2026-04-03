@@ -4,13 +4,21 @@ import { createClient } from "@/lib/supabase/server";
 import { generateJSON, generateText } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
 
+// ── T&C Tier Management ─────────────────────────────────
 export async function saveTcTierAction(projectId: string, tier: string) {
     const supabase = createClient();
-    await supabase.from("projects").update({ tc_tier: tier }).eq("id", projectId);
+    const { error } = await supabase.from("projects").update({ tc_tier: tier }).eq("id", projectId);
+    if (error) console.error("Save TC tier error:", error);
     revalidatePath("/dashboard/projects/contracts");
 }
 
+// ── Contract Upload & AI Analysis ───────────────────────
 export async function analyseContractAction(projectId: string, contractText: string) {
+    const supabase = createClient();
+
+    // Save the raw uploaded text
+    await supabase.from("projects").update({ uploaded_contract_text: contractText }).eq("id", projectId);
+
     const flags = await generateJSON<{ flags: Array<{ type: string; clause: string; description: string; severity: string; recommendation: string }> }>(
         `You are a UK construction contract expert. Analyse this contract text and identify:
     1. Onerous obligations (fitness for purpose, design liability, unlimited liability)
@@ -22,60 +30,70 @@ export async function analyseContractAction(projectId: string, contractText: str
 
     Contract text: ${contractText.substring(0, 4000)}
 
-    Return JSON: { "flags": [{ "type": "risk" or "obligation" or "unusual", "clause": "clause ref or short quote", "description": "plain English explanation", "severity": "low" or "medium" or "high", "recommendation": "what to do" }] }`
+    Return JSON: { "flags": [{ "type": "risk"|"obligation"|"unusual", "clause": "clause ref or short quote", "description": "plain English explanation", "severity": "low"|"medium"|"high", "recommendation": "what to do" }] }`
     );
 
-    const supabase = createClient();
-    await supabase.from("projects").update({ contract_review_flags: flags.flags }).eq("id", projectId);
+    await supabase.from("projects").update({ contract_review_flags: flags.flags || [] }).eq("id", projectId);
     revalidatePath("/dashboard/projects/contracts");
     return flags;
 }
 
-export async function saveRiskRegisterAction(projectId: string, register: any[]) {
+// ── Risk & Opportunities ────────────────────────────────
+export async function saveRiskRegisterAction(
+    projectId: string,
+    riskRegister: Array<{ id: string; type: string; description: string; likelihood: string; impact: string; mitigation: string }>
+) {
     const supabase = createClient();
-    await supabase.from("projects").update({ risk_register: register }).eq("id", projectId);
+    const { error } = await supabase.from("projects").update({ risk_register: riskRegister }).eq("id", projectId);
+    if (error) console.error("Save risk register error:", error);
     revalidatePath("/dashboard/projects/contracts");
 }
 
 export async function generateRiskRegisterAction(projectId: string, scope: string, projectType: string) {
-    const result = await generateJSON<{
-        risks: Array<{ description: string; likelihood: string; impact: string; mitigation: string }>;
-        opportunities: Array<{ description: string; likelihood: string; impact: string; action: string }>;
-    }>(
+    return generateJSON<{ risks: Array<{ description: string; likelihood: string; impact: string; mitigation: string }>; opportunities: Array<{ description: string; likelihood: string; impact: string; action: string }> }>(
         `You are a UK construction risk manager. Generate a risk and opportunity register for this project.
     Project type: ${projectType}. Scope: ${scope?.substring(0, 500) || "Not specified"}.
 
     Return 4-6 risks and 3-4 opportunities.
     JSON: {
-      "risks": [{ "description": "...", "likelihood": "low" or "medium" or "high", "impact": "low" or "medium" or "high", "mitigation": "..." }],
-      "opportunities": [{ "description": "...", "likelihood": "low" or "medium" or "high", "impact": "low" or "medium" or "high", "action": "..." }]
+      "risks": [{ "description": "...", "likelihood": "low"|"medium"|"high", "impact": "low"|"medium"|"high", "mitigation": "..." }],
+      "opportunities": [{ "description": "...", "likelihood": "low"|"medium"|"high", "impact": "low"|"medium"|"high", "action": "..." }]
     }`
     );
-
-    const combined = [
-        ...result.risks.map(r => ({ ...r, id: crypto.randomUUID(), type: "risk" as const })),
-        ...result.opportunities.map(o => ({ ...o, id: crypto.randomUUID(), type: "opportunity" as const })),
-    ];
-
-    const supabase = createClient();
-    await supabase.from("projects").update({ risk_register: combined }).eq("id", projectId);
-    revalidatePath("/dashboard/projects/contracts");
-    return { risks: result.risks, opportunities: result.opportunities };
 }
 
+// ── Exclusions & Clarifications ─────────────────────────
 export async function saveContractExclusionsAction(projectId: string, exclusions: string, clarifications: string) {
     const supabase = createClient();
-    await supabase.from("projects").update({
+    const { error } = await supabase.from("projects").update({
         contract_exclusions: exclusions,
         contract_clarifications: clarifications,
     }).eq("id", projectId);
+    if (error) console.error("Save contract exclusions error:", error);
     revalidatePath("/dashboard/projects/contracts");
 }
 
+export async function generateContractExclusionsAction(scope: string, projectType: string) {
+    return generateJSON<{ exclusions: string; clarifications: string }>(
+        `You are a UK construction contract expert. Based on this scope and project type, generate standard exclusions and clarifications.
+
+    Project type: ${projectType}. Scope: ${scope?.substring(0, 500) || "Not specified"}.
+
+    Return JSON: {
+      "exclusions": "item1\nitem2\nitem3\nitem4\nitem5",
+      "clarifications": "item1\nitem2\nitem3\nitem4"
+    }
+
+    Common exclusions: surveys, asbestos, party wall awards, building control fees, council charges, architect fees, furniture/white goods.
+    Common clarifications: working hours, access assumptions, waste disposal included, customer obligations.`
+    );
+}
+
+// ── Contract AI Chat ────────────────────────────────────
 export async function contractChatAction(message: string, contractContext: {
     tcTier: string;
     projectType: string;
-    flags: any[];
+    flags: Array<{ description: string }>;
 }): Promise<{ response: string }> {
     const response = await generateText(
         `You are a UK construction contract risk awareness assistant for SME contractors.
@@ -85,26 +103,17 @@ export async function contractChatAction(message: string, contractContext: {
     For complex matters, recommend seeking professional legal advice.
 
     Contract context: ${contractContext.tcTier} tier, ${contractContext.projectType} project.
-    ${contractContext.flags.length > 0 ? `Known flags: ${contractContext.flags.map((f: any) => f.description).join(", ")}` : ""}
+    ${contractContext.flags.length > 0 ? `Known flags: ${contractContext.flags.map(f => f.description).join(", ")}` : ""}
 
     Contractor question: ${message}
 
-    Respond in plain English, be practical and helpful. Keep responses concise (2-3 paragraphs max).`
+    Respond in plain English, be practical and helpful. Keep responses concise (2-3 paragraphs max).
+    End with: "⚠️ This is risk awareness information, not legal advice."`
     );
     return { response };
 }
 
-export async function suggestTcTierAction(clientType: string, projectType: string): Promise<{ tier: string; reason: string }> {
-    return generateJSON<{ tier: string; reason: string }>(
-        `Based on this construction project, suggest the most appropriate Terms & Conditions tier.
-    Client type: ${clientType || "unknown"}
-    Project type: ${projectType || "general"}
-
-    Tiers:
-    - domestic: For homeowner clients, plain English, RICS Homeowner Adjudication
-    - commercial: For business clients, JCT Minor Works based, liquidated damages
-    - specialist: For specialist/trade works, subcontract packages
-
-    Return JSON: { "tier": "domestic" or "commercial" or "specialist", "reason": "one line explanation" }`
-    );
+// ── Legacy (kept for compatibility) ─────────────────────
+export async function generateContractAction(projectId: string) {
+    return "Use the Contracts hub tabs to manage your contract.";
 }

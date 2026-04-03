@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Plus, Trash2, MapPin, Building2, Banknote, Clock, Pencil } from "lucide-react";
-import { updateCaseStudiesAction } from "./actions";
+import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Loader2, MapPin, Briefcase, Calendar, PoundSterling } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { saveCaseStudiesAction } from "./actions";
 
 interface CaseStudy {
     id: string;
@@ -18,13 +19,12 @@ interface CaseStudy {
     photos: string[];
 }
 
-export default function CaseStudiesClient({ initialCaseStudies }: { initialCaseStudies: CaseStudy[] }) {
-    const [caseStudies, setCaseStudies] = useState<CaseStudy[]>(initialCaseStudies || []);
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [saving, setSaving] = useState(false);
+export default function CaseStudiesClient({ initialCaseStudies, userId }: { initialCaseStudies: CaseStudy[]; userId: string }) {
+    const [caseStudies, setCaseStudies] = useState<CaseStudy[]>(initialCaseStudies);
+    const [isPending, startTransition] = useTransition();
 
     const addCaseStudy = () => {
-        const newCs: CaseStudy = {
+        setCaseStudies(prev => [...prev, {
             id: crypto.randomUUID(),
             projectName: "",
             projectType: "",
@@ -35,130 +35,208 @@ export default function CaseStudiesClient({ initialCaseStudies }: { initialCaseS
             whatWeDelivered: "",
             valueAdded: "",
             photos: ["", "", ""],
-        };
-        const updated = [...caseStudies, newCs];
-        setCaseStudies(updated);
-        setEditingId(newCs.id);
+        }]);
     };
 
-    const updateCaseStudy = (id: string, updates: Partial<CaseStudy>) => {
-        setCaseStudies(prev => prev.map(cs => cs.id === id ? { ...cs, ...updates } : cs));
+    const updateCaseStudy = (index: number, field: keyof CaseStudy, value: string | string[]) => {
+        setCaseStudies(prev => prev.map((cs, i) => i === index ? { ...cs, [field]: value } : cs));
     };
 
-    const deleteCaseStudy = (id: string) => {
-        setCaseStudies(prev => prev.filter(cs => cs.id !== id));
+    const removeCaseStudy = (index: number) => {
+        setCaseStudies(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleSave = async () => {
-        setSaving(true);
-        try {
-            await updateCaseStudiesAction(caseStudies);
-            setEditingId(null);
+    const handleSave = () => {
+        startTransition(async () => {
+            await saveCaseStudiesAction(caseStudies);
             toast.success("Case studies saved");
-        } catch {
-            toast.error("Failed to save");
+        });
+    };
+
+    const handlePhotoUpload = async (csIndex: number, slot: number, file: File) => {
+        const supabase = createClient();
+        const cs = caseStudies[csIndex];
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `case-studies/${cs.id}/${slot}.${ext}`;
+        const { error } = await supabase.storage
+            .from("proposal-photos")
+            .upload(path, file, { upsert: true });
+        if (!error) {
+            const { data } = supabase.storage.from("proposal-photos").getPublicUrl(path);
+            const newPhotos = [...(cs.photos || ["", "", ""])];
+            newPhotos[slot] = data.publicUrl;
+            updateCaseStudy(csIndex, "photos", newPhotos);
+            toast.success("Photo uploaded");
+        } else {
+            toast.error("Upload failed: " + error.message);
         }
-        setSaving(false);
     };
 
     const inputCls = "w-full h-10 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600";
-    const textareaCls = "w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600";
+    const labelCls = "text-xs font-medium text-slate-400 block mb-1";
 
     return (
         <div className="space-y-6">
-            {/* Case study cards */}
-            <div className="grid md:grid-cols-2 gap-4">
-                {caseStudies.map(cs => {
-                    const isEditing = editingId === cs.id;
-                    return (
-                        <div key={cs.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                            {isEditing ? (
-                                <div className="p-5 space-y-3">
-                                    <input className={inputCls} placeholder="Project Name" value={cs.projectName} onChange={e => updateCaseStudy(cs.id, { projectName: e.target.value })} />
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <input className={inputCls} placeholder="Project Type (e.g. Extension)" value={cs.projectType} onChange={e => updateCaseStudy(cs.id, { projectType: e.target.value })} />
-                                        <input className={inputCls} placeholder="Contract Value (e.g. £85,000)" value={cs.contractValue} onChange={e => updateCaseStudy(cs.id, { contractValue: e.target.value })} />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <input className={inputCls} placeholder="Client Name" value={cs.client} onChange={e => updateCaseStudy(cs.id, { client: e.target.value })} />
-                                        <input className={inputCls} placeholder="Location" value={cs.location} onChange={e => updateCaseStudy(cs.id, { location: e.target.value })} />
-                                    </div>
-                                    <input className={inputCls} placeholder="Programme Duration (e.g. 8 weeks)" value={cs.programmeDuration} onChange={e => updateCaseStudy(cs.id, { programmeDuration: e.target.value })} />
-                                    <textarea className={textareaCls} rows={3} placeholder="What we delivered..." value={cs.whatWeDelivered} onChange={e => updateCaseStudy(cs.id, { whatWeDelivered: e.target.value })} />
-                                    <textarea className={textareaCls} rows={2} placeholder="Value we added..." value={cs.valueAdded} onChange={e => updateCaseStudy(cs.id, { valueAdded: e.target.value })} />
-                                    <div className="flex gap-2">
-                                        <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium disabled:opacity-60">
-                                            {saving ? "Saving..." : "Save"}
-                                        </button>
-                                        <button onClick={() => setEditingId(null)} className="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm">Cancel</button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="p-5">
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div>
-                                            <h3 className="font-bold text-slate-100">{cs.projectName || "Untitled Project"}</h3>
-                                            {cs.projectType && <span className="text-xs text-slate-400">{cs.projectType}</span>}
-                                        </div>
-                                        <div className="flex gap-1">
-                                            <button onClick={() => setEditingId(cs.id)} className="p-1.5 text-slate-500 hover:text-blue-400 rounded">
-                                                <Pencil className="w-3.5 h-3.5" />
-                                            </button>
-                                            <button onClick={() => deleteCaseStudy(cs.id)} className="p-1.5 text-slate-500 hover:text-red-400 rounded">
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1.5 text-xs text-slate-400">
-                                        {cs.client && (
-                                            <div className="flex items-center gap-1.5">
-                                                <Building2 className="w-3 h-3" />
-                                                <span>{cs.client}</span>
-                                            </div>
-                                        )}
-                                        {cs.location && (
-                                            <div className="flex items-center gap-1.5">
-                                                <MapPin className="w-3 h-3" />
-                                                <span>{cs.location}</span>
-                                            </div>
-                                        )}
-                                        {cs.contractValue && (
-                                            <div className="flex items-center gap-1.5">
-                                                <Banknote className="w-3 h-3" />
-                                                <span>{cs.contractValue}</span>
-                                            </div>
-                                        )}
-                                        {cs.programmeDuration && (
-                                            <div className="flex items-center gap-1.5">
-                                                <Clock className="w-3 h-3" />
-                                                <span>{cs.programmeDuration}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {cs.whatWeDelivered && (
-                                        <p className="text-xs text-slate-300 mt-3 line-clamp-3">{cs.whatWeDelivered}</p>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
-
             {caseStudies.length === 0 && (
-                <div className="text-center py-12 text-slate-500">
-                    <Building2 className="w-10 h-10 mx-auto mb-3 opacity-40" />
-                    <p className="text-sm">No case studies yet. Add your best projects to showcase in proposals.</p>
+                <div className="text-center py-16 border-2 border-dashed border-slate-700 rounded-xl">
+                    <Briefcase className="w-10 h-10 mx-auto text-slate-600 mb-3" />
+                    <p className="text-slate-500 text-sm mb-3">No case studies yet. Add your first to showcase past work in proposals.</p>
+                    <button onClick={addCaseStudy} className="text-sm font-semibold text-blue-400 hover:text-blue-300">
+                        + Add Case Study
+                    </button>
                 </div>
             )}
 
-            <button
-                onClick={addCaseStudy}
-                className="w-full py-3 border-2 border-dashed border-slate-700 rounded-xl text-sm text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors flex items-center justify-center gap-2"
-            >
-                <Plus className="w-4 h-4" />
-                Add Case Study
-            </button>
+            {caseStudies.map((cs, index) => (
+                <CaseStudyCard
+                    key={cs.id}
+                    cs={cs}
+                    index={index}
+                    onChange={(field, value) => updateCaseStudy(index, field, value)}
+                    onRemove={() => removeCaseStudy(index)}
+                    onPhotoUpload={(slot, file) => handlePhotoUpload(index, slot, file)}
+                    inputCls={inputCls}
+                    labelCls={labelCls}
+                />
+            ))}
+
+            <div className="flex items-center justify-between pt-2">
+                <button
+                    onClick={addCaseStudy}
+                    className="flex items-center gap-2 text-sm font-semibold text-blue-400 hover:text-blue-300 bg-blue-900/20 hover:bg-blue-900/40 border border-blue-700/40 rounded-lg px-4 py-2.5 transition-colors"
+                >
+                    <Plus className="w-4 h-4" />
+                    Add Case Study
+                </button>
+
+                <button
+                    onClick={handleSave}
+                    disabled={isPending}
+                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-xl font-bold text-sm transition-all"
+                >
+                    {isPending ? "Saving..." : "Save All Case Studies"}
+                </button>
+            </div>
+        </div>
+    );
+}
+
+function CaseStudyCard({
+    cs,
+    index,
+    onChange,
+    onRemove,
+    onPhotoUpload,
+    inputCls,
+    labelCls,
+}: {
+    cs: CaseStudy;
+    index: number;
+    onChange: (field: keyof CaseStudy, value: string | string[]) => void;
+    onRemove: () => void;
+    onPhotoUpload: (slot: number, file: File) => void;
+    inputCls: string;
+    labelCls: string;
+}) {
+    const [expanded, setExpanded] = useState(true);
+
+    return (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 bg-slate-800/60 border-b border-slate-700">
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Case Study {index + 1}</span>
+                    {cs.projectName && <span className="text-sm font-semibold text-slate-200">— {cs.projectName}</span>}
+                </div>
+                <div className="flex items-center gap-2">
+                    <button onClick={() => setExpanded(!expanded)} className="p-1 text-slate-400 hover:text-white">
+                        {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                    <button onClick={onRemove} className="p-1 text-red-400 hover:text-red-300">
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+
+            {expanded && (
+                <div className="p-5 space-y-4">
+                    <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className={labelCls}>Project Name</label>
+                            <input className={inputCls} value={cs.projectName} onChange={e => onChange("projectName", e.target.value)} placeholder="e.g. Smith Residence Extension" />
+                        </div>
+                        <div>
+                            <label className={labelCls}>Project Type</label>
+                            <input className={inputCls} value={cs.projectType} onChange={e => onChange("projectType", e.target.value)} placeholder="e.g. Residential Extension" />
+                        </div>
+                        <div>
+                            <label className={labelCls}>Contract Value</label>
+                            <input className={inputCls} value={cs.contractValue} onChange={e => onChange("contractValue", e.target.value)} placeholder="e.g. £85,000" />
+                        </div>
+                        <div>
+                            <label className={labelCls}>Programme Duration</label>
+                            <input className={inputCls} value={cs.programmeDuration} onChange={e => onChange("programmeDuration", e.target.value)} placeholder="e.g. 12 weeks" />
+                        </div>
+                        <div>
+                            <label className={labelCls}>Client Name</label>
+                            <input className={inputCls} value={cs.client} onChange={e => onChange("client", e.target.value)} placeholder="e.g. Mr & Mrs Smith" />
+                        </div>
+                        <div>
+                            <label className={labelCls}>Location</label>
+                            <input className={inputCls} value={cs.location} onChange={e => onChange("location", e.target.value)} placeholder="e.g. Surrey" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className={labelCls}>What We Delivered</label>
+                        <textarea
+                            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            rows={3}
+                            value={cs.whatWeDelivered}
+                            onChange={e => onChange("whatWeDelivered", e.target.value)}
+                            placeholder="Brief description of the works delivered..."
+                        />
+                    </div>
+
+                    <div>
+                        <label className={labelCls}>Value Added</label>
+                        <textarea
+                            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            rows={2}
+                            value={cs.valueAdded}
+                            onChange={e => onChange("valueAdded", e.target.value)}
+                            placeholder="What made this project stand out..."
+                        />
+                    </div>
+
+                    {/* Photos */}
+                    <div>
+                        <label className={labelCls}>Photos (up to 3)</label>
+                        <div className="flex gap-3">
+                            {[0, 1, 2].map(slot => (
+                                <div key={slot} className="w-32 h-24 border border-slate-700 rounded-lg overflow-hidden bg-slate-800 relative group">
+                                    {(cs.photos || [])[slot] ? (
+                                        <>
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={cs.photos[slot]} alt={`Photo ${slot + 1}`} className="w-full h-full object-cover" />
+                                            <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
+                                                <Upload className="w-5 h-5 text-white" />
+                                                <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
+                                            </label>
+                                        </>
+                                    ) : (
+                                        <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-700 transition-colors">
+                                            <Upload className="w-5 h-5 text-slate-500 mb-1" />
+                                            <span className="text-[10px] text-slate-500">Upload</span>
+                                            <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
+                                        </label>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

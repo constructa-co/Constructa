@@ -12,17 +12,22 @@ export default async function CaseStudiesPage() {
 
     const { data: profile } = await supabase
         .from("profiles")
-        .select("case_studies")
+        .select("case_studies, company_name")
         .eq("id", user.id)
         .single();
 
     return (
         <div className="max-w-5xl mx-auto px-6 py-8">
-            <div className="mb-8">
+            <div className="mb-6">
                 <h1 className="text-2xl font-bold text-slate-100">Case Studies</h1>
-                <p className="text-slate-500 text-sm mt-1">Showcase completed projects in your proposals. These appear in the PDF when selected.</p>
+                <p className="text-sm text-slate-500 mt-1">
+                    Showcase your past projects. These appear in proposal PDFs to build client confidence.
+                </p>
             </div>
-            <CaseStudiesClient initialCaseStudies={profile?.case_studies || []} />
+            <CaseStudiesClient
+                initialCaseStudies={profile?.case_studies || []}
+                userId={user.id}
+            />
         </div>
     );
 }

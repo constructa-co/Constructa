@@ -60,6 +60,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
     const [_isPending, startTransition] = useTransition();
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const [openBuildUpPanels, setOpenBuildUpPanels] = useState<Set<string>>(new Set());
 
     const currentEstimate = estimates.find((e) => e.id === activeTab);
 
@@ -266,6 +267,16 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
     // ─── Build-Up Handlers ───────────────────────────────
     const handleTogglePricingMode = (lineId: string, currentMode: string) => {
         const newMode = currentMode === "buildup" ? "simple" : "buildup";
+        // Control panel visibility
+        setOpenBuildUpPanels((prev) => {
+            const next = new Set(prev);
+            if (newMode === "buildup") {
+                next.add(lineId);
+            } else {
+                next.delete(lineId);
+            }
+            return next;
+        });
         // Optimistic update — immediate, no transition
         setEstimates((prev) =>
             prev.map((e) =>
@@ -569,8 +580,8 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                                 />
                                             </div>
                                         </div>
-                                        {/* Build-up panel — standalone client component with own state */}
-                                        {line.pricing_mode === "buildup" && (
+                                        {/* Build-up panel — only shown when explicitly toggled, not on page load */}
+                                        {openBuildUpPanels.has(line.id) && (
                                             <BuildUpPanel
                                                 line={line}
                                                 orgId={orgId}

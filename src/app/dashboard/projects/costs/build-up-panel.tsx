@@ -98,6 +98,8 @@ export default function BuildUpPanel({
                 const updated = [...components, newComp];
                 setComponents(updated);
                 notifyParent(updated);
+            } else {
+                alert("Failed to add component. Please try refreshing the page.");
             }
         });
     };

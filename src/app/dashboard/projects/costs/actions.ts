@@ -200,12 +200,25 @@ export async function addComponentAction(
     }
 ): Promise<{ id: string; line_total: number; total_manhours: number } | null> {
     const supabase = createClient();
+
+    // Verify the line exists and is accessible before inserting
+    const { data: lineCheck, error: lineError } = await supabase
+        .from("estimate_lines")
+        .select("id")
+        .eq("id", lineId)
+        .single();
+
+    if (lineError || !lineCheck) {
+        console.error("addComponentAction: cannot access estimate line", lineId, lineError);
+        return null;
+    }
+
     const { data: result, error } = await supabase
         .from("estimate_line_components")
         .insert({ estimate_line_id: lineId, ...data })
         .select("id, line_total, total_manhours")
         .single();
-    if (error) { console.error("Add component error:", error); return null; }
+    if (error) { console.error("addComponentAction: insert failed", error); return null; }
     return result;
 }
 

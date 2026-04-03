@@ -36,7 +36,7 @@ interface Project {
     id: string;
     name: string;
     client_name: string;
-    address: string;
+    site_address: string;
     postcode: string;
     potential_value: number;
     start_date: string;
@@ -47,6 +47,7 @@ interface Project {
     lng: number | null;
     region: string;
     brief_completed: boolean;
+    project_type: string;
 }
 
 interface ChatMessage {
@@ -107,7 +108,8 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
         try {
             const result = await processBriefChatAction(userMessage, {
                 name: project.name,
-                address: project.address,
+                address: project.site_address,
+                projectType: project.project_type,
             });
 
             // Auto-fill form fields
@@ -235,7 +237,7 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
                 <div className="grid sm:grid-cols-3 gap-4">
                     <div className="sm:col-span-2 space-y-1.5">
                         <label className="text-sm font-medium text-gray-600">Site Address</label>
-                        <input className={inputCls} value={project.address} readOnly />
+                        <input className={inputCls} value={project.site_address} readOnly />
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-gray-600">Postcode</label>

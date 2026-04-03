@@ -50,7 +50,7 @@ export default async function BriefPage({ searchParams }: { searchParams: { proj
                     id: project.id,
                     name: project.name || "",
                     client_name: project.client_name || "",
-                    address: project.address || "",
+                    site_address: project.site_address || project.address || "",
                     postcode: project.postcode || "",
                     potential_value: project.potential_value || 0,
                     start_date: project.start_date || "",
@@ -61,6 +61,7 @@ export default async function BriefPage({ searchParams }: { searchParams: { proj
                     lng: project.lng || null,
                     region: project.region || "",
                     brief_completed: project.brief_completed || false,
+                    project_type: project.project_type || "",
                 }}
                 activeEstimateId={activeEstimate?.id || null}
                 projectId={activeProjectId}

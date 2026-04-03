@@ -524,16 +524,20 @@ export default function BuildUpPanel({
                                 value={comp.unit}
                                 onChange={(e) => {
                                     const newUnit = e.target.value;
-                                    if (comp.component_type === "labour" && comp.unit_rate > 0) {
-                                        // Auto-convert labour rate between hr/day/week
+                                    // Auto-convert rate between hr/day/week for labour and plant
+                                    if ((comp.component_type === "labour" || comp.component_type === "plant") && comp.unit_rate > 0) {
                                         const oldUnit = comp.unit;
                                         const toHourly: Record<string, number> = { hr: 1, day: 1 / 8, week: 1 / 40 };
                                         const fromHourly: Record<string, number> = { hr: 1, day: 8, week: 40 };
                                         if (toHourly[oldUnit] && fromHourly[newUnit]) {
                                             const hourlyRate = comp.unit_rate * toHourly[oldUnit];
                                             const newRate = Math.round(hourlyRate * fromHourly[newUnit] * 100) / 100;
-                                            const newManhours = newUnit === "hr" ? 1 : newUnit === "day" ? 8 : 40;
-                                            handleUpdate(comp.id, { unit: newUnit, unit_rate: newRate, manhours_per_unit: newManhours });
+                                            if (comp.component_type === "labour") {
+                                                const newManhours = newUnit === "hr" ? 1 : newUnit === "day" ? 8 : 40;
+                                                handleUpdate(comp.id, { unit: newUnit, unit_rate: newRate, manhours_per_unit: newManhours });
+                                            } else {
+                                                handleUpdate(comp.id, { unit: newUnit, unit_rate: newRate });
+                                            }
                                             return;
                                         }
                                     }

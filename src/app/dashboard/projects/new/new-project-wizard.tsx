@@ -3,9 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createProjectFromTemplateAction } from "./actions";
-import { PROJECT_TEMPLATES } from "@/lib/templates";
-import { getProjectTypes } from "@/lib/project-types";
 import PostcodeLookup from "@/components/postcode-lookup";
+
+const PROJECT_TYPES = [
+    "Residential Extension", "Loft Conversion", "New Build Residential",
+    "Domestic Renovation", "Driveway & External Works", "Groundworks & Civils",
+    "Drainage & Utilities", "Commercial Fit-Out", "Commercial New Build",
+    "Industrial Works", "Landscaping", "Roofing",
+    "Electrical Installation", "Plumbing & Heating", "General Building Works", "Other"
+];
 
 function StepIndicator({ current, total }: { current: number; total: number }) {
     return (
@@ -39,7 +45,7 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
                                     isActive ? "text-slate-900" : isDone ? "text-blue-600" : "text-slate-400"
                                 }`}
                             >
-                                {step === 1 ? "Project Details" : step === 2 ? "Choose Template" : "Review & Create"}
+                                {step === 1 ? "Project Details" : "Review & Create"}
                             </span>
                         </div>
                         {step < total && (
@@ -74,8 +80,6 @@ export default function NewProjectWizard({ businessType }: Props) {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
-    const projectTypes = getProjectTypes(businessType);
-
     const [form, setForm] = useState<FormState>({
         name: "",
         client: "",
@@ -83,7 +87,7 @@ export default function NewProjectWizard({ businessType }: Props) {
         clientPhone: "",
         clientAddress: "",
         siteAddress: "",
-        projectType: projectTypes[0],
+        projectType: PROJECT_TYPES[0],
         startDate: "",
         potentialValue: "",
         typeId: "extension_1",
@@ -91,18 +95,6 @@ export default function NewProjectWizard({ businessType }: Props) {
 
     const set = (field: keyof FormState, value: string) =>
         setForm((prev) => ({ ...prev, [field]: value }));
-
-    // Filter templates to match selected project type OR any of the contractor's trades
-    const trades = businessType ? businessType.split(",").map((t: string) => t.trim()) : [];
-    const filteredTemplates = PROJECT_TEMPLATES.filter(t =>
-        t.projectTypes.length === 0 || // blank always shows
-        t.projectTypes.includes(form.projectType) ||
-        trades.some((trade: string) => t.projectTypes.includes(trade))
-    );
-    const templatesToShow = filteredTemplates.length > 1 ? filteredTemplates : PROJECT_TEMPLATES;
-    const showNoMatchNote = filteredTemplates.length <= 1 && PROJECT_TEMPLATES.length > 1;
-
-    const selectedTemplate = PROJECT_TEMPLATES.find((t) => t.id === form.typeId);
 
     const handleCreate = async () => {
         setLoading(true);
@@ -137,7 +129,7 @@ export default function NewProjectWizard({ businessType }: Props) {
                     <p className="text-slate-500">Complete the details below to create your project and proposal.</p>
                 </div>
 
-                <StepIndicator current={step} total={3} />
+                <StepIndicator current={step} total={2} />
 
                 {/* ── STEP 1: Project Details ── */}
                 {step === 1 && (
@@ -222,13 +214,10 @@ export default function NewProjectWizard({ businessType }: Props) {
                                     onChange={(e) => set("projectType", e.target.value)}
                                     className="w-full h-10 px-3 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white"
                                 >
-                                    {projectTypes.map((t) => (
+                                    {PROJECT_TYPES.map((t) => (
                                         <option key={t} value={t}>{t}</option>
                                     ))}
                                 </select>
-                                {businessType && (
-                                    <p className="text-xs text-slate-400">Based on your trade profile. You can change this per project.</p>
-                                )}
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-sm font-semibold text-slate-700">Target Start Date</label>
@@ -261,92 +250,14 @@ export default function NewProjectWizard({ businessType }: Props) {
                                 onClick={() => setStep(2)}
                                 className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg transition-all"
                             >
-                                Next: Choose Template →
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* ── STEP 2: Choose Template ── */}
-                {step === 2 && (
-                    <div className="space-y-6">
-                        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
-                            <h2 className="text-xl font-bold text-slate-900 mb-1">Choose a Template</h2>
-                            <p className="text-sm text-slate-500 mb-1">Select a starting point for your schedule and estimate. You can customise everything after.</p>
-                            {showNoMatchNote && (
-                                <p className="text-xs text-amber-600 mb-5 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                                    No specific template for this project type — choose the closest match.
-                                </p>
-                            )}
-                            {!showNoMatchNote && filteredTemplates.length > 1 && (
-                                <p className="text-xs text-blue-600 mb-5">Showing templates relevant to: <strong>{form.projectType}</strong></p>
-                            )}
-
-                            <div className="grid md:grid-cols-3 gap-4">
-                                {templatesToShow.map((t) => (
-                                    <label key={t.id} className="cursor-pointer group relative block">
-                                        <input
-                                            type="radio"
-                                            name="typeId"
-                                            value={t.id}
-                                            checked={form.typeId === t.id}
-                                            onChange={() => set("typeId", t.id)}
-                                            className="peer sr-only"
-                                        />
-                                        <div className="h-full border-2 border-slate-200 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:ring-1 peer-checked:ring-blue-600 hover:border-blue-300 transition-all cursor-pointer rounded-xl p-5">
-                                            <div className="flex items-start justify-between mb-2">
-                                                <h3 className="text-sm font-bold text-slate-900 group-hover:text-blue-700 leading-tight">{t.name}</h3>
-                                                {form.typeId === t.id && (
-                                                    <div className="text-blue-600 flex-shrink-0 ml-2">
-                                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                                            <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
-                                                        </svg>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <p className="text-xs text-slate-500 mb-3">{t.description}</p>
-                                            {t.items.length > 0 ? (
-                                                <ul className="text-xs text-slate-400 space-y-1">
-                                                    {t.items.slice(0, 4).map((item, idx) => (
-                                                        <li key={idx} className="flex items-center gap-1.5">
-                                                            <span className="w-1 h-1 bg-slate-300 rounded-full flex-shrink-0" />
-                                                            {item.name}
-                                                        </li>
-                                                    ))}
-                                                    {t.items.length > 4 && (
-                                                        <li className="text-slate-400">+ {t.items.length - 4} more stages</li>
-                                                    )}
-                                                </ul>
-                                            ) : (
-                                                <p className="text-xs text-slate-400 italic">Empty schedule — build from scratch</p>
-                                            )}
-                                        </div>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="flex justify-between">
-                            <button
-                                type="button"
-                                onClick={() => setStep(1)}
-                                className="px-5 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-all"
-                            >
-                                ← Back
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setStep(3)}
-                                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-all"
-                            >
                                 Next: Review →
                             </button>
                         </div>
                     </div>
                 )}
 
-                {/* ── STEP 3: Review & Create ── */}
-                {step === 3 && (
+                {/* ── STEP 2: Review & Create ── */}
+                {step === 2 && (
                     <div className="space-y-6">
                         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
                             <h2 className="text-xl font-bold text-slate-900 mb-1">Review & Create</h2>
@@ -416,21 +327,13 @@ export default function NewProjectWizard({ businessType }: Props) {
                                         )}
                                     </div>
                                 </div>
-
-                                <div className="bg-slate-50 rounded-xl p-5 space-y-3">
-                                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Template</h3>
-                                    <p className="text-sm font-semibold text-slate-900">{selectedTemplate?.name || "None"}</p>
-                                    {selectedTemplate && selectedTemplate.items.length > 0 && (
-                                        <p className="text-xs text-slate-500">{selectedTemplate.items.length} stages will be pre-loaded into your schedule</p>
-                                    )}
-                                </div>
                             </div>
                         </div>
 
                         <div className="flex justify-between">
                             <button
                                 type="button"
-                                onClick={() => setStep(2)}
+                                onClick={() => setStep(1)}
                                 className="px-5 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-all"
                             >
                                 ← Back
@@ -450,7 +353,7 @@ export default function NewProjectWizard({ businessType }: Props) {
                                         Creating...
                                     </>
                                 ) : (
-                                    "Create Project & Open Proposal →"
+                                    "Create Project & Start Brief →"
                                 )}
                             </button>
                         </div>

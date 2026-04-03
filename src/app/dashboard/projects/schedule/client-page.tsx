@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
-import { updatePhasesAction, getEstimatePhasesAction } from "./actions";
+import { updatePhasesAction, getEstimatePhasesAction, saveProgrammePhasesAction } from "./actions";
 
 // ─── Types ──────────────────────────────────────────────
 interface Phase {
@@ -162,6 +162,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             const serverPhases = await getEstimatePhasesAction(projectId);
             if (serverPhases.length > 0) {
                 setPhases(serverPhases);
+                await saveProgrammePhasesAction(projectId, serverPhases);
             } else {
                 // Fallback to local computation
                 const regenerated = buildPhasesFromEstimate(estimate, undefined);
@@ -176,6 +177,38 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             await updatePhasesAction(project.id, phases);
             setSaveStatus("saved");
             setTimeout(() => setSaveStatus("idle"), 2000);
+        });
+    };
+
+    const addPhase = () => {
+        const newPhase: Phase = {
+            name: "New Phase",
+            calculatedDays: 5,
+            manualDays: null,
+            manhours: 0,
+            startOffset: phases.reduce((max, p) => Math.max(max, p.startOffset + (p.manualDays ?? p.calculatedDays)), 0),
+        };
+        setPhases(prev => [...prev, newPhase]);
+    };
+
+    const updatePhaseName = (index: number, name: string) => {
+        setPhases(prev => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], name };
+            return updated;
+        });
+    };
+
+    const deletePhase = (index: number) => {
+        setPhases(prev => {
+            const updated = prev.filter((_, i) => i !== index);
+            // Recalculate offsets
+            let offset = 0;
+            for (let i = 0; i < updated.length; i++) {
+                updated[i] = { ...updated[i], startOffset: offset };
+                offset += updated[i].manualDays ?? updated[i].calculatedDays;
+            }
+            return updated;
         });
     };
 
@@ -268,10 +301,22 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                             <div key={idx} className="flex border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
                                 {/* Phase name */}
                                 <div className="w-64 flex-shrink-0 px-4 py-3 border-r border-slate-100">
-                                    <div className="text-sm font-medium text-slate-900">{phase.name}</div>
-                                    <div className="text-[10px] text-slate-400">
-                                        {formatDate(phaseStart)} – {formatDate(phaseEnd)}
-                                        {phase.manhours > 0 && <span className="ml-2">{phase.manhours.toFixed(0)}h</span>}
+                                    <input
+                                        className="font-medium text-sm text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-slate-500 outline-none w-full"
+                                        value={phase.name}
+                                        onChange={e => updatePhaseName(idx, e.target.value)}
+                                    />
+                                    <div className="text-[10px] text-slate-400 flex items-center gap-2">
+                                        <span>{formatDate(phaseStart)} – {formatDate(phaseEnd)}</span>
+                                        {phase.manhours > 0 && <span>{phase.manhours.toFixed(0)}h</span>}
+                                        <button
+                                            type="button"
+                                            onClick={() => deletePhase(idx)}
+                                            className="text-red-400 hover:text-red-600 ml-auto"
+                                            title="Remove phase"
+                                        >
+                                            ×
+                                        </button>
                                     </div>
                                 </div>
 
@@ -310,6 +355,17 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                     })}
                 </div>
             )}
+
+            {/* Add Phase button */}
+            <div className="flex items-center gap-3">
+                <button
+                    type="button"
+                    onClick={addPhase}
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-white border border-dashed border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50"
+                >
+                    + Add Phase
+                </button>
+            </div>
 
             {/* Note */}
             <p className="text-xs text-slate-400">

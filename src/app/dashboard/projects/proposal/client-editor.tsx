@@ -623,6 +623,20 @@ export default function ClientEditor({
                     </div>
                 )}
 
+                {/* T&C Tier reference */}
+                {project?.tc_tier && (
+                    <div className="p-3 bg-slate-800/40 rounded-lg border border-slate-700 text-sm flex items-center gap-2">
+                        <Scale className="w-4 h-4 text-slate-400" />
+                        <span className="text-slate-300">
+                            <span className="font-medium">T&C Tier:</span> {project.tc_tier.charAt(0).toUpperCase() + project.tc_tier.slice(1)}
+                        </span>
+                        <span className="text-slate-500">—</span>
+                        <Link href={`/dashboard/projects/contracts?projectId=${projectId}`} className="text-blue-400 hover:text-blue-300 text-xs">
+                            Edit in Contracts tab
+                        </Link>
+                    </div>
+                )}
+
                 {/* SECTION 1: Project Summary */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
                     <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">

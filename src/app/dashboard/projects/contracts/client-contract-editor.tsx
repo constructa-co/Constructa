@@ -184,16 +184,41 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
         });
     };
 
+    const [uploadedFileName, setUploadedFileName] = useState("");
+
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            const text = ev.target?.result as string;
-            setUploadedText(text);
-            toast.success("Contract text loaded — click Analyse to review");
-        };
-        reader.readAsText(file);
+        setUploadedFileName(file.name);
+
+        const ext = file.name.split(".").pop()?.toLowerCase();
+        if (ext === "txt") {
+            // Plain text — read client-side
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const text = ev.target?.result as string;
+                setUploadedText(text);
+                toast.success("Contract text loaded — click Analyse to review");
+            };
+            reader.readAsText(file);
+        } else {
+            // PDF/DOCX — upload to Supabase storage
+            try {
+                const { createClient } = await import("@/lib/supabase/client");
+                const supabase = createClient();
+                const filePath = `${projectId}/${Date.now()}_${file.name}`;
+                const { error } = await supabase.storage.from("contracts").upload(filePath, file);
+                if (error) {
+                    // Bucket may not exist — try creating it first
+                    toast.error("Upload failed: " + error.message);
+                    return;
+                }
+                setUploadedText(`[FILE:${filePath}] ${file.name}`);
+                toast.success("PDF/DOCX uploaded. AI analysis will extract key clauses.");
+            } catch {
+                toast.error("Upload failed");
+            }
+        }
     };
 
     const handleAnalyse = async () => {
@@ -367,12 +392,12 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                     {/* Upload Client Contract */}
                     <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
                         <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Upload Client Contract for Review</h3>
-                        <p className="text-xs text-gray-500">Upload a contract (TXT) to have AI flag onerous clauses and unusual terms.</p>
+                        <p className="text-xs text-gray-500">Upload a contract (TXT, PDF, or DOCX) to have AI flag onerous clauses and unusual terms.</p>
                         <div className="flex items-center gap-3">
                             <label className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 text-sm font-medium">
                                 <Upload className="w-4 h-4" />
                                 Upload Contract
-                                <input type="file" accept=".txt,.pdf,.docx" className="hidden" onChange={handleFileUpload} />
+                                <input type="file" accept=".pdf,.doc,.docx,.txt" className="hidden" onChange={handleFileUpload} />
                             </label>
                             <button
                                 onClick={handleAnalyse}
@@ -382,7 +407,13 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                                 {analysing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                                 {analysing ? "Analysing..." : "Analyse with AI"}
                             </button>
-                            {uploadedText && <span className="text-xs text-green-600 font-medium">Contract loaded ({uploadedText.length} chars)</span>}
+                            {uploadedText && (
+                                <span className="text-xs text-green-600 font-medium">
+                                    {uploadedText.startsWith("[FILE:")
+                                        ? `${uploadedFileName || "Contract"} uploaded ✓ — click Analyse to review`
+                                        : `Contract loaded (${uploadedText.length} chars)`}
+                                </span>
+                            )}
                         </div>
 
                         {/* Flags display */}
@@ -454,12 +485,12 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                                         placeholder="Describe the risk..."
                                     />
                                     <div className="flex items-center gap-2">
-                                        <select className="text-xs border border-gray-200 rounded px-2 py-1" value={item.likelihood} onChange={e => updateRiskItem(item.id, "likelihood", e.target.value)}>
+                                        <select className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-900" value={item.likelihood} onChange={e => updateRiskItem(item.id, "likelihood", e.target.value)}>
                                             <option value="low">Low likelihood</option>
                                             <option value="medium">Medium likelihood</option>
                                             <option value="high">High likelihood</option>
                                         </select>
-                                        <select className="text-xs border border-gray-200 rounded px-2 py-1" value={item.impact} onChange={e => updateRiskItem(item.id, "impact", e.target.value)}>
+                                        <select className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-900" value={item.impact} onChange={e => updateRiskItem(item.id, "impact", e.target.value)}>
                                             <option value="low">Low impact</option>
                                             <option value="medium">Medium impact</option>
                                             <option value="high">High impact</option>
@@ -501,12 +532,12 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                                         placeholder="Describe the opportunity..."
                                     />
                                     <div className="flex items-center gap-2">
-                                        <select className="text-xs border border-gray-200 rounded px-2 py-1" value={item.likelihood} onChange={e => updateRiskItem(item.id, "likelihood", e.target.value)}>
+                                        <select className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-900" value={item.likelihood} onChange={e => updateRiskItem(item.id, "likelihood", e.target.value)}>
                                             <option value="low">Low likelihood</option>
                                             <option value="medium">Medium likelihood</option>
                                             <option value="high">High likelihood</option>
                                         </select>
-                                        <select className="text-xs border border-gray-200 rounded px-2 py-1" value={item.impact} onChange={e => updateRiskItem(item.id, "impact", e.target.value)}>
+                                        <select className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-900" value={item.impact} onChange={e => updateRiskItem(item.id, "impact", e.target.value)}>
                                             <option value="low">Low impact</option>
                                             <option value="medium">Medium impact</option>
                                             <option value="high">High impact</option>

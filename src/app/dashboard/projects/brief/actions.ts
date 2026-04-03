@@ -56,7 +56,27 @@ export async function saveBriefAction(projectId: string, data: {
   start_date?: string;
 }) {
   const supabase = createClient();
-  const { error } = await supabase.from("projects").update(data).eq("id", projectId);
+
+  // Fetch existing proposal fields so we don't overwrite them
+  const { data: existing } = await supabase
+    .from("projects")
+    .select("proposal_introduction, scope_text")
+    .eq("id", projectId)
+    .single();
+
+  const updateData: any = { ...data };
+
+  // Pre-fill proposal_introduction if not already written
+  if (!existing?.proposal_introduction && data.brief_scope) {
+    updateData.proposal_introduction = data.brief_scope;
+  }
+
+  // Pre-fill scope_text if not already written
+  if (!existing?.scope_text && data.brief_scope) {
+    updateData.scope_text = data.brief_scope;
+  }
+
+  const { error } = await supabase.from("projects").update(updateData).eq("id", projectId);
   if (error) console.error("Save brief error:", error);
   revalidatePath("/dashboard/projects/brief");
 }
@@ -76,16 +96,16 @@ export async function suggestEstimateLineItemsAction(
       lines: Array<{ description: string; unit: string; quantity: number }>
     }>
   }>(
-    `You are a UK construction estimator. Based on this project scope, suggest line items for a Bill of Quantities.
+    `You are a UK construction estimator. Based on this project scope, suggest specific line items for a Bill of Quantities.
 
-    Scope: "${scope}"
-    Trade sections involved: ${tradeSections.join(", ")}
+    Scope: "${scope?.substring(0, 800) || "General construction works"}"
+    Trade sections: ${tradeSections.slice(0, 8).join(", ")}
 
-    For each trade section, suggest 3-5 specific measurable line items.
-    Each line item should be a specific work activity with realistic quantities.
+    For each relevant trade section, suggest 3-5 specific measurable line items.
+    Use standard UK construction units (m, m², m³, nr, item, m run).
+    Make descriptions specific and professional (e.g. "Excavate topsoil 150mm deep" not just "Excavation").
 
-    Return JSON: { "sections": [{ "trade": "trade name", "lines": [{ "description": "item", "unit": "m2", "quantity": 10 }] }] }
-
-    Only suggest lines for the trades listed. Use standard UK construction units (m, m2, m3, nr, item, day, week, tonne, kg, lm).`
+    Return JSON: { "sections": [{ "trade": "trade name", "lines": [{ "description": "item description", "unit": "m²", "quantity": 10 }] }] }
+    Only include trades from the provided list.`
   );
 }

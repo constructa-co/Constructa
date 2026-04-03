@@ -36,7 +36,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pr
                     </div>
                 </div>
 
-                <ProjectNavBar projectId={projectId} activeTab="billing" />
+                <ProjectNavBar projectId={projectId} activeTab="billing" showPostCon />
             </div>
 
             <ClientBilling

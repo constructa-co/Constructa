@@ -71,6 +71,31 @@ export async function getEstimatePhasesAction(
     });
 
     const sections = Object.keys(sectionManhours).filter(s => sectionManhours[s] > 0);
+
+    // If no estimate lines found, build from brief_trade_sections
+    if (sections.length === 0) {
+        const { data: proj } = await supabase
+            .from("projects")
+            .select("brief_trade_sections, start_date")
+            .eq("id", projectId)
+            .single();
+
+        if (proj && proj.brief_trade_sections && (proj.brief_trade_sections as string[]).length > 0) {
+            let briefOffset = 0;
+            return (proj.brief_trade_sections as string[]).map((trade: string) => {
+                const phase = {
+                    name: trade,
+                    calculatedDays: 10, // default 2 weeks per trade
+                    manualDays: null,
+                    manhours: 0,
+                    startOffset: briefOffset,
+                };
+                briefOffset += 10;
+                return phase;
+            });
+        }
+    }
+
     let offset = 0;
     return sections.map(section => {
         const manhours = sectionManhours[section];

@@ -58,6 +58,13 @@ export default function BuildUpPanel({
     const [components, setComponents] = useState<EstimateLineComponent[]>(line.estimate_line_components || []);
     const [isPending, startTransition] = useTransition();
 
+    // Per-component description state for controlled material inputs
+    const [descInputs, setDescInputs] = useState<Record<string, string>>(() => {
+        const init: Record<string, string> = {};
+        (line.estimate_line_components || []).forEach(c => { init[c.id] = c.description; });
+        return init;
+    });
+
     // Filter to raw supply items only — exclude activities (supply & fix, install etc.)
     const rawMaterialItems = materialLibrary.filter(m => {
         const desc = m.description.toLowerCase();
@@ -100,6 +107,7 @@ export default function BuildUpPanel({
                 sort_order: components.length,
             });
             if (result) {
+                setDescInputs(prev => ({ ...prev, [result.id]: '' }));
                 const newComp: EstimateLineComponent = {
                     id: result.id,
                     estimate_line_id: line.id,
@@ -123,6 +131,9 @@ export default function BuildUpPanel({
     };
 
     const handleUpdate = (compId: string, updates: Partial<EstimateLineComponent>) => {
+        if (updates.description !== undefined) {
+            setDescInputs(prev => ({ ...prev, [compId]: updates.description! }));
+        }
         const updated = components.map((c) => {
             if (c.id !== compId) return c;
             const merged = { ...c, ...updates };
@@ -228,7 +239,8 @@ export default function BuildUpPanel({
                 </div>
             </div>
             <p className="px-3 py-1 text-xs text-blue-500 bg-blue-50/50 border-b border-blue-100">
-                Building up cost for: <strong>{line.description || 'this item'}</strong> ({line.quantity} {line.unit}) — enter costs per component below
+                Building up cost for: <strong>{line.description || 'this item'}</strong> ({line.quantity} {line.unit}) —
+                enter costs per component. For labour, &quot;hrs/unit&quot; = manhours to complete one unit of the parent item.
             </p>
 
             {/* Load from library */}
@@ -307,10 +319,11 @@ export default function BuildUpPanel({
                                     {(comp.description === "__custom__" ||
                                         (!labourRates.some((lr) => lr.role === comp.description) && comp.description)) && (
                                         <input
-                                            className="w-32 border border-blue-200 rounded px-1 py-0.5 bg-white text-xs"
+                                            className="w-32 border border-blue-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
                                             value={comp.description === "__custom__" ? "" : comp.description}
                                             onChange={(e) => handleUpdate(comp.id, { description: e.target.value })}
-                                            placeholder="Custom description..."
+                                            placeholder="Type description..."
+                                            autoFocus
                                         />
                                     )}
                                 </div>
@@ -348,10 +361,11 @@ export default function BuildUpPanel({
                                     {(comp.description === "__custom__" ||
                                         (!PLANT_RATES.some((p) => p.name === comp.description) && comp.description)) && (
                                         <input
-                                            className="w-32 border border-blue-200 rounded px-1 py-0.5 bg-white text-xs"
+                                            className="w-32 border border-blue-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
                                             value={comp.description === "__custom__" ? "" : comp.description}
                                             onChange={(e) => handleUpdate(comp.id, { description: e.target.value })}
-                                            placeholder="Custom description..."
+                                            placeholder="Type description..."
+                                            autoFocus
                                         />
                                     )}
                                 </div>
@@ -360,17 +374,28 @@ export default function BuildUpPanel({
                                     <input
                                         list={`mat-${comp.id}`}
                                         className="flex-1 border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900 text-xs"
-                                        defaultValue={comp.description}
-                                        onBlur={(e) => {
-                                            const match = rawMaterialItems.find((m) => m.description === e.target.value);
+                                        value={descInputs[comp.id] ?? comp.description}
+                                        onChange={(e) => {
+                                            setDescInputs(prev => ({ ...prev, [comp.id]: e.target.value }));
+                                            const match = rawMaterialItems.find(m =>
+                                                m.description.toLowerCase() === e.target.value.toLowerCase()
+                                            );
                                             if (match) {
                                                 handleUpdate(comp.id, {
                                                     description: match.description,
                                                     unit_rate: match.base_rate,
                                                     unit: match.unit,
                                                 });
-                                            } else {
-                                                handleUpdate(comp.id, { description: e.target.value });
+                                            }
+                                        }}
+                                        onBlur={(e) => {
+                                            const val = e.target.value.trim();
+                                            if (!val) return;
+                                            const match = rawMaterialItems.find(m =>
+                                                m.description.toLowerCase() === val.toLowerCase()
+                                            );
+                                            if (!match) {
+                                                handleUpdate(comp.id, { description: val });
                                             }
                                         }}
                                         placeholder="Search materials or type description..."
@@ -421,13 +446,16 @@ export default function BuildUpPanel({
 
                             {/* Manhours (labour only) */}
                             {comp.component_type === "labour" && (
-                                <input
-                                    type="number"
-                                    title="Manhours per parent unit"
-                                    className="w-16 text-right text-xs border border-blue-300 rounded px-1 py-0.5 bg-blue-100 text-gray-900"
-                                    value={comp.manhours_per_unit}
-                                    onChange={(e) => handleUpdate(comp.id, { manhours_per_unit: Number(e.target.value) || 0 })}
-                                />
+                                <div className="flex flex-col items-end">
+                                    <span className="text-[9px] text-blue-500 font-medium mb-0.5">hrs/unit</span>
+                                    <input
+                                        type="number"
+                                        title="Manhours per unit of the parent line item (e.g. 0.4 hrs per m³ of concrete placed)"
+                                        className="w-16 text-right text-xs border border-blue-300 rounded px-1 py-0.5 bg-blue-100 text-gray-900"
+                                        value={comp.manhours_per_unit}
+                                        onChange={(e) => handleUpdate(comp.id, { manhours_per_unit: Number(e.target.value) || 0 })}
+                                    />
+                                </div>
                             )}
 
                             {/* Total */}

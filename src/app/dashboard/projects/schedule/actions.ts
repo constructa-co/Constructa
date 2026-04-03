@@ -36,9 +36,23 @@ export async function updatePhasesAction(
     const supabase = createClient();
     const { error } = await supabase
         .from("projects")
-        .update({ timeline_phases: phases })
+        .update({ timeline_phases: phases, programme_phases: phases })
         .eq("id", projectId);
 
     if (error) console.error("Update phases error:", error);
+    revalidatePath("/dashboard/projects/schedule");
+}
+
+export async function saveProgrammePhasesAction(
+    projectId: string,
+    phases: any[]
+): Promise<void> {
+    const supabase = createClient();
+    const { error } = await supabase
+        .from("projects")
+        .update({ programme_phases: phases })
+        .eq("id", projectId);
+
+    if (error) console.error("Save programme phases error:", error);
     revalidatePath("/dashboard/projects/schedule");
 }

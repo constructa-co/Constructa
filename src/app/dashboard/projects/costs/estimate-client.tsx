@@ -13,7 +13,7 @@ import {
     deleteEstimateAction,
     setPricingModeAction,
 } from "./actions";
-import { Plus, Trash2, Check, Star, Loader2, FileText } from "lucide-react";
+import { Plus, Trash2, Check, Star, Loader2, FileText, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import BuildUpPanel from "./build-up-panel";
 import type { EstimateLineComponent, EstimateLine, Estimate, CostLibraryItem, LabourRate, RateBuildup } from "./types";
@@ -373,6 +373,11 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     {contractSum > 0 && (
                         <span className="text-sm text-gray-500">Contract Sum: <strong>{formatGBP(contractSum)}</strong></span>
                     )}
+                    <Link href={`/dashboard/projects/schedule?projectId=${projectId}`}
+                        className="bg-white border border-gray-200 text-gray-700 px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-gray-50 flex items-center gap-2">
+                        <CalendarDays className="w-4 h-4" />
+                        View Programme
+                    </Link>
                     <Link href={`/dashboard/projects/proposal?projectId=${projectId}`}
                         className="bg-gray-900 text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-gray-700 flex items-center gap-2">
                         <FileText className="w-4 h-4" />

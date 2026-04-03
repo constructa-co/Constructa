@@ -35,6 +35,7 @@ interface Props {
         name: string;
         start_date?: string;
         timeline_phases?: Phase[];
+        programme_phases?: Phase[];
     };
     estimate: Estimate | null;
     projectId: string;
@@ -117,9 +118,11 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const [isPending, startTransition] = useTransition();
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
+    const existingPhases = (project.programme_phases as Phase[] | undefined) || (project.timeline_phases as Phase[] | undefined);
     const initialPhases = useMemo(
-        () => buildPhasesFromEstimate(estimate, project.timeline_phases as Phase[] | undefined),
-        [estimate, project.timeline_phases]
+        () => buildPhasesFromEstimate(estimate, existingPhases),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [estimate, project.programme_phases, project.timeline_phases]
     );
 
     const [phases, setPhases] = useState<Phase[]>(initialPhases);

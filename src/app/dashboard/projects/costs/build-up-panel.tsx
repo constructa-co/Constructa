@@ -67,7 +67,7 @@ export default function BuildUpPanel({
         return init;
     });
 
-    // Trade/category filter state per component
+    // Trade/category filter state for dropdowns
     const [labourTradeFilter, setLabourTradeFilter] = useState<Record<string, string>>({});
     const [materialCategoryFilter, setMaterialCategoryFilter] = useState<Record<string, string>>({});
 

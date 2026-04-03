@@ -58,6 +58,24 @@ export default function BuildUpPanel({
     const [components, setComponents] = useState<EstimateLineComponent[]>(line.estimate_line_components || []);
     const [isPending, startTransition] = useTransition();
 
+    // Filter to raw supply items only — exclude activities (supply & fix, install etc.)
+    const rawMaterialItems = materialLibrary.filter(m => {
+        const desc = m.description.toLowerCase();
+        const isActivity = desc.includes('supply & fix') ||
+                           desc.includes('install') ||
+                           desc.includes(' & fix') ||
+                           desc.includes('excavat') ||
+                           desc.includes('dispose') ||
+                           desc.includes('place ') ||
+                           desc.includes('lay ') ||
+                           desc.includes('construct') ||
+                           desc.includes('ground slab') ||
+                           desc.includes('foundation') ||
+                           desc.includes('plinth') ||
+                           m.category === 'Labour';
+        return !isActivity;
+    });
+
     const componentTotal = components.reduce((s, c) => s + c.quantity * c.unit_rate, 0);
     const ratePerUnit = line.quantity > 0 ? componentTotal / line.quantity : 0;
     const totalManhours = components
@@ -204,19 +222,14 @@ export default function BuildUpPanel({
             <div className="flex items-center justify-between px-3 py-2 bg-blue-50 border-b border-blue-200">
                 <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Rate Build-Up</span>
                 <div className="flex items-center gap-3 text-xs text-blue-600">
-                    <span>
-                        Components total: <strong>{formatGBP(componentTotal)}</strong>
-                    </span>
-                    <span>
-                        Rate/unit: <strong>{formatGBP(ratePerUnit)}</strong>
-                    </span>
-                    {totalManhours > 0 && (
-                        <span>
-                            Manhours: <strong>{totalManhours.toFixed(1)}h</strong>
-                        </span>
-                    )}
+                    <span>Components total: <strong>{formatGBP(componentTotal)}</strong></span>
+                    <span>Built-up rate: <strong>{formatGBP(ratePerUnit)}/unit</strong></span>
+                    {totalManhours > 0 && <span>Total manhours: <strong>{totalManhours.toFixed(1)}h</strong></span>}
                 </div>
             </div>
+            <p className="px-3 py-1 text-xs text-blue-500 bg-blue-50/50 border-b border-blue-100">
+                Building up cost for: <strong>{line.description || 'this item'}</strong> ({line.quantity} {line.unit}) — enter costs per component below
+            </p>
 
             {/* Load from library */}
             {rateBuildups.length > 0 && components.length === 0 && (
@@ -256,7 +269,7 @@ export default function BuildUpPanel({
                             {comp.component_type === "labour" ? (
                                 <div className="flex-1 flex items-center gap-1">
                                     <select
-                                        className="flex-1 border border-transparent hover:border-blue-200 rounded px-1 py-0.5 bg-transparent text-xs text-gray-700"
+                                        className="flex-1 border border-gray-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
                                         value={comp.description || ""}
                                         onChange={(e) => {
                                             if (e.target.value === "__custom__") {
@@ -288,6 +301,7 @@ export default function BuildUpPanel({
                                                     ))}
                                             </optgroup>
                                         ))}
+                                        <option value="" disabled>── or type custom description ──</option>
                                         <option value="__custom__">Custom / Other...</option>
                                     </select>
                                     {(comp.description === "__custom__" ||
@@ -303,7 +317,7 @@ export default function BuildUpPanel({
                             ) : comp.component_type === "plant" ? (
                                 <div className="flex-1 flex items-center gap-1">
                                     <select
-                                        className="flex-1 border border-transparent hover:border-blue-200 rounded px-1 py-0.5 bg-transparent text-xs text-gray-700"
+                                        className="flex-1 border border-gray-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
                                         value={comp.description || ""}
                                         onChange={(e) => {
                                             if (e.target.value === "__custom__") {
@@ -328,6 +342,7 @@ export default function BuildUpPanel({
                                                 {p.name} — £{p.rate}/{p.unit}
                                             </option>
                                         ))}
+                                        <option value="" disabled>── or type custom description ──</option>
                                         <option value="__custom__">Custom / Other...</option>
                                     </select>
                                     {(comp.description === "__custom__" ||
@@ -344,10 +359,10 @@ export default function BuildUpPanel({
                                 <>
                                     <input
                                         list={`mat-${comp.id}`}
-                                        className="flex-1 border border-transparent hover:border-blue-200 rounded px-1 py-0.5 bg-transparent text-gray-700 text-xs"
+                                        className="flex-1 border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900 text-xs"
                                         defaultValue={comp.description}
                                         onBlur={(e) => {
-                                            const match = materialLibrary.find((m) => m.description === e.target.value);
+                                            const match = rawMaterialItems.find((m) => m.description === e.target.value);
                                             if (match) {
                                                 handleUpdate(comp.id, {
                                                     description: match.description,
@@ -361,18 +376,16 @@ export default function BuildUpPanel({
                                         placeholder="Search materials or type description..."
                                     />
                                     <datalist id={`mat-${comp.id}`}>
-                                        {materialLibrary
-                                            .filter((m) => m.category !== "Labour")
-                                            .map((m) => (
-                                                <option key={m.id} value={m.description}>
-                                                    {m.description} — £{m.base_rate}/{m.unit}
-                                                </option>
-                                            ))}
+                                        {rawMaterialItems.map((m) => (
+                                            <option key={m.id} value={m.description}>
+                                                {m.description} — £{m.base_rate}/{m.unit}
+                                            </option>
+                                        ))}
                                     </datalist>
                                 </>
                             ) : (
                                 <input
-                                    className="flex-1 border border-transparent hover:border-blue-200 rounded px-1 py-0.5 bg-transparent text-gray-700 text-xs"
+                                    className="flex-1 border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900 text-xs"
                                     defaultValue={comp.description}
                                     onBlur={(e) => handleUpdate(comp.id, { description: e.target.value })}
                                     placeholder="Description..."
@@ -382,15 +395,15 @@ export default function BuildUpPanel({
                             {/* Qty */}
                             <input
                                 type="number"
-                                className="w-16 border border-transparent hover:border-blue-200 rounded px-1 py-0.5 bg-transparent text-right text-xs"
-                                defaultValue={comp.quantity}
-                                onBlur={(e) => handleUpdate(comp.id, { quantity: Number(e.target.value) })}
+                                className="w-14 text-right text-xs border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900"
+                                value={comp.quantity}
+                                onChange={(e) => handleUpdate(comp.id, { quantity: Number(e.target.value) || 0 })}
                             />
 
                             {/* Unit */}
                             <select
-                                className="w-14 border border-transparent hover:border-blue-200 rounded px-1 py-0.5 bg-transparent text-xs"
-                                defaultValue={comp.unit}
+                                className="w-14 text-xs border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900"
+                                value={comp.unit}
                                 onChange={(e) => handleUpdate(comp.id, { unit: e.target.value })}
                             >
                                 {COMP_UNITS.map((u) => (
@@ -398,12 +411,12 @@ export default function BuildUpPanel({
                                 ))}
                             </select>
 
-                            {/* Rate */}
+                            {/* Rate — controlled input */}
                             <input
                                 type="number"
-                                className="w-20 border border-transparent hover:border-blue-200 rounded px-1 py-0.5 bg-transparent text-right text-xs"
-                                defaultValue={comp.unit_rate}
-                                onBlur={(e) => handleUpdate(comp.id, { unit_rate: Number(e.target.value) })}
+                                className="w-20 text-right text-xs border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900"
+                                value={comp.unit_rate === 0 ? '' : comp.unit_rate}
+                                onChange={(e) => handleUpdate(comp.id, { unit_rate: Number(e.target.value) || 0 })}
                             />
 
                             {/* Manhours (labour only) */}
@@ -411,10 +424,9 @@ export default function BuildUpPanel({
                                 <input
                                     type="number"
                                     title="Manhours per parent unit"
-                                    className="w-16 border border-transparent hover:border-blue-200 rounded px-1 py-0.5 bg-blue-100 text-right text-xs"
-                                    defaultValue={comp.manhours_per_unit}
-                                    onBlur={(e) => handleUpdate(comp.id, { manhours_per_unit: Number(e.target.value) })}
-                                    placeholder="hrs/unit"
+                                    className="w-16 text-right text-xs border border-blue-300 rounded px-1 py-0.5 bg-blue-100 text-gray-900"
+                                    value={comp.manhours_per_unit}
+                                    onChange={(e) => handleUpdate(comp.id, { manhours_per_unit: Number(e.target.value) || 0 })}
                                 />
                             )}
 

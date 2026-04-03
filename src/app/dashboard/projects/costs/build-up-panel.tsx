@@ -89,6 +89,9 @@ export default function BuildUpPanel({
         return !isActivity;
     });
 
+    // Consumable items from the cost library
+    const consumableItems = materialLibrary.filter(m => m.category === 'Consumables');
+
     // Combine hardcoded PLANT_RATES with DB plant items
     const allPlantItems = [
         ...PLANT_RATES.map(p => ({ name: p.name, rate: p.rate, unit: p.unit })),
@@ -410,21 +413,19 @@ export default function BuildUpPanel({
                                     >
                                         <option value="">All categories...</option>
                                         {(() => {
-                                            const allCats = Array.from(new Set(rawMaterialItems.map(m => m.category)));
+                                            const allCats = Array.from(new Set(rawMaterialItems.map(m => m.category))).sort();
                                             const preferredCats = allCats.filter(c => preferredTrades.includes(c));
-                                            const otherCats = allCats.filter(c => !preferredTrades.includes(c)).sort();
-                                            return (
-                                                <>
-                                                    {preferredCats.length > 0 && (
-                                                        <optgroup label="Your trades">
-                                                            {preferredCats.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                                                        </optgroup>
-                                                    )}
-                                                    <optgroup label="All categories">
-                                                        {otherCats.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                            const otherCats = allCats.filter(c => !preferredTrades.includes(c));
+                                            return (<>
+                                                {preferredCats.length > 0 && (
+                                                    <optgroup label="Your trades">
+                                                        {preferredCats.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                                                     </optgroup>
-                                                </>
-                                            );
+                                                )}
+                                                <optgroup label="All categories">
+                                                    {otherCats.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                                </optgroup>
+                                            </>);
                                         })()}
                                     </select>
                                     {/* Material input with datalist */}
@@ -500,7 +501,7 @@ export default function BuildUpPanel({
                                         }}
                                         placeholder="Subcontractor name or description (e.g. Specialist groundworks package)..."
                                     />
-                                    <span className="text-xs text-gray-400">Enter the subcontract value as the rate × qty below</span>
+                                    <span className="text-xs text-gray-400">Enter the subcontract value as the rate below</span>
                                 </div>
                             ) : (
                                 <input

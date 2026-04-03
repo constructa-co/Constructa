@@ -85,8 +85,8 @@ const BUSINESS_TYPES = [
 const ALL_TRADES = [
     'Site Setup & Preliminaries', 'Demolition & Strip Out', 'Asbestos Removal',
     'Temporary Works / Propping / Shoring', 'Groundworks & Civils', 'Drainage',
-    'Utilities – Water', 'Utilities – Gas', 'Utilities – Electric / Ducting',
-    'Utilities – Telecoms / Data Ducting', 'Attenuation / SuDS / Stormwater',
+    'Utilities \u2013 Water', 'Utilities \u2013 Gas', 'Utilities \u2013 Electric / Ducting',
+    'Utilities \u2013 Telecoms / Data Ducting', 'Attenuation / SuDS / Stormwater',
     'Piling', 'Underpinning & Structural Stabilisation', 'Concrete / RC Works',
     'Steel Frame / Steel Erection', 'Structural Timber / Framing',
     'Masonry / Brickwork / Blockwork', 'Cladding & Rainscreen', 'Roofing',
@@ -518,12 +518,14 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
                                     type="button"
                                     onClick={() => {
                                         setPreferredTrades(prev =>
-                                            isSelected ? prev.filter(t => t !== trade) : [...prev, trade]
+                                            isSelected
+                                                ? prev.filter(t => t !== trade)
+                                                : [...prev, trade]
                                         );
                                     }}
                                     className={`text-xs px-2 py-1.5 rounded-md border text-left transition-colors ${
                                         isSelected
-                                            ? 'bg-slate-100 text-slate-900 border-slate-300'
+                                            ? 'bg-white text-slate-900 border-white font-medium'
                                             : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500'
                                     }`}
                                 >

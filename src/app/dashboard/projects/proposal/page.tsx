@@ -62,6 +62,9 @@ export default async function ProposalPage({ searchParams }: { searchParams: { p
                 initialScope={project?.scope_text || ""}
                 initialExclusions={project?.exclusions_text || ""}
                 initialClarifications={project?.clarifications_text || ""}
+                initialBriefScope={project?.brief_scope || ""}
+                initialContractExclusions={project?.contract_exclusions || ""}
+                initialContractClarifications={project?.contract_clarifications || ""}
                 estimates={estimates || []}
                 project={project}
                 profile={profile}

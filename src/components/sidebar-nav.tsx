@@ -6,15 +6,13 @@ import {
     LayoutDashboard,
     FilePlus,
     BookOpen,
-    Calculator,
     Wrench,
-    User,
     LogOut,
-    Receipt,
-    GitBranch,
-    CalendarDays,
-    FileText,
     Building2,
+    Images,
+    Wand2,
+    HardHat,
+    Archive,
     Sun,
     Moon,
 } from "lucide-react";
@@ -35,6 +33,7 @@ function NavItem({
     href,
     icon: Icon,
     label,
+    sublabel,
     active,
     badge,
     disabled,
@@ -42,6 +41,7 @@ function NavItem({
     href: string;
     icon: any;
     label: string;
+    sublabel?: string;
     active?: boolean;
     badge?: string;
     disabled?: boolean;
@@ -50,7 +50,9 @@ function NavItem({
         return (
             <div className="flex items-center gap-3 px-3 py-2 rounded-md opacity-30 cursor-not-allowed">
                 <Icon className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <span className="text-sm text-slate-400 font-medium">{label}</span>
+                <div className="min-w-0 flex-1">
+                    <span className="text-sm text-slate-400 font-medium">{label}</span>
+                </div>
                 {badge && (
                     <span className="ml-auto text-[9px] font-bold uppercase tracking-wider text-slate-500 bg-white/5 px-1.5 py-0.5 rounded">
                         {badge}
@@ -70,7 +72,12 @@ function NavItem({
             }`}
         >
             <Icon className={`w-4 h-4 flex-shrink-0 transition-colors ${active ? "text-blue-400" : "text-slate-400 group-hover:text-slate-200"}`} />
-            <span className="text-sm truncate">{label}</span>
+            <div className="min-w-0 flex-1">
+                <span className="text-sm truncate block">{label}</span>
+                {sublabel && (
+                    <span className="text-[10px] text-slate-500 truncate block">{sublabel}</span>
+                )}
+            </div>
             {badge && (
                 <span className={`ml-auto text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
                     active ? "text-blue-300 bg-blue-500/20" : "text-slate-500 bg-white/5"
@@ -114,39 +121,53 @@ export default function SidebarNav({ user, projects }: SidebarNavProps) {
             {/* Nav */}
             <div className="flex-1 overflow-y-auto px-3 pb-4">
 
-                {/* Main */}
-                <div className="space-y-0.5 pt-1">
-                    <NavItem href="/dashboard" icon={LayoutDashboard} label="Dashboard" active={pathname === "/dashboard"} />
+                {/* Company Profile */}
+                <SectionLabel label="Company Profile" />
+                <div className="space-y-0.5">
+                    <NavItem href="/dashboard/settings/profile" icon={Building2} label="Profile" active={is("/dashboard/settings/profile")} />
+                    <NavItem href="/dashboard/settings/case-studies" icon={Images} label="Case Studies" active={is("/dashboard/settings/case-studies")} />
+                    <NavItem href="/onboarding?force=true" icon={Wand2} label="Setup Wizard" active={false} />
                 </div>
 
-                {/* Proposals */}
-                <SectionLabel label="Proposals" />
+                {/* Work Winning */}
+                <SectionLabel label="Work Winning" />
                 <div className="space-y-0.5">
+                    <NavItem href="/dashboard" icon={LayoutDashboard} label="Dashboard (CRM)" active={pathname === "/dashboard"} />
                     <NavItem href="/dashboard/projects/new" icon={FilePlus} label="New Project" active={pathname.includes("/projects/new")} />
                 </div>
 
-                {/* Pricing Tools */}
-                <SectionLabel label="Pricing Tools" />
+                {/* Pre-Construction */}
+                <SectionLabel label="Pre-Construction" />
                 <div className="space-y-0.5">
-                    <NavItem href="/dashboard/foundations" icon={Calculator} label="Estimator" active={is("/dashboard/foundations")} />
                     <NavItem href="/dashboard/library" icon={BookOpen} label="Cost Library" active={is("/dashboard/library")} />
                     <NavItem href="/dashboard/resources" icon={Wrench} label="Resources" active={is("/dashboard/resources")} />
                 </div>
 
-                {/* Project Modules */}
-                <SectionLabel label="Project Modules" />
+                {/* Live Projects */}
+                <SectionLabel label="Live Projects" />
                 <div className="space-y-0.5">
-                    <NavItem href="/dashboard/projects/billing" icon={Receipt} label="Billing & Valuations" active={is("/dashboard/projects/billing")} disabled />
-                    <NavItem href="/dashboard/projects/variations" icon={GitBranch} label="Variations" active={is("/dashboard/projects/variations")} disabled />
-                    <NavItem href="/dashboard/projects/schedule" icon={CalendarDays} label="Programme" active={is("/dashboard/projects/schedule")} disabled />
-                    <NavItem href="/dashboard/projects/contracts" icon={FileText} label="Contracts" active={is("/dashboard/projects/contracts")} disabled />
+                    {projects.length > 0 ? (
+                        projects.slice(0, 5).map(p => (
+                            <NavItem
+                                key={p.id}
+                                href={`/dashboard/projects/brief?projectId=${p.id}`}
+                                icon={HardHat}
+                                label={p.name}
+                                sublabel={p.client_name}
+                                active={pathname.includes(p.id)}
+                            />
+                        ))
+                    ) : (
+                        <div className="px-3 py-2 text-xs text-slate-600 italic">
+                            Your active projects appear here
+                        </div>
+                    )}
                 </div>
 
-                {/* Account */}
-                <SectionLabel label="Account" />
+                {/* Post-Construction */}
+                <SectionLabel label="Post-Construction" />
                 <div className="space-y-0.5">
-                    <NavItem href="/dashboard/settings/profile" icon={Building2} label="Company Profile" active={is("/dashboard/settings/profile")} />
-                    <NavItem href="/onboarding?force=true" icon={User} label="Setup Wizard" active={false} />
+                    <NavItem href="#" icon={Archive} label="Defects & Close-out" disabled badge="Soon" />
                 </div>
 
             </div>

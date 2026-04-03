@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2 } from "lucide-react";
+import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2, RefreshCw } from "lucide-react";
 import { saveProposalAction, generateAiScopeAction, sendProposalAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction, updatePaymentScheduleTypeAction } from "./actions";
 import ProposalPdfButton from "./proposal-pdf-button";
 import AiWizard from "./ai-wizard";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 // Standard 9 T&C clauses
 const STANDARD_CLAUSES = [
@@ -80,6 +81,9 @@ interface Props {
     initialScope: string;
     initialExclusions: string;
     initialClarifications: string;
+    initialBriefScope?: string;
+    initialContractExclusions?: string;
+    initialContractClarifications?: string;
     estimates: any[];
     project: any;
     profile: any;
@@ -186,20 +190,27 @@ export default function ClientEditor({
     initialScope,
     initialExclusions,
     initialClarifications,
+    initialBriefScope = "",
+    initialContractExclusions = "",
+    initialContractClarifications = "",
     estimates,
     project,
     profile,
     estimatedTotal = 0,
 }: Props) {
-    const [scope, setScope] = useState(initialScope ?? '');
-    const [exclusions, setExclusions] = useState(initialExclusions ?? '');
-    const [clarifications, setClarifications] = useState(initialClarifications ?? '');
+    const [scope, setScope] = useState(initialScope || initialBriefScope || '');
+    const [exclusions, setExclusions] = useState(initialExclusions || initialContractExclusions || '');
+    const [clarifications, setClarifications] = useState(initialClarifications || initialContractClarifications || '');
     const [closingStatement, setClosingStatement] = useState(project?.closing_statement ?? '');
     const [generating, setGenerating] = useState(false);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
 
-    const [introduction, setIntroduction] = useState(project?.proposal_introduction ?? "");
+    const scopePreFilled = !initialScope && !!initialBriefScope;
+    const exclusionsPreFilled = !initialExclusions && !!initialContractExclusions;
+    const clarificationsPreFilled = !initialClarifications && !!initialContractClarifications;
+
+    const [introduction, setIntroduction] = useState(project?.proposal_introduction || initialBriefScope || "");
     const [rewritingIntro, setRewritingIntro] = useState(false);
 
     const [ganttPhases, setGanttPhases] = useState<GanttPhase[]>(
@@ -564,6 +575,26 @@ export default function ClientEditor({
             {/* ── MAIN CONTENT COL ── */}
             <div className="lg:col-span-2 space-y-6">
 
+                {/* Sync from Brief & Contracts */}
+                {(initialBriefScope || initialContractExclusions || initialContractClarifications) && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (initialBriefScope) {
+                                if (!scope || scope === initialBriefScope) setScope(initialBriefScope);
+                                if (!introduction || introduction === initialBriefScope) setIntroduction(initialBriefScope);
+                            }
+                            if (initialContractExclusions) setExclusions(initialContractExclusions);
+                            if (initialContractClarifications) setClarifications(initialContractClarifications);
+                            toast.success("Synced from Brief & Contracts");
+                        }}
+                        className="w-full text-sm text-blue-400 bg-blue-500/10 border border-blue-500/30 rounded-lg px-4 py-2.5 hover:bg-blue-500/20 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        Sync from Brief & Contracts
+                    </button>
+                )}
+
                 {/* SECTION 1: Project Summary */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
                     <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
@@ -653,6 +684,11 @@ export default function ClientEditor({
                         )}
                     </div>
                     <div className="p-6">
+                        {!project?.proposal_introduction && initialBriefScope && (
+                            <div className="text-xs text-blue-400 bg-blue-500/10 border border-blue-500/30 px-3 py-1.5 rounded mb-2">
+                                Pre-filled from Brief — edit as needed
+                            </div>
+                        )}
                         <p className="text-xs text-slate-500 mb-3">Opening paragraph — personalised for this client. Appears first in the proposal PDF.</p>
                         <Textarea
                             value={introduction}
@@ -683,6 +719,11 @@ export default function ClientEditor({
                         </Button>
                     </div>
                     <div className="p-6">
+                        {scopePreFilled && (
+                            <div className="text-xs text-blue-400 bg-blue-500/10 border border-blue-500/30 px-3 py-1.5 rounded mb-2">
+                                Pre-filled from Brief — edit as needed
+                            </div>
+                        )}
                         <p className="text-xs text-slate-500 mb-3">Full scope narrative describing all works to be carried out.</p>
                         {aiError && (
                             <div className="mb-3 px-3 py-2 bg-red-950/50 border border-red-800 rounded-lg text-xs text-red-400">
@@ -706,6 +747,11 @@ export default function ClientEditor({
                         <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Exclusions & Clarifications</span>
                     </div>
                     <div className="p-6 grid sm:grid-cols-2 gap-5">
+                        {(exclusionsPreFilled || clarificationsPreFilled) && (
+                            <div className="col-span-full text-xs text-blue-400 bg-blue-500/10 border border-blue-500/30 px-3 py-1.5 rounded">
+                                Pre-filled from Contracts tab — edit as needed
+                            </div>
+                        )}
                         <div>
                             <div className="flex items-center justify-between mb-2">
                                 <p className="text-xs font-semibold text-slate-400">Exclusions</p>

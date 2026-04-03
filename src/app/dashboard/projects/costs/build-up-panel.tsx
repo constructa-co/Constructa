@@ -239,8 +239,7 @@ export default function BuildUpPanel({
                 </div>
             </div>
             <p className="px-3 py-1 text-xs text-blue-500 bg-blue-50/50 border-b border-blue-100">
-                Building up cost for: <strong>{line.description || 'this item'}</strong> ({line.quantity} {line.unit}) —
-                enter costs per component. For labour, &quot;hrs/unit&quot; = manhours to complete one unit of the parent item.
+                Building up cost for: <strong>{line.description || 'this item'}</strong> ({line.quantity} {line.unit}) — enter costs per component. For labour, &quot;hrs/unit&quot; = manhours to complete one unit of the parent item.
             </p>
 
             {/* Load from library */}

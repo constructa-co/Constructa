@@ -2,7 +2,7 @@
 
 Construction proposal, estimating, and project management platform for UK SME contractors.
 
-**Live app:** https://constructa-nu.vercel.app  
+**Live app:** https://constructa-nu.vercel.app
 **Marketing site:** https://www.constructa.co
 
 ## What it does

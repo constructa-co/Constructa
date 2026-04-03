@@ -65,6 +65,10 @@ export default function BuildUpPanel({
         return init;
     });
 
+    // Trade/category filter state per component
+    const [labourTradeFilter, setLabourTradeFilter] = useState<Record<string, string>>({});
+    const [materialCategoryFilter, setMaterialCategoryFilter] = useState<Record<string, string>>({});
+
     // Filter to raw supply items only — exclude activities (supply & fix, install etc.)
     const rawMaterialItems = materialLibrary.filter(m => {
         const desc = m.description.toLowerCase();
@@ -82,6 +86,15 @@ export default function BuildUpPanel({
                            m.category === 'Labour';
         return !isActivity;
     });
+
+    // Combine hardcoded PLANT_RATES with DB plant items
+    const allPlantItems = [
+        ...PLANT_RATES.map(p => ({ name: p.name, rate: p.rate, unit: p.unit })),
+        ...materialLibrary
+            .filter(m => m.category === 'Plant')
+            .map(m => ({ name: m.description, rate: m.base_rate, unit: m.unit }))
+            .filter(p => !PLANT_RATES.some(pr => pr.name === p.name))
+    ];
 
     const componentTotal = components.reduce((s, c) => s + c.quantity * c.unit_rate, 0);
     const ratePerUnit = line.quantity > 0 ? componentTotal / line.quantity : 0;
@@ -108,6 +121,8 @@ export default function BuildUpPanel({
             });
             if (result) {
                 setDescInputs(prev => ({ ...prev, [result.id]: '' }));
+                setLabourTradeFilter(prev => ({ ...prev, [result.id]: '' }));
+                setMaterialCategoryFilter(prev => ({ ...prev, [result.id]: '' }));
                 const newComp: EstimateLineComponent = {
                     id: result.id,
                     estimate_line_id: line.id,
@@ -278,50 +293,52 @@ export default function BuildUpPanel({
 
                             {/* Description — type-specific picker */}
                             {comp.component_type === "labour" ? (
-                                <div className="flex-1 flex items-center gap-1">
+                                <div className="flex-1 flex flex-col gap-1">
+                                    {/* Trade filter */}
                                     <select
-                                        className="flex-1 border border-gray-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
-                                        value={comp.description || ""}
-                                        onChange={(e) => {
-                                            if (e.target.value === "__custom__") {
-                                                handleUpdate(comp.id, { description: "__custom__" });
+                                        className="w-full border border-gray-200 rounded px-1 py-0.5 bg-white text-xs text-gray-600"
+                                        value={labourTradeFilter[comp.id] || ''}
+                                        onChange={e => setLabourTradeFilter(prev => ({ ...prev, [comp.id]: e.target.value }))}
+                                    >
+                                        <option value="">All trades...</option>
+                                        {Array.from(new Set(labourRates.map(lr => lr.trade))).sort().map(trade => (
+                                            <option key={trade} value={trade}>{trade}</option>
+                                        ))}
+                                    </select>
+                                    {/* Role picker — filtered by selected trade */}
+                                    <select
+                                        className="w-full border border-gray-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
+                                        value={comp.description || ''}
+                                        onChange={e => {
+                                            if (e.target.value === '__custom__') {
+                                                handleUpdate(comp.id, { description: '__custom__' });
                                             } else {
-                                                const selected = labourRates.find((lr) => lr.role === e.target.value);
+                                                const selected = labourRates.find(lr => lr.role === e.target.value);
                                                 if (selected) {
-                                                    handleUpdate(comp.id, {
-                                                        description: selected.role,
-                                                        unit_rate: selected.day_rate,
-                                                        unit: "day",
-                                                    });
-                                                } else {
-                                                    handleUpdate(comp.id, { description: e.target.value });
+                                                    handleUpdate(comp.id, { description: selected.role, unit_rate: selected.day_rate, unit: 'day' });
                                                 }
                                             }
                                         }}
                                     >
-                                        <option value="">Select trade / staff member...</option>
-                                        {Array.from(new Set(labourRates.map((lr) => lr.trade))).map((trade) => (
-                                            <optgroup key={trade} label={trade}>
-                                                {labourRates
-                                                    .filter((lr) => lr.trade === trade)
-                                                    .map((lr) => (
-                                                        <option key={lr.id} value={lr.role}>
-                                                            {lr.role} — £{lr.day_rate}/day (£{lr.hourly_rate?.toFixed(2)}/hr){" "}
-                                                            {lr.region !== "national" ? `[${lr.region}]` : ""}
-                                                        </option>
-                                                    ))}
-                                            </optgroup>
-                                        ))}
-                                        <option value="" disabled>── or type custom description ──</option>
+                                        <option value="">Select role...</option>
+                                        {labourRates
+                                            .filter(lr => !labourTradeFilter[comp.id] || lr.trade === labourTradeFilter[comp.id])
+                                            .map(lr => (
+                                                <option key={lr.id} value={lr.role}>
+                                                    {lr.role} — £{lr.day_rate}/day
+                                                </option>
+                                            ))
+                                        }
                                         <option value="__custom__">Custom / Other...</option>
                                     </select>
-                                    {(comp.description === "__custom__" ||
-                                        (!labourRates.some((lr) => lr.role === comp.description) && comp.description)) && (
+                                    {/* Custom text input */}
+                                    {(comp.description === '__custom__' ||
+                                        (!labourRates.some(lr => lr.role === comp.description) && comp.description && comp.description !== '__custom__')) && (
                                         <input
-                                            className="w-32 border border-blue-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
-                                            value={comp.description === "__custom__" ? "" : comp.description}
-                                            onChange={(e) => handleUpdate(comp.id, { description: e.target.value })}
-                                            placeholder="Type description..."
+                                            className="w-full border border-blue-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
+                                            value={comp.description === '__custom__' ? '' : comp.description}
+                                            onChange={e => handleUpdate(comp.id, { description: e.target.value })}
+                                            placeholder="Type role or description..."
                                             autoFocus
                                         />
                                     )}
@@ -335,7 +352,7 @@ export default function BuildUpPanel({
                                             if (e.target.value === "__custom__") {
                                                 handleUpdate(comp.id, { description: "__custom__" });
                                             } else {
-                                                const selected = PLANT_RATES.find((p) => p.name === e.target.value);
+                                                const selected = allPlantItems.find((p) => p.name === e.target.value);
                                                 if (selected) {
                                                     handleUpdate(comp.id, {
                                                         description: selected.name,
@@ -349,16 +366,15 @@ export default function BuildUpPanel({
                                         }}
                                     >
                                         <option value="">Select plant item...</option>
-                                        {PLANT_RATES.map((p) => (
+                                        {allPlantItems.map((p) => (
                                             <option key={p.name} value={p.name}>
                                                 {p.name} — £{p.rate}/{p.unit}
                                             </option>
                                         ))}
-                                        <option value="" disabled>── or type custom description ──</option>
                                         <option value="__custom__">Custom / Other...</option>
                                     </select>
                                     {(comp.description === "__custom__" ||
-                                        (!PLANT_RATES.some((p) => p.name === comp.description) && comp.description)) && (
+                                        (!allPlantItems.some((p) => p.name === comp.description) && comp.description)) && (
                                         <input
                                             className="w-32 border border-blue-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
                                             value={comp.description === "__custom__" ? "" : comp.description}
@@ -369,10 +385,22 @@ export default function BuildUpPanel({
                                     )}
                                 </div>
                             ) : comp.component_type === "material" ? (
-                                <>
+                                <div className="flex-1 flex flex-col gap-1">
+                                    {/* Category filter */}
+                                    <select
+                                        className="w-full border border-gray-200 rounded px-1 py-0.5 bg-white text-xs text-gray-600"
+                                        value={materialCategoryFilter[comp.id] || ''}
+                                        onChange={e => setMaterialCategoryFilter(prev => ({ ...prev, [comp.id]: e.target.value }))}
+                                    >
+                                        <option value="">All categories...</option>
+                                        {Array.from(new Set(rawMaterialItems.map(m => m.category))).sort().map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                    {/* Material input with datalist */}
                                     <input
                                         list={`mat-${comp.id}`}
-                                        className="flex-1 border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900 text-xs"
+                                        className="w-full border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900 text-xs"
                                         value={descInputs[comp.id] ?? comp.description}
                                         onChange={(e) => {
                                             setDescInputs(prev => ({ ...prev, [comp.id]: e.target.value }));
@@ -397,16 +425,17 @@ export default function BuildUpPanel({
                                                 handleUpdate(comp.id, { description: val });
                                             }
                                         }}
-                                        placeholder="Search materials or type description..."
+                                        placeholder="Search or type material..."
                                     />
                                     <datalist id={`mat-${comp.id}`}>
-                                        {rawMaterialItems.map((m) => (
-                                            <option key={m.id} value={m.description}>
-                                                {m.description} — £{m.base_rate}/{m.unit}
-                                            </option>
-                                        ))}
+                                        {rawMaterialItems
+                                            .filter(m => !materialCategoryFilter[comp.id] || m.category === materialCategoryFilter[comp.id])
+                                            .map(m => (
+                                                <option key={m.id} value={m.description} />
+                                            ))
+                                        }
                                     </datalist>
-                                </>
+                                </div>
                             ) : (
                                 <input
                                     className="flex-1 border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900 text-xs"

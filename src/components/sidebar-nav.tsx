@@ -15,6 +15,13 @@ import {
     LogOut,
     Sun,
     Moon,
+    ClipboardList,
+    Calculator,
+    CalendarDays,
+    Scale,
+    FileText,
+    CreditCard,
+    GitBranch,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 
@@ -148,14 +155,24 @@ export default function SidebarNav({ user, projects }: SidebarNavProps) {
                 <div className="space-y-0.5">
                     {projects.length > 0 ? (
                         projects.slice(0, 5).map(p => (
-                            <NavItem
-                                key={p.id}
-                                href={`/dashboard/projects/brief?projectId=${p.id}`}
-                                icon={HardHat}
-                                label={p.name}
-                                sublabel={p.client_name}
-                                active={pathname.includes(p.id)}
-                            />
+                            <div key={p.id} className="space-y-0.5">
+                                <NavItem
+                                    href={`/dashboard/projects/brief?projectId=${p.id}`}
+                                    icon={HardHat}
+                                    label={p.name}
+                                    sublabel={p.client_name}
+                                    active={pathname.includes(p.id)}
+                                />
+                                {pathname.includes(p.id) && (
+                                    <div className="ml-5 pl-3 border-l border-white/10 space-y-0.5">
+                                        <NavItem href={`/dashboard/projects/brief?projectId=${p.id}`} icon={ClipboardList} label="Brief" active={is("/dashboard/projects/brief") && pathname.includes(p.id)} />
+                                        <NavItem href={`/dashboard/projects/costs?projectId=${p.id}`} icon={Calculator} label="Estimating" active={is("/dashboard/projects/costs") && pathname.includes(p.id)} />
+                                        <NavItem href={`/dashboard/projects/schedule?projectId=${p.id}`} icon={CalendarDays} label="Programme" active={is("/dashboard/projects/schedule") && pathname.includes(p.id)} />
+                                        <NavItem href={`/dashboard/projects/contracts?projectId=${p.id}`} icon={Scale} label="Contracts" active={is("/dashboard/projects/contracts") && pathname.includes(p.id)} />
+                                        <NavItem href={`/dashboard/projects/proposal?projectId=${p.id}`} icon={FileText} label="Proposal" active={is("/dashboard/projects/proposal") && pathname.includes(p.id)} />
+                                    </div>
+                                )}
+                            </div>
                         ))
                     ) : (
                         <div className="px-3 py-2 text-xs text-slate-600 italic">
@@ -167,7 +184,9 @@ export default function SidebarNav({ user, projects }: SidebarNavProps) {
                 {/* Post-Construction */}
                 <SectionLabel label="Post-Construction" />
                 <div className="space-y-0.5">
-                    <NavItem href="#" icon={Archive} label="Post-Construction" disabled badge="Soon" />
+                    <NavItem href="#" icon={CreditCard} label="Billing" disabled badge="Soon" />
+                    <NavItem href="#" icon={GitBranch} label="Variations" disabled badge="Soon" />
+                    <NavItem href="#" icon={Archive} label="Closeout" disabled badge="Soon" />
                 </div>
 
             </div>

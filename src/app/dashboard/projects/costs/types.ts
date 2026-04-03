@@ -37,6 +37,8 @@ export interface Estimate {
     profit_pct: number;
     risk_pct: number;
     prelims_pct: number;
+    discount_pct: number;
+    discount_reason: string;
     total_cost: number;
     is_active: boolean;
     estimate_lines: EstimateLine[];

@@ -70,3 +70,9 @@ export async function rewriteWithAIAction(text: string, fieldName: string): Prom
     const result = await generateText(prompt);
     return { text: result };
 }
+
+export async function rewriteMdMessageAction(text: string): Promise<{ text: string }> {
+    const prompt = `Rewrite this Managing Director's personal message to be warm, professional and compelling for a UK construction company proposal. Keep it to 2-3 sentences. It should feel personal and genuine, not corporate. Original: "${text}"`;
+    const result = await generateText(prompt);
+    return { text: result };
+}

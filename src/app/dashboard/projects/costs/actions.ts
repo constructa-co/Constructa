@@ -12,6 +12,7 @@ export async function createEstimateAction(projectId: string, name: string) {
             overhead_pct: 10,
             profit_pct: 15,
             risk_pct: 0,
+            prelims_pct: 10,
             is_active: false,
         })
         .select()
@@ -283,6 +284,19 @@ export async function updateLineBuiltUpRateAction(lineId: string, builtUpRate: n
     if (line?.estimate_id) {
         await recalcEstimateTotal(line.estimate_id);
     }
+}
+
+export async function saveDiscountAction(
+    estimateId: string,
+    discountPct: number,
+    discountReason: string
+): Promise<void> {
+    const supabase = createClient();
+    const { error } = await supabase
+        .from("estimates")
+        .update({ discount_pct: discountPct, discount_reason: discountReason })
+        .eq("id", estimateId);
+    if (error) console.error("Save discount error:", error);
 }
 
 async function recalcEstimateTotal(estimateId: string) {

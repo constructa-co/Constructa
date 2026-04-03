@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useEffect } from "react";
 import { updatePhasesAction, getEstimatePhasesAction, saveProgrammePhasesAction } from "./actions";
 
 // ─── Types ──────────────────────────────────────────────
@@ -126,6 +126,19 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     );
 
     const [phases, setPhases] = useState<Phase[]>(initialPhases);
+
+    // Auto-load phases from server on mount if none exist locally
+    useEffect(() => {
+        if (phases.length === 0) {
+            getEstimatePhasesAction(projectId).then(serverPhases => {
+                if (serverPhases.length > 0) {
+                    setPhases(serverPhases);
+                    saveProgrammePhasesAction(projectId, serverPhases);
+                }
+            });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const projectStart = project.start_date ? new Date(project.start_date) : new Date();
 

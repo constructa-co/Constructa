@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { updateProfileAction, rewriteWithAIAction } from "./actions";
+import { updateProfileAction, rewriteWithAIAction, rewriteMdMessageAction } from "./actions";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Loader2, Sparkles } from "lucide-react";
 
@@ -299,6 +299,20 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
     const [capabilityStatement, setCapabilityStatement] = useState(profile?.capability_statement || '');
     const [rewritingCapability, setRewritingCapability] = useState(false);
     const [preferredTrades, setPreferredTrades] = useState<string[]>(profile?.preferred_trades || []);
+    const [mdMessage, setMdMessage] = useState(profile?.md_message || '');
+    const [rewritingMdMessage, setRewritingMdMessage] = useState(false);
+
+    const handleRewriteMdMessage = async () => {
+        if (!mdMessage.trim()) return;
+        setRewritingMdMessage(true);
+        try {
+            const result = await rewriteMdMessageAction(mdMessage);
+            if (result.text) setMdMessage(result.text);
+        } catch {
+            toast.error("AI rewrite failed");
+        }
+        setRewritingMdMessage(false);
+    };
 
     const handleRewriteCapability = async () => {
         if (!capabilityStatement.trim()) return;
@@ -609,8 +623,9 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
                 <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-400">MD Message</label>
                     <textarea
-                        name="md_message"
-                        defaultValue={profile?.md_message || ""}
+                        name="md_message_dup"
+                        value={mdMessage}
+                        onChange={(e) => setMdMessage(e.target.value)}
                         rows={3}
                         className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
                         placeholder="A personal message from the MD to appear on the About Us page of your proposals..."
@@ -743,10 +758,24 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
                     </div>
                 </div>
                 <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-400">Personal Message</label>
+                    <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-slate-400">Personal Message</label>
+                        {mdMessage.trim().length > 20 && (
+                            <button
+                                type="button"
+                                onClick={handleRewriteMdMessage}
+                                disabled={rewritingMdMessage}
+                                className="flex items-center gap-1.5 h-7 px-3 rounded-lg border border-purple-700 bg-purple-900/30 text-purple-300 hover:bg-purple-800/40 text-xs font-bold transition-colors disabled:opacity-60"
+                            >
+                                {rewritingMdMessage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                {rewritingMdMessage ? "Rewriting..." : "Rewrite with AI"}
+                            </button>
+                        )}
+                    </div>
                     <textarea
                         name="md_message"
-                        defaultValue={profile?.md_message || ""}
+                        value={mdMessage}
+                        onChange={(e) => setMdMessage(e.target.value)}
                         rows={4}
                         className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
                         placeholder="Thank you for considering us for this project. We pride ourselves on delivering quality work on time and within budget..."

@@ -2,9 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Loader2, MapPin, Briefcase, Calendar, PoundSterling } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Loader2, MapPin, Briefcase, Calendar, PoundSterling, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { saveCaseStudiesAction } from "./actions";
+import { saveCaseStudiesAction, enhanceCaseStudyAction } from "./actions";
 
 interface CaseStudy {
     id: string;
@@ -139,6 +139,21 @@ function CaseStudyCard({
     labelCls: string;
 }) {
     const [expanded, setExpanded] = useState(true);
+    const [enhancing, setEnhancing] = useState(false);
+
+    const handleEnhance = async () => {
+        if (!cs.whatWeDelivered && !cs.valueAdded) return;
+        setEnhancing(true);
+        try {
+            const result = await enhanceCaseStudyAction(cs.whatWeDelivered, cs.valueAdded, cs.projectName, cs.projectType);
+            if (result.whatWeDelivered) onChange("whatWeDelivered", result.whatWeDelivered);
+            if (result.valueAdded) onChange("valueAdded", result.valueAdded);
+            toast.success("Case study enhanced");
+        } catch {
+            toast.error("AI enhance failed");
+        }
+        setEnhancing(false);
+    };
 
     return (
         <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
@@ -149,6 +164,16 @@ function CaseStudyCard({
                     {cs.projectName && <span className="text-sm font-semibold text-slate-200">— {cs.projectName}</span>}
                 </div>
                 <div className="flex items-center gap-2">
+                    {(cs.whatWeDelivered || cs.valueAdded) && (
+                        <button
+                            onClick={handleEnhance}
+                            disabled={enhancing}
+                            className="flex items-center gap-1.5 h-7 px-3 rounded-lg border border-purple-700 bg-purple-900/30 text-purple-300 hover:bg-purple-800/40 text-xs font-bold transition-colors disabled:opacity-60"
+                        >
+                            {enhancing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                            {enhancing ? "Enhancing..." : "AI Enhance"}
+                        </button>
+                    )}
                     <button onClick={() => setExpanded(!expanded)} className="p-1 text-slate-400 hover:text-white">
                         {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>

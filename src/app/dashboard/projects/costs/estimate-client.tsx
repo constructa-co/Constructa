@@ -12,6 +12,7 @@ import {
     setActiveEstimateAction,
     deleteEstimateAction,
     setPricingModeAction,
+    saveDiscountAction,
 } from "./actions";
 import { Plus, Trash2, Check, Star, Loader2, CalendarDays } from "lucide-react";
 import Link from "next/link";
@@ -88,7 +89,9 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     overhead_pct: result.overhead_pct ?? 10,
                     profit_pct: result.profit_pct ?? 15,
                     risk_pct: result.risk_pct ?? 0,
-                    prelims_pct: result.prelims_pct ?? 0,
+                    prelims_pct: result.prelims_pct ?? 10,
+                    discount_pct: result.discount_pct ?? 0,
+                    discount_reason: result.discount_reason ?? "",
                     total_cost: 0,
                     is_active: false,
                 };
@@ -319,6 +322,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
     const overheadPct = currentEstimate?.overhead_pct || 0;
     const profitPct = currentEstimate?.profit_pct || 0;
     const riskPct = currentEstimate?.risk_pct || 0;
+    const discountPct = currentEstimate?.discount_pct || 0;
 
     // Step 1: Direct Construction Cost = sum of all line item totals (excluding Preliminaries section)
     const directCost = lines
@@ -344,7 +348,11 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
 
     // Step 6: Profit applied to Adjusted Total
     const profitAmount = adjustedTotal * (profitPct / 100);
-    const contractSum = adjustedTotal + profitAmount;
+    const contractSumPreDiscount = adjustedTotal + profitAmount;
+
+    // Step 7: Discount
+    const discountAmount = contractSumPreDiscount * (discountPct / 100);
+    const contractSum = contractSumPreDiscount - discountAmount;
 
     const vat = contractSum * 0.2;
     const totalIncVat = contractSum + vat;
@@ -489,6 +497,27 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                     className="w-full h-10 px-3 border border-slate-200 rounded-md text-slate-900 text-sm text-center"
                                 />
                             </div>
+                            <div className="w-24">
+                                <label className="text-xs font-bold uppercase text-slate-500 block mb-1">Discount %</label>
+                                <input
+                                    type="number"
+                                    step="0.5"
+                                    value={currentEstimate.discount_pct}
+                                    onChange={(e) => {
+                                        const val = parseFloat(e.target.value) || 0;
+                                        setEstimates(prev => prev.map(est => est.id === currentEstimate.id ? { ...est, discount_pct: val } : est));
+                                    }}
+                                    onBlur={(e) => {
+                                        const val = parseFloat(e.target.value) || 0;
+                                        setEstimates(prev => prev.map(est => est.id === currentEstimate.id ? { ...est, discount_pct: val } : est));
+                                        showSaving();
+                                        saveDiscountAction(currentEstimate.id, val, currentEstimate.discount_reason || "")
+                                            .then(() => showSaved())
+                                            .catch(console.error);
+                                    }}
+                                    className="w-full h-10 px-3 border border-green-200 rounded-md text-green-700 text-sm text-center bg-green-50"
+                                />
+                            </div>
                             <div className="flex gap-2">
                                 <button
                                     type="button"
@@ -511,6 +540,26 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                 </button>
                             </div>
                         </div>
+                        {currentEstimate.discount_pct > 0 && (
+                            <div className="flex items-center gap-3">
+                                <label className="text-xs font-bold uppercase text-slate-500 whitespace-nowrap">Discount Reason</label>
+                                <input
+                                    type="text"
+                                    value={currentEstimate.discount_reason || ""}
+                                    onChange={(e) => {
+                                        setEstimates(prev => prev.map(est => est.id === currentEstimate.id ? { ...est, discount_reason: e.target.value } : est));
+                                    }}
+                                    onBlur={(e) => {
+                                        showSaving();
+                                        saveDiscountAction(currentEstimate.id, currentEstimate.discount_pct, e.target.value)
+                                            .then(() => showSaved())
+                                            .catch(console.error);
+                                    }}
+                                    className="flex-1 h-10 px-3 border border-green-200 rounded-md text-green-700 text-sm bg-green-50"
+                                    placeholder="e.g. Returning client, early payment, etc."
+                                />
+                            </div>
+                        )}
                     </div>
 
                     {/* ADD SECTION */}
@@ -635,6 +684,9 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                             )}
                             {profitPct > 0 && (
                                 <SummaryRow label={`Profit (${profitPct}%)`} value={profitAmount} />
+                            )}
+                            {discountPct > 0 && (
+                                <SummaryRow label={`Discount (${discountPct}%)`} value={-discountAmount} />
                             )}
                             <div className="border-t-2 border-slate-900 pt-2 mt-2">
                                 <SummaryRow label="CONTRACT SUM (exc. VAT)" value={contractSum} bold />

@@ -57,7 +57,7 @@ function formatGBP(n: number): string {
 export default function EstimateClient({ estimates: initialEstimates, costLibrary, projectId, orgId, rateBuildups, labourRates }: Props) {
     const [estimates, setEstimates] = useState<Estimate[]>(initialEstimates);
     const [activeTab, setActiveTab] = useState<string>(estimates[0]?.id || "");
-    const [isPending, startTransition] = useTransition();
+    const [_isPending, startTransition] = useTransition();
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -206,39 +206,29 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
     const handleUpdateLine = (lineId: string, updates: Partial<EstimateLine>) => {
         if (!currentEstimate) return;
 
-        // Optimistic local update
-        setEstimates((prev) =>
-            prev.map((e) =>
-                e.id === currentEstimate.id
-                    ? {
-                          ...e,
-                          estimate_lines: e.estimate_lines.map((l) => {
-                              if (l.id !== lineId) return l;
-                              const updated = { ...l, ...updates };
-                              if (updates.quantity !== undefined || updates.unit_rate !== undefined) {
-                                  updated.line_total = (updates.quantity ?? l.quantity) * (updates.unit_rate ?? l.unit_rate);
-                              }
-                              return updated;
-                          }),
-                      }
-                    : e
-            )
-        );
+        const line = currentEstimate.estimate_lines.find((l) => l.id === lineId);
+        const qty = updates.quantity ?? line?.quantity ?? 1;
+        const rate = updates.unit_rate ?? line?.unit_rate ?? 0;
 
-        // Recalc local total_cost immediately
+        // Optimistic local update + recalc total in one pass
         setEstimates((prev) =>
             prev.map((e) => {
                 if (e.id !== currentEstimate.id) return e;
-                const total = e.estimate_lines.reduce((s, l) => s + (l.line_total || 0), 0);
-                return { ...e, total_cost: total };
+                const updatedLines = e.estimate_lines.map((l) => {
+                    if (l.id !== lineId) return l;
+                    const updated = { ...l, ...updates };
+                    if (updates.quantity !== undefined || updates.unit_rate !== undefined) {
+                        updated.line_total = (updates.quantity ?? l.quantity) * (updates.unit_rate ?? l.unit_rate);
+                    }
+                    return updated;
+                });
+                const total = updatedLines.reduce((s, l) => s + (l.line_total || 0), 0);
+                return { ...e, estimate_lines: updatedLines, total_cost: total };
             })
         );
 
         // Fire-and-forget server sync
         showSaving();
-        const line = currentEstimate.estimate_lines.find((l) => l.id === lineId);
-        const qty = updates.quantity ?? line?.quantity ?? 1;
-        const rate = updates.unit_rate ?? line?.unit_rate ?? 0;
         updateLineItemAction(lineId, { ...updates, quantity: qty, unit_rate: rate })
             .then(() => showSaved())
             .catch(console.error);
@@ -246,20 +236,13 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
 
     const handleDeleteLine = (lineId: string) => {
         if (!currentEstimate) return;
-        // Optimistic delete
-        setEstimates((prev) =>
-            prev.map((e) =>
-                e.id === currentEstimate.id
-                    ? { ...e, estimate_lines: e.estimate_lines.filter((l) => l.id !== lineId) }
-                    : e
-            )
-        );
-        // Recalc local total immediately
+        // Optimistic delete + recalc total in one pass
         setEstimates((prev) =>
             prev.map((e) => {
                 if (e.id !== currentEstimate.id) return e;
-                const total = e.estimate_lines.reduce((s, l) => s + (l.line_total || 0), 0);
-                return { ...e, total_cost: total };
+                const remaining = e.estimate_lines.filter((l) => l.id !== lineId);
+                const total = remaining.reduce((s, l) => s + (l.line_total || 0), 0);
+                return { ...e, estimate_lines: remaining, total_cost: total };
             })
         );
         // Fire-and-forget server sync

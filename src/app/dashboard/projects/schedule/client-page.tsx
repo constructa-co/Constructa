@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
-import { updatePhasesAction } from "./actions";
+import { updatePhasesAction, getEstimatePhasesAction } from "./actions";
 
 // ─── Types ──────────────────────────────────────────────
 interface Phase {
@@ -158,8 +158,15 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     };
 
     const handleRegenerate = () => {
-        const regenerated = buildPhasesFromEstimate(estimate, undefined);
-        setPhases(regenerated);
+        startTransition(async () => {
+            const serverPhases = await getEstimatePhasesAction(projectId);
+            if (serverPhases.length > 0) {
+                setPhases(serverPhases);
+            } else {
+                const regenerated = buildPhasesFromEstimate(estimate, undefined);
+                setPhases(regenerated);
+            }
+        });
     };
 
     const handleSave = () => {

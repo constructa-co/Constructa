@@ -523,7 +523,23 @@ export default function BuildUpPanel({
                             <select
                                 className="w-14 text-xs border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900"
                                 value={comp.unit}
-                                onChange={(e) => handleUpdate(comp.id, { unit: e.target.value })}
+                                onChange={(e) => {
+                                    const newUnit = e.target.value;
+                                    if (comp.component_type === "labour" && comp.unit_rate > 0) {
+                                        // Auto-convert labour rate between hr/day/week
+                                        const oldUnit = comp.unit;
+                                        const toHourly: Record<string, number> = { hr: 1, day: 1 / 8, week: 1 / 40 };
+                                        const fromHourly: Record<string, number> = { hr: 1, day: 8, week: 40 };
+                                        if (toHourly[oldUnit] && fromHourly[newUnit]) {
+                                            const hourlyRate = comp.unit_rate * toHourly[oldUnit];
+                                            const newRate = Math.round(hourlyRate * fromHourly[newUnit] * 100) / 100;
+                                            const newManhours = newUnit === "hr" ? 1 : newUnit === "day" ? 8 : 40;
+                                            handleUpdate(comp.id, { unit: newUnit, unit_rate: newRate, manhours_per_unit: newManhours });
+                                            return;
+                                        }
+                                    }
+                                    handleUpdate(comp.id, { unit: newUnit });
+                                }}
                             >
                                 {COMP_UNITS.map((u) => (
                                     <option key={u}>{u}</option>

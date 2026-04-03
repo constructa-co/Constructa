@@ -34,6 +34,9 @@ export async function updateProfileAction(formData: FormData) {
             const raw = formData.get("preferred_trades") as string;
             try { return raw ? JSON.parse(raw) : []; } catch { return []; }
         })(),
+        md_name: formData.get("md_name") as string || null,
+        md_message: formData.get("md_message") as string || null,
+        closing_statement: formData.get("closing_statement") as string || null,
     };
 
     // Case studies — stored as JSONB

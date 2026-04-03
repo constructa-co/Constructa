@@ -13,7 +13,7 @@ import {
     deleteEstimateAction,
     setPricingModeAction,
 } from "./actions";
-import { Plus, Trash2, Check, Star, Loader2, FileText, CalendarDays } from "lucide-react";
+import { Plus, Trash2, Check, Star, Loader2, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import BuildUpPanel from "./build-up-panel";
 import type { EstimateLineComponent, EstimateLine, Estimate, CostLibraryItem, LabourRate, RateBuildup } from "./types";
@@ -56,7 +56,7 @@ function formatGBP(n: number): string {
 
 // ─── Main Component ──────────────────────────────────────
 export default function EstimateClient({ estimates: initialEstimates, costLibrary, projectId, orgId, rateBuildups, labourRates, preferredTrades }: Props) {
-    const [estimates, setEstimates] = useState<Estimate[]>(initialEstimates);
+    const [estimates, setEstimates] = useState<Estimate[]>(() => initialEstimates);
     const [activeTab, setActiveTab] = useState<string>(estimates[0]?.id || "");
     const [_isPending, startTransition] = useTransition();
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
@@ -378,10 +378,10 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                         <CalendarDays className="w-4 h-4" />
                         View Programme
                     </Link>
-                    <Link href={`/dashboard/projects/proposal?projectId=${projectId}`}
+                    <Link href={`/dashboard/projects/schedule?projectId=${projectId}`}
                         className="bg-gray-900 text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-gray-700 flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
-                        Next: Build Proposal →
+                        <CalendarDays className="w-4 h-4" />
+                        Next: Programme →
                     </Link>
                 </div>
             </div>
@@ -648,9 +648,10 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
 
                     {/* Bottom CTA */}
                     <div className="mt-8 flex justify-end">
-                        <Link href={`/dashboard/projects/proposal?projectId=${projectId}`}
+                        <Link href={`/dashboard/projects/schedule?projectId=${projectId}`}
                             className="bg-gray-900 text-white px-6 py-3 rounded-lg font-semibold text-sm hover:bg-gray-700 flex items-center gap-2">
-                            Next: Build Proposal →
+                            <CalendarDays className="w-4 h-4" />
+                            Next: Programme →
                         </Link>
                     </div>
                 </>

@@ -43,6 +43,44 @@ export async function updatePhasesAction(
     revalidatePath("/dashboard/projects/schedule");
 }
 
+export async function getEstimatePhasesAction(
+    projectId: string
+): Promise<{ name: string; calculatedDays: number; manualDays: number | null; manhours: number; startOffset: number }[]> {
+    const supabase = createClient();
+
+    // Find the active estimate (or first one)
+    const { data: estimates } = await supabase
+        .from("estimates")
+        .select("*, estimate_lines(*, estimate_line_components(*))")
+        .eq("project_id", projectId)
+        .order("created_at");
+
+    const estimate = (estimates || []).find((e: any) => e.is_active) || (estimates || [])[0];
+    if (!estimate) return [];
+
+    // Group manhours by trade section
+    const sectionManhours: Record<string, number> = {};
+    (estimate.estimate_lines || []).forEach((line: any) => {
+        const section = line.trade_section || "General";
+        const lineManHours = (line.estimate_line_components || []).reduce(
+            (sum: number, c: any) => sum + (c.total_manhours || 0),
+            0
+        );
+        const totalForLine = lineManHours * (line.quantity || 1);
+        sectionManhours[section] = (sectionManhours[section] || 0) + totalForLine;
+    });
+
+    const sections = Object.keys(sectionManhours).filter(s => sectionManhours[s] > 0);
+    let offset = 0;
+    return sections.map(section => {
+        const manhours = sectionManhours[section];
+        const calculatedDays = Math.max(Math.ceil(manhours / 8), 1);
+        const phase = { name: section, calculatedDays, manualDays: null, manhours, startOffset: offset };
+        offset += calculatedDays;
+        return phase;
+    });
+}
+
 export async function saveProgrammePhasesAction(
     projectId: string,
     phases: any[]

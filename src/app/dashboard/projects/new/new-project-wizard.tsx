@@ -121,7 +121,7 @@ export default function NewProjectWizard({ businessType }: Props) {
         const result = await createProjectFromTemplateAction(fd);
 
         if (result.success) {
-            router.push(`/dashboard/projects/proposal?projectId=${result.projectId}`);
+            router.push(`/dashboard/projects/brief?projectId=${result.projectId}`);
         } else {
             alert(result.error);
             setLoading(false);

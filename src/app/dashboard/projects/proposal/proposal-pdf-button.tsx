@@ -234,9 +234,14 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     const companyName = profile?.company_name || "The Contractor";
     const clientName = project?.client_name || "Valued Client";
     const projectName = project?.name || "Project Proposal";
-    const normaliseAddress = (addr: string) => addr
-        ? addr.replace(/,\s*/g, "\n").replace(/\n+/g, "\n").trim()
-        : "";
+    const normaliseAddress = (addr: string) => {
+        if (!addr) return "";
+        return addr
+            .replace(/([a-z])([A-Z])/g, "$1\n$2")   // split camelCase joins
+            .replace(/,\s*/g, "\n")
+            .replace(/\n+/g, "\n")
+            .trim();
+    };
     const address = normaliseAddress(project?.site_address || project?.client_address || "");
     const clientAddress = normaliseAddress(project?.client_address || project?.site_address || "");
     const projectType = project?.project_type || "Construction Works";
@@ -536,7 +541,29 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             });
         }
 
-        y = Math.max(leftY, rightY) + 8;
+        // MD Message
+        if (profile.md_message) {
+            const mdY = Math.max(leftY, rightY) + 4;
+            y = ensureSpace(doc, mdY, 30, companyName, docTitle, totalPagesRef, T);
+            doc.setFillColor(...T.surface);
+            const mdText = sanitiseText(profile.md_message);
+            const mdLines = doc.splitTextToSize(mdText, CW - 20);
+            const mdBoxH = mdLines.length * 5 + 18;
+            doc.roundedRect(ML, y, CW, mdBoxH, 3, 3, "F");
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(9.5);
+            doc.setTextColor(...T.textDark);
+            doc.text(mdLines, ML + 10, y + 8);
+            if (profile.md_name) {
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(8.5);
+                doc.setTextColor(...T.textMid);
+                doc.text(`— ${profile.md_name}, Managing Director`, ML + 10, y + mdBoxH - 5);
+            }
+            y = y + mdBoxH + 8;
+        } else {
+            y = Math.max(leftY, rightY) + 8;
+        }
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -939,7 +966,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
                     bodyStyles: { fontSize: 9, textColor: T.textDark as any, cellPadding: 3 },
                     footStyles: { fillColor: T.surface as any, textColor: T.textDark as any, fontStyle: "bold", fontSize: 9 },
                     columnStyles: {
-                        0: { cellWidth: 70 },
+                        0: { cellWidth: "auto" },
                         1: { cellWidth: 18, halign: "center" as const },
                         2: { cellWidth: 20, halign: "center" as const },
                         3: { cellWidth: 30, halign: "right" as const },
@@ -970,7 +997,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
                     bodyStyles: { fontSize: 9, textColor: T.textDark as any, cellPadding: 3 },
                     footStyles: { fillColor: T.surface as any, textColor: T.textDark as any, fontStyle: "bold", fontSize: 9 },
                     columnStyles: {
-                        0: { cellWidth: 70 },
+                        0: { cellWidth: "auto" },
                         1: { cellWidth: 18, halign: "center" as const },
                         2: { cellWidth: 20, halign: "center" as const },
                         3: { cellWidth: 30, halign: "right" as const },
@@ -1401,6 +1428,66 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             termLeftY = newY; // reset left too since it's a new page
         }
     });
+
+    // ═══════════════════════════════════════════════════════════
+    // WHY CHOOSE US / CLOSING STATEMENT PAGE
+    // ═══════════════════════════════════════════════════════════
+    if (profile?.closing_statement) {
+        doc.addPage();
+        totalPagesRef.n++;
+        y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef, T);
+        y = renderSectionHeading(doc, y, `Why Choose ${companyName}`, T);
+
+        const closingText = sanitiseText(profile.closing_statement);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+        doc.setTextColor(...T.textDark);
+        const closingLines = doc.splitTextToSize(closingText, CW - 10);
+        doc.text(closingLines, ML + 5, y);
+        y += closingLines.length * 6 + 12;
+
+        // Key reasons box
+        const reasons: string[] = [];
+        if (profile.years_trading) reasons.push(`${profile.years_trading}+ years of experience`);
+        if (profile.accreditations) reasons.push(`Accredited: ${profile.accreditations.split(/[,\n]/)[0].trim()}`);
+        if (profile.insurance_details) reasons.push("Fully insured");
+        if (profile.specialisms) reasons.push(`Specialists in ${profile.specialisms.split(/[,\n]/)[0].trim()}`);
+
+        if (reasons.length > 0) {
+            doc.setFillColor(...T.surface);
+            const reasonsBoxH = reasons.length * 9 + 14;
+            doc.roundedRect(ML, y, CW, reasonsBoxH, 3, 3, "F");
+            doc.setDrawColor(...T.borderLight);
+            doc.roundedRect(ML, y, CW, reasonsBoxH, 3, 3, "S");
+            y += 8;
+            reasons.forEach(reason => {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9.5);
+                doc.setTextColor(...T.textDark);
+                doc.text(`•  ${reason}`, ML + 8, y);
+                y += 9;
+            });
+            y += 6;
+        }
+
+        // MD sign-off
+        if (profile.md_name) {
+            y += 8;
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(10);
+            doc.setTextColor(...T.textMid);
+            doc.text("We look forward to working with you.", ML + 5, y);
+            y += 12;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.setTextColor(...T.textDark);
+            doc.text(profile.md_name, ML + 5, y);
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8.5);
+            doc.setTextColor(...T.textMid);
+            doc.text("Managing Director", ML + 5, y + 6);
+        }
+    }
 
     // ═══════════════════════════════════════════════════════════
     // SIGNATURE PAGE

@@ -40,6 +40,9 @@ interface Profile {
     accounts_email?: string | null;
     pdf_theme?: string | null;
     preferred_trades?: string[] | null;
+    md_name?: string | null;
+    md_message?: string | null;
+    closing_statement?: string | null;
 }
 
 const THEMES = [
@@ -589,6 +592,39 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
                     <p className="text-xs text-slate-500">
                         This is your &ldquo;About Us&rdquo; paragraph — it appears on every proposal PDF.
                     </p>
+                </div>
+
+                <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-400">Managing Director Name</label>
+                    <input
+                        name="md_name"
+                        defaultValue={profile?.md_name || ""}
+                        className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        placeholder="John Smith"
+                    />
+                    <p className="text-xs text-slate-500">Appears as the signatory on the &ldquo;Why Choose Us&rdquo; page of your proposal PDF.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-400">MD Message</label>
+                    <textarea
+                        name="md_message"
+                        defaultValue={profile?.md_message || ""}
+                        rows={3}
+                        className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        placeholder="A personal message from the MD to appear on the About Us page of your proposals..."
+                    />
+                </div>
+
+                <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-400">Closing Statement</label>
+                    <textarea
+                        name="closing_statement"
+                        defaultValue={profile?.closing_statement || ""}
+                        rows={3}
+                        className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        placeholder="A closing paragraph for the 'Why Choose Us' page, e.g. We look forward to working with you on this project..."
+                    />
                 </div>
 
                 <div className="space-y-1.5">

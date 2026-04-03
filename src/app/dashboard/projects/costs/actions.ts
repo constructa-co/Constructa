@@ -1,7 +1,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
 
 export async function createEstimateAction(projectId: string, name: string) {
     const supabase = createClient();
@@ -19,7 +18,6 @@ export async function createEstimateAction(projectId: string, name: string) {
         .single();
 
     if (error) console.error("Create estimate error:", error);
-    revalidatePath("/dashboard/projects/costs");
     return data;
 }
 
@@ -42,7 +40,6 @@ export async function updateEstimateMarginsAction(
         .eq("id", estimateId);
 
     if (error) console.error("Update margins error:", error);
-    revalidatePath("/dashboard/projects/costs");
 }
 
 export async function updateEstimateNameAction(estimateId: string, name: string) {
@@ -53,7 +50,6 @@ export async function updateEstimateNameAction(estimateId: string, name: string)
         .eq("id", estimateId);
 
     if (error) console.error("Update estimate name error:", error);
-    revalidatePath("/dashboard/projects/costs");
 }
 
 export async function addLineItemAction(
@@ -95,7 +91,6 @@ export async function addLineItemAction(
 
     // Update estimate total_cost
     await recalcEstimateTotal(estimateId);
-    revalidatePath("/dashboard/projects/costs");
     return result;
 }
 
@@ -131,7 +126,6 @@ export async function updateLineItemAction(
     if (line?.estimate_id) {
         await recalcEstimateTotal(line.estimate_id);
     }
-    revalidatePath("/dashboard/projects/costs");
 }
 
 export async function deleteLineItemAction(lineId: string) {
@@ -154,7 +148,6 @@ export async function deleteLineItemAction(lineId: string) {
     if (line?.estimate_id) {
         await recalcEstimateTotal(line.estimate_id);
     }
-    revalidatePath("/dashboard/projects/costs");
 }
 
 export async function setActiveEstimateAction(estimateId: string, projectId: string) {
@@ -173,7 +166,6 @@ export async function setActiveEstimateAction(estimateId: string, projectId: str
         .eq("id", estimateId);
 
     if (error) console.error("Set active error:", error);
-    revalidatePath("/dashboard/projects/costs");
 }
 
 export async function deleteEstimateAction(estimateId: string) {
@@ -191,7 +183,6 @@ export async function deleteEstimateAction(estimateId: string) {
         .eq("id", estimateId);
 
     if (error) console.error("Delete estimate error:", error);
-    revalidatePath("/dashboard/projects/costs");
 }
 
 // ─── Component CRUD (Rate Build-Up) ─────────────────────
@@ -215,7 +206,6 @@ export async function addComponentAction(
         .select("id, line_total, total_manhours")
         .single();
     if (error) { console.error("Add component error:", error); return null; }
-    revalidatePath("/dashboard/projects/costs");
     return result;
 }
 
@@ -231,19 +221,16 @@ export async function updateComponentAction(
 ): Promise<void> {
     const supabase = createClient();
     await supabase.from("estimate_line_components").update(data).eq("id", componentId);
-    revalidatePath("/dashboard/projects/costs");
 }
 
 export async function deleteComponentAction(componentId: string): Promise<void> {
     const supabase = createClient();
     await supabase.from("estimate_line_components").delete().eq("id", componentId);
-    revalidatePath("/dashboard/projects/costs");
 }
 
 export async function setPricingModeAction(lineId: string, mode: "simple" | "buildup"): Promise<void> {
     const supabase = createClient();
     await supabase.from("estimate_lines").update({ pricing_mode: mode }).eq("id", lineId);
-    revalidatePath("/dashboard/projects/costs");
 }
 
 export async function saveRateBuildupAction(
@@ -266,7 +253,6 @@ export async function saveRateBuildupAction(
         total_manhours_per_unit: totalManhoursPerUnit,
         is_system_default: false,
     });
-    revalidatePath("/dashboard/projects/costs");
 }
 
 export async function updateLineBuiltUpRateAction(lineId: string, builtUpRate: number): Promise<void> {
@@ -284,7 +270,6 @@ export async function updateLineBuiltUpRateAction(lineId: string, builtUpRate: n
     if (line?.estimate_id) {
         await recalcEstimateTotal(line.estimate_id);
     }
-    revalidatePath("/dashboard/projects/costs");
 }
 
 async function recalcEstimateTotal(estimateId: string) {

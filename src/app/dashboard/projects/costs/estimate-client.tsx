@@ -132,11 +132,11 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
         if (!currentEstimate) return;
         const updated = { ...currentEstimate, [field]: value };
         setEstimates((prev) => prev.map((e) => (e.id === currentEstimate.id ? updated : e)));
-        startTransition(async () => {
-            showSaving();
-            await updateEstimateMarginsAction(currentEstimate.id, updated.overhead_pct, updated.profit_pct, updated.risk_pct, updated.prelims_pct);
-            showSaved();
-        });
+        // Fire-and-forget server sync
+        showSaving();
+        updateEstimateMarginsAction(currentEstimate.id, updated.overhead_pct, updated.profit_pct, updated.risk_pct, updated.prelims_pct)
+            .then(() => showSaved())
+            .catch(console.error);
     };
 
     const handleNameBlur = (name: string) => {
@@ -144,15 +144,15 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
         setEstimates((prev) =>
             prev.map((e) => (e.id === currentEstimate.id ? { ...e, version_name: name } : e))
         );
-        startTransition(async () => {
-            showSaving();
-            await updateEstimateNameAction(currentEstimate.id, name);
-            showSaved();
-        });
+        // Fire-and-forget server sync
+        showSaving();
+        updateEstimateNameAction(currentEstimate.id, name)
+            .then(() => showSaved())
+            .catch(console.error);
     };
 
     // ─── Line item CRUD ─────────────────────────────────
-    const handleAddLine = (section: string) => {
+    const handleAddLine = async (section: string) => {
         if (!currentEstimate) return;
         // Validate: only add if previous line in section has a description
         const sectionLines = currentEstimate.estimate_lines.filter(l => l.trade_section === section);
@@ -160,26 +160,47 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
         if (lastLine && (!lastLine.description || lastLine.description === "" || lastLine.description === "\u2014")) {
             return; // Don't add another blank row
         }
-        startTransition(async () => {
-            showSaving();
+        const tempId = crypto.randomUUID();
+        const newLine: EstimateLine = {
+            id: tempId,
+            estimate_id: currentEstimate.id,
+            description: "",
+            quantity: 1,
+            unit: "nr",
+            unit_rate: 0,
+            line_total: 0,
+            trade_section: section,
+            line_type: "general",
+            pricing_mode: "simple",
+            estimate_line_components: [],
+        };
+        // Add optimistically
+        setEstimates((prev) => prev.map((e) =>
+            e.id === currentEstimate.id
+                ? { ...e, estimate_lines: [...e.estimate_lines, newLine] }
+                : e
+        ));
+        // Save to server, swap temp ID with real ID
+        showSaving();
+        try {
             const result = await addLineItemAction(currentEstimate.id, section, {
-                description: "",
-                quantity: 1,
-                unit: "nr",
-                unit_rate: 0,
+                description: "", quantity: 1, unit: "nr", unit_rate: 0,
                 line_type: "general",
             });
-            if (result) {
-                setEstimates((prev) =>
-                    prev.map((e) =>
-                        e.id === currentEstimate.id
-                            ? { ...e, estimate_lines: [...e.estimate_lines, { ...result, trade_section: section, line_type: result.line_type || "general" }] }
-                            : e
-                    )
-                );
+            if (result?.id) {
+                setEstimates((prev) => prev.map((e) =>
+                    e.id !== currentEstimate.id ? e : {
+                        ...e,
+                        estimate_lines: e.estimate_lines.map((l) =>
+                            l.id === tempId ? { ...l, id: result.id } : l
+                        ),
+                    }
+                ));
             }
             showSaved();
-        });
+        } catch (err) {
+            console.error(err);
+        }
     };
 
     const handleUpdateLine = (lineId: string, updates: Partial<EstimateLine>) => {
@@ -204,26 +225,28 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
             )
         );
 
-        startTransition(async () => {
-            showSaving();
-            const line = currentEstimate.estimate_lines.find((l) => l.id === lineId);
-            const qty = updates.quantity ?? line?.quantity ?? 1;
-            const rate = updates.unit_rate ?? line?.unit_rate ?? 0;
-            await updateLineItemAction(lineId, { ...updates, quantity: qty, unit_rate: rate });
-            // Recalc local total_cost
-            setEstimates((prev) =>
-                prev.map((e) => {
-                    if (e.id !== currentEstimate.id) return e;
-                    const total = e.estimate_lines.reduce((s, l) => s + (l.line_total || 0), 0);
-                    return { ...e, total_cost: total };
-                })
-            );
-            showSaved();
-        });
+        // Recalc local total_cost immediately
+        setEstimates((prev) =>
+            prev.map((e) => {
+                if (e.id !== currentEstimate.id) return e;
+                const total = e.estimate_lines.reduce((s, l) => s + (l.line_total || 0), 0);
+                return { ...e, total_cost: total };
+            })
+        );
+
+        // Fire-and-forget server sync
+        showSaving();
+        const line = currentEstimate.estimate_lines.find((l) => l.id === lineId);
+        const qty = updates.quantity ?? line?.quantity ?? 1;
+        const rate = updates.unit_rate ?? line?.unit_rate ?? 0;
+        updateLineItemAction(lineId, { ...updates, quantity: qty, unit_rate: rate })
+            .then(() => showSaved())
+            .catch(console.error);
     };
 
     const handleDeleteLine = (lineId: string) => {
         if (!currentEstimate) return;
+        // Optimistic delete
         setEstimates((prev) =>
             prev.map((e) =>
                 e.id === currentEstimate.id
@@ -231,18 +254,19 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     : e
             )
         );
-        startTransition(async () => {
-            showSaving();
-            await deleteLineItemAction(lineId);
-            setEstimates((prev) =>
-                prev.map((e) => {
-                    if (e.id !== currentEstimate.id) return e;
-                    const total = e.estimate_lines.reduce((s, l) => s + (l.line_total || 0), 0);
-                    return { ...e, total_cost: total };
-                })
-            );
-            showSaved();
-        });
+        // Recalc local total immediately
+        setEstimates((prev) =>
+            prev.map((e) => {
+                if (e.id !== currentEstimate.id) return e;
+                const total = e.estimate_lines.reduce((s, l) => s + (l.line_total || 0), 0);
+                return { ...e, total_cost: total };
+            })
+        );
+        // Fire-and-forget server sync
+        showSaving();
+        deleteLineItemAction(lineId)
+            .then(() => showSaved())
+            .catch(console.error);
     };
 
     const handleLibrarySelect = (lineId: string, itemId: string, section: string) => {
@@ -259,6 +283,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
     // ─── Build-Up Handlers ───────────────────────────────
     const handleTogglePricingMode = (lineId: string, currentMode: string) => {
         const newMode = currentMode === "buildup" ? "simple" : "buildup";
+        // Optimistic update — immediate, no transition
         setEstimates((prev) =>
             prev.map((e) =>
                 e.id === currentEstimate?.id
@@ -266,9 +291,8 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     : e
             )
         );
-        startTransition(async () => {
-            await setPricingModeAction(lineId, newMode as "simple" | "buildup");
-        });
+        // Fire-and-forget server sync — don't await, don't use transition
+        setPricingModeAction(lineId, newMode as "simple" | "buildup").catch(console.error);
     };
 
     const handleComponentsChanged = (lineId: string, components: EstimateLineComponent[], newUnitRate: number) => {

@@ -232,34 +232,95 @@ POST-CONSTRUCTION
 
 ---
 
-## Outstanding Work (Sprint Backlog)
+## Already Built (more than the backlog implies)
 
-### HIGH PRIORITY
-- [ ] Gantt drag/logic links (SS/FS dependencies) in Programme tab
-- [ ] Proposal versioning — up-rev proposals (v1, v2, v3) with change tracking
-- [ ] Client portal — proposal sent as link, client views in-browser, digital signature
-- [ ] Proposal status tracking (sent → viewed → accepted/declined)
-- [ ] Email send from within Constructa
+- **Billing module** — fully functional: interim/final valuations, Draft→Sent→Paid status tracking, PDF export, percentage or flat-rate billing methods
+- **Variations module** — fully functional: logging, approval workflow, approved total flows into billing's revised contract sum
+- **Vision Takeoff (AI Drawing Scan)** — already built: upload floor plan or sketch, AI extracts item names and quantities, one-click add to estimate. Currently in the foundations/brief page — needs promoting to a headline feature
+- **Critical Path Gantt** — more sophisticated than it looks: genuine forward-pass algorithm with iterative dependency resolution
 
-### MEDIUM PRIORITY  
-- [ ] Billing module — proper invoicing, interim valuations, retention tracking
-- [ ] Variations module — scope change log with pricing and approval workflow
-- [ ] Overview/Brief: better project health summary page
-- [ ] Scan Drawing AI — upload PDF/DWG drawing, AI extracts scope + quantities
-- [ ] Google Maps static pin in PDF (Google Maps Static API)
-- [ ] Geo-tagging every project (lat/lng already captured via postcodes.io)
+---
 
-### LOWER PRIORITY
-- [ ] Mobile responsive pass
-- [ ] Voice-to-proposal wizard (OpenAI Whisper)
-- [ ] Regional pricing intelligence (labour/material costs by postcode)
-- [ ] Three T&C tier content (full clause text for Domestic/Commercial/Specialist)
-- [ ] Payment counter for free/pro/business tiers (monetisation prep)
+## Sprint Backlog (priority order)
+
+### CURRENT: Finish pre-construction workflow
+- Fix remaining data flow issues (Brief→Estimate, address pre-fill etc.)
+- Ensure all five tabs work reliably end-to-end
+
+### Sprint 12 — Client Portal (HIGHEST PRIORITY)
+- Shareable proposal URL (constructa.co/proposals/abc123)
+- Proposal renders beautifully in-browser (not just PDF download)
+- "Accept this Proposal" button — name, digital signature, date
+- Contractor notified when viewed and when accepted
+- Accepted status flows back into project, unlocking billing module
+- One-click email send from within Constructa
+- Proposal status tracking: sent → viewed → accepted → declined
+
+### Sprint 13 — Contract Shield
+- Polish the AI contract review (upload PDF → AI flags clauses as Red/Amber/Green)
+- Red = walk away, Amber = negotiate, Green = acceptable
+- Plain English explanations for each flagged clause
+- Contract chatbot: "what does this clause mean in practice?"
+- Market as "The Contract Shield" — promote as a named feature
+
+### Sprint 14 — Programme → Billing Milestone Automation
+- Programme phases automatically populate payment milestones in billing module
+- Payment schedule tied to programme milestones (protects contractors when invoicing)
+- Connects the golden thread: Estimate → Programme → Billing
+
+### Sprint 15 — Job P&L Dashboard
+- Live project P&L: original estimate margin, approved variations, invoiced to date, costs logged, projected final margin
+- Single view answering "which of my current jobs are making money?"
+- No other SME contractor tool currently provides this
+
+### Sprint 16 — Proposal Versioning + Status Tracking
+- Up-rev proposals (v1, v2, v3) with change tracking
+- Proposal status visible on dashboard
+
+### Sprint 17 — Promote Vision Takeoff to Headline Feature
+- Move from buried button to prominent onboarding feature
+- Add to hero section of marketing site
+- First-time tooltip in estimating
+- Demo flow centres around it
+
+### DEPRIORITISED (do after launch with real user data)
+- Gantt drag-and-drop and logic links (SS/FS) — not painful enough to sprint now
+- Mobile responsive pass — do post-launch based on real usage patterns  
+- Regional pricing intelligence — too risky without real transaction data to back it
+- Voice-to-proposal wizard — Brief AI chat covers same intent; keep in long-term vision
+
+### LONG-TERM VISION (V2+)
+- Native mobile app + voice site walkthrough ("walk the site, talk to the app")
+- Video walkthrough AI (GPT-4o Vision reads site video)
+- Merchant procurement layer (Travis Perkins partnership)
+- Financial infrastructure (escrow, contractor lending, client property finance)
+- Accountancy software integration
 
 ### KNOWN BUGS
 - [ ] Address concatenation still showing "18 Jackdaw DriveColchester," in About Us PDF (company address, not project address)
 - [ ] About Us page has whitespace when MD message not set
 - [ ] Programme: "From: From Brief" subtitle shows even when phases are from estimate
+
+---
+
+## Target User Profile — "Dave"
+
+UK SME contractor, £1-3m turnover, 5-8 subcontractors, does extensions/loft conversions/commercial fit-outs.
+
+Dave's problems in order of pain:
+1. Doesn't get paid on time — clients dispute invoices, go quiet
+2. Signs contracts he doesn't understand — gets hammered by unfair clauses  
+3. Doesn't know if he's making money mid-job — finds out too late
+4. Spends 4+ hours pricing jobs he doesn't win
+5. Proposals look amateur — Word docs with no branding
+
+Constructa currently solves problems 4 and 5 brilliantly.
+Problems 1, 2, and 3 are the next frontier (Sprints 12-15).
+
+Key metrics that matter:
+- First proposal sent within 10 minutes of signup
+- Proposals that result in client acceptance through the platform (needs portal)
+- Jobs where billing is managed through Constructa (retention + data flywheel)
 
 ---
 

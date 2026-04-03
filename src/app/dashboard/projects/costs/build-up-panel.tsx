@@ -44,6 +44,7 @@ interface BuildUpPanelProps {
     labourRates: LabourRate[];
     rateBuildups: RateBuildup[];
     materialLibrary: CostLibraryItem[];
+    preferredTrades: string[];
     onComponentsChanged: (lineId: string, components: EstimateLineComponent[], newUnitRate: number) => void;
 }
 
@@ -53,6 +54,7 @@ export default function BuildUpPanel({
     labourRates,
     rateBuildups,
     materialLibrary,
+    preferredTrades,
     onComponentsChanged,
 }: BuildUpPanelProps) {
     const [components, setComponents] = useState<EstimateLineComponent[]>(line.estimate_line_components || []);
@@ -95,6 +97,8 @@ export default function BuildUpPanel({
             .map(m => ({ name: m.description, rate: m.base_rate, unit: m.unit }))
             .filter(p => !PLANT_RATES.some(pr => pr.name === p.name))
     ];
+
+    const consumableItems = materialLibrary.filter(m => m.category === 'Consumables');
 
     const componentTotal = components.reduce((s, c) => s + c.quantity * c.unit_rate, 0);
     const ratePerUnit = line.quantity > 0 ? componentTotal / line.quantity : 0;
@@ -301,9 +305,21 @@ export default function BuildUpPanel({
                                         onChange={e => setLabourTradeFilter(prev => ({ ...prev, [comp.id]: e.target.value }))}
                                     >
                                         <option value="">All trades...</option>
-                                        {Array.from(new Set(labourRates.map(lr => lr.trade))).sort().map(trade => (
-                                            <option key={trade} value={trade}>{trade}</option>
-                                        ))}
+                                        {preferredTrades.length > 0 && (
+                                            <optgroup label="Your trades">
+                                                {preferredTrades
+                                                    .filter(t => labourRates.some(lr => lr.trade === t))
+                                                    .map(trade => <option key={trade} value={trade}>{trade}</option>)
+                                                }
+                                            </optgroup>
+                                        )}
+                                        <optgroup label="All trades">
+                                            {Array.from(new Set(labourRates.map(lr => lr.trade)))
+                                                .filter(t => !preferredTrades.includes(t))
+                                                .sort()
+                                                .map(trade => <option key={trade} value={trade}>{trade}</option>)
+                                            }
+                                        </optgroup>
                                     </select>
                                     {/* Role picker — filtered by selected trade */}
                                     <select
@@ -393,9 +409,23 @@ export default function BuildUpPanel({
                                         onChange={e => setMaterialCategoryFilter(prev => ({ ...prev, [comp.id]: e.target.value }))}
                                     >
                                         <option value="">All categories...</option>
-                                        {Array.from(new Set(rawMaterialItems.map(m => m.category))).sort().map(cat => (
-                                            <option key={cat} value={cat}>{cat}</option>
-                                        ))}
+                                        {(() => {
+                                            const allCats = Array.from(new Set(rawMaterialItems.map(m => m.category)));
+                                            const preferredCats = allCats.filter(c => preferredTrades.includes(c));
+                                            const otherCats = allCats.filter(c => !preferredTrades.includes(c)).sort();
+                                            return (
+                                                <>
+                                                    {preferredCats.length > 0 && (
+                                                        <optgroup label="Your trades">
+                                                            {preferredCats.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                                        </optgroup>
+                                                    )}
+                                                    <optgroup label="All categories">
+                                                        {otherCats.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                                    </optgroup>
+                                                </>
+                                            );
+                                        })()}
                                     </select>
                                     {/* Material input with datalist */}
                                     <input
@@ -435,6 +465,42 @@ export default function BuildUpPanel({
                                             ))
                                         }
                                     </datalist>
+                                </div>
+                            ) : comp.component_type === "consumable" ? (
+                                <div className="flex-1 flex flex-col gap-1">
+                                    <input
+                                        list={`cons-${comp.id}`}
+                                        className="flex-1 border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900 text-xs"
+                                        value={descInputs[comp.id] ?? comp.description}
+                                        onChange={e => {
+                                            setDescInputs(prev => ({ ...prev, [comp.id]: e.target.value }));
+                                            const match = consumableItems.find(m => m.description.toLowerCase() === e.target.value.toLowerCase());
+                                            if (match) handleUpdate(comp.id, { description: match.description, unit_rate: match.base_rate, unit: match.unit });
+                                        }}
+                                        onBlur={e => {
+                                            const val = e.target.value.trim();
+                                            if (val && !consumableItems.find(m => m.description.toLowerCase() === val.toLowerCase())) {
+                                                handleUpdate(comp.id, { description: val });
+                                            }
+                                        }}
+                                        placeholder="Search consumables or type description..."
+                                    />
+                                    <datalist id={`cons-${comp.id}`}>
+                                        {consumableItems.map(m => <option key={m.id} value={m.description} />)}
+                                    </datalist>
+                                </div>
+                            ) : comp.component_type === "subcontract" ? (
+                                <div className="flex-1 flex flex-col gap-1">
+                                    <input
+                                        className="flex-1 border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900 text-xs"
+                                        value={descInputs[comp.id] ?? comp.description}
+                                        onChange={e => {
+                                            setDescInputs(prev => ({ ...prev, [comp.id]: e.target.value }));
+                                            handleUpdate(comp.id, { description: e.target.value });
+                                        }}
+                                        placeholder="Subcontractor name or description (e.g. Specialist groundworks package)..."
+                                    />
+                                    <span className="text-xs text-gray-400">Enter the subcontract value as the rate × qty below</span>
                                 </div>
                             ) : (
                                 <input

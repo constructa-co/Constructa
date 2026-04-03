@@ -25,6 +25,7 @@ interface Props {
     orgId: string;
     rateBuildups: RateBuildup[];
     labourRates: LabourRate[];
+    preferredTrades: string[];
 }
 
 const TRADE_SECTIONS = [
@@ -54,7 +55,7 @@ function formatGBP(n: number): string {
 }
 
 // ─── Main Component ──────────────────────────────────────
-export default function EstimateClient({ estimates: initialEstimates, costLibrary, projectId, orgId, rateBuildups, labourRates }: Props) {
+export default function EstimateClient({ estimates: initialEstimates, costLibrary, projectId, orgId, rateBuildups, labourRates, preferredTrades }: Props) {
     const [estimates, setEstimates] = useState<Estimate[]>(initialEstimates);
     const [activeTab, setActiveTab] = useState<string>(estimates[0]?.id || "");
     const [_isPending, startTransition] = useTransition();
@@ -588,6 +589,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                                 labourRates={labourRates}
                                                 rateBuildups={rateBuildups}
                                                 materialLibrary={costLibrary}
+                                                preferredTrades={preferredTrades}
                                                 onComponentsChanged={handleComponentsChanged}
                                             />
                                         )}

@@ -39,6 +39,7 @@ interface Profile {
     sales_phone?: string | null;
     accounts_email?: string | null;
     pdf_theme?: string | null;
+    preferred_trades?: string[] | null;
 }
 
 const THEMES = [
@@ -76,6 +77,31 @@ const BUSINESS_TYPES = [
     "Bathroom & Kitchen Fitting",
     "Landscaping & Fencing",
     "Multi-trade / Other",
+];
+
+const ALL_TRADES = [
+    'Site Setup & Preliminaries', 'Demolition & Strip Out', 'Asbestos Removal',
+    'Temporary Works / Propping / Shoring', 'Groundworks & Civils', 'Drainage',
+    'Utilities – Water', 'Utilities – Gas', 'Utilities – Electric / Ducting',
+    'Utilities – Telecoms / Data Ducting', 'Attenuation / SuDS / Stormwater',
+    'Piling', 'Underpinning & Structural Stabilisation', 'Concrete / RC Works',
+    'Steel Frame / Steel Erection', 'Structural Timber / Framing',
+    'Masonry / Brickwork / Blockwork', 'Cladding & Rainscreen', 'Roofing',
+    'Waterproofing', 'Insulation', 'Windows, Doors & Glazing',
+    'Builders / General Building', 'Landscaping & External Works',
+    'Surfacing, Paving & Kerbing', 'Fencing & Gates',
+    'Swimming Pools & Water Features', 'Signage', 'Line Marking & Road Furniture',
+    'External Lighting', 'Domestic Electrical', 'Commercial Electrical',
+    'Industrial Electrical', 'EV Chargers', 'Street Electrical / Feeder Pillars',
+    'Substations', 'Domestic Plumbing', 'Commercial Plumbing / Public Health',
+    'Mechanical / HVAC', 'Domestic Heating', 'Air Conditioning / Refrigeration',
+    'Fire Alarm & Life Safety', 'Security / CCTV / Access Control',
+    'Drylining & Partitions', 'Plastering & Rendering', 'Carpentry & Joinery',
+    'Kitchen Installation', 'Bathroom Installation', 'Tiling', 'Flooring',
+    'Ceilings', 'Painting & Decorating', 'Fire Stopping',
+    'Passive Fire Protection / Intumescent', 'Diamond Drilling & Sawing',
+    'Builderswork in Connection', 'Specialist Finishes', 'Waste Management / Logistics',
+    'Scaffolding & Access',
 ];
 
 function CaseStudyCard({
@@ -270,6 +296,7 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
     const logoInputRef = useRef<HTMLInputElement>(null);
     const [capabilityStatement, setCapabilityStatement] = useState(profile?.capability_statement || '');
     const [rewritingCapability, setRewritingCapability] = useState(false);
+    const [preferredTrades, setPreferredTrades] = useState<string[]>(profile?.preferred_trades || []);
 
     const handleRewriteCapability = async () => {
         if (!capabilityStatement.trim()) return;
@@ -310,6 +337,7 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
         const fd = new FormData(e.currentTarget);
         fd.set("case_studies", JSON.stringify(caseStudies));
         fd.set("pdf_theme", pdfTheme);
+        fd.set("preferred_trades", JSON.stringify(preferredTrades));
         const result = await updateProfileAction(fd);
         setSaving(false);
         if (result?.success) {
@@ -473,6 +501,34 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
                             <option key={t} value={t}>{t}</option>
                         ))}
                     </select>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-semibold text-slate-100 mb-1">Your Trades</label>
+                    <p className="text-xs text-slate-500 mb-3">Select the trades your company works in. These appear first in the estimating tool.</p>
+                    <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto border border-slate-700 rounded-lg p-3">
+                        {ALL_TRADES.map(trade => {
+                            const isSelected = preferredTrades.includes(trade);
+                            return (
+                                <button
+                                    key={trade}
+                                    type="button"
+                                    onClick={() => {
+                                        setPreferredTrades(prev =>
+                                            isSelected ? prev.filter(t => t !== trade) : [...prev, trade]
+                                        );
+                                    }}
+                                    className={`text-xs px-2 py-1.5 rounded-md border text-left transition-colors ${
+                                        isSelected
+                                            ? 'bg-slate-100 text-slate-900 border-slate-300'
+                                            : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500'
+                                    }`}
+                                >
+                                    {trade}
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
 
                 <div className="space-y-1.5">

@@ -30,6 +30,10 @@ export async function updateProfileAction(formData: FormData) {
         sales_phone: formData.get("sales_phone") as string,
         accounts_email: formData.get("accounts_email") as string,
         pdf_theme: formData.get("pdf_theme") as string || "slate",
+        preferred_trades: (() => {
+            const raw = formData.get("preferred_trades") as string;
+            try { return raw ? JSON.parse(raw) : []; } catch { return []; }
+        })(),
     };
 
     // Case studies — stored as JSONB

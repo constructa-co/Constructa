@@ -84,6 +84,14 @@ export default async function EstimatingPage({ searchParams }: { searchParams: {
 
     const { data: labourRates } = await labourRateQuery;
 
+    // Fetch preferred trades from user profile
+    const { data: profileData } = await supabase
+        .from("profiles")
+        .select("preferred_trades")
+        .eq("id", user.id)
+        .single();
+    const preferredTrades: string[] = (profileData?.preferred_trades as string[]) || [];
+
     return (
         <div className="max-w-7xl mx-auto p-8 pt-24 space-y-8">
             <ProjectNavBar projectId={activeProjectId} activeTab="costing" />
@@ -168,6 +176,7 @@ export default async function EstimatingPage({ searchParams }: { searchParams: {
                     components: rb.components || [],
                     total_manhours_per_unit: rb.total_manhours_per_unit || 0,
                 }))}
+                preferredTrades={preferredTrades}
                 labourRates={(labourRates || []).map((lr: any) => ({
                     id: lr.id,
                     trade: lr.trade || "",

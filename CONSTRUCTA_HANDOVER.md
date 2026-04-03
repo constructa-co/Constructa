@@ -16,12 +16,15 @@
 
 ## Credentials & Infrastructure
 
+> **SECURITY:** All credentials are stored in `.env.local` (not committed) and in Vercel environment variables.
+> Never commit real tokens to this repo. Ask the project owner for credentials.
+
 | Service | Detail |
 |---------|--------|
-| Supabase project ref | `pudadynieiuypxeoimnz` (West Europe/London) |
-| Supabase access token | `sbp_a61e3c00d4d93279c1c6cf207a57c6519866759b` |
-| Vercel project | `prj_Wh2LiojiueBHFrBgfZlQ6AKYaECb` |
-| Vercel team | `team_wANaJiVrRNAsnnMMmrCSaOCS` |
+| Supabase project ref | `[SEE .env.local — SUPABASE_PROJECT_REF]` |
+| Supabase access token | `[SEE .env.local — SUPABASE_ACCESS_TOKEN]` |
+| Vercel project | `[SEE .env.local — VERCEL_PROJECT_ID]` |
+| Vercel team | `[SEE .env.local — VERCEL_TEAM_ID]` |
 | OpenAI | `OPENAI_API_KEY` env var in Vercel (project level) — uses `gpt-4o-mini` |
 | Git user email | `perplexity-computer@constructa.co` |
 | Git user name | `Perplexity Computer` |
@@ -34,7 +37,7 @@ git config user.name "Perplexity Computer"
 
 **Push Supabase migrations:**
 ```bash
-SUPABASE_ACCESS_TOKEN=sbp_a61e3c00d4d93279c1c6cf207a57c6519866759b supabase db push --linked --yes
+SUPABASE_ACCESS_TOKEN=$SUPABASE_ACCESS_TOKEN supabase db push --linked --yes
 ```
 
 ---

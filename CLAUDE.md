@@ -542,33 +542,9 @@ Some proposal sections are missing or incomplete. The standard needs to match Co
 - [ ] Full end-to-end test: create a new project, complete all 5 steps, generate PDF — document any gaps
 - [ ] AI suggestions throughout: each step should have AI assistance as capable as Brief/Contracts already do
 
-### Sprint 17 — Constructa Admin Dashboard: Phase 1 (MOVED FORWARD)
-**Rationale:** As soon as the first paying contractor signs up, you need operational visibility.
-Without this, you cannot see who is using the platform, whether it's working, or what your revenue is.
-This is not a contractor feature — it's the minimum needed to run Constructa as a business.
-It is relatively quick to build: a protected route reading from existing tables via service role key.
-
-**What's in Phase 1 (lean — only what's operationally essential):**
-- [ ] `/admin` route: email-guard (ADMIN_EMAILS list), separate layout and sidebar
-- [ ] Uses `SUPABASE_SERVICE_ROLE_KEY` env var (already in Vercel) — bypasses RLS for cross-contractor queries
-- [ ] **Your revenue:** Subscriber count by plan, MRR estimate (manual plan × rate until Stripe integrated), new signups trend
-- [ ] **Your costs:** Log Vercel/Supabase/OpenAI/Resend monthly invoices → gross margin estimate
-- [ ] **Who's using it:** Contractor list — email, plan, joined date, last active, project count, proposals sent
-- [ ] **Is it working:** AI error rate (count of failed generateJSON calls logged), recent Vercel errors, Supabase DB size vs limit
-- [ ] **Usage heatmap:** Which features are being used and how often (count actions per module per day)
-- [ ] **At-risk accounts:** Paying subscribers inactive >21 days (churn predictor — act before they cancel)
-- [ ] Basic user actions: manually set plan, add note, mark for follow-up
-
-**What's NOT in Phase 1 (comes later when data warrants it):**
-- Data intelligence / benchmark explorer (needs Sprint 31 + contractor volume)
-- Market intelligence reports
-- Accounting integration
-- Sophisticated LTV/CAC analysis (needs more data history)
-
-### Sprint 18 — Gantt Drag-and-Drop & Programme Polish
-**Elevated from deprioritised — important to product quality.**
-The Programme tab is a core part of the pre-construction workflow and contractors expect
-to be able to adjust their programme interactively, not just via number inputs.
+### Sprint 17 — Gantt Drag-and-Drop & Programme Polish
+The Programme tab is a core part of the pre-construction workflow. Contractors expect
+to adjust their programme interactively, not just via number inputs.
 
 - [ ] Drag bars left/right to adjust start offset (sequencing)
 - [ ] Drag right edge to resize duration
@@ -578,6 +554,20 @@ to be able to adjust their programme interactively, not just via number inputs.
 - [ ] "Critical path" highlight — identify the longest chain
 - [ ] Programme summary: total duration, key milestones, auto-updated on drag
 - [ ] Export to PDF reflects drag-adjusted programme (reads programme_phases)
+
+### Sprint 18 — Constructa Admin Dashboard: Phase 1
+Needed before the first paying subscriber. A protected `/admin` route reading from existing
+tables via service role key — relatively quick to build, operationally essential.
+
+- [ ] `/admin` route: email-guard (ADMIN_EMAILS list), separate layout and sidebar
+- [ ] Uses `SUPABASE_SERVICE_ROLE_KEY` (already in Vercel) — bypasses RLS for cross-contractor queries
+- [ ] **Your revenue:** Subscriber count by plan, MRR estimate, new signups trend
+- [ ] **Your costs:** Log Vercel/Supabase/OpenAI/Resend invoices → gross margin estimate
+- [ ] **Who's using it:** Contractor list — email, plan, joined date, last active, project count, proposals sent
+- [ ] **Is it working:** AI error rate, Supabase DB size vs limit, recent errors
+- [ ] **Usage heatmap:** Which features used, how often, per day
+- [ ] **At-risk accounts:** Paying subscribers inactive >21 days (churn predictor)
+- [ ] Basic user actions: manually set plan, add note, mark for follow-up
 
 ### Sprint 19 — Proposal Versioning
 - [ ] Up-rev proposals (v1, v2, v3) with change tracking

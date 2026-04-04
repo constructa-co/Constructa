@@ -46,9 +46,72 @@ IMPORTANT: Before finishing, you MUST write your complete final response to `/tm
 - **Vision Takeoff (AI Drawing Scan)** — already built: upload floor plan or sketch, AI extracts item names and quantities, one-click add to estimate. Currently in the foundations/brief page — needs promoting to a headline feature
 - **Critical Path Gantt** — more sophisticated than it looks: genuine forward-pass algorithm with iterative dependency resolution
 
+**Completed April 4 2026 (today):**
+- Black screen on scroll — FIXED (CSS isolation fix)
+- Suggest Estimate Lines — FIXED (null guard + always returns object)
+- PDF Gantt — FIXED (reads programme_phases, proportional bars)
+- Address concatenation in PDF — FIXED (splitAddress() utility)
+- Postcode lookup — FIXED (strips spaces, uppercases)
+- Client portal acceptance form — name + email capture, confirmation panel
+- Vision Takeoff → Cost Library matching — extracted items auto-match to 833-item library
+- Contract Shield — grounded in UK construction law (JCT/NEC/Construction Act)
+- Proposal-level About Us override — contractors can customise capability statement per proposal without changing master profile
+- PDF soft gate — Download PDF button disabled with tooltip if profile incomplete
+- Suggest Estimate Lines success feedback — shows count of lines created
+
+---
+
+## Sidebar Navigation Structure (current)
+
+```
+COMPANY PROFILE
+  Profile         /dashboard/settings/profile
+  Case Studies    /dashboard/settings/case-studies
+  Setup Wizard    /onboarding?force=true
+
+WORK WINNING
+  Dashboard (CRM) /dashboard
+  New Project     /dashboard/projects/new
+  Cost Library    /dashboard/library        ← feeds into estimating
+  Resources       /dashboard/resources      ← labour rates
+
+PRE-CONSTRUCTION
+  Brief           /dashboard/projects/brief
+  Estimating      /dashboard/projects/costs
+  Programme       /dashboard/projects/schedule
+  Contracts       /dashboard/projects/contracts
+  Proposal        /dashboard/projects/proposal
+
+LIVE PROJECTS
+  Overview        /dashboard/live (placeholder)
+  Billing         /dashboard/projects/billing (disabled)
+  Variations      /dashboard/projects/variations (disabled)
+  Change Mgmt     (disabled placeholder)
+  Cost Tracking   (disabled placeholder)
+  Programme       (disabled placeholder)
+  Communications  (disabled placeholder)
+
+CLOSED PROJECTS
+  Archive         (disabled placeholder)
+  Final Accounts  (disabled placeholder)
+  Handover Docs   (disabled placeholder)
+  Lessons Learned (disabled placeholder)
+```
+
+Note: "Closed Projects" replaces "Post-Construction" — better language.
+Note: Cost Library and Resources sit under Work Winning as they are reference data that supports pre-construction, not part of the pre-construction workflow itself.
+
 ---
 
 ## Sprint Backlog (priority order)
+
+### IMMEDIATE — Home Dashboard Redesign
+The current login landing page (Dashboard) shows a CRM Kanban. The contractor needs a holistic home view showing:
+- Company health KPIs (pipeline value, active projects, outstanding invoices, win rate)
+- Section cards for: Work Winning / Pre-Construction / Live Projects / Closed Projects
+- Each card shows count + key metric + quick action
+- Replaces the current CRM-only dashboard as the primary landing page
+- The CRM Kanban moves to a sub-page under Work Winning
 
 ### CURRENT: Finish pre-construction workflow
 - Fix remaining data flow issues (Brief→Estimate, address pre-fill etc.)

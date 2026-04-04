@@ -9,7 +9,7 @@ export default async function ContractsPage({ searchParams }: { searchParams: { 
     const supabase = createClient();
     const { projectId } = searchParams;
 
-    if (!projectId) return <div className="p-8 text-gray-400">Missing Project ID</div>;
+    if (!projectId) return <div className="p-8 text-slate-400">Missing Project ID</div>;
 
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
@@ -33,9 +33,9 @@ export default async function ContractsPage({ searchParams }: { searchParams: { 
             <div className="flex flex-col gap-4 mb-6">
                 <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Contracts</h1>
-                        <p className="text-sm text-gray-500 mt-0.5">
-                            Managing contracts for: <span className="font-semibold text-gray-700">{project?.name}</span>
+                        <h1 className="text-2xl font-bold text-slate-100">Contracts</h1>
+                        <p className="text-sm text-slate-400 mt-0.5">
+                            Managing contracts for: <span className="font-semibold text-slate-200">{project?.name}</span>
                         </p>
                     </div>
                 </div>

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Sparkles, Loader2, Plus, Trash2, Shield, AlertTriangle, Send, Upload, CheckCircle, Scale, MessageSquare } from "lucide-react";
+import { Sparkles, Loader2, Plus, Trash2, Shield, AlertTriangle, Send, Upload, CheckCircle, Scale, MessageSquare, ShieldCheck, ShieldAlert } from "lucide-react";
 import {
     saveTcTierAction,
     analyseContractAction,
@@ -12,6 +12,7 @@ import {
     saveContractExclusionsAction,
     generateContractExclusionsAction,
     contractChatAction,
+    extractContractTextAction,
 } from "./actions";
 
 // ── T&C Tier Definitions ─────────────────────────────────
@@ -108,17 +109,17 @@ function getTierClauses(tier: string) {
     return DOMESTIC_CLAUSES;
 }
 
-// ── Severity badge colours ───────────────────────────────
+// ── Severity badge colours (dark-theme aware) ────────────
 function severityColor(severity: string) {
-    if (severity === "high") return "bg-red-100 text-red-700 border-red-200";
-    if (severity === "medium") return "bg-amber-100 text-amber-700 border-amber-200";
-    return "bg-green-100 text-green-700 border-green-200";
+    if (severity === "high") return "bg-red-950/60 text-red-300 border-red-700";
+    if (severity === "medium") return "bg-amber-950/60 text-amber-300 border-amber-700";
+    return "bg-green-950/60 text-green-300 border-green-700";
 }
 
 function likelihoodColor(level: string) {
-    if (level === "high") return "bg-red-100 text-red-700";
-    if (level === "medium") return "bg-amber-100 text-amber-700";
-    return "bg-green-100 text-green-700";
+    if (level === "high") return "bg-red-950/60 text-red-300";
+    if (level === "medium") return "bg-amber-950/60 text-amber-300";
+    return "bg-green-950/60 text-green-300";
 }
 
 // ── Interfaces ───────────────────────────────────────────
@@ -152,6 +153,7 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
     const [contractFlags, setContractFlags] = useState<any[]>(project?.contract_review_flags || []);
     const [analysing, setAnalysing] = useState(false);
     const [uploadedText, setUploadedText] = useState(project?.uploaded_contract_text || "");
+    const [extracting, setExtracting] = useState(false);
 
     // Tab B: Risks
     const [riskRegister, setRiskRegister] = useState<RiskItem[]>(
@@ -169,11 +171,15 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
     const [chatInput, setChatInput] = useState("");
     const [chatLoading, setChatLoading] = useState(false);
 
+    const activeFlags = contractFlags.filter((f: any) => !f.dismissed);
+    const highFlags = activeFlags.filter((f: any) => f.severity === "high").length;
+    const mediumFlags = activeFlags.filter((f: any) => f.severity === "medium").length;
+
     const tabCls = (tab: string) =>
         `px-4 py-2.5 text-sm font-semibold rounded-lg transition-colors ${
             activeTab === tab
-                ? "bg-gray-900 text-white"
-                : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                ? "bg-slate-700 text-white shadow"
+                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
         }`;
 
     // ── Tab A handlers ───────────────────────────────────
@@ -194,7 +200,7 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
 
         const ext = file.name.split(".").pop()?.toLowerCase();
         if (ext === "txt") {
-            // Plain text — read client-side
+            // Plain text — read client-side instantly
             const reader = new FileReader();
             reader.onload = (ev) => {
                 const text = ev.target?.result as string;
@@ -202,29 +208,49 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                 toast.success("Contract text loaded — click Analyse to review");
             };
             reader.readAsText(file);
-        } else {
-            // PDF/DOCX — upload to Supabase storage
+        } else if (ext === "pdf" || ext === "docx" || ext === "doc") {
+            // Upload to Supabase storage, then extract server-side
             try {
                 const { createClient } = await import("@/lib/supabase/client");
                 const supabase = createClient();
                 const filePath = `${projectId}/${Date.now()}_${file.name}`;
-                const { error } = await supabase.storage.from("contracts").upload(filePath, file);
-                if (error) {
-                    // Bucket may not exist — try creating it first
-                    toast.error("Upload failed: " + error.message);
+                const { error: uploadError } = await supabase.storage.from("contracts").upload(filePath, file);
+                if (uploadError) {
+                    toast.error("Upload failed: " + uploadError.message);
                     return;
                 }
-                setUploadedText(`[FILE:${filePath}] ${file.name}`);
-                toast.success("PDF/DOCX uploaded. AI analysis will extract key clauses.");
+
+                // Extract text server-side via server action
+                setExtracting(true);
+                toast.info("Extracting text from " + file.name + "…");
+                const result = await extractContractTextAction(filePath);
+                setExtracting(false);
+
+                if (result.error || !result.text) {
+                    toast.error(result.error || "Could not extract text from file.");
+                    // Keep a fallback so user knows file is there
+                    setUploadedText(`[FILE:${filePath}] ${file.name}`);
+                    return;
+                }
+
+                setUploadedText(result.text);
+                toast.success(`Text extracted (${result.text.length.toLocaleString()} chars) — click Analyse to review`);
             } catch {
-                toast.error("Upload failed");
+                setExtracting(false);
+                toast.error("Upload or extraction failed");
             }
+        } else {
+            toast.error("Unsupported file type. Use PDF, DOCX, or TXT.");
         }
     };
 
     const handleAnalyse = async () => {
         if (!uploadedText) {
             toast.error("Upload a contract first");
+            return;
+        }
+        if (uploadedText.startsWith("[FILE:")) {
+            toast.error("Text extraction is still in progress or failed — try re-uploading.");
             return;
         }
         setAnalysing(true);
@@ -329,12 +355,57 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
         setChatLoading(false);
     };
 
-    const inputCls = "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900";
+    const inputCls = "w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500";
 
     return (
         <div className="space-y-6">
+
+            {/* ═══ CONTRACT SHIELD HERO ═══ */}
+            <div className="relative overflow-hidden rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 p-6">
+                <div className="absolute inset-0 opacity-5">
+                    <Shield className="w-64 h-64 absolute -right-8 -top-8 text-white" />
+                </div>
+                <div className="relative flex items-start justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center shadow-lg">
+                            <ShieldCheck className="w-8 h-8 text-white" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-0.5">
+                                <h2 className="text-xl font-bold text-white">Contract Shield</h2>
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-600/30 text-purple-300 border border-purple-600/50">AI-Powered</span>
+                            </div>
+                            <p className="text-sm text-slate-400">Protect your business with AI contract review, risk management, and UK construction law awareness.</p>
+                        </div>
+                    </div>
+                    {/* Flag summary badges */}
+                    {contractFlags.length > 0 && (
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            {highFlags > 0 && (
+                                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/60 border border-red-700 text-red-300 text-xs font-bold">
+                                    <ShieldAlert className="w-3.5 h-3.5" />
+                                    {highFlags} High
+                                </div>
+                            )}
+                            {mediumFlags > 0 && (
+                                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-950/60 border border-amber-700 text-amber-300 text-xs font-bold">
+                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                    {mediumFlags} Amber
+                                </div>
+                            )}
+                            {activeFlags.length === 0 && contractFlags.length > 0 && (
+                                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-950/60 border border-green-700 text-green-300 text-xs font-bold">
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                    All Clear
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+
             {/* Tab bar */}
-            <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-xl border border-gray-200">
+            <div className="flex items-center gap-2 bg-slate-800/50 p-1.5 rounded-xl border border-slate-700">
                 <button onClick={() => setActiveTab("terms")} className={tabCls("terms")}>
                     <Scale className="w-4 h-4 inline mr-1.5" />Terms & Conditions
                 </button>
@@ -360,59 +431,70 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                                 onClick={() => handleSelectTier(tier.id)}
                                 className={`text-left p-5 rounded-xl border-2 transition-all ${
                                     tcTier === tier.id
-                                        ? "border-gray-900 bg-gray-50 shadow-md"
-                                        : "border-gray-200 bg-white hover:border-gray-400"
+                                        ? "border-purple-500 bg-purple-950/30 shadow-md shadow-purple-900/20"
+                                        : "border-slate-700 bg-slate-800/50 hover:border-slate-500"
                                 }`}
                             >
                                 <div className="flex items-center justify-between mb-2">
-                                    <h3 className="text-lg font-bold text-gray-900">{tier.name}</h3>
-                                    {tcTier === tier.id && <CheckCircle className="w-5 h-5 text-green-600" />}
+                                    <h3 className="text-lg font-bold text-slate-100">{tier.name}</h3>
+                                    {tcTier === tier.id && <CheckCircle className="w-5 h-5 text-purple-400" />}
                                 </div>
-                                <p className="text-xs font-medium text-gray-500 mb-2">{tier.subtitle}</p>
-                                <p className="text-sm text-gray-600">{tier.description}</p>
-                                <p className="text-xs text-gray-400 mt-3">{tier.clauses} clauses</p>
+                                <p className="text-xs font-medium text-slate-400 mb-2">{tier.subtitle}</p>
+                                <p className="text-sm text-slate-300">{tier.description}</p>
+                                <p className="text-xs text-slate-500 mt-3">{tier.clauses} clauses</p>
                             </button>
                         ))}
                     </div>
 
                     {/* Clause list for selected tier */}
-                    <div className="bg-white border border-gray-200 rounded-xl p-6">
-                        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">
+                    <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
+                        <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wide mb-4">
                             {tcTier.charAt(0).toUpperCase() + tcTier.slice(1)} Terms — {getTierClauses(tcTier).length} Clauses
                         </h3>
                         <div className="space-y-3 max-h-96 overflow-y-auto">
                             {getTierClauses(tcTier).map((clause, i) => (
-                                <div key={i} className="border border-gray-100 rounded-lg p-3">
-                                    <h4 className="text-sm font-semibold text-gray-900">{i + 1}. {clause.title}</h4>
-                                    <p className="text-xs text-gray-600 mt-1">{clause.body}</p>
+                                <div key={i} className="border border-slate-700/60 rounded-lg p-3 bg-slate-900/40">
+                                    <h4 className="text-sm font-semibold text-slate-200">{i + 1}. {clause.title}</h4>
+                                    <p className="text-xs text-slate-400 mt-1">{clause.body}</p>
                                 </div>
                             ))}
                         </div>
                     </div>
 
                     {/* Upload Client Contract */}
-                    <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
-                        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Upload Client Contract for Review</h3>
-                        <p className="text-xs text-gray-500">Upload a contract (TXT, PDF, or DOCX) to have AI flag onerous clauses and unusual terms.</p>
-                        <div className="flex items-center gap-3">
-                            <label className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 text-sm font-medium">
+                    <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 space-y-4">
+                        <div>
+                            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wide">Upload Client Contract for Review</h3>
+                            <p className="text-xs text-slate-500 mt-1">Upload a contract (TXT, PDF, or DOCX) to have Contract Shield AI flag onerous clauses and unusual terms.</p>
+                        </div>
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <label className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 text-slate-200 rounded-lg cursor-pointer hover:bg-slate-600 text-sm font-medium transition-colors">
                                 <Upload className="w-4 h-4" />
-                                Upload Contract
-                                <input type="file" accept=".pdf,.doc,.docx,.txt" className="hidden" onChange={handleFileUpload} />
+                                {extracting ? "Extracting…" : "Upload Contract"}
+                                <input type="file" accept=".pdf,.doc,.docx,.txt" className="hidden" onChange={handleFileUpload} disabled={extracting} />
                             </label>
                             <button
                                 onClick={handleAnalyse}
-                                disabled={!uploadedText || analysing}
-                                className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50"
+                                disabled={!uploadedText || analysing || extracting || uploadedText.startsWith("[FILE:")}
+                                className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-colors"
                             >
                                 {analysing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                                {analysing ? "Analysing..." : "Analyse with AI"}
+                                {analysing ? "Analysing…" : "Analyse with AI"}
                             </button>
-                            {uploadedText && (
-                                <span className="text-xs text-green-600 font-medium">
-                                    {uploadedText.startsWith("[FILE:")
-                                        ? `${uploadedFileName || "Contract"} uploaded ✓ — click Analyse to review`
-                                        : `Contract loaded (${uploadedText.length} chars)`}
+                            {extracting && (
+                                <span className="flex items-center gap-1.5 text-xs text-purple-400 font-medium">
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    Extracting text from {uploadedFileName}…
+                                </span>
+                            )}
+                            {!extracting && uploadedText && !uploadedText.startsWith("[FILE:") && (
+                                <span className="text-xs text-green-400 font-medium">
+                                    {uploadedFileName || "Contract"} — {uploadedText.length.toLocaleString()} chars extracted ✓
+                                </span>
+                            )}
+                            {!extracting && uploadedText && uploadedText.startsWith("[FILE:") && (
+                                <span className="text-xs text-amber-400 font-medium">
+                                    File uploaded but extraction failed — try re-uploading
                                 </span>
                             )}
                         </div>
@@ -420,31 +502,33 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                         {/* Flags display */}
                         {contractFlags.length > 0 && (
                             <div className="space-y-3 mt-4">
-                                <h4 className="text-sm font-bold text-gray-900">Review Flags ({contractFlags.filter((f: any) => !f.dismissed).length} active, {contractFlags.filter((f: any) => f.dismissed).length} resolved)</h4>
+                                <h4 className="text-sm font-bold text-slate-300">
+                                    Review Flags ({contractFlags.filter((f: any) => !f.dismissed).length} active, {contractFlags.filter((f: any) => f.dismissed).length} resolved)
+                                </h4>
                                 {contractFlags.map((flag: any, i: number) => (
-                                    <div key={i} className={`border rounded-lg p-4 ${flag.dismissed ? "opacity-50 bg-gray-50 border-gray-200" : severityColor(flag.severity)}`}>
+                                    <div key={i} className={`border rounded-lg p-4 ${flag.dismissed ? "opacity-40 bg-slate-900/40 border-slate-700" : severityColor(flag.severity)}`}>
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className="text-xs font-bold uppercase">{flag.severity}</span>
                                             <span className="text-xs font-medium">— {flag.type}</span>
                                             {flag.dismissed && (
-                                                <span className="text-xs font-bold uppercase ml-auto px-2 py-0.5 bg-gray-200 text-gray-600 rounded">
+                                                <span className="text-xs font-bold uppercase ml-auto px-2 py-0.5 bg-slate-700 text-slate-300 rounded">
                                                     {flag.dismiss_status === "accepted" ? "Accepted" : "Disputed"}
                                                 </span>
                                             )}
                                         </div>
                                         <p className="text-sm font-semibold">{flag.clause}</p>
-                                        <p className="text-sm mt-1">{flag.description}</p>
+                                        <p className="text-sm mt-1 opacity-90">{flag.description}</p>
                                         {flag.recommendation && (
-                                            <p className="text-xs mt-2 font-medium opacity-80">Recommendation: {flag.recommendation}</p>
+                                            <p className="text-xs mt-2 font-medium opacity-75">Recommendation: {flag.recommendation}</p>
                                         )}
                                         {!flag.dismissed && (
-                                            <div className="flex items-center gap-3 mt-3 pt-2 border-t border-current/10">
+                                            <div className="flex items-center gap-3 mt-3 pt-2 border-t border-current/20">
                                                 <button
                                                     onClick={async () => {
                                                         const updated = await dismissContractFlagAction(projectId, i, "accepted");
                                                         if (updated) setContractFlags(updated);
                                                     }}
-                                                    className="text-xs text-gray-500 hover:text-green-600 font-medium"
+                                                    className="text-xs text-slate-400 hover:text-green-400 font-medium transition-colors"
                                                 >
                                                     Accept risk
                                                 </button>
@@ -453,7 +537,7 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                                                         const updated = await dismissContractFlagAction(projectId, i, "disputed");
                                                         if (updated) setContractFlags(updated);
                                                     }}
-                                                    className="text-xs text-gray-500 hover:text-red-600 font-medium"
+                                                    className="text-xs text-slate-400 hover:text-red-400 font-medium transition-colors"
                                                 >
                                                     Dispute
                                                 </button>
@@ -472,14 +556,14 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                 <div className="space-y-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h3 className="text-lg font-bold text-gray-900">Risk & Opportunity Register</h3>
-                            <p className="text-xs text-gray-500">Track project risks and opportunities to inform your pricing and programme.</p>
+                            <h3 className="text-lg font-bold text-slate-100">Risk & Opportunity Register</h3>
+                            <p className="text-xs text-slate-400">Track project risks and opportunities to inform your pricing and programme.</p>
                         </div>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={handleGenerateRisks}
                                 disabled={generatingRisks}
-                                className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50"
+                                className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-colors"
                             >
                                 {generatingRisks ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                                 AI Generate
@@ -487,7 +571,7 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                             <button
                                 onClick={handleSaveRisks}
                                 disabled={isPending}
-                                className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-semibold hover:bg-gray-700 disabled:opacity-50"
+                                className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 text-white rounded-lg text-sm font-semibold hover:bg-slate-600 disabled:opacity-50 transition-colors"
                             >
                                 Save Register
                             </button>
@@ -498,13 +582,13 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                         {/* Risks column */}
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <h4 className="text-sm font-bold text-red-700 uppercase tracking-wide">Risks</h4>
-                                <button onClick={() => addRiskItem("risk")} className="text-xs flex items-center gap-1 text-red-600 hover:text-red-800 font-medium">
+                                <h4 className="text-sm font-bold text-red-400 uppercase tracking-wide">Risks</h4>
+                                <button onClick={() => addRiskItem("risk")} className="text-xs flex items-center gap-1 text-red-400 hover:text-red-300 font-medium transition-colors">
                                     <Plus className="w-3 h-3" /> Add Risk
                                 </button>
                             </div>
                             {riskRegister.filter(r => r.type === "risk").map(item => (
-                                <div key={item.id} className="bg-white border border-red-200 rounded-lg p-4 space-y-2">
+                                <div key={item.id} className="bg-slate-800/50 border border-red-900/50 rounded-lg p-4 space-y-2">
                                     <textarea
                                         className={inputCls}
                                         rows={2}
@@ -513,17 +597,17 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                                         placeholder="Describe the risk..."
                                     />
                                     <div className="flex items-center gap-2">
-                                        <select className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-900" value={item.likelihood} onChange={e => updateRiskItem(item.id, "likelihood", e.target.value)}>
+                                        <select className="text-xs border border-slate-700 rounded px-2 py-1 bg-slate-800 text-slate-200" value={item.likelihood} onChange={e => updateRiskItem(item.id, "likelihood", e.target.value)}>
                                             <option value="low">Low likelihood</option>
                                             <option value="medium">Medium likelihood</option>
                                             <option value="high">High likelihood</option>
                                         </select>
-                                        <select className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-900" value={item.impact} onChange={e => updateRiskItem(item.id, "impact", e.target.value)}>
+                                        <select className="text-xs border border-slate-700 rounded px-2 py-1 bg-slate-800 text-slate-200" value={item.impact} onChange={e => updateRiskItem(item.id, "impact", e.target.value)}>
                                             <option value="low">Low impact</option>
                                             <option value="medium">Medium impact</option>
                                             <option value="high">High impact</option>
                                         </select>
-                                        <button onClick={() => deleteRiskItem(item.id)} className="ml-auto text-red-400 hover:text-red-600">
+                                        <button onClick={() => deleteRiskItem(item.id)} className="ml-auto text-slate-500 hover:text-red-400 transition-colors">
                                             <Trash2 className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
@@ -536,7 +620,7 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                                 </div>
                             ))}
                             {riskRegister.filter(r => r.type === "risk").length === 0 && (
-                                <div className="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-lg">
+                                <div className="text-center py-8 text-slate-500 text-sm border-2 border-dashed border-slate-700 rounded-lg">
                                     No risks added yet
                                 </div>
                             )}
@@ -545,13 +629,13 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                         {/* Opportunities column */}
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <h4 className="text-sm font-bold text-green-700 uppercase tracking-wide">Opportunities</h4>
-                                <button onClick={() => addRiskItem("opportunity")} className="text-xs flex items-center gap-1 text-green-600 hover:text-green-800 font-medium">
+                                <h4 className="text-sm font-bold text-green-400 uppercase tracking-wide">Opportunities</h4>
+                                <button onClick={() => addRiskItem("opportunity")} className="text-xs flex items-center gap-1 text-green-400 hover:text-green-300 font-medium transition-colors">
                                     <Plus className="w-3 h-3" /> Add Opportunity
                                 </button>
                             </div>
                             {riskRegister.filter(r => r.type === "opportunity").map(item => (
-                                <div key={item.id} className="bg-white border border-green-200 rounded-lg p-4 space-y-2">
+                                <div key={item.id} className="bg-slate-800/50 border border-green-900/50 rounded-lg p-4 space-y-2">
                                     <textarea
                                         className={inputCls}
                                         rows={2}
@@ -560,17 +644,17 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                                         placeholder="Describe the opportunity..."
                                     />
                                     <div className="flex items-center gap-2">
-                                        <select className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-900" value={item.likelihood} onChange={e => updateRiskItem(item.id, "likelihood", e.target.value)}>
+                                        <select className="text-xs border border-slate-700 rounded px-2 py-1 bg-slate-800 text-slate-200" value={item.likelihood} onChange={e => updateRiskItem(item.id, "likelihood", e.target.value)}>
                                             <option value="low">Low likelihood</option>
                                             <option value="medium">Medium likelihood</option>
                                             <option value="high">High likelihood</option>
                                         </select>
-                                        <select className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-900" value={item.impact} onChange={e => updateRiskItem(item.id, "impact", e.target.value)}>
+                                        <select className="text-xs border border-slate-700 rounded px-2 py-1 bg-slate-800 text-slate-200" value={item.impact} onChange={e => updateRiskItem(item.id, "impact", e.target.value)}>
                                             <option value="low">Low impact</option>
                                             <option value="medium">Medium impact</option>
                                             <option value="high">High impact</option>
                                         </select>
-                                        <button onClick={() => deleteRiskItem(item.id)} className="ml-auto text-red-400 hover:text-red-600">
+                                        <button onClick={() => deleteRiskItem(item.id)} className="ml-auto text-slate-500 hover:text-red-400 transition-colors">
                                             <Trash2 className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
@@ -583,7 +667,7 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                                 </div>
                             ))}
                             {riskRegister.filter(r => r.type === "opportunity").length === 0 && (
-                                <div className="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-lg">
+                                <div className="text-center py-8 text-slate-500 text-sm border-2 border-dashed border-slate-700 rounded-lg">
                                     No opportunities added yet
                                 </div>
                             )}
@@ -595,17 +679,20 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
             {/* ═══ TAB C: Exclusions & Clarifications ═══ */}
             {activeTab === "exclusions" && (
                 <div className="space-y-6">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-700">
+                    <div className="bg-blue-950/40 border border-blue-800/50 rounded-lg px-4 py-3 text-sm text-blue-300">
                         These will be included automatically in your Proposal PDF.
                     </div>
 
                     <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-bold text-gray-900">Exclusions & Clarifications</h3>
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-100">Exclusions & Clarifications</h3>
+                            <p className="text-xs text-slate-400">Define what is excluded from your scope and any assumptions made.</p>
+                        </div>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={handleGenerateExclusions}
                                 disabled={generatingExcl}
-                                className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50"
+                                className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-colors"
                             >
                                 {generatingExcl ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                                 AI Suggest
@@ -613,7 +700,7 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                             <button
                                 onClick={handleSaveExclusions}
                                 disabled={isPending}
-                                className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-semibold hover:bg-gray-700 disabled:opacity-50"
+                                className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 text-white rounded-lg text-sm font-semibold hover:bg-slate-600 disabled:opacity-50 transition-colors"
                             >
                                 Save
                             </button>
@@ -622,7 +709,7 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
 
                     <div className="grid lg:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-sm font-semibold text-gray-700">Exclusions</label>
+                            <label className="text-sm font-semibold text-slate-300">Exclusions</label>
                             <textarea
                                 className={inputCls}
                                 rows={12}
@@ -632,7 +719,7 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-semibold text-gray-700">Clarifications</label>
+                            <label className="text-sm font-semibold text-slate-300">Clarifications</label>
                             <textarea
                                 className={inputCls}
                                 rows={12}
@@ -647,26 +734,29 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
 
             {/* ═══ TAB D: Contract AI Chat ═══ */}
             {activeTab === "chat" && (
-                <div className="border border-gray-200 rounded-xl bg-white overflow-hidden flex flex-col" style={{ height: "calc(100vh - 20rem)" }}>
-                    <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                        <h3 className="text-sm font-bold text-gray-900">Contract AI Assistant</h3>
-                        <p className="text-xs text-gray-500">Ask questions about contract terms, risks, and standard UK construction practice.</p>
+                <div className="border border-slate-700 rounded-xl bg-slate-900 overflow-hidden flex flex-col" style={{ height: "calc(100vh - 20rem)" }}>
+                    <div className="px-4 py-3 bg-slate-800/80 border-b border-slate-700">
+                        <div className="flex items-center gap-2">
+                            <ShieldCheck className="w-4 h-4 text-purple-400" />
+                            <h3 className="text-sm font-bold text-slate-100">Contract Shield AI</h3>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5">Ask questions about contract terms, risks, and standard UK construction practice.</p>
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
                         {chatMessages.length === 0 && (
-                            <div className="text-center py-10 text-gray-400">
-                                <MessageSquare className="w-8 h-8 mx-auto mb-3 text-gray-300" />
+                            <div className="text-center py-10 text-slate-500">
+                                <ShieldCheck className="w-8 h-8 mx-auto mb-3 text-slate-600" />
                                 <p className="text-sm">Ask me about contract terms, payment conditions, risk allocation, or standard UK practice.</p>
-                                <p className="text-xs mt-2 text-gray-300">e.g. &ldquo;What retention percentage is standard for domestic works?&rdquo;</p>
+                                <p className="text-xs mt-2 text-slate-600">e.g. &ldquo;What retention percentage is standard for domestic works?&rdquo;</p>
                             </div>
                         )}
                         {chatMessages.map((msg, i) => (
                             <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                                 <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
                                     msg.role === "user"
-                                        ? "bg-gray-900 text-white"
-                                        : "bg-gray-100 text-gray-800"
+                                        ? "bg-purple-600 text-white"
+                                        : "bg-slate-800 text-slate-200 border border-slate-700"
                                 }`}>
                                     {msg.content}
                                 </div>
@@ -674,16 +764,16 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                         ))}
                         {chatLoading && (
                             <div className="flex justify-start">
-                                <div className="bg-gray-100 rounded-lg px-3 py-2">
-                                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                                <div className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2">
+                                    <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
                                 </div>
                             </div>
                         )}
                     </div>
 
-                    <div className="border-t border-gray-200 p-3 flex gap-2">
+                    <div className="border-t border-slate-700 p-3 flex gap-2 bg-slate-800/50">
                         <input
-                            className="flex-1 h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                            className="flex-1 h-10 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                             value={chatInput}
                             onChange={e => setChatInput(e.target.value)}
                             onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleChat()}
@@ -692,7 +782,7 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                         <button
                             onClick={handleChat}
                             disabled={chatLoading || !chatInput.trim()}
-                            className="h-10 px-4 bg-gray-900 text-white rounded-lg text-sm font-semibold hover:bg-gray-700 disabled:opacity-50"
+                            className="h-10 px-4 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-colors"
                         >
                             <Send className="w-4 h-4" />
                         </button>

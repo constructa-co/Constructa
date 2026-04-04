@@ -4,6 +4,43 @@ import { createClient } from "@/lib/supabase/server";
 import { generateJSON, generateText } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
 
+// ── PDF / DOCX server-side text extraction ──────────────
+export async function extractContractTextAction(storagePath: string): Promise<{ text: string; error?: string }> {
+    try {
+        const supabase = createClient();
+
+        // Download file bytes from Supabase storage
+        const { data, error } = await supabase.storage.from("contracts").download(storagePath);
+        if (error || !data) return { text: "", error: "Could not download file: " + error?.message };
+
+        const ext = storagePath.split(".").pop()?.toLowerCase();
+        const arrayBuffer = await data.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        if (ext === "pdf") {
+            // Dynamic import keeps pdf-parse out of the client bundle.
+            // pdf-parse exports via CJS so we access the module itself as the callable.
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const pdfParse: (buf: Buffer) => Promise<{ text: string }> = require("pdf-parse");
+            const parsed = await pdfParse(buffer);
+            if (!parsed.text?.trim()) return { text: "", error: "No readable text found in PDF — try a text-based PDF rather than a scanned image." };
+            return { text: parsed.text.trim() };
+        }
+
+        if (ext === "docx" || ext === "doc") {
+            const mammoth = await import("mammoth");
+            const result = await mammoth.extractRawText({ buffer });
+            if (!result.value?.trim()) return { text: "", error: "No readable text found in document." };
+            return { text: result.value.trim() };
+        }
+
+        return { text: "", error: "Unsupported file type. Use PDF, DOCX, or TXT." };
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "Unknown error";
+        return { text: "", error: "Extraction failed: " + msg };
+    }
+}
+
 // ── T&C Tier Management ─────────────────────────────────
 export async function saveTcTierAction(projectId: string, tier: string) {
     const supabase = createClient();

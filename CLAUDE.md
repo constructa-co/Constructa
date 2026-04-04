@@ -2,7 +2,8 @@
 
 > This file is auto-loaded by Claude Code at session start.
 > Read this before making any changes to the codebase.
-> Last updated: 4 April 2026 — end of session
+> Last updated: 4 April 2026 — Claude Code session (evening)
+> Previous sessions: Perplexity Computer (morning, commits 0c7c830→1790fbd)
 
 ---
 
@@ -289,17 +290,49 @@ Stored in `profiles.pdf_theme`:
 - `"navy"`: `#0A1628` deep navy, `#C9A84C` gold accent
 - `"forest"`: `#1A3A2A` green, `#E8E0D0` cream accent
 
+**Theme implementation note (fixed April 4):**
+`ProposalPdfButton` now fetches a fresh profile from Supabase at click time (`createClient()` + `.from("profiles").select("*").eq("id", profile.id)`). This means theme changes take effect immediately without requiring a page refresh. Previously the server-rendered prop was stale if profile was updated in another tab.
+
+---
+
+## Known Bugs (to fix next session)
+
+### BUG-001 — Duplicate `md_name` input (Medium — data loss risk)
+**File:** `src/app/dashboard/settings/profile/profile-form.tsx` lines 615 and 753
+Both inputs have `name="md_name"`. Only the last one submits. If contractor types into the first field, value is silently discarded.
+**Fix:** Remove the duplicate at line 615, keep the one at 753.
+
+### BUG-002 — Client portal URL UX gap (Medium)
+`proposal_token` is only written when `saveProposalAction()` or `sendProposalAction()` is first called. If the contractor copies the link URL manually before saving/sending, it 404s with "Proposal Not Found". No warning shown.
+**Fix:** Either pre-generate the token on project creation, or show a "link not active — save proposal first" message in the actions panel.
+
+### BUG-003 — Wrong company name in proposal editor banner (Medium)
+The proposal editor page shows "Company profile complete — Tripod Construction Ltd" instead of the profile's `company_name`. Likely caused by `proposal_company_name` override being set on the project record, or a stale/incorrect profile query.
+**Fix:** Investigate the ClientEditor banner component — ensure it reads `profile.company_name` for the authenticated user, not `project.proposal_company_name`.
+
+### BUG-004 — PDF download via `window.open()` (Low — UX)
+Chrome popup blocker intercepts the new tab, so PDFs download silently rather than opening. The download still works correctly but no visual confirmation.
+**Fix:** Replace `window.open(url)` with a programmatic `<a href=url download>` click trigger in `proposal-pdf-button.tsx`.
+
+---
+
+## PDF Fixes Applied (April 4 — commit d833388 + a8d6511)
+
+1. **Gantt dedicated page** — Gantt chart always gets its own full page (`doc.addPage()`). Previously shared a page with Fee Proposal and was squeezed. Row height 11→13mm, header 14→16mm, label col 55→60mm, max weeks 20→26.
+2. **Commercial Terms y-sync** — `y = Math.max(termLeftY, termRightY) + 6` added after `tcClauses.forEach`. Previously the closing statement rendered on top of the T&C columns.
+3. **Theme fresh-fetch** — PDF button now fetches fresh `profile` from Supabase at click time (commit a8d6511). All three themes (Slate/Navy/Forest) confirmed generating distinct colour outputs.
+
 ---
 
 ## Sprint Backlog (priority order)
 
-### CURRENT — In progress
-The pre-construction workflow (Brief → Estimating → Programme → Contracts → Proposal) is substantially complete. Main remaining issues:
-- Suggest Estimate Lines: completes but shows no count message (minor UX)
-- Vision Takeoff: built but not wired into Brief tab as a primary workflow step
-- Programme: phases with default durations all show equal bars — correct but needs testing with real manhours data
+### IMMEDIATE — Bug fixes (do these first)
+- [ ] **BUG-001** Fix duplicate `md_name` input in profile-form.tsx line 615
+- [ ] **BUG-003** Investigate and fix wrong company name ("Tripod Construction Ltd") in proposal editor banner
+- [ ] **BUG-004** Fix PDF download to use `<a download>` instead of `window.open()` (popup blocker bypass)
+- [ ] **BUG-002** Add "link not active yet" UX when proposal_token not generated
 
-### Sprint 12 — Close the Loop (NEXT)
+### Sprint 12 — Close the Loop (NEXT after bugs)
 - [ ] Viewed tracking — notify contractor when client opens the proposal link
 - [ ] Acceptance notification to contractor (email or in-app notification)  
 - [ ] Project status updates on dashboard/pipeline when proposal accepted

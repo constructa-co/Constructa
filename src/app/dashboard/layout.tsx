@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { ThemeProvider } from '@/lib/theme-context';
 import DashboardShell from '@/components/dashboard-shell';
+import { Toaster } from 'sonner';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const supabase = createClient();
@@ -21,6 +22,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <DashboardShell user={{ email: user.email }} projects={projects || []}>
                 {children}
             </DashboardShell>
+            <Toaster richColors position="bottom-right" />
         </ThemeProvider>
     );
 }

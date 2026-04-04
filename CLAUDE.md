@@ -578,22 +578,49 @@ tables via service role key — relatively quick to build, operationally essenti
 - [ ] Already functionally built — needs connecting to payment stages from Proposal
 - [ ] Programme → Billing milestone automation (phases → payment schedule)
 
-### Sprint 21 — Vision Takeoff Promotion
-- [ ] Wired into Brief tab as a primary workflow option (not hidden)
-- [ ] Demo on marketing site hero section
-- [ ] Library rate matching already built — just needs surfacing
+### Sprint 21 — Drawing Upload & AI Takeoff (full feature build)
+The Vision Takeoff feature exists but is buried and underdeveloped. This sprint makes it
+a first-class workflow entry point — the fastest way to go from a drawing to a priced estimate.
+
+**What already exists:** Upload floor plan → GPT-4o Vision extracts items + quantities →
+fuzzy-matches to 833-item cost library → "Add All to BoQ" button.
+
+**What needs building:**
+- [ ] Promote to Brief tab as primary option: "Got a drawing? Start here" hero card
+- [ ] Support multiple drawing types: floor plans, elevations, site plans, structural drawings
+- [ ] Annotation overlay: show extracted items highlighted on the drawing (visual confirmation)
+- [ ] Confidence scores: flag low-confidence extractions for manual review
+- [ ] Multi-page PDF drawings: process each page separately, merge results
+- [ ] Scale detection: if drawing has a scale bar, use it to improve quantity accuracy
+- [ ] Manual correction: edit quantities inline before adding to BoQ
+- [ ] "Drawing register": store uploaded drawings against the project for reference
+- [ ] Demo on marketing site hero (this is the headline feature that should lead all marketing)
+
+### Sprint 22 — Video Walkthrough AI
+Site video → AI extracts scope, quantities and condition notes. Solves the
+problem of contractors doing site surveys and having to manually note everything down.
+
+- [ ] Upload site walkthrough video (MP4, MOV) — up to 5 minutes
+- [ ] GPT-4o Vision processes video frames at intervals (1 frame/5s)
+- [ ] Extracts: rooms/areas identified, work required, approximate dimensions, condition notes
+- [ ] Generates: draft project scope from walkthrough ("Kitchen — strip out, new units, tiling...")
+- [ ] Maps extracted items to cost library for instant rough estimate
+- [ ] Produces: site survey report PDF (area by area, condition notes, suggested scope)
+- [ ] Connects to Brief: pre-fills scope text from the walkthrough analysis
+- [ ] Storage: video stored in Supabase storage, linked to project
+- [ ] Privacy: processing in-memory only, no video retained on OpenAI servers
 
 --- BATCH 1 COMPLETE — LAUNCH POINT ---
 
 ---
 
-## BATCH 2 — LIVE PROJECTS MODULE (Sprints 22–27)
+## BATCH 2 — LIVE PROJECTS MODULE (Sprints 23–28)
 > All currently showing "Coming Soon" in sidebar. Post-contract delivery phase.
 > This is the module that solves Dave's #1 pain point: not knowing if he's making money mid-job.
 > Sequencing note: Sprint 14 (P&L) lays the data foundations these sprints build on.
 > Target: release as a batch ~3 months after Batch 1 launch.
 
-### Sprint 22 — Live Projects: Overview
+### Sprint 23 — Live Projects: Overview
 The command centre for a project once it's on site. Replaces the "Coming Soon" placeholder.
 - [ ] Project health dashboard: budget RAG status, programme % complete, outstanding invoices
 - [ ] Key dates strip: start date, planned completion, weeks remaining, any EOT claimed
@@ -601,7 +628,7 @@ The command centre for a project once it's on site. Replaces the "Coming Soon" p
 - [ ] Links to all Live Projects sub-modules from one screen
 - [ ] Status banner: on programme / at risk / delayed (AI-suggested based on data)
 
-### Sprint 23 — Live Projects: Cost Tracking
+### Sprint 24 — Live Projects: Cost Tracking
 Connects to the estimate — tracks actual spend vs budget in real time.
 - [ ] Log actual costs against estimate trade sections (labour, plant, materials per section)
 - [ ] Budget vs actual bar chart per trade section
@@ -611,7 +638,7 @@ Connects to the estimate — tracks actual spend vs budget in real time.
 - [ ] Cost approval workflow: costs above a threshold require confirmation before logging
 - [ ] Links to billing module so invoiced amounts net off costs automatically
 
-### Sprint 24 — Live Projects: Billing & Valuations
+### Sprint 25 — Live Projects: Billing & Valuations
 Currently functionally built — needs polish, connection to proposal, and live data wiring.
 - [ ] Payment schedule pulled from Proposal (milestone or % stage payments)
 - [ ] Application for Payment form: cumulative valuation, retention calc, net amount due
@@ -620,7 +647,7 @@ Currently functionally built — needs polish, connection to proposal, and live 
 - [ ] Retention ledger: amount held, release dates (practical completion + defects)
 - [ ] PDF: formal Application for Payment document matching Constructa brand standard
 
-### Sprint 25 — Live Projects: Variations
+### Sprint 26 — Live Projects: Variations
 Currently functionally built — needs polish and proper workflow.
 - [ ] Raise variation: scope description, reason (client instruction / design change / unforeseen)
 - [ ] Pricing: pulls from cost library / rate buildups / manual entry
@@ -630,7 +657,7 @@ Currently functionally built — needs polish and proper workflow.
 - [ ] Incorporation into Final Account automatically
 - [ ] PDF: formal Variation Order document
 
-### Sprint 26 — Live Projects: Programme (Live Tracking)
+### Sprint 27 — Live Projects: Programme (Live Tracking)
 Separate from the pre-construction Programme tab — this tracks actual vs planned on site.
 - [ ] Planned vs actual Gantt: original programme bars vs actual progress bars
 - [ ] % complete per phase (contractor updates weekly)
@@ -639,7 +666,7 @@ Separate from the pre-construction Programme tab — this tracks actual vs plann
 - [ ] Early warning notices: flag delays before they become disputes
 - [ ] Programme narrative: AI-drafted weekly site update text based on % complete inputs
 
-### Sprint 27 — Live Projects: Communications
+### Sprint 28 — Live Projects: Communications
 Formal construction communication log — critical for dispute avoidance.
 - [ ] Site instruction log: numbered, dated, description, issued by
 - [ ] RFI (Request for Information) tracker: raised, responded, outstanding
@@ -650,12 +677,12 @@ Formal construction communication log — critical for dispute avoidance.
 
 --- BATCH 2 COMPLETE — LIVE PROJECTS RELEASE ---
 
-## BATCH 3 — CLOSED PROJECTS MODULE (Sprints 28–31)
+## BATCH 3 — CLOSED PROJECTS MODULE (Sprints 29–32)
 > All currently showing "Coming Soon" in sidebar.
 > The retrospective and handover phase — closes the loop financially and operationally.
 > Target: release ~6 months post-Batch 1.
 
-### Sprint 28 — Closed Projects: Final Accounts
+### Sprint 29 — Closed Projects: Final Accounts
 - [ ] Final Account summary: original contract sum + approved variations + agreed adjustments
 - [ ] Retention release tracker: half on PC, half on defects expiry — with dates
 - [ ] Final Account agreement status: draft → submitted → agreed → signed
@@ -663,7 +690,7 @@ Formal construction communication log — critical for dispute avoidance.
 - [ ] PDF: formal Final Account Statement document for client signature
 - [ ] Link back to billing: confirm all applications reconcile to Final Account total
 
-### Sprint 29 — Closed Projects: Handover Documents
+### Sprint 30 — Closed Projects: Handover Documents
 - [ ] Document pack builder: O&M manuals, warranties, test certificates, as-built drawings
 - [ ] Checklist: which documents are required vs received vs outstanding
 - [ ] Upload and tag documents to the handover pack
@@ -671,14 +698,14 @@ Formal construction communication log — critical for dispute avoidance.
 - [ ] Defects Liability Period tracker: start date, end date, items logged, items resolved
 - [ ] PDF: Handover Certificate with document list and DLP dates
 
-### Sprint 30 — Closed Projects: Archive
+### Sprint 31 — Closed Projects: Archive
 - [ ] Project archiving: move from active to closed with one action
 - [ ] Archived project search: find by client, project type, value, year, region
 - [ ] Key data preserved: final contract value, margin achieved, duration, client rating
 - [ ] Reuse: copy estimate from archived project as starting point for new similar project
 - [ ] "Similar projects" matching: when pricing a new job, surface archived projects of same type/value
 
-### Sprint 31 — Closed Projects: Lessons Learned
+### Sprint 32 — Closed Projects: Lessons Learned
 Turns project data into business intelligence — the flywheel that improves every future bid.
 - [ ] Structured retrospective: what went well, what didn't, what to do differently
 - [ ] AI analysis: compare estimated vs actual margin, programme vs actual duration, variation frequency

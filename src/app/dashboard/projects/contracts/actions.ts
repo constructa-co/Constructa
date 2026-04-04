@@ -200,11 +200,24 @@ export async function saveContractExclusionsAction(projectId: string, exclusions
     revalidatePath("/dashboard/projects/contracts");
 }
 
-export async function generateContractExclusionsAction(scope: string, projectType: string) {
-    return generateJSON<{ exclusions: string; clarifications: string }>(
-        `You are a UK construction contract expert. Based on this scope and project type, generate standard exclusions and clarifications.
+export async function generateContractExclusionsAction(
+    scope: string,
+    projectType: string,
+    contractFlags?: Array<{ clause: string; description: string; severity: string; recommendation: string }>
+) {
+    const flagsContext = contractFlags && contractFlags.length > 0
+        ? `\n\nContract Shield has identified these risks/obligations in the client contract:\n${
+            contractFlags
+                .filter(f => f.severity !== "low")
+                .map(f => `- ${f.clause}: ${f.description}. Recommendation: ${f.recommendation}`)
+                .join("\n")
+          }\nUse these to inform specific exclusions and clarifications that protect the contractor.`
+        : "";
 
-    Project type: ${projectType}. Scope: ${scope?.substring(0, 500) || "Not specified"}.
+    return generateJSON<{ exclusions: string; clarifications: string }>(
+        `You are a UK construction contract expert. Based on this scope, project type, and any contract risks identified, generate targeted exclusions and clarifications to protect the contractor.
+
+    Project type: ${projectType}. Scope: ${scope?.substring(0, 500) || "Not specified"}.${flagsContext}
 
     Return JSON: {
       "exclusions": "item1\nitem2\nitem3\nitem4\nitem5",
@@ -212,7 +225,8 @@ export async function generateContractExclusionsAction(scope: string, projectTyp
     }
 
     Common exclusions: surveys, asbestos, party wall awards, building control fees, council charges, architect fees, furniture/white goods.
-    Common clarifications: working hours, access assumptions, waste disposal included, customer obligations.`
+    Common clarifications: working hours, access assumptions, waste disposal included, customer obligations.
+    Where contract risks have been identified above, add specific exclusions/clarifications that address those risks.`
     );
 }
 

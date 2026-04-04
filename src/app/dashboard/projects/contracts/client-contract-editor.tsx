@@ -280,6 +280,26 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
         setAnalysing(false);
     };
 
+    // ── Import contract flags → Risk Register ────────────
+    const handleImportFlagsToRisks = () => {
+        const importable = contractFlags.filter((f: any) => !f.dismissed && (f.severity === "high" || f.severity === "medium"));
+        if (importable.length === 0) {
+            toast.info("No high or medium risk flags to import — run a contract review first.");
+            return;
+        }
+        const newRisks: RiskItem[] = importable.map((flag: any) => ({
+            id: crypto.randomUUID(),
+            type: "risk" as const,
+            description: `[Contract] ${flag.clause} — ${flag.description}`,
+            likelihood: flag.severity === "high" ? "high" : "medium",
+            impact: flag.severity === "high" ? "high" : "medium",
+            mitigation: flag.recommendation || "",
+        }));
+        setRiskRegister(prev => [...prev, ...newRisks]);
+        setActiveTab("risks");
+        toast.success(`${newRisks.length} contract risk${newRisks.length !== 1 ? "s" : ""} imported — review mitigations and save`);
+    };
+
     // ── Tab B handlers ───────────────────────────────────
     const addRiskItem = (type: "risk" | "opportunity") => {
         setRiskRegister(prev => [...prev, {
@@ -338,9 +358,12 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
     const handleGenerateExclusions = async () => {
         setGeneratingExcl(true);
         try {
+            // Pass active contract flags so AI can generate targeted exclusions
+            const activeFlagsForExcl = contractFlags.filter((f: any) => !f.dismissed);
             const result = await generateContractExclusionsAction(
                 project?.brief_scope || project?.scope_text || "",
-                project?.project_type || ""
+                project?.project_type || "",
+                activeFlagsForExcl.length > 0 ? activeFlagsForExcl : undefined
             );
             if (result.exclusions) setContractExclusions((prev: string) => prev ? prev + "\n" + result.exclusions : result.exclusions);
             if (result.clarifications) setContractClarifications((prev: string) => prev ? prev + "\n" + result.clarifications : result.clarifications);
@@ -561,9 +584,23 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                         {/* Flags display */}
                         {contractFlags.length > 0 && (
                             <div className="space-y-3 mt-4">
-                                <h4 className="text-sm font-bold text-slate-300">
-                                    Review Flags ({contractFlags.filter((f: any) => !f.dismissed).length} active, {contractFlags.filter((f: any) => f.dismissed).length} resolved)
-                                </h4>
+                                <div className="flex items-center justify-between flex-wrap gap-2">
+                                    <div>
+                                        <h4 className="text-sm font-bold text-slate-300">
+                                            Review Flags ({contractFlags.filter((f: any) => !f.dismissed).length} active, {contractFlags.filter((f: any) => f.dismissed).length} resolved)
+                                        </h4>
+                                        <p className="text-xs text-slate-500 mt-0.5">Results saved to this project — flags, risks and exclusions persist when you return.</p>
+                                    </div>
+                                    {contractFlags.filter((f: any) => !f.dismissed && (f.severity === "high" || f.severity === "medium")).length > 0 && (
+                                        <button
+                                            onClick={handleImportFlagsToRisks}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-purple-300 border border-purple-600/50 bg-purple-950/40 rounded-lg hover:bg-purple-900/40 transition-colors"
+                                        >
+                                            <Shield className="w-3.5 h-3.5" />
+                                            Import {contractFlags.filter((f: any) => !f.dismissed && (f.severity === "high" || f.severity === "medium")).length} risks → Risk Register
+                                        </button>
+                                    )}
+                                </div>
                                 {contractFlags.map((flag: any, i: number) => (
                                     <div key={i} className={`border rounded-lg p-4 ${flag.dismissed ? "opacity-40 bg-slate-900/40 border-slate-700" : severityColor(flag.severity)}`}>
                                         <div className="flex items-center gap-2 mb-1">
@@ -613,6 +650,23 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
             {/* ═══ TAB B: Risk & Opportunities ═══ */}
             {activeTab === "risks" && (
                 <div className="space-y-6">
+                    {/* Contract Shield import prompt */}
+                    {contractFlags.filter((f: any) => !f.dismissed && (f.severity === "high" || f.severity === "medium")).length > 0 && (
+                        <div className="flex items-center justify-between bg-purple-950/30 border border-purple-700/50 rounded-xl px-4 py-3">
+                            <div className="flex items-center gap-2">
+                                <ShieldCheck className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                                <p className="text-sm text-purple-300">
+                                    <span className="font-semibold">Contract Shield</span> found {contractFlags.filter((f: any) => !f.dismissed && (f.severity === "high" || f.severity === "medium")).length} high/medium risks — import them with mitigations pre-filled.
+                                </p>
+                            </div>
+                            <button
+                                onClick={handleImportFlagsToRisks}
+                                className="flex-shrink-0 ml-4 text-xs font-semibold text-purple-300 border border-purple-600/50 bg-purple-900/40 px-3 py-1.5 rounded-lg hover:bg-purple-800/40 transition-colors"
+                            >
+                                Import now
+                            </button>
+                        </div>
+                    )}
                     <div className="flex items-center justify-between">
                         <div>
                             <h3 className="text-lg font-bold text-slate-100">Risk & Opportunity Register</h3>
@@ -741,6 +795,14 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                     <div className="bg-blue-950/40 border border-blue-800/50 rounded-lg px-4 py-3 text-sm text-blue-300">
                         These will be included automatically in your Proposal PDF.
                     </div>
+                    {contractFlags.filter((f: any) => !f.dismissed).length > 0 && (
+                        <div className="flex items-center gap-2 bg-purple-950/30 border border-purple-700/50 rounded-xl px-4 py-3">
+                            <ShieldCheck className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                            <p className="text-sm text-purple-300">
+                                <span className="font-semibold">Contract Shield</span> review found {contractFlags.filter((f: any) => !f.dismissed).length} flags — click <span className="font-semibold">AI Suggest</span> and they will be used to generate targeted exclusions and clarifications.
+                            </p>
+                        </div>
+                    )}
 
                     <div className="flex items-center justify-between">
                         <div>

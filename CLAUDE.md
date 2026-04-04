@@ -542,6 +542,108 @@ to be able to adjust their programme interactively, not just via number inputs.
 - [ ] Demo on marketing site hero section
 - [ ] Library rate matching already built — just needs surfacing
 
+---
+
+## LIVE PROJECTS MODULE (Sprints 21–26)
+> All currently showing "Coming Soon" in sidebar. These are the post-contract delivery phase.
+> This is the module that solves Dave's #1 pain point: not knowing if he's making money mid-job.
+> Sequencing note: Sprint 14 (P&L) lays the data foundations these sprints build on.
+
+### Sprint 21 — Live Projects: Overview
+The command centre for a project once it's on site. Replaces the "Coming Soon" placeholder.
+- [ ] Project health dashboard: budget RAG status, programme % complete, outstanding invoices
+- [ ] Key dates strip: start date, planned completion, weeks remaining, any EOT claimed
+- [ ] Quick-action buttons: raise variation, submit application, log cost, update programme
+- [ ] Links to all Live Projects sub-modules from one screen
+- [ ] Status banner: on programme / at risk / delayed (AI-suggested based on data)
+
+### Sprint 22 — Live Projects: Cost Tracking
+Connects to the estimate — tracks actual spend vs budget in real time.
+- [ ] Log actual costs against estimate trade sections (labour, plant, materials per section)
+- [ ] Budget vs actual bar chart per trade section
+- [ ] Committed costs (orders placed, not yet invoiced)
+- [ ] Forecast final cost: actual + committed + estimated remaining
+- [ ] Over-budget alerts: flag sections >10% over estimate
+- [ ] Cost approval workflow: costs above a threshold require confirmation before logging
+- [ ] Links to billing module so invoiced amounts net off costs automatically
+
+### Sprint 23 — Live Projects: Billing & Valuations
+Currently functionally built — needs polish, connection to proposal, and live data wiring.
+- [ ] Payment schedule pulled from Proposal (milestone or % stage payments)
+- [ ] Application for Payment form: cumulative valuation, retention calc, net amount due
+- [ ] Payment certificate tracking: issue date, due date, final date for payment, Pay Less Notice window
+- [ ] Overdue payment alerts: flag when payment date passes without receipt
+- [ ] Retention ledger: amount held, release dates (practical completion + defects)
+- [ ] PDF: formal Application for Payment document matching Constructa brand standard
+
+### Sprint 24 — Live Projects: Variations
+Currently functionally built — needs polish and proper workflow.
+- [ ] Raise variation: scope description, reason (client instruction / design change / unforeseen)
+- [ ] Pricing: pulls from cost library / rate buildups / manual entry
+- [ ] Status workflow: Draft → Submitted → Approved → Rejected → Disputed
+- [ ] Client approval tracking: sent date, approved date, approved by
+- [ ] Variation log: running total of approved vs pending vs disputed variations
+- [ ] Incorporation into Final Account automatically
+- [ ] PDF: formal Variation Order document
+
+### Sprint 25 — Live Projects: Programme (Live Tracking)
+Separate from the pre-construction Programme tab — this tracks actual vs planned on site.
+- [ ] Planned vs actual Gantt: original programme bars vs actual progress bars
+- [ ] % complete per phase (contractor updates weekly)
+- [ ] Delay recording: cause, days lost, responsible party (client/contractor/neutral)
+- [ ] Extension of Time log: claimed, agreed, outstanding
+- [ ] Early warning notices: flag delays before they become disputes
+- [ ] Programme narrative: AI-drafted weekly site update text based on % complete inputs
+
+### Sprint 26 — Live Projects: Communications
+Formal construction communication log — critical for dispute avoidance.
+- [ ] Site instruction log: numbered, dated, description, issued by
+- [ ] RFI (Request for Information) tracker: raised, responded, outstanding
+- [ ] Early Warning Notices: log + PDF generation
+- [ ] Letters/formal notices: templates for Pay Less Notice response, termination, extension claims
+- [ ] Document register: upload and tag site photos, drawings, reports to the project
+- [ ] All communications timestamped and non-editable once issued (audit trail)
+
+---
+
+## CLOSED PROJECTS MODULE (Sprints 27–30)
+> All currently showing "Coming Soon" in sidebar.
+> This is the retrospective and handover phase — closes the loop on a project financially and operationally.
+
+### Sprint 27 — Closed Projects: Final Accounts
+- [ ] Final Account summary: original contract sum + approved variations + agreed adjustments
+- [ ] Retention release tracker: half on PC, half on defects expiry — with dates
+- [ ] Final Account agreement status: draft → submitted → agreed → signed
+- [ ] Any disputed amounts: log and status
+- [ ] PDF: formal Final Account Statement document for client signature
+- [ ] Link back to billing: confirm all applications reconcile to Final Account total
+
+### Sprint 28 — Closed Projects: Handover Documents
+- [ ] Document pack builder: O&M manuals, warranties, test certificates, as-built drawings
+- [ ] Checklist: which documents are required vs received vs outstanding
+- [ ] Upload and tag documents to the handover pack
+- [ ] Client-facing handover portal: share link so client can access their documents (no auth required)
+- [ ] Defects Liability Period tracker: start date, end date, items logged, items resolved
+- [ ] PDF: Handover Certificate with document list and DLP dates
+
+### Sprint 29 — Closed Projects: Archive
+- [ ] Project archiving: move from active to closed with one action
+- [ ] Archived project search: find by client, project type, value, year, region
+- [ ] Key data preserved: final contract value, margin achieved, duration, client rating
+- [ ] Reuse: copy estimate from archived project as starting point for new similar project
+- [ ] "Similar projects" matching: when pricing a new job, surface archived projects of same type/value
+
+### Sprint 30 — Closed Projects: Lessons Learned
+Turns project data into business intelligence — the flywheel that improves every future bid.
+- [ ] Structured retrospective: what went well, what didn't, what to do differently
+- [ ] AI analysis: compare estimated vs actual margin, programme vs actual duration, variation frequency
+- [ ] Insight cards: "Your groundworks sections run 15% over estimate on average"
+- [ ] Win/loss analysis: compare won vs lost proposals — price point, project type, client type
+- [ ] Contractor performance data over time: margin trend, on-time delivery %, repeat client rate
+- [ ] Feeds back to cost library: suggest rate adjustments where actuals consistently differ from estimates
+
+---
+
 ### DEPRIORITISED (post-launch with real user data)
 - Mobile responsive full pass (Sprint 15 prevents breakage; full pass later)
 - Regional pricing intelligence (needs real transaction data first)

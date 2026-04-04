@@ -653,24 +653,72 @@ Turns project data into business intelligence — the flywheel that improves eve
 
 ## CONSTRUCTA DATA INTELLIGENCE ARCHITECTURE
 
-### Current State — Honest Assessment
-All contractor data is stored correctly but entirely siloed per-contractor via Supabase RLS (Row Level Security). Every table has `user_id` scoping — the owner cannot cross-query contractors using the normal client key. The geographic fields already exist on projects (`lat`, `lng`, `postcode`, `region`) but no cross-contractor aggregation exists yet.
+### No Major Rewrite Required — Architecture Confirms This
 
-**What is captured per-contractor today:**
-- Project location: `postcode`, `lat`, `lng`, `region` ✓
-- Project type, value, client type ✓
-- Estimate rates: labour (day_rate), materials (unit_rate), trade sections ✓
-- Manhours per task ✓
-- Proposal win/loss outcome (`proposal_status`) ✓
-- Programme duration per phase ✓
-- Contract flags, T&C tier ✓
-- (Future) Actual costs, invoiced amounts, final margin
+The existing schema already captures data at the right granularity. The `estimate_line_components` table already breaks every cost into `labour | plant | material | consumable | temp_works | subcontract`. The `estimates` table already stores `overhead_pct`, `profit_pct`, `risk_pct`, `prelims_pct`. Geographic data (`lat`, `lng`, `postcode`, `region`) is already on every project.
+
+**What is needed is NOT a rewrite — it is an aggregation layer on top:**
+- A set of anonymised benchmark tables (no RLS, no PII, service-role only)
+- Supabase triggers that fire when key events happen (project closed, invoice paid, variation approved)
+- These triggers copy the relevant signal data into the benchmark tables — no user data, just numbers and categories
+- As contractors log actuals (Sprints 22–25), those actuals automatically feed the benchmarks
+
+This can be built entirely in Sprint 31 as a pure database migration — no changes to the contractor-facing app required.
+
+### Full Data Capture Scope — Everything That Must Be Recorded
+
+**Budget layer (already captured in estimate tables):**
+- Labour: trade, role, day rate, manhours, total — per line item ✓
+- Plant: item, day rate, duration, total — per line item ✓
+- Materials: item, unit, rate, quantity, total — per line item ✓
+- Subcontract: trade section, value — per line item ✓
+- Consumables: per line item ✓
+- Prelims: `prelims_pct` on estimate (default 10%) ✓
+- Overhead: `overhead_pct` on estimate (default 10%) ✓
+- Profit: `profit_pct` on estimate (default 15%) ✓
+- Risk allowance: `risk_pct` on estimate (default 5%) ✓
+- Sell rate vs cost rate: both captured at line level ✓
+- Trade section totals and project total ✓
+- Programme forecast: phase name, duration, start offset, manhours ✓
+
+**Actual layer (to be captured in Sprints 22–25 — cost tracking module):**
+- Actual labour costs logged: trade, role, days worked, rate, total
+- Actual plant costs: item, days, rate, total
+- Actual material costs: supplier, item, qty, cost
+- Actual subcontract costs: trade, agreed value, final account value
+- Actual programme: phase start/end dates, slippage in days, delay cause
+- Actual prelims spend (scaffolding, welfare, management time)
+
+**Commercial layer (Sprints 23–24):**
+- Applications for payment: gross valuation, deductions, retention, net claimed
+- Payment received: date received, days from due date (early/on time/late/disputed)
+- Retention held: amount, release date expected, release date actual
+- Variations: count, total value, % approved, % disputed, average time to agree
+- Final account: agreed value vs contract sum
+
+**Risk & Contract layer (already partially captured):**
+- Contract Shield flags: high/medium/low count per project ✓
+- T&C tier used ✓
+- Risk register items: likelihood, impact, mitigation recorded ✓
+- Risk realisation: did the risk materialise? (to be captured in Lessons Learned — Sprint 30)
+- Opportunity realisation: did the opportunity convert?
+
+**Outcome layer (at project close):**
+- Estimated margin % vs actual margin %
+- Programme slippage in weeks
+- Variation uplift as % of contract sum
+- Payment performance: average days late across all applications
+- Client rating (optional contractor input)
+- Win/loss on proposal (already captured via `proposal_status`) ✓
+
+### Current State — Honest Assessment
+All contractor data is stored correctly but siloed per-contractor via Supabase RLS (Row Level Security). The geographic fields already exist on projects (`lat`, `lng`, `postcode`, `region`) but no cross-contractor aggregation exists yet. No rewrite needed — just the aggregation layer.
 
 **What is NOT captured yet (needs building):**
-- No anonymised cross-contractor aggregate tables
-- No mechanism to write to a platform intelligence layer as contractors complete work
-- Labour rates are all tagged `region = 'national'` — no regional differentiation yet
-- No data consent/transparency notice to contractors (legally required before aggregating)
+- No anonymised cross-contractor aggregate tables (Sprint 31)
+- No actual cost logging yet (Sprint 22)
+- Labour rates tagged `region = 'national'` only — regional differentiation needed
+- No data consent/transparency clause in T&Cs (legally required before aggregating)
 
 ### Architecture Required — Platform Intelligence Layer
 
@@ -681,183 +729,424 @@ All contractor data is stored correctly but entirely siloed per-contractor via S
 **Tables to create (Sprint 31):**
 
 ```sql
--- Anonymised project benchmark — one row per completed/closed project
+-- ── 1. Project Outcome Benchmark ─────────────────────────────────────────────
+-- One row per closed project. Captures the full budget vs actual story.
+-- NO PII. NO user_id. Trigger fires on project_status → 'closed'.
 project_benchmarks (
-  id, created_at,
-  project_type TEXT,           -- 'residential_extension', 'loft_conversion', etc.
-  contract_value NUMERIC,      -- £ total
-  region TEXT,                 -- 'London', 'South East', 'North West', etc.
-  postcode_district TEXT,      -- First 3-4 chars only e.g. 'SW1', 'M14' (not full postcode)
-  tc_tier TEXT,                -- 'domestic'|'commercial'|'specialist'|'client'
-  duration_weeks INTEGER,      -- Actual programme weeks
-  estimated_duration_weeks INTEGER,
+  id UUID, created_at TIMESTAMPTZ,
+  -- Classification
+  project_type TEXT,              -- 'residential_extension', 'loft_conversion', 'commercial_fitout', etc.
+  contract_value_band TEXT,       -- '<25k'|'25-75k'|'75-200k'|'200-500k'|'>500k'
+  region TEXT,                    -- 'London'|'South East'|'South West'|'Midlands'|'North West', etc.
+  postcode_district TEXT,         -- First 3-4 chars only: 'SW1', 'M14', 'B1' (not full postcode)
+  tc_tier TEXT,                   -- 'domestic'|'commercial'|'specialist'|'client'
+  client_type TEXT,               -- 'residential'|'commercial'|'public sector'
+  -- Budget (from estimate at proposal stage)
+  budget_total NUMERIC,           -- Total contract value inc. VAT
+  budget_labour_pct NUMERIC,      -- Labour as % of direct cost
+  budget_plant_pct NUMERIC,
+  budget_materials_pct NUMERIC,
+  budget_subcontract_pct NUMERIC,
+  budget_prelims_pct NUMERIC,     -- Prelims allowance %
+  budget_overhead_pct NUMERIC,    -- OH allowance %
+  budget_risk_pct NUMERIC,        -- Risk allowance %
+  budget_profit_pct NUMERIC,      -- Profit margin %
+  budget_gross_margin_pct NUMERIC,-- Overall gross margin % at tender
+  -- Actuals (populated as cost tracking is logged; may be NULL on early capture)
+  actual_total NUMERIC,
+  actual_labour_pct NUMERIC,
+  actual_plant_pct NUMERIC,
+  actual_materials_pct NUMERIC,
+  actual_subcontract_pct NUMERIC,
+  actual_prelims_pct NUMERIC,
+  actual_gross_margin_pct NUMERIC,-- What was actually achieved
+  margin_variance_pct NUMERIC,    -- actual - budget margin (negative = cost overrun)
+  -- Programme
+  programme_estimated_weeks INTEGER,
+  programme_actual_weeks INTEGER,
+  programme_slippage_weeks INTEGER,-- actual - estimated (negative = early, positive = late)
+  -- Variations
   variation_count INTEGER,
-  variation_value NUMERIC,
-  estimated_margin_pct NUMERIC,
-  actual_margin_pct NUMERIC,   -- NULL until costs logged
-  proposal_win BOOLEAN,        -- TRUE if proposal_status = 'accepted'
-  high_risk_flags INTEGER,     -- Contract Shield high severity count
-  -- NO: user_id, client_name, contractor name, site address, project name
+  variation_approved_value NUMERIC,
+  variation_disputed_value NUMERIC,
+  variation_uplift_pct NUMERIC,   -- variations as % of original contract sum
+  -- Payments
+  payment_apps_count INTEGER,     -- number of applications submitted
+  payment_avg_days_late NUMERIC,  -- average days late across all payments (0 = on time)
+  payment_disputed_count INTEGER, -- number of disputed/Pay Less Notice applications
+  retention_held NUMERIC,         -- £ retention still held at practical completion
+  -- Contract & Risk
+  contract_shield_high_flags INTEGER,
+  contract_shield_medium_flags INTEGER,
+  risk_register_items INTEGER,
+  risks_materialised INTEGER,     -- how many risk register items actually occurred
+  opportunities_captured INTEGER, -- how many opportunity items were realised
+  -- Outcome
+  proposal_win BOOLEAN,
+  final_account_agreed BOOLEAN,
+  client_repeat BOOLEAN           -- did this client come back? (lag metric, populated later)
+  -- NEVER: user_id, project name, client name, site address, contractor name
 )
 
--- Rate benchmark — one row per estimate line item (anonymised)
+-- ── 2. Rate Benchmark ─────────────────────────────────────────────────────────
+-- One row per estimate line item at project close. The market rate dataset.
 rate_benchmarks (
-  id, created_at,
-  trade_section TEXT,          -- e.g. 'Groundworks', 'Carpentry'
-  description TEXT,            -- line item description
-  unit TEXT,
-  sell_rate NUMERIC,           -- what contractor charged per unit
-  cost_rate NUMERIC,           -- actual cost per unit (from cost tracking, if available)
+  id UUID, created_at TIMESTAMPTZ,
+  trade_section TEXT,             -- 'Groundworks', 'Carpentry', 'M&E', etc.
+  work_category TEXT,             -- normalised work type within trade
+  unit TEXT,                      -- m², nr, m, sum, etc.
+  sell_rate NUMERIC,              -- rate charged to client (ex VAT)
+  net_cost_rate NUMERIC,          -- actual cost rate (if cost tracking available)
+  gross_margin_pct NUMERIC,       -- (sell - cost) / sell
   region TEXT,
   postcode_district TEXT,
   project_type TEXT,
-  -- NO: user_id, project_id, client details
+  contract_value_band TEXT,
+  quarter TEXT                    -- 'Q1-2026', 'Q2-2026' — for time-series trending
+  -- NEVER: user_id, project_id
 )
 
--- Labour rate benchmark — what contractors actually pay vs cost library
+-- ── 3. Labour Rate Benchmark ──────────────────────────────────────────────────
+-- What contractors actually pay for labour by trade, role, region.
 labour_benchmarks (
-  id, created_at,
+  id UUID, created_at TIMESTAMPTZ,
   trade TEXT,
   role TEXT,
-  day_rate NUMERIC,            -- actual rate used on a project
+  day_rate NUMERIC,               -- actual day rate paid
   region TEXT,
   postcode_district TEXT,
-  -- NO: user_id
+  engagement_type TEXT,           -- 'direct'|'subcontract'|'agency'
+  quarter TEXT
+  -- NEVER: user_id
 )
 
--- Programme benchmark — actual vs estimated per phase type
+-- ── 4. Plant & Material Benchmarks ───────────────────────────────────────────
+-- Actual plant hire rates and material costs vs cost library rates.
+plant_benchmarks (
+  id UUID, created_at TIMESTAMPTZ,
+  item_description TEXT,
+  unit TEXT,
+  actual_rate NUMERIC,
+  library_rate NUMERIC,           -- what the cost library suggested
+  variance_pct NUMERIC,
+  region TEXT,
+  quarter TEXT
+)
+
+material_benchmarks (
+  id UUID, created_at TIMESTAMPTZ,
+  item_description TEXT,
+  category TEXT,                  -- 'Roofing'|'Groundworks'|'Insulation', etc.
+  unit TEXT,
+  actual_rate NUMERIC,
+  library_rate NUMERIC,
+  variance_pct NUMERIC,
+  region TEXT,
+  supplier_type TEXT,             -- 'merchant'|'direct'|'specialist' (NOT supplier name)
+  quarter TEXT
+)
+
+-- ── 5. Programme Benchmark ────────────────────────────────────────────────────
+-- Estimated vs actual duration per phase type. Powers programme accuracy insights.
 programme_benchmarks (
-  id, created_at,
-  phase_name TEXT,             -- normalised: 'Groundworks', 'Steelwork', etc.
-  estimated_duration_weeks NUMERIC,
-  actual_duration_weeks NUMERIC,
+  id UUID, created_at TIMESTAMPTZ,
+  phase_name_normalised TEXT,     -- 'Groundworks'|'Steelwork'|'Roofing'|'First Fix', etc.
+  estimated_weeks NUMERIC,
+  actual_weeks NUMERIC,
+  slippage_weeks NUMERIC,
+  delay_cause TEXT,               -- 'client'|'contractor'|'weather'|'supply_chain'|'design'
   project_type TEXT,
   region TEXT,
-  contract_value_band TEXT,    -- '<50k', '50-150k', '150-500k', '>500k'
-  -- NO: user_id, project_id
+  contract_value_band TEXT,
+  quarter TEXT
+)
+
+-- ── 6. Payment Performance Benchmark ─────────────────────────────────────────
+-- How quickly clients pay, by sector. The payment culture dataset.
+payment_benchmarks (
+  id UUID, created_at TIMESTAMPTZ,
+  client_type TEXT,               -- 'residential'|'commercial'|'developer'|'public'
+  tc_tier TEXT,
+  days_to_payment INTEGER,        -- actual days from due date to receipt
+  payment_status TEXT,            -- 'on_time'|'late'|'disputed'|'part_paid'
+  retention_released BOOLEAN,     -- was retention released on time?
+  region TEXT,
+  contract_value_band TEXT,
+  quarter TEXT
+)
+
+-- ── 7. Variation Benchmark ────────────────────────────────────────────────────
+-- Variation frequency, value, and resolution time by project type.
+variation_benchmarks (
+  id UUID, created_at TIMESTAMPTZ,
+  cause TEXT,                     -- 'client_instruction'|'design_change'|'unforeseen'|'provisional_sum'
+  value_band TEXT,                -- '<1k'|'1-5k'|'5-25k'|'>25k'
+  days_to_agree INTEGER,          -- how long from raised to approved
+  outcome TEXT,                   -- 'approved'|'disputed'|'withdrawn'
+  project_type TEXT,
+  client_type TEXT,
+  region TEXT,
+  quarter TEXT
+)
+
+-- ── 8. Contract Risk Benchmark ────────────────────────────────────────────────
+-- Which contract clauses are most commonly flagged by Contract Shield.
+contract_benchmarks (
+  id UUID, created_at TIMESTAMPTZ,
+  tc_tier TEXT,
+  clause_type TEXT,               -- 'payment'|'liability'|'LADs'|'retention'|'design', etc.
+  severity TEXT,                  -- 'high'|'medium'|'low'
+  flag_type TEXT,                 -- 'risk'|'obligation'|'unusual'
+  client_type TEXT,
+  region TEXT,
+  quarter TEXT
 )
 ```
 
-**Trigger pattern (fires on project status → 'closed'):**
-```sql
-CREATE OR REPLACE FUNCTION capture_project_benchmark()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.proposal_status = 'accepted' AND OLD.proposal_status != 'accepted' THEN
-    INSERT INTO project_benchmarks (...) VALUES (...);
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
+**Trigger events (when each benchmark fires):**
+- Project closed / Final Account agreed → `project_benchmarks` + `programme_benchmarks`
+- Each estimate line at project close → `rate_benchmarks` + `labour_benchmarks` + `plant_benchmarks` + `material_benchmarks`
+- Each payment received → `payment_benchmarks`
+- Each variation agreed/closed → `variation_benchmarks`
+- Each Contract Shield analysis → `contract_benchmarks` (fires immediately, not at close)
 
-**Regional intelligence:** As volume grows, rate benchmarks filtered by `region` + `postcode_district` give a genuinely accurate local market rate. London SE1 rates will differ from Manchester M1 rates. This is the data moat — no competitor has real transaction data at this granularity.
+**Regional intelligence:** At 1,000 contractors across the UK, `rate_benchmarks` filtered by `region + trade_section + quarter` gives a real market rate index. At 5,000 it's a publishable dataset. At 10,000 it's infrastructure-grade data that banks, insurers, and developers will pay for.
 
-**Legal note:** Before launching data aggregation, add a consent clause to the Terms of Service: "By using Constructa, you agree that anonymised, non-identifiable project data may be used to improve platform benchmarks and market intelligence." Standard SaaS practice, but must be explicit.
+**Legal note:** Before launching aggregation, add to Terms of Service: "By using Constructa, you agree that anonymised, non-identifiable project and cost data may be used to improve platform benchmarks and market intelligence." Standard SaaS practice — must be explicit and visible at signup.
 
 ---
 
 ## CONSTRUCTA OWNER DASHBOARD (Admin Backend)
 
 ### Overview
-A completely separate section of the app — `/admin/*` — locked to a specific admin email address or role. Uses the Supabase **service role key** (bypasses RLS) so it can query across all contractors. Never exposed to contractor-facing routes.
+A completely separate section of the app — `/admin/*` — locked to a specific admin email.
+Uses the Supabase **service role key** (bypasses RLS) to query across all contractors.
+Never shared with contractor-facing routes. This IS the Constructa management accounts.
 
-**Auth pattern:** Admin check on every admin route:
+**Auth pattern:**
 ```typescript
-// In admin layout.tsx
-const ADMIN_EMAILS = ['robert@constructa.co']; // locked list, not a DB role
+// src/app/admin/layout.tsx
+const ADMIN_EMAILS = ['robert@constructa.co'];
 const user = await supabase.auth.getUser();
 if (!ADMIN_EMAILS.includes(user.data.user?.email || '')) redirect('/dashboard');
+// Use service role client (SUPABASE_SERVICE_ROLE_KEY) for all admin queries
 ```
-
-### Admin Module 1 — Platform Analytics
-Real-time view of the SaaS business metrics.
-- [ ] MRR (Monthly Recurring Revenue): subscribers × plan rate
-- [ ] Subscriber count: total, by plan (Free/Pro/Business), growth trend
-- [ ] Churn: cancellations this month, churn rate %, at-risk accounts (inactive >30 days)
-- [ ] New signups: daily/weekly/monthly trend chart
-- [ ] DAU/MAU: daily and monthly active users (users who took an action)
-- [ ] Feature usage: which modules are being used most (proposals, estimates, Contract Shield, etc.)
-- [ ] Conversion: Free → Pro rate, trial-to-paid rate
-- [ ] Geographic spread: where are contractors? (map by postcode district)
-
-### Admin Module 2 — User Management
-- [ ] All contractors list: email, plan, joined date, last active, project count, proposal count
-- [ ] Search/filter by plan, region, trade type, activity
-- [ ] Individual contractor view: their usage summary (no access to their actual project data)
-- [ ] Manual plan override (for trials, support, partnerships)
-- [ ] Account suspension/deletion controls
-- [ ] Support notes: log contact history per contractor
-
-### Admin Module 3 — Data Intelligence Dashboard
-The platform intelligence layer — reads from aggregate tables only.
-- [ ] Rate benchmark explorer: filter by trade, region, project type → see median/P25/P75 sell rates
-- [ ] Regional rate map: choropleth map of the UK, colour-coded by average sell rates per trade
-- [ ] Win rate by price point: at what contract value do proposals get accepted? What's the sweet spot?
-- [ ] Programme accuracy: how reliable are estimated durations vs actuals? By project type?
-- [ ] Variation frequency: which project types generate the most variations? What causes them?
-- [ ] Margin distribution: what margins are contractors achieving? Where do they lose money?
-- [ ] Contract risk: which contract types generate the most high-severity flags?
-- [ ] Data volume tracking: how many benchmarks collected, by region, growth rate
-
-### Admin Module 4 — Content Management
-- [ ] System cost library editor: update/add/remove items in `cost_library_items` (is_system_default = true)
-- [ ] System labour rates editor: update rates in `labour_rates` (is_system_default = true) — add regional variants
-- [ ] Bulk rate update: apply a % uplift to all rates in a region (e.g. London +15%)
-- [ ] AI prompt management: view/edit the prompts used in Contract Shield, Brief AI, etc.
-- [ ] Email template management: edit transactional email templates
-
-### Admin Module 5 — Market Intelligence (the data product)
-The eventual sellable data layer. Reads from aggregate benchmark tables.
-- [ ] Benchmark reports by region: "South East Residential — Q1 2026 Rate Index"
-- [ ] Trade-specific rate cards: what's the market rate for groundworks in Manchester?
-- [ ] Seasonal trends: do rates spike in spring/summer?
-- [ ] Project type benchmarks: average cost/m² by project type and region
-- [ ] Export: CSV / PDF benchmark reports (for sale to developers, QSs, mortgage lenders)
-- [ ] API access tier: paid API for third parties to query benchmark data programmatically
-
-### Admin Module 6 — Platform Health & Monitoring
-- [ ] Vercel function error rate: flag if AI calls are failing
-- [ ] AI spend tracker: OpenAI API costs by day/month, cost per active user
-- [ ] Supabase usage: DB size, storage, bandwidth vs plan limits
-- [ ] Failed jobs: any background tasks or email sends that errored
-- [ ] Slow queries: flag DB queries taking >500ms
 
 ---
 
-## Sprint 31 — Data Intelligence Foundation (BUILD BEFORE ADMIN DASHBOARD)
-Must be built before admin analytics are meaningful. No UI — pure backend.
-- [ ] Create `project_benchmarks`, `rate_benchmarks`, `labour_benchmarks`, `programme_benchmarks` tables
-- [ ] No RLS on these tables (service role access only)
-- [ ] Database trigger: fire on project status change → 'closed' → write anonymised snapshot
-- [ ] Server action: manually trigger benchmark capture when contractor runs Final Accounts
-- [ ] Add `postcode_district` extraction function (first 3-4 chars of postcode)
-- [ ] Regional tags: ensure every project gets a clean `region` value (South East, London, etc.)
-- [ ] Update Terms of Service with data aggregation consent clause
-- [ ] Validate: no PII in aggregate tables (test with sample data)
+### Admin Module 1 — Constructa P&L / Management Accounts
+**This is your management accounts for the Constructa business itself.**
+Not contractor data — the health of the SaaS business as a company.
 
-## Sprint 32 — Constructa Admin Dashboard (Phase 1)
-- [ ] `/admin` route with email-based auth guard
-- [ ] Admin layout: separate sidebar from contractor dashboard
-- [ ] Module 1: Platform Analytics (MRR, subscribers, churn, MAU, feature usage)
-- [ ] Module 2: User Management (contractor list, search, plan management)
-- [ ] Module 6: Platform Health (AI costs, error rates, Supabase usage)
+**Revenue:**
+- [ ] MRR (Monthly Recurring Revenue): live, by plan tier (Free/Pro/Business)
+- [ ] ARR (Annual Run Rate): MRR × 12
+- [ ] Revenue trend: month-by-month bar chart, growth rate %
+- [ ] Revenue by plan: % split Free vs Pro vs Business — shows where revenue concentrates
+- [ ] New MRR: revenue from new subscribers this month
+- [ ] Expansion MRR: revenue from upgrades (Free→Pro, Pro→Business)
+- [ ] Churned MRR: revenue lost from cancellations
 
-## Sprint 33 — Constructa Admin Dashboard (Phase 2 — Data Intelligence)
-- [ ] Module 3: Data Intelligence Dashboard (reads from benchmark tables)
-- [ ] Regional rate map (choropleth — use a mapping library like react-simple-maps)
-- [ ] Module 4: Content Management (cost library editor, labour rate editor)
-- [ ] Module 5: Market Intelligence reports (first sellable data output)
+**Costs (Constructa operating costs):**
+- [ ] Vercel hosting: log monthly invoice cost
+- [ ] Supabase: log monthly invoice cost (scales with DB size + bandwidth)
+- [ ] OpenAI API: track spend via OpenAI usage API (cost per month, per active user)
+- [ ] Resend email: log monthly cost
+- [ ] Total platform cost per month
+- [ ] Cost per active user (total monthly costs ÷ MAU)
+- [ ] AI cost as % of revenue — the key efficiency metric as AI usage grows
+
+**Gross Margin:**
+- [ ] Revenue − platform costs = gross margin £ and %
+- [ ] Monthly gross margin trend
+- [ ] Target: platform costs should be <15% of revenue at scale
+
+**Customer Metrics:**
+- [ ] Total subscribers: Free, Pro, Business count + trend
+- [ ] Net new subscribers: gained − lost this month
+- [ ] Churn rate: % of paying subscribers who cancelled
+- [ ] LTV (Lifetime Value): average revenue per paying subscriber × avg subscription length
+- [ ] CAC (Customer Acquisition Cost): if/when paid marketing runs
+- [ ] LTV:CAC ratio — the fundamental SaaS health metric
+- [ ] At-risk accounts: paying subscribers inactive >21 days (churn predictor)
+
+**Cash:**
+- [ ] Cash collected this month (Stripe payments received)
+- [ ] Outstanding (subscribers in arrears)
+- [ ] Next 90 days projected revenue (current MRR × 3, adjusted for known churn)
+
+---
+
+### Admin Module 2 — Platform Analytics
+Usage and engagement across the contractor base.
+- [ ] DAU/MAU: daily and monthly active users
+- [ ] Feature usage heatmap: which modules used most — proposals, estimates, Contract Shield, billing
+- [ ] Session depth: how far through the workflow do contractors get? (Brief→Estimate→Programme→Contracts→Proposal)
+- [ ] AI usage: calls per day, tokens per call, which features drive most AI usage
+- [ ] New signup trend: daily/weekly chart
+- [ ] Conversion funnel: signed up → created project → sent proposal → won project
+- [ ] Geographic spread: where are contractors? UK map by postcode district
+- [ ] Trade mix: what trades are using Constructa? (from profiles.preferred_trades)
+- [ ] Time-to-first-proposal: how long from signup to first proposal sent? (target <10 min)
+
+---
+
+### Admin Module 3 — User Management
+- [ ] All contractors: email, plan, joined, last active, project count, proposals sent, proposals won
+- [ ] Search/filter by plan, region, trade, activity level, join date
+- [ ] Individual contractor summary: usage metrics only — no access to their actual project content
+- [ ] Manual plan override (for trials, support arrangements, partnerships)
+- [ ] Subscription management: cancel, upgrade, downgrade, extend trial
+- [ ] Account notes: log support interactions, sales conversations
+- [ ] Churned users: who cancelled, when, how long they were active — spot patterns
+
+---
+
+### Admin Module 4 — Data Intelligence
+Reads from anonymised benchmark tables (Sprint 31). The growing data asset.
+- [ ] Rate benchmark explorer: trade × region × project type → P25/median/P75 sell rates over time
+- [ ] Labour rate map: what are contractors paying labour by region and role?
+- [ ] Material cost tracker: how do actual costs compare to library rates? Where is the library wrong?
+- [ ] Margin distribution: histogram of gross margins achieved across the platform — by project type
+- [ ] Programme accuracy: estimated vs actual weeks by phase — where do contractors consistently underestimate?
+- [ ] Variation analysis: frequency, value, cause, time to agree — by project type and region
+- [ ] Payment performance: average days late by client type — the industry payment culture dataset
+- [ ] Risk realisation: which risk register items actually materialised?
+- [ ] Contract risk heatmap: which clauses get flagged most by Contract Shield?
+- [ ] Data volume: records collected per benchmark table, by region, growth rate — the moat tracker
+
+---
+
+### Admin Module 5 — Content Management
+- [ ] System cost library editor: add/edit/remove `cost_library_items` (is_system_default = true)
+- [ ] System labour rates: add/edit by trade, role, region — bulk regional uplift (e.g. London +15%)
+- [ ] AI prompt management: view and edit Contract Shield, Brief AI, Risk Register prompts in-app
+- [ ] Email template management: edit transactional email copy
+- [ ] Platform announcements: push a banner message to all contractor dashboards
+
+---
+
+### Admin Module 6 — Market Intelligence (The Data Product)
+The monetisable output of the benchmark data. Requires Sprint 31 data to be meaningful.
+- [ ] Rate Index reports: "South East Residential Construction — Q2 2026"
+- [ ] Regional rate cards: what's the market sell rate for key work categories by region?
+- [ ] Seasonal trends: do rates and margins shift by quarter?
+- [ ] Project type benchmarks: cost/m² ranges, typical margins, typical programme by project type
+- [ ] Payment culture index: average days to payment by client sector and region
+- [ ] Export: downloadable CSV and PDF reports
+- [ ] API access: paid endpoint for developers, QS firms, mortgage lenders, insurers to query benchmark data
+
+---
+
+### Admin Module 7 — Platform Health
+- [ ] Vercel function error rate: flag if AI calls are failing above a threshold
+- [ ] OpenAI spend tracker: daily/monthly cost, cost per AI call, per active user — alert if spike
+- [ ] Supabase: DB size, row counts, storage, bandwidth vs plan limits
+- [ ] Email delivery: Resend send rate, bounce rate, open rate
+- [ ] Failed background jobs / errored server actions
+- [ ] Response times: flag any Vercel functions taking >3s consistently
+
+---
+
+## CONTRACTOR MANAGEMENT ACCOUNTS & ACCOUNTING INTEGRATION
+
+### Vision
+The cost data contractors log through Constructa (estimates, actual costs, invoices, variations)
+IS their accounting source of truth. The goal is to make Constructa the base layer for their
+management accounts — removing the need to re-enter data into a separate accounting package.
+
+### Contractor Management Accounts (Sprint 34)
+A per-contractor P&L and cash flow dashboard — their business in numbers.
+- [ ] **Project P&L:** For each project: contract value, costs logged, gross margin £ and %
+- [ ] **Consolidated P&L:** All active projects combined — total revenue, total cost, total margin
+- [ ] **Rolling 12-month P&L:** Month-by-month revenue and margin — is the business growing?
+- [ ] **Cash flow forecast:** Applications due, expected receipts, costs due to be paid — 13-week view
+- [ ] **Debtor ledger:** Who owes money, how much, how overdue — with chase prompts
+- [ ] **Retention tracker:** Total retention held across all projects, expected release dates
+- [ ] **Work in progress (WIP):** Value of work done but not yet invoiced
+- [ ] **Overhead recovery:** Are the overhead and profit margins actually being recovered?
+- [ ] **Tax estimate:** Simplified CIS deduction tracker, VAT on invoices raised
+
+### Accounting Integration — Xero (Sprint 35)
+Xero is the dominant accounting package for UK SME contractors.
+- [ ] **OAuth connection:** Contractor connects their Xero account from Constructa settings
+- [ ] **Invoice sync:** When an Application for Payment is raised in Constructa → create draft invoice in Xero
+- [ ] **Payment sync:** When payment is marked received in Constructa → reconcile in Xero
+- [ ] **Cost sync:** When actual costs are logged in Constructa → create bill/purchase in Xero
+- [ ] **Subcontractor payments:** CIS deduction calculations pushed to Xero
+- [ ] **Chart of accounts mapping:** Map Constructa trade sections to Xero nominal codes
+- [ ] **Bank feed reconciliation prompt:** Flag Xero transactions not yet matched to a Constructa project
+- [ ] Xero API: OAuth 2.0, `xero-node` SDK, webhook for payment received events
+
+### Accounting Integration — Sage (Sprint 36)
+Sage 50 and Sage Business Cloud are common in slightly larger UK contractors.
+- [ ] Same sync capability as Xero — invoices, payments, costs, CIS
+- [ ] Sage Business Cloud API (REST, OAuth)
+- [ ] Sage 50 — more complex, CSV import/export as fallback if API too restrictive
+
+### Accounting Integration — QuickBooks (Sprint 37)
+Growing presence in UK SME market.
+- [ ] Same sync capability
+- [ ] QuickBooks Online API (OAuth 2.0)
+
+### Data Ownership Principle
+The contractor owns their data. Constructa holds it as processor, not controller.
+- Export all data as CSV or JSON at any time (GDPR right to portability)
+- On account closure: 90-day data retention then deletion, or export first
+- Accounting integrations are always contractor-initiated and revocable
+- Constructa never reads from accounting packages — only writes to them
+
+---
+
+## Sprint 31 — Data Intelligence Foundation
+Pure backend — no UI. Must be built before admin analytics are meaningful.
+- [ ] Create all 8 benchmark tables (see schema above) — no RLS, service-role access only
+- [ ] Supabase triggers: fire on project close, payment received, variation closed, Contract Shield analysis
+- [ ] `postcode_district` extraction function (first 3-4 chars, handles both formats: 'SW1A' → 'SW1', 'M14 9WZ' → 'M14')
+- [ ] `region` standardisation: map any postcode to a clean region label (12 UK regions)
+- [ ] Contract Shield trigger: write to `contract_benchmarks` on every analysis (immediate, not at close)
+- [ ] Validate no PII: automated test that checks aggregate tables for email/name patterns
+- [ ] Update Terms of Service with data aggregation consent clause (legal requirement)
+- [ ] Backfill: run against existing closed/accepted projects to seed initial data
+
+## Sprint 32 — Constructa Admin Dashboard Phase 1
+- [ ] `/admin` route with email-guard layout (service role client only)
+- [ ] Admin sidebar: separate from contractor nav
+- [ ] Module 1: Constructa P&L / Management Accounts (revenue, costs, gross margin, customer metrics)
+- [ ] Module 2: Platform Analytics (DAU/MAU, feature usage, conversion funnel)
+- [ ] Module 7: Platform Health (AI spend, errors, Supabase usage)
+
+## Sprint 33 — Constructa Admin Dashboard Phase 2
+- [ ] Module 3: User Management (contractor list, plan management, churn analysis)
+- [ ] Module 4: Data Intelligence (benchmark explorer, rate map, margin distribution)
+- [ ] Module 5: Content Management (cost library editor, labour rates, AI prompts)
+- [ ] Module 6: Market Intelligence (first exportable benchmark reports)
+
+## Sprint 34 — Contractor Management Accounts
+- [ ] Per-project P&L dashboard
+- [ ] Consolidated P&L across all projects
+- [ ] Cash flow forecast (13-week)
+- [ ] Debtor ledger and retention tracker
+- [ ] WIP valuation
+
+## Sprint 35 — Xero Integration
+- [ ] OAuth connection flow
+- [ ] Invoice sync (Applications for Payment → Xero invoices)
+- [ ] Cost sync (logged actuals → Xero bills)
+- [ ] CIS deduction calculations
+
+## Sprint 36 — Sage Integration
+## Sprint 37 — QuickBooks Integration
 
 ### LONG-TERM VISION (V2+)
 - Native mobile app + site walkthrough voice wizard
 - Video walkthrough AI (GPT-4o Vision reads site video)
-- Merchant procurement layer (Travis Perkins partnership)
-- Financial infrastructure: escrow stage payments, contractor lending, client property finance
-- Accountancy integration
-- Staff financial products
-- **Data product:** Sell benchmark reports and API access to developers, QS firms, mortgage lenders, insurers
-- **Regional intelligence:** Real-time market rate feed — what's the going rate for a loft conversion in SE London this quarter?
+- Merchant procurement layer (Travis Perkins partnership) — the Stage 2 revenue stream
+- Financial infrastructure: escrow stage payments, contractor working capital lending, client property finance — Stage 3
+- Staff financial products (contractor workforce payroll, pension, insurance)
+- **Data product:** Sell benchmark API and reports to QS firms, developers, mortgage lenders, insurers, RICS
+- **Regional intelligence:** Real-time construction cost index by trade and region — publishable quarterly
+- **Regulatory:** If holding client funds (escrow) → FCA authorisation required. Plan for this early.
 
 ---
 

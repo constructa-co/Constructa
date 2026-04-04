@@ -371,7 +371,10 @@ Chrome popup blocker intercepts the new tab, so PDFs download silently rather th
 - [x] Full server-side email send via Resend — `src/lib/email.ts`, RESEND_API_KEY in Vercel env (commit d9e80a7)
 - [x] Client confirmation email on acceptance — fires in acceptProposalAction
 - [x] Contractor notification email on acceptance — fires alongside client email
-- NOTE: Emails currently send from `onboarding@resend.dev` — to use `noreply@constructa.co`, verify constructa.co domain in Resend dashboard → Domains
+- Emails send from `proposals@mail.constructa.co` (verified ✓ April 4)
+- Resend domain: `mail.constructa.co`, region: eu-west-1 (Ireland)
+- RESEND_FROM_EMAIL=proposals@mail.constructa.co in Vercel env
+- RESEND_API_KEY set in Vercel env
 
 ### Sidebar updated (commit ff785dd)
 - Overview moved above Company Profile — primary landing, no section label

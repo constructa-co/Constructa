@@ -56,43 +56,30 @@ export async function analyseContractAction(projectId: string, contractText: str
     // Save the raw uploaded text
     await supabase.from("projects").update({ uploaded_contract_text: contractText }).eq("id", projectId);
 
+    // gpt-4o-mini has a 128k context window — send up to 14,000 chars to cover full contracts
+    const contractExcerpt = contractText.length > 14000
+        ? contractText.substring(0, 7000) + "\n\n[...middle section omitted for brevity...]\n\n" + contractText.substring(contractText.length - 7000)
+        : contractText;
+
     const flags = await generateJSON<{ flags: Array<{ type: string; clause: string; description: string; severity: string; recommendation: string }> }>(
-        `You are an expert UK construction contract reviewer, specialising in JCT, NEC, and bespoke SME contractor agreements.
+        `You are an expert UK construction contract reviewer, specialising in JCT, NEC, and bespoke SME contractor agreements. You are reviewing on behalf of the CONTRACTOR (not the client/employer).
 
-IMPORTANT CONTEXT — These clauses are STANDARD and should NOT be flagged as risks:
-- Standard JCT defects liability periods (6-12 months)
-- Standard RICS adjudication clauses
-- 30-day payment terms (standard under the Construction Act 1996)
-- Standard CDM 2015 principal contractor obligations
-- Standard practical completion definitions
-- Reasonable skill and care workmanship standard
-- Standard retention clauses (3-5%)
-- Standard public liability insurance requirements (£2m-£10m)
-- Standard materials and workmanship warranties
+Your job is to protect the contractor by identifying risks, onerous obligations, and unusual terms. You MUST find something to report — even a clean contract will have obligations the contractor should be aware of.
 
-ONLY flag as Red (high severity) if you see:
-- Payment terms longer than 45 days (violates Construction Act)
-- Fitness for purpose obligations (not just reasonable skill and care)
-- Unlimited liability clauses
-- Pay-when-paid clauses (illegal in UK construction)
-- Liquidated damages above 0.5% per week of contract value
-- Contractor takes on design liability without design fees
-- Set-off rights without formal Pay Less Notice requirement
+SEVERITY GUIDE:
+- High (Red): Clauses that could seriously harm the contractor financially or legally
+  Examples: payment terms beyond 45 days, fitness-for-purpose obligations, unlimited liability, pay-when-paid, LADs above 0.5%/week, contractor takes design liability without design fees, set-off without Pay Less Notice
+- Medium (Amber): Clauses that are above standard or require attention
+  Examples: retention above 5%, defects liability beyond 24 months, insurance above £10m, unusual termination rights, onerous warranties, tight notice periods
+- Low (Green): Standard clauses that are fine but worth being aware of
+  Examples: standard 30-day payment terms, standard CDM obligations, standard 12-month defects period, standard adjudication rights, reasonable skill and care standard
 
-Flag as Amber (medium) for:
-- Retention above 5%
-- Defects liability longer than 24 months
-- Unusual insurance requirements (above £10m)
-- Non-standard termination clauses
-- Unusual exclusions of contractor's standard protections
+ALWAYS return at least 4-6 flags. Even a well-drafted contract has obligations and standard clauses the contractor should note. Include Green/low severity flags for standard clauses so the contractor has a complete picture.
 
-Flag as Green (acceptable) for standard JCT/NEC language.
+Contract text to review:
+${contractExcerpt}
 
-Contract text: ${contractText.substring(0, 4000)}
-
-Return JSON: { "flags": [{ "type": "risk"|"obligation"|"unusual", "clause": "clause ref or short quote", "description": "plain English explanation for a non-lawyer contractor", "severity": "low"|"medium"|"high", "recommendation": "what to do about this" }] }
-
-Important: do not over-flag. A standard domestic building contract should have 0-2 Red flags, 2-4 Amber, and several Green.`
+Return JSON: { "flags": [{ "type": "risk"|"obligation"|"unusual", "clause": "clause ref or short quote (max 20 words)", "description": "plain English explanation for a non-lawyer SME contractor — what this means practically", "severity": "low"|"medium"|"high", "recommendation": "specific action the contractor should take" }] }`
     );
 
     await supabase.from("projects").update({ contract_review_flags: flags.flags || [] }).eq("id", projectId);

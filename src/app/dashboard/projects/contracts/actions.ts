@@ -18,13 +18,13 @@ export async function extractContractTextAction(storagePath: string): Promise<{ 
         const buffer = Buffer.from(arrayBuffer);
 
         if (ext === "pdf") {
-            // pdf-parse is listed in serverExternalPackages so webpack won't bundle it.
-            // The module's CJS default is the callable function itself.
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            const pdfParse = require("pdf-parse") as (buf: Buffer) => Promise<{ text: string }>;
-            const parsed = await pdfParse(buffer);
-            if (!parsed.text?.trim()) return { text: "", error: "No readable text found in PDF — try a text-based PDF rather than a scanned image." };
-            return { text: parsed.text.trim() };
+            // unpdf is purpose-built for server-side PDF extraction —
+            // no DOMMatrix / canvas browser API dependencies.
+            const { getDocumentProxy, extractText } = await import("unpdf");
+            const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer));
+            const { text } = await extractText(pdf, { mergePages: true });
+            if (!text?.trim()) return { text: "", error: "No readable text found in PDF — try a text-based PDF rather than a scanned image." };
+            return { text: text.trim() };
         }
 
         if (ext === "docx" || ext === "doc") {

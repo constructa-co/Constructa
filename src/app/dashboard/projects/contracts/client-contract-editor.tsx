@@ -470,7 +470,15 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                                 <p className="text-xs text-slate-500 mt-1">Upload a contract (TXT, PDF, or DOCX) to have Contract Shield AI flag onerous clauses and unusual terms.</p>
                             </div>
                             <button
-                                onClick={() => setShowPasteMode(p => !p)}
+                                onClick={() => {
+                                    const next = !showPasteMode;
+                                    setShowPasteMode(next);
+                                    // Clear any failed [FILE:...] placeholder when switching to paste mode
+                                    if (next && uploadedText.startsWith("[FILE:")) {
+                                        setUploadedText("");
+                                        setUploadedFileName("");
+                                    }
+                                }}
                                 className="text-xs text-slate-400 hover:text-slate-200 underline underline-offset-2 flex-shrink-0 ml-4 transition-colors"
                             >
                                 {showPasteMode ? "← Upload file instead" : "Paste text instead"}

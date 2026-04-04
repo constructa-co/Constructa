@@ -10,7 +10,6 @@ import {
     Building2,
     Images,
     Wand2,
-    HardHat,
     Archive,
     LogOut,
     Sun,
@@ -22,11 +21,12 @@ import {
     FileText,
     CreditCard,
     GitBranch,
-    Eye,
-    BarChart3,
     RefreshCw,
-    FileCheck,
+    TrendingUp,
+    MessageSquare,
     FolderOpen,
+    Receipt,
+    BookMarked,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 
@@ -54,16 +54,10 @@ function NavItem({
 }) {
     if (disabled) {
         return (
-            <div className="flex items-center gap-3 px-3 py-2 rounded-md opacity-30 cursor-not-allowed">
-                <Icon className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <div className="min-w-0 flex-1">
-                    <span className="text-sm text-slate-400 font-medium block truncate">{label}</span>
-                </div>
-                {badge && (
-                    <span className="ml-auto text-[9px] font-bold uppercase tracking-wider text-slate-500 bg-white/5 px-1.5 py-0.5 rounded flex-shrink-0">
-                        {badge}
-                    </span>
-                )}
+            <div className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-400 opacity-60 rounded-lg cursor-not-allowed">
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                <span>{label}</span>
+                <span className="ml-auto text-[10px] bg-gray-100 text-gray-500 rounded px-1.5 py-0.5 font-medium">Soon</span>
             </div>
         );
     }
@@ -71,22 +65,22 @@ function NavItem({
     return (
         <Link
             href={href}
-            className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium transition-all group ${
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg font-medium transition-all group text-sm ${
                 active
-                    ? "bg-white/10 text-white"
+                    ? "bg-gray-900 text-white"
                     : "text-slate-300 hover:text-white hover:bg-white/8"
             }`}
         >
             <Icon className={`w-4 h-4 flex-shrink-0 transition-colors ${active ? "text-blue-400" : "text-slate-400 group-hover:text-slate-200"}`} />
             <div className="min-w-0 flex-1">
-                <span className="text-sm truncate block">{label}</span>
+                <span className="truncate block">{label}</span>
                 {sublabel && (
                     <span className="text-[10px] text-slate-500 truncate block">{sublabel}</span>
                 )}
             </div>
             {badge && (
-                <span className={`ml-auto text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded flex-shrink-0 ${
-                    active ? "text-blue-300 bg-blue-500/20" : "text-slate-500 bg-white/5"
+                <span className={`ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${
+                    active ? "text-blue-300 bg-blue-500/20" : "bg-gray-100 text-gray-500"
                 }`}>
                     {badge}
                 </span>
@@ -97,7 +91,7 @@ function NavItem({
 
 function SectionLabel({ label }: { label: string }) {
     return (
-        <div className="px-3 pt-5 pb-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+        <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 px-3 py-2">
             {label}
         </div>
     );
@@ -138,8 +132,11 @@ export default function SidebarNav({ user }: SidebarNavProps) {
                 {/* Work Winning */}
                 <SectionLabel label="Work Winning" />
                 <div className="space-y-0.5">
-                    <NavItem href="/dashboard" icon={LayoutDashboard} label="Dashboard (CRM)" active={pathname === "/dashboard"} />
+                    <NavItem href="/dashboard" icon={LayoutDashboard} label="Dashboard" active={pathname === "/dashboard"} />
                     <NavItem href="/dashboard/projects/new" icon={FilePlus} label="New Project" active={pathname.includes("/projects/new")} />
+                    <hr className="my-2 border-gray-200" />
+                    <NavItem href="/dashboard/library" icon={BookOpen} label="Cost Library" active={is("/dashboard/library")} />
+                    <NavItem href="/dashboard/resources" icon={Wrench} label="Resources" active={is("/dashboard/resources")} />
                 </div>
 
                 {/* Pre-Construction */}
@@ -150,29 +147,27 @@ export default function SidebarNav({ user }: SidebarNavProps) {
                     <NavItem href="/dashboard/projects/schedule" icon={CalendarDays} label="Programme" active={is("/dashboard/projects/schedule")} />
                     <NavItem href="/dashboard/projects/contracts" icon={Scale} label="Contracts" active={is("/dashboard/projects/contracts")} />
                     <NavItem href="/dashboard/projects/proposal" icon={FileText} label="Proposal" active={is("/dashboard/projects/proposal")} />
-                    <div className="my-2 border-t border-white/10" />
-                    <NavItem href="/dashboard/library" icon={BookOpen} label="Cost Library" active={is("/dashboard/library")} />
-                    <NavItem href="/dashboard/resources" icon={Wrench} label="Resources" active={is("/dashboard/resources")} />
                 </div>
 
                 {/* Live Projects */}
                 <SectionLabel label="Live Projects" />
                 <div className="space-y-0.5">
-                    <NavItem href="/dashboard/live" icon={Eye} label="Overview" active={is("/dashboard/live")} />
-                    <NavItem href="#" icon={BarChart3} label="Finance" disabled badge="Soon" />
-                    <NavItem href="#" icon={CalendarDays} label="Programme" disabled badge="Soon" />
-                    <NavItem href="#" icon={RefreshCw} label="Change Mgmt" disabled badge="Soon" />
-                    <NavItem href="#" icon={CreditCard} label="Billing" disabled badge="Soon" />
-                    <NavItem href="#" icon={GitBranch} label="Variations" disabled badge="Soon" />
+                    <NavItem href="/dashboard/live" icon={LayoutDashboard} label="Overview" active={is("/dashboard/live")} badge="Coming soon" />
+                    <NavItem href="#" icon={CreditCard} label="Billing & Valuations" disabled />
+                    <NavItem href="#" icon={GitBranch} label="Variations" disabled />
+                    <NavItem href="#" icon={RefreshCw} label="Change Management" disabled />
+                    <NavItem href="#" icon={TrendingUp} label="Cost Tracking" disabled />
+                    <NavItem href="#" icon={CalendarDays} label="Programme" disabled />
+                    <NavItem href="#" icon={MessageSquare} label="Communications" disabled />
                 </div>
 
-                {/* Post-Construction */}
-                <SectionLabel label="Post-Construction" />
+                {/* Closed Projects */}
+                <SectionLabel label="Closed Projects" />
                 <div className="space-y-0.5">
-                    <NavItem href="#" icon={FileCheck} label="Close-Out" disabled badge="Soon" />
-                    <NavItem href="#" icon={Archive} label="Final Account" disabled badge="Soon" />
-                    <NavItem href="#" icon={FolderOpen} label="Handover Docs" disabled badge="Soon" />
-                    <NavItem href="#" icon={HardHat} label="Records" disabled badge="Soon" />
+                    <NavItem href="#" icon={Archive} label="Archive" disabled />
+                    <NavItem href="#" icon={Receipt} label="Final Accounts" disabled />
+                    <NavItem href="#" icon={FolderOpen} label="Handover Documents" disabled />
+                    <NavItem href="#" icon={BookMarked} label="Lessons Learned" disabled />
                 </div>
 
             </div>

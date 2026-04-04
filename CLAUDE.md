@@ -2,8 +2,8 @@
 
 > This file is auto-loaded by Claude Code at session start.
 > Read this before making any changes to the codebase.
-> Last updated: 4 April 2026 — Claude Code session (night, Contract Shield sprint)
-> Previous sessions: Claude Code (evening), Perplexity Computer (morning, commits 0c7c830→1790fbd)
+> Last updated: 5 April 2026 — Claude Code session (Sprint 13 complete + roadmap)
+> Previous sessions: Claude Code (4 Apr evening + night), Perplexity Computer (4 Apr morning)
 
 ---
 
@@ -325,14 +325,68 @@ Chrome popup blocker intercepts the new tab, so PDFs download silently rather th
 
 ---
 
+## Session Work Log (April 5 — Sprint 13 close + roadmap planning, commits 92f761b→7de0dd9)
+
+### Sprint 13 — Final clause parsing fix (confirmed working by user)
+
+**1. Vercel function timeout (92f761b):**
+`export const maxDuration = 60` added to `contracts/page.tsx`. Extends Vercel serverless
+function timeout from 10s default to 60s for the entire contracts route including all
+server actions. Without this, AI calls exceeding 10s were being silently killed.
+
+**2. Input size (92f761b):**
+Excerpt reduced 30k → 20k chars (10k head + 10k tail with omission notice).
+Keeps AI response time within the 60s budget even on cold starts.
+20k chars covers the full commercial substance of any real contract.
+
+**3. Unstructured contract support (92f761b):**
+Original prompt required "numbered clauses or clear headings" — many real contracts
+(domestic, bespoke) don't have these. Prompt now explicitly instructs AI to treat
+any distinct topic or paragraph as a clause and always return results.
+Diagnostic `console.log` added — Vercel function logs show exact AI response if
+further debugging needed in future.
+
+**All commits this session:**
+- `92f761b` — clause parsing: maxDuration, 20k excerpt, flexible prompt, diagnostics
+- `6dd6cd2` — swap Sprint 17/18: Gantt before Admin (per product owner)
+- `04cc92c` — release batch strategy: Batch 1/2/3, Admin moved to Sprint 18
+- `3b18f75` — full data architecture, admin management accounts, accounting integration
+- `5c9c7b7` — data intelligence architecture + Constructa admin dashboard design
+- `f13d63e` — Live Projects + Closed Projects sprints added (21–30)
+- `82e9b01` — sprint reprioritisation per product owner feedback
+- `7de0dd9` — Sprint 21 Drawing Upload (full build) + Sprint 22 Video Walkthrough AI
+
+### Roadmap decisions confirmed this session
+
+- Gantt drag-and-drop: elevated from deprioritised → Sprint 17
+- Admin Dashboard: moved forward to Sprint 18 (needed from first paying subscriber)
+- Drawing upload: full feature build as Sprint 21 (annotation, multi-page, scale detection)
+- Video walkthrough AI: moved from long-term vision → Sprint 22 (concrete sprint)
+- UI/UX consistency pass: Sprint 15 — all pages to Contract Shield standard
+- Pre-construction workflow refinement: Sprint 16 — fix data flow gaps
+
+**Release batch strategy:**
+- Batch 1 (14–22): Polish + admin ops → Launch point
+- Batch 2 (23–28): Live Projects
+- Batch 3 (29–32): Closed Projects
+- Data & Admin (33–41): Intelligence, accounts integration, market data product
+
+**Data architecture:**
+- No rewrite needed — aggregation layer sits on top of existing schema
+- 8 anonymised benchmark tables (rate, labour, plant, material, programme, payment, variation, contract risk)
+- Triggers fire on close / payment / variation / Contract Shield analysis
+- Admin dashboard = Constructa management accounts (MRR, ARR, gross margin, LTV, CAC)
+- Contractor management accounts + Xero/Sage/QuickBooks (Sprints 35–38)
+- Market intelligence product (Sprint 39) — sellable API for QS firms, lenders, insurers
+
+---
+
 ## Session Work Log (April 4 — Contract Shield sprint, commits 5877c6e→39c97ad)
 
-### ⚠️ OUTSTANDING — Verify "Build Contractor Response" works after latest fix
+### ✅ SPRINT 13 FULLY COMPLETE — confirmed working by user (5 April 2026)
 
-**Commit 39c97ad** (last push tonight) is not yet confirmed working by user.
-The fix converts clause parsing from two sequential AI calls → one combined call.
-User must test "Build Contractor Response" on the deployed app to confirm resolved.
-If still failing, check Vercel function logs for timeout or AI errors.
+All Contract Shield features confirmed working end-to-end. "Build Contractor Response"
+clause parsing now works correctly. Sprint 14 is the next sprint.
 
 ### What was built this session (Sprint 13 — Contract Shield)
 
@@ -454,7 +508,7 @@ CREATE POLICY "Users manage own contracts" ON storage.objects FOR ALL TO authent
 - [ ] Email send from within Constructa (currently: copy link, paste in email)
 - [ ] Email confirmation sent to client on acceptance (Supabase email or Resend.com)
 
-### Sprint 13 — Contract Shield Polish — ✅ COMPLETE (pending clause-parsing confirm)
+### Sprint 13 — Contract Shield Polish — ✅ FULLY COMPLETE (confirmed 5 April 2026)
 - [x] PDF/DOCX text extraction (unpdf + mammoth, server-side)
 - [x] Full contract analysis — parallel 40k-char chunks, not just first 4k
 - [x] Dark theme + "Contract Shield" branding with hero section
@@ -464,9 +518,10 @@ CREATE POLICY "Users manage own contracts" ON storage.objects FOR ALL TO authent
 - [x] Client Contract 4th tier — parse → Accept/Modify/Reject → download formal PDF response
 - [x] Toaster fix — ALL dashboard toasts now work (was broken silently)
 - [x] Whitespace sanitisation fix — preserves clause structure for AI
-- [⚠️] "Build Contractor Response" clause parsing — fix pushed (39c97ad), NOT YET CONFIRMED WORKING
-  - Root cause: two sequential AI calls timing out → single-pass fix pushed
-  - If still failing next session: check Vercel function logs, consider adding `export const maxDuration = 60` to the contracts page
+- [x] Clause parsing: converted two sequential AI calls → single-pass (timeout fix)
+- [x] maxDuration = 60 on contracts page (extends Vercel function timeout)
+- [x] Prompt handles unstructured contracts — works on informal docs without numbered clauses
+- [x] Confirmed working end-to-end by user
 
 ---
 

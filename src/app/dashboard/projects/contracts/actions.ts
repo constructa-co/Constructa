@@ -89,10 +89,11 @@ export async function analyseContractAction(
         // Save the raw uploaded text
         await supabase.from("projects").update({ uploaded_contract_text: contractText }).eq("id", projectId);
 
-        // Sanitise: strip non-printable / control characters that can break JSON
+        // Sanitise: strip control chars but preserve newlines (clause structure depends on them)
         const cleanText = contractText
             .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, " ")
-            .replace(/\s+/g, " ")
+            .replace(/[^\S\n]+/g, " ")
+            .replace(/\n{4,}/g, "\n\n\n")
             .trim();
 
         if (!cleanText) return { flags: [], error: "Contract text is empty after sanitisation." };
@@ -261,12 +262,17 @@ export async function structureClientContractAction(
     flags: Array<{ clause: string; description: string; severity: string; recommendation: string }>
 ): Promise<{ clauses: Array<{ id: string; clauseRef: string; title: string; original: string; proposed: string; status: "accepted" | "modified" | "rejected"; reason: string; flagged: boolean }> }> {
     try {
-        const cleanText = contractText.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, " ").replace(/\s+/g, " ").trim();
+        // Sanitise: remove control chars but PRESERVE newlines — clause structure depends on them
+        const cleanText = contractText
+            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, " ")  // strip control chars
+            .replace(/[^\S\n]+/g, " ")                              // normalise spaces/tabs, keep newlines
+            .replace(/\n{4,}/g, "\n\n\n")                           // collapse excessive blank lines
+            .trim();
         if (!cleanText) return { clauses: [], error: "Contract text is empty." } as any;
 
         // Use up to 30k chars — enough for most contracts
         const excerpt = cleanText.length > 30000
-            ? cleanText.substring(0, 15000) + "\n\n[...]\n\n" + cleanText.substring(cleanText.length - 15000)
+            ? cleanText.substring(0, 15000) + "\n\n[...middle section omitted...]\n\n" + cleanText.substring(cleanText.length - 15000)
             : cleanText;
 
         // ── Pass 1: Parse into clauses (structure + short original excerpt only) ──

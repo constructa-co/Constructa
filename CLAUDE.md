@@ -2,8 +2,8 @@
 
 > This file is auto-loaded by Claude Code at session start.
 > Read this before making any changes to the codebase.
-> Last updated: 4 April 2026 — Claude Code session (evening)
-> Previous sessions: Perplexity Computer (morning, commits 0c7c830→1790fbd)
+> Last updated: 4 April 2026 — Claude Code session (night, Contract Shield sprint)
+> Previous sessions: Claude Code (evening), Perplexity Computer (morning, commits 0c7c830→1790fbd)
 
 ---
 
@@ -325,6 +325,72 @@ Chrome popup blocker intercepts the new tab, so PDFs download silently rather th
 
 ---
 
+## Session Work Log (April 4 — Contract Shield sprint, commits 5877c6e→39c97ad)
+
+### ⚠️ OUTSTANDING — Verify "Build Contractor Response" works after latest fix
+
+**Commit 39c97ad** (last push tonight) is not yet confirmed working by user.
+The fix converts clause parsing from two sequential AI calls → one combined call.
+User must test "Build Contractor Response" on the deployed app to confirm resolved.
+If still failing, check Vercel function logs for timeout or AI errors.
+
+### What was built this session (Sprint 13 — Contract Shield)
+
+**1. PDF extraction (5877c6e):** Replaced `pdf-parse` (crashed on Node.js — used browser-only `DOMMatrix` API from pdfjs-dist v5) with `unpdf`. DOCX via `mammoth`. Both are server-side only — added to `experimental.serverComponentsExternalPackages` in `next.config.mjs`.
+
+**2. Toaster fix (edb9520):** `<Toaster richColors position="bottom-right" />` was never mounted in `dashboard/layout.tsx`. ALL toast notifications across the entire dashboard were silently doing nothing. Now fixed.
+
+**3. Full contract analysis (d87e5bf):** Analysis was sending only the first 4k chars (just the preamble). Replaced with parallel chunked analysis — 40k chars/chunk, 2k overlap, `Promise.all`, deduplicated + sorted by severity. Now handles full contract documents.
+
+**4. Dark theme + Contract Shield branding (f0f3872):** Complete dark-theme treatment of contracts page. Hero section with purple gradient Shield icon, "Contract Shield" name, "AI-Powered" badge, live high/medium/low flag counter badges.
+
+**5. Contract Shield → Risk Register import (e949c92):** One-click button imports HIGH/MEDIUM flags as risk items with mitigations pre-filled. Works from both the flags list and the Risk Register tab header.
+
+**6. Contract Shield → Exclusions AI (e949c92):** `generateContractExclusionsAction` now accepts `contractFlags?` param. When flags are present, AI generates targeted exclusions/clarifications addressing the identified risks rather than generic ones.
+
+**7. Persistence note (e949c92):** All data (flags, risk register, exclusions, client contract clauses) saves to Supabase projects table on every action. Banner in flags panel confirms this.
+
+**8. Client Contract 4th tier (1c9a1a4):** Full "Build Contractor Response" workflow:
+- Parse uploaded client contract into clauses (AI extracts clauseRef, title, 120-char excerpt)
+- Per-clause Accept / Modify / Reject toggles with inline editing
+- "Download Response PDF" generates formal contractor amendment document with colour-coded clause headers (green/amber/red), proposed wording, reason for rejection
+- Exclusions & clarifications appended to the PDF
+- 4th tier card appears dynamically, shows accepted/modified/rejected counts
+- Clauses saved to `client_contract_clauses` JSONB column
+
+**9. Sanitisation fix (cc81400):** `.replace(/\s+/g, " ")` was collapsing ALL whitespace including newlines, turning contracts into unstructured walls of text. Fixed to `[^\S\n]+` — preserves newlines (clause structure) while normalising spaces/tabs. Applied to both `analyseContractAction` and `structureClientContractAction`.
+
+**10. Single-pass clause parsing (39c97ad):** Two sequential AI calls for clause parsing were timing out on Vercel (combined ~30-60s). Replaced with single combined prompt: parse + recommend amendments in one call. Max 12 clauses, 120-char originals, 1-2 sentence proposals. Also fixed empty-error-string bug (catch block `msg || "Unknown error"` prevents falsy error strings silently swallowing failures).
+
+### Key files changed this session
+- `src/app/dashboard/projects/contracts/actions.ts` — all server actions
+- `src/app/dashboard/projects/contracts/client-contract-editor.tsx` — full UI
+- `src/app/dashboard/projects/contracts/page.tsx` — dark theme
+- `src/app/dashboard/layout.tsx` — Toaster mount (affects ENTIRE dashboard)
+- `next.config.mjs` — serverComponentsExternalPackages for unpdf + mammoth
+
+### Database columns used (all exist — added earlier sprint)
+- `projects.uploaded_contract_text TEXT` — raw contract text
+- `projects.contract_review_flags JSONB` — AI flags array
+- `projects.contract_exclusions TEXT`
+- `projects.contract_clarifications TEXT`
+- `projects.risk_register JSONB`
+- `projects.client_contract_clauses JSONB` — clause-by-clause contractor response
+- `projects.tc_tier TEXT` — 'domestic'|'commercial'|'specialist'|'client'
+
+### Supabase storage
+- Bucket: `contracts` — must exist with RLS. SQL to create:
+```sql
+INSERT INTO storage.buckets (id, name, public) VALUES ('contracts', 'contracts', false);
+CREATE POLICY "Users manage own contracts" ON storage.objects FOR ALL TO authenticated
+  USING (bucket_id = 'contracts' AND (storage.foldername(name))[1] IN (
+    SELECT id::text FROM projects WHERE user_id = auth.uid()
+  ));
+```
+- If bucket missing, users get "Upload failed: Bucket not found" — they can use "Paste text instead" as fallback
+
+---
+
 ## Session Work Log (April 4)
 
 ### Claude Code session — evening (commits a8d6511, 0b94254, 6e10445)
@@ -388,22 +454,26 @@ Chrome popup blocker intercepts the new tab, so PDFs download silently rather th
 - [ ] Email send from within Constructa (currently: copy link, paste in email)
 - [ ] Email confirmation sent to client on acceptance (Supabase email or Resend.com)
 
-### Sprint 13 (was 12) — Contract Shield Polish
-- [ ] Contract Shield flagging calibrated (done) — needs real-world testing
-- [ ] Dismiss/accept flags stores to DB correctly
-- [ ] Upload PDF contracts — text extraction for AI analysis
-- [ ] Market as named feature "Contract Shield" on the proposal page
+### Sprint 13 — Contract Shield Polish — ✅ COMPLETE (pending clause-parsing confirm)
+- [x] PDF/DOCX text extraction (unpdf + mammoth, server-side)
+- [x] Full contract analysis — parallel 40k-char chunks, not just first 4k
+- [x] Dark theme + "Contract Shield" branding with hero section
+- [x] Flags → Risk Register one-click import (pre-filled mitigations)
+- [x] Flags → Exclusions AI (contextual, not generic)
+- [x] All data persists to project (flags, risks, exclusions, clauses)
+- [x] Client Contract 4th tier — parse → Accept/Modify/Reject → download formal PDF response
+- [x] Toaster fix — ALL dashboard toasts now work (was broken silently)
+- [x] Whitespace sanitisation fix — preserves clause structure for AI
+- [⚠️] "Build Contractor Response" clause parsing — fix pushed (39c97ad), NOT YET CONFIRMED WORKING
+  - Root cause: two sequential AI calls timing out → single-pass fix pushed
+  - If still failing next session: check Vercel function logs, consider adding `export const maxDuration = 60` to the contracts page
 
-### Sprint 14 — Home Dashboard Improvements
-- [ ] Win rate calculation needs proposal_status tracking to be reliable
-- [ ] Outstanding invoices KPI needs billing module to be wired
-- [ ] Activity feed: add colour-coded status pills
-- [ ] "Expiring soon" alert for proposals nearing their validity date
-
-### Sprint 15 — Job P&L Dashboard
-- [ ] Live project P&L: original estimate margin vs costs logged
-- [ ] Which jobs are making money (most important question for "Dave")
+### Sprint 14 — Job P&L Dashboard — NEXT SPRINT
+- [ ] Live project margin: original estimate vs actual costs logged
+- [ ] Which jobs are making money — the #1 question for "Dave"
 - [ ] Connects billing module (invoiced) to estimate (budgeted)
+- [ ] Over-budget alert when costs exceed estimate section by >10%
+- [ ] Margin-at-completion forecast from spend-to-date rate
 
 ### Sprint 16 — Proposal Versioning
 - [ ] Up-rev proposals (v1, v2, v3) with change tracking

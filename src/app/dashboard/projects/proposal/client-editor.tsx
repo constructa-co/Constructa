@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2, RefreshCw } from "lucide-react";
-import { saveProposalAction, generateAiScopeAction, sendProposalAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction, updatePaymentScheduleTypeAction, generateClosingStatementAction, saveClosingStatementAction } from "./actions";
+import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2, RefreshCw, FileDown } from "lucide-react";
+import { saveProposalAction, generateAiScopeAction, sendProposalAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction, updatePaymentScheduleTypeAction, generateClosingStatementAction, saveClosingStatementAction, saveProposalOverridesAction } from "./actions";
 import ProposalPdfButton from "./proposal-pdf-button";
 import AiWizard from "./ai-wizard";
 import Link from "next/link";
@@ -220,6 +220,8 @@ export default function ClientEditor({
 
     const [closingStatement, setClosingStatement] = useState(project?.closing_statement ?? '');
     const [isGeneratingClosing, setIsGeneratingClosing] = useState(false);
+    const [proposalCapability, setProposalCapability] = useState(project?.proposal_capability || '');
+    const [proposalCompanyName, setProposalCompanyName] = useState(project?.proposal_company_name || '');
     const [generating, setGenerating] = useState(false);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -381,8 +383,8 @@ export default function ClientEditor({
         setIsGeneratingClosing(true);
         try {
             const result = await generateClosingStatementAction(projectId, {
-                companyName: profile?.company_name || '',
-                capability: profile?.capability_statement || '',
+                companyName: proposalCompanyName || profile?.company_name || '',
+                capability: proposalCapability || profile?.capability_statement || '',
                 projectName: project?.name || '',
                 clientName: project?.client_name || '',
                 contractValue: contractValue || 0,
@@ -597,6 +599,8 @@ export default function ClientEditor({
         payment_schedule: paymentSchedule,
         payment_schedule_type: paymentScheduleType,
         selected_case_study_ids: selectedCaseStudyIds,
+        proposal_capability: proposalCapability,
+        proposal_company_name: proposalCompanyName,
     };
 
     // Completion checks
@@ -706,6 +710,41 @@ export default function ClientEditor({
                             </Link>
                         </div>
                     )}
+                </div>
+
+                {/* About Us — This Proposal override */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
+                        <div>
+                            <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">About Us — This Proposal</span>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                                Optionally customise your company description for this specific project. Defaults to your Company Profile if left blank.
+                            </p>
+                        </div>
+                        {proposalCapability && (
+                            <button type="button" onClick={() => { setProposalCapability(''); saveProposalOverridesAction(projectId, { proposal_capability: '' }); }}
+                                className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                                Reset to profile default
+                            </button>
+                        )}
+                    </div>
+                    <div className="p-6 space-y-3">
+                        <textarea
+                            className="w-full h-24 text-sm border border-slate-700 bg-slate-800 rounded-lg p-3 text-slate-100 placeholder:text-slate-600 resize-none focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            placeholder={profile?.capability_statement || "Leave blank to use your Company Profile description..."}
+                            value={proposalCapability}
+                            onChange={e => setProposalCapability(e.target.value)}
+                            onBlur={() => saveProposalOverridesAction(projectId, { proposal_capability: proposalCapability })}
+                        />
+                        <input
+                            type="text"
+                            className="w-full text-sm border border-slate-700 bg-slate-800 rounded-lg px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            placeholder="Override company name for this proposal (optional)"
+                            value={proposalCompanyName}
+                            onChange={e => setProposalCompanyName(e.target.value)}
+                            onBlur={() => saveProposalOverridesAction(projectId, { proposal_company_name: proposalCompanyName })}
+                        />
+                    </div>
                 </div>
 
                 {/* Estimator total banner */}
@@ -1385,8 +1424,37 @@ export default function ClientEditor({
                         </div>
                     )}
 
-                    {/* PDF Button */}
-                    <ProposalPdfButton project={liveProject} profile={profile} estimates={estimates} pricingMode={pricingMode} validityDays={validityDays} />
+                    {/* PDF Button — soft-gated on profile completeness */}
+                    {(() => {
+                        const profileWarningMessage = !profile?.company_name
+                            ? 'Add your company name in Company Profile'
+                            : !profile?.capability_statement || (profile?.capability_statement?.length || 0) < 30
+                            ? 'Add a capability statement in Company Profile'
+                            : null;
+                        return profileWarningMessage ? (
+                            <div className="space-y-1">
+                                <div className="relative group">
+                                    <Button
+                                        disabled
+                                        className="bg-blue-600 text-white font-bold gap-2 shadow-lg h-12 px-6 w-full text-sm opacity-50 cursor-not-allowed"
+                                    >
+                                        <FileDown className="w-4 h-4" />
+                                        Generate PDF
+                                    </Button>
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-slate-700">
+                                        {profileWarningMessage}
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                                    </div>
+                                </div>
+                                <Link href="/dashboard/settings/profile"
+                                    className="text-xs text-blue-400 hover:underline mt-1 block text-center">
+                                    Complete your profile to enable PDF generation
+                                </Link>
+                            </div>
+                        ) : (
+                            <ProposalPdfButton project={liveProject} profile={profile} estimates={estimates} pricingMode={pricingMode} validityDays={validityDays} />
+                        );
+                    })()}
 
                     {/* Validity days */}
                     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">

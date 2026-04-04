@@ -36,6 +36,7 @@ interface Project {
     name: string;
     client_name: string;
     site_address: string;
+    client_address?: string;
     postcode: string;
     potential_value: number;
     start_date: string;
@@ -108,7 +109,7 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
         try {
             const result = await processBriefChatAction(userMessage, {
                 name: project.name,
-                address: project.site_address,
+                address: project.site_address || project.client_address || '',
                 projectType: project.project_type,
             });
 
@@ -168,7 +169,7 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
             if (result.success) {
                 setSuggestResult({
                     success: true,
-                    message: `Created ${result.linesCreated} line items across ${result.sectionsCreated} sections in your Estimating tab.`
+                    message: `\u2713 ${result.linesCreated} line items created across ${result.sectionsCreated} sections \u2014 go to Estimating tab to review and add rates.`
                 });
             } else {
                 setSuggestResult({
@@ -231,7 +232,7 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
                 <div className="grid sm:grid-cols-3 gap-4">
                     <div className="sm:col-span-2 space-y-1.5">
                         <label className="text-sm font-medium text-gray-600">Site Address</label>
-                        <input className={inputCls} value={project.site_address} readOnly />
+                        <input className={inputCls} value={project.site_address || project.client_address || ''} readOnly />
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-gray-600">Postcode</label>

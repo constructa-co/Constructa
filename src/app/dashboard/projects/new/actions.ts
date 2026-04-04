@@ -17,8 +17,10 @@ export async function createProjectFromTemplateAction(formData: FormData) {
         // New fields
         const clientEmail = formData.get("clientEmail") as string || null;
         const clientPhone = formData.get("clientPhone") as string || null;
-        const clientAddress = formData.get("clientAddress") as string || null;
-        const siteAddress = formData.get("siteAddress") as string || null;
+        const clientAddressRaw = formData.get("clientAddress") as string || null;
+        const siteAddressRaw = formData.get("siteAddress") as string || null;
+        const siteAddress = siteAddressRaw || clientAddressRaw;
+        const clientAddress = clientAddressRaw || siteAddressRaw;
         const projectType = formData.get("projectType") as string || "Extension";
         const startDateRaw = formData.get("startDate") as string;
         const startDate = startDateRaw || null;

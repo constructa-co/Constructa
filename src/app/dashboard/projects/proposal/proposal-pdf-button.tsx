@@ -241,7 +241,8 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     sectionCounter = 1;
     const T = getTheme(profile?.pdf_theme);
     const doc = new jsPDF({ unit: "mm", format: "a4" });
-    const companyName = profile?.company_name || "The Contractor";
+    const companyName = project?.proposal_company_name || profile?.company_name || "The Contractor";
+    const capabilityText = project?.proposal_capability || profile?.capability_statement || "";
     const clientName = project?.client_name || "Valued Client";
     const projectName = project?.name || "Project Proposal";
     const normaliseAddress = (addr: string) => {
@@ -436,7 +437,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     // ═══════════════════════════════════════════════════════════
     // PAGE 2 — ABOUT US
     // ═══════════════════════════════════════════════════════════
-    if (profile?.capability_statement) {
+    if (capabilityText) {
         doc.addPage();
         totalPagesRef.n++;
         y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef, T);
@@ -457,7 +458,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         let rightY = y;
 
         // Left column — capability statement
-        const capText = sanitiseText(profile.capability_statement);
+        const capText = sanitiseText(capabilityText);
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
         doc.setTextColor(...T.textDark);

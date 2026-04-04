@@ -525,3 +525,11 @@ export async function saveClosingStatementAction(projectId: string, text: string
     const supabase = createClient();
     await supabase.from('projects').update({ closing_statement: text }).eq('id', projectId);
 }
+
+export async function saveProposalOverridesAction(
+    projectId: string,
+    overrides: { proposal_capability?: string; proposal_company_name?: string }
+) {
+    const supabase = createClient();
+    await supabase.from('projects').update(overrides).eq('id', projectId);
+}

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2, RefreshCw, FileDown } from "lucide-react";
+import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2, RefreshCw, FileDown, Send } from "lucide-react";
 import { saveProposalAction, generateAiScopeAction, sendProposalAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction, updatePaymentScheduleTypeAction, generateClosingStatementAction, saveClosingStatementAction, saveProposalOverridesAction } from "./actions";
 import ProposalPdfButton from "./proposal-pdf-button";
 import AiWizard from "./ai-wizard";
@@ -493,6 +493,20 @@ export default function ClientEditor({
             setTimeout(() => setLinkCopied(false), 3000);
         }
         setSending(false);
+    };
+
+    const handleSendEmail = async () => {
+        setSending(true);
+        const result = await sendProposalAction(projectId);
+        setSending(false);
+        if (!result?.url) return;
+        const clientName = project?.client_name || "there";
+        const projectName = project?.name || "your project";
+        const subject = encodeURIComponent(`Your Proposal — ${projectName}`);
+        const body = encodeURIComponent(
+            `Dear ${clientName},\n\nPlease find your proposal for ${projectName} at the link below:\n\n${result.url}\n\nYou can review the full scope, pricing, and programme, and confirm your acceptance directly through the link.\n\nPlease don't hesitate to get in touch if you have any questions.\n\nKind regards`
+        );
+        window.location.href = `mailto:${project?.client_email || ""}?subject=${subject}&body=${body}`;
     };
 
     const handleSave = async () => {
@@ -1403,6 +1417,20 @@ export default function ClientEditor({
                             <><Check className="w-4 h-4 text-green-400" /> Link Copied!</>
                         ) : (
                             <><Copy className="w-4 h-4" /> Copy Proposal Link</>
+                        )}
+                    </button>
+
+                    {/* Send via Email Button */}
+                    <button
+                        type="button"
+                        onClick={handleSendEmail}
+                        disabled={sending}
+                        className="w-full h-12 bg-blue-700/20 hover:bg-blue-700/30 border border-blue-600/40 text-blue-300 hover:text-blue-200 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
+                    >
+                        {sending ? (
+                            <><Loader2 className="w-4 h-4 animate-spin" /> Preparing...</>
+                        ) : (
+                            <><Send className="w-4 h-4" /> Send Proposal via Email</>
                         )}
                     </button>
 

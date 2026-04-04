@@ -27,6 +27,7 @@ interface Project {
     proposal_status: string;
     proposal_sent_at: string | null;
     proposal_accepted_at: string | null;
+    proposal_accepted_by?: string | null;
     created_at: string;
     updated_at: string;
     validity_days?: number;
@@ -142,6 +143,18 @@ export default function HomeClient({ projects, invoices, profile }: HomeClientPr
     // Outstanding invoices
     const outstandingValue = (invoices || []).reduce((s: number, i: any) => s + (i.amount || 0), 0);
 
+    // Recently accepted (last 7 days)
+    const recentlyAccepted = allProjects.filter((p) => {
+        if (!p.proposal_accepted_at) return false;
+        return (Date.now() - new Date(p.proposal_accepted_at).getTime()) < 7 * 86400000;
+    });
+
+    // Recently viewed by client (status changed to viewed in last 48h — updated_at proxy)
+    const recentlyViewed = allProjects.filter((p) => {
+        if (p.proposal_status !== "viewed") return false;
+        return (Date.now() - new Date(p.updated_at).getTime()) < 48 * 3600000;
+    });
+
     // Proposals expiring soon (sent, not accepted, within 5 days of validity)
     const expiringSoon = allProjects.filter((p) => {
         if (!p.proposal_sent_at || p.proposal_accepted_at || p.proposal_status === "declined") return false;
@@ -182,6 +195,59 @@ export default function HomeClient({ projects, invoices, profile }: HomeClientPr
                         New Project
                     </Link>
                 </div>
+
+                {/* Proposal accepted alerts */}
+                {recentlyAccepted.length > 0 && (
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-green-300">
+                                {recentlyAccepted.length === 1
+                                    ? "Proposal accepted!"
+                                    : `${recentlyAccepted.length} proposals accepted this week`}
+                            </p>
+                            <div className="mt-1 space-y-0.5">
+                                {recentlyAccepted.map((p) => (
+                                    <Link
+                                        key={p.id}
+                                        href={`/dashboard/projects/proposal?projectId=${p.id}`}
+                                        className="flex items-center gap-2 text-xs text-green-400/80 hover:text-green-300"
+                                    >
+                                        <ArrowRight className="w-3 h-3 flex-shrink-0" />
+                                        {p.name}{p.proposal_accepted_by ? ` — accepted by ${p.proposal_accepted_by}` : ""}
+                                        {p.potential_value > 0 && ` · ${fmt(p.potential_value)}`}
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Proposal viewed alerts */}
+                {recentlyViewed.length > 0 && (
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-blue-300">
+                                {recentlyViewed.length === 1
+                                    ? "A client has viewed your proposal"
+                                    : `${recentlyViewed.length} proposals viewed by clients recently`}
+                            </p>
+                            <div className="mt-1 space-y-0.5">
+                                {recentlyViewed.map((p) => (
+                                    <Link
+                                        key={p.id}
+                                        href={`/dashboard/projects/proposal?projectId=${p.id}`}
+                                        className="flex items-center gap-2 text-xs text-blue-400/80 hover:text-blue-300"
+                                    >
+                                        <ArrowRight className="w-3 h-3 flex-shrink-0" />
+                                        {p.name} — {p.client_name} · follow up now
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Expiring soon alert */}
                 {expiringSoon.length > 0 && (

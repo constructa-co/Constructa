@@ -27,6 +27,15 @@ export default async function ProposalAcceptancePage({ params }: { params: { tok
         );
     }
 
+    // Mark as viewed if it was sent but not yet viewed/accepted
+    if (project.proposal_status === "sent") {
+        await supabase
+            .from("projects")
+            .update({ proposal_status: "viewed" })
+            .eq("proposal_token", token);
+        project.proposal_status = "viewed";
+    }
+
     // Fetch contractor profile
     const { data: profile } = await supabase
         .from("profiles")

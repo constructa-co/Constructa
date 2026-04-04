@@ -16,7 +16,7 @@ export default async function HomePage() {
     const { data: projects } = await supabase
         .from("projects")
         .select(
-            "id, name, client_name, status, potential_value, proposal_status, proposal_sent_at, proposal_accepted_at, created_at, updated_at, validity_days"
+            "id, name, client_name, status, potential_value, proposal_status, proposal_sent_at, proposal_accepted_at, proposal_accepted_by, created_at, updated_at, validity_days"
         )
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false });

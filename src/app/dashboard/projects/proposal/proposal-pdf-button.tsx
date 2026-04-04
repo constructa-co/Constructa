@@ -1276,7 +1276,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     doc.text(validityLines, ML, y);
     y += validityLines.length * 5 + 6;
 
-    // Check if there's space for timeline, if not add new page
+    // Project Timeline — always on its own dedicated page for clean presentation
     const programmePhasesRaw = project?.programme_phases || project?.gantt_phases || project?.timeline_phases || [];
     const rawPhases: any[] = Array.isArray(programmePhasesRaw) ? programmePhasesRaw : [];
     // Fallback: generate phases from brief_trade_sections if no phases exist
@@ -1286,8 +1286,10 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             name: trade, duration_days: 14, color: Object.keys(GANTT_COLORS)[i % Object.keys(GANTT_COLORS).length],
         }));
     if (phases.length > 0) {
-        const ganttNeeded = 25 + phases.length * 11 + 15;
-        y = ensureSpace(doc, y, ganttNeeded, companyName, docTitle, totalPagesRef, T);
+        // Always start Gantt on a fresh page so it has full room to breathe
+        doc.addPage();
+        totalPagesRef.n++;
+        y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef, T);
 
         y = renderSectionHeading(doc, y, "Project Timeline", T);
 
@@ -1320,13 +1322,14 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             4
         );
 
-        const labelColW = 55;
-        const durationColW = 20;
+        const labelColW = 60;
+        const durationColW = 22;
         const chartX = ML + labelColW + durationColW;
         const chartW = CW - labelColW - durationColW;
-        const rowH = 11;
-        const headerH = 14;
-        const visibleWeeks = Math.min(totalWeeks, 20);
+        const rowH = 13;
+        const headerH = 16;
+        // Cap at 26 weeks; scale week column width to fit all phases cleanly
+        const visibleWeeks = Math.min(totalWeeks, 26);
         const weekW = chartW / Math.max(1, visibleWeeks);
         const ganttColorKeys = Object.keys(GANTT_COLORS);
 
@@ -1527,6 +1530,9 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             termLeftY = newY; // reset left too since it's a new page
         }
     });
+
+    // Sync y to the bottom of whichever T&C column ran longer
+    y = Math.max(termLeftY, termRightY) + 6;
 
     // ─── Risk & Opportunities (two-column) ──────────────────────
     const riskRegister: any[] = project?.risk_register || [];

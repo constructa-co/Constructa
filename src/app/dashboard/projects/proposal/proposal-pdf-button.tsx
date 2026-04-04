@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FileDown, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { extractScopeBulletsAction } from "./actions";
+import { createClient } from "@/lib/supabase/client";
 
 interface Props {
     estimates: any[];
@@ -151,7 +152,16 @@ export default function ProposalPdfButton({ estimates, project, profile, pricing
     const generatePDF = async () => {
         setGenerating(true);
         try {
-            await buildProposalPDF({ estimates, project, profile, pricingMode, validityDays });
+            // Fetch fresh profile so pdf_theme (and other profile fields) reflect
+            // the current saved value, even if the page was loaded before the theme was changed.
+            const supabase = createClient();
+            const { data: freshProfile } = await supabase
+                .from("profiles")
+                .select("*")
+                .eq("id", profile?.id)
+                .single();
+            const effectiveProfile = freshProfile ?? profile;
+            await buildProposalPDF({ estimates, project, profile: effectiveProfile, pricingMode, validityDays });
         } finally {
             setGenerating(false);
         }

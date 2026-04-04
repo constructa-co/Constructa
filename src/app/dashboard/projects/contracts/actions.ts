@@ -255,52 +255,89 @@ export async function contractChatAction(message: string, contractContext: {
 }
 
 // ── Parse Client Contract into Clauses ──────────────────
+// Two-pass approach: (1) parse structure + original text, (2) suggest amendments
 export async function structureClientContractAction(
     contractText: string,
     flags: Array<{ clause: string; description: string; severity: string; recommendation: string }>
 ): Promise<{ clauses: Array<{ id: string; clauseRef: string; title: string; original: string; proposed: string; status: "accepted" | "modified" | "rejected"; reason: string; flagged: boolean }> }> {
     try {
         const cleanText = contractText.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, " ").replace(/\s+/g, " ").trim();
-        const excerpt = cleanText.length > 12000 ? cleanText.substring(0, 12000) : cleanText;
-        const flagSummary = flags.filter(f => f.severity !== "low").map(f => `- "${f.clause}": ${f.description}. Recommended change: ${f.recommendation}`).join("\n");
+        if (!cleanText) return { clauses: [], error: "Contract text is empty." } as any;
 
-        const result = await generateJSON<{ clauses: Array<{ clauseRef: string; title: string; original: string; proposed: string; status: string; reason: string; flagged: boolean }> }>(
-            `You are a UK construction contract expert parsing a client's contract so a contractor can respond formally.
+        // Use up to 30k chars — enough for most contracts
+        const excerpt = cleanText.length > 30000
+            ? cleanText.substring(0, 15000) + "\n\n[...]\n\n" + cleanText.substring(cleanText.length - 15000)
+            : cleanText;
 
-Parse the contract into its key clauses (aim for 8-20 clauses covering the most commercially important terms — payment, completion, liability, insurance, defects, retention, termination, variations etc. Skip purely administrative boilerplate).
+        // ── Pass 1: Parse into clauses (structure + short original excerpt only) ──
+        const parseResult = await generateJSON<{ clauses: Array<{ clauseRef: string; title: string; original: string }> }>(
+            `Parse this UK construction contract into its key commercial clauses.
 
-For each clause:
-- clauseRef: clause number or reference (e.g. "1.1", "Clause 4", "Schedule 1")
-- title: short descriptive title (e.g. "Payment Terms", "Defects Liability Period")
-- original: the clause text (max 400 chars — truncate with "..." if longer)
-- flagged: true if this clause matches any of the known risks below
-- status: "accepted" for standard clauses; "modified" for clauses matching medium/high risks; "rejected" for clauses matching high risks that are illegal or highly onerous
-- proposed: for modified/rejected clauses, suggest contractor-friendly alternative wording (empty string if accepted)
-- reason: for modified/rejected, explain why in plain English (empty string if accepted)
+Focus on: payment, completion dates, liability, insurance, defects, retention, termination, variations, design responsibility, dispute resolution. Skip purely administrative/definitional text.
 
-Known risks from contract review:
-${flagSummary || "No specific risks flagged — use standard contractor protections."}
+For each clause return:
+- clauseRef: clause number or heading reference (e.g. "3.1", "Clause 5", "Payment")
+- title: short plain English title (e.g. "Payment Terms")
+- original: first 200 chars of the clause text, truncated with "..." if longer
 
-Contract text:
-${excerpt}
+Aim for 8-20 clauses. Return ONLY JSON: { "clauses": [{ "clauseRef": "", "title": "", "original": "" }] }
 
-Return JSON: { "clauses": [...] }`
+Contract:
+${excerpt}`
         );
 
-        const clauses = (result.clauses || []).map((c: any) => ({
-            id: Math.random().toString(36).substring(2, 11),
-            clauseRef: c.clauseRef || "",
-            title: c.title || "Untitled Clause",
-            original: c.original || "",
-            proposed: c.proposed || "",
-            status: (["accepted", "modified", "rejected"].includes(c.status) ? c.status : "accepted") as "accepted" | "modified" | "rejected",
-            reason: c.reason || "",
-            flagged: !!c.flagged,
-        }));
+        if (!parseResult?.clauses?.length) {
+            return { clauses: [], error: "AI could not identify clauses in this contract. Ensure it is a real contract document." } as any;
+        }
+
+        // ── Pass 2: For each clause, determine if flagged and suggest amendments ──
+        const highMedFlags = flags.filter(f => f.severity === "high" || f.severity === "medium");
+        const flagSummary = highMedFlags.map(f => `"${f.clause}": ${f.recommendation}`).join("; ");
+
+        const amendResult = await generateJSON<{ amendments: Array<{ clauseRef: string; flagged: boolean; status: string; proposed: string; reason: string }> }>(
+            `You are advising a UK contractor on which clauses in a client contract to accept, modify, or reject.
+
+Clauses to review:
+${parseResult.clauses.map(c => `${c.clauseRef} — ${c.title}: ${c.original}`).join("\n")}
+
+Known risks from contract review (address these in your amendments):
+${flagSummary || "No specific risks — use standard UK contractor protections."}
+
+For each clauseRef return:
+- clauseRef: must match exactly
+- flagged: true if related to a known risk above
+- status: "accepted" | "modified" | "rejected"
+- proposed: contractor-friendly alternative (brief, 1-3 sentences) — empty string if accepted
+- reason: plain English explanation — empty string if accepted
+
+"rejected" only for illegal or highly onerous clauses (pay-when-paid, unlimited liability, fitness for purpose).
+Most clauses should be "accepted" or "modified".
+
+Return ONLY JSON: { "amendments": [{ "clauseRef": "", "flagged": false, "status": "accepted", "proposed": "", "reason": "" }] }`
+        );
+
+        // Merge parse + amendment results
+        const amendMap = new Map((amendResult?.amendments || []).map((a: any) => [a.clauseRef, a]));
+
+        const clauses = parseResult.clauses.map((c: any) => {
+            const amend = amendMap.get(c.clauseRef) || {};
+            const status = (["accepted", "modified", "rejected"].includes(amend.status) ? amend.status : "accepted") as "accepted" | "modified" | "rejected";
+            return {
+                id: Math.random().toString(36).substring(2, 11),
+                clauseRef: c.clauseRef || "",
+                title: c.title || "Untitled",
+                original: c.original || "",
+                proposed: amend.proposed || "",
+                status,
+                reason: amend.reason || "",
+                flagged: !!amend.flagged,
+            };
+        });
 
         return { clauses };
     } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
+        console.error("structureClientContractAction error:", msg);
         return { clauses: [], error: msg } as any;
     }
 }

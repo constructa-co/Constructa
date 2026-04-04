@@ -329,16 +329,20 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                 uploadedText,
                 contractFlags.filter((f: any) => !f.dismissed)
             );
-            if (!result?.clauses?.length) {
-                toast.error("Could not parse contract into clauses — try again.");
+            const err = (result as any)?.error;
+            if (err) {
+                toast.error("Parsing error: " + err);
+            } else if (!result?.clauses?.length) {
+                toast.error("AI returned no clauses — contract may be too short or unrecognised format. Try pasting the text directly.");
             } else {
                 setClientClauses(result.clauses);
                 await saveClientContractClausesAction(projectId, result.clauses);
                 setTcTier("client");
                 toast.success(`${result.clauses.length} clauses parsed — review and mark your response`);
             }
-        } catch {
-            toast.error("Parsing failed — try again");
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            toast.error("Parsing failed: " + msg);
         }
         setParsingClauses(false);
     };

@@ -646,9 +646,208 @@ Turns project data into business intelligence — the flywheel that improves eve
 
 ### DEPRIORITISED (post-launch with real user data)
 - Mobile responsive full pass (Sprint 15 prevents breakage; full pass later)
-- Regional pricing intelligence (needs real transaction data first)
 - Voice-to-proposal wizard
 - SS-FS Gantt dependencies beyond Sprint 17 scope
+
+---
+
+## CONSTRUCTA DATA INTELLIGENCE ARCHITECTURE
+
+### Current State — Honest Assessment
+All contractor data is stored correctly but entirely siloed per-contractor via Supabase RLS (Row Level Security). Every table has `user_id` scoping — the owner cannot cross-query contractors using the normal client key. The geographic fields already exist on projects (`lat`, `lng`, `postcode`, `region`) but no cross-contractor aggregation exists yet.
+
+**What is captured per-contractor today:**
+- Project location: `postcode`, `lat`, `lng`, `region` ✓
+- Project type, value, client type ✓
+- Estimate rates: labour (day_rate), materials (unit_rate), trade sections ✓
+- Manhours per task ✓
+- Proposal win/loss outcome (`proposal_status`) ✓
+- Programme duration per phase ✓
+- Contract flags, T&C tier ✓
+- (Future) Actual costs, invoiced amounts, final margin
+
+**What is NOT captured yet (needs building):**
+- No anonymised cross-contractor aggregate tables
+- No mechanism to write to a platform intelligence layer as contractors complete work
+- Labour rates are all tagged `region = 'national'` — no regional differentiation yet
+- No data consent/transparency notice to contractors (legally required before aggregating)
+
+### Architecture Required — Platform Intelligence Layer
+
+**The mechanism:** When a contractor completes a project or closes a record, a Supabase database trigger (or server action) fires and writes an anonymised snapshot to a set of aggregate tables. No PII. No user_id. Just the signal data.
+
+**Access:** These aggregate tables have NO RLS — they are readable only via the Supabase service role key, which is used exclusively by the Constructa admin backend (never exposed to contractors).
+
+**Tables to create (Sprint 31):**
+
+```sql
+-- Anonymised project benchmark — one row per completed/closed project
+project_benchmarks (
+  id, created_at,
+  project_type TEXT,           -- 'residential_extension', 'loft_conversion', etc.
+  contract_value NUMERIC,      -- £ total
+  region TEXT,                 -- 'London', 'South East', 'North West', etc.
+  postcode_district TEXT,      -- First 3-4 chars only e.g. 'SW1', 'M14' (not full postcode)
+  tc_tier TEXT,                -- 'domestic'|'commercial'|'specialist'|'client'
+  duration_weeks INTEGER,      -- Actual programme weeks
+  estimated_duration_weeks INTEGER,
+  variation_count INTEGER,
+  variation_value NUMERIC,
+  estimated_margin_pct NUMERIC,
+  actual_margin_pct NUMERIC,   -- NULL until costs logged
+  proposal_win BOOLEAN,        -- TRUE if proposal_status = 'accepted'
+  high_risk_flags INTEGER,     -- Contract Shield high severity count
+  -- NO: user_id, client_name, contractor name, site address, project name
+)
+
+-- Rate benchmark — one row per estimate line item (anonymised)
+rate_benchmarks (
+  id, created_at,
+  trade_section TEXT,          -- e.g. 'Groundworks', 'Carpentry'
+  description TEXT,            -- line item description
+  unit TEXT,
+  sell_rate NUMERIC,           -- what contractor charged per unit
+  cost_rate NUMERIC,           -- actual cost per unit (from cost tracking, if available)
+  region TEXT,
+  postcode_district TEXT,
+  project_type TEXT,
+  -- NO: user_id, project_id, client details
+)
+
+-- Labour rate benchmark — what contractors actually pay vs cost library
+labour_benchmarks (
+  id, created_at,
+  trade TEXT,
+  role TEXT,
+  day_rate NUMERIC,            -- actual rate used on a project
+  region TEXT,
+  postcode_district TEXT,
+  -- NO: user_id
+)
+
+-- Programme benchmark — actual vs estimated per phase type
+programme_benchmarks (
+  id, created_at,
+  phase_name TEXT,             -- normalised: 'Groundworks', 'Steelwork', etc.
+  estimated_duration_weeks NUMERIC,
+  actual_duration_weeks NUMERIC,
+  project_type TEXT,
+  region TEXT,
+  contract_value_band TEXT,    -- '<50k', '50-150k', '150-500k', '>500k'
+  -- NO: user_id, project_id
+)
+```
+
+**Trigger pattern (fires on project status → 'closed'):**
+```sql
+CREATE OR REPLACE FUNCTION capture_project_benchmark()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.proposal_status = 'accepted' AND OLD.proposal_status != 'accepted' THEN
+    INSERT INTO project_benchmarks (...) VALUES (...);
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+**Regional intelligence:** As volume grows, rate benchmarks filtered by `region` + `postcode_district` give a genuinely accurate local market rate. London SE1 rates will differ from Manchester M1 rates. This is the data moat — no competitor has real transaction data at this granularity.
+
+**Legal note:** Before launching data aggregation, add a consent clause to the Terms of Service: "By using Constructa, you agree that anonymised, non-identifiable project data may be used to improve platform benchmarks and market intelligence." Standard SaaS practice, but must be explicit.
+
+---
+
+## CONSTRUCTA OWNER DASHBOARD (Admin Backend)
+
+### Overview
+A completely separate section of the app — `/admin/*` — locked to a specific admin email address or role. Uses the Supabase **service role key** (bypasses RLS) so it can query across all contractors. Never exposed to contractor-facing routes.
+
+**Auth pattern:** Admin check on every admin route:
+```typescript
+// In admin layout.tsx
+const ADMIN_EMAILS = ['robert@constructa.co']; // locked list, not a DB role
+const user = await supabase.auth.getUser();
+if (!ADMIN_EMAILS.includes(user.data.user?.email || '')) redirect('/dashboard');
+```
+
+### Admin Module 1 — Platform Analytics
+Real-time view of the SaaS business metrics.
+- [ ] MRR (Monthly Recurring Revenue): subscribers × plan rate
+- [ ] Subscriber count: total, by plan (Free/Pro/Business), growth trend
+- [ ] Churn: cancellations this month, churn rate %, at-risk accounts (inactive >30 days)
+- [ ] New signups: daily/weekly/monthly trend chart
+- [ ] DAU/MAU: daily and monthly active users (users who took an action)
+- [ ] Feature usage: which modules are being used most (proposals, estimates, Contract Shield, etc.)
+- [ ] Conversion: Free → Pro rate, trial-to-paid rate
+- [ ] Geographic spread: where are contractors? (map by postcode district)
+
+### Admin Module 2 — User Management
+- [ ] All contractors list: email, plan, joined date, last active, project count, proposal count
+- [ ] Search/filter by plan, region, trade type, activity
+- [ ] Individual contractor view: their usage summary (no access to their actual project data)
+- [ ] Manual plan override (for trials, support, partnerships)
+- [ ] Account suspension/deletion controls
+- [ ] Support notes: log contact history per contractor
+
+### Admin Module 3 — Data Intelligence Dashboard
+The platform intelligence layer — reads from aggregate tables only.
+- [ ] Rate benchmark explorer: filter by trade, region, project type → see median/P25/P75 sell rates
+- [ ] Regional rate map: choropleth map of the UK, colour-coded by average sell rates per trade
+- [ ] Win rate by price point: at what contract value do proposals get accepted? What's the sweet spot?
+- [ ] Programme accuracy: how reliable are estimated durations vs actuals? By project type?
+- [ ] Variation frequency: which project types generate the most variations? What causes them?
+- [ ] Margin distribution: what margins are contractors achieving? Where do they lose money?
+- [ ] Contract risk: which contract types generate the most high-severity flags?
+- [ ] Data volume tracking: how many benchmarks collected, by region, growth rate
+
+### Admin Module 4 — Content Management
+- [ ] System cost library editor: update/add/remove items in `cost_library_items` (is_system_default = true)
+- [ ] System labour rates editor: update rates in `labour_rates` (is_system_default = true) — add regional variants
+- [ ] Bulk rate update: apply a % uplift to all rates in a region (e.g. London +15%)
+- [ ] AI prompt management: view/edit the prompts used in Contract Shield, Brief AI, etc.
+- [ ] Email template management: edit transactional email templates
+
+### Admin Module 5 — Market Intelligence (the data product)
+The eventual sellable data layer. Reads from aggregate benchmark tables.
+- [ ] Benchmark reports by region: "South East Residential — Q1 2026 Rate Index"
+- [ ] Trade-specific rate cards: what's the market rate for groundworks in Manchester?
+- [ ] Seasonal trends: do rates spike in spring/summer?
+- [ ] Project type benchmarks: average cost/m² by project type and region
+- [ ] Export: CSV / PDF benchmark reports (for sale to developers, QSs, mortgage lenders)
+- [ ] API access tier: paid API for third parties to query benchmark data programmatically
+
+### Admin Module 6 — Platform Health & Monitoring
+- [ ] Vercel function error rate: flag if AI calls are failing
+- [ ] AI spend tracker: OpenAI API costs by day/month, cost per active user
+- [ ] Supabase usage: DB size, storage, bandwidth vs plan limits
+- [ ] Failed jobs: any background tasks or email sends that errored
+- [ ] Slow queries: flag DB queries taking >500ms
+
+---
+
+## Sprint 31 — Data Intelligence Foundation (BUILD BEFORE ADMIN DASHBOARD)
+Must be built before admin analytics are meaningful. No UI — pure backend.
+- [ ] Create `project_benchmarks`, `rate_benchmarks`, `labour_benchmarks`, `programme_benchmarks` tables
+- [ ] No RLS on these tables (service role access only)
+- [ ] Database trigger: fire on project status change → 'closed' → write anonymised snapshot
+- [ ] Server action: manually trigger benchmark capture when contractor runs Final Accounts
+- [ ] Add `postcode_district` extraction function (first 3-4 chars of postcode)
+- [ ] Regional tags: ensure every project gets a clean `region` value (South East, London, etc.)
+- [ ] Update Terms of Service with data aggregation consent clause
+- [ ] Validate: no PII in aggregate tables (test with sample data)
+
+## Sprint 32 — Constructa Admin Dashboard (Phase 1)
+- [ ] `/admin` route with email-based auth guard
+- [ ] Admin layout: separate sidebar from contractor dashboard
+- [ ] Module 1: Platform Analytics (MRR, subscribers, churn, MAU, feature usage)
+- [ ] Module 2: User Management (contractor list, search, plan management)
+- [ ] Module 6: Platform Health (AI costs, error rates, Supabase usage)
+
+## Sprint 33 — Constructa Admin Dashboard (Phase 2 — Data Intelligence)
+- [ ] Module 3: Data Intelligence Dashboard (reads from benchmark tables)
+- [ ] Regional rate map (choropleth — use a mapping library like react-simple-maps)
+- [ ] Module 4: Content Management (cost library editor, labour rate editor)
+- [ ] Module 5: Market Intelligence reports (first sellable data output)
 
 ### LONG-TERM VISION (V2+)
 - Native mobile app + site walkthrough voice wizard
@@ -657,6 +856,8 @@ Turns project data into business intelligence — the flywheel that improves eve
 - Financial infrastructure: escrow stage payments, contractor lending, client property finance
 - Accountancy integration
 - Staff financial products
+- **Data product:** Sell benchmark reports and API access to developers, QS firms, mortgage lenders, insurers
+- **Regional intelligence:** Real-time market rate feed — what's the going rate for a loft conversion in SE London this quarter?
 
 ---
 

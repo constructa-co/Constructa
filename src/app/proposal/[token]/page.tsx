@@ -10,7 +10,7 @@ export default async function ProposalAcceptancePage({ params }: { params: { tok
     // Fetch project by proposal_token — no auth required (public route)
     const { data: project } = await supabase
         .from("projects")
-        .select("id, name, client_name, potential_value, proposal_sent_at, proposal_accepted_at, proposal_accepted_by, user_id, scope_text, exclusions_text, payment_schedule, gantt_phases, project_type, start_date, site_address, client_address")
+        .select("id, name, client_name, potential_value, proposal_status, proposal_sent_at, proposal_accepted_at, proposal_accepted_by, user_id, scope_text, exclusions_text, payment_schedule, gantt_phases, project_type, start_date, site_address, client_address")
         .eq("proposal_token", token)
         .single();
 

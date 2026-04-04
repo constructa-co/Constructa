@@ -612,6 +612,7 @@ export default function ClientEditor({
     const completedCount = Object.values(checks).filter(Boolean).length;
 
     const profileComplete = !!(profile?.company_name);
+    const profileIncomplete = !profile?.company_name || !profile?.capability_statement || (profile?.capability_statement?.length || 0) < 30;
     const proposalStatus = project?.proposal_accepted_at ? "Accepted" : project?.proposal_sent_at ? "Sent" : "Draft";
 
     return (
@@ -1375,6 +1376,14 @@ export default function ClientEditor({
                         <Sparkles className="w-4 h-4" />
                         ✨ AI Assistant
                     </button>
+
+                    {/* Profile warning */}
+                    {profileIncomplete && (
+                        <div className="p-3 bg-amber-950/40 border border-amber-700/50 rounded-lg text-xs text-amber-300 flex items-center justify-between">
+                            <span>Your company profile looks incomplete — this may affect the quality of your proposal.</span>
+                            <Link href="/dashboard/settings/profile" className="underline font-medium ml-2 whitespace-nowrap">Update profile</Link>
+                        </div>
+                    )}
 
                     {/* PDF Button */}
                     <ProposalPdfButton project={liveProject} profile={profile} estimates={estimates} pricingMode={pricingMode} validityDays={validityDays} />

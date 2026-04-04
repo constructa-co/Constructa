@@ -85,7 +85,7 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
     const handlePostcodeLookup = async (postcode: string) => {
         if (!postcode || postcode.length < 5) return;
         try {
-            const cleanPostcode = postcode.replace(/\s+/g, '');
+            const cleanPostcode = postcode.replace(/\s+/g, '').toUpperCase();
             const res = await fetch(`https://api.postcodes.io/postcodes/${cleanPostcode}`);
             const data = await res.json();
             if (data.status === 200 && data.result) {
@@ -160,6 +160,11 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
                 scope,
                 selectedTrades
             );
+            if (!result) {
+                setSuggestResult({ success: false, message: 'Server error — please try again.' });
+                setSuggesting(false);
+                return;
+            }
             if (result.success) {
                 setSuggestResult({
                     success: true,

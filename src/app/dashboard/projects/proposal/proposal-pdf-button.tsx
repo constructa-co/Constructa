@@ -111,6 +111,16 @@ function formatGBP(n: number): string {
     return "\u00A3" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function splitAddress(address: string): string[] {
+    if (!address) return [];
+    return address
+        .replace(/([a-z])([A-Z])/g, '$1\n$2')
+        .replace(/,\s*/g, '\n')
+        .split('\n')
+        .map(s => s.trim())
+        .filter(Boolean);
+}
+
 function formatDate(d: Date): string {
     return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
@@ -504,11 +514,21 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         if (profile.vat_number) contactRows.push(["VAT Number", profile.vat_number]);
 
         if (contactRows.length > 0) {
+            // Pre-compute address lines for height calculation
+            const rowHeights = contactRows.map(([label, val]) => {
+                if (label === "Address") {
+                    const addrLines = splitAddress(val);
+                    return 9 + Math.max(0, (addrLines.length - 1) * 4);
+                }
+                const valLines = doc.splitTextToSize(val, rightW - 30);
+                return 9 + Math.max(0, (valLines.length - 1) * 4);
+            });
+            const totalBoxH = rowHeights.reduce((s, h) => s + h, 0) + 8;
             doc.setFillColor(...T.white);
-            doc.roundedRect(rightX, rightY, rightW, contactRows.length * 10 + 8, 3, 3, "F");
+            doc.roundedRect(rightX, rightY, rightW, totalBoxH, 3, 3, "F");
             doc.setDrawColor(...T.borderLight);
             doc.setLineWidth(0.3);
-            doc.roundedRect(rightX, rightY, rightW, contactRows.length * 10 + 8, 3, 3, "S");
+            doc.roundedRect(rightX, rightY, rightW, totalBoxH, 3, 3, "S");
             rightY += 7;
             contactRows.forEach(([label, val]) => {
                 doc.setFont("helvetica", "bold");
@@ -518,11 +538,19 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(8.5);
                 doc.setTextColor(...T.textDark);
-                const valLines = doc.splitTextToSize(val, rightW - 30);
-                valLines.forEach((vl: string, vi: number) => {
-                    doc.text(vl, rightX + 28, rightY + 4 + vi * 4);
-                });
-                rightY += 9 + Math.max(0, (valLines.length - 1) * 4);
+                if (label === "Address") {
+                    const addrLines = splitAddress(val);
+                    addrLines.forEach((line: string, i: number) => {
+                        doc.text(line, rightX + 28, rightY + 4 + i * 4);
+                    });
+                    rightY += 9 + Math.max(0, (addrLines.length - 1) * 4);
+                } else {
+                    const valLines = doc.splitTextToSize(val, rightW - 30);
+                    valLines.forEach((vl: string, vi: number) => {
+                        doc.text(vl, rightX + 28, rightY + 4 + vi * 4);
+                    });
+                    rightY += 9 + Math.max(0, (valLines.length - 1) * 4);
+                }
             });
             rightY += 6;
         }
@@ -568,6 +596,31 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             y = y + mdBoxH + 8;
         } else {
             y = Math.max(leftY, rightY) + 8;
+        }
+
+        // Fill whitespace with stat boxes if space available
+        if (y < 175 && y > 60) {
+            y += 15;
+            const stats = [
+                { label: 'YEARS EXPERIENCE', value: profile?.years_trading ? `${profile.years_trading}+` : '10+' },
+                { label: 'PROJECTS DELIVERED', value: '50+' },
+                { label: 'QUALITY ASSURED', value: 'Yes' },
+            ];
+            const boxW = (MR - ML - 10) / 3;
+            stats.forEach((stat, i) => {
+                const bx = ML + i * (boxW + 5);
+                doc.setFillColor(...T.primary);
+                doc.roundedRect(bx, y, boxW, 20, 2, 2, 'F');
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(18);
+                doc.setTextColor(...T.accent);
+                doc.text(stat.value, bx + boxW / 2, y + 12, { align: 'center' });
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(7);
+                doc.setTextColor(...T.muted);
+                doc.text(stat.label, bx + boxW / 2, y + 17, { align: 'center' });
+            });
+            y += 28;
         }
     }
 
@@ -1224,7 +1277,13 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
     // Check if there's space for timeline, if not add new page
     const programmePhasesRaw = project?.programme_phases || project?.gantt_phases || project?.timeline_phases || [];
-    const phases: any[] = Array.isArray(programmePhasesRaw) ? programmePhasesRaw : [];
+    const rawPhases: any[] = Array.isArray(programmePhasesRaw) ? programmePhasesRaw : [];
+    // Fallback: generate phases from brief_trade_sections if no phases exist
+    const phases: any[] = rawPhases.length > 0
+        ? rawPhases
+        : (project?.brief_trade_sections || []).map((trade: string, i: number) => ({
+            name: trade, duration_days: 14, color: Object.keys(GANTT_COLORS)[i % Object.keys(GANTT_COLORS).length],
+        }));
     if (phases.length > 0) {
         const ganttNeeded = 25 + phases.length * 11 + 15;
         y = ensureSpace(doc, y, ganttNeeded, companyName, docTitle, totalPagesRef, T);
@@ -1381,7 +1440,9 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     let termRightY = y;
 
     // Left column: Exclusions + Clarifications
-    if (project?.exclusions_text) {
+    const exclusionsText = project?.exclusions_text || project?.contract_exclusions || '';
+    const clarificationsText = project?.clarifications_text || project?.contract_clarifications || '';
+    if (exclusionsText) {
         doc.setFillColor(...T.primary);
         doc.rect(ML, termLeftY, halfW, 8, "F");
         doc.setFont("helvetica", "bold");
@@ -1390,7 +1451,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         doc.text("EXCLUSIONS", ML + 4, termLeftY + 5.5);
         termLeftY += 12;
 
-        const exclItems = project.exclusions_text.split("\n").filter((s: string) => s.trim());
+        const exclItems = exclusionsText.split("\n").filter((s: string) => s.trim());
         exclItems.forEach((item: string) => {
             const bulletLines = doc.splitTextToSize(`-  ${item.trim()}`, halfW - 6);
             doc.setFont("helvetica", "normal");
@@ -1401,7 +1462,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         });
     }
 
-    if (project?.clarifications_text) {
+    if (clarificationsText) {
         termLeftY += 10;
         doc.setFillColor(...T.primary);
         doc.rect(ML, termLeftY, halfW, 8, "F");
@@ -1411,7 +1472,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         doc.text("CLARIFICATIONS", ML + 4, termLeftY + 5.5);
         termLeftY += 12;
 
-        const clarItems = project.clarifications_text.split("\n").filter((s: string) => s.trim());
+        const clarItems = clarificationsText.split("\n").filter((s: string) => s.trim());
         clarItems.forEach((item: string) => {
             const bulletLines = doc.splitTextToSize(`-  ${item.trim()}`, halfW - 6);
             doc.setFont("helvetica", "normal");
@@ -1544,13 +1605,15 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     }
 
     // ─── Closing Statement ──────────────────────────────────────
-    if (project?.closing_statement) {
+    const closingText = project?.closing_statement ||
+        `Thank you for considering ${companyName} for this project. We are confident our expertise and commitment to quality make us the right choice. We look forward to delivering an outstanding result for you.`;
+    {
         y = ensureSpace(doc, y, 30, companyName, docTitle, totalPagesRef, T);
         y += 6;
         doc.setFont("helvetica", "italic");
         doc.setFontSize(10);
         doc.setTextColor(...T.textDark);
-        const closingLines = doc.splitTextToSize(sanitiseText(project.closing_statement), CW);
+        const closingLines = doc.splitTextToSize(sanitiseText(closingText), CW);
         doc.text(closingLines, ML, y);
         y += closingLines.length * 5.5 + 10;
     }
@@ -1558,28 +1621,28 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     // ═══════════════════════════════════════════════════════════
     // WHY CHOOSE US / CLOSING STATEMENT PAGE
     // ═══════════════════════════════════════════════════════════
-    if (profile?.closing_statement || profile?.md_name) {
+    {
         doc.addPage();
         totalPagesRef.n++;
         y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef, T);
         y = renderSectionHeading(doc, y, `Why Choose ${companyName}`, T);
 
         if (profile?.closing_statement) {
-            const closingText = sanitiseText(profile.closing_statement);
+            const profileClosingText = sanitiseText(profile.closing_statement);
             doc.setFont("helvetica", "normal");
             doc.setFontSize(11);
             doc.setTextColor(...T.textDark);
-            const closingLines = doc.splitTextToSize(closingText, CW - 10);
-            doc.text(closingLines, ML + 5, y);
-            y += closingLines.length * 6 + 12;
+            const profileClosingLines = doc.splitTextToSize(profileClosingText, CW - 10);
+            doc.text(profileClosingLines, ML + 5, y);
+            y += profileClosingLines.length * 6 + 12;
         }
 
         // Key reasons box
         const reasons: string[] = [];
-        if (profile.years_trading) reasons.push(`${profile.years_trading}+ years of experience`);
-        if (profile.accreditations) reasons.push(`Accredited: ${profile.accreditations.split(/[,\n]/)[0].trim()}`);
-        if (profile.insurance_details) reasons.push("Fully insured");
-        if (profile.specialisms) reasons.push(`Specialists in ${profile.specialisms.split(/[,\n]/)[0].trim()}`);
+        if (profile?.years_trading) reasons.push(`${profile.years_trading}+ years of experience`);
+        if (profile?.accreditations) reasons.push(`Accredited: ${profile.accreditations.split(/[,\n]/)[0].trim()}`);
+        if (profile?.insurance_details) reasons.push("Fully insured");
+        if (profile?.specialisms) reasons.push(`Specialists in ${profile.specialisms.split(/[,\n]/)[0].trim()}`);
 
         if (reasons.length > 0) {
             doc.setFillColor(...T.surface);
@@ -1619,7 +1682,7 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         }
 
         // MD sign-off
-        if (profile.md_name) {
+        if (profile?.md_name) {
             y += 8;
             doc.setFont("helvetica", "italic");
             doc.setFontSize(10);
@@ -1658,14 +1721,14 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.setTextColor(...T.textMid);
-    doc.text("CONTRACT VALUE", ML + 6, y + 8);
+    doc.text("TOTAL INC. VAT", ML + 6, y + 8);
     doc.text("PROPOSED START", sumCol2 + 3, y + 8);
     doc.text("VALID UNTIL", sumCol3 + 3, y + 8);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
     doc.setTextColor(...T.textDark);
-    doc.text(displayTotal > 0 ? formatGBP(displayTotal) : "TBC", ML + 6, y + 21);
+    doc.text(displayTotal > 0 ? formatGBP(displayTotal * 1.2) : "TBC", ML + 6, y + 21);
 
     doc.setFontSize(11);
     doc.text(

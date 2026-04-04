@@ -55,7 +55,7 @@ export default function AcceptanceClient({
     const ganttPhases: any[] = project?.gantt_phases || [];
     const scopeText: string = project?.scope_text || "";
     const exclusionsText: string = project?.exclusions_text || "";
-    const scopePreview = scopeText.length > 300 ? scopeText.substring(0, 300) + "..." : scopeText;
+    const scopePreview = scopeText;
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -138,10 +138,7 @@ export default function AcceptanceClient({
                 {scopePreview && (
                     <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
                         <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-3">Scope of Works</h2>
-                        <p className="text-slate-300 text-sm leading-relaxed">{scopePreview}</p>
-                        {scopeText.length > 300 && (
-                            <p className="text-xs text-slate-500 mt-3 italic">Full scope included in the proposal document.</p>
-                        )}
+                        <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">{scopePreview}</p>
                     </div>
                 )}
 

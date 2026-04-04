@@ -271,9 +271,10 @@ export async function structureClientContractAction(
             .trim();
         if (!cleanText) return { clauses: [], error: "Contract text is empty." };
 
-        // Use up to 30k chars — enough for most contracts
-        const excerpt = cleanText.length > 30000
-            ? cleanText.substring(0, 15000) + "\n\n[...middle section omitted...]\n\n" + cleanText.substring(cleanText.length - 15000)
+        // Cap at 20k chars to keep AI response time well within Vercel's 60s limit.
+        // 20k chars ≈ 5k tokens input — fast enough even on cold starts.
+        const excerpt = cleanText.length > 20000
+            ? cleanText.substring(0, 10000) + "\n\n[...middle section omitted...]\n\n" + cleanText.substring(cleanText.length - 10000)
             : cleanText;
 
         const highMedFlags = flags.filter(f => f.severity === "high" || f.severity === "medium");
@@ -291,21 +292,24 @@ export async function structureClientContractAction(
         }> }>(
             `You are advising a UK SME contractor reviewing a client contract.
 
-Parse the key commercial clauses and for each one recommend Accept, Modify, or Reject.
+Extract the key commercial clauses and for each one recommend Accept, Modify, or Reject.
 
-Focus on: payment terms, completion dates, liability, insurance, defects/retention, termination, variations, design responsibility, dispute resolution. Ignore purely administrative or definitional clauses.
-Identify 8-12 key clauses only.
+IMPORTANT: Contracts vary in format. Some use numbered clauses (1.1, 2.3), some use headings, some use plain paragraphs. Whatever the format, identify the 8-12 most commercially significant sections covering:
+payment terms, completion dates, liability, insurance, defects/retention, termination, variations, design responsibility, and dispute resolution.
+
+If the document has no clear clause structure, treat each distinct topic or paragraph as a clause.
+Always return at least some clauses — even informal agreements have commercial terms.
 
 Known contract risks to address:
 ${flagSummary || "None identified — apply standard UK contractor protections."}
 
 For each clause return:
-- clauseRef: clause number or heading (e.g. "3.1", "Clause 5", "Payment Terms")
+- clauseRef: clause number, heading, or a short label if unstructured (e.g. "3.1", "Payment", "Para 4")
 - title: short plain English title
-- original: first 120 characters of the clause text, ending with "..." if truncated
+- original: first 120 characters of the clause text, ending with "..." if longer
 - flagged: true if this clause relates to a known risk listed above
 - status: "accepted" | "modified" | "rejected"
-- proposed: contractor-friendly alternative wording (1-2 sentences max, empty string if accepted)
+- proposed: contractor-friendly alternative wording (1-2 sentences, empty string if accepted)
 - reason: plain English explanation of why modified/rejected (empty string if accepted)
 
 Use "rejected" ONLY for illegal or grossly onerous clauses (pay-when-paid, unlimited liability, fitness-for-purpose).
@@ -318,8 +322,10 @@ Contract text:
 ${excerpt}`
         );
 
+        console.log("structureClientContractAction result:", JSON.stringify(result).substring(0, 500));
+
         if (!result?.clauses?.length) {
-            return { clauses: [], error: "AI could not identify clauses. Ensure this is a real contract document with numbered clauses or clear section headings." };
+            return { clauses: [], error: `AI returned no clauses (response: ${JSON.stringify(result).substring(0, 200)}). The document may not contain recognisable contract terms.` };
         }
 
         const clauses = result.clauses.map((c: any) => ({

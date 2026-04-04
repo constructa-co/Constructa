@@ -4,6 +4,7 @@ import ProjectNavBar from "@/components/project-navbar";
 import ClientContractEditor from "./client-contract-editor";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60; // extend Vercel function timeout for AI calls (Pro plan: up to 60s)
 
 export default async function ContractsPage({ searchParams }: { searchParams: { projectId: string } }) {
     const supabase = createClient();

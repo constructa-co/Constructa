@@ -18,10 +18,10 @@ export async function extractContractTextAction(storagePath: string): Promise<{ 
         const buffer = Buffer.from(arrayBuffer);
 
         if (ext === "pdf") {
-            // Dynamic import keeps pdf-parse out of the client bundle.
-            // pdf-parse exports via CJS so we access the module itself as the callable.
+            // pdf-parse is listed in serverExternalPackages so webpack won't bundle it.
+            // The module's CJS default is the callable function itself.
             // eslint-disable-next-line @typescript-eslint/no-require-imports
-            const pdfParse: (buf: Buffer) => Promise<{ text: string }> = require("pdf-parse");
+            const pdfParse = require("pdf-parse") as (buf: Buffer) => Promise<{ text: string }>;
             const parsed = await pdfParse(buffer);
             if (!parsed.text?.trim()) return { text: "", error: "No readable text found in PDF — try a text-based PDF rather than a scanned image." };
             return { text: parsed.text.trim() };

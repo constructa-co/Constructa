@@ -475,24 +475,78 @@ CREATE POLICY "Users manage own contracts" ON storage.objects FOR ALL TO authent
 - [ ] Over-budget alert when costs exceed estimate section by >10%
 - [ ] Margin-at-completion forecast from spend-to-date rate
 
-### Sprint 16 — Proposal Versioning
+### Sprint 15 — UI/UX Consistency Pass — HIGH PRIORITY
+**Problem:** Overview and Contracts pages look excellent (dark theme, hero sections, clear hierarchy).
+The other sections (Brief, Estimating, Programme, Proposal editor, Profile, Resources) are inconsistent —
+different card styles, lighter themes, missing hero branding, no section identity.
+Every page should feel as considered and polished as Contract Shield.
+
+**Scope:**
+- [ ] Audit every dashboard page against the Contracts/Overview benchmark
+- [ ] Consistent dark-slate base: `bg-slate-900` page, `bg-slate-800/50` cards, `border-slate-700`
+- [ ] Every major section gets a hero/identity block (icon + title + subtitle + AI badge where applicable)
+- [ ] Tab bars, button styles, input styles unified across all pages
+- [ ] Typography scale consistent — headings, labels, helper text all matching
+- [ ] Empty states: every list/table has a proper empty state (not just blank space)
+- [ ] Loading states: spinners and skeleton screens where AI calls take time
+- [ ] Mobile: at minimum, nothing should be broken on a phone (full responsive is later)
+
+**Priority pages (worst offenders first):**
+1. Brief — functional but plain, no identity, chat interface feels disconnected
+2. Estimating (Costs) — dense table works but styling is dated vs the rest
+3. Programme — Gantt looks reasonable but surrounding chrome is inconsistent
+4. Company Profile / Settings — important for first impression, currently feels like a form dump
+5. Proposal editor — the most client-facing output; needs the most polish
+
+### Sprint 16 — Pre-Construction Workflow Refinement
+**Problem:** The 5-step workflow functions but doesn't flow correctly end-to-end.
+Information entered in earlier steps doesn't reliably pull through to the Proposal.
+Some proposal sections are missing or incomplete. The standard needs to match Contract Shield quality.
+
+**Scope:**
+- [ ] **Brief → Proposal:** Audit what scope data flows through and what gets lost
+- [ ] **Estimate → Proposal PDF:** Verify all section totals, line items, payment schedule render correctly
+- [ ] **Programme → Proposal PDF:** Gantt page — confirm programme_phases always renders, fallback works
+- [ ] **Contracts → Proposal PDF:** T&C tier, exclusions, clarifications, risk register all appearing correctly
+- [ ] **Profile → Proposal PDF:** Logo, capability statement, MD message, case studies — all tested end-to-end
+- [ ] **Proposal editor UX:** Section-by-section review — what's editable, what's auto-populated, what's missing
+- [ ] **Missing proposal sections:** Identify any planned sections that aren't rendering and fix
+- [ ] Full end-to-end test: create a new project, complete all 5 steps, generate PDF — document any gaps
+- [ ] AI suggestions throughout: each step should have AI assistance as capable as Brief/Contracts already do
+
+### Sprint 17 — Gantt Drag-and-Drop & Programme Polish
+**Elevated from deprioritised — important to product quality.**
+The Programme tab is a core part of the pre-construction workflow and contractors expect
+to be able to adjust their programme interactively, not just via number inputs.
+
+- [ ] Drag bars left/right to adjust start offset (sequencing)
+- [ ] Drag right edge to resize duration
+- [ ] Dependencies: simple Finish-to-Start linking between phases (visual connector lines)
+- [ ] Snap to week grid
+- [ ] Keyboard accessibility (arrow keys to nudge)
+- [ ] "Critical path" highlight — identify the longest chain
+- [ ] Programme summary: total duration, key milestones, auto-updated on drag
+- [ ] Export to PDF reflects drag-adjusted programme (reads programme_phases)
+
+### Sprint 18 — Proposal Versioning
 - [ ] Up-rev proposals (v1, v2, v3) with change tracking
 - [ ] Discount feature already built — versioning enables tracking discounts per revision
+- [ ] Show diff between versions (what changed in scope/price)
 
-### Sprint 17 — Billing Module Polish
+### Sprint 19 — Billing Module Polish
 - [ ] Already functionally built — needs connecting to payment stages from Proposal
 - [ ] Programme → Billing milestone automation (phases → payment schedule)
 
-### Sprint 18 — Vision Takeoff Promotion
-- [ ] Wired into Brief tab as a primary workflow option
+### Sprint 20 — Vision Takeoff Promotion
+- [ ] Wired into Brief tab as a primary workflow option (not hidden)
 - [ ] Demo on marketing site hero section
-- [ ] Library rate matching already built
+- [ ] Library rate matching already built — just needs surfacing
 
 ### DEPRIORITISED (post-launch with real user data)
-- Gantt drag-and-drop / SS-FS dependencies
-- Mobile responsive pass
+- Mobile responsive full pass (Sprint 15 prevents breakage; full pass later)
 - Regional pricing intelligence (needs real transaction data first)
 - Voice-to-proposal wizard
+- SS-FS Gantt dependencies beyond Sprint 17 scope
 
 ### LONG-TERM VISION (V2+)
 - Native mobile app + site walkthrough voice wizard

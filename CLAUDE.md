@@ -316,6 +316,28 @@ Chrome popup blocker intercepts the new tab, so PDFs download silently rather th
 
 ---
 
+## Session Work Log (April 4)
+
+### Claude Code session — evening (commits a8d6511, 0b94254, 6e10445)
+
+**PDF theme fix (a8d6511):** `ProposalPdfButton` now fetches fresh profile from Supabase at click-time so pdf_theme is always current. Root cause: server-rendered prop was stale when theme changed in another tab without page refresh.
+
+**BUG-001 fixed (6e10445):** Removed duplicate `md_name` input from `profile-form.tsx`. Was at ~line 615 in capability section. Canonical field is in "Managing Director Message" section (~line 753).
+
+**BUG-003 diagnosis:** Not a code bug — profile has "Tripod Construction Ltd" as company_name from test data. The banner code is correct (`profile.company_name`). Change via Profile settings.
+
+**BUG-004 diagnosis:** jsPDF `doc.save()` already uses direct download. No `window.open()` call exists. PDF downloads silently to ~/Downloads because Chrome does not auto-open PDFs — expected behaviour.
+
+**Command centre rebuilt (6e10445):** `/dashboard/home` now dark-themed with:
+- 4-KPI strip (Pipeline Value, Active Projects, Outstanding, Win Rate 90d)
+- Company Profile card with progress bar + missing field hints
+- 4 section cards (Work Winning, Pre-Construction, Live Projects, Closed Projects)
+- Activity feed: colour-coded dots + status pills per proposal_status
+- Expiring proposals alert (proposals within 5d of validity date)
+- Quick actions footer strip
+
+---
+
 ## PDF Fixes Applied (April 4 — commit d833388 + a8d6511)
 
 1. **Gantt dedicated page** — Gantt chart always gets its own full page (`doc.addPage()`). Previously shared a page with Fee Proposal and was squeezed. Row height 11→13mm, header 14→16mm, label col 55→60mm, max weeks 20→26.
@@ -326,11 +348,11 @@ Chrome popup blocker intercepts the new tab, so PDFs download silently rather th
 
 ## Sprint Backlog (priority order)
 
-### IMMEDIATE — Bug fixes (do these first)
-- [ ] **BUG-001** Fix duplicate `md_name` input in profile-form.tsx line 615
-- [ ] **BUG-003** Investigate and fix wrong company name ("Tripod Construction Ltd") in proposal editor banner
-- [ ] **BUG-004** Fix PDF download to use `<a download>` instead of `window.open()` (popup blocker bypass)
-- [ ] **BUG-002** Add "link not active yet" UX when proposal_token not generated
+### IMMEDIATE — Bug fixes
+- [x] **BUG-001** ~~Fix duplicate `md_name` input~~ — done (6e10445)
+- [x] **BUG-003** ~~Wrong company name~~ — not a code bug, data issue; profile has "Tripod Construction Ltd" from test data
+- [x] **BUG-004** ~~Fix PDF download~~ — not applicable; jsPDF `doc.save()` already uses direct download
+- [ ] **BUG-002** Add "link not active yet" UX when proposal_token not generated (low priority)
 
 ### Sprint 12 — Close the Loop (NEXT after bugs)
 - [ ] Viewed tracking — notify contractor when client opens the proposal link

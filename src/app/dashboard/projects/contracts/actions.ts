@@ -256,11 +256,12 @@ export async function contractChatAction(message: string, contractContext: {
 }
 
 // ── Parse Client Contract into Clauses ──────────────────
-// Two-pass approach: (1) parse structure + original text, (2) suggest amendments
+// Single-pass approach: parse structure + suggest amendments in one AI call.
+// (Two-pass was too slow — sequential calls risked Vercel function timeouts.)
 export async function structureClientContractAction(
     contractText: string,
     flags: Array<{ clause: string; description: string; severity: string; recommendation: string }>
-): Promise<{ clauses: Array<{ id: string; clauseRef: string; title: string; original: string; proposed: string; status: "accepted" | "modified" | "rejected"; reason: string; flagged: boolean }> }> {
+): Promise<{ clauses: Array<{ id: string; clauseRef: string; title: string; original: string; proposed: string; status: "accepted" | "modified" | "rejected"; reason: string; flagged: boolean }>; error?: string }> {
     try {
         // Sanitise: remove control chars but PRESERVE newlines — clause structure depends on them
         const cleanText = contractText
@@ -268,83 +269,75 @@ export async function structureClientContractAction(
             .replace(/[^\S\n]+/g, " ")                              // normalise spaces/tabs, keep newlines
             .replace(/\n{4,}/g, "\n\n\n")                           // collapse excessive blank lines
             .trim();
-        if (!cleanText) return { clauses: [], error: "Contract text is empty." } as any;
+        if (!cleanText) return { clauses: [], error: "Contract text is empty." };
 
         // Use up to 30k chars — enough for most contracts
         const excerpt = cleanText.length > 30000
             ? cleanText.substring(0, 15000) + "\n\n[...middle section omitted...]\n\n" + cleanText.substring(cleanText.length - 15000)
             : cleanText;
 
-        // ── Pass 1: Parse into clauses (structure + short original excerpt only) ──
-        const parseResult = await generateJSON<{ clauses: Array<{ clauseRef: string; title: string; original: string }> }>(
-            `Parse this UK construction contract into its key commercial clauses.
-
-Focus on: payment, completion dates, liability, insurance, defects, retention, termination, variations, design responsibility, dispute resolution. Skip purely administrative/definitional text.
-
-For each clause return:
-- clauseRef: clause number or heading reference (e.g. "3.1", "Clause 5", "Payment")
-- title: short plain English title (e.g. "Payment Terms")
-- original: first 200 chars of the clause text, truncated with "..." if longer
-
-Aim for 8-20 clauses. Return ONLY JSON: { "clauses": [{ "clauseRef": "", "title": "", "original": "" }] }
-
-Contract:
-${excerpt}`
-        );
-
-        if (!parseResult?.clauses?.length) {
-            return { clauses: [], error: "AI could not identify clauses in this contract. Ensure it is a real contract document." } as any;
-        }
-
-        // ── Pass 2: For each clause, determine if flagged and suggest amendments ──
         const highMedFlags = flags.filter(f => f.severity === "high" || f.severity === "medium");
         const flagSummary = highMedFlags.map(f => `"${f.clause}": ${f.recommendation}`).join("; ");
 
-        const amendResult = await generateJSON<{ amendments: Array<{ clauseRef: string; flagged: boolean; status: string; proposed: string; reason: string }> }>(
-            `You are advising a UK contractor on which clauses in a client contract to accept, modify, or reject.
+        // ── Single pass: parse clauses + recommend amendments in one call ──
+        const result = await generateJSON<{ clauses: Array<{
+            clauseRef: string;
+            title: string;
+            original: string;
+            flagged: boolean;
+            status: string;
+            proposed: string;
+            reason: string;
+        }> }>(
+            `You are advising a UK SME contractor reviewing a client contract.
 
-Clauses to review:
-${parseResult.clauses.map(c => `${c.clauseRef} — ${c.title}: ${c.original}`).join("\n")}
+Parse the key commercial clauses and for each one recommend Accept, Modify, or Reject.
 
-Known risks from contract review (address these in your amendments):
-${flagSummary || "No specific risks — use standard UK contractor protections."}
+Focus on: payment terms, completion dates, liability, insurance, defects/retention, termination, variations, design responsibility, dispute resolution. Ignore purely administrative or definitional clauses.
+Identify 8-12 key clauses only.
 
-For each clauseRef return:
-- clauseRef: must match exactly
-- flagged: true if related to a known risk above
+Known contract risks to address:
+${flagSummary || "None identified — apply standard UK contractor protections."}
+
+For each clause return:
+- clauseRef: clause number or heading (e.g. "3.1", "Clause 5", "Payment Terms")
+- title: short plain English title
+- original: first 120 characters of the clause text, ending with "..." if truncated
+- flagged: true if this clause relates to a known risk listed above
 - status: "accepted" | "modified" | "rejected"
-- proposed: contractor-friendly alternative (brief, 1-3 sentences) — empty string if accepted
-- reason: plain English explanation — empty string if accepted
+- proposed: contractor-friendly alternative wording (1-2 sentences max, empty string if accepted)
+- reason: plain English explanation of why modified/rejected (empty string if accepted)
 
-"rejected" only for illegal or highly onerous clauses (pay-when-paid, unlimited liability, fitness for purpose).
+Use "rejected" ONLY for illegal or grossly onerous clauses (pay-when-paid, unlimited liability, fitness-for-purpose).
 Most clauses should be "accepted" or "modified".
 
-Return ONLY JSON: { "amendments": [{ "clauseRef": "", "flagged": false, "status": "accepted", "proposed": "", "reason": "" }] }`
+Return ONLY valid JSON — no markdown, no explanation:
+{ "clauses": [{ "clauseRef": "", "title": "", "original": "", "flagged": false, "status": "accepted", "proposed": "", "reason": "" }] }
+
+Contract text:
+${excerpt}`
         );
 
-        // Merge parse + amendment results
-        const amendMap = new Map((amendResult?.amendments || []).map((a: any) => [a.clauseRef, a]));
+        if (!result?.clauses?.length) {
+            return { clauses: [], error: "AI could not identify clauses. Ensure this is a real contract document with numbered clauses or clear section headings." };
+        }
 
-        const clauses = parseResult.clauses.map((c: any) => {
-            const amend = amendMap.get(c.clauseRef) || {};
-            const status = (["accepted", "modified", "rejected"].includes(amend.status) ? amend.status : "accepted") as "accepted" | "modified" | "rejected";
-            return {
-                id: Math.random().toString(36).substring(2, 11),
-                clauseRef: c.clauseRef || "",
-                title: c.title || "Untitled",
-                original: c.original || "",
-                proposed: amend.proposed || "",
-                status,
-                reason: amend.reason || "",
-                flagged: !!amend.flagged,
-            };
-        });
+        const clauses = result.clauses.map((c: any) => ({
+            id: Math.random().toString(36).substring(2, 11),
+            clauseRef: c.clauseRef || "",
+            title: c.title || "Untitled",
+            original: c.original || "",
+            proposed: c.proposed || "",
+            status: (["accepted", "modified", "rejected"].includes(c.status) ? c.status : "accepted") as "accepted" | "modified" | "rejected",
+            reason: c.reason || "",
+            flagged: !!c.flagged,
+        }));
 
         return { clauses };
     } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
         console.error("structureClientContractAction error:", msg);
-        return { clauses: [], error: msg } as any;
+        return { clauses: [], error: msg || "Unknown error during contract parsing." };
     }
 }
 

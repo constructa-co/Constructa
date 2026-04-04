@@ -468,6 +468,34 @@ CREATE POLICY "Users manage own contracts" ON storage.objects FOR ALL TO authent
   - Root cause: two sequential AI calls timing out → single-pass fix pushed
   - If still failing next session: check Vercel function logs, consider adding `export const maxDuration = 60` to the contracts page
 
+---
+
+## GO-TO-MARKET RELEASE STRATEGY
+
+### What's Already Viable to Charge For (Now)
+The pre-construction workflow is complete enough to sell:
+- AI Brief + Scope → Estimate (full BoQ with rate build-up) → Programme (Gantt) → Contract Shield → Proposal PDF + Client Portal
+- This solves "Dave" pain points 4 and 5 (pricing time and proposal quality) completely
+- Could launch with a waitlist / beta cohort today on the existing codebase
+
+### Batch 1 — Launch Ready (Sprints 14–16 + Admin Phase 1)
+Polish to a standard worthy of charging money, plus the minimum admin visibility to operate the business.
+Target: ~4 sprints from now.
+
+### Batch 2 — Live Projects (Sprints 21–26)
+The "making money mid-job" module. This is what makes contractors sticky and daily-active.
+Target: 3–4 months post-Batch 1.
+
+### Batch 3 — Closed Projects + Accounts Integration (Sprints 27–30, 34–37)
+Project closure, handover, lessons learned, Xero/Sage sync.
+Target: 6–9 months post-Batch 1. Some contractors won't need this until Batch 2 is embedded.
+
+### Data Intelligence (Sprint 31 + Admin Phase 2)
+Meaningful only with contractor volume — 200+ active projects generating benchmarks.
+Target: build Sprint 31 triggers early (low effort), Admin Phase 2 dashboard when data warrants it.
+
+---
+
 ### Sprint 14 — Job P&L Dashboard — NEXT SPRINT
 - [ ] Live project margin: original estimate vs actual costs logged
 - [ ] Which jobs are making money — the #1 question for "Dave"
@@ -514,7 +542,30 @@ Some proposal sections are missing or incomplete. The standard needs to match Co
 - [ ] Full end-to-end test: create a new project, complete all 5 steps, generate PDF — document any gaps
 - [ ] AI suggestions throughout: each step should have AI assistance as capable as Brief/Contracts already do
 
-### Sprint 17 — Gantt Drag-and-Drop & Programme Polish
+### Sprint 17 — Constructa Admin Dashboard: Phase 1 (MOVED FORWARD)
+**Rationale:** As soon as the first paying contractor signs up, you need operational visibility.
+Without this, you cannot see who is using the platform, whether it's working, or what your revenue is.
+This is not a contractor feature — it's the minimum needed to run Constructa as a business.
+It is relatively quick to build: a protected route reading from existing tables via service role key.
+
+**What's in Phase 1 (lean — only what's operationally essential):**
+- [ ] `/admin` route: email-guard (ADMIN_EMAILS list), separate layout and sidebar
+- [ ] Uses `SUPABASE_SERVICE_ROLE_KEY` env var (already in Vercel) — bypasses RLS for cross-contractor queries
+- [ ] **Your revenue:** Subscriber count by plan, MRR estimate (manual plan × rate until Stripe integrated), new signups trend
+- [ ] **Your costs:** Log Vercel/Supabase/OpenAI/Resend monthly invoices → gross margin estimate
+- [ ] **Who's using it:** Contractor list — email, plan, joined date, last active, project count, proposals sent
+- [ ] **Is it working:** AI error rate (count of failed generateJSON calls logged), recent Vercel errors, Supabase DB size vs limit
+- [ ] **Usage heatmap:** Which features are being used and how often (count actions per module per day)
+- [ ] **At-risk accounts:** Paying subscribers inactive >21 days (churn predictor — act before they cancel)
+- [ ] Basic user actions: manually set plan, add note, mark for follow-up
+
+**What's NOT in Phase 1 (comes later when data warrants it):**
+- Data intelligence / benchmark explorer (needs Sprint 31 + contractor volume)
+- Market intelligence reports
+- Accounting integration
+- Sophisticated LTV/CAC analysis (needs more data history)
+
+### Sprint 18 — Gantt Drag-and-Drop & Programme Polish
 **Elevated from deprioritised — important to product quality.**
 The Programme tab is a core part of the pre-construction workflow and contractors expect
 to be able to adjust their programme interactively, not just via number inputs.
@@ -528,28 +579,31 @@ to be able to adjust their programme interactively, not just via number inputs.
 - [ ] Programme summary: total duration, key milestones, auto-updated on drag
 - [ ] Export to PDF reflects drag-adjusted programme (reads programme_phases)
 
-### Sprint 18 — Proposal Versioning
+### Sprint 19 — Proposal Versioning
 - [ ] Up-rev proposals (v1, v2, v3) with change tracking
 - [ ] Discount feature already built — versioning enables tracking discounts per revision
 - [ ] Show diff between versions (what changed in scope/price)
 
-### Sprint 19 — Billing Module Polish
+### Sprint 20 — Billing Module Polish
 - [ ] Already functionally built — needs connecting to payment stages from Proposal
 - [ ] Programme → Billing milestone automation (phases → payment schedule)
 
-### Sprint 20 — Vision Takeoff Promotion
+### Sprint 21 — Vision Takeoff Promotion
 - [ ] Wired into Brief tab as a primary workflow option (not hidden)
 - [ ] Demo on marketing site hero section
 - [ ] Library rate matching already built — just needs surfacing
 
+--- BATCH 1 COMPLETE — LAUNCH POINT ---
+
 ---
 
-## LIVE PROJECTS MODULE (Sprints 21–26)
-> All currently showing "Coming Soon" in sidebar. These are the post-contract delivery phase.
+## BATCH 2 — LIVE PROJECTS MODULE (Sprints 22–27)
+> All currently showing "Coming Soon" in sidebar. Post-contract delivery phase.
 > This is the module that solves Dave's #1 pain point: not knowing if he's making money mid-job.
 > Sequencing note: Sprint 14 (P&L) lays the data foundations these sprints build on.
+> Target: release as a batch ~3 months after Batch 1 launch.
 
-### Sprint 21 — Live Projects: Overview
+### Sprint 22 — Live Projects: Overview
 The command centre for a project once it's on site. Replaces the "Coming Soon" placeholder.
 - [ ] Project health dashboard: budget RAG status, programme % complete, outstanding invoices
 - [ ] Key dates strip: start date, planned completion, weeks remaining, any EOT claimed
@@ -557,7 +611,7 @@ The command centre for a project once it's on site. Replaces the "Coming Soon" p
 - [ ] Links to all Live Projects sub-modules from one screen
 - [ ] Status banner: on programme / at risk / delayed (AI-suggested based on data)
 
-### Sprint 22 — Live Projects: Cost Tracking
+### Sprint 23 — Live Projects: Cost Tracking
 Connects to the estimate — tracks actual spend vs budget in real time.
 - [ ] Log actual costs against estimate trade sections (labour, plant, materials per section)
 - [ ] Budget vs actual bar chart per trade section
@@ -567,7 +621,7 @@ Connects to the estimate — tracks actual spend vs budget in real time.
 - [ ] Cost approval workflow: costs above a threshold require confirmation before logging
 - [ ] Links to billing module so invoiced amounts net off costs automatically
 
-### Sprint 23 — Live Projects: Billing & Valuations
+### Sprint 24 — Live Projects: Billing & Valuations
 Currently functionally built — needs polish, connection to proposal, and live data wiring.
 - [ ] Payment schedule pulled from Proposal (milestone or % stage payments)
 - [ ] Application for Payment form: cumulative valuation, retention calc, net amount due
@@ -576,7 +630,7 @@ Currently functionally built — needs polish, connection to proposal, and live 
 - [ ] Retention ledger: amount held, release dates (practical completion + defects)
 - [ ] PDF: formal Application for Payment document matching Constructa brand standard
 
-### Sprint 24 — Live Projects: Variations
+### Sprint 25 — Live Projects: Variations
 Currently functionally built — needs polish and proper workflow.
 - [ ] Raise variation: scope description, reason (client instruction / design change / unforeseen)
 - [ ] Pricing: pulls from cost library / rate buildups / manual entry
@@ -586,7 +640,7 @@ Currently functionally built — needs polish and proper workflow.
 - [ ] Incorporation into Final Account automatically
 - [ ] PDF: formal Variation Order document
 
-### Sprint 25 — Live Projects: Programme (Live Tracking)
+### Sprint 26 — Live Projects: Programme (Live Tracking)
 Separate from the pre-construction Programme tab — this tracks actual vs planned on site.
 - [ ] Planned vs actual Gantt: original programme bars vs actual progress bars
 - [ ] % complete per phase (contractor updates weekly)
@@ -595,7 +649,7 @@ Separate from the pre-construction Programme tab — this tracks actual vs plann
 - [ ] Early warning notices: flag delays before they become disputes
 - [ ] Programme narrative: AI-drafted weekly site update text based on % complete inputs
 
-### Sprint 26 — Live Projects: Communications
+### Sprint 27 — Live Projects: Communications
 Formal construction communication log — critical for dispute avoidance.
 - [ ] Site instruction log: numbered, dated, description, issued by
 - [ ] RFI (Request for Information) tracker: raised, responded, outstanding
@@ -604,13 +658,14 @@ Formal construction communication log — critical for dispute avoidance.
 - [ ] Document register: upload and tag site photos, drawings, reports to the project
 - [ ] All communications timestamped and non-editable once issued (audit trail)
 
----
+--- BATCH 2 COMPLETE — LIVE PROJECTS RELEASE ---
 
-## CLOSED PROJECTS MODULE (Sprints 27–30)
+## BATCH 3 — CLOSED PROJECTS MODULE (Sprints 28–31)
 > All currently showing "Coming Soon" in sidebar.
-> This is the retrospective and handover phase — closes the loop on a project financially and operationally.
+> The retrospective and handover phase — closes the loop financially and operationally.
+> Target: release ~6 months post-Batch 1.
 
-### Sprint 27 — Closed Projects: Final Accounts
+### Sprint 28 — Closed Projects: Final Accounts
 - [ ] Final Account summary: original contract sum + approved variations + agreed adjustments
 - [ ] Retention release tracker: half on PC, half on defects expiry — with dates
 - [ ] Final Account agreement status: draft → submitted → agreed → signed
@@ -618,7 +673,7 @@ Formal construction communication log — critical for dispute avoidance.
 - [ ] PDF: formal Final Account Statement document for client signature
 - [ ] Link back to billing: confirm all applications reconcile to Final Account total
 
-### Sprint 28 — Closed Projects: Handover Documents
+### Sprint 29 — Closed Projects: Handover Documents
 - [ ] Document pack builder: O&M manuals, warranties, test certificates, as-built drawings
 - [ ] Checklist: which documents are required vs received vs outstanding
 - [ ] Upload and tag documents to the handover pack
@@ -626,14 +681,14 @@ Formal construction communication log — critical for dispute avoidance.
 - [ ] Defects Liability Period tracker: start date, end date, items logged, items resolved
 - [ ] PDF: Handover Certificate with document list and DLP dates
 
-### Sprint 29 — Closed Projects: Archive
+### Sprint 30 — Closed Projects: Archive
 - [ ] Project archiving: move from active to closed with one action
 - [ ] Archived project search: find by client, project type, value, year, region
 - [ ] Key data preserved: final contract value, margin achieved, duration, client rating
 - [ ] Reuse: copy estimate from archived project as starting point for new similar project
 - [ ] "Similar projects" matching: when pricing a new job, surface archived projects of same type/value
 
-### Sprint 30 — Closed Projects: Lessons Learned
+### Sprint 31 — Closed Projects: Lessons Learned
 Turns project data into business intelligence — the flywheel that improves every future bid.
 - [ ] Structured retrospective: what went well, what didn't, what to do differently
 - [ ] AI analysis: compare estimated vs actual margin, programme vs actual duration, variation frequency
@@ -1098,45 +1153,59 @@ The contractor owns their data. Constructa holds it as processor, not controller
 
 ---
 
-## Sprint 31 — Data Intelligence Foundation
-Pure backend — no UI. Must be built before admin analytics are meaningful.
-- [ ] Create all 8 benchmark tables (see schema above) — no RLS, service-role access only
-- [ ] Supabase triggers: fire on project close, payment received, variation closed, Contract Shield analysis
-- [ ] `postcode_district` extraction function (first 3-4 chars, handles both formats: 'SW1A' → 'SW1', 'M14 9WZ' → 'M14')
-- [ ] `region` standardisation: map any postcode to a clean region label (12 UK regions)
-- [ ] Contract Shield trigger: write to `contract_benchmarks` on every analysis (immediate, not at close)
-- [ ] Validate no PII: automated test that checks aggregate tables for email/name patterns
-- [ ] Update Terms of Service with data aggregation consent clause (legal requirement)
-- [ ] Backfill: run against existing closed/accepted projects to seed initial data
+--- BATCH 3 COMPLETE ---
 
-## Sprint 32 — Constructa Admin Dashboard Phase 1
-- [ ] `/admin` route with email-guard layout (service role client only)
-- [ ] Admin sidebar: separate from contractor nav
-- [ ] Module 1: Constructa P&L / Management Accounts (revenue, costs, gross margin, customer metrics)
-- [ ] Module 2: Platform Analytics (DAU/MAU, feature usage, conversion funnel)
-- [ ] Module 7: Platform Health (AI spend, errors, Supabase usage)
+## DATA & ADMIN LAYER (Sprints 32–39)
+> Runs in parallel with Batches 2 & 3 where possible.
+> Sprint 32 (Admin Phase 1) is time-sensitive — needed from first paying subscriber.
+> Sprint 33 (Data Foundation) can be built any time but needs contractor volume to be useful.
 
-## Sprint 33 — Constructa Admin Dashboard Phase 2
-- [ ] Module 3: User Management (contractor list, plan management, churn analysis)
-- [ ] Module 4: Data Intelligence (benchmark explorer, rate map, margin distribution)
-- [ ] Module 5: Content Management (cost library editor, labour rates, AI prompts)
-- [ ] Module 6: Market Intelligence (first exportable benchmark reports)
+## Sprint 32 — Constructa Admin Dashboard: Phase 1 ← BUILD EARLY (see Sprint 17 above)
+> NOTE: Sprint 17 IS this sprint — it was moved forward into Batch 1.
+> Listed here for reference. By the time we reach this number it should already be done.
 
-## Sprint 34 — Contractor Management Accounts
-- [ ] Per-project P&L dashboard
-- [ ] Consolidated P&L across all projects
-- [ ] Cash flow forecast (13-week)
-- [ ] Debtor ledger and retention tracker
-- [ ] WIP valuation
+## Sprint 33 — Data Intelligence Foundation
+Pure backend — no UI. Can be built any time; triggers collect data silently.
+Best built once 50+ contractors are active so backfill seeding is meaningful.
+- [ ] Create all 8 benchmark tables (no RLS, service-role access only)
+- [ ] Supabase triggers: project close, payment received, variation closed, Contract Shield analysis
+- [ ] `postcode_district` extraction (first 3-4 chars: 'SW1A 2AA' → 'SW1')
+- [ ] `region` standardisation: postcode prefix → 12 UK regions
+- [ ] Contract Shield trigger: writes to `contract_benchmarks` on every analysis (immediate)
+- [ ] PII validation: automated check that aggregate tables contain no email/name patterns
+- [ ] Terms of Service update: data aggregation consent clause
+- [ ] Backfill: run against all existing closed/accepted projects
 
-## Sprint 35 — Xero Integration
-- [ ] OAuth connection flow
-- [ ] Invoice sync (Applications for Payment → Xero invoices)
-- [ ] Cost sync (logged actuals → Xero bills)
+## Sprint 34 — Constructa Admin Dashboard: Phase 2 (Data Intelligence)
+Requires Sprint 33 to have been running for at least 2–3 months with real contractor data.
+- [ ] Module 4: Data Intelligence (benchmark explorer, regional rate map, margin distribution)
+- [ ] Module 5: Content Management (cost library editor, labour rates by region, AI prompts)
+- [ ] Module 6: Market Intelligence (first exportable benchmark reports — PDF + CSV)
+
+## Sprint 35 — Contractor Management Accounts
+- [ ] Per-project P&L: contract value, costs logged, gross margin £ and %
+- [ ] Consolidated P&L: all active projects combined
+- [ ] Cash flow forecast: 13-week view of expected receipts and costs due
+- [ ] Debtor ledger: who owes what, how overdue, chase prompts
+- [ ] Retention tracker: total held, expected release dates
+- [ ] WIP valuation: work done but not yet invoiced
+
+## Sprint 36 — Xero Integration
+- [ ] OAuth connection from Constructa settings
+- [ ] Invoice sync: Application for Payment → Xero draft invoice
+- [ ] Payment sync: marked received → reconcile in Xero
+- [ ] Cost sync: logged actuals → Xero bills
 - [ ] CIS deduction calculations
+- [ ] Chart of accounts mapping (Constructa trade sections → Xero nominal codes)
 
-## Sprint 36 — Sage Integration
-## Sprint 37 — QuickBooks Integration
+## Sprint 37 — Sage Integration
+## Sprint 38 — QuickBooks Integration
+
+## Sprint 39 — Admin Dashboard: Phase 3 (Market Intelligence Product)
+By this point data volume should support a sellable product.
+- [ ] Rate Index reports: quarterly by region and trade (PDF + web)
+- [ ] API endpoint: paid access for QS firms, developers, mortgage lenders, insurers
+- [ ] Pricing: per-report purchase or API subscription tier
 
 ### LONG-TERM VISION (V2+)
 - Native mobile app + site walkthrough voice wizard

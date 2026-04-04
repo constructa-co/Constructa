@@ -20,20 +20,65 @@ export async function analyseContractAction(projectId: string, contractText: str
     await supabase.from("projects").update({ uploaded_contract_text: contractText }).eq("id", projectId);
 
     const flags = await generateJSON<{ flags: Array<{ type: string; clause: string; description: string; severity: string; recommendation: string }> }>(
-        `You are a UK construction contract expert. Analyse this contract text and identify:
-    1. Onerous obligations (fitness for purpose, design liability, unlimited liability)
-    2. Unusual payment terms (pay-when-paid, long payment periods >30 days, set-off rights)
-    3. High liquidated damages exposure
-    4. Unusual insurance requirements
-    5. Unfair termination clauses
-    6. Missing standard protections (adjudication rights, final account provisions)
+        `You are an expert UK construction contract reviewer, specialising in JCT, NEC, and bespoke SME contractor agreements.
 
-    Contract text: ${contractText.substring(0, 4000)}
+IMPORTANT CONTEXT — These clauses are STANDARD and should NOT be flagged as risks:
+- Standard JCT defects liability periods (6-12 months)
+- Standard RICS adjudication clauses
+- 30-day payment terms (standard under the Construction Act 1996)
+- Standard CDM 2015 principal contractor obligations
+- Standard practical completion definitions
+- Reasonable skill and care workmanship standard
+- Standard retention clauses (3-5%)
+- Standard public liability insurance requirements (£2m-£10m)
+- Standard materials and workmanship warranties
 
-    Return JSON: { "flags": [{ "type": "risk"|"obligation"|"unusual", "clause": "clause ref or short quote", "description": "plain English explanation", "severity": "low"|"medium"|"high", "recommendation": "what to do" }] }`
+ONLY flag as Red (high severity) if you see:
+- Payment terms longer than 45 days (violates Construction Act)
+- Fitness for purpose obligations (not just reasonable skill and care)
+- Unlimited liability clauses
+- Pay-when-paid clauses (illegal in UK construction)
+- Liquidated damages above 0.5% per week of contract value
+- Contractor takes on design liability without design fees
+- Set-off rights without formal Pay Less Notice requirement
+
+Flag as Amber (medium) for:
+- Retention above 5%
+- Defects liability longer than 24 months
+- Unusual insurance requirements (above £10m)
+- Non-standard termination clauses
+- Unusual exclusions of contractor's standard protections
+
+Flag as Green (acceptable) for standard JCT/NEC language.
+
+Contract text: ${contractText.substring(0, 4000)}
+
+Return JSON: { "flags": [{ "type": "risk"|"obligation"|"unusual", "clause": "clause ref or short quote", "description": "plain English explanation for a non-lawyer contractor", "severity": "low"|"medium"|"high", "recommendation": "what to do about this" }] }
+
+Important: do not over-flag. A standard domestic building contract should have 0-2 Red flags, 2-4 Amber, and several Green.`
     );
 
     await supabase.from("projects").update({ contract_review_flags: flags.flags || [] }).eq("id", projectId);
+    revalidatePath("/dashboard/projects/contracts");
+    return flags;
+}
+
+// ── Dismiss / Accept Contract Flag ─────────────────────
+export async function dismissContractFlagAction(
+    projectId: string,
+    flagIndex: number,
+    status: "accepted" | "disputed"
+) {
+    const supabase = createClient();
+    const { data } = await supabase.from("projects").select("contract_review_flags").eq("id", projectId).single();
+    if (!data?.contract_review_flags) return;
+
+    const flags = [...data.contract_review_flags];
+    if (flags[flagIndex]) {
+        flags[flagIndex] = { ...flags[flagIndex], dismissed: true, dismiss_status: status };
+    }
+
+    await supabase.from("projects").update({ contract_review_flags: flags }).eq("id", projectId);
     revalidatePath("/dashboard/projects/contracts");
     return flags;
 }

@@ -14,17 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sparkles, Upload, Loader2, CheckCircle2, AlertCircle, FileImage, Plus } from "lucide-react";
 import { analyzeDrawingAction } from "./vision-actions";
+import type { VisionResultItem } from "./vision-actions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
-interface ExtractedItem {
-    item_name: string;
-    estimated_quantity: number;
-}
 
 export default function VisionTakeoff({ onAddItem }: { onAddItem: (item: any) => void }) {
     const [isOpen, setIsOpen] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [results, setResults] = useState<ExtractedItem[]>([]);
+    const [results, setResults] = useState<VisionResultItem[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
 
@@ -70,14 +66,14 @@ export default function VisionTakeoff({ onAddItem }: { onAddItem: (item: any) =>
                     Scan Drawing (AI)
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Sparkles className="w-5 h-5 text-purple-600" />
                         AI Vision Takeoff
                     </DialogTitle>
                     <DialogDescription>
-                        Upload a floor plan, site drawing, or napkin sketch. Gemini will extract the quantities for you.
+                        Upload a floor plan, site drawing, or napkin sketch. AI will extract quantities and match them to your cost library.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -108,6 +104,7 @@ export default function VisionTakeoff({ onAddItem }: { onAddItem: (item: any) =>
                     ) : (
                         <div className="space-y-6">
                             <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 shadow-inner bg-slate-100">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={preview} alt="Plan Preview" className="object-contain w-full h-full" />
                                 {isAnalyzing && (
                                     <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
@@ -133,16 +130,32 @@ export default function VisionTakeoff({ onAddItem }: { onAddItem: (item: any) =>
                                         <Table>
                                             <TableHeader className="bg-slate-50">
                                                 <TableRow>
-                                                    <TableHead className="font-bold uppercase tracking-tighter text-[10px]">Identified Item</TableHead>
-                                                    <TableHead className="text-right font-bold uppercase tracking-tighter text-[10px]">Est. Qty</TableHead>
-                                                    <TableHead className="w-[100px]"></TableHead>
+                                                    <TableHead className="font-bold uppercase tracking-tighter text-[10px]">Item</TableHead>
+                                                    <TableHead className="text-right font-bold uppercase tracking-tighter text-[10px]">Qty</TableHead>
+                                                    <TableHead className="font-bold uppercase tracking-tighter text-[10px]">Unit</TableHead>
+                                                    <TableHead className="text-right font-bold uppercase tracking-tighter text-[10px]">Rate</TableHead>
+                                                    <TableHead className="text-right font-bold uppercase tracking-tighter text-[10px]">Total</TableHead>
+                                                    <TableHead className="w-[80px]"></TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
                                                 {results.map((item, idx) => (
                                                     <TableRow key={idx}>
-                                                        <TableCell className="font-medium text-slate-700">{item.item_name}</TableCell>
+                                                        <TableCell className="font-medium text-slate-700">
+                                                            {item.item_name}
+                                                            {item.library_match && (
+                                                                <div className="text-xs text-green-600">Matched: {item.library_match}</div>
+                                                            )}
+                                                            {!item.library_match && (
+                                                                <div className="text-xs text-amber-500">No match — rate set to {"\u00A3"}0</div>
+                                                            )}
+                                                        </TableCell>
                                                         <TableCell className="text-right font-bold text-slate-900">{item.estimated_quantity}</TableCell>
+                                                        <TableCell className="text-slate-600">{item.unit || "nr"}</TableCell>
+                                                        <TableCell className="text-right text-slate-700">{"\u00A3"}{(item.suggested_rate || 0).toFixed(2)}</TableCell>
+                                                        <TableCell className="text-right font-bold text-slate-900">
+                                                            {"\u00A3"}{((item.estimated_quantity || 0) * (item.suggested_rate || 0)).toFixed(2)}
+                                                        </TableCell>
                                                         <TableCell className="text-right">
                                                             <Button
                                                                 size="sm"
@@ -151,8 +164,8 @@ export default function VisionTakeoff({ onAddItem }: { onAddItem: (item: any) =>
                                                                 onClick={() => onAddItem({
                                                                     description: item.item_name,
                                                                     quantity: item.estimated_quantity,
-                                                                    unit: item.item_name.toLowerCase().includes('m') ? 'm' : 'nr',
-                                                                    unit_rate: 0 // User will fill this in or pick from library
+                                                                    unit: item.unit || "nr",
+                                                                    unit_rate: item.suggested_rate || 0,
                                                                 })}
                                                             >
                                                                 <Plus className="w-3 h-3" />
@@ -163,6 +176,21 @@ export default function VisionTakeoff({ onAddItem }: { onAddItem: (item: any) =>
                                                 ))}
                                             </TableBody>
                                         </Table>
+                                    </div>
+
+                                    {/* Add all button */}
+                                    <div className="flex justify-end">
+                                        <button
+                                            onClick={() => results.forEach(item => onAddItem({
+                                                description: item.item_name,
+                                                quantity: item.estimated_quantity,
+                                                unit: item.unit || "nr",
+                                                unit_rate: item.suggested_rate || 0,
+                                            }))}
+                                            className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-700"
+                                        >
+                                            Add All {results.length} Items to BoQ
+                                        </button>
                                     </div>
                                 </div>
                             )}

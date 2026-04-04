@@ -6,6 +6,7 @@ import { Sparkles, Loader2, Plus, Trash2, Shield, AlertTriangle, Send, Upload, C
 import {
     saveTcTierAction,
     analyseContractAction,
+    dismissContractFlagAction,
     saveRiskRegisterAction,
     generateRiskRegisterAction,
     saveContractExclusionsAction,
@@ -419,17 +420,44 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                         {/* Flags display */}
                         {contractFlags.length > 0 && (
                             <div className="space-y-3 mt-4">
-                                <h4 className="text-sm font-bold text-gray-900">Review Flags ({contractFlags.length})</h4>
+                                <h4 className="text-sm font-bold text-gray-900">Review Flags ({contractFlags.filter((f: any) => !f.dismissed).length} active, {contractFlags.filter((f: any) => f.dismissed).length} resolved)</h4>
                                 {contractFlags.map((flag: any, i: number) => (
-                                    <div key={i} className={`border rounded-lg p-4 ${severityColor(flag.severity)}`}>
+                                    <div key={i} className={`border rounded-lg p-4 ${flag.dismissed ? "opacity-50 bg-gray-50 border-gray-200" : severityColor(flag.severity)}`}>
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className="text-xs font-bold uppercase">{flag.severity}</span>
                                             <span className="text-xs font-medium">— {flag.type}</span>
+                                            {flag.dismissed && (
+                                                <span className="text-xs font-bold uppercase ml-auto px-2 py-0.5 bg-gray-200 text-gray-600 rounded">
+                                                    {flag.dismiss_status === "accepted" ? "Accepted" : "Disputed"}
+                                                </span>
+                                            )}
                                         </div>
                                         <p className="text-sm font-semibold">{flag.clause}</p>
                                         <p className="text-sm mt-1">{flag.description}</p>
                                         {flag.recommendation && (
                                             <p className="text-xs mt-2 font-medium opacity-80">Recommendation: {flag.recommendation}</p>
+                                        )}
+                                        {!flag.dismissed && (
+                                            <div className="flex items-center gap-3 mt-3 pt-2 border-t border-current/10">
+                                                <button
+                                                    onClick={async () => {
+                                                        const updated = await dismissContractFlagAction(projectId, i, "accepted");
+                                                        if (updated) setContractFlags(updated);
+                                                    }}
+                                                    className="text-xs text-gray-500 hover:text-green-600 font-medium"
+                                                >
+                                                    Accept risk
+                                                </button>
+                                                <button
+                                                    onClick={async () => {
+                                                        const updated = await dismissContractFlagAction(projectId, i, "disputed");
+                                                        if (updated) setContractFlags(updated);
+                                                    }}
+                                                    className="text-xs text-gray-500 hover:text-red-600 font-medium"
+                                                >
+                                                    Dispute
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 ))}

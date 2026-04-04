@@ -2,29 +2,32 @@
 
 import { createClient } from "@/lib/supabase/server";
 
-export async function acceptProposalAction(token: string, clientName: string) {
+export async function acceptProposalAction(
+    token: string,
+    clientName: string,
+    clientEmail: string
+): Promise<{ success: boolean; error?: string }> {
     const supabase = createClient();
 
-    // Find the project by token (no auth needed — public)
     const { data: project } = await supabase
         .from("projects")
-        .select("id, proposal_accepted_at")
+        .select("id, name, proposal_accepted_at, user_id, client_name")
         .eq("proposal_token", token)
         .single();
 
-    if (!project) {
-        return { success: false, error: "Proposal not found" };
-    }
+    if (!project) return { success: false, error: "Proposal not found" };
+    if (project.proposal_accepted_at)
+        return { success: false, error: "This proposal has already been accepted" };
 
-    if (project.proposal_accepted_at) {
-        return { success: false, error: "Already accepted" };
-    }
+    const acceptedAt = new Date().toISOString();
 
     await supabase
         .from("projects")
         .update({
-            proposal_accepted_at: new Date().toISOString(),
+            proposal_accepted_at: acceptedAt,
             proposal_accepted_by: clientName || "Client",
+            client_email: clientEmail || null,
+            proposal_status: "accepted",
         })
         .eq("id", project.id);
 

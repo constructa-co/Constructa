@@ -34,18 +34,31 @@ export default function AcceptanceClient({
     refCode,
     siteAddress,
 }: Props) {
+    const [clientName, setClientName] = useState(project?.client_name || "");
+    const [clientEmail, setClientEmail] = useState("");
     const [accepted, setAccepted] = useState(!!project?.proposal_accepted_at);
     const [accepting, setAccepting] = useState(false);
     const [acceptedAt, setAcceptedAt] = useState<string | null>(project?.proposal_accepted_at || null);
+    const [acceptError, setAcceptError] = useState("");
 
     const handleAccept = async () => {
-        setAccepting(true);
-        const result = await acceptProposalAction(token, project.client_name || "");
-        if (result?.success) {
-            setAccepted(true);
-            setAcceptedAt(new Date().toISOString());
+        if (!clientName.trim()) {
+            setAcceptError("Please enter your full name to confirm acceptance.");
+            return;
         }
-        setAccepting(false);
+        setAccepting(true);
+        setAcceptError("");
+        try {
+            const result = await acceptProposalAction(token, clientName, clientEmail);
+            if (result?.success) {
+                setAccepted(true);
+                setAcceptedAt(new Date().toISOString());
+            } else {
+                setAcceptError(result?.error || "Something went wrong. Please try again.");
+            }
+        } finally {
+            setAccepting(false);
+        }
     };
 
     const sentDate = sentAt ? new Date(sentAt) : null;
@@ -278,19 +291,23 @@ export default function AcceptanceClient({
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
                     {accepted || project.proposal_accepted_at ? (
                         <div className="text-center space-y-3">
-                            <div className="w-14 h-14 bg-green-900/30 rounded-full flex items-center justify-center mx-auto">
-                                <svg className="w-7 h-7 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="w-16 h-16 bg-green-900/30 rounded-full flex items-center justify-center mx-auto">
+                                <svg className="w-8 h-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                                 </svg>
                             </div>
                             <h2 className="text-xl font-bold text-green-400">Proposal Accepted</h2>
-                            {(acceptedAt || project.proposal_accepted_at) && (
-                                <p className="text-sm text-slate-400">
-                                    Accepted on {formatDate(new Date(acceptedAt || project.proposal_accepted_at))}
-                                    {project.proposal_accepted_by && ` by ${project.proposal_accepted_by}`}
-                                </p>
-                            )}
-                            <p className="text-sm text-slate-500 mt-2">{companyName} will be in touch shortly to confirm next steps.</p>
+                            <p className="text-slate-300">
+                                Thank you, <strong>{project.proposal_accepted_by || clientName || "Client"}</strong>. Your acceptance of the proposal for{" "}
+                                <strong>{project.name}</strong> has been recorded at{" "}
+                                {formatDate(new Date(acceptedAt || project.proposal_accepted_at))}.
+                            </p>
+                            <p className="text-sm text-slate-500">
+                                Reference: {project.id.substring(0, 8).toUpperCase()} — please keep this for your records.
+                            </p>
+                            <p className="text-sm text-slate-500">
+                                {companyName} will be in touch to confirm next steps.
+                            </p>
                         </div>
                     ) : isExpired ? (
                         <div className="text-center space-y-3">
@@ -309,15 +326,49 @@ export default function AcceptanceClient({
                             <div className="text-center">
                                 <h2 className="text-xl font-bold text-white mb-2">Accept This Proposal</h2>
                                 <p className="text-sm text-slate-400 max-w-md mx-auto">
-                                    By clicking below, you confirm your acceptance of the Scope of Works, Fee Proposal, and Terms &amp; Conditions as set out in this proposal.
+                                    By accepting below, you confirm your agreement to the Scope of Works, Fee Proposal,
+                                    and Terms &amp; Conditions set out in this proposal. This constitutes a binding agreement.
                                 </p>
                             </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-1">Your full name</label>
+                                <input
+                                    type="text"
+                                    value={clientName}
+                                    onChange={e => setClientName(e.target.value)}
+                                    placeholder="e.g. John Smith"
+                                    className="w-full border border-slate-700 bg-slate-800 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-1">Your email address</label>
+                                <input
+                                    type="email"
+                                    value={clientEmail}
+                                    onChange={e => setClientEmail(e.target.value)}
+                                    placeholder="e.g. john@example.com"
+                                    className="w-full border border-slate-700 bg-slate-800 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <p className="text-xs text-slate-600 mt-1">A confirmation will be recorded for both parties.</p>
+                            </div>
+
+                            {acceptError && (
+                                <p className="text-sm text-red-400 text-center">{acceptError}</p>
+                            )}
+
                             <button
                                 onClick={handleAccept}
-                                disabled={accepting}
-                                className="w-full h-14 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white rounded-xl font-bold text-base transition-all active:scale-[0.98] shadow-lg shadow-blue-900/30"
+                                disabled={accepting || !clientName.trim()}
+                                className="w-full h-14 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-base transition-all active:scale-[0.98] shadow-lg shadow-blue-900/30"
                             >
-                                {accepting ? "Processing..." : "Accept This Proposal"}
+                                {accepting
+                                    ? "Processing..."
+                                    : contractValue
+                                        ? `Accept Proposal \u2014 ${formatGBP(contractValue)}`
+                                        : "Accept This Proposal"}
                             </button>
                             <p className="text-xs text-slate-600 text-center">
                                 This constitutes a binding agreement. You will receive confirmation shortly.

@@ -485,6 +485,28 @@ export default function OnboardingClient({ initialFullName }: { initialFullName:
                             <Plus className="w-4 h-4" /> Add Custom Clause
                         </button>
 
+                        {/* Vision Takeoff highlight — shown during onboarding */}
+                        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 text-white">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
+                                    <Sparkles className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg">Got a drawing? Price it in 2 minutes.</h3>
+                                    <p className="text-gray-300 text-sm">Upload any floor plan or sketch and AI extracts the quantities for you.</p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3 text-center text-sm mt-4">
+                                {["Upload drawing", "AI extracts quantities", "One-click to BoQ"].map((step, i) => (
+                                    <div key={i} className="bg-white/10 rounded-lg p-3">
+                                        <div className="text-purple-300 font-bold mb-1">{i + 1}</div>
+                                        <div>{step}</div>
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="text-xs text-gray-400 mt-3">Find it in Estimating &rarr; Scan Drawing (AI)</p>
+                        </div>
+
                         {saveError && (
                             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{saveError}</div>
                         )}

@@ -14,9 +14,10 @@ import {
     setPricingModeAction,
     saveDiscountAction,
 } from "./actions";
-import { Plus, Trash2, Check, Star, Loader2, CalendarDays } from "lucide-react";
+import { Plus, Trash2, Check, Star, Loader2, CalendarDays, Sparkles } from "lucide-react";
 import Link from "next/link";
 import BuildUpPanel from "./build-up-panel";
+import VisionTakeoff from "@/app/dashboard/foundations/vision-takeoff";
 import type { EstimateLineComponent, EstimateLine, Estimate, CostLibraryItem, LabourRate, RateBuildup } from "./types";
 
 interface Props {
@@ -154,6 +155,51 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
         updateEstimateNameAction(currentEstimate.id, name)
             .then(() => showSaved())
             .catch(console.error);
+    };
+
+    // ─── Vision Takeoff handler ───────────────────────────
+    const handleAddFromVision = async (item: { description: string; quantity: number; unit: string; unit_rate: number }) => {
+        if (!currentEstimate) return;
+        const section = "General";
+        const tempId = crypto.randomUUID();
+        const newLine: EstimateLine = {
+            id: tempId,
+            estimate_id: currentEstimate.id,
+            description: item.description,
+            quantity: item.quantity,
+            unit: item.unit,
+            unit_rate: item.unit_rate,
+            line_total: item.quantity * item.unit_rate,
+            trade_section: section,
+            line_type: "general",
+            pricing_mode: "simple",
+            estimate_line_components: [],
+        };
+        setEstimates((prev) => prev.map((e) =>
+            e.id === currentEstimate.id
+                ? { ...e, estimate_lines: [...e.estimate_lines, newLine] }
+                : e
+        ));
+        showSaving();
+        try {
+            const result = await addLineItemAction(currentEstimate.id, section, {
+                description: item.description, quantity: item.quantity, unit: item.unit, unit_rate: item.unit_rate,
+                line_type: "general",
+            });
+            if (result?.id) {
+                setEstimates((prev) => prev.map((e) =>
+                    e.id !== currentEstimate.id ? e : {
+                        ...e,
+                        estimate_lines: e.estimate_lines.map((l) =>
+                            l.id === tempId ? { ...l, id: result.id } : l
+                        ),
+                    }
+                ));
+            }
+            showSaved();
+        } catch (err) {
+            console.error(err);
+        }
     };
 
     // ─── Line item CRUD ─────────────────────────────────
@@ -561,6 +607,17 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                             </div>
                         )}
                     </div>
+
+                    {/* Vision Takeoff prompt — shown when estimate is empty */}
+                    {displayLines.length === 0 && (
+                        <div className="mb-4 p-4 border-2 border-dashed border-purple-200 rounded-xl bg-purple-50/50 flex items-center justify-between">
+                            <div>
+                                <p className="font-medium text-gray-900">Got a drawing?</p>
+                                <p className="text-sm text-gray-600">Upload a floor plan or sketch and AI extracts quantities automatically.</p>
+                            </div>
+                            <VisionTakeoff onAddItem={handleAddFromVision} />
+                        </div>
+                    )}
 
                     {/* ADD SECTION */}
                     <div className="flex items-center gap-2 flex-wrap">

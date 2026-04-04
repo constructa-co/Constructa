@@ -122,6 +122,11 @@ export default function SidebarNav({ user }: SidebarNavProps) {
             {/* Nav */}
             <div className="flex-1 overflow-y-auto px-3 pb-4">
 
+                {/* Overview — top-level, above all sections */}
+                <div className="pt-1 pb-1">
+                    <NavItem href="/dashboard/home" icon={LayoutDashboard} label="Overview" active={is("/dashboard/home")} />
+                </div>
+
                 {/* Company Profile */}
                 <SectionLabel label="Company Profile" />
                 <div className="space-y-0.5">
@@ -133,10 +138,9 @@ export default function SidebarNav({ user }: SidebarNavProps) {
                 {/* Work Winning */}
                 <SectionLabel label="Work Winning" />
                 <div className="space-y-0.5">
-                    <NavItem href="/dashboard/home" icon={LayoutDashboard} label="Home" active={is("/dashboard/home")} />
                     <NavItem href="/dashboard" icon={Kanban} label="Pipeline" active={pathname === "/dashboard"} />
                     <NavItem href="/dashboard/projects/new" icon={FilePlus} label="New Project" active={pathname.includes("/projects/new")} />
-                    <hr className="my-2 border-gray-200" />
+                    <hr className="my-2 border-white/10" />
                     <NavItem href="/dashboard/library" icon={BookOpen} label="Cost Library" active={is("/dashboard/library")} />
                     <NavItem href="/dashboard/resources" icon={Wrench} label="Resources" active={is("/dashboard/resources")} />
                 </div>
@@ -144,11 +148,11 @@ export default function SidebarNav({ user }: SidebarNavProps) {
                 {/* Pre-Construction */}
                 <SectionLabel label="Pre-Construction" />
                 <div className="space-y-0.5">
-                    <NavItem href="/dashboard/projects/brief" icon={ClipboardList} label="Brief" active={is("/dashboard/projects/brief")} />
-                    <NavItem href="/dashboard/projects/costs" icon={Calculator} label="Estimating" active={is("/dashboard/projects/costs")} />
-                    <NavItem href="/dashboard/projects/schedule" icon={CalendarDays} label="Programme" active={is("/dashboard/projects/schedule")} />
+                    <NavItem href="/dashboard/projects/brief" icon={ClipboardList} label="Briefs" active={is("/dashboard/projects/brief")} />
+                    <NavItem href="/dashboard/projects/costs" icon={Calculator} label="Estimates" active={is("/dashboard/projects/costs")} />
+                    <NavItem href="/dashboard/projects/schedule" icon={CalendarDays} label="Programmes" active={is("/dashboard/projects/schedule")} />
                     <NavItem href="/dashboard/projects/contracts" icon={Scale} label="Contracts" active={is("/dashboard/projects/contracts")} />
-                    <NavItem href="/dashboard/projects/proposal" icon={FileText} label="Proposal" active={is("/dashboard/projects/proposal")} />
+                    <NavItem href="/dashboard/projects/proposal" icon={FileText} label="Proposals" active={is("/dashboard/projects/proposal")} />
                 </div>
 
                 {/* Live Projects */}

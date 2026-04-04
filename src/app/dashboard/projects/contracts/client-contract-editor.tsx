@@ -154,6 +154,7 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
     const [analysing, setAnalysing] = useState(false);
     const [uploadedText, setUploadedText] = useState(project?.uploaded_contract_text || "");
     const [extracting, setExtracting] = useState(false);
+    const [showPasteMode, setShowPasteMode] = useState(false);
 
     // Tab B: Risks
     const [riskRegister, setRiskRegister] = useState<RiskItem[]>(
@@ -463,16 +464,64 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
 
                     {/* Upload Client Contract */}
                     <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 space-y-4">
-                        <div>
-                            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wide">Upload Client Contract for Review</h3>
-                            <p className="text-xs text-slate-500 mt-1">Upload a contract (TXT, PDF, or DOCX) to have Contract Shield AI flag onerous clauses and unusual terms.</p>
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wide">Upload Client Contract for Review</h3>
+                                <p className="text-xs text-slate-500 mt-1">Upload a contract (TXT, PDF, or DOCX) to have Contract Shield AI flag onerous clauses and unusual terms.</p>
+                            </div>
+                            <button
+                                onClick={() => setShowPasteMode(p => !p)}
+                                className="text-xs text-slate-400 hover:text-slate-200 underline underline-offset-2 flex-shrink-0 ml-4 transition-colors"
+                            >
+                                {showPasteMode ? "← Upload file instead" : "Paste text instead"}
+                            </button>
                         </div>
-                        <div className="flex items-center gap-3 flex-wrap">
-                            <label className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 text-slate-200 rounded-lg cursor-pointer hover:bg-slate-600 text-sm font-medium transition-colors">
-                                <Upload className="w-4 h-4" />
-                                {extracting ? "Extracting…" : "Upload Contract"}
-                                <input type="file" accept=".pdf,.doc,.docx,.txt" className="hidden" onChange={handleFileUpload} disabled={extracting} />
-                            </label>
+
+                        {showPasteMode ? (
+                            /* ── Paste mode ── */
+                            <div className="space-y-3">
+                                <textarea
+                                    className={inputCls}
+                                    rows={8}
+                                    value={uploadedText.startsWith("[FILE:") ? "" : uploadedText}
+                                    onChange={e => {
+                                        setUploadedText(e.target.value);
+                                        setUploadedFileName("Pasted text");
+                                    }}
+                                    placeholder="Paste your contract text here…"
+                                />
+                                {uploadedText && !uploadedText.startsWith("[FILE:") && (
+                                    <p className="text-xs text-green-400">{uploadedText.length.toLocaleString()} chars ready ✓</p>
+                                )}
+                            </div>
+                        ) : (
+                            /* ── File upload mode ── */
+                            <div className="flex items-center gap-3 flex-wrap">
+                                <label className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 text-slate-200 rounded-lg cursor-pointer hover:bg-slate-600 text-sm font-medium transition-colors">
+                                    <Upload className="w-4 h-4" />
+                                    {extracting ? "Extracting…" : "Upload Contract"}
+                                    <input type="file" accept=".pdf,.doc,.docx,.txt" className="hidden" onChange={handleFileUpload} disabled={extracting} />
+                                </label>
+                                {extracting && (
+                                    <span className="flex items-center gap-1.5 text-xs text-purple-400 font-medium">
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        Extracting text from {uploadedFileName}…
+                                    </span>
+                                )}
+                                {!extracting && uploadedText && !uploadedText.startsWith("[FILE:") && (
+                                    <span className="text-xs text-green-400 font-medium">
+                                        {uploadedFileName || "Contract"} — {uploadedText.length.toLocaleString()} chars extracted ✓
+                                    </span>
+                                )}
+                                {!extracting && uploadedText && uploadedText.startsWith("[FILE:") && (
+                                    <span className="text-xs text-amber-400 font-medium">
+                                        Storage bucket not set up — use &ldquo;Paste text instead&rdquo; above
+                                    </span>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="flex items-center gap-3">
                             <button
                                 onClick={handleAnalyse}
                                 disabled={!uploadedText || analysing || extracting || uploadedText.startsWith("[FILE:")}
@@ -481,21 +530,8 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                                 {analysing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                                 {analysing ? "Analysing…" : "Analyse with AI"}
                             </button>
-                            {extracting && (
-                                <span className="flex items-center gap-1.5 text-xs text-purple-400 font-medium">
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    Extracting text from {uploadedFileName}…
-                                </span>
-                            )}
-                            {!extracting && uploadedText && !uploadedText.startsWith("[FILE:") && (
-                                <span className="text-xs text-green-400 font-medium">
-                                    {uploadedFileName || "Contract"} — {uploadedText.length.toLocaleString()} chars extracted ✓
-                                </span>
-                            )}
-                            {!extracting && uploadedText && uploadedText.startsWith("[FILE:") && (
-                                <span className="text-xs text-amber-400 font-medium">
-                                    File uploaded but extraction failed — try re-uploading
-                                </span>
+                            {!uploadedText && (
+                                <span className="text-xs text-slate-500">Upload or paste a contract first</span>
                             )}
                         </div>
 

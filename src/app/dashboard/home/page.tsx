@@ -12,31 +12,29 @@ export default async function HomePage() {
     } = await supabase.auth.getUser();
     if (!user) redirect("/login");
 
-    // Projects
+    // Projects — all fields needed for command centre
     const { data: projects } = await supabase
         .from("projects")
         .select(
-            "id, name, client_name, status, potential_value, proposal_status, proposal_sent_at, proposal_accepted_at, created_at, updated_at"
+            "id, name, client_name, status, potential_value, proposal_status, proposal_sent_at, proposal_accepted_at, created_at, updated_at, validity_days"
         )
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false });
 
-    // Profile
+    // Full profile for completion scoring
     const { data: profile } = await supabase
         .from("profiles")
-        .select("company_name")
+        .select("company_name, logo_url, capability_statement, md_name, md_message, phone, accreditations, years_trading")
         .eq("id", user.id)
         .single();
 
-    // Estimates (for pipeline value)
+    // Active estimate totals
     const { data: estimates } = await supabase
         .from("estimates")
-        .select(
-            "project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, is_active"
-        )
+        .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, is_active")
         .eq("is_active", true);
 
-    // Billing (table may not exist yet)
+    // Billing invoices (table may not exist yet)
     let invoices: any[] = [];
     try {
         const { data } = await supabase

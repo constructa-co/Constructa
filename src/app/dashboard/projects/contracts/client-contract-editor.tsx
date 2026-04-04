@@ -257,16 +257,24 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
         setAnalysing(true);
         try {
             const result = await analyseContractAction(projectId, uploadedText);
-            if (result.error) {
+            if (!result) {
+                toast.error("Analysis returned no response — check your OpenAI API key in Vercel settings.");
+            } else if (result.error) {
                 toast.error("Analysis error: " + result.error);
             } else {
-                setContractFlags(result.flags || []);
-                const high = (result.flags || []).filter(f => f.severity === "high").length;
-                const med = (result.flags || []).filter(f => f.severity === "medium").length;
-                toast.success(`Review complete — ${high} high, ${med} medium, ${(result.flags || []).length - high - med} low risk items`);
+                const flags = result.flags ?? [];
+                setContractFlags(flags);
+                const high = flags.filter(f => f.severity === "high").length;
+                const med = flags.filter(f => f.severity === "medium").length;
+                const low = flags.length - high - med;
+                if (flags.length === 0) {
+                    toast.warning("No items found — the contract may be very short or the AI returned empty results. Try again.");
+                } else {
+                    toast.success(`Review complete — ${high} high, ${med} medium, ${low} low risk items`);
+                }
             }
         } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : "Unknown error";
+            const msg = e instanceof Error ? e.message : String(e);
             toast.error("Analysis failed: " + msg);
         }
         setAnalysing(false);

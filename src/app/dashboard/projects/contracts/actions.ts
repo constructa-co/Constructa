@@ -79,21 +79,25 @@ async function analyseChunk(section: string, label: string): Promise<Array<{ typ
 }
 
 // ── Contract Upload & AI Analysis ───────────────────────
-export async function analyseContractAction(projectId: string, contractText: string): Promise<{ flags: Array<{ type: string; clause: string; description: string; severity: string; recommendation: string }>; error?: string }> {
-    const supabase = createClient();
-
+export async function analyseContractAction(
+    projectId: string,
+    contractText: string
+): Promise<{ flags: Array<{ type: string; clause: string; description: string; severity: string; recommendation: string }>; error?: string }> {
     try {
+        const supabase = createClient();
+
         // Save the raw uploaded text
         await supabase.from("projects").update({ uploaded_contract_text: contractText }).eq("id", projectId);
 
-        // Sanitise: strip non-printable / control characters that can break JSON parsing
+        // Sanitise: strip non-printable / control characters that can break JSON
         const cleanText = contractText
             .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, " ")
             .replace(/\s+/g, " ")
             .trim();
 
-        // gpt-4o-mini: 128k token context ≈ ~500k chars capacity.
-        // We chunk at 40k chars each (~10k tokens) so we can cover full contracts.
+        if (!cleanText) return { flags: [], error: "Contract text is empty after sanitisation." };
+
+        // gpt-4o-mini: 128k token context. Chunk at 40k chars (~10k tokens) each.
         // Parallel chunk analysis then merge + deduplicate.
         const CHUNK = 40000;
         const chunks: { text: string; label: string }[] = [];
@@ -101,14 +105,13 @@ export async function analyseContractAction(projectId: string, contractText: str
         if (cleanText.length <= CHUNK) {
             chunks.push({ text: cleanText, label: "the full contract" });
         } else {
-            // Split into overlapping sections so clause boundaries aren't missed
             let start = 0;
             let idx = 1;
             const total = Math.ceil(cleanText.length / CHUNK);
             while (start < cleanText.length) {
                 const end = Math.min(start + CHUNK, cleanText.length);
                 chunks.push({ text: cleanText.slice(start, end), label: `section ${idx} of ${total}` });
-                start += CHUNK - 2000; // 2k char overlap to avoid missing split clauses
+                start += CHUNK - 2000; // 2k char overlap so boundary clauses aren't missed
                 idx++;
             }
         }
@@ -118,11 +121,11 @@ export async function analyseContractAction(projectId: string, contractText: str
             chunks.map(c => analyseChunk(c.text, c.label))
         );
 
-        // Merge and de-duplicate (remove near-identical clauses)
-        const merged = chunkResults.flat();
+        // Merge and de-duplicate by clause text
+        const merged = chunkResults.flat().filter(f => f && typeof f.clause === "string" && typeof f.severity === "string");
         const seen = new Set<string>();
         const deduped = merged.filter(flag => {
-            const key = flag.clause.toLowerCase().replace(/\s+/g, " ").substring(0, 40);
+            const key = (flag.clause || "").toLowerCase().replace(/\s+/g, " ").substring(0, 40);
             if (seen.has(key)) return false;
             seen.add(key);
             return true;
@@ -136,7 +139,7 @@ export async function analyseContractAction(projectId: string, contractText: str
         revalidatePath("/dashboard/projects/contracts");
         return { flags: deduped };
     } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : "Unknown error";
+        const msg = e instanceof Error ? e.message : String(e);
         console.error("Contract analysis error:", msg);
         return { flags: [], error: msg };
     }

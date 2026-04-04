@@ -259,6 +259,7 @@ export default function ClientEditor({
     const [validityDays, setValidityDays] = useState(30);
     const [linkCopied, setLinkCopied] = useState(false);
     const [sending, setSending] = useState(false);
+    const [emailSent, setEmailSent] = useState(false);
 
     // Active estimate computation
     const activeEstimateRaw = estimates.find((e: any) => e.is_active) || estimates[0];
@@ -500,13 +501,21 @@ export default function ClientEditor({
         const result = await sendProposalAction(projectId);
         setSending(false);
         if (!result?.url) return;
-        const clientName = project?.client_name || "there";
-        const projectName = project?.name || "your project";
-        const subject = encodeURIComponent(`Your Proposal — ${projectName}`);
-        const body = encodeURIComponent(
-            `Dear ${clientName},\n\nPlease find your proposal for ${projectName} at the link below:\n\n${result.url}\n\nYou can review the full scope, pricing, and programme, and confirm your acceptance directly through the link.\n\nPlease don't hesitate to get in touch if you have any questions.\n\nKind regards`
-        );
-        window.location.href = `mailto:${project?.client_email || ""}?subject=${subject}&body=${body}`;
+
+        if (result.hasClientEmail) {
+            // Resend handled it server-side — show confirmation
+            setEmailSent(true);
+            setTimeout(() => setEmailSent(false), 4000);
+        } else {
+            // No client email on file — fall back to mailto
+            const clientName = project?.client_name || "there";
+            const projectName = project?.name || "your project";
+            const subject = encodeURIComponent(`Your Proposal — ${projectName}`);
+            const body = encodeURIComponent(
+                `Dear ${clientName},\n\nPlease find your proposal for ${projectName} at the link below:\n\n${result.url}\n\nYou can review the full scope, pricing, and programme, and confirm your acceptance directly through the link.\n\nPlease don't hesitate to get in touch if you have any questions.\n\nKind regards`
+            );
+            window.location.href = `mailto:?subject=${subject}&body=${body}`;
+        }
     };
 
     const handleSave = async () => {
@@ -1424,11 +1433,13 @@ export default function ClientEditor({
                     <button
                         type="button"
                         onClick={handleSendEmail}
-                        disabled={sending}
+                        disabled={sending || emailSent}
                         className="w-full h-12 bg-blue-700/20 hover:bg-blue-700/30 border border-blue-600/40 text-blue-300 hover:text-blue-200 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
                     >
                         {sending ? (
-                            <><Loader2 className="w-4 h-4 animate-spin" /> Preparing...</>
+                            <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</>
+                        ) : emailSent ? (
+                            <><Check className="w-4 h-4 text-green-400" /> Email Sent!</>
                         ) : (
                             <><Send className="w-4 h-4" /> Send Proposal via Email</>
                         )}

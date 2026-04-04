@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { generateJSON, generateText } from "@/lib/ai";
+import { sendProposalEmail } from "@/lib/email";
 
 // ── Types for AI Wizard ──────────────────────────────────────
 export interface ProposalAnswers {
@@ -212,10 +213,10 @@ export async function sendProposalAction(projectId: string) {
     const user = authData?.user;
     if (!user) return { success: false };
 
-    // Get or generate token
+    // Get or generate token — also fetch fields needed for email
     const { data: project } = await supabase
         .from("projects")
-        .select("proposal_token")
+        .select("proposal_token, proposal_status, name, client_name, client_email, site_address")
         .eq("id", projectId)
         .eq("user_id", user.id)
         .single();
@@ -226,15 +227,37 @@ export async function sendProposalAction(projectId: string) {
         await supabase.from("projects").update({
             proposal_token: token,
             proposal_sent_at: new Date().toISOString(),
+            proposal_status: "sent",
         }).eq("id", projectId).eq("user_id", user.id);
     } else {
         await supabase.from("projects").update({
             proposal_sent_at: new Date().toISOString(),
+            proposal_status: "sent",
         }).eq("id", projectId).eq("user_id", user.id);
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app";
-    return { success: true, url: `${baseUrl}/proposal/${token}` };
+    const url = `${baseUrl}/proposal/${token}`;
+
+    // If client email is on the project, send via Resend (non-blocking)
+    if (project?.client_email) {
+        const { data: profile } = await supabase
+            .from("profiles")
+            .select("company_name")
+            .eq("id", user.id)
+            .single();
+
+        sendProposalEmail({
+            clientEmail: project.client_email,
+            clientName: project.client_name || "Client",
+            projectName: project.name || "Your Project",
+            proposalUrl: url,
+            companyName: profile?.company_name || "The Contractor",
+            siteAddress: project.site_address,
+        }).catch((e) => console.error("Proposal email send failed:", e));
+    }
+
+    return { success: true, url, hasClientEmail: !!project?.client_email };
 }
 
 export async function generateAiScopeAction(projectId: string) {

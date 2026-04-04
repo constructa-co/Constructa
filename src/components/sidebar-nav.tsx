@@ -103,7 +103,7 @@ export default function SidebarNav({ user }: SidebarNavProps) {
     const { theme, setTheme } = useTheme();
     const isDark = theme === "dark";
 
-    const is = (path: string) => pathname === path || pathname.startsWith(path + "/") || pathname.startsWith(path + "?");
+    const is = (path: string) => pathname != null && (pathname === path || pathname.startsWith(path + "/") || pathname.startsWith(path + "?"));
 
     return (
         <aside className="w-64 bg-[#0d0d0d] hidden md:flex flex-col h-screen fixed z-30">
@@ -139,7 +139,7 @@ export default function SidebarNav({ user }: SidebarNavProps) {
                 <SectionLabel label="Work Winning" />
                 <div className="space-y-0.5">
                     <NavItem href="/dashboard" icon={Kanban} label="Pipeline" active={pathname === "/dashboard"} />
-                    <NavItem href="/dashboard/projects/new" icon={FilePlus} label="New Project" active={pathname.includes("/projects/new")} />
+                    <NavItem href="/dashboard/projects/new" icon={FilePlus} label="New Project" active={pathname?.includes("/projects/new") ?? false} />
                     <hr className="my-2 border-white/10" />
                     <NavItem href="/dashboard/library" icon={BookOpen} label="Cost Library" active={is("/dashboard/library")} />
                     <NavItem href="/dashboard/resources" icon={Wrench} label="Resources" active={is("/dashboard/resources")} />

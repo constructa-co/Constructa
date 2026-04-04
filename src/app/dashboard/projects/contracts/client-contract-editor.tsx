@@ -251,16 +251,23 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
             return;
         }
         if (uploadedText.startsWith("[FILE:")) {
-            toast.error("Text extraction is still in progress or failed — try re-uploading.");
+            toast.error("Text extraction failed — try re-uploading or use Paste text instead.");
             return;
         }
         setAnalysing(true);
         try {
             const result = await analyseContractAction(projectId, uploadedText);
-            setContractFlags(result.flags || []);
-            toast.success(`Found ${(result.flags || []).length} items to review`);
-        } catch {
-            toast.error("Analysis failed");
+            if (result.error) {
+                toast.error("Analysis error: " + result.error);
+            } else {
+                setContractFlags(result.flags || []);
+                const high = (result.flags || []).filter(f => f.severity === "high").length;
+                const med = (result.flags || []).filter(f => f.severity === "medium").length;
+                toast.success(`Review complete — ${high} high, ${med} medium, ${(result.flags || []).length - high - med} low risk items`);
+            }
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : "Unknown error";
+            toast.error("Analysis failed: " + msg);
         }
         setAnalysing(false);
     };

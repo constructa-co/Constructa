@@ -49,42 +49,97 @@ export async function saveTcTierAction(projectId: string, tier: string) {
     revalidatePath("/dashboard/projects/contracts");
 }
 
+// ── Contract AI chunk analyser (internal) ───────────────
+const CONTRACT_REVIEW_PROMPT = (section: string, sectionLabel: string) =>
+    `You are an expert UK construction contract reviewer acting for the CONTRACTOR (SME builder/specialist).
+
+Review ${sectionLabel} of the contract below. Identify risks, obligations, and notable clauses.
+
+SEVERITY:
+- high: payment >45 days, fitness-for-purpose, unlimited liability, pay-when-paid (illegal), LADs >0.5%/week, contractor design liability without fee, set-off without Pay Less Notice
+- medium: retention >5%, defects period >24 months, insurance >£10m, unusual termination, onerous warranties, tight notice periods, unusual exclusions
+- low: standard clauses that are acceptable but the contractor should be aware of (payment terms, CDM duties, defects periods, adjudication rights, etc.)
+
+IMPORTANT: Always return flags. Even standard clauses should be noted as low severity so the contractor has a complete picture. Return 3-6 flags per section.
+
+Contract section:
+${section}
+
+Return ONLY valid JSON — no markdown, no explanation: { "flags": [{ "type": "risk"|"obligation"|"unusual", "clause": "short clause reference or quote (max 15 words)", "description": "plain English explanation for a non-lawyer contractor", "severity": "low"|"medium"|"high", "recommendation": "specific action for the contractor" }] }`;
+
+async function analyseChunk(section: string, label: string): Promise<Array<{ type: string; clause: string; description: string; severity: string; recommendation: string }>> {
+    try {
+        const result = await generateJSON<{ flags: Array<{ type: string; clause: string; description: string; severity: string; recommendation: string }> }>(
+            CONTRACT_REVIEW_PROMPT(section, label)
+        );
+        return result.flags || [];
+    } catch {
+        return [];
+    }
+}
+
 // ── Contract Upload & AI Analysis ───────────────────────
-export async function analyseContractAction(projectId: string, contractText: string) {
+export async function analyseContractAction(projectId: string, contractText: string): Promise<{ flags: Array<{ type: string; clause: string; description: string; severity: string; recommendation: string }>; error?: string }> {
     const supabase = createClient();
 
-    // Save the raw uploaded text
-    await supabase.from("projects").update({ uploaded_contract_text: contractText }).eq("id", projectId);
+    try {
+        // Save the raw uploaded text
+        await supabase.from("projects").update({ uploaded_contract_text: contractText }).eq("id", projectId);
 
-    // gpt-4o-mini has a 128k context window — send up to 14,000 chars to cover full contracts
-    const contractExcerpt = contractText.length > 14000
-        ? contractText.substring(0, 7000) + "\n\n[...middle section omitted for brevity...]\n\n" + contractText.substring(contractText.length - 7000)
-        : contractText;
+        // Sanitise: strip non-printable / control characters that can break JSON parsing
+        const cleanText = contractText
+            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
 
-    const flags = await generateJSON<{ flags: Array<{ type: string; clause: string; description: string; severity: string; recommendation: string }> }>(
-        `You are an expert UK construction contract reviewer, specialising in JCT, NEC, and bespoke SME contractor agreements. You are reviewing on behalf of the CONTRACTOR (not the client/employer).
+        // gpt-4o-mini: 128k token context ≈ ~500k chars capacity.
+        // We chunk at 40k chars each (~10k tokens) so we can cover full contracts.
+        // Parallel chunk analysis then merge + deduplicate.
+        const CHUNK = 40000;
+        const chunks: { text: string; label: string }[] = [];
 
-Your job is to protect the contractor by identifying risks, onerous obligations, and unusual terms. You MUST find something to report — even a clean contract will have obligations the contractor should be aware of.
+        if (cleanText.length <= CHUNK) {
+            chunks.push({ text: cleanText, label: "the full contract" });
+        } else {
+            // Split into overlapping sections so clause boundaries aren't missed
+            let start = 0;
+            let idx = 1;
+            const total = Math.ceil(cleanText.length / CHUNK);
+            while (start < cleanText.length) {
+                const end = Math.min(start + CHUNK, cleanText.length);
+                chunks.push({ text: cleanText.slice(start, end), label: `section ${idx} of ${total}` });
+                start += CHUNK - 2000; // 2k char overlap to avoid missing split clauses
+                idx++;
+            }
+        }
 
-SEVERITY GUIDE:
-- High (Red): Clauses that could seriously harm the contractor financially or legally
-  Examples: payment terms beyond 45 days, fitness-for-purpose obligations, unlimited liability, pay-when-paid, LADs above 0.5%/week, contractor takes design liability without design fees, set-off without Pay Less Notice
-- Medium (Amber): Clauses that are above standard or require attention
-  Examples: retention above 5%, defects liability beyond 24 months, insurance above £10m, unusual termination rights, onerous warranties, tight notice periods
-- Low (Green): Standard clauses that are fine but worth being aware of
-  Examples: standard 30-day payment terms, standard CDM obligations, standard 12-month defects period, standard adjudication rights, reasonable skill and care standard
+        // Analyse all chunks in parallel
+        const chunkResults = await Promise.all(
+            chunks.map(c => analyseChunk(c.text, c.label))
+        );
 
-ALWAYS return at least 4-6 flags. Even a well-drafted contract has obligations and standard clauses the contractor should note. Include Green/low severity flags for standard clauses so the contractor has a complete picture.
+        // Merge and de-duplicate (remove near-identical clauses)
+        const merged = chunkResults.flat();
+        const seen = new Set<string>();
+        const deduped = merged.filter(flag => {
+            const key = flag.clause.toLowerCase().replace(/\s+/g, " ").substring(0, 40);
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
 
-Contract text to review:
-${contractExcerpt}
+        // Sort: high → medium → low
+        const severityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
+        deduped.sort((a, b) => (severityOrder[a.severity] ?? 3) - (severityOrder[b.severity] ?? 3));
 
-Return JSON: { "flags": [{ "type": "risk"|"obligation"|"unusual", "clause": "clause ref or short quote (max 20 words)", "description": "plain English explanation for a non-lawyer SME contractor — what this means practically", "severity": "low"|"medium"|"high", "recommendation": "specific action the contractor should take" }] }`
-    );
-
-    await supabase.from("projects").update({ contract_review_flags: flags.flags || [] }).eq("id", projectId);
-    revalidatePath("/dashboard/projects/contracts");
-    return flags;
+        await supabase.from("projects").update({ contract_review_flags: deduped }).eq("id", projectId);
+        revalidatePath("/dashboard/projects/contracts");
+        return { flags: deduped };
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "Unknown error";
+        console.error("Contract analysis error:", msg);
+        return { flags: [], error: msg };
+    }
 }
 
 // ── Dismiss / Accept Contract Flag ─────────────────────

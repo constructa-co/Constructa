@@ -254,6 +254,71 @@ export async function contractChatAction(message: string, contractContext: {
     return { response };
 }
 
+// ── Parse Client Contract into Clauses ──────────────────
+export async function structureClientContractAction(
+    contractText: string,
+    flags: Array<{ clause: string; description: string; severity: string; recommendation: string }>
+): Promise<{ clauses: Array<{ id: string; clauseRef: string; title: string; original: string; proposed: string; status: "accepted" | "modified" | "rejected"; reason: string; flagged: boolean }> }> {
+    try {
+        const cleanText = contractText.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, " ").replace(/\s+/g, " ").trim();
+        const excerpt = cleanText.length > 12000 ? cleanText.substring(0, 12000) : cleanText;
+        const flagSummary = flags.filter(f => f.severity !== "low").map(f => `- "${f.clause}": ${f.description}. Recommended change: ${f.recommendation}`).join("\n");
+
+        const result = await generateJSON<{ clauses: Array<{ clauseRef: string; title: string; original: string; proposed: string; status: string; reason: string; flagged: boolean }> }>(
+            `You are a UK construction contract expert parsing a client's contract so a contractor can respond formally.
+
+Parse the contract into its key clauses (aim for 8-20 clauses covering the most commercially important terms — payment, completion, liability, insurance, defects, retention, termination, variations etc. Skip purely administrative boilerplate).
+
+For each clause:
+- clauseRef: clause number or reference (e.g. "1.1", "Clause 4", "Schedule 1")
+- title: short descriptive title (e.g. "Payment Terms", "Defects Liability Period")
+- original: the clause text (max 400 chars — truncate with "..." if longer)
+- flagged: true if this clause matches any of the known risks below
+- status: "accepted" for standard clauses; "modified" for clauses matching medium/high risks; "rejected" for clauses matching high risks that are illegal or highly onerous
+- proposed: for modified/rejected clauses, suggest contractor-friendly alternative wording (empty string if accepted)
+- reason: for modified/rejected, explain why in plain English (empty string if accepted)
+
+Known risks from contract review:
+${flagSummary || "No specific risks flagged — use standard contractor protections."}
+
+Contract text:
+${excerpt}
+
+Return JSON: { "clauses": [...] }`
+        );
+
+        const clauses = (result.clauses || []).map((c: any) => ({
+            id: Math.random().toString(36).substring(2, 11),
+            clauseRef: c.clauseRef || "",
+            title: c.title || "Untitled Clause",
+            original: c.original || "",
+            proposed: c.proposed || "",
+            status: (["accepted", "modified", "rejected"].includes(c.status) ? c.status : "accepted") as "accepted" | "modified" | "rejected",
+            reason: c.reason || "",
+            flagged: !!c.flagged,
+        }));
+
+        return { clauses };
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return { clauses: [], error: msg } as any;
+    }
+}
+
+export async function saveClientContractClausesAction(
+    projectId: string,
+    clauses: Array<{ id: string; clauseRef: string; title: string; original: string; proposed: string; status: string; reason: string; flagged: boolean }>
+) {
+    try {
+        const supabase = createClient();
+        const { error } = await supabase.from("projects").update({ client_contract_clauses: clauses }).eq("id", projectId);
+        if (error) console.error("Save client contract clauses error:", error);
+        revalidatePath("/dashboard/projects/contracts");
+    } catch (e) {
+        console.error("saveClientContractClausesAction error:", e);
+    }
+}
+
 // ── Legacy (kept for compatibility) ─────────────────────
 export async function generateContractAction(projectId: string) {
     return "Use the Contracts hub tabs to manage your contract.";

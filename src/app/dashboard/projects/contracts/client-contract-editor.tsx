@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Sparkles, Loader2, Plus, Trash2, Shield, AlertTriangle, Send, Upload, CheckCircle, Scale, MessageSquare, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Sparkles, Loader2, Plus, Trash2, Shield, AlertTriangle, Send, Upload, CheckCircle, Scale, MessageSquare, ShieldCheck, ShieldAlert, FileEdit } from "lucide-react";
 import {
     saveTcTierAction,
     analyseContractAction,
@@ -13,6 +13,8 @@ import {
     generateContractExclusionsAction,
     contractChatAction,
     extractContractTextAction,
+    structureClientContractAction,
+    saveClientContractClausesAction,
 } from "./actions";
 
 // ── T&C Tier Definitions ─────────────────────────────────
@@ -137,6 +139,17 @@ interface ChatMsg {
     content: string;
 }
 
+interface ClientClause {
+    id: string;
+    clauseRef: string;
+    title: string;
+    original: string;
+    proposed: string;
+    status: "accepted" | "modified" | "rejected";
+    reason: string;
+    flagged: boolean;
+}
+
 interface Props {
     projectId: string;
     project: any;
@@ -155,6 +168,10 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
     const [uploadedText, setUploadedText] = useState(project?.uploaded_contract_text || "");
     const [extracting, setExtracting] = useState(false);
     const [showPasteMode, setShowPasteMode] = useState(false);
+    const [clientClauses, setClientClauses] = useState<ClientClause[]>(
+        (project?.client_contract_clauses || []).map((c: any) => ({ ...c }))
+    );
+    const [parsingClauses, setParsingClauses] = useState(false);
 
     // Tab B: Risks
     const [riskRegister, setRiskRegister] = useState<RiskItem[]>(
@@ -298,6 +315,171 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
         setRiskRegister(prev => [...prev, ...newRisks]);
         setActiveTab("risks");
         toast.success(`${newRisks.length} contract risk${newRisks.length !== 1 ? "s" : ""} imported — review mitigations and save`);
+    };
+
+    // ── Parse client contract into clauses ───────────────
+    const handleParseClientContract = async () => {
+        if (!uploadedText || uploadedText.startsWith("[FILE:")) {
+            toast.error("Upload or paste the client contract first, then run a review.");
+            return;
+        }
+        setParsingClauses(true);
+        try {
+            const result = await structureClientContractAction(
+                uploadedText,
+                contractFlags.filter((f: any) => !f.dismissed)
+            );
+            if (!result?.clauses?.length) {
+                toast.error("Could not parse contract into clauses — try again.");
+            } else {
+                setClientClauses(result.clauses);
+                await saveClientContractClausesAction(projectId, result.clauses);
+                setTcTier("client");
+                toast.success(`${result.clauses.length} clauses parsed — review and mark your response`);
+            }
+        } catch {
+            toast.error("Parsing failed — try again");
+        }
+        setParsingClauses(false);
+    };
+
+    const handleSaveClientClauses = () => {
+        startTransition(async () => {
+            await saveClientContractClausesAction(projectId, clientClauses);
+            toast.success("Contractor response saved");
+        });
+    };
+
+    const updateClientClause = (id: string, field: keyof ClientClause, value: string) => {
+        setClientClauses(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
+    };
+
+    const handleDownloadAmendedContract = async () => {
+        const jsPDF = (await import("jspdf")).default;
+        const { buildDocHeader, buildDocFooter, checkPageBreak, BRAND } = await import("@/lib/pdf/pdf-utils");
+
+        const doc = new jsPDF();
+        let y = buildDocHeader(doc, {
+            documentTitle: "Contractor's Proposed Amendments",
+            profile,
+            rightBlockLines: [
+                `Date: ${new Date().toLocaleDateString("en-GB")}`,
+                `Project: ${project?.name || "N/A"}`,
+            ],
+        });
+
+        y += 2;
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "italic");
+        doc.setTextColor(100, 100, 100);
+        const note = doc.splitTextToSize("This document sets out the Contractor's proposed amendments to the Client's Contract. Clauses marked ACCEPTED are agreed as presented. Clauses marked MODIFICATION PROPOSED contain the Contractor's alternative wording. Clauses marked REJECTED are not agreed and require negotiation.", BRAND.contentW);
+        note.forEach((line: string) => { y = checkPageBreak(doc, y, 6); doc.text(line, BRAND.marginL, y); y += 5; });
+        y += 4;
+
+        const accepted = clientClauses.filter(c => c.status === "accepted");
+        const modified = clientClauses.filter(c => c.status === "modified");
+        const rejected = clientClauses.filter(c => c.status === "rejected");
+
+        // Summary box
+        doc.setFillColor(248, 248, 248);
+        doc.roundedRect(BRAND.marginL, y, BRAND.contentW, 16, 2, 2, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(...BRAND.slate);
+        doc.text(`Summary: ${accepted.length} Accepted  |  ${modified.length} Modification Proposed  |  ${rejected.length} Rejected`, BRAND.marginL + 4, y + 6);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.text("Contractor reserves the right to withdraw acceptance if any rejected/modified clauses are not resolved.", BRAND.marginL + 4, y + 12);
+        y += 22;
+
+        const renderClause = (clause: ClientClause) => {
+            y = checkPageBreak(doc, y, 30);
+
+            // Status colour
+            const colors: Record<string, [number, number, number]> = {
+                accepted: [0, 120, 60],
+                modified: [180, 100, 0],
+                rejected: [180, 0, 0],
+            };
+            const labels: Record<string, string> = { accepted: "ACCEPTED", modified: "MODIFICATION PROPOSED", rejected: "REJECTED" };
+            const [r, g, b] = colors[clause.status] || [80, 80, 80];
+
+            // Clause header
+            doc.setFillColor(r, g, b);
+            doc.roundedRect(BRAND.marginL, y, BRAND.contentW, 8, 1, 1, "F");
+            doc.setTextColor(255, 255, 255);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8);
+            doc.text(`${clause.clauseRef}  ${clause.title}`, BRAND.marginL + 3, y + 5.5);
+            doc.text(labels[clause.status], BRAND.marginL + BRAND.contentW - 3, y + 5.5, { align: "right" });
+            y += 10;
+
+            // Original text
+            doc.setTextColor(...BRAND.slate);
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8.5);
+            const origLines = doc.splitTextToSize(`Client's version: ${clause.original}`, BRAND.contentW);
+            origLines.forEach((line: string) => { y = checkPageBreak(doc, y, 6); doc.text(line, BRAND.marginL, y); y += 5; });
+
+            if (clause.status === "modified" && clause.proposed) {
+                y += 2;
+                doc.setFont("helvetica", "bolditalic");
+                doc.setTextColor(r, g, b);
+                const propLines = doc.splitTextToSize(`Contractor proposes: ${clause.proposed}`, BRAND.contentW);
+                propLines.forEach((line: string) => { y = checkPageBreak(doc, y, 6); doc.text(line, BRAND.marginL, y); y += 5; });
+            }
+            if (clause.status === "rejected" && clause.reason) {
+                y += 2;
+                doc.setFont("helvetica", "bolditalic");
+                doc.setTextColor(r, g, b);
+                const rejLines = doc.splitTextToSize(`Reason for rejection: ${clause.reason}`, BRAND.contentW);
+                rejLines.forEach((line: string) => { y = checkPageBreak(doc, y, 6); doc.text(line, BRAND.marginL, y); y += 5; });
+            }
+            y += 6;
+        };
+
+        clientClauses.forEach(renderClause);
+
+        // Exclusions & clarifications
+        if (contractExclusions || contractClarifications) {
+            y = checkPageBreak(doc, y, 20);
+            doc.setFillColor(240, 245, 255);
+            doc.roundedRect(BRAND.marginL, y, BRAND.contentW, 8, 1, 1, "F");
+            doc.setTextColor(...(BRAND.navy || BRAND.slate));
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.text("Contractor's Exclusions & Clarifications", BRAND.marginL + 3, y + 5.5);
+            y += 12;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8.5);
+            doc.setTextColor(...BRAND.slate);
+            if (contractExclusions) {
+                contractExclusions.split("\n").filter(Boolean).forEach((line: string) => {
+                    y = checkPageBreak(doc, y, 6);
+                    doc.text(`• ${line.trim()}`, BRAND.marginL + 3, y);
+                    y += 5;
+                });
+            }
+            if (contractClarifications) {
+                y += 3;
+                doc.setFont("helvetica", "bold");
+                doc.text("Clarifications:", BRAND.marginL, y); y += 5;
+                doc.setFont("helvetica", "normal");
+                contractClarifications.split("\n").filter(Boolean).forEach((line: string) => {
+                    y = checkPageBreak(doc, y, 6);
+                    doc.text(`• ${line.trim()}`, BRAND.marginL + 3, y);
+                    y += 5;
+                });
+            }
+        }
+
+        const totalPages = doc.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+            doc.setPage(i);
+            buildDocFooter(doc, i, totalPages, "Constructa — Contractor's Proposed Amendments");
+        }
+
+        doc.save(`CONTRACT-RESPONSE-${(project?.name || "Project").replace(/\s+/g, "_")}.pdf`);
     };
 
     // ── Tab B handlers ───────────────────────────────────
@@ -463,7 +645,7 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
             {activeTab === "terms" && (
                 <div className="space-y-6">
                     {/* Tier cards */}
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className={`grid gap-4 ${clientClauses.length > 0 ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-3"}`}>
                         {TC_TIERS.map(tier => (
                             <button
                                 key={tier.id}
@@ -483,22 +665,136 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                                 <p className="text-xs text-slate-500 mt-3">{tier.clauses} clauses</p>
                             </button>
                         ))}
+                        {/* 4th tier: client contract */}
+                        {clientClauses.length > 0 && (
+                            <button
+                                onClick={() => setTcTier("client")}
+                                className={`text-left p-5 rounded-xl border-2 transition-all ${
+                                    tcTier === "client"
+                                        ? "border-purple-500 bg-purple-950/30 shadow-md shadow-purple-900/20"
+                                        : "border-slate-700 bg-slate-800/50 hover:border-slate-500"
+                                }`}
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-lg font-bold text-slate-100">Client Contract</h3>
+                                    {tcTier === "client" && <CheckCircle className="w-5 h-5 text-purple-400" />}
+                                </div>
+                                <p className="text-xs font-medium text-slate-400 mb-2">Contractor&apos;s amended response</p>
+                                <p className="text-sm text-slate-300">Review, modify, or reject client clauses. Download formal contractor response.</p>
+                                <div className="flex items-center gap-2 mt-3">
+                                    <span className="text-xs px-1.5 py-0.5 rounded bg-green-950/60 text-green-400">{clientClauses.filter(c => c.status === "accepted").length} accepted</span>
+                                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-400">{clientClauses.filter(c => c.status === "modified").length} modified</span>
+                                    <span className="text-xs px-1.5 py-0.5 rounded bg-red-950/60 text-red-400">{clientClauses.filter(c => c.status === "rejected").length} rejected</span>
+                                </div>
+                            </button>
+                        )}
                     </div>
 
                     {/* Clause list for selected tier */}
-                    <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-                        <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wide mb-4">
-                            {tcTier.charAt(0).toUpperCase() + tcTier.slice(1)} Terms — {getTierClauses(tcTier).length} Clauses
-                        </h3>
-                        <div className="space-y-3 max-h-96 overflow-y-auto">
-                            {getTierClauses(tcTier).map((clause, i) => (
-                                <div key={i} className="border border-slate-700/60 rounded-lg p-3 bg-slate-900/40">
-                                    <h4 className="text-sm font-semibold text-slate-200">{i + 1}. {clause.title}</h4>
-                                    <p className="text-xs text-slate-400 mt-1">{clause.body}</p>
-                                </div>
-                            ))}
+                    {tcTier !== "client" && (
+                        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
+                            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wide mb-4">
+                                {tcTier.charAt(0).toUpperCase() + tcTier.slice(1)} Terms — {getTierClauses(tcTier).length} Clauses
+                            </h3>
+                            <div className="space-y-3 max-h-96 overflow-y-auto">
+                                {getTierClauses(tcTier).map((clause, i) => (
+                                    <div key={i} className="border border-slate-700/60 rounded-lg p-3 bg-slate-900/40">
+                                        <h4 className="text-sm font-semibold text-slate-200">{i + 1}. {clause.title}</h4>
+                                        <p className="text-xs text-slate-400 mt-1">{clause.body}</p>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    )}
+
+                    {/* ── Client contract clause editor ── */}
+                    {tcTier === "client" && clientClauses.length > 0 && (
+                        <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+                                <div>
+                                    <h3 className="text-sm font-bold text-slate-200">Contractor&apos;s Response — Clause by Clause</h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">Mark each clause as Accept, Modify, or Reject. Edit proposed wording inline. Download when complete.</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={handleSaveClientClauses}
+                                        disabled={isPending}
+                                        className="px-3 py-1.5 bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold hover:bg-slate-600 disabled:opacity-50 transition-colors"
+                                    >
+                                        Save
+                                    </button>
+                                    <button
+                                        onClick={handleDownloadAmendedContract}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 transition-colors"
+                                    >
+                                        <FileEdit className="w-3.5 h-3.5" />
+                                        Download Response PDF
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="divide-y divide-slate-700/50 max-h-[600px] overflow-y-auto">
+                                {clientClauses.map((clause) => (
+                                    <div key={clause.id} className={`p-5 space-y-3 ${clause.status === "rejected" ? "bg-red-950/20" : clause.status === "modified" ? "bg-amber-950/20" : ""}`}>
+                                        <div className="flex items-start gap-3">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="text-xs font-bold text-slate-400">{clause.clauseRef}</span>
+                                                    <span className="text-sm font-semibold text-slate-200">{clause.title}</span>
+                                                    {clause.flagged && (
+                                                        <span className="text-xs px-1.5 py-0.5 rounded bg-purple-950/60 text-purple-400 border border-purple-700/40 flex items-center gap-1">
+                                                            <ShieldCheck className="w-3 h-3" /> Flagged
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-slate-500 mt-1 line-clamp-2">{clause.original}</p>
+                                            </div>
+                                            {/* Status toggles */}
+                                            <div className="flex items-center gap-1 flex-shrink-0">
+                                                {(["accepted", "modified", "rejected"] as const).map(s => (
+                                                    <button
+                                                        key={s}
+                                                        onClick={() => updateClientClause(clause.id, "status", s)}
+                                                        className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                                                            clause.status === s
+                                                                ? s === "accepted" ? "bg-green-600 text-white"
+                                                                    : s === "modified" ? "bg-amber-600 text-white"
+                                                                    : "bg-red-600 text-white"
+                                                                : "bg-slate-700 text-slate-400 hover:bg-slate-600"
+                                                        }`}
+                                                    >
+                                                        {s === "accepted" ? "Accept" : s === "modified" ? "Modify" : "Reject"}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {clause.status === "modified" && (
+                                            <div className="space-y-1.5">
+                                                <label className="text-xs font-semibold text-amber-400">Contractor&apos;s Proposed Wording</label>
+                                                <textarea
+                                                    className="w-full rounded-lg border border-amber-700/50 bg-amber-950/20 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                                                    rows={3}
+                                                    value={clause.proposed}
+                                                    onChange={e => updateClientClause(clause.id, "proposed", e.target.value)}
+                                                    placeholder="Enter your proposed wording for this clause…"
+                                                />
+                                            </div>
+                                        )}
+                                        {clause.status === "rejected" && (
+                                            <div className="space-y-1.5">
+                                                <label className="text-xs font-semibold text-red-400">Reason for Rejection</label>
+                                                <input
+                                                    className="w-full rounded-lg border border-red-700/50 bg-red-950/20 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                                    value={clause.reason}
+                                                    onChange={e => updateClientClause(clause.id, "reason", e.target.value)}
+                                                    placeholder="State why this clause is not acceptable…"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Upload Client Contract */}
                     <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 space-y-4">
@@ -641,6 +937,26 @@ export default function ClientContractEditor({ projectId, project, profile }: Pr
                                         )}
                                     </div>
                                 ))}
+                            </div>
+                        )}
+
+                        {/* Build contractor response */}
+                        {uploadedText && !uploadedText.startsWith("[FILE:") && (
+                            <div className="pt-2 border-t border-slate-700/50">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-semibold text-slate-200">Contractor Response</p>
+                                        <p className="text-xs text-slate-500">Parse the client&apos;s contract into clauses and build a formal amendment response.</p>
+                                    </div>
+                                    <button
+                                        onClick={handleParseClientContract}
+                                        disabled={parsingClauses}
+                                        className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 text-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-600 disabled:opacity-50 transition-colors flex-shrink-0"
+                                    >
+                                        {parsingClauses ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileEdit className="w-4 h-4" />}
+                                        {parsingClauses ? "Parsing…" : clientClauses.length > 0 ? "Re-parse Contract" : "Build Contractor Response"}
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>

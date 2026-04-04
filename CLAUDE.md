@@ -354,14 +354,27 @@ Chrome popup blocker intercepts the new tab, so PDFs download silently rather th
 - [x] **BUG-004** ~~Fix PDF download~~ — not applicable; jsPDF `doc.save()` already uses direct download
 - [ ] **BUG-002** Add "link not active yet" UX when proposal_token not generated (low priority)
 
-### Sprint 12 — Close the Loop (NEXT after bugs)
+### Sprint 12 — Close the Loop — DONE (commit 333744c)
+- [x] Viewed tracking — client portal sets proposal_status 'sent'→'viewed' on page load
+- [x] Accepted alert on Overview — green banner, 7-day window, client name + value
+- [x] Viewed alert on Overview — blue banner, 48h window, "follow up now" prompt
+- [x] Send Proposal via Email — mailto button in proposal editor, pre-filled subject + body
+- [ ] Full server-side email send (Resend.com) — install `resend` package, add RESEND_API_KEY to Vercel env, wire into sendProposalAction
+- [ ] Client confirmation email on acceptance — send to client_email when acceptProposalAction succeeds
+
+### Sidebar updated (commit ff785dd)
+- Overview moved above Company Profile — primary landing, no section label
+- Pre-Construction items pluralised (Briefs/Estimates/Programmes/Contracts/Proposals)
+- Divider colour fixed (border-white/10 not border-gray-200)
+
+### Sprint 13 — Close the Loop (NEXT after bugs)
 - [ ] Viewed tracking — notify contractor when client opens the proposal link
 - [ ] Acceptance notification to contractor (email or in-app notification)  
 - [ ] Project status updates on dashboard/pipeline when proposal accepted
 - [ ] Email send from within Constructa (currently: copy link, paste in email)
 - [ ] Email confirmation sent to client on acceptance (Supabase email or Resend.com)
 
-### Sprint 13 — Contract Shield Polish
+### Sprint 13 (was 12) — Contract Shield Polish
 - [ ] Contract Shield flagging calibrated (done) — needs real-world testing
 - [ ] Dismiss/accept flags stores to DB correctly
 - [ ] Upload PDF contracts — text extraction for AI analysis

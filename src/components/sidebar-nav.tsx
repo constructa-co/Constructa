@@ -27,6 +27,7 @@ import {
     FolderOpen,
     Receipt,
     BookMarked,
+    Kanban,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 
@@ -132,7 +133,8 @@ export default function SidebarNav({ user }: SidebarNavProps) {
                 {/* Work Winning */}
                 <SectionLabel label="Work Winning" />
                 <div className="space-y-0.5">
-                    <NavItem href="/dashboard" icon={LayoutDashboard} label="Dashboard" active={pathname === "/dashboard"} />
+                    <NavItem href="/dashboard/home" icon={LayoutDashboard} label="Home" active={is("/dashboard/home")} />
+                    <NavItem href="/dashboard" icon={Kanban} label="Pipeline" active={pathname === "/dashboard"} />
                     <NavItem href="/dashboard/projects/new" icon={FilePlus} label="New Project" active={pathname.includes("/projects/new")} />
                     <hr className="my-2 border-gray-200" />
                     <NavItem href="/dashboard/library" icon={BookOpen} label="Cost Library" active={is("/dashboard/library")} />

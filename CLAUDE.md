@@ -295,6 +295,15 @@ Stored in `profiles.pdf_theme`:
 
 ---
 
+## Local Build Process
+Run before every push — catches what Vercel catches:
+```bash
+cd /Users/robertsmith/Documents/GitHub/constructa
+node /usr/local/bin/npx next build 2>&1 | grep -E "Failed|error TS|Type error|✓"
+```
+node is at `/usr/local/bin/node` (v22.20.0). PATH must include `/usr/local/bin`.
+If `node_modules` is stale, run `node /usr/local/bin/npm install` first.
+
 ## Known Bugs (to fix next session)
 
 ### BUG-001 — Duplicate `md_name` input (Medium — data loss risk)
@@ -359,8 +368,10 @@ Chrome popup blocker intercepts the new tab, so PDFs download silently rather th
 - [x] Accepted alert on Overview — green banner, 7-day window, client name + value
 - [x] Viewed alert on Overview — blue banner, 48h window, "follow up now" prompt
 - [x] Send Proposal via Email — mailto button in proposal editor, pre-filled subject + body
-- [ ] Full server-side email send (Resend.com) — install `resend` package, add RESEND_API_KEY to Vercel env, wire into sendProposalAction
-- [ ] Client confirmation email on acceptance — send to client_email when acceptProposalAction succeeds
+- [x] Full server-side email send via Resend — `src/lib/email.ts`, RESEND_API_KEY in Vercel env (commit d9e80a7)
+- [x] Client confirmation email on acceptance — fires in acceptProposalAction
+- [x] Contractor notification email on acceptance — fires alongside client email
+- NOTE: Emails currently send from `onboarding@resend.dev` — to use `noreply@constructa.co`, verify constructa.co domain in Resend dashboard → Domains
 
 ### Sidebar updated (commit ff785dd)
 - Overview moved above Company Profile — primary landing, no section label

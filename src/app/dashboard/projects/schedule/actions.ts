@@ -9,12 +9,10 @@ export async function updateDependencyAction(formData: FormData) {
     const successor = formData.get("successor") as string;
     const duration = formData.get("duration") as string;
 
-    // 1. Update Duration
     if (duration) {
         await supabase.from("estimates").update({ manual_duration_days: parseInt(duration) }).eq("id", successor);
     }
 
-    // 2. Update Link (If selected)
     if (predecessor && predecessor !== "none") {
         await supabase.from("estimate_dependencies").delete().eq("successor_id", successor);
         await supabase.from("estimate_dependencies").insert({
@@ -39,16 +37,25 @@ export async function updatePhasesAction(
         startOffset: number;
         color?: string;
         dependsOn?: number[];
-    }[]
+    }[],
+    startDate?: string   // ISO YYYY-MM-DD — if provided, saves to projects.start_date
 ): Promise<void> {
     const supabase = createClient();
+    const payload: Record<string, unknown> = {
+        timeline_phases: phases,
+        programme_phases: phases,
+    };
+    if (startDate) payload.start_date = startDate;
+
     const { error } = await supabase
         .from("projects")
-        .update({ timeline_phases: phases, programme_phases: phases })
+        .update(payload)
         .eq("id", projectId);
 
     if (error) console.error("Update phases error:", error);
     revalidatePath("/dashboard/projects/schedule");
+    revalidatePath("/dashboard/projects/proposal");
+    revalidatePath("/proposal", "layout");
 }
 
 export async function getEstimatePhasesAction(
@@ -56,7 +63,6 @@ export async function getEstimatePhasesAction(
 ): Promise<{ name: string; calculatedDays: number; manualDays: number | null; manhours: number; startOffset: number }[]> {
     const supabase = createClient();
 
-    // Find the active estimate (or first one)
     const { data: estimates } = await supabase
         .from("estimates")
         .select("*, estimate_lines(*, estimate_line_components(*))")
@@ -66,7 +72,6 @@ export async function getEstimatePhasesAction(
     const estimate = (estimates || []).find((e: any) => e.is_active) || (estimates || [])[0];
     if (!estimate) return [];
 
-    // Group manhours by trade section
     const sectionManhours: Record<string, number> = {};
     (estimate.estimate_lines || []).forEach((line: any) => {
         const section = line.trade_section || "General";
@@ -74,13 +79,11 @@ export async function getEstimatePhasesAction(
             (sum: number, c: any) => sum + (c.total_manhours || 0),
             0
         );
-        const totalForLine = lineManHours * (line.quantity || 1);
-        sectionManhours[section] = (sectionManhours[section] || 0) + totalForLine;
+        sectionManhours[section] = (sectionManhours[section] || 0) + lineManHours * (line.quantity || 1);
     });
 
     const sections = Object.keys(sectionManhours).filter(s => sectionManhours[s] > 0);
 
-    // If no estimate lines found, build from brief_trade_sections
     if (sections.length === 0) {
         const { data: proj } = await supabase
             .from("projects")
@@ -88,28 +91,23 @@ export async function getEstimatePhasesAction(
             .eq("id", projectId)
             .single();
 
-        if (proj && proj.brief_trade_sections && (proj.brief_trade_sections as string[]).length > 0) {
+        if (proj?.brief_trade_sections && (proj.brief_trade_sections as string[]).length > 0) {
             let briefOffset = 0;
             return (proj.brief_trade_sections as string[]).map((trade: string) => {
-                const phase = {
-                    name: trade,
-                    calculatedDays: 10, // default 2 weeks per trade
-                    manualDays: null,
-                    manhours: 0,
-                    startOffset: briefOffset,
-                };
-                briefOffset += 10;
+                const phase = { name: trade, calculatedDays: 10, manualDays: null, manhours: 0, startOffset: briefOffset };
+                briefOffset += 14; // 2 calendar weeks at 5-day week default
                 return phase;
             });
         }
     }
 
+    // Return working days; client converts to calendar days using daysPerWeek
     let offset = 0;
     return sections.map(section => {
         const manhours = sectionManhours[section];
         const calculatedDays = Math.max(Math.ceil(manhours / 8), 1);
         const phase = { name: section, calculatedDays, manualDays: null, manhours, startOffset: offset };
-        offset += calculatedDays;
+        offset += calculatedDays; // client re-sequences on load
         return phase;
     });
 }

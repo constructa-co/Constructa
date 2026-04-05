@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { logCostAction, deleteCostAction, updateInvoiceStatusAction, COST_TYPES, TRADE_SECTIONS } from "./actions";
+import React, { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { logCostAction, deleteCostAction, updateInvoiceStatusAction } from "./actions";
+import { COST_TYPES, TRADE_SECTIONS } from "./constants";
 import { toast } from "sonner";
 import {
     PoundSterling,
@@ -11,13 +13,12 @@ import {
     Plus,
     Trash2,
     Loader2,
-    CheckCircle2,
-    Clock,
-    SendHorizonal,
-    ChevronDown,
+    ChevronRight,
     BarChart3,
     Receipt,
     Hammer,
+    ShieldAlert,
+    GitBranch,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +46,8 @@ interface Props {
     project: any;
     contractValue: number;
     totalBudgetCost: number;
+    riskAmt: number;
+    riskPct: number;
     budgetBySection: Array<{ section: string; budget: number }>;
     actualBySection: Array<{ section: string; actual: number }>;
     costsPosted: number;
@@ -59,7 +62,8 @@ interface Props {
 function gbp(n: number, compact = false): string {
     if (compact) {
         if (Math.abs(n) >= 1_000_000) return `£${(n / 1_000_000).toFixed(1)}m`;
-        if (Math.abs(n) >= 1_000) return `£${(n / 1_000).toFixed(0)}k`;
+        if (Math.abs(n) >= 1_000)     return `£${(n / 1_000).toFixed(0)}k`;
+        return `£${n.toFixed(0)}`;
     }
     return "£" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -80,6 +84,19 @@ function costTypeLabel(t: string): string {
         subcontract: "Subcontract", overhead: "Overhead", prelims: "Prelims", other: "Other",
     };
     return labels[t] ?? t;
+}
+
+function costTypeBadgeColor(t: string): string {
+    const colors: Record<string, string> = {
+        labour:      "bg-blue-500/15 text-blue-400",
+        materials:   "bg-orange-500/15 text-orange-400",
+        plant:       "bg-yellow-500/15 text-yellow-400",
+        subcontract: "bg-purple-500/15 text-purple-400",
+        overhead:    "bg-slate-500/15 text-slate-400",
+        prelims:     "bg-teal-500/15 text-teal-400",
+        other:       "bg-slate-500/15 text-slate-400",
+    };
+    return colors[t] ?? "bg-slate-500/15 text-slate-400";
 }
 
 function statusBadge(status: string) {
@@ -114,7 +131,7 @@ function KpiCard({
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</span>
                 <Icon className={`w-4 h-4 ${colours[color]}`} />
             </div>
-            <div className={`text-xl font-bold ${colours[color]}`}>{value}</div>
+            <div className={`text-xl font-bold tabular-nums ${colours[color]}`}>{value}</div>
             {sub && <div className="text-xs text-slate-500">{sub}</div>}
             {warn && (
                 <div className="flex items-center gap-1 text-[10px] text-amber-400">
@@ -141,6 +158,8 @@ export default function ClientPLDashboard({
     projectId,
     contractValue,
     totalBudgetCost,
+    riskAmt,
+    riskPct,
     budgetBySection,
     actualBySection,
     costsPosted,
@@ -150,9 +169,13 @@ export default function ClientPLDashboard({
     expenses,
     invoices,
 }: Props) {
+    const router = useRouter();
     const [isPending, startTransition] = useTransition();
-    const [isLogOpen, setIsLogOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<"overview" | "costs" | "invoices">("overview");
+    const [isLogOpen, setIsLogOpen]   = useState(false);
+    const [activeTab, setActiveTab]   = useState<"overview" | "costs" | "invoices">("overview");
+
+    // Drill-down expand state (by trade section name)
+    const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
     // Log cost form state
     const [logDesc, setLogDesc]         = useState("");
@@ -164,26 +187,46 @@ export default function ClientPLDashboard({
 
     // ── Computed P&L metrics ─────────────────────────────────────────────────
     const revisedContractValue = contractValue + approvedVarTotal;
+    const totalBudgetWithRisk  = totalBudgetCost + riskAmt;
     const estimatedMargin      = contractValue - totalBudgetCost;
     const estimatedMarginPct   = contractValue > 0 ? (estimatedMargin / contractValue) * 100 : 0;
-    const budgetRemaining      = totalBudgetCost - costsPosted;
+    const budgetRemaining      = totalBudgetWithRisk - costsPosted;
     const forecastMargin       = revisedContractValue - (costsPosted + Math.max(budgetRemaining, 0));
     const forecastMarginPct    = revisedContractValue > 0 ? (forecastMargin / revisedContractValue) * 100 : 0;
-    const costBurnPct          = totalBudgetCost > 0 ? (costsPosted / totalBudgetCost) * 100 : 0;
+    const costBurnPct          = totalBudgetWithRisk > 0 ? (costsPosted / totalBudgetWithRisk) * 100 : 0;
     const outstandingDebt      = invoicedTotal - receivedTotal;
-    const isOverBudget         = costsPosted > totalBudgetCost * 1.1; // >10% over = alert
+    const isOverBudget         = costsPosted > totalBudgetWithRisk * 1.1;
+
+    // ── Build drill-down: actual costs by section → cost_type ────────────────
+    const actualByCostType = new Map<string, Map<string, number>>();
+    for (const exp of expenses) {
+        const section  = (exp.trade_section as string) || "General";
+        const costType = (exp.cost_type as string)     || "other";
+        if (!actualByCostType.has(section)) actualByCostType.set(section, new Map());
+        const typeMap = actualByCostType.get(section)!;
+        typeMap.set(costType, (typeMap.get(costType) ?? 0) + Number(exp.amount));
+    }
 
     // ── Merge budget + actual by section ────────────────────────────────────
     const allSections = Array.from(
         new Set([...budgetBySection.map(b => b.section), ...actualBySection.map(a => a.section)])
     );
     const mergedSections = allSections.map(section => {
-        const budget = budgetBySection.find(b => b.section === section)?.budget ?? 0;
-        const actual = actualBySection.find(a => a.section === section)?.actual ?? 0;
+        const budget   = budgetBySection.find(b => b.section === section)?.budget ?? 0;
+        const actual   = actualBySection.find(a => a.section === section)?.actual ?? 0;
         const variance = budget - actual;
         const spentPct = budget > 0 ? (actual / budget) * 100 : 0;
         return { section, budget, actual, variance, spentPct };
     }).sort((a, b) => b.budget - a.budget);
+
+    // ── Toggle drill-down row ────────────────────────────────────────────────
+    const toggleDrillDown = (section: string) => {
+        setExpandedSections(prev => {
+            const next = new Set(prev);
+            if (next.has(section)) next.delete(section); else next.add(section);
+            return next;
+        });
+    };
 
     // ── Handlers ─────────────────────────────────────────────────────────────
     const handleLogCost = (e: React.FormEvent) => {
@@ -207,6 +250,7 @@ export default function ClientPLDashboard({
                 toast.error("Failed to log cost: " + result.error);
             } else {
                 toast.success("Cost logged successfully.");
+                router.refresh();
                 setIsLogOpen(false);
                 setLogDesc(""); setLogAmount(""); setLogSupplier("");
                 setLogType("materials"); setLogSection("General");
@@ -219,6 +263,7 @@ export default function ClientPLDashboard({
         startTransition(async () => {
             await deleteCostAction(id);
             toast.success("Cost entry removed.");
+            router.refresh();
         });
     };
 
@@ -226,20 +271,19 @@ export default function ClientPLDashboard({
         startTransition(async () => {
             await updateInvoiceStatusAction(id, status);
             toast.success(`Invoice marked as ${status}.`);
+            router.refresh();
         });
     };
 
-    // ── Margin colour helper ─────────────────────────────────────────────────
+    // ── Colour helpers ───────────────────────────────────────────────────────
     const marginColor = (pctVal: number): "green" | "amber" | "red" => {
         if (pctVal >= 10) return "green";
         if (pctVal >= 0)  return "amber";
         return "red";
     };
-
-    // ── Spend bar colour ─────────────────────────────────────────────────────
     const burnColor = (pctVal: number): "green" | "amber" | "red" => {
-        if (pctVal < 80)   return "green";
-        if (pctVal < 100)  return "amber";
+        if (pctVal < 80)  return "green";
+        if (pctVal < 100) return "amber";
         return "red";
     };
 
@@ -250,36 +294,36 @@ export default function ClientPLDashboard({
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
                 <KpiCard
                     label="Contract Value"
-                    value={gbp(contractValue, true)}
+                    value={gbp(contractValue)}
                     sub={approvedVarTotal > 0 ? `+${gbp(approvedVarTotal, true)} variations` : "Original contract sum"}
                     color="blue"
                     icon={PoundSterling}
                 />
                 <KpiCard
                     label="Budget Cost"
-                    value={gbp(totalBudgetCost, true)}
-                    sub={`Est. margin ${estimatedMarginPct.toFixed(1)}%`}
+                    value={gbp(totalBudgetCost)}
+                    sub={riskAmt > 0 ? `+${gbp(riskAmt, true)} risk (${riskPct}%)` : `Est. margin ${estimatedMarginPct.toFixed(1)}%`}
                     color="slate"
                     icon={BarChart3}
                 />
                 <KpiCard
                     label="Estimated Margin"
-                    value={gbp(estimatedMargin, true)}
+                    value={gbp(estimatedMargin)}
                     sub={pct(estimatedMargin, contractValue) + " margin"}
                     color={marginColor(estimatedMarginPct)}
                     icon={estimatedMargin >= 0 ? TrendingUp : TrendingDown}
                 />
                 <KpiCard
                     label="Costs to Date"
-                    value={gbp(costsPosted, true)}
+                    value={gbp(costsPosted)}
                     sub={`${costBurnPct.toFixed(0)}% of budget`}
-                    color={isOverBudget ? "red" : costsPosted > totalBudgetCost * 0.8 ? "amber" : "slate"}
+                    color={isOverBudget ? "red" : costsPosted > totalBudgetWithRisk * 0.8 ? "amber" : "slate"}
                     icon={Hammer}
                     warn={isOverBudget}
                 />
                 <KpiCard
                     label="Invoiced to Date"
-                    value={gbp(invoicedTotal, true)}
+                    value={gbp(invoicedTotal)}
                     sub={`${gbp(receivedTotal, true)} received`}
                     color={outstandingDebt > 0 ? "amber" : "green"}
                     icon={Receipt}
@@ -287,18 +331,24 @@ export default function ClientPLDashboard({
             </div>
 
             {/* ── Budget burn bar ──────────────────────────────────────────── */}
-            {totalBudgetCost > 0 && (
+            {totalBudgetWithRisk > 0 && (
                 <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-400 font-medium">Budget Burn — {pct(costsPosted, totalBudgetCost)} spent</span>
+                        <span className="text-slate-400 font-medium">
+                            Budget Burn — {pct(costsPosted, totalBudgetWithRisk)} spent
+                            {riskAmt > 0 && <span className="text-slate-500"> (incl. {gbp(riskAmt, true)} risk allowance)</span>}
+                        </span>
                         <span className={`font-semibold ${budgetRemaining < 0 ? "text-red-400" : "text-slate-300"}`}>
-                            {budgetRemaining >= 0 ? gbp(budgetRemaining, true) + " remaining" : gbp(Math.abs(budgetRemaining), true) + " over budget"}
+                            {budgetRemaining >= 0
+                                ? gbp(budgetRemaining, true) + " remaining"
+                                : gbp(Math.abs(budgetRemaining), true) + " over budget"}
                         </span>
                     </div>
-                    <ProgressBar value={costsPosted} max={totalBudgetCost} color={burnColor(costBurnPct)} />
+                    <ProgressBar value={costsPosted} max={totalBudgetWithRisk} color={burnColor(costBurnPct)} />
                     {forecastMargin !== estimatedMargin && (
                         <div className="text-[11px] text-slate-500">
-                            Forecast margin at completion: <span className={`font-semibold ${forecastMarginPct >= 10 ? "text-green-400" : forecastMarginPct >= 0 ? "text-amber-400" : "text-red-400"}`}>
+                            Forecast margin at completion:{" "}
+                            <span className={`font-semibold ${forecastMarginPct >= 10 ? "text-green-400" : forecastMarginPct >= 0 ? "text-amber-400" : "text-red-400"}`}>
                                 {gbp(forecastMargin, true)} ({forecastMarginPct.toFixed(1)}%)
                             </span>
                         </div>
@@ -325,82 +375,179 @@ export default function ClientPLDashboard({
 
             {/* ── TAB: Budget vs Actual ─────────────────────────────────────── */}
             {activeTab === "overview" && (
-                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
-                    {mergedSections.length === 0 ? (
-                        <div className="p-8 text-center text-slate-500 text-sm">
-                            No estimate data yet. Build your estimate to see budget breakdowns here.
-                        </div>
-                    ) : (
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-slate-700/50">
-                                    <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Trade Section</th>
-                                    <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Budget</th>
-                                    <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Actual</th>
-                                    <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Variance</th>
-                                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">% Spent</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {mergedSections.map((row, i) => {
-                                    const isOver = row.actual > row.budget * 1.1 && row.budget > 0;
-                                    const isNearOver = row.actual > row.budget * 0.85 && row.budget > 0;
-                                    return (
-                                        <tr key={i} className="border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors">
-                                            <td className="px-4 py-3 text-slate-200 font-medium">{row.section}</td>
-                                            <td className="px-4 py-3 text-right text-slate-300 font-mono text-xs">{row.budget > 0 ? gbp(row.budget) : "—"}</td>
-                                            <td className="px-4 py-3 text-right font-mono text-xs">
-                                                <span className={row.actual > 0 ? (isOver ? "text-red-400" : "text-slate-300") : "text-slate-600"}>
-                                                    {row.actual > 0 ? gbp(row.actual) : "—"}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 text-right font-mono text-xs">
-                                                {row.budget > 0 || row.actual > 0 ? (
-                                                    <span className={row.variance >= 0 ? "text-green-400" : "text-red-400"}>
-                                                        {row.variance >= 0 ? "+" : ""}{gbp(row.variance)}
-                                                    </span>
-                                                ) : "—"}
-                                            </td>
+                <div className="space-y-3">
+                    {/* Legend */}
+                    <div className="flex items-center gap-4 text-[11px] text-slate-500 px-1">
+                        <span className="flex items-center gap-1"><ChevronRight className="w-3 h-3" /> Click any row to drill down by cost type</span>
+                        {riskAmt > 0 && <span className="flex items-center gap-1 text-amber-400/70"><ShieldAlert className="w-3 h-3" /> Risk allowance shown separately</span>}
+                        {approvedVarTotal > 0 && <span className="flex items-center gap-1 text-green-400/70"><GitBranch className="w-3 h-3" /> Approved variations included</span>}
+                    </div>
+
+                    <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
+                        {mergedSections.length === 0 ? (
+                            <div className="p-8 text-center text-slate-500 text-sm">
+                                No estimate data yet. Build your estimate to see budget breakdowns here.
+                            </div>
+                        ) : (
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b border-slate-700/50">
+                                        <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Trade Section</th>
+                                        <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Budget</th>
+                                        <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Actual</th>
+                                        <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Variance</th>
+                                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">% Spent</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {mergedSections.map((row, i) => {
+                                        const isOver     = row.actual > row.budget * 1.1 && row.budget > 0;
+                                        const isNearOver = row.actual > row.budget * 0.85 && row.budget > 0;
+                                        const isExpanded = expandedSections.has(row.section);
+                                        const typeBreakdown = actualByCostType.get(row.section);
+                                        const hasBreakdown  = typeBreakdown && typeBreakdown.size > 0;
+
+                                        return (
+                                            <React.Fragment key={row.section}>
+                                                {/* Main section row */}
+                                                <tr
+                                                    onClick={() => hasBreakdown && toggleDrillDown(row.section)}
+                                                    className={`border-b border-slate-700/30 transition-colors ${hasBreakdown ? "cursor-pointer hover:bg-slate-700/20" : "hover:bg-slate-700/10"}`}
+                                                >
+                                                    <td className="px-4 py-3 text-slate-200 font-medium">
+                                                        <div className="flex items-center gap-2">
+                                                            {hasBreakdown ? (
+                                                                <ChevronRight className={`w-3.5 h-3.5 text-slate-500 flex-shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
+                                                            ) : (
+                                                                <span className="w-3.5 h-3.5 flex-shrink-0" />
+                                                            )}
+                                                            {row.section}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right text-slate-300 font-mono text-xs">{row.budget > 0 ? gbp(row.budget) : "—"}</td>
+                                                    <td className="px-4 py-3 text-right font-mono text-xs">
+                                                        <span className={row.actual > 0 ? (isOver ? "text-red-400" : "text-slate-300") : "text-slate-600"}>
+                                                            {row.actual > 0 ? gbp(row.actual) : "—"}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right font-mono text-xs">
+                                                        {row.budget > 0 || row.actual > 0 ? (
+                                                            <span className={row.variance >= 0 ? "text-green-400" : "text-red-400"}>
+                                                                {row.variance >= 0 ? "+" : ""}{gbp(row.variance)}
+                                                            </span>
+                                                        ) : "—"}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="flex-1">
+                                                                <ProgressBar
+                                                                    value={row.actual}
+                                                                    max={row.budget || row.actual}
+                                                                    color={isOver ? "red" : isNearOver ? "amber" : "green"}
+                                                                />
+                                                            </div>
+                                                            <span className={`text-[10px] font-mono w-10 text-right ${isOver ? "text-red-400" : "text-slate-400"}`}>
+                                                                {row.budget > 0 ? `${row.spentPct.toFixed(0)}%` : "—"}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                {/* Drill-down: cost type breakdown */}
+                                                {isExpanded && hasBreakdown && (
+                                                    <tr className="border-b border-slate-700/20 bg-slate-900/40">
+                                                        <td colSpan={5} className="px-4 py-0">
+                                                            <div className="py-2 space-y-0.5 pl-6">
+                                                                <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600 pb-1">
+                                                                    <span>Cost Type</span>
+                                                                    <span className="text-right">Amount</span>
+                                                                    <span className="text-right w-16">of section</span>
+                                                                </div>
+                                                                {Array.from(typeBreakdown!.entries())
+                                                                    .sort((a, b) => b[1] - a[1])
+                                                                    .map(([type, amount]) => (
+                                                                        <div key={type} className="grid grid-cols-[1fr_auto_auto] gap-x-4 items-center py-0.5">
+                                                                            <span className="flex items-center gap-2">
+                                                                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${costTypeBadgeColor(type)}`}>
+                                                                                    {costTypeLabel(type)}
+                                                                                </span>
+                                                                            </span>
+                                                                            <span className="text-right font-mono text-xs text-slate-300">{gbp(amount)}</span>
+                                                                            <span className="text-right font-mono text-[10px] text-slate-500 w-16">
+                                                                                {row.actual > 0 ? pct(amount, row.actual) : "—"}
+                                                                            </span>
+                                                                        </div>
+                                                                    ))}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
+                                        );
+                                    })}
+
+                                    {/* Risk Allowance row */}
+                                    {riskAmt > 0 && (
+                                        <tr className="border-b border-slate-700/30 bg-amber-400/5">
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="flex-1">
-                                                        <ProgressBar
-                                                            value={row.actual}
-                                                            max={row.budget || row.actual}
-                                                            color={isOver ? "red" : isNearOver ? "amber" : "green"}
-                                                        />
-                                                    </div>
-                                                    <span className={`text-[10px] font-mono w-10 text-right ${isOver ? "text-red-400" : "text-slate-400"}`}>
-                                                        {row.budget > 0 ? `${row.spentPct.toFixed(0)}%` : "—"}
-                                                    </span>
+                                                    <ShieldAlert className="w-3.5 h-3.5 text-amber-400/70 flex-shrink-0" />
+                                                    <span className="text-amber-400/80 font-medium text-sm">Risk Allowance</span>
+                                                    <span className="text-[10px] text-amber-400/50">({riskPct}% of cost)</span>
                                                 </div>
+                                                <div className="text-[10px] text-slate-500 pl-6 mt-0.5">Unrealised risk flows to margin at completion</div>
+                                            </td>
+                                            <td className="px-4 py-3 text-right text-amber-400/80 font-mono text-xs">{gbp(riskAmt)}</td>
+                                            <td className="px-4 py-3 text-right text-slate-500 text-xs">—</td>
+                                            <td className="px-4 py-3 text-right text-amber-400/80 font-mono text-xs">+{gbp(riskAmt)}</td>
+                                            <td className="px-4 py-3 text-[10px] text-slate-500">Contingency</td>
+                                        </tr>
+                                    )}
+
+                                    {/* Approved Variations row */}
+                                    {approvedVarTotal > 0 && (
+                                        <tr className="border-b border-slate-700/30 bg-green-400/5">
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center gap-2">
+                                                    <GitBranch className="w-3.5 h-3.5 text-green-400/70 flex-shrink-0" />
+                                                    <span className="text-green-400/80 font-medium text-sm">Approved Variations</span>
+                                                </div>
+                                                <div className="text-[10px] text-slate-500 pl-6 mt-0.5">Increases revised contract value to {gbp(revisedContractValue, true)}</div>
+                                            </td>
+                                            <td className="px-4 py-3 text-right text-green-400/80 font-mono text-xs">+{gbp(approvedVarTotal)}</td>
+                                            <td className="px-4 py-3 text-right text-slate-500 text-xs">—</td>
+                                            <td className="px-4 py-3 text-right text-green-400/80 font-mono text-xs">+{gbp(approvedVarTotal)}</td>
+                                            <td className="px-4 py-3 text-[10px] text-slate-500">Revenue uplift</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+
+                                {/* Totals row */}
+                                {mergedSections.length > 0 && (
+                                    <tfoot>
+                                        <tr className="border-t border-slate-600/50 bg-slate-700/20">
+                                            <td className="px-4 py-3 text-slate-300 font-bold text-xs uppercase tracking-wide">
+                                                Total Budget
+                                                {riskAmt > 0 && <span className="text-slate-500 font-normal normal-case"> (incl. risk)</span>}
+                                            </td>
+                                            <td className="px-4 py-3 text-right text-slate-200 font-bold font-mono text-xs">{gbp(totalBudgetWithRisk)}</td>
+                                            <td className="px-4 py-3 text-right font-bold font-mono text-xs">
+                                                <span className={isOverBudget ? "text-red-400" : "text-slate-200"}>{gbp(costsPosted)}</span>
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-bold font-mono text-xs">
+                                                <span className={totalBudgetWithRisk - costsPosted >= 0 ? "text-green-400" : "text-red-400"}>
+                                                    {totalBudgetWithRisk - costsPosted >= 0 ? "+" : ""}{gbp(totalBudgetWithRisk - costsPosted)}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-[10px] font-mono text-slate-400">
+                                                {totalBudgetWithRisk > 0 ? `${((costsPosted / totalBudgetWithRisk) * 100).toFixed(0)}%` : "—"}
                                             </td>
                                         </tr>
-                                    );
-                                })}
-                            </tbody>
-                            {/* Totals row */}
-                            {mergedSections.length > 0 && (
-                                <tfoot>
-                                    <tr className="border-t border-slate-600/50 bg-slate-700/20">
-                                        <td className="px-4 py-3 text-slate-300 font-bold text-xs uppercase tracking-wide">Total</td>
-                                        <td className="px-4 py-3 text-right text-slate-200 font-bold font-mono text-xs">{gbp(totalBudgetCost)}</td>
-                                        <td className="px-4 py-3 text-right font-bold font-mono text-xs">
-                                            <span className={isOverBudget ? "text-red-400" : "text-slate-200"}>{gbp(costsPosted)}</span>
-                                        </td>
-                                        <td className="px-4 py-3 text-right font-bold font-mono text-xs">
-                                            <span className={totalBudgetCost - costsPosted >= 0 ? "text-green-400" : "text-red-400"}>
-                                                {totalBudgetCost - costsPosted >= 0 ? "+" : ""}{gbp(totalBudgetCost - costsPosted)}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-[10px] font-mono text-slate-400">
-                                            {totalBudgetCost > 0 ? `${((costsPosted / totalBudgetCost) * 100).toFixed(0)}%` : "—"}
-                                        </td>
-                                    </tr>
-                                </tfoot>
-                            )}
-                        </table>
-                    )}
+                                    </tfoot>
+                                )}
+                            </table>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -536,7 +683,7 @@ export default function ClientPLDashboard({
                                             <td className="px-4 py-3 text-slate-400 text-xs">{fmtDate(exp.expense_date)}</td>
                                             <td className="px-4 py-3 text-slate-200">{exp.description}</td>
                                             <td className="px-4 py-3">
-                                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">
+                                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${costTypeBadgeColor(exp.cost_type || "other")}`}>
                                                     {costTypeLabel(exp.cost_type || "other")}
                                                 </span>
                                             </td>
@@ -575,18 +722,18 @@ export default function ClientPLDashboard({
                     <div className="grid grid-cols-3 gap-3">
                         <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 text-center">
                             <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Invoiced</div>
-                            <div className="text-lg font-bold text-blue-400">{gbp(invoicedTotal, true)}</div>
-                            <div className="text-xs text-slate-500 mt-0.5">{pct(invoicedTotal, contractValue + approvedVarTotal)} of contract</div>
+                            <div className="text-lg font-bold text-blue-400 tabular-nums">{gbp(invoicedTotal)}</div>
+                            <div className="text-xs text-slate-500 mt-0.5">{pct(invoicedTotal, revisedContractValue)} of contract</div>
                         </div>
                         <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 text-center">
                             <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Received</div>
-                            <div className="text-lg font-bold text-green-400">{gbp(receivedTotal, true)}</div>
+                            <div className="text-lg font-bold text-green-400 tabular-nums">{gbp(receivedTotal)}</div>
                             <div className="text-xs text-slate-500 mt-0.5">{invoicedTotal > 0 ? pct(receivedTotal, invoicedTotal) + " of invoiced" : "—"}</div>
                         </div>
                         <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 text-center">
                             <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Outstanding</div>
-                            <div className={`text-lg font-bold ${(invoicedTotal - receivedTotal) > 0 ? "text-amber-400" : "text-slate-400"}`}>
-                                {gbp(invoicedTotal - receivedTotal, true)}
+                            <div className={`text-lg font-bold tabular-nums ${outstandingDebt > 0 ? "text-amber-400" : "text-slate-400"}`}>
+                                {gbp(outstandingDebt)}
                             </div>
                             <div className="text-xs text-slate-500 mt-0.5">awaiting payment</div>
                         </div>

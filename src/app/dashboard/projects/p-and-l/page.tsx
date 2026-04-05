@@ -230,6 +230,8 @@ export default async function PLPage({ searchParams }: { searchParams: { project
                 project={project}
                 contractValue={contractValue}
                 totalBudgetCost={totalBudgetCost}
+                riskAmt={riskAmt}
+                riskPct={riskPct}
                 budgetBySection={budgetBySection}
                 actualBySection={Array.from(actualMap.entries()).map(([section, actual]) => ({ section, actual }))}
                 costsPosted={costsPosted}

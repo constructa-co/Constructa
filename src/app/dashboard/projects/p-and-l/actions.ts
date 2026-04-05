@@ -2,27 +2,11 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { COST_TYPES, TRADE_SECTIONS } from "./constants";
 
-export const COST_TYPES = ["labour", "materials", "plant", "subcontract", "overhead", "prelims", "other"] as const;
-export type CostType = typeof COST_TYPES[number];
-
-export const TRADE_SECTIONS = [
-    "Preliminaries",
-    "Groundworks",
-    "Concrete",
-    "Drainage",
-    "Utilities",
-    "Surfacing",
-    "Masonry",
-    "Carpentry",
-    "Electrical",
-    "Plumbing",
-    "Finishes",
-    "External Works",
-    "Subcontract",
-    "Provisional Sums",
-    "General",
-] as const;
+// Re-export so any existing server-side imports still work
+export { COST_TYPES, TRADE_SECTIONS };
+export type { CostType } from "./constants";
 
 // ── Log a new actual cost ──────────────────────────────────────────────────────
 export async function logCostAction(data: {

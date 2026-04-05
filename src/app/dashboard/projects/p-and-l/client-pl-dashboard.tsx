@@ -20,6 +20,7 @@ import {
     Hammer,
     ShieldAlert,
     GitBranch,
+    Paperclip,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -551,6 +552,7 @@ export default function ClientPLDashboard({
                                         <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Type</th>
                                         <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Section</th>
                                         <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Supplier</th>
+                                        <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 text-center" title="Receipt attached">Doc</th>
                                         <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Amount</th>
                                         <th className="px-4 py-3"></th>
                                     </tr>
@@ -567,6 +569,21 @@ export default function ClientPLDashboard({
                                             </td>
                                             <td className="px-4 py-3 text-slate-400 text-xs">{exp.trade_section || "General"}</td>
                                             <td className="px-4 py-3 text-slate-400 text-xs">{exp.supplier || "—"}</td>
+                                            <td className="px-4 py-3 text-center">
+                                                {exp.receipt_url ? (
+                                                    <a
+                                                        href={exp.receipt_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        title="View receipt"
+                                                        className="inline-flex items-center justify-center text-blue-400 hover:text-blue-300 transition-colors"
+                                                    >
+                                                        <Paperclip className="w-3.5 h-3.5" />
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-slate-700">—</span>
+                                                )}
+                                            </td>
                                             <td className="px-4 py-3 text-right font-mono text-xs text-slate-200 font-semibold">{gbp(Number(exp.amount))}</td>
                                             <td className="px-4 py-3">
                                                 <button
@@ -582,7 +599,7 @@ export default function ClientPLDashboard({
                                 </tbody>
                                 <tfoot>
                                     <tr className="border-t border-slate-600/50 bg-slate-700/20">
-                                        <td colSpan={5} className="px-4 py-3 text-slate-400 font-bold text-xs uppercase tracking-wide">Total Costs Posted</td>
+                                        <td colSpan={6} className="px-4 py-3 text-slate-400 font-bold text-xs uppercase tracking-wide">Total Costs Posted</td>
                                         <td className="px-4 py-3 text-right font-bold font-mono text-xs text-slate-100">{gbp(costsPosted)}</td>
                                         <td />
                                     </tr>

@@ -19,9 +19,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { FileText, Loader2, Upload, X } from "lucide-react";
 import { logCostAction } from "./actions";
 import { TRADE_SECTIONS } from "./constants";
+import { createClient } from "@/lib/supabase/client";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -315,6 +316,103 @@ function NotesField({
   );
 }
 
+// ── Receipt / Document Upload ─────────────────────────────────────────────────
+
+function ReceiptUpload({
+  projectId,
+  value,
+  onChange,
+}: {
+  projectId: string;
+  value: string;
+  onChange: (url: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const supabase = createClient();
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${projectId}/${Date.now()}-${safeName}`;
+      const { error: uploadError } = await supabase.storage
+        .from("receipts")
+        .upload(path, file, { upsert: false });
+      if (uploadError) {
+        toast.error("Upload failed: " + uploadError.message);
+      } else {
+        const { data } = supabase.storage.from("receipts").getPublicUrl(path);
+        onChange(data.publicUrl);
+        toast.success("Document attached.");
+      }
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  const isImage = value && /\.(jpg|jpeg|png|gif|webp|heic|bmp|tiff?)$/i.test(value);
+
+  return (
+    <FieldRow label="Receipt / Invoice (optional)">
+      {value ? (
+        <div className="flex items-center gap-3 bg-slate-800/60 border border-slate-700 rounded-lg p-3">
+          {isImage ? (
+            <img src={value} alt="Receipt" className="h-14 w-14 object-cover rounded border border-slate-600" />
+          ) : (
+            <div className="h-14 w-14 flex items-center justify-center bg-slate-700 rounded border border-slate-600 flex-shrink-0">
+              <FileText className="h-7 w-7 text-slate-400" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <a
+              href={value}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 text-sm hover:underline truncate block"
+            >
+              View document ↗
+            </a>
+            <p className="text-xs text-slate-500 mt-0.5">Click to open in new tab</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="text-slate-500 hover:text-red-400 transition-colors flex-shrink-0 p-1"
+            title="Remove attachment"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : (
+        <label
+          className={`flex items-center gap-2.5 cursor-pointer border border-dashed border-slate-600 rounded-lg p-3 hover:border-blue-500/50 hover:bg-blue-500/5 transition-colors ${
+            uploading ? "opacity-50 pointer-events-none" : ""
+          }`}
+        >
+          {uploading ? (
+            <Loader2 className="h-4 w-4 text-slate-400 animate-spin flex-shrink-0" />
+          ) : (
+            <Upload className="h-4 w-4 text-slate-400 flex-shrink-0" />
+          )}
+          <span className="text-sm text-slate-400">
+            {uploading ? "Uploading…" : "Attach receipt, delivery ticket or invoice (image or PDF)"}
+          </span>
+          <input
+            type="file"
+            accept="image/*,application/pdf"
+            className="hidden"
+            onChange={handleFile}
+            disabled={uploading}
+          />
+        </label>
+      )}
+    </FieldRow>
+  );
+}
+
 // ── Tab 1: Labour ─────────────────────────────────────────────────────────────
 
 type LabourTimeUnit = "hours" | "half_days" | "days";
@@ -330,6 +428,7 @@ interface LabourState {
   lineId: string;
   date: string;
   notes: string;
+  receiptUrl: string;
 }
 
 const labourDefault: LabourState = {
@@ -343,6 +442,7 @@ const labourDefault: LabourState = {
   lineId: "",
   date: today(),
   notes: "",
+  receiptUrl: "",
 };
 
 interface LabourTabProps {
@@ -427,6 +527,7 @@ function LabourTab({ staffCatalogue, projectId, estimateLines, onDone }: LabourT
         expense_date: form.date,
         supplier: useCatalogue ? selectedStaff!.id : undefined,
         estimate_line_id: form.lineId || undefined,
+        receipt_url: form.receiptUrl || undefined,
       });
       if (res.error) {
         toast.error(res.error);
@@ -530,6 +631,11 @@ function LabourTab({ staffCatalogue, projectId, estimateLines, onDone }: LabourT
       />
       <DateField value={form.date} onChange={(v) => set("date", v)} />
       <NotesField value={form.notes} onChange={(v) => set("notes", v)} />
+      <ReceiptUpload
+        projectId={projectId}
+        value={form.receiptUrl}
+        onChange={(url) => set("receiptUrl", url)}
+      />
 
       <Button onClick={handleSubmit} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
         {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : "Log Labour Cost"}
@@ -550,6 +656,7 @@ interface PlantOwnedState {
   lineId: string;
   date: string;
   notes: string;
+  receiptUrl: string;
 }
 
 const plantOwnedDefault: PlantOwnedState = {
@@ -562,6 +669,7 @@ const plantOwnedDefault: PlantOwnedState = {
   lineId: "",
   date: today(),
   notes: "",
+  receiptUrl: "",
 };
 
 interface PlantOwnedTabProps {
@@ -623,6 +731,7 @@ function PlantOwnedTab({ plantCatalogue, projectId, estimateLines, onDone }: Pla
         trade_section: resolvedSection,
         expense_date: form.date,
         estimate_line_id: form.lineId || undefined,
+        receipt_url: form.receiptUrl || undefined,
       });
       if (res.error) {
         toast.error(res.error);
@@ -742,6 +851,11 @@ function PlantOwnedTab({ plantCatalogue, projectId, estimateLines, onDone }: Pla
       />
       <DateField value={form.date} onChange={(v) => set("date", v)} />
       <NotesField value={form.notes} onChange={(v) => set("notes", v)} />
+      <ReceiptUpload
+        projectId={projectId}
+        value={form.receiptUrl}
+        onChange={(url) => set("receiptUrl", url)}
+      />
 
       <Button onClick={handleSubmit} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
         {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : "Log Owned Plant Cost"}
@@ -766,6 +880,7 @@ interface PlantHiredState {
   tradeSection: string;
   lineId: string;
   date: string;
+  receiptUrl: string;
 }
 
 const plantHiredDefault: PlantHiredState = {
@@ -780,6 +895,7 @@ const plantHiredDefault: PlantHiredState = {
   tradeSection: "",
   lineId: "",
   date: today(),
+  receiptUrl: "",
 };
 
 interface PlantHiredTabProps {
@@ -839,6 +955,7 @@ function PlantHiredTab({ projectId, estimateLines, onDone }: PlantHiredTabProps)
         expense_date: form.date,
         supplier: form.supplier.trim() || undefined,
         estimate_line_id: form.lineId || undefined,
+        receipt_url: form.receiptUrl || undefined,
       });
       if (res.error) {
         toast.error(res.error);
@@ -970,6 +1087,11 @@ function PlantHiredTab({ projectId, estimateLines, onDone }: PlantHiredTabProps)
         onChange={(s, l) => { set("tradeSection", s); set("lineId", l); }}
       />
       <DateField value={form.date} onChange={(v) => set("date", v)} />
+      <ReceiptUpload
+        projectId={projectId}
+        value={form.receiptUrl}
+        onChange={(url) => set("receiptUrl", url)}
+      />
 
       <Button onClick={handleSubmit} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
         {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : "Log Hired Plant Cost"}
@@ -995,6 +1117,7 @@ interface MaterialsState {
   tradeSection: string;
   lineId: string;
   date: string;
+  receiptUrl: string;
 }
 
 const materialsDefault: MaterialsState = {
@@ -1008,6 +1131,7 @@ const materialsDefault: MaterialsState = {
   tradeSection: "",
   lineId: "",
   date: today(),
+  receiptUrl: "",
 };
 
 interface MaterialsTabProps {
@@ -1060,6 +1184,7 @@ function MaterialsTab({ projectId, estimateLines, onDone }: MaterialsTabProps) {
         expense_date: form.date,
         supplier: form.supplier.trim() || undefined,
         estimate_line_id: form.lineId || undefined,
+        receipt_url: form.receiptUrl || undefined,
       });
       if (res.error) {
         toast.error(res.error);
@@ -1172,6 +1297,11 @@ function MaterialsTab({ projectId, estimateLines, onDone }: MaterialsTabProps) {
         onChange={(s, l) => { set("tradeSection", s); set("lineId", l); }}
       />
       <DateField value={form.date} onChange={(v) => set("date", v)} />
+      <ReceiptUpload
+        projectId={projectId}
+        value={form.receiptUrl}
+        onChange={(url) => set("receiptUrl", url)}
+      />
 
       <Button onClick={handleSubmit} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
         {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : "Log Materials Cost"}
@@ -1193,6 +1323,7 @@ interface OverheadState {
   lineId: string;
   date: string;
   notes: string;
+  receiptUrl: string;
 }
 
 const overheadDefault: OverheadState = {
@@ -1204,6 +1335,7 @@ const overheadDefault: OverheadState = {
   lineId: "",
   date: today(),
   notes: "",
+  receiptUrl: "",
 };
 
 interface OverheadTabProps {
@@ -1260,6 +1392,7 @@ function OverheadTab({ projectId, totalCostsToDate, estimateLines, onDone }: Ove
         trade_section: resolvedSection,
         expense_date: form.date,
         estimate_line_id: form.lineId || undefined,
+        receipt_url: form.receiptUrl || undefined,
       });
       if (res.error) {
         toast.error(res.error);
@@ -1368,6 +1501,11 @@ function OverheadTab({ projectId, totalCostsToDate, estimateLines, onDone }: Ove
       />
       <DateField value={form.date} onChange={(v) => set("date", v)} />
       <NotesField value={form.notes} onChange={(v) => set("notes", v)} />
+      <ReceiptUpload
+        projectId={projectId}
+        value={form.receiptUrl}
+        onChange={(url) => set("receiptUrl", url)}
+      />
 
       <Button onClick={handleSubmit} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
         {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : "Log Overhead / Other Cost"}

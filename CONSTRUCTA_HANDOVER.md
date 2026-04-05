@@ -408,7 +408,7 @@ Direct Cost (trade lines)
 
 ---
 
-## Sprint Backlog — Complete Roadmap (Sprints 15–43)
+## Sprint Backlog — Complete Roadmap (Sprints 15–44)
 
 ### Sprint 17 — UI/UX Consistency Pass
 Every page to the Contract Shield / Job P&L dark-theme standard. Currently Brief, Estimating, Programme, Profile and Proposal editor lag behind significantly.
@@ -565,6 +565,17 @@ Regional rate benchmarks surfaced to contractors with percentile positioning and
 suggestions. Travis Perkins, Jewson and Selco integrations for live materials pricing linked to
 estimate lines — one-click order basket with pre-filled quantities, Constructa group pricing,
 delivery tracking auto-logged as cost entries, merchant analytics and referral fee model for admin.
+
+### Sprint 44 — Resource Planning & Staff Allocation
+Cross-project resource management — lets contractors see whether they have the people available
+to deliver their pipeline. Solves over-committing labour across overlapping projects and surfaces
+conflicts before they become on-site crises.
+
+Staff allocation calendar (per person, per project), cross-project Gantt overlay, resource
+availability calculator (free days vs contracted days), red flag alerts for over-allocation,
+holiday and absence register (planned leave blocks availability automatically), demand vs supply
+aggregate view, under-resourcing alerts where allocated days fall short of estimated manhours,
+subcontractor slot allocation, weekly resource schedule export (PDF/CSV).
 
 ### Deferred / Post-launch (not yet sprinted)
 - Email/WhatsApp webhooks for cost capture (forward receipt → auto-log expense)

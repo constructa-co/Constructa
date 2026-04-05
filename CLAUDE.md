@@ -632,7 +632,7 @@ CREATE POLICY "Users manage own contracts" ON storage.objects FOR ALL TO authent
 
 ---
 
-## Sprint Backlog — Complete Roadmap (Sprints 15–43)
+## Sprint Backlog — Complete Roadmap (Sprints 15–44)
 
 ### IMMEDIATE — Bug fixes
 - [x] **BUG-001** ~~Fix duplicate `md_name` input~~ — done (6e10445)
@@ -1063,7 +1063,25 @@ linked to their estimate lines — with pricing that reflects Constructa's colle
 - [ ] Delivery tracking: merchant order status → auto-log delivery as material cost entry in P&L
 - [ ] Merchant analytics (admin): which suppliers are used most, GMV through platform, referral fee model
 
---- BATCH 4 COMPLETE — DATA & ADMIN LAYER (Sprints 35–43) ---
+### Sprint 44 — Resource Planning & Staff Allocation
+Cross-project resource management — lets contractors see at a glance whether they have the
+people available to deliver their pipeline. Solves the critical problem of over-committing
+labour across multiple overlapping projects, and surfaces conflicts before they become on-site crises.
+
+- [ ] Staff allocation view: per-person calendar showing which project they are assigned to, on which dates
+- [ ] Cross-project Gantt overlay: all active + upcoming projects on one timeline, colour-coded by project
+- [ ] Resource availability: calculate free days per person per week based on allocations vs contracted days
+- [ ] Allocation editor: drag staff onto project phases to assign them, or use a form (project, phase, start, end, days/week)
+- [ ] Red flag alerts: highlight weeks where a person is over-allocated (>5 days/week or >contracted days)
+- [ ] Project staffing view: per-project breakdown of who is allocated, for how long, at what cost rate
+- [ ] Holiday & absence register: log planned holidays, training days, bank holidays per person — these block availability automatically
+- [ ] Absence calendar: monthly view per person showing working days, holidays, allocated days, free days
+- [ ] Demand vs supply: aggregate view — total labour days demanded by all live projects vs total available across the workforce
+- [ ] Under-resourcing alerts: flag projects where allocated days are fewer than estimated manhours require
+- [ ] Subcontractor slots: allocate named subcontractors (from plant/staff catalogues) the same way as directly employed staff
+- [ ] Export: weekly resource schedule as PDF or CSV for sharing with site managers
+
+--- BATCH 4 COMPLETE — DATA & ADMIN LAYER (Sprints 35–44) ---
 
 ### DEPRIORITISED (post-launch with real user data)
 - Mobile responsive full pass (Sprint 17 prevents breakage; full pass later)

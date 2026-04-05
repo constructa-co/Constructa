@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 5 April 2026 (end of Sprint 18)
+**Last updated:** 5 April 2026 (end of Sprint 19)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -405,6 +405,7 @@ Direct Cost (trade lines)
 | 16 | Cost Capture Enhancements — WBS-based cost logging (estimate lines picker, section and line modes); Labour time units (hours/half-days/days); Receipt/document upload (Supabase Storage `receipts` bucket, thumbnail + PDF icon, paperclip in table); Fix critical "use server" 500 bug; DB: estimate_line_id FK + receipt_url + all resource columns live |
 | 17 | UI/UX Dark Theme Consistency Pass — Brief page hero + dark inputs + chat bubbles; Project navbar dark tabs; Programme dark Gantt card; Estimating dark inputs/cards/summary; Variations + Billing dark theme + KPI strips; New Project wizard dark; Onboarding dark (all 4 steps); Onboarding layout fix (was rendering marketing header); correct ProjectNavBar activeTab on Variations/Billing |
 | 18 | Pre-Construction Workflow Polish — Fix Gantt bar width (manualDays/calculatedDays) and position (startOffset days→weeks); Fix Preliminaries PDF to render per-line not lump-sum; Add T&C clauses 10-12 (Materials, Practical Completion, Confidentiality); Fix Why Choose Us specialism splitting + project-type bullet + fallbacks; Add PDF error toast; Fix contract value default to use estimate total; New `getProposalLinkAction` (copy link no longer sets status=sent); Fix start date AI extraction in Brief; Fix rate/unit uncontrolled inputs with key prop; Fix Cost Summary z-index (z-20 + solid bg); Remove duplicate Estimating header; Auto-scaffold BoQ from Brief trade selection; Drawing upload callout on Brief page; Expand TRADE_SECTIONS 15→22; Expand AI trades prompt to 47 exact-match names; Fix chip shift-bug with disabled guard; Fix public proposal totalWeeks calculation |
+| 19 | Gantt Drag-and-Drop & Programme Polish — Drag bars to reposition (snaps to calendar week); Drag right edge to resize (snaps to working-week increments); Dependency arrows: "Starts After" select per phase → SVG amber bezier curves, auto-snaps successor to predecessor end; Critical path: yellow ring on phases ending in final week; Working week selector (4/5/6/7d, default 5, persisted localStorage); Monday-anchored start dates: date input snaps forward to Monday, week headers always show WC Mon dates; 4-card summary strip; Auto-sequence button; `updatePhasesAction` saves `start_date` to project and revalidates proposal paths; `calculatedDays`/`manualDays` = working days; `startOffset` = calendar days |
 
 > ⚠️ **Sprint numbering note (5 April 2026):** Sprints 15 and 16 above are NEW sprints inserted between the original Sprint 14 (P&L) and the originally planned Sprint 15 (UI/UX Consistency Pass). All downstream sprints shift +2. Original roadmap end: Sprint 41. Corrected total: **Sprint 44**.
 
@@ -441,16 +442,17 @@ All 15 backlog items delivered. Commit `6c9dd42`, deployed `dpl_5mEsArgjbxW3DnNM
 - **AI trades prompt:** updated to 47 exact-match names from `ALL_TRADES`
 - **Public proposal:** `totalWeeks` now reads `manualDays ?? calculatedDays`; `programme_phases` added to select
 
-### 🔜 Sprint 19 — Gantt Drag-and-Drop & Programme Polish ← NEXT
-- Drag bars left/right to adjust start offset (sequencing)
-- Drag right edge to resize duration
-- Dependencies: Finish-to-Start linking between phases (visual connector lines)
-- Snap to week grid
-- Critical path highlight — longest chain
-- Programme summary: total duration, key milestones, auto-updated on drag
-- Export to PDF reflects drag-adjusted programme
+### ✅ Sprint 19 — Gantt Drag-and-Drop & Programme Polish (COMPLETE — 5 April 2026)
+Commits `abd72e3`, `4c91891`, `22a4b8e`.
+- **Drag-to-move:** drag bar body → `startOffset` updates live, snaps to 7-day calendar week
+- **Drag-to-resize:** right-edge grip handle → `manualDays` updates, snaps to 1 working-week
+- **Dependencies:** "Starts After" select → `dependsOn[]` stored in JSONB; SVG bezier arrows (amber, dashed); setting dependency auto-snaps successor to predecessor end
+- **Critical path:** phases ending in final week highlighted with yellow ring + ★
+- **Working week selector:** 4d/5d/6d/7d (default 5); `toCalendarDays(workingDays, daysPerWeek)` converts at render; persisted in `localStorage`
+- **Monday start dates:** `snapToMonday()` on any date input; week headers always show WC Mon date; saved to `projects.start_date` on "Save to Proposal"
+- **Data model:** `calculatedDays`/`manualDays` = working days; `startOffset` = calendar days (multiples of 7)
 
-### Sprint 20 — Constructa Admin Dashboard Phase 1
+### 🔜 Sprint 20 — Constructa Admin Dashboard Phase 1 ← NEXT
 - Protected route (`/admin`) — service role key, separate from contractor auth
 - Subscriber list: name, signup date, plan, last active, project count
 - Revenue estimate (MRR/ARR based on subscriber count × plan price)

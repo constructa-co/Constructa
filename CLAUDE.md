@@ -2,7 +2,7 @@
 
 > This file is auto-loaded by Claude Code at session start.
 > Read this before making any changes to the codebase.
-> Last updated: 5 April 2026 — Claude Code session (Sprints 17 & 18: UI/UX Dark Theme Pass + Pre-Construction Workflow Polish)
+> Last updated: 5 April 2026 — Claude Code session (Sprint 19: Gantt Drag-and-Drop, Working Week, Monday Starts)
 > Previous sessions: Claude Code Sprints 15 & 16 (5 Apr), Claude Code Sprint 14 (5 Apr morning), Claude Code (4 Apr evening + night), Perplexity Computer (4 Apr morning)
 
 ---
@@ -333,6 +333,72 @@ The proposal editor page shows "Company profile complete — Tripod Construction
 ### BUG-004 — PDF download via `window.open()` (Low — UX)
 Chrome popup blocker intercepts the new tab, so PDFs download silently rather than opening. The download still works correctly but no visual confirmation.
 **Fix:** Replace `window.open(url)` with a programmatic `<a href=url download>` click trigger in `proposal-pdf-button.tsx`.
+
+---
+
+## Session Work Log (April 5 — Sprint 19: Gantt Drag-and-Drop & Programme Polish)
+
+### ✅ SPRINT 19 COMPLETE — 5 April 2026
+
+**Sprint 19 scope:** Interactive Gantt with drag-to-move, drag-to-resize, dependency arrows, critical path, working week selector, Monday-anchored start dates.
+
+**Commits:** `abd72e3` (initial), `4c91891` (dependency snap fix), `22a4b8e` (working week + Monday starts)
+
+**Features delivered:**
+
+**1. Drag-to-move (native mouse events):**
+- `onMouseDown` on bar body captures `trackRef.getBoundingClientRect().width` and `startOffset` at drag start
+- Global `document.addEventListener("mousemove")` computes `deltaX / pixelsPerDay → deltaDays`
+- New `startOffset = Math.round(rawOffset / 7) * 7` — snaps to calendar week grid
+- Drag state in `useRef` (not state) — zero re-render overhead during drag
+- `isDragging` state only used for cursor and z-index — bars re-render at 60fps from `setPhases`
+
+**2. Drag-to-resize:**
+- Resize handle = two white grip lines on right edge of each bar (8px wide, `cursor-ew-resize`)
+- `e.stopPropagation()` prevents triggering move drag
+- Snaps to 1-working-week increments (e.g., 5 → 10 → 15 working days at 5d/wk)
+- Minimum 1 working week
+
+**3. Working week selector (4/5/6/7 days):**
+- Settings bar shows `4d / 5d / 6d / 7d` segmented control, default `5d`
+- `toCalendarDays(workingDays, daysPerWeek)` = `Math.ceil(workingDays / daysPerWeek) * 7`
+- All bar widths, dependency snaps, auto-sequence, add-phase use calendar conversion
+- Persisted in `localStorage` key `prog_dpw_{projectId}` — survives page reload
+- "Days" column shows working days; bar label shows working days; bar width = calendar span
+- Footer note: "Days = working days (Nd/wk). Bar width = calendar span."
+
+**4. Monday-anchored start dates:**
+- `snapToMonday(date)` snaps any date forward to next Monday
+- Date input in settings bar — changing it snaps to Monday; shows "Mon {date}" label
+- Week headers always show Monday WC dates
+- `updatePhasesAction` now accepts optional `startDate` param → saves to `projects.start_date`
+- Also revalidates `/proposal` and `/proposal/layout` so PDF sees updated start date
+
+**5. Dependency arrows:**
+- "Starts After" select per phase → stores `dependsOn: number[]` in phase JSONB
+- Setting dependency auto-snaps successor's `startOffset` to predecessor's calendar end
+- SVG overlay with `viewBox="0 0 1000 {totalHeight}" preserveAspectRatio="none"`
+  — x: 0-1000 maps linearly to track width; y: actual pixel row heights
+- Amber dashed bezier curves (`strokeDasharray="4 3"`) with arrowhead markers
+
+**6. Critical path:**
+- Any phase ending within 7 calendar days of project end → `criticalSet`
+- Yellow ring (`ring-yellow-400`) on bar + dot indicator + ★ in left panel
+
+**7. Programme summary:**
+- 4-card KPI strip: Duration / Start / Completion / Manhours
+- Auto-sequence button: sequences all phases end-to-end using `toCalendarDays`
+
+**Key files changed:**
+- `src/app/dashboard/projects/schedule/client-page.tsx` — complete rewrite
+- `src/app/dashboard/projects/schedule/actions.ts` — `updatePhasesAction` accepts `startDate`, revalidates proposal paths
+
+**Architecture notes:**
+- `calculatedDays` / `manualDays` always stored as **working days**
+- `startOffset` always stored as **calendar days** (multiples of 7)
+- Conversion: `toCalendarDays(workingDays, daysPerWeek)` at render time
+- One `ganttRef` on whole track div → one `getBoundingClientRect()` at mousedown
+- `phasesRef` + `totalDaysRef` keep event handlers free of stale closure issues
 
 ---
 

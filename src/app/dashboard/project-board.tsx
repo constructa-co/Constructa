@@ -22,27 +22,52 @@ import {
     XCircle,
     Layers,
     Trophy,
+    FilePlus,
+    ArrowRight,
+    RotateCcw,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 
-// Define the columns for our business pipeline
 const COLUMNS = [
-    { id: "Lead", label: "Leads", icon: Users, color: "bg-slate-50", darkColor: "bg-white/5", text: "text-slate-600", darkText: "text-slate-300", border: "border-slate-200", darkBorder: "border-[#2a2a2a]" },
-    { id: "Estimating", label: "Estimating", icon: Clock, color: "bg-blue-50/50", darkColor: "bg-blue-500/10", text: "text-blue-600", darkText: "text-blue-400", border: "border-blue-200", darkBorder: "border-blue-500/20" },
-    { id: "Proposal Sent", label: "Proposal Sent", icon: FileText, color: "bg-purple-50/50", darkColor: "bg-purple-500/10", text: "text-purple-600", darkText: "text-purple-400", border: "border-purple-200", darkBorder: "border-purple-500/20" },
-    { id: "Active", label: "Active", icon: Hammer, color: "bg-emerald-50/50", darkColor: "bg-emerald-500/10", text: "text-emerald-600", darkText: "text-emerald-400", border: "border-emerald-200", darkBorder: "border-emerald-500/20" },
-    { id: "Completed", label: "Completed", icon: CheckCircle2, color: "bg-zinc-50", darkColor: "bg-white/5", text: "text-zinc-600", darkText: "text-zinc-300", border: "border-zinc-200", darkBorder: "border-[#2a2a2a]" },
-    { id: "Lost", label: "Lost", icon: XCircle, color: "bg-red-50/50", darkColor: "bg-red-500/10", text: "text-red-500", darkText: "text-red-400", border: "border-red-200", darkBorder: "border-red-500/20" },
+    { id: "Lead",          label: "Leads",         icon: Users,        color: "bg-slate-50",      darkColor: "bg-white/5",        text: "text-slate-600",  darkText: "text-slate-300",  border: "border-slate-200",  darkBorder: "border-[#2a2a2a]" },
+    { id: "Estimating",    label: "Estimating",    icon: Clock,        color: "bg-blue-50/50",    darkColor: "bg-blue-500/10",    text: "text-blue-600",   darkText: "text-blue-400",   border: "border-blue-200",   darkBorder: "border-blue-500/20" },
+    { id: "Proposal Sent", label: "Proposal Sent", icon: FileText,     color: "bg-purple-50/50",  darkColor: "bg-purple-500/10",  text: "text-purple-600", darkText: "text-purple-400", border: "border-purple-200", darkBorder: "border-purple-500/20" },
+    { id: "Active",        label: "Active",        icon: Hammer,       color: "bg-emerald-50/50", darkColor: "bg-emerald-500/10", text: "text-emerald-600",darkText: "text-emerald-400",border: "border-emerald-200",darkBorder: "border-emerald-500/20" },
+    { id: "Completed",     label: "Completed",     icon: CheckCircle2, color: "bg-zinc-50",       darkColor: "bg-white/5",        text: "text-zinc-600",   darkText: "text-zinc-300",   border: "border-zinc-200",   darkBorder: "border-[#2a2a2a]" },
+    { id: "Lost",          label: "Lost",          icon: XCircle,      color: "bg-red-50/50",     darkColor: "bg-red-500/10",     text: "text-red-500",    darkText: "text-red-400",    border: "border-red-200",    darkBorder: "border-red-500/20" },
 ];
 
 const PROJECT_TYPE_COLORS: Record<string, { light: string; dark: string }> = {
-    "Residential": { light: "bg-blue-100 text-blue-700", dark: "bg-blue-500/20 text-blue-300" },
-    "Commercial": { light: "bg-violet-100 text-violet-700", dark: "bg-violet-500/20 text-violet-300" },
-    "Industrial": { light: "bg-orange-100 text-orange-700", dark: "bg-orange-500/20 text-orange-300" },
-    "Refurbishment": { light: "bg-amber-100 text-amber-700", dark: "bg-amber-500/20 text-amber-300" },
-    "New Build": { light: "bg-emerald-100 text-emerald-700", dark: "bg-emerald-500/20 text-emerald-300" },
-    "Civil": { light: "bg-cyan-100 text-cyan-700", dark: "bg-cyan-500/20 text-cyan-300" },
-    "Fit Out": { light: "bg-pink-100 text-pink-700", dark: "bg-pink-500/20 text-pink-300" },
+    "Residential":   { light: "bg-blue-100 text-blue-700",   dark: "bg-blue-500/20 text-blue-300" },
+    "Commercial":    { light: "bg-violet-100 text-violet-700",dark: "bg-violet-500/20 text-violet-300" },
+    "Industrial":    { light: "bg-orange-100 text-orange-700",dark: "bg-orange-500/20 text-orange-300" },
+    "Refurbishment": { light: "bg-amber-100 text-amber-700",  dark: "bg-amber-500/20 text-amber-300" },
+    "New Build":     { light: "bg-emerald-100 text-emerald-700",dark: "bg-emerald-500/20 text-emerald-300" },
+    "Civil":         { light: "bg-cyan-100 text-cyan-700",    dark: "bg-cyan-500/20 text-cyan-300" },
+    "Fit Out":       { light: "bg-pink-100 text-pink-700",    dark: "bg-pink-500/20 text-pink-300" },
+};
+
+// Pipeline progression maps
+const NEXT_STAGE: Record<string, string> = {
+    "Lead":          "Estimating",
+    "Estimating":    "Proposal Sent",
+    "Proposal Sent": "Active",   // handled by markAsWonAction
+    "Active":        "Completed",
+    "Lost":          "Proposal Sent", // reopen
+    "Completed":     "Active",        // reopen
+};
+const PREV_STAGE: Record<string, string> = {
+    "Estimating":    "Lead",
+    "Proposal Sent": "Estimating",
+    "Active":        "Proposal Sent",
+    "Completed":     "Active",
+};
+const NEXT_LABEL: Record<string, string> = {
+    "Lead":          "Start Estimating",
+    "Estimating":    "Proposal Sent",
+    "Active":        "Mark Complete",
+    "Lost":          "Reopen",
+    "Completed":     "Reopen",
 };
 
 function getTypeBadgeClass(type: string | null, isDark: boolean): string {
@@ -54,9 +79,7 @@ function getTypeBadgeClass(type: string | null, isDark: boolean): string {
 
 function getDaysInStage(createdAt: string | null): number {
     if (!createdAt) return 0;
-    const created = new Date(createdAt);
-    const now = new Date();
-    return Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.floor((Date.now() - new Date(createdAt).getTime()) / 86400000);
 }
 
 export default function ProjectBoard({ projects, financials }: { projects: any[], financials: any }) {
@@ -65,24 +88,19 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
 
-    // Optimistic status overrides — cards move immediately without waiting for server
+    // Optimistic status: cards move instantly without waiting for server
     const [optimisticStatus, setOptimisticStatus] = useState<Record<string, string>>({});
 
-    const getStatus = (p: any): string =>
-        optimisticStatus[p.id] ?? p.status ?? "Lead";
+    const getStatus = (p: any): string => optimisticStatus[p.id] ?? p.status ?? "Lead";
 
-    const handleStatusChange = (projectId: string, newStatus: string) => {
+    const move = (projectId: string, newStatus: string) => {
         setOptimisticStatus(prev => ({ ...prev, [projectId]: newStatus }));
         startTransition(async () => {
-            await updateStatusAction(projectId, newStatus);
-            router.refresh();
-        });
-    };
-
-    const handleMarkAsWon = (projectId: string) => {
-        setOptimisticStatus(prev => ({ ...prev, [projectId]: "Active" }));
-        startTransition(async () => {
-            await markAsWonAction(projectId);
+            if (newStatus === "Active") {
+                await markAsWonAction(projectId); // sets proposal_status + accepted_at too
+            } else {
+                await updateStatusAction(projectId, newStatus);
+            }
             router.refresh();
         });
     };
@@ -104,16 +122,29 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                     </div>
                                     <h3 className={`font-bold text-xs tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>{col.label}</h3>
                                 </div>
-                                <Badge variant="secondary" className={`text-[10px] font-black ${
-                                    isDark ? "bg-[#1a1a1a] border-[#2a2a2a] text-white" : "bg-white border text-gray-900"
-                                }`}>{items.length}</Badge>
+                                <div className="flex items-center gap-1.5">
+                                    {col.id === "Lead" && (
+                                        <Link href="/dashboard/projects/new" title="New lead" className={`p-1 rounded-md transition-colors ${isDark ? "hover:bg-white/10 text-slate-500 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-600"}`}>
+                                            <FilePlus className="w-3.5 h-3.5" />
+                                        </Link>
+                                    )}
+                                    <Badge variant="secondary" className={`text-[10px] font-black ${isDark ? "bg-[#1a1a1a] border-[#2a2a2a] text-white" : "bg-white border text-gray-900"}`}>
+                                        {items.length}
+                                    </Badge>
+                                </div>
                             </div>
                             <div className={`text-[9px] font-black uppercase tracking-widest mt-0.5 ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>
                                 £{colTotal.toLocaleString("en-GB", { maximumFractionDigits: 0 })}
                             </div>
+                            {/* Lead column hint */}
+                            {col.id === "Lead" && (
+                                <div className={`text-[9px] ${isDark ? "text-[#505050]" : "text-gray-300"}`}>
+                                    New projects start here
+                                </div>
+                            )}
                         </div>
 
-                        {/* CARDS LIST */}
+                        {/* CARDS */}
                         <div className={`flex-1 overflow-y-auto rounded-2xl border-2 border-dashed p-2.5 space-y-3 transition-colors scrollbar-thin ${
                             isDark
                                 ? `${col.darkBorder} ${col.darkColor} scrollbar-thumb-[#2a2a2a]`
@@ -122,28 +153,28 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                             {items.map(p => {
                                 const days = getDaysInStage(p.created_at);
                                 const value = p.potential_value || financials[p.id] || 0;
+                                const status = getStatus(p);
+                                const prevStage = PREV_STAGE[status];
+                                const showLost = ["Lead", "Estimating", "Proposal Sent"].includes(status);
+
                                 return (
                                     <Card key={p.id} className={`group overflow-hidden transition-all duration-200 ${
                                         isDark
                                             ? "border-[#2a2a2a] bg-[#1a1a1a] shadow-sm hover:shadow-lg hover:shadow-black/20"
                                             : "border-gray-200 bg-white shadow-sm hover:shadow-md"
                                     }`}>
-                                        <CardContent className="p-3 space-y-3">
-                                            {/* HEADER */}
-                                            <div className="flex items-start justify-between gap-1">
-                                                <Link href={`/dashboard/foundations?projectId=${p.id}`} className="block flex-1 min-w-0">
-                                                    <div className={`font-bold text-xs leading-tight group-hover:text-blue-600 transition-colors uppercase tracking-tight truncate ${
-                                                        isDark ? "text-white" : "text-gray-900"
-                                                    }`}>
-                                                        {p.name}
-                                                    </div>
-                                                    <div className={`text-[10px] font-medium mt-0.5 truncate ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>
-                                                        {p.client_name || "Unknown Client"}
-                                                    </div>
-                                                </Link>
+                                        <CardContent className="p-3 space-y-2.5">
+                                            {/* NAME + CLIENT */}
+                                            <div>
+                                                <div className={`font-bold text-xs leading-tight uppercase tracking-tight truncate ${isDark ? "text-white" : "text-gray-900"}`}>
+                                                    {p.name}
+                                                </div>
+                                                <div className={`text-[10px] font-medium mt-0.5 truncate ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>
+                                                    {p.client_name || "Unknown Client"}
+                                                </div>
                                             </div>
 
-                                            {/* PROJECT TYPE BADGE */}
+                                            {/* TYPE BADGE */}
                                             {p.project_type && (
                                                 <span className={`inline-block text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${getTypeBadgeClass(p.project_type, isDark)}`}>
                                                     {p.project_type}
@@ -160,12 +191,8 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 </span>
                                             </div>
 
-                                            {/* STATUS SELECTOR */}
-                                            <Select
-                                                value={getStatus(p)}
-                                                onValueChange={(val) => handleStatusChange(p.id, val)}
-                                                disabled={isPending}
-                                            >
+                                            {/* MANUAL STATUS OVERRIDE DROPDOWN */}
+                                            <Select value={status} onValueChange={(val) => move(p.id, val)} disabled={isPending}>
                                                 <SelectTrigger className={`h-7 text-[10px] font-bold transition-colors ${
                                                     isDark
                                                         ? "border-[#2a2a2a] bg-[#0d0d0d] text-white hover:bg-[#1a1a1a]"
@@ -175,27 +202,101 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     {COLUMNS.map(c => (
-                                                        <SelectItem key={c.id} value={c.id} className="text-xs font-medium">
-                                                            {c.label}
-                                                        </SelectItem>
+                                                        <SelectItem key={c.id} value={c.id} className="text-xs font-medium">{c.label}</SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
 
-                                            {/* MARK AS WON — show on Lead / Estimating / Proposal Sent */}
-                                            {(getStatus(p) === "Lead" || getStatus(p) === "Estimating" || getStatus(p) === "Proposal Sent") && (
+                                            {/* ── STAGE ACTION BUTTONS ──────────────── */}
+
+                                            {/* PRIMARY ADVANCE BUTTON */}
+                                            {status === "Proposal Sent" ? (
+                                                // Mark as Won — special emerald treatment
                                                 <button
-                                                    onClick={() => handleMarkAsWon(p.id)}
+                                                    onClick={() => move(p.id, "Active")}
                                                     disabled={isPending}
-                                                    className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors ${
+                                                    className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
                                                         isDark
-                                                            ? "bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/20"
-                                                            : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
-                                                    } disabled:opacity-50`}
+                                                            ? "bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border-emerald-500/20"
+                                                            : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200"
+                                                    }`}
                                                 >
-                                                    <Trophy className="w-3 h-3" />
-                                                    Mark as Won
+                                                    <Trophy className="w-3 h-3" /> Mark as Won
                                                 </button>
+                                            ) : status === "Lead" ? (
+                                                <button
+                                                    onClick={() => move(p.id, "Estimating")}
+                                                    disabled={isPending}
+                                                    className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
+                                                        isDark
+                                                            ? "bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border-blue-500/20"
+                                                            : "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                                                    }`}
+                                                >
+                                                    Start Estimating <ArrowRight className="w-3 h-3" />
+                                                </button>
+                                            ) : status === "Estimating" ? (
+                                                <button
+                                                    onClick={() => move(p.id, "Proposal Sent")}
+                                                    disabled={isPending}
+                                                    className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
+                                                        isDark
+                                                            ? "bg-purple-500/15 text-purple-400 hover:bg-purple-500/25 border-purple-500/20"
+                                                            : "bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"
+                                                    }`}
+                                                >
+                                                    Proposal Sent <ArrowRight className="w-3 h-3" />
+                                                </button>
+                                            ) : status === "Active" ? (
+                                                <button
+                                                    onClick={() => move(p.id, "Completed")}
+                                                    disabled={isPending}
+                                                    className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
+                                                        isDark
+                                                            ? "bg-white/8 text-slate-300 hover:bg-white/12 border-white/10"
+                                                            : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border-zinc-200"
+                                                    }`}
+                                                >
+                                                    <CheckCircle2 className="w-3 h-3" /> Mark Complete
+                                                </button>
+                                            ) : (status === "Completed" || status === "Lost") ? (
+                                                <button
+                                                    onClick={() => move(p.id, status === "Lost" ? "Proposal Sent" : "Active")}
+                                                    disabled={isPending}
+                                                    className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
+                                                        isDark
+                                                            ? "bg-white/5 text-slate-400 hover:bg-white/10 border-white/8"
+                                                            : "bg-slate-50 text-slate-500 hover:bg-slate-100 border-slate-200"
+                                                    }`}
+                                                >
+                                                    <RotateCcw className="w-3 h-3" /> Reopen
+                                                </button>
+                                            ) : null}
+
+                                            {/* SECONDARY: Pull Back + Mark as Lost */}
+                                            {(prevStage || showLost) && (
+                                                <div className="flex items-center justify-between pt-0.5">
+                                                    {prevStage ? (
+                                                        <button
+                                                            onClick={() => move(p.id, prevStage)}
+                                                            disabled={isPending}
+                                                            className={`text-[9px] font-semibold transition-colors disabled:opacity-40 flex items-center gap-0.5 ${
+                                                                isDark ? "text-slate-600 hover:text-slate-400" : "text-gray-300 hover:text-gray-500"
+                                                            }`}
+                                                        >
+                                                            ← Pull Back
+                                                        </button>
+                                                    ) : <span />}
+                                                    {showLost && (
+                                                        <button
+                                                            onClick={() => move(p.id, "Lost")}
+                                                            disabled={isPending}
+                                                            className="text-[9px] font-semibold text-red-500/50 hover:text-red-400 transition-colors disabled:opacity-40"
+                                                        >
+                                                            Mark as Lost
+                                                        </button>
+                                                    )}
+                                                </div>
                                             )}
 
                                             {/* QUICK LINKS */}
@@ -206,7 +307,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 <Link href={`/dashboard/projects/costs?projectId=${p.id}`} className="text-[9px] font-black uppercase text-green-600 hover:underline tracking-widest">
                                                     Costs
                                                 </Link>
-                                                {getStatus(p) === "Active" && (
+                                                {status === "Active" && (
                                                     <Link href={`/dashboard/projects/p-and-l?projectId=${p.id}`} className="text-[9px] font-black uppercase text-blue-500 hover:underline tracking-widest ml-auto">
                                                         P&amp;L →
                                                     </Link>
@@ -219,9 +320,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
 
                             {items.length === 0 && (
                                 <div className="flex flex-col items-center justify-center p-6 opacity-40">
-                                    <div className={`p-3 rounded-full shadow-inner ${
-                                        isDark ? "bg-[#1a1a1a] border border-[#2a2a2a]" : "bg-white border border-gray-100"
-                                    }`}>
+                                    <div className={`p-3 rounded-full shadow-inner ${isDark ? "bg-[#1a1a1a] border border-[#2a2a2a]" : "bg-white border border-gray-100"}`}>
                                         <Layers className={`w-5 h-5 ${isDark ? "text-[#a0a0a0]" : "text-gray-300"}`} />
                                     </div>
                                     <p className={`mt-2 text-[9px] font-black uppercase tracking-widest ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>Empty</p>

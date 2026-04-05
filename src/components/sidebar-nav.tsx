@@ -163,12 +163,12 @@ export default function SidebarNav({ user, projects }: SidebarNavProps) {
         }
     }, [projects]);
 
-    // Auto-expand Pre-Construction + Live Projects when project is selected
+    // Auto-expand Pre-Construction only when project is selected (accordion — closes all others)
     useEffect(() => {
         if (selectedProjectId) {
             setCollapsed(prev => {
-                // Close all, then open only the two project sections (accordion with multi-open for these two)
-                const next = { ...prev, "pre-construction": false, "live-projects": false };
+                const next: Record<string, boolean> = {};
+                SECTION_KEYS.forEach(k => { next[k] = k !== "pre-construction"; });
                 localStorage.setItem("constructa_sidebar_collapsed", JSON.stringify(next));
                 return next;
             });
@@ -187,20 +187,18 @@ export default function SidebarNav({ user, projects }: SidebarNavProps) {
         return () => document.removeEventListener("mousedown", handleClick);
     }, []);
 
-    // Accordion toggle — opening one closes all others
+    // Accordion toggle — opening one section ALWAYS closes all others
     const toggleSection = (key: string) => {
         setCollapsed(prev => {
-            const isOpening = prev[key] !== false; // currently collapsed → will open
+            const isCurrentlyOpen = prev[key] === false; // false = open; true/undefined = closed
             const next: Record<string, boolean> = {};
-            SECTION_KEYS.forEach(k => {
-                if (isOpening) {
-                    // Opening this key: close all others
-                    next[k] = k !== key;
-                } else {
-                    // Closing this key: just close it, leave others as-is
-                    next[k] = k === key ? true : (prev[k] ?? true);
-                }
-            });
+            if (isCurrentlyOpen) {
+                // Closing: just collapse this one, leave others as-is
+                SECTION_KEYS.forEach(k => { next[k] = k === key ? true : (prev[k] ?? true); });
+            } else {
+                // Opening: collapse ALL, then open only this one
+                SECTION_KEYS.forEach(k => { next[k] = k !== key; });
+            }
             localStorage.setItem("constructa_sidebar_collapsed", JSON.stringify(next));
             return next;
         });

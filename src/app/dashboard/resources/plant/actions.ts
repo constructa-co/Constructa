@@ -6,8 +6,12 @@ import { revalidatePath } from "next/cache";
 export interface PlantResourceInput {
   id?: string;
   name: string;
-  category: "excavator" | "dumper" | "vehicle" | "scaffold" | "lifting" | "tool" | "other";
+  category: "heavy_plant" | "light_plant" | "lifting" | "temp_works" | "light_tools" | "specialist_tools" | "other";
   description?: string | null;
+  // Rate mode
+  rate_mode: string;               // 'simple' | 'full'
+  daily_chargeout_rate: number;    // used in simple mode
+  // Full buildup fields
   purchase_price: number;
   depreciation_years: number;
   residual_value: number;
@@ -35,6 +39,8 @@ export async function upsertPlantResourceAction(
     name: data.name,
     category: data.category,
     description: data.description ?? null,
+    rate_mode: data.rate_mode,
+    daily_chargeout_rate: data.daily_chargeout_rate,
     purchase_price: data.purchase_price,
     depreciation_years: data.depreciation_years,
     residual_value: data.residual_value,

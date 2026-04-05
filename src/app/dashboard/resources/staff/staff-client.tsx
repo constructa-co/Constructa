@@ -297,6 +297,7 @@ function NumericInput({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+        onFocus={(e) => e.target.select()}
         className={[
           "bg-slate-800 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-blue-500",
           prefix ? "pl-7" : "",
@@ -880,9 +881,10 @@ export default function StaffResourcesClient({ staff }: { staff: StaffRow[] }) {
                 <th className="text-left text-slate-400 font-medium px-4 py-3">
                   Name &amp; Job Title
                 </th>
-                <th className="text-left text-slate-400 font-medium px-4 py-3">Rate Mode</th>
-                <th className="text-right text-slate-400 font-medium px-4 py-3">Rate</th>
-                <th className="text-right text-slate-400 font-medium px-4 py-3">Annual Cost</th>
+                <th className="text-left text-slate-400 font-medium px-4 py-3">Mode</th>
+                <th className="text-right text-slate-400 font-medium px-4 py-3">Hourly</th>
+                <th className="text-right text-slate-400 font-medium px-4 py-3">Daily</th>
+                <th className="text-right text-slate-400 font-medium px-4 py-3">Annual</th>
                 <th className="text-right text-slate-400 font-medium px-4 py-3">Actions</th>
               </tr>
             </thead>
@@ -890,21 +892,26 @@ export default function StaffResourcesClient({ staff }: { staff: StaffRow[] }) {
               {staff.map((row) => {
                 const isSimple = row.rate_mode === "simple";
                 const dailyChargeout = calcStaffDailyChargeout(row);
-                const totalAnnualCost = isSimple
+                const hourlyChargeout = isSimple
+                  ? row.hourly_chargeout_rate
+                  : dailyChargeout / 8;
+                const chargeableDays = Math.max(
+                  0,
+                  row.annual_working_days - row.holiday_days - row.public_holiday_days
+                );
+                // Annual = chargeout × chargeable days for both modes
+                const annualChargeout = dailyChargeout * chargeableDays;
+                // Full mode only: actual total employer cost
+                const annualEmployerCost = isSimple
                   ? null
                   : (() => {
-                      const niCost = row.annual_salary * (row.employer_ni_pct / 100);
-                      const pensionCost = row.annual_salary * (row.employer_pension_pct / 100);
+                      const ni = row.annual_salary * (row.employer_ni_pct / 100);
+                      const pension = row.annual_salary * (row.employer_pension_pct / 100);
                       return (
-                        row.annual_salary +
-                        niCost +
-                        pensionCost +
-                        row.company_car_annual +
-                        row.car_allowance_annual +
-                        row.mobile_phone_annual +
-                        row.it_costs_annual +
-                        row.life_insurance_annual +
-                        row.other_benefits_annual
+                        row.annual_salary + ni + pension +
+                        row.company_car_annual + row.car_allowance_annual +
+                        row.mobile_phone_annual + row.it_costs_annual +
+                        row.life_insurance_annual + row.other_benefits_annual
                       );
                     })();
 
@@ -953,31 +960,28 @@ export default function StaffResourcesClient({ staff }: { staff: StaffRow[] }) {
                       )}
                     </td>
 
-                    {/* Rate */}
-                    <td className="px-4 py-3 text-right">
-                      {isSimple ? (
-                        <div className="font-mono tabular-nums">
-                          <span className="text-slate-200">{gbp(row.hourly_chargeout_rate)}/hr</span>
-                          <span className="text-slate-600 mx-1">|</span>
-                          <span className="text-slate-200">{gbp(dailyChargeout)}/day</span>
-                        </div>
-                      ) : (
-                        <div className="font-mono tabular-nums text-slate-200">
-                          {gbp(dailyChargeout)}/day
-                          <p className="text-slate-500 text-xs font-sans font-normal">chargeout</p>
-                        </div>
-                      )}
+                    {/* Hourly */}
+                    <td className="px-4 py-3 text-right tabular-nums font-mono text-sm">
+                      <span className="text-slate-200">{gbp(hourlyChargeout)}</span>
+                      <span className="text-slate-600 text-xs">/hr</span>
                     </td>
 
-                    {/* Annual Cost (full mode only) */}
+                    {/* Daily */}
+                    <td className="px-4 py-3 text-right tabular-nums font-mono text-sm">
+                      <span className="text-blue-300 font-semibold">{gbp(dailyChargeout)}</span>
+                      <span className="text-slate-600 text-xs">/day</span>
+                    </td>
+
+                    {/* Annual */}
                     <td className="px-4 py-3 text-right">
-                      {totalAnnualCost !== null ? (
-                        <span className="text-slate-400 text-xs font-mono tabular-nums">
-                          {gbp(totalAnnualCost)}{" "}
-                          <span className="text-slate-600">total / yr</span>
-                        </span>
-                      ) : (
-                        <span className="text-slate-700">—</span>
+                      <div className="tabular-nums font-mono text-sm">
+                        <span className="text-slate-200">{gbp(annualChargeout)}</span>
+                        <span className="text-slate-600 text-xs">/yr</span>
+                      </div>
+                      {annualEmployerCost !== null && (
+                        <p className="text-slate-600 text-xs font-sans mt-0.5">
+                          cost: {gbp(annualEmployerCost)}
+                        </p>
                       )}
                     </td>
 

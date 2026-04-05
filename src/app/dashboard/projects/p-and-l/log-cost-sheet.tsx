@@ -29,10 +29,18 @@ export interface StaffResource {
   id: string;
   name: string;
   role?: string | null;
+  job_title?: string | null;
+  // Rate mode
+  rate_mode: string;               // 'simple' | 'full'
+  hourly_chargeout_rate: number;   // used in simple mode
+  overtime_chargeout_rate: number;
+  // Full buildup fields
   annual_salary: number;
   employer_ni_pct: number;
   employer_pension_pct: number;
   company_car_annual: number;
+  car_allowance_annual: number;
+  mobile_phone_annual: number;
   it_costs_annual: number;
   life_insurance_annual: number;
   other_benefits_annual: number;
@@ -80,6 +88,7 @@ function today(): string {
 }
 
 function calcStaffDailyChargeout(s: StaffResource): number {
+  if (s.rate_mode === "simple") return s.hourly_chargeout_rate * 8;
   const niCost = s.annual_salary * (s.employer_ni_pct / 100);
   const pensionCost = s.annual_salary * (s.employer_pension_pct / 100);
   const totalAnnualCost =
@@ -87,6 +96,8 @@ function calcStaffDailyChargeout(s: StaffResource): number {
     niCost +
     pensionCost +
     s.company_car_annual +
+    (s.car_allowance_annual ?? 0) +
+    (s.mobile_phone_annual ?? 0) +
     s.it_costs_annual +
     s.life_insurance_annual +
     s.other_benefits_annual;
@@ -269,6 +280,7 @@ function LabourTab({ staffCatalogue, projectId, onDone }: LabourTabProps) {
     if (useCatalogue) {
       if (!form.staffId) return "Please select a team member.";
       if (days <= 0) return "Please enter a valid number of days.";
+      if (catalogueTotal <= 0) return "Daily rate is £0 — check this staff member's rate setup.";
     } else {
       if (!form.description.trim()) return "Description is required.";
       if (parseFloat(form.amount) <= 0) return "Please enter a valid amount.";
@@ -283,8 +295,9 @@ function LabourTab({ staffCatalogue, projectId, onDone }: LabourTabProps) {
     if (err) { toast.error(err); return; }
 
     const amount = useCatalogue ? catalogueTotal : parseFloat(form.amount);
+    const staffRole = selectedStaff!.job_title || selectedStaff!.role || null;
     const description = useCatalogue
-      ? `${selectedStaff!.name}${selectedStaff!.role ? ` (${selectedStaff!.role})` : ""} — ${days} day${days !== 1 ? "s" : ""}`
+      ? `${selectedStaff!.name}${staffRole ? ` (${staffRole})` : ""} — ${days} day${days !== 1 ? "s" : ""}`
       : form.description.trim();
 
     startTransition(async () => {
@@ -346,7 +359,7 @@ function LabourTab({ staffCatalogue, projectId, onDone }: LabourTabProps) {
               <SelectContent className={selectContentCls}>
                 {staffCatalogue.map((s) => (
                   <SelectItem key={s.id} value={s.id} className="text-slate-100 focus:bg-slate-700">
-                    {s.name}{s.role ? ` — ${s.role}` : ""}
+                    {s.name}{(s.job_title || s.role) ? ` — ${s.job_title || s.role}` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -471,6 +484,7 @@ function PlantOwnedTab({ plantCatalogue, projectId, onDone }: PlantOwnedTabProps
     if (useCatalogue) {
       if (!form.plantId) return "Please select a plant item.";
       if (days <= 0) return "Please enter a valid number of days.";
+      if (catalogueTotal <= 0) return "Daily rate is £0 — check this plant item's rate setup.";
     } else {
       if (!form.description.trim()) return "Description is required.";
       if (parseFloat(form.amount) <= 0) return "Please enter a valid amount.";

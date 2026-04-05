@@ -17,8 +17,12 @@ export interface PlantRow {
   id: string;
   user_id: string;
   name: string;
-  category: "excavator" | "dumper" | "vehicle" | "scaffold" | "lifting" | "tool" | "other";
+  category: "heavy_plant" | "light_plant" | "lifting" | "temp_works" | "light_tools" | "specialist_tools" | "other";
   description: string | null;
+  // Rate mode
+  rate_mode: string;             // 'simple' | 'full'
+  daily_chargeout_rate: number;  // used in simple mode
+  // Full buildup
   purchase_price: number;
   depreciation_years: number;
   residual_value: number;
@@ -38,13 +42,13 @@ export interface PlantRow {
 // ---------------------------------------------------------------------------
 
 const CATEGORIES: { value: PlantRow["category"]; label: string }[] = [
-  { value: "excavator", label: "🔧 Excavator" },
-  { value: "dumper",    label: "🚛 Dumper" },
-  { value: "vehicle",   label: "🚗 Vehicle" },
-  { value: "scaffold",  label: "🏗️ Scaffold" },
-  { value: "lifting",   label: "🏋️ Lifting Equipment" },
-  { value: "tool",      label: "🔨 Power Tool" },
-  { value: "other",     label: "📦 Other" },
+  { value: "heavy_plant",      label: "Heavy Plant" },
+  { value: "light_plant",      label: "Light Plant" },
+  { value: "lifting",          label: "Lifting Equipment" },
+  { value: "temp_works",       label: "Temporary Works" },
+  { value: "light_tools",      label: "Light Tools" },
+  { value: "specialist_tools", label: "Specialist Tools" },
+  { value: "other",            label: "Other" },
 ];
 
 function categoryLabel(val: PlantRow["category"]): string {
@@ -69,7 +73,8 @@ export function calcPlantAnnualCost(p: PlantRow | PlantResourceInput): number {
   );
 }
 
-export function calcPlantDailyChargeout(p: PlantRow | PlantResourceInput): number {
+export function calcPlantDailyChargeout(p: { rate_mode?: string; daily_chargeout_rate?: number } & PlantResourceInput): number {
+  if (p.rate_mode === "simple") return p.daily_chargeout_rate ?? 0;
   const annualCost = calcPlantAnnualCost(p);
   const chargeableDays = p.utilisation_months * p.working_days_per_month;
   if (chargeableDays <= 0) return 0;
@@ -107,6 +112,8 @@ const BLANK: PlantResourceInput = {
   name: "",
   category: "other",
   description: "",
+  rate_mode: "simple",
+  daily_chargeout_rate: 0,
   purchase_price: 0,
   depreciation_years: 5,
   residual_value: 0,
@@ -137,6 +144,10 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
+      onFocus={(e) => {
+        if (props.type === "number") e.target.select();
+        props.onFocus?.(e);
+      }}
       className={
         "w-full h-10 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 " +
         "placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600 " +
@@ -192,16 +203,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 // ---------------------------------------------------------------------------
 
 function RatePreview({ form }: { form: PlantResourceInput }) {
-  const depreciationYrs = form.depreciation_years;
-  const depreciation =
-    depreciationYrs > 0
-      ? (form.purchase_price - form.residual_value) / depreciationYrs
-      : 0;
-  const annualCost = calcPlantAnnualCost(form);
-  const chargeableDays = form.utilisation_months * form.working_days_per_month;
-  const dailyCost = chargeableDays > 0 ? annualCost / chargeableDays : 0;
-  const profitAmount = dailyCost * (form.profit_uplift_pct / 100);
-  const dailyChargeout = dailyCost + profitAmount;
+  const isSimple = form.rate_mode === "simple";
 
   const Row = ({
     label,
@@ -226,6 +228,32 @@ function RatePreview({ form }: { form: PlantResourceInput }) {
       </div>
     </>
   );
+
+  if (isSimple) {
+    const daily = form.daily_chargeout_rate;
+    return (
+      <div className="bg-slate-900 border border-slate-700/60 rounded-xl p-4 space-y-0.5">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-3">
+          Rate Summary
+        </p>
+        <Row label="Half day" value={gbp(daily / 2)} />
+        <Row label="Daily chargeout" value={gbp(daily)} highlight separator />
+        <Row label="Weekly (5 days)" value={gbp(daily * 5)} />
+        <Row label="Monthly (20 days)" value={gbp(daily * 20)} />
+      </div>
+    );
+  }
+
+  const depreciationYrs = form.depreciation_years;
+  const depreciation =
+    depreciationYrs > 0
+      ? (form.purchase_price - form.residual_value) / depreciationYrs
+      : 0;
+  const annualCost = calcPlantAnnualCost(form);
+  const chargeableDays = form.utilisation_months * form.working_days_per_month;
+  const dailyCost = chargeableDays > 0 ? annualCost / chargeableDays : 0;
+  const profitAmount = dailyCost * (form.profit_uplift_pct / 100);
+  const dailyChargeout = dailyCost + profitAmount;
 
   return (
     <div className="bg-slate-900 border border-slate-700/60 rounded-xl p-4 space-y-0.5">
@@ -369,8 +397,65 @@ function PlantDialog({
                 />
               </div>
 
-              {/* Capital Cost */}
-              <SectionHeading>Capital Cost</SectionHeading>
+              {/* Rate Mode Toggle */}
+              <SectionHeading>Rate Mode</SectionHeading>
+              <div className="grid grid-cols-2 gap-3 mb-2">
+                <button
+                  type="button"
+                  onClick={() => set("rate_mode", "simple")}
+                  className={[
+                    "rounded-lg border-2 p-3 text-left transition-colors",
+                    form.rate_mode === "simple"
+                      ? "border-blue-500 bg-blue-950/40"
+                      : "border-slate-700 bg-slate-800/40 hover:border-slate-600",
+                  ].join(" ")}
+                >
+                  <p className={["font-semibold text-sm", form.rate_mode === "simple" ? "text-blue-300" : "text-slate-300"].join(" ")}>
+                    Simple Rate
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">Enter daily chargeout directly</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => set("rate_mode", "full")}
+                  className={[
+                    "rounded-lg border-2 p-3 text-left transition-colors",
+                    form.rate_mode === "full"
+                      ? "border-blue-500 bg-blue-950/40"
+                      : "border-slate-700 bg-slate-800/40 hover:border-slate-600",
+                  ].join(" ")}
+                >
+                  <p className={["font-semibold text-sm", form.rate_mode === "full" ? "text-blue-300" : "text-slate-300"].join(" ")}>
+                    Full Buildup
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">Build from depreciation + costs</p>
+                </button>
+              </div>
+
+              {/* Simple mode: just ask for daily rate */}
+              {form.rate_mode === "simple" && (
+                <div className="mt-3">
+                  <Label htmlFor="daily_chargeout_rate">Daily Chargeout Rate (£/day) *</Label>
+                  <Input
+                    id="daily_chargeout_rate"
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={form.daily_chargeout_rate}
+                    onChange={(e) => set("daily_chargeout_rate", parseFloat(e.target.value) || 0)}
+                    placeholder="e.g. 450.00"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Half-day:{" "}
+                    <span className="text-slate-300">{gbp(form.daily_chargeout_rate / 2)}</span>
+                    {" "}· Weekly:{" "}
+                    <span className="text-slate-300">{gbp(form.daily_chargeout_rate * 5)}</span>
+                  </p>
+                </div>
+              )}
+
+              {/* Capital Cost — full buildup only */}
+              {form.rate_mode === "full" && <><SectionHeading>Capital Cost</SectionHeading>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="purchase_price">Purchase Price (£) *</Label>
@@ -511,6 +596,7 @@ function PlantDialog({
                   onChange={(e) => set("profit_uplift_pct", num(e.target.value))}
                 />
               </div>
+              </>}
 
               {/* Notes */}
               <SectionHeading>Notes</SectionHeading>
@@ -572,6 +658,8 @@ export default function PlantResourcesClient({ plant }: { plant: PlantRow[] }) {
       name: row.name,
       category: row.category,
       description: row.description,
+      rate_mode: row.rate_mode || "full",
+      daily_chargeout_rate: row.daily_chargeout_rate ?? 0,
       purchase_price: row.purchase_price,
       depreciation_years: row.depreciation_years,
       residual_value: row.residual_value,
@@ -646,20 +734,17 @@ export default function PlantResourcesClient({ plant }: { plant: PlantRow[] }) {
                 <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   Category
                 </th>
-                <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                  Purchase Price
+                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  Mode
                 </th>
                 <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                  Annual Running Cost
-                </th>
-                <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                  Chargeable Days/yr
-                </th>
-                <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                  Daily Cost
+                  Half Day
                 </th>
                 <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   Daily Chargeout
+                </th>
+                <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  Weekly
                 </th>
                 <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   Actions
@@ -668,10 +753,10 @@ export default function PlantResourcesClient({ plant }: { plant: PlantRow[] }) {
             </thead>
             <tbody className="divide-y divide-slate-700/50">
               {plant.map((row) => {
-                const annualCost = calcPlantAnnualCost(row);
-                const chargeableDays = row.utilisation_months * row.working_days_per_month;
-                const dailyCost = chargeableDays > 0 ? annualCost / chargeableDays : 0;
+                const isSimple = (row.rate_mode || "full") === "simple";
                 const dailyChargeout = calcPlantDailyChargeout(row);
+                const halfDay = dailyChargeout / 2;
+                const weekly = dailyChargeout * 5;
                 const isDeleting = deletingId === row.id;
 
                 return (
@@ -687,23 +772,27 @@ export default function PlantResourcesClient({ plant }: { plant: PlantRow[] }) {
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-slate-300 whitespace-nowrap">
+                    <td className="px-4 py-3 text-slate-300 whitespace-nowrap text-sm">
                       {categoryLabel(row.category)}
                     </td>
-                    <td className="px-4 py-3 text-right text-slate-300 tabular-nums">
-                      {gbp0(row.purchase_price)}
+                    <td className="px-4 py-3">
+                      <span className={[
+                        "text-xs px-2 py-0.5 rounded-full border",
+                        isSimple
+                          ? "border-slate-600 text-slate-400"
+                          : "border-blue-700/50 bg-blue-900/50 text-blue-300",
+                      ].join(" ")}>
+                        {isSimple ? "Simple" : "Buildup"}
+                      </span>
                     </td>
-                    <td className="px-4 py-3 text-right text-slate-300 tabular-nums">
-                      {gbp0(annualCost)}
+                    <td className="px-4 py-3 text-right text-slate-300 tabular-nums font-mono text-sm">
+                      {gbp(halfDay)}
                     </td>
-                    <td className="px-4 py-3 text-right text-slate-300 tabular-nums">
-                      {chargeableDays}
-                    </td>
-                    <td className="px-4 py-3 text-right text-slate-300 tabular-nums">
-                      {gbp(dailyCost)}
-                    </td>
-                    <td className="px-4 py-3 text-right font-semibold text-blue-300 tabular-nums">
+                    <td className="px-4 py-3 text-right font-semibold text-blue-300 tabular-nums font-mono text-sm">
                       {gbp(dailyChargeout)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-slate-300 tabular-nums font-mono text-sm">
+                      {gbp(weekly)}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">

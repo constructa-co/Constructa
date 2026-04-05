@@ -632,7 +632,7 @@ CREATE POLICY "Users manage own contracts" ON storage.objects FOR ALL TO authent
 
 ---
 
-## Sprint Backlog (priority order)
+## Sprint Backlog — Complete Roadmap (Sprints 15–43)
 
 ### IMMEDIATE — Bug fixes
 - [x] **BUG-001** ~~Fix duplicate `md_name` input~~ — done (6e10445)
@@ -836,15 +836,7 @@ problem of contractors doing site surveys and having to manually note everything
 - [ ] Storage: video stored in Supabase storage, linked to project
 - [ ] Privacy: processing in-memory only, no video retained on OpenAI servers
 
---- BATCH 1 COMPLETE — LAUNCH POINT ---
-
----
-
-## BATCH 2 — LIVE PROJECTS MODULE (Sprints 25–30)
-> All currently showing "Coming Soon" in sidebar. Post-contract delivery phase.
-> This is the module that solves Dave's #1 pain point: not knowing if he's making money mid-job.
-> Sequencing note: Sprint 14 (P&L) lays the data foundations these sprints build on.
-> Target: release as a batch ~3 months after Batch 1 launch.
+--- BATCH 1 COMPLETE — LAUNCH POINT (Sprints 15–24) ---
 
 ### Sprint 25 — Live Projects: Overview
 The command centre for a project once it's on site. Replaces the "Coming Soon" placeholder.
@@ -901,12 +893,7 @@ Formal construction communication log — critical for dispute avoidance.
 - [ ] Document register: upload and tag site photos, drawings, reports to the project
 - [ ] All communications timestamped and non-editable once issued (audit trail)
 
---- BATCH 2 COMPLETE — LIVE PROJECTS RELEASE ---
-
-## BATCH 3 — CLOSED PROJECTS MODULE (Sprints 31–34)
-> All currently showing "Coming Soon" in sidebar.
-> The retrospective and handover phase — closes the loop financially and operationally.
-> Target: release ~6 months post-Batch 1.
+--- BATCH 2 COMPLETE — LIVE PROJECTS RELEASE (Sprints 25–30) ---
 
 ### Sprint 31 — Closed Projects: Final Accounts
 - [ ] Final Account summary: original contract sum + approved variations + agreed adjustments
@@ -940,20 +927,7 @@ Turns project data into business intelligence — the flywheel that improves eve
 - [ ] Contractor performance data over time: margin trend, on-time delivery %, repeat client rate
 - [ ] Feeds back to cost library: suggest rate adjustments where actuals consistently differ from estimates
 
----
-
-### DEPRIORITISED (post-launch with real user data)
-- Mobile responsive full pass (Sprint 17 prevents breakage; full pass later)
-- Voice-to-proposal wizard
-- SS-FS Gantt dependencies beyond Sprint 19 scope
-
----
-
-## BATCH 4 — DATA & ADMIN LAYER (Sprints 35–43)
-> Transforms Constructa from a single-contractor tool into a platform with proprietary data.
-> These sprints run after Batch 3. They are not required for core SaaS revenue but unlock
-> the B2B data product, accounting integrations, mobile, and merchant procurement layer.
-> Target: begin 9–12 months post-Batch 1 launch, once sufficient cross-contractor data exists.
+--- BATCH 3 COMPLETE — CLOSED PROJECTS RELEASE (Sprints 31–34) ---
 
 ### Sprint 35 — Data Foundation
 The aggregation layer that makes cross-contractor intelligence possible. Built entirely as
@@ -1089,7 +1063,12 @@ linked to their estimate lines — with pricing that reflects Constructa's colle
 - [ ] Delivery tracking: merchant order status → auto-log delivery as material cost entry in P&L
 - [ ] Merchant analytics (admin): which suppliers are used most, GMV through platform, referral fee model
 
---- BATCH 4 COMPLETE — DATA & ADMIN LAYER ---
+--- BATCH 4 COMPLETE — DATA & ADMIN LAYER (Sprints 35–43) ---
+
+### DEPRIORITISED (post-launch with real user data)
+- Mobile responsive full pass (Sprint 17 prevents breakage; full pass later)
+- Voice-to-proposal wizard
+- SS-FS Gantt dependencies beyond Sprint 19 scope
 
 ---
 

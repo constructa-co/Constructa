@@ -408,7 +408,7 @@ Direct Cost (trade lines)
 
 ---
 
-## Sprint Backlog (priority order)
+## Sprint Backlog — Complete Roadmap (Sprints 15–43)
 
 ### Sprint 17 — UI/UX Consistency Pass
 Every page to the Contract Shield / Job P&L dark-theme standard. Currently Brief, Estimating, Programme, Profile and Proposal editor lag behind significantly.
@@ -506,10 +506,6 @@ Project archiving, search, key data preserved, reuse estimate from archive, "Sim
 Structured retrospective, AI analysis (estimated vs actual margin, programme vs actual), insight cards, win/loss analysis, feeds cost library rate suggestions.
 
 --- BATCH 3 COMPLETE — CLOSED PROJECTS RELEASE (Sprints 31–34) ---
-
-## BATCH 4 — DATA & ADMIN LAYER (Sprints 35–43)
-> Transforms Constructa from a single-contractor SaaS into a data platform with proprietary intelligence.
-> Target: begin 9–12 months post-Batch 1 launch, once cross-contractor data volume is sufficient.
 
 ### Sprint 35 — Data Foundation
 Pure database migration — no changes to contractor-facing app. Creates the anonymised

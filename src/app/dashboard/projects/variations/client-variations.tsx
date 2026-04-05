@@ -19,23 +19,14 @@ import {
     deleteVariationAction
 } from "./actions";
 import { toast } from "sonner";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
     Plus,
-    Hammer,
     CheckCircle2,
-    XCircle,
     Clock,
     Trash2,
-    Loader2
+    Loader2,
+    GitBranch
 } from "lucide-react";
 
 interface Props {
@@ -43,32 +34,42 @@ interface Props {
     initialVariations: any[];
 }
 
+const gbp = (n: number) => `£${n.toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
+
+function StatusBadge({ status }: { status: string }) {
+    const map: Record<string, string> = {
+        'Draft':            'bg-slate-500/15 text-slate-400 border-slate-500/20',
+        'Pending Approval': 'bg-amber-500/15 text-amber-400 border-amber-500/20',
+        'Approved':         'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
+        'Rejected':         'bg-red-500/15 text-red-400 border-red-500/20',
+    };
+    return (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${map[status] ?? 'bg-slate-500/15 text-slate-400 border-slate-500/20'}`}>
+            {status}
+        </span>
+    );
+}
+
 export default function ClientVariations({ projectId, initialVariations }: Props) {
     const [isPending, startTransition] = useTransition();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [amount, setAmount] = useState("");
+
+    const totalApproved = initialVariations
+        .filter(v => v.status === 'Approved')
+        .reduce((sum, v) => sum + Number(v.amount), 0);
 
     const handleLogVariation = async (e: React.FormEvent) => {
         e.preventDefault();
         startTransition(async () => {
             try {
-                await createVariationAction({
-                    project_id: projectId,
-                    title,
-                    description,
-                    amount: parseFloat(amount) || 0
-                });
-                toast.success("Variation logged!");
+                await createVariationAction({ project_id: projectId, title, description, amount: parseFloat(amount) || 0 });
+                toast.success("Variation logged");
                 setIsDialogOpen(false);
-                setTitle("");
-                setDescription("");
-                setAmount("");
-            } catch (error: any) {
-                toast.error(error.message);
-            }
+                setTitle(""); setDescription(""); setAmount("");
+            } catch (error: any) { toast.error(error.message); }
         });
     };
 
@@ -77,9 +78,7 @@ export default function ClientVariations({ projectId, initialVariations }: Props
             try {
                 await updateVariationStatusAction(id, status, projectId);
                 toast.success(`Variation ${status}`);
-            } catch (error: any) {
-                toast.error(error.message);
-            }
+            } catch (error: any) { toast.error(error.message); }
         });
     };
 
@@ -89,134 +88,161 @@ export default function ClientVariations({ projectId, initialVariations }: Props
             try {
                 await deleteVariationAction(id, projectId);
                 toast.success("Variation deleted");
-            } catch (error: any) {
-                toast.error(error.message);
-            }
+            } catch (error: any) { toast.error(error.message); }
         });
     };
 
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'Draft': return <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-slate-200">DRAFT</Badge>;
-            case 'Pending Approval': return <Badge variant="outline" className="border-amber-200 text-amber-600 bg-amber-50">PENDING</Badge>;
-            case 'Approved': return <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white border-none">APPROVED</Badge>;
-            case 'Rejected': return <Badge variant="destructive">REJECTED</Badge>;
-            default: return <Badge>{status}</Badge>;
-        }
-    };
-
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-100 rounded-lg">
-                        <Hammer className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <div>
-                        <h2 className="text-sm font-black uppercase tracking-widest text-slate-900">Variations Log</h2>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Manage additions & credits</p>
-                    </div>
+        <div className="space-y-4">
+            {/* Summary KPI */}
+            <div className="grid grid-cols-3 gap-4">
+                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total Logged</p>
+                    <p className="text-2xl font-bold text-slate-100 mt-1">{initialVariations.length}</p>
                 </div>
-
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button className="bg-slate-900 text-white hover:bg-slate-800 font-black gap-2">
-                            <Plus className="w-4 h-4" />
-                            Log New Variation
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                            <DialogTitle className="text-xl font-black italic">Record Scope Change</DialogTitle>
-                        </DialogHeader>
-                        <form onSubmit={handleLogVariation} className="space-y-4 py-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="title" className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Variation Title</Label>
-                                <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Extra sockets in Kitchen" required className="bg-slate-50 border-slate-200" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="description" className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Description</Label>
-                                <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Detailed reason for change..." className="bg-slate-50 border-slate-200" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="amount" className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Value (£)</Label>
-                                <Input id="amount" type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" required className="bg-slate-50 border-slate-200 font-mono font-bold" />
-                            </div>
-                            <DialogFooter>
-                                <Button type="submit" disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black">
-                                    {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Variation"}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Approved</p>
+                    <p className="text-2xl font-bold text-emerald-400 mt-1">
+                        {initialVariations.filter(v => v.status === 'Approved').length}
+                    </p>
+                </div>
+                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total Approved Value</p>
+                    <p className="text-2xl font-bold text-white mt-1">{gbp(totalApproved)}</p>
+                </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 shadow-xl bg-white overflow-hidden">
-                <Table>
-                    <TableHeader className="bg-slate-50/50">
-                        <TableRow>
-                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Variation Description</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</TableHead>
-                            <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Amount</TableHead>
-                            <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {initialVariations.map((v) => (
-                            <TableRow key={v.id} className="group transition-colors border-slate-100">
-                                <TableCell className="text-xs font-bold text-slate-400">
+            {/* Variations log card */}
+            <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
+                {/* Card header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/50">
+                    <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                            <GitBranch className="h-4 w-4 text-purple-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-sm font-semibold text-white">Variations Log</h2>
+                            <p className="text-xs text-slate-500">Log and track all scope changes</p>
+                        </div>
+                    </div>
+
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                        <DialogTrigger asChild>
+                            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-500 transition-colors">
+                                <Plus className="w-4 h-4" />
+                                Log New Variation
+                            </button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px] bg-slate-900 border-slate-700 text-white">
+                            <DialogHeader>
+                                <DialogTitle className="text-lg font-bold text-white">Record Scope Change</DialogTitle>
+                            </DialogHeader>
+                            <form onSubmit={handleLogVariation} className="space-y-4 py-2">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-medium text-slate-400">Variation Title</Label>
+                                    <Input
+                                        value={title}
+                                        onChange={e => setTitle(e.target.value)}
+                                        placeholder="e.g. Extra sockets in kitchen"
+                                        required
+                                        className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-medium text-slate-400">Description</Label>
+                                    <Textarea
+                                        value={description}
+                                        onChange={e => setDescription(e.target.value)}
+                                        placeholder="Detailed reason for change..."
+                                        className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-medium text-slate-400">Value (£)</Label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        value={amount}
+                                        onChange={e => setAmount(e.target.value)}
+                                        placeholder="0.00"
+                                        required
+                                        className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 font-mono"
+                                    />
+                                </div>
+                                <DialogFooter>
+                                    <Button type="submit" disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold">
+                                        {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Variation"}
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
+                </div>
+
+                {/* Table */}
+                <table className="w-full text-sm">
+                    <thead>
+                        <tr className="border-b border-slate-700/50">
+                            <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Date</th>
+                            <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Variation</th>
+                            <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                            <th className="px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-500">Amount</th>
+                            <th className="px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-500">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {initialVariations.map((v, i) => (
+                            <tr key={v.id} className={`group border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors ${i === initialVariations.length - 1 ? 'border-0' : ''}`}>
+                                <td className="px-5 py-4 text-xs text-slate-400 whitespace-nowrap">
                                     {new Date(v.created_at).toLocaleDateString('en-GB')}
-                                </TableCell>
-                                <TableCell>
-                                    <div className="font-black text-slate-900 uppercase tracking-tight">{v.title}</div>
-                                    <div className="text-[10px] text-slate-500 leading-none mt-1">{v.description || "No description provided."}</div>
-                                </TableCell>
-                                <TableCell>
-                                    {getStatusBadge(v.status)}
-                                </TableCell>
-                                <TableCell className="text-right font-mono font-black text-slate-900">
-                                    £{v.amount.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <div className="flex justify-end items-center gap-1 opacity-10 group-hover:opacity-100 transition-opacity">
+                                </td>
+                                <td className="px-5 py-4">
+                                    <div className="font-semibold text-slate-100">{v.title}</div>
+                                    {v.description && <div className="text-xs text-slate-500 mt-0.5">{v.description}</div>}
+                                </td>
+                                <td className="px-5 py-4">
+                                    <StatusBadge status={v.status} />
+                                </td>
+                                <td className="px-5 py-4 text-right font-mono font-semibold text-slate-100">
+                                    {gbp(Number(v.amount))}
+                                </td>
+                                <td className="px-5 py-4 text-right">
+                                    <div className="flex justify-end items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         {v.status !== 'Approved' && (
-                                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600 hover:bg-emerald-50" onClick={() => handleStatusChange(v.id, 'Approved')}>
+                                            <button
+                                                onClick={() => handleStatusChange(v.id, 'Approved')}
+                                                className="h-7 w-7 flex items-center justify-center rounded-md text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                                                title="Approve"
+                                            >
                                                 <CheckCircle2 className="w-4 h-4" />
-                                            </Button>
+                                            </button>
                                         )}
-                                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-slate-400 hover:bg-slate-100" onClick={() => handleDelete(v.id)}>
+                                        <button
+                                            onClick={() => handleDelete(v.id)}
+                                            className="h-7 w-7 flex items-center justify-center rounded-md text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                            title="Delete"
+                                        >
                                             <Trash2 className="w-4 h-4" />
-                                        </Button>
+                                        </button>
                                     </div>
-                                </TableCell>
-                            </TableRow>
+                                </td>
+                            </tr>
                         ))}
                         {initialVariations.length === 0 && (
-                            <TableRow>
-                                <TableCell colSpan={5} className="h-32 text-center text-slate-400 italic text-sm">
-                                    No variations logged for this project.
-                                </TableCell>
-                            </TableRow>
+                            <tr>
+                                <td colSpan={5} className="px-5 py-16 text-center">
+                                    <div className="flex flex-col items-center gap-3">
+                                        <div className="h-12 w-12 rounded-xl bg-slate-700/50 flex items-center justify-center">
+                                            <GitBranch className="h-6 w-6 text-slate-500" />
+                                        </div>
+                                        <p className="text-sm text-slate-500">No variations logged for this project</p>
+                                        <p className="text-xs text-slate-600">Use "Log New Variation" to record scope changes</p>
+                                    </div>
+                                </td>
+                            </tr>
                         )}
-                    </TableBody>
-                </Table>
-            </div>
-
-            <div className="bg-slate-900 text-white p-6 rounded-2xl flex justify-between items-center shadow-2xl">
-                <div>
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Approved Variations</h3>
-                    <div className="text-3xl font-black italic">
-                        £{initialVariations
-                            .filter(v => v.status === 'Approved')
-                            .reduce((sum, v) => sum + v.amount, 0)
-                            .toLocaleString('en-GB', { minimumFractionDigits: 2 })}
-                    </div>
-                </div>
-                <div className="p-3 bg-white/10 rounded-xl border border-white/5">
-                    <Clock className="w-8 h-8 text-slate-400" />
-                </div>
+                    </tbody>
+                </table>
             </div>
         </div>
     );

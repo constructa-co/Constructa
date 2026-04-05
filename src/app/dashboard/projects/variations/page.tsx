@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import ProjectNavBar from "@/components/project-navbar";
 import ClientVariations from "./client-variations";
 import ProjectPicker from "@/components/project-picker";
 
@@ -35,18 +34,20 @@ export default async function VariationsPage({ searchParams }: { searchParams: {
     const { data: variations } = await supabase.from("variations").select("*").eq("project_id", projectId).order('created_at', { ascending: false });
 
     return (
-        <div className="max-w-6xl mx-auto p-8 h-screen flex flex-col">
-            <div className="flex flex-col gap-4 mb-6">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-3xl font-bold italic">Project Variations</h1>
-                        <p className="text-muted-foreground text-slate-500 uppercase text-[10px] font-black tracking-widest">
-                            Scope Changes & Extra Works for: <span className="text-black">{project?.name}</span>
-                        </p>
-                    </div>
+        <div className="max-w-6xl mx-auto p-8 space-y-6">
+            {/* Hero */}
+            <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
+                    <svg className="h-6 w-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
                 </div>
-
-                <ProjectNavBar projectId={projectId} activeTab="proposal" />
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Project Variations</h1>
+                    <p className="text-slate-400 text-sm mt-0.5">
+                        Scope changes & extra works — <span className="text-slate-300">{project?.name}</span>
+                    </p>
+                </div>
             </div>
 
             <ClientVariations

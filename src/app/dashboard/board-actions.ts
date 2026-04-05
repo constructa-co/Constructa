@@ -14,6 +14,27 @@ export async function updateStatusAction(projectId: string, newStatus: string) {
     return { success: true };
 }
 
+export async function markAsWonAction(projectId: string) {
+    const supabase = createClient();
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData?.user) return { success: false, error: "Not authenticated" };
+
+    await supabase
+        .from("projects")
+        .update({
+            status: "Active",
+            proposal_status: "accepted",
+            proposal_accepted_at: new Date().toISOString(),
+        })
+        .eq("id", projectId)
+        .eq("user_id", authData.user.id);
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/live");
+    revalidatePath("/dashboard/projects/p-and-l");
+    return { success: true };
+}
+
 export async function updateTypeAction(formData: FormData) {
     const supabase = createClient();
     const id = formData.get("id") as string;

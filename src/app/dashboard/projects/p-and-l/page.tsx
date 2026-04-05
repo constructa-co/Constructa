@@ -33,33 +33,50 @@ export default async function PLPage({ searchParams }: { searchParams: { project
 
     // ── No projectId → Global P&L across all projects ────────────────────────
     if (!projectId) {
-        const [
-            { data: projects },
-            { data: allExpenses },
-            { data: allInvoices },
-            { data: allEstimates },
-            { data: profile },
-        ] = await Promise.all([
-            supabase.from("projects")
+        // Step 1: fetch projects + profile in parallel
+        const [{ data: projects }, { data: profile }] = await Promise.all([
+            supabase
+                .from("projects")
                 .select("id, name, client_name, project_type, proposal_status, potential_value, updated_at")
                 .eq("user_id", user.id)
                 .order("updated_at", { ascending: false }),
-            supabase.from("project_expenses")
-                .select("project_id, amount, expense_date, trade_section, cost_type")
-                .in("project_id", (await supabase.from("projects").select("id").eq("user_id", user.id)).data?.map(p => p.id) ?? []),
-            supabase.from("invoices")
-                .select("project_id, amount, status, created_at")
-                .in("project_id", (await supabase.from("projects").select("id").eq("user_id", user.id)).data?.map(p => p.id) ?? []),
-            supabase.from("estimates")
-                .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, is_active, estimate_lines(trade_section, line_total)")
-                .in("project_id", (await supabase.from("projects").select("id").eq("user_id", user.id)).data?.map(p => p.id) ?? []),
-            supabase.from("profiles")
+            supabase
+                .from("profiles")
                 .select("financial_year_start_month, company_name")
                 .eq("id", user.id)
                 .single(),
         ]);
 
         const projectIds = (projects ?? []).map(p => p.id);
+
+        // Step 2: only fetch financial data if there are projects (avoids PostgREST .in([]) bug)
+        let allExpenses: any[] = [];
+        let allInvoices: any[] = [];
+        let allEstimates: any[] = [];
+
+        if (projectIds.length > 0) {
+            const [
+                { data: expData },
+                { data: invData },
+                { data: estData },
+            ] = await Promise.all([
+                supabase
+                    .from("project_expenses")
+                    .select("project_id, amount, expense_date, trade_section, cost_type")
+                    .in("project_id", projectIds),
+                supabase
+                    .from("invoices")
+                    .select("project_id, amount, status, created_at")
+                    .in("project_id", projectIds),
+                supabase
+                    .from("estimates")
+                    .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, is_active, estimate_lines(trade_section, line_total)")
+                    .in("project_id", projectIds),
+            ]);
+            allExpenses  = expData  ?? [];
+            allInvoices  = invData  ?? [];
+            allEstimates = estData  ?? [];
+        }
 
         // Build per-project financials
         const projectSummaries = (projects ?? []).map(proj => {

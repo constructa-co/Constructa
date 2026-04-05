@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTransition } from "react";
-import { updateStatusAction } from "./board-actions";
+import { updateStatusAction, markAsWonAction } from "./board-actions";
 import { Card, CardContent } from "@/components/ui/card";
 import {
     Select,
@@ -20,6 +20,7 @@ import {
     Users,
     XCircle,
     Layers,
+    Trophy,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 
@@ -65,6 +66,12 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
     const handleStatusChange = (projectId: string, newStatus: string) => {
         startTransition(async () => {
             await updateStatusAction(projectId, newStatus);
+        });
+    };
+
+    const handleMarkAsWon = (projectId: string) => {
+        startTransition(async () => {
+            await markAsWonAction(projectId);
         });
     };
 
@@ -163,6 +170,22 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 </SelectContent>
                                             </Select>
 
+                                            {/* MARK AS WON — show on Estimating / Proposal Sent */}
+                                            {(p.status === "Estimating" || p.status === "Proposal Sent" || (!p.status)) && (
+                                                <button
+                                                    onClick={() => handleMarkAsWon(p.id)}
+                                                    disabled={isPending}
+                                                    className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors ${
+                                                        isDark
+                                                            ? "bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/20"
+                                                            : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                                                    } disabled:opacity-50`}
+                                                >
+                                                    <Trophy className="w-3 h-3" />
+                                                    Mark as Won
+                                                </button>
+                                            )}
+
                                             {/* QUICK LINKS */}
                                             <div className={`flex items-center gap-3 pt-1 border-t ${isDark ? "border-[#2a2a2a]" : "border-gray-50"}`}>
                                                 <Link href={`/dashboard/projects/proposal?projectId=${p.id}`} className="text-[9px] font-black uppercase text-purple-600 hover:underline tracking-widest">
@@ -171,6 +194,11 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 <Link href={`/dashboard/projects/costs?projectId=${p.id}`} className="text-[9px] font-black uppercase text-green-600 hover:underline tracking-widest">
                                                     Costs
                                                 </Link>
+                                                {p.status === "Active" && (
+                                                    <Link href={`/dashboard/projects/p-and-l?projectId=${p.id}`} className="text-[9px] font-black uppercase text-blue-500 hover:underline tracking-widest ml-auto">
+                                                        P&amp;L →
+                                                    </Link>
+                                                )}
                                             </div>
                                         </CardContent>
                                     </Card>

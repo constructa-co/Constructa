@@ -31,7 +31,15 @@ export async function updateDependencyAction(formData: FormData) {
 
 export async function updatePhasesAction(
     projectId: string,
-    phases: { name: string; calculatedDays: number; manualDays: number | null; manhours: number; startOffset: number }[]
+    phases: {
+        name: string;
+        calculatedDays: number;
+        manualDays: number | null;
+        manhours: number;
+        startOffset: number;
+        color?: string;
+        dependsOn?: number[];
+    }[]
 ): Promise<void> {
     const supabase = createClient();
     const { error } = await supabase

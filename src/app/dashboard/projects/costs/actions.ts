@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 
 export async function createEstimateAction(projectId: string, name: string) {
     const supabase = createClient();
@@ -19,6 +20,21 @@ export async function createEstimateAction(projectId: string, name: string) {
         .single();
 
     if (error) console.error("Create estimate error:", error);
+
+    // Auto-advance: Lead → Estimating when first estimate is created
+    const { data: proj } = await supabase
+        .from("projects")
+        .select("status")
+        .eq("id", projectId)
+        .single();
+    if (proj?.status === "Lead" || proj?.status === null) {
+        await supabase
+            .from("projects")
+            .update({ status: "Estimating" })
+            .eq("id", projectId);
+        revalidatePath("/dashboard");
+    }
+
     return data;
 }
 

@@ -408,6 +408,29 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                 </div>
             </div>
 
+            {/* Pipeline progression legend */}
+            {view === "board" && (
+                <div className={`flex items-center gap-1.5 px-1 pb-1 text-[10px] font-semibold uppercase tracking-wider flex-wrap ${isDark ? "text-[#505050]" : "text-gray-400"}`}>
+                    <span>Pipeline:</span>
+                    {[
+                        { label: "Lead", hint: "New enquiry, no estimate started" },
+                        { label: "Estimating", hint: "Auto: when first estimate is created" },
+                        { label: "Proposal Sent", hint: "Auto: when proposal is sent to client" },
+                        { label: "Active", hint: "Mark as Won button, or drag here" },
+                        { label: "Completed", hint: "Manual — project finished" },
+                        { label: "Lost", hint: "Manual — project not won" },
+                    ].map((stage, i, arr) => (
+                        <span key={stage.label} className="flex items-center gap-1.5 group relative">
+                            <span className={`${isDark ? "text-[#707070] hover:text-[#a0a0a0]" : "text-gray-500 hover:text-gray-700"} cursor-default transition-colors`} title={stage.hint}>
+                                {stage.label}
+                            </span>
+                            {i < arr.length - 1 && <span className={isDark ? "text-[#303030]" : "text-gray-200"}>→</span>}
+                        </span>
+                    ))}
+                    <span className={`ml-auto ${isDark ? "text-[#404040]" : "text-gray-300"}`}>Hover stage name for details</span>
+                </div>
+            )}
+
             {/* SECTION D — Pipeline Board or List */}
             <div className="overflow-x-auto pb-2">
                 {view === "board" ? (

@@ -255,12 +255,18 @@ export default function LiveProjectsClient({ projects, totalContractValue, total
 
                                 {/* Action links */}
                                 <div className="flex items-center gap-2 pt-2 border-t border-slate-700/30">
-                                    <span className="text-[10px] text-slate-600 uppercase tracking-wide mr-1">Go to:</span>
+                                    <Link
+                                        href={`/dashboard/live?projectId=${proj.id}`}
+                                        className="flex items-center gap-1 text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors px-2 py-1 rounded-md hover:bg-blue-400/10"
+                                    >
+                                        Live View <ArrowRight className="w-3 h-3" />
+                                    </Link>
+                                    <span className="text-slate-700">|</span>
                                     <Link
                                         href={`/dashboard/projects/p-and-l?projectId=${proj.id}`}
                                         className="flex items-center gap-1 text-xs text-slate-400 hover:text-blue-400 transition-colors px-2 py-1 rounded-md hover:bg-blue-400/10"
                                     >
-                                        <TrendingUp className="w-3 h-3" /> Job P&L
+                                        <TrendingUp className="w-3 h-3" /> P&L
                                     </Link>
                                     <Link
                                         href={`/dashboard/projects/billing?projectId=${proj.id}`}
@@ -273,12 +279,6 @@ export default function LiveProjectsClient({ projects, totalContractValue, total
                                         className="flex items-center gap-1 text-xs text-slate-400 hover:text-blue-400 transition-colors px-2 py-1 rounded-md hover:bg-blue-400/10"
                                     >
                                         <GitBranch className="w-3 h-3" /> Variations
-                                    </Link>
-                                    <Link
-                                        href={`/dashboard/projects/contracts?projectId=${proj.id}`}
-                                        className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-300 transition-colors px-2 py-1 rounded-md hover:bg-slate-700/50 ml-auto"
-                                    >
-                                        Contracts <ArrowRight className="w-3 h-3" />
                                     </Link>
                                 </div>
                             </div>

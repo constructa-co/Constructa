@@ -27,7 +27,10 @@ export async function createProjectFromTemplateAction(formData: FormData) {
         const potentialValueRaw = formData.get("potentialValue") as string;
         const potentialValue = potentialValueRaw ? parseFloat(potentialValueRaw) : null;
 
-        // 1. Create Project
+        // 1. Create Project — starts as Lead (no estimate yet); advances to Estimating once estimate work begins
+        const template = PROJECT_TEMPLATES.find(t => t.id === typeId);
+        const initialStatus = (template && template.items.length > 0) ? 'Estimating' : 'Lead';
+
         const { data: project, error: projError } = await supabase.from("projects").insert({
             user_id: user?.id,
             tenant_id: user?.id,
@@ -40,14 +43,13 @@ export async function createProjectFromTemplateAction(formData: FormData) {
             project_type: projectType,
             start_date: startDate,
             potential_value: potentialValue,
-            status: 'Estimating',
+            status: initialStatus,
         }).select().single();
 
         if (projError) return { success: false, error: "DB Error: " + projError.message };
         if (!project) return { success: false, error: "Project creation failed (No data returned)" };
 
         // 2. Unpack Template
-        const template = PROJECT_TEMPLATES.find(t => t.id === typeId);
 
         if (template && template.items.length > 0) {
             for (const item of template.items) {

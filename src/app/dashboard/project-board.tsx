@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { updateStatusAction, markAsWonAction } from "./board-actions";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -62,16 +63,19 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
     const { theme } = useTheme();
     const isDark = theme === "dark";
     const [isPending, startTransition] = useTransition();
+    const router = useRouter();
 
     const handleStatusChange = (projectId: string, newStatus: string) => {
         startTransition(async () => {
             await updateStatusAction(projectId, newStatus);
+            router.refresh();
         });
     };
 
     const handleMarkAsWon = (projectId: string) => {
         startTransition(async () => {
             await markAsWonAction(projectId);
+            router.refresh();
         });
     };
 

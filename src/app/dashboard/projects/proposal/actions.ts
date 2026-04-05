@@ -222,19 +222,31 @@ export async function sendProposalAction(projectId: string) {
         .single();
 
     let token = project?.proposal_token;
-    if (!token) {
-        token = crypto.randomUUID();
-        await supabase.from("projects").update({
-            proposal_token: token,
-            proposal_sent_at: new Date().toISOString(),
-            proposal_status: "sent",
-        }).eq("id", projectId).eq("user_id", user.id);
-    } else {
-        await supabase.from("projects").update({
-            proposal_sent_at: new Date().toISOString(),
-            proposal_status: "sent",
-        }).eq("id", projectId).eq("user_id", user.id);
-    }
+    const tokenUpdate = token ? {} : { proposal_token: (token = crypto.randomUUID()) };
+
+    // Auto-advance kanban: Lead/Estimating → Proposal Sent when proposal is sent
+    const advanceStatus =
+        project?.proposal_status !== "accepted" &&
+        (project?.proposal_status === null ||
+         project?.proposal_status === "draft" ||
+         project?.proposal_status === undefined);
+    // Always bump kanban status to "Proposal Sent" unless already Active/Completed/Lost
+    const { data: projStatus } = await supabase
+        .from("projects")
+        .select("status")
+        .eq("id", projectId)
+        .eq("user_id", user.id)
+        .single();
+    const shouldAdvanceKanban = projStatus?.status === "Lead" || projStatus?.status === "Estimating" || projStatus?.status === null;
+
+    await supabase.from("projects").update({
+        ...tokenUpdate,
+        proposal_sent_at: new Date().toISOString(),
+        proposal_status: "sent",
+        ...(shouldAdvanceKanban ? { status: "Proposal Sent" } : {}),
+    }).eq("id", projectId).eq("user_id", user.id);
+
+    revalidatePath("/dashboard");
 
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app";
     const url = `${baseUrl}/proposal/${token}`;

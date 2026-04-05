@@ -30,6 +30,7 @@ import {
     BookMarked,
     Kanban,
     ChevronDown,
+    ChevronRight,
     X,
     FolderKanban,
     Search,
@@ -47,6 +48,7 @@ interface SidebarNavProps {
     projects: Project[];
 }
 
+// ── NavItem ───────────────────────────────────────────────────────────────────
 function NavItem({
     href,
     icon: Icon,
@@ -101,41 +103,96 @@ function NavItem({
     );
 }
 
-function SectionLabel({ label }: { label: string }) {
+// ── Collapsible Section ───────────────────────────────────────────────────────
+function SidebarSection({
+    label,
+    sectionKey,
+    collapsed,
+    onToggle,
+    children,
+}: {
+    label: string;
+    sectionKey: string;
+    collapsed: boolean;
+    onToggle: (key: string) => void;
+    children: React.ReactNode;
+}) {
     return (
-        <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 px-3 py-2">
-            {label}
+        <div className="pt-1">
+            <button
+                onClick={() => onToggle(sectionKey)}
+                className="w-full flex items-center justify-between px-3 py-1.5 group"
+            >
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 group-hover:text-slate-400 transition-colors">
+                    {label}
+                </span>
+                {collapsed
+                    ? <ChevronRight className="w-3 h-3 text-slate-600 group-hover:text-slate-400 transition-colors" />
+                    : <ChevronDown className="w-3 h-3 text-slate-600 group-hover:text-slate-400 transition-colors" />
+                }
+            </button>
+            {!collapsed && (
+                <div className="space-y-0.5 mt-0.5">
+                    {children}
+                </div>
+            )}
         </div>
     );
 }
 
+// ── Main Component ────────────────────────────────────────────────────────────
 export default function SidebarNav({ user, projects }: SidebarNavProps) {
     const pathname = usePathname();
     const { theme, setTheme } = useTheme();
     const isDark = theme === "dark";
 
-    // ── Project Selector State ──────────────────────────────────────────────
+    // ── Project Selector State ─────────────────────────────────────────────
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
     const [selectedProjectName, setSelectedProjectName] = useState<string | null>(null);
     const [pickerOpen, setPickerOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const pickerRef = useRef<HTMLDivElement>(null);
 
-    // Load persisted selection from localStorage on mount
+    // ── Collapsed sections (stored in localStorage) ────────────────────────
+    // Default: Company Profile and Closed Projects collapsed; Work Winning always open
+    const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
+        "company-profile": true,
+        "pre-construction": true,
+        "live-projects": true,
+        "closed-projects": true,
+    });
+
+    // Load persisted state on mount
     useEffect(() => {
-        const savedId   = localStorage.getItem("constructa_selected_project_id");
-        const savedName = localStorage.getItem("constructa_selected_project_name");
-        if (savedId && savedName) {
-            const exists = projects.some(p => p.id === savedId);
+        const savedProject = localStorage.getItem("constructa_selected_project_id");
+        const savedName    = localStorage.getItem("constructa_selected_project_name");
+        if (savedProject && savedName) {
+            const exists = projects.some(p => p.id === savedProject);
             if (exists) {
-                setSelectedProjectId(savedId);
+                setSelectedProjectId(savedProject);
                 setSelectedProjectName(savedName);
             } else {
                 localStorage.removeItem("constructa_selected_project_id");
                 localStorage.removeItem("constructa_selected_project_name");
             }
         }
+
+        const savedCollapsed = localStorage.getItem("constructa_sidebar_collapsed");
+        if (savedCollapsed) {
+            try { setCollapsed(JSON.parse(savedCollapsed)); } catch { /* ignore */ }
+        }
     }, [projects]);
+
+    // Auto-expand Pre-Construction + Live Projects when a project is selected
+    useEffect(() => {
+        if (selectedProjectId) {
+            setCollapsed(prev => {
+                const next = { ...prev, "pre-construction": false, "live-projects": false };
+                localStorage.setItem("constructa_sidebar_collapsed", JSON.stringify(next));
+                return next;
+            });
+        }
+    }, [selectedProjectId]);
 
     // Close picker on outside click
     useEffect(() => {
@@ -148,6 +205,14 @@ export default function SidebarNav({ user, projects }: SidebarNavProps) {
         document.addEventListener("mousedown", handleClick);
         return () => document.removeEventListener("mousedown", handleClick);
     }, []);
+
+    const toggleSection = (key: string) => {
+        setCollapsed(prev => {
+            const next = { ...prev, [key]: !prev[key] };
+            localStorage.setItem("constructa_sidebar_collapsed", JSON.stringify(next));
+            return next;
+        });
+    };
 
     const selectProject = (id: string, name: string) => {
         setSelectedProjectId(id);
@@ -166,7 +231,7 @@ export default function SidebarNav({ user, projects }: SidebarNavProps) {
         localStorage.removeItem("constructa_selected_project_name");
     };
 
-    // Build a project-aware link: adds ?projectId=X when a project is selected
+    // Project-aware link: appends ?projectId=X when selected
     const pLink = (base: string) =>
         selectedProjectId ? `${base}?projectId=${selectedProjectId}` : base;
 
@@ -196,39 +261,46 @@ export default function SidebarNav({ user, projects }: SidebarNavProps) {
                 </Link>
             </div>
 
-            {/* Nav */}
-            <div className="flex-1 overflow-y-auto px-3 pb-4">
+            {/* Nav — scrollable */}
+            <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-0.5">
 
-                {/* Overview */}
-                <div className="pt-1 pb-1">
+                {/* Overview — always visible */}
+                <div className="pb-1">
                     <NavItem href="/dashboard/home" icon={LayoutDashboard} label="Overview" active={is("/dashboard/home")} />
                 </div>
 
-                {/* Company Profile */}
-                <SectionLabel label="Company Profile" />
-                <div className="space-y-0.5">
+                {/* Company Profile — collapsible, default closed */}
+                <SidebarSection
+                    label="Company Profile"
+                    sectionKey="company-profile"
+                    collapsed={collapsed["company-profile"] ?? true}
+                    onToggle={toggleSection}
+                >
                     <NavItem href="/dashboard/settings/profile" icon={Building2} label="Profile" active={is("/dashboard/settings/profile")} />
                     <NavItem href="/dashboard/settings/case-studies" icon={Images} label="Case Studies" active={is("/dashboard/settings/case-studies")} />
                     <NavItem href="/onboarding?force=true" icon={Wand2} label="Setup Wizard" active={false} />
+                </SidebarSection>
+
+                {/* Work Winning — always expanded (primary section) */}
+                <div className="pt-1">
+                    <div className="px-3 py-1.5">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Work Winning</span>
+                    </div>
+                    <div className="space-y-0.5">
+                        <NavItem href="/dashboard" icon={Kanban} label="Pipeline" active={pathname === "/dashboard"} />
+                        <NavItem href="/dashboard/projects/new" icon={FilePlus} label="New Project" active={pathname?.includes("/projects/new") ?? false} />
+                        <hr className="my-2 border-white/10" />
+                        <NavItem href="/dashboard/library" icon={BookOpen} label="Cost Library" active={is("/dashboard/library")} />
+                        <NavItem href="/dashboard/resources" icon={Wrench} label="Resources" active={is("/dashboard/resources")} />
+                    </div>
                 </div>
 
-                {/* Work Winning */}
-                <SectionLabel label="Work Winning" />
-                <div className="space-y-0.5">
-                    <NavItem href="/dashboard" icon={Kanban} label="Pipeline" active={pathname === "/dashboard"} />
-                    <NavItem href="/dashboard/projects/new" icon={FilePlus} label="New Project" active={pathname?.includes("/projects/new") ?? false} />
-                    <hr className="my-2 border-white/10" />
-                    <NavItem href="/dashboard/library" icon={BookOpen} label="Cost Library" active={is("/dashboard/library")} />
-                    <NavItem href="/dashboard/resources" icon={Wrench} label="Resources" active={is("/dashboard/resources")} />
-                </div>
-
-                {/* ── Active Project Selector ─────────────────────────────── */}
-                <div className="pt-3 pb-0">
+                {/* ── Active Project Selector ──────────────────────────── */}
+                <div className="pt-3 pb-1">
                     <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 pb-1.5">
                         Active Project
                     </div>
                     <div ref={pickerRef} className="relative px-1">
-                        {/* Selector button */}
                         <button
                             onClick={() => setPickerOpen(!pickerOpen)}
                             className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-all border ${
@@ -254,7 +326,6 @@ export default function SidebarNav({ user, projects }: SidebarNavProps) {
                         {/* Dropdown */}
                         {pickerOpen && (
                             <div className="absolute left-0 right-0 top-full mt-1 bg-[#1a1a1a] border border-white/10 rounded-lg shadow-2xl z-50 overflow-hidden">
-                                {/* Search */}
                                 <div className="p-2 border-b border-white/10">
                                     <div className="relative">
                                         <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500" />
@@ -267,7 +338,6 @@ export default function SidebarNav({ user, projects }: SidebarNavProps) {
                                         />
                                     </div>
                                 </div>
-                                {/* List */}
                                 <div className="max-h-52 overflow-y-auto">
                                     {filteredProjects.length === 0 ? (
                                         <div className="px-3 py-4 text-xs text-slate-500 text-center">
@@ -294,54 +364,61 @@ export default function SidebarNav({ user, projects }: SidebarNavProps) {
                                         ))
                                     )}
                                 </div>
-                                {/* Footer hint */}
                                 <div className="px-3 py-1.5 border-t border-white/10 text-[10px] text-slate-600">
-                                    {selectedProjectId ? "Click × above to deselect" : "Select to focus module links"}
+                                    {selectedProjectId ? "Click × to deselect" : "Links below open this project"}
                                 </div>
                             </div>
                         )}
                     </div>
-
-                    {/* Context indicator when project is selected */}
                     {selectedProjectId && (
-                        <div className="px-3 pt-1.5 pb-0.5">
-                            <p className="text-[10px] text-slate-600 leading-tight">
-                                Module links below will open this project
-                            </p>
-                        </div>
+                        <p className="px-3 pt-1 text-[10px] text-slate-600 leading-tight">
+                            Module links go directly to this project
+                        </p>
                     )}
                 </div>
 
-                {/* Pre-Construction */}
-                <SectionLabel label="Pre-Construction" />
-                <div className="space-y-0.5">
+                {/* Pre-Construction — collapsible, auto-expands when project selected */}
+                <SidebarSection
+                    label="Pre-Construction"
+                    sectionKey="pre-construction"
+                    collapsed={collapsed["pre-construction"] ?? true}
+                    onToggle={toggleSection}
+                >
                     <NavItem href={pLink("/dashboard/projects/brief")} icon={ClipboardList} label="Briefs" active={is("/dashboard/projects/brief")} />
                     <NavItem href={pLink("/dashboard/projects/costs")} icon={Calculator} label="Estimates" active={is("/dashboard/projects/costs")} />
                     <NavItem href={pLink("/dashboard/projects/schedule")} icon={CalendarDays} label="Programmes" active={is("/dashboard/projects/schedule")} />
                     <NavItem href={pLink("/dashboard/projects/contracts")} icon={Scale} label="Contracts" active={is("/dashboard/projects/contracts")} />
                     <NavItem href={pLink("/dashboard/projects/proposal")} icon={FileText} label="Proposals" active={is("/dashboard/projects/proposal")} />
-                </div>
+                </SidebarSection>
 
-                {/* Live Projects */}
-                <SectionLabel label="Live Projects" />
-                <div className="space-y-0.5">
-                    <NavItem href="/dashboard/live" icon={LayoutDashboard} label="Overview" active={is("/dashboard/live")} />
+                {/* Live Projects — collapsible, auto-expands when project selected */}
+                <SidebarSection
+                    label="Live Projects"
+                    sectionKey="live-projects"
+                    collapsed={collapsed["live-projects"] ?? true}
+                    onToggle={toggleSection}
+                >
+                    <NavItem href="/dashboard/live" icon={LayoutDashboard} label="Overview" active={pathname === "/dashboard/live"} />
                     <NavItem href={pLink("/dashboard/projects/billing")} icon={CreditCard} label="Billing & Invoicing" active={is("/dashboard/projects/billing")} />
                     <NavItem href={pLink("/dashboard/projects/variations")} icon={GitBranch} label="Variations" active={is("/dashboard/projects/variations")} />
                     <NavItem href={pLink("/dashboard/projects/p-and-l")} icon={TrendingUp} label="Job P&L" active={is("/dashboard/projects/p-and-l")} />
                     <NavItem href="#" icon={RefreshCw} label="Change Management" disabled />
                     <NavItem href="#" icon={CalendarDays} label="Programme" disabled />
                     <NavItem href="#" icon={MessageSquare} label="Communications" disabled />
-                </div>
+                </SidebarSection>
 
-                {/* Closed Projects */}
-                <SectionLabel label="Closed Projects" />
-                <div className="space-y-0.5">
+                {/* Closed Projects — collapsible, always collapsed by default */}
+                <SidebarSection
+                    label="Closed Projects"
+                    sectionKey="closed-projects"
+                    collapsed={collapsed["closed-projects"] ?? true}
+                    onToggle={toggleSection}
+                >
                     <NavItem href="#" icon={Archive} label="Archive" disabled />
                     <NavItem href="#" icon={Receipt} label="Final Accounts" disabled />
                     <NavItem href="#" icon={FolderOpen} label="Handover Documents" disabled />
                     <NavItem href="#" icon={BookMarked} label="Lessons Learned" disabled />
-                </div>
+                </SidebarSection>
 
             </div>
 

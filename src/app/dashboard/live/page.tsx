@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import LiveProjectsClient from "./live-client";
+import ProjectLiveClient from "./project-live-client";
 
 export const dynamic = "force-dynamic";
 
@@ -21,14 +22,75 @@ function computeContractValue(est: any, lines: any[]): number {
     return pre - pre * ((Number(est.discount_pct) || 0) / 100);
 }
 
-export default async function LiveProjectsPage() {
+export default async function LiveProjectsPage({ searchParams }: { searchParams: { projectId?: string } }) {
     const supabase = createClient();
+    const { projectId } = searchParams;
 
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
     if (!user) redirect("/login");
 
-    // Fetch projects — all of them (user can decide what "live" means)
+    // ── Per-project live view ─────────────────────────────────────────────────
+    if (projectId) {
+        const [
+            { data: project },
+            { data: estimates },
+            { data: expenses },
+            { data: invoices },
+            { data: variations },
+        ] = await Promise.all([
+            supabase.from("projects").select("id, name, client_name, site_address, start_date, project_type").eq("id", projectId).eq("user_id", user.id).single(),
+            supabase.from("estimates").select("*, estimate_lines(*)").eq("project_id", projectId),
+            supabase.from("project_expenses").select("*").eq("project_id", projectId).order("expense_date", { ascending: false }),
+            supabase.from("invoices").select("*").eq("project_id", projectId).order("created_at", { ascending: false }),
+            supabase.from("variations").select("*").eq("project_id", projectId).order("created_at", { ascending: false }),
+        ]);
+
+        if (!project) redirect("/dashboard/live");
+
+        const activeEstimate = estimates?.find((e: any) => e.is_active) ?? estimates?.[0] ?? null;
+        const lines: any[] = activeEstimate?.estimate_lines ?? [];
+        const nonPrelims = lines.filter((l: any) => l.trade_section !== "Preliminaries");
+        const prelimsLines = lines.filter((l: any) => l.trade_section === "Preliminaries");
+        const directCost = nonPrelims.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0);
+        const prelimsTotal = prelimsLines.length > 0
+            ? prelimsLines.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0)
+            : directCost * ((Number(activeEstimate?.prelims_pct) || 0) / 100);
+        const budgetCost = directCost + prelimsTotal;
+        const contractValue = activeEstimate ? computeContractValue(activeEstimate, lines) : 0;
+
+        const costsPosted      = (expenses ?? []).reduce((s: number, e: any) => s + Number(e.amount), 0);
+        const invoicedTotal    = (invoices ?? []).reduce((s: number, i: any) => s + Number(i.amount), 0);
+        const receivedTotal    = (invoices ?? []).filter((i: any) => i.status === "Paid").reduce((s: number, i: any) => s + Number(i.amount), 0);
+        const approvedVarTotal = (variations ?? []).filter((v: any) => v.status === "Approved").reduce((s: number, v: any) => s + Number(v.amount), 0);
+        const revisedValue     = contractValue + approvedVarTotal;
+        const budgetBurnPct    = budgetCost > 0 ? Math.min((costsPosted / budgetCost) * 100, 150) : 0;
+        const completionPct    = revisedValue > 0 ? Math.min((invoicedTotal / revisedValue) * 100, 100) : 0;
+        const estimatedMarginPct = contractValue > 0 ? ((contractValue - budgetCost) / contractValue) * 100 : 0;
+
+        return (
+            <div className="max-w-5xl mx-auto px-6 py-8 min-h-screen">
+                <ProjectLiveClient
+                    projectId={projectId}
+                    project={project}
+                    contractValue={contractValue}
+                    budgetCost={budgetCost}
+                    costsPosted={costsPosted}
+                    invoicedTotal={invoicedTotal}
+                    receivedTotal={receivedTotal}
+                    approvedVarTotal={approvedVarTotal}
+                    budgetBurnPct={budgetBurnPct}
+                    completionPct={completionPct}
+                    estimatedMarginPct={estimatedMarginPct}
+                    costs={expenses ?? []}
+                    invoices={invoices ?? []}
+                    variations={variations ?? []}
+                />
+            </div>
+        );
+    }
+
+    // ── Portfolio overview ────────────────────────────────────────────────────
     const { data: projects } = await supabase
         .from("projects")
         .select("id, name, client_name, project_type, site_address, proposal_status, potential_value, start_date, updated_at")
@@ -52,7 +114,6 @@ export default async function LiveProjectsPage() {
 
     const projectIds = projects.map(p => p.id);
 
-    // Fetch all financial data in parallel
     const [
         { data: allExpenses },
         { data: allInvoices },
@@ -100,8 +161,7 @@ export default async function LiveProjectsPage() {
         const estimatedMarginPct = contractValue > 0 ? ((contractValue - budgetCost) / contractValue) * 100 : 0;
         const completionPct      = revisedValue > 0 ? Math.min((invoicedTotal / revisedValue) * 100, 100) : 0;
         const budgetBurnPct      = budgetCost > 0 ? Math.min((costsPosted / budgetCost) * 100, 150) : 0;
-
-        const hasActivity = costsPosted > 0 || invoicedTotal > 0 || variations.length > 0;
+        const hasActivity        = costsPosted > 0 || invoicedTotal > 0 || variations.length > 0;
 
         return {
             id: proj.id,
@@ -126,7 +186,6 @@ export default async function LiveProjectsPage() {
         };
     });
 
-    // Portfolio totals
     const totalContractValue = enriched.reduce((s, p) => s + p.contractValue, 0);
     const totalCosts         = enriched.reduce((s, p) => s + p.costsPosted, 0);
     const totalInvoiced      = enriched.reduce((s, p) => s + p.invoicedTotal, 0);

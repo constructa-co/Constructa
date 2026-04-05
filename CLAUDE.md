@@ -2,8 +2,8 @@
 
 > This file is auto-loaded by Claude Code at session start.
 > Read this before making any changes to the codebase.
-> Last updated: 5 April 2026 — Claude Code session (Sprint 14 Job P&L Dashboard)
-> Previous sessions: Claude Code (4 Apr evening + night), Perplexity Computer (4 Apr morning)
+> Last updated: 5 April 2026 — Claude Code session (Sprints 15 & 16: Resource Catalogues + Cost Capture Enhancements)
+> Previous sessions: Claude Code Sprint 14 (5 Apr morning), Claude Code (4 Apr evening + night), Perplexity Computer (4 Apr morning)
 
 ---
 
@@ -336,6 +336,103 @@ Chrome popup blocker intercepts the new tab, so PDFs download silently rather th
 
 ---
 
+## Session Work Log (April 5 — Sprint 16: Cost Capture Enhancements)
+
+### ✅ SPRINT 16 COMPLETE — 5 April 2026
+
+**Sprint 16 scope:** WBS-based cost logging, labour time units, resource autocomplete, receipt/document upload, fix "use server" server error.
+
+**⚠️ SPRINT NUMBERING NOTE:** What is committed in git as "Sprint 15" and "Sprint 16" are TWO NEW SPRINTS that were not in the original plan. They were inserted between Sprint 14 (P&L Dashboard) and the originally planned Sprint 15 (UI/UX Consistency). The original Sprint 15 is now Sprint 17, the original Sprint 16 is now Sprint 18, and everything downstream shifts +2. Total roadmap: 43 sprints (was 41).
+
+**1. Critical bug fix — "use server" illegal export (root cause of 500 on every logCostAction):**
+- `actions.ts` had `export { COST_TYPES, TRADE_SECTIONS }` — Next.js "use server" files can ONLY export async functions, never constants
+- Every `logCostAction` POST was returning 500 silently
+- Fix: moved constants to `constants.ts` (no directive); `actions.ts` imports nothing from it
+- Rule permanently recorded: never export constants from "use server" files
+
+**2. WBS-based cost logging:**
+- DB migration `20260405200000_sprint16_cost_logging.sql`: added `estimate_line_id UUID FK → estimate_lines(id) ON DELETE SET NULL` to `project_expenses`
+- New `WBSPicker` component in `log-cost-sheet.tsx` replaces generic static dropdown
+  - `mode: "section"` for Labour/Overhead (spans multiple activities — picks trade section)
+  - `mode: "line"` for Plant/Materials (picks section then optionally specific estimate line item)
+  - Derives sections from the active estimate's `estimate_lines`
+  - Falls back to `TRADE_SECTIONS` constants if project has no estimate
+  - "Other / not in estimate" escape hatch maps to manual `TRADE_SECTIONS` pick
+- All 5 tabs pass `estimate_line_id: form.lineId || undefined` to `logCostAction`
+- `page.tsx` passes `estimateLines={lines}` → `ClientPLDashboard` → `LogCostSheet`
+
+**3. Labour time units:**
+- State: `qty: string` + `timeUnit: "hours" | "half_days" | "days"` (was just `days: string`)
+- Rate info panel shows hourly / half-day / daily simultaneously
+- `calcAmount()`: hours → `(dailyRate/8) × qty`; half-days → `dailyRate × 0.5 × qty`; days → `dailyRate × qty`
+- Inline unit selector (Hours / Half Days / Full Days) next to the quantity field
+
+**4. Receipt / document upload:**
+- Supabase Storage: `receipts` bucket (public), policies: authenticated upload, public view, authenticated delete
+- DB: `receipt_url TEXT` column on `project_expenses` (already in migration)
+- New `ReceiptUpload` component: dashed drop-zone → uploads to `receipts/${projectId}/timestamp-filename` → shows image thumbnail or PDF FileText icon → ×  remove button → "View document ↗" link
+- Added to all 5 cost logging tabs (Labour, Plant Owned, Plant Hired, Materials, Overhead)
+- All `logCostAction` calls pass `receipt_url: form.receiptUrl || undefined`
+- Cost entries table: new "Doc" column with `Paperclip` icon linking to receipt when present
+- `colSpan` on totals footer row corrected from 5 → 6
+
+**Key files changed:**
+- `src/app/dashboard/projects/p-and-l/log-cost-sheet.tsx` — WBSPicker, ReceiptUpload, labour time units, all tab states updated
+- `src/app/dashboard/projects/p-and-l/client-pl-dashboard.tsx` — Doc column + Paperclip icon
+- `src/app/dashboard/projects/p-and-l/actions.ts` — removed illegal constant re-exports (the 500 fix)
+- `supabase/migrations/20260405200000_sprint16_cost_logging.sql` — estimate_line_id FK, receipt_url, staff/plant columns, storage bucket
+
+**New DB columns (all applied to live DB):**
+```sql
+project_expenses: + estimate_line_id UUID FK → estimate_lines(id), + receipt_url TEXT
+staff_resources:  + rate_mode TEXT, + hourly_chargeout_rate NUMERIC, + overtime_chargeout_rate NUMERIC,
+                  + car_allowance_annual NUMERIC, + mobile_phone_annual NUMERIC, + job_title TEXT
+plant_resources:  + rate_mode TEXT, + daily_chargeout_rate NUMERIC
+                  (updated category constraint to new values)
+storage:          receipts bucket created with upload/view/delete policies
+```
+
+---
+
+## Session Work Log (April 5 — Sprint 15: Resource Catalogues)
+
+### ✅ SPRINT 15 COMPLETE — 5 April 2026
+
+**Sprint 15 scope:** Staff resource catalogue (rate modes, job titles, full cost buildup display), Plant resource catalogue (rate modes, categories, owned plant chargeout), numeric input UX, resource autocomplete.
+
+**⚠️ SPRINT NUMBERING NOTE:** This is a new sprint inserted between Sprint 14 and the originally planned Sprint 15 (UI/UX Consistency). See Sprint 16 note above for full context.
+
+**1. Staff Resource Catalogue (`/dashboard/resources/staff`):**
+- Rate mode toggle: "Simple Rate" (hourly chargeout directly, e.g. for subcontract labour) vs "Full Cost Buildup" (annual salary → employer NI/pension → benefits → working days → overhead → profit → daily chargeout)
+- Simple mode: `hourly_chargeout_rate` input + optional `overtime_chargeout_rate`; daily = hourly × 8
+- Full buildup: salary, NI (13.8% default), pension (3% default), company car, car allowance, mobile phone, IT, life insurance, other benefits, working days, holiday days, public holidays, overhead absorption %, profit uplift %
+- Job title field: `list="job-title-suggestions"` + `<datalist>` of 60+ UK construction roles (Groundworker, Bricklayer, Electrician, Site Manager, QS, Contracts Manager, etc.)
+- Table: Mode badge / Hourly chargeout / Daily chargeout / Annual chargeout — computed for both simple and full mode
+- Full mode rows also show annual employer cost (total employment cost inc. NI/pension/benefits)
+- `NumericInput` component: added `onFocus={(e) => e.target.select()}` — click to immediately replace zero
+
+**2. Plant Resource Catalogue (`/dashboard/resources/plant`):**
+- Rate mode toggle: "Simple" (enter daily chargeout directly) vs "Full" (depreciation buildup model)
+- Simple mode: `daily_chargeout_rate` input only; preview shows half-day/daily/weekly breakdown
+- Full buildup: purchase price, depreciation years, residual value, finance cost, maintenance, insurance, other annual costs, utilisation months, working days/month, profit uplift %
+- New categories: Heavy Plant / Light Plant / Lifting Equipment / Temporary Works / Light Tools / Specialist Tools / Other (replaced: excavator/dumper/vehicle/scaffold/lifting/tool/other)
+- Name autocomplete: `<datalist>` with 70+ UK plant items (1.5T–30T Excavators, Dumpers, Telehandlers, MEWPs, Scaffold, Generators, etc.)
+- Table: Mode badge / Half Day / Daily / Weekly chargeout
+- `Input` primitive: added `onFocus` select-all for number inputs
+
+**3. Log Cost Sheet — Staff rate fix:**
+- `StaffResource` interface was missing `rate_mode`, `hourly_chargeout_rate`, `car_allowance_annual`, `mobile_phone_annual`, `job_title`
+- `calcStaffDailyChargeout`: added `if (s.rate_mode === "simple") return s.hourly_chargeout_rate * 8` branch — without this, simple-rate staff showed £0 (was always using full buildup formula with annual_salary = 0)
+- `calcPlantDailyChargeout`: added `if (p.rate_mode === "simple") return p.daily_chargeout_rate` branch
+
+**Key files changed:**
+- `src/app/dashboard/resources/staff/staff-client.tsx` — full rewrite of staff CRUD UI
+- `src/app/dashboard/resources/plant/plant-client.tsx` — full rewrite of plant CRUD UI
+- `src/app/dashboard/resources/plant/actions.ts` — updated PlantResourceInput type + upsert payload
+- `src/app/dashboard/projects/p-and-l/log-cost-sheet.tsx` — StaffResource interface fix, rate calculation fixes
+
+---
+
 ## Session Work Log (April 5 — Sprint 14: Job P&L Dashboard)
 
 ### What was built this session (Sprint 14)
@@ -593,21 +690,23 @@ The pre-construction workflow is complete enough to sell:
 - This solves "Dave" pain points 4 and 5 (pricing time and proposal quality) completely
 - Could launch with a waitlist / beta cohort today on the existing codebase
 
-### Batch 1 — Launch Ready (Sprints 14–16 + Admin Phase 1)
+### Batch 1 — Launch Ready (Sprints 14–24, inc. Admin Phase 1 at Sprint 20)
 Polish to a standard worthy of charging money, plus the minimum admin visibility to operate the business.
-Target: ~4 sprints from now.
+Sprints 14–16 complete. Sprints 17–24 remaining (~8 sprints from now).
+Target: ~8 sprints.
 
-### Batch 2 — Live Projects (Sprints 21–26)
+### Batch 2 — Live Projects (Sprints 25–30)
 The "making money mid-job" module. This is what makes contractors sticky and daily-active.
 Target: 3–4 months post-Batch 1.
 
-### Batch 3 — Closed Projects + Accounts Integration (Sprints 27–30, 34–37)
+### Batch 3 — Closed Projects + Accounts Integration (Sprints 31–34)
 Project closure, handover, lessons learned, Xero/Sage sync.
-Target: 6–9 months post-Batch 1. Some contractors won't need this until Batch 2 is embedded.
+Target: 6–9 months post-Batch 1.
 
-### Data Intelligence (Sprint 31 + Admin Phase 2)
+### Data Intelligence (Sprints 35–43 + Admin Phase 2)
 Meaningful only with contractor volume — 200+ active projects generating benchmarks.
-Target: build Sprint 31 triggers early (low effort), Admin Phase 2 dashboard when data warrants it.
+Target: build Sprint 35 triggers early (low effort), Admin Phase 2 dashboard when data warrants it.
+Total roadmap: Sprint 43 (was Sprint 41 before today's 2 new sprints were inserted).
 
 ---
 
@@ -624,7 +723,13 @@ Target: build Sprint 31 triggers early (low effort), Admin Phase 2 dashboard whe
 - [x] Sidebar: Billing, Variations, Job P&L all now live (previously disabled "Soon")
 - [x] DB migrations applied: `variations`, `invoices` tables created; `project_expenses` enhanced
 
-### Sprint 15 — UI/UX Consistency Pass — HIGH PRIORITY
+### Sprint 15 — Resource Catalogues ✅ COMPLETE (5 April 2026)
+See session log above.
+
+### Sprint 16 — Cost Capture Enhancements ✅ COMPLETE (5 April 2026)
+See session log above.
+
+### Sprint 17 — UI/UX Consistency Pass — HIGH PRIORITY
 **Problem:** Overview and Contracts pages look excellent (dark theme, hero sections, clear hierarchy).
 The other sections (Brief, Estimating, Programme, Proposal editor, Profile, Resources) are inconsistent —
 different card styles, lighter themes, missing hero branding, no section identity.
@@ -647,7 +752,7 @@ Every page should feel as considered and polished as Contract Shield.
 4. Company Profile / Settings — important for first impression, currently feels like a form dump
 5. Proposal editor — the most client-facing output; needs the most polish
 
-### Sprint 16 — Pre-Construction Workflow Refinement
+### Sprint 18 — Pre-Construction Workflow Refinement
 **Problem:** The 5-step workflow functions but doesn't flow correctly end-to-end.
 Information entered in earlier steps doesn't reliably pull through to the Proposal.
 Some proposal sections are missing or incomplete. The standard needs to match Contract Shield quality.
@@ -663,7 +768,7 @@ Some proposal sections are missing or incomplete. The standard needs to match Co
 - [ ] Full end-to-end test: create a new project, complete all 5 steps, generate PDF — document any gaps
 - [ ] AI suggestions throughout: each step should have AI assistance as capable as Brief/Contracts already do
 
-### Sprint 17 — Gantt Drag-and-Drop & Programme Polish
+### Sprint 19 — Gantt Drag-and-Drop & Programme Polish
 The Programme tab is a core part of the pre-construction workflow. Contractors expect
 to adjust their programme interactively, not just via number inputs.
 
@@ -676,7 +781,7 @@ to adjust their programme interactively, not just via number inputs.
 - [ ] Programme summary: total duration, key milestones, auto-updated on drag
 - [ ] Export to PDF reflects drag-adjusted programme (reads programme_phases)
 
-### Sprint 18 — Constructa Admin Dashboard: Phase 1
+### Sprint 20 — Constructa Admin Dashboard: Phase 1
 Needed before the first paying subscriber. A protected `/admin` route reading from existing
 tables via service role key — relatively quick to build, operationally essential.
 
@@ -690,16 +795,16 @@ tables via service role key — relatively quick to build, operationally essenti
 - [ ] **At-risk accounts:** Paying subscribers inactive >21 days (churn predictor)
 - [ ] Basic user actions: manually set plan, add note, mark for follow-up
 
-### Sprint 19 — Proposal Versioning
+### Sprint 21 — Proposal Versioning
 - [ ] Up-rev proposals (v1, v2, v3) with change tracking
 - [ ] Discount feature already built — versioning enables tracking discounts per revision
 - [ ] Show diff between versions (what changed in scope/price)
 
-### Sprint 20 — Billing Module Polish
+### Sprint 22 — Billing Module Polish
 - [ ] Already functionally built — needs connecting to payment stages from Proposal
 - [ ] Programme → Billing milestone automation (phases → payment schedule)
 
-### Sprint 21 — Drawing Upload & AI Takeoff (full feature build)
+### Sprint 23 — Drawing Upload & AI Takeoff (full feature build)
 The Vision Takeoff feature exists but is buried and underdeveloped. This sprint makes it
 a first-class workflow entry point — the fastest way to go from a drawing to a priced estimate.
 
@@ -717,7 +822,7 @@ fuzzy-matches to 833-item cost library → "Add All to BoQ" button.
 - [ ] "Drawing register": store uploaded drawings against the project for reference
 - [ ] Demo on marketing site hero (this is the headline feature that should lead all marketing)
 
-### Sprint 22 — Video Walkthrough AI
+### Sprint 24 — Video Walkthrough AI
 Site video → AI extracts scope, quantities and condition notes. Solves the
 problem of contractors doing site surveys and having to manually note everything down.
 
@@ -735,13 +840,13 @@ problem of contractors doing site surveys and having to manually note everything
 
 ---
 
-## BATCH 2 — LIVE PROJECTS MODULE (Sprints 23–28)
+## BATCH 2 — LIVE PROJECTS MODULE (Sprints 25–30)
 > All currently showing "Coming Soon" in sidebar. Post-contract delivery phase.
 > This is the module that solves Dave's #1 pain point: not knowing if he's making money mid-job.
 > Sequencing note: Sprint 14 (P&L) lays the data foundations these sprints build on.
 > Target: release as a batch ~3 months after Batch 1 launch.
 
-### Sprint 23 — Live Projects: Overview
+### Sprint 25 — Live Projects: Overview
 The command centre for a project once it's on site. Replaces the "Coming Soon" placeholder.
 - [ ] Project health dashboard: budget RAG status, programme % complete, outstanding invoices
 - [ ] Key dates strip: start date, planned completion, weeks remaining, any EOT claimed
@@ -749,7 +854,7 @@ The command centre for a project once it's on site. Replaces the "Coming Soon" p
 - [ ] Links to all Live Projects sub-modules from one screen
 - [ ] Status banner: on programme / at risk / delayed (AI-suggested based on data)
 
-### Sprint 24 — Live Projects: Cost Tracking
+### Sprint 26 — Live Projects: Cost Tracking
 Connects to the estimate — tracks actual spend vs budget in real time.
 - [ ] Log actual costs against estimate trade sections (labour, plant, materials per section)
 - [ ] Budget vs actual bar chart per trade section
@@ -759,7 +864,7 @@ Connects to the estimate — tracks actual spend vs budget in real time.
 - [ ] Cost approval workflow: costs above a threshold require confirmation before logging
 - [ ] Links to billing module so invoiced amounts net off costs automatically
 
-### Sprint 25 — Live Projects: Billing & Valuations
+### Sprint 27 — Live Projects: Billing & Valuations
 Currently functionally built — needs polish, connection to proposal, and live data wiring.
 - [ ] Payment schedule pulled from Proposal (milestone or % stage payments)
 - [ ] Application for Payment form: cumulative valuation, retention calc, net amount due
@@ -768,7 +873,7 @@ Currently functionally built — needs polish, connection to proposal, and live 
 - [ ] Retention ledger: amount held, release dates (practical completion + defects)
 - [ ] PDF: formal Application for Payment document matching Constructa brand standard
 
-### Sprint 26 — Live Projects: Variations
+### Sprint 28 — Live Projects: Variations
 Currently functionally built — needs polish and proper workflow.
 - [ ] Raise variation: scope description, reason (client instruction / design change / unforeseen)
 - [ ] Pricing: pulls from cost library / rate buildups / manual entry
@@ -778,7 +883,7 @@ Currently functionally built — needs polish and proper workflow.
 - [ ] Incorporation into Final Account automatically
 - [ ] PDF: formal Variation Order document
 
-### Sprint 27 — Live Projects: Programme (Live Tracking)
+### Sprint 29 — Live Projects: Programme (Live Tracking)
 Separate from the pre-construction Programme tab — this tracks actual vs planned on site.
 - [ ] Planned vs actual Gantt: original programme bars vs actual progress bars
 - [ ] % complete per phase (contractor updates weekly)
@@ -787,7 +892,7 @@ Separate from the pre-construction Programme tab — this tracks actual vs plann
 - [ ] Early warning notices: flag delays before they become disputes
 - [ ] Programme narrative: AI-drafted weekly site update text based on % complete inputs
 
-### Sprint 28 — Live Projects: Communications
+### Sprint 30 — Live Projects: Communications
 Formal construction communication log — critical for dispute avoidance.
 - [ ] Site instruction log: numbered, dated, description, issued by
 - [ ] RFI (Request for Information) tracker: raised, responded, outstanding
@@ -798,12 +903,12 @@ Formal construction communication log — critical for dispute avoidance.
 
 --- BATCH 2 COMPLETE — LIVE PROJECTS RELEASE ---
 
-## BATCH 3 — CLOSED PROJECTS MODULE (Sprints 29–32)
+## BATCH 3 — CLOSED PROJECTS MODULE (Sprints 31–34)
 > All currently showing "Coming Soon" in sidebar.
 > The retrospective and handover phase — closes the loop financially and operationally.
 > Target: release ~6 months post-Batch 1.
 
-### Sprint 29 — Closed Projects: Final Accounts
+### Sprint 31 — Closed Projects: Final Accounts
 - [ ] Final Account summary: original contract sum + approved variations + agreed adjustments
 - [ ] Retention release tracker: half on PC, half on defects expiry — with dates
 - [ ] Final Account agreement status: draft → submitted → agreed → signed
@@ -811,7 +916,7 @@ Formal construction communication log — critical for dispute avoidance.
 - [ ] PDF: formal Final Account Statement document for client signature
 - [ ] Link back to billing: confirm all applications reconcile to Final Account total
 
-### Sprint 30 — Closed Projects: Handover Documents
+### Sprint 32 — Closed Projects: Handover Documents
 - [ ] Document pack builder: O&M manuals, warranties, test certificates, as-built drawings
 - [ ] Checklist: which documents are required vs received vs outstanding
 - [ ] Upload and tag documents to the handover pack
@@ -819,14 +924,14 @@ Formal construction communication log — critical for dispute avoidance.
 - [ ] Defects Liability Period tracker: start date, end date, items logged, items resolved
 - [ ] PDF: Handover Certificate with document list and DLP dates
 
-### Sprint 31 — Closed Projects: Archive
+### Sprint 33 — Closed Projects: Archive
 - [ ] Project archiving: move from active to closed with one action
 - [ ] Archived project search: find by client, project type, value, year, region
 - [ ] Key data preserved: final contract value, margin achieved, duration, client rating
 - [ ] Reuse: copy estimate from archived project as starting point for new similar project
 - [ ] "Similar projects" matching: when pricing a new job, surface archived projects of same type/value
 
-### Sprint 32 — Closed Projects: Lessons Learned
+### Sprint 34 — Closed Projects: Lessons Learned
 Turns project data into business intelligence — the flywheel that improves every future bid.
 - [ ] Structured retrospective: what went well, what didn't, what to do differently
 - [ ] AI analysis: compare estimated vs actual margin, programme vs actual duration, variation frequency
@@ -856,7 +961,7 @@ The existing schema already captures data at the right granularity. The `estimat
 - These triggers copy the relevant signal data into the benchmark tables — no user data, just numbers and categories
 - As contractors log actuals (Sprints 22–25), those actuals automatically feed the benchmarks
 
-This can be built entirely in Sprint 31 as a pure database migration — no changes to the contractor-facing app required.
+This can be built entirely in Sprint 35 as a pure database migration — no changes to the contractor-facing app required.
 
 ### Full Data Capture Scope — Everything That Must Be Recorded
 

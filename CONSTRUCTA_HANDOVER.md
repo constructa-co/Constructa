@@ -396,66 +396,134 @@ Direct Cost (trade lines)
 
 | Sprint | What was built |
 |--------|---------------|
-| 1–10 | Estimating engine, BoQ editor, rate buildups, cost library, brief AI, programme/Gantt, T&Cs |
+| 1–10 | Estimating engine, BoQ editor, rate buildups, cost library, brief AI, programme/Gantt, T&Cs, project wizard, onboarding, proposal editor, case studies, AI wizard, billing module, variations module, Vision Takeoff |
 | 11 | project_expenses table, basic cost logging |
-| 12 | Client Portal — shareable proposal URL, in-browser render, "Accept" button, digital signature, status tracking |
-| 13 | Contract Shield — AI contract review (R/A/G), plain English explanations, contract chatbot |
-| 14 | Job P&L Dashboard — KPI strip, budget vs actual, cost entry, invoice tracker; Global P&L; Live Projects Overview; Kanban pipeline with full stage buttons |
-| 14a | Financial year start month on profiles; Global P&L FY toggle |
-| 15 | (merged into 16) |
-| 16 | Staff resource catalogue (rate modes, job titles, full cost buildup); Plant resource catalogue (rate modes, categories, depreciation model); WBS-based cost logging (logs against estimate lines not generic dropdown); Labour time units (hours/half-days/days); Resource autocomplete (datalist for job titles + plant names); Receipt/document upload on all cost log tabs (Supabase Storage); Paperclip icon in cost table; Fix "use server" illegal export bug (root cause of 500 error on every logCostAction) |
+| 12 | Client Portal — shareable proposal URL, in-browser render, digital acceptance, Resend email, viewed tracking |
+| 13 | Contract Shield — AI contract review (R/A/G), plain English explanations, chatbot, contractor response PDF, 4th T&C tier |
+| 14 | Job P&L Dashboard — KPI strip, budget vs actual by section + drill-down, 5-tab LogCostSheet, invoice tracker; Global P&L; Live Projects Overview; Kanban pipeline + optimistic updates; sidebar accordion; financial year month on profiles |
+| 15 | Resource Catalogues — Staff (simple/full rate modes, job title + 60-item autocomplete, full cost buildup, hourly/daily/annual table); Plant (simple/full rate modes, 6 new categories, depreciation model, 70-item name autocomplete, chargeout table); numeric input select-all UX; fix simple-rate staff £0 bug |
+| 16 | Cost Capture Enhancements — WBS-based cost logging (estimate lines picker, section and line modes); Labour time units (hours/half-days/days); Receipt/document upload (Supabase Storage `receipts` bucket, thumbnail + PDF icon, paperclip in table); Fix critical "use server" 500 bug; DB: estimate_line_id FK + receipt_url + all resource columns live |
+
+> ⚠️ **Sprint numbering note (5 April 2026):** Sprints 15 and 16 above are NEW sprints inserted between the original Sprint 14 (P&L) and the originally planned Sprint 15 (UI/UX Consistency Pass). All downstream sprints shift +2. Original roadmap end: Sprint 41. Corrected total: **Sprint 43**.
 
 ---
 
 ## Sprint Backlog (priority order)
 
-### Sprint 17 — Gantt Drag-and-Drop
-- True drag-and-drop to reorder and resize Gantt bars
-- Logic links: Finish-to-Start, Start-to-Start dependency arrows
-- Forward-pass recalculation when bars are moved
-- Critical path highlighting
-- Export Gantt to PDF / PNG
+### Sprint 17 — UI/UX Consistency Pass
+Every page to the Contract Shield / Job P&L dark-theme standard. Currently Brief, Estimating, Programme, Profile and Proposal editor lag behind significantly.
+- Audit every dashboard page against the Contracts/Overview benchmark
+- Consistent dark-slate base: `bg-slate-900` pages, `bg-slate-800/50` cards, `border-slate-700`
+- Hero/identity block on every major section (icon + title + subtitle + AI badge where applicable)
+- Tab bars, button styles, input styles unified across all pages
+- Typography scale consistent — headings, labels, helper text all matching
+- Empty states on every list/table (not just blank space)
+- Loading states: spinners/skeletons where AI calls take time
+- Mobile: nothing broken on a phone (full responsive is a later sprint)
+- Priority pages: Brief → Estimating → Programme → Profile/Settings → Proposal editor
 
-### Sprint 18 — Constructa Admin Dashboard Phase 1
+### Sprint 18 — Pre-Construction Workflow Polish
+The 5-step workflow functions but doesn't flow end-to-end correctly. Data from earlier steps doesn't reliably pull through to the Proposal.
+- Brief → Proposal: audit what scope flows through and what gets lost
+- Estimate → Proposal PDF: verify all section totals, line items, payment schedule render correctly
+- Programme → Proposal PDF: confirm programme_phases always renders, fallback works
+- Contracts → Proposal PDF: T&C tier, exclusions, clarifications, risk register all correct
+- Profile → Proposal PDF: logo, capability statement, MD message, case studies — full end-to-end test
+- Proposal editor UX: section-by-section review — editable vs auto-populated vs missing
+- Full end-to-end test: new project → all 5 steps → PDF → document any gaps
+- AI suggestions: each step should have AI assistance matching the quality of Brief/Contracts
+
+### Sprint 19 — Gantt Drag-and-Drop & Programme Polish
+- Drag bars left/right to adjust start offset (sequencing)
+- Drag right edge to resize duration
+- Dependencies: Finish-to-Start linking between phases (visual connector lines)
+- Snap to week grid
+- Critical path highlight — longest chain
+- Programme summary: total duration, key milestones, auto-updated on drag
+- Export to PDF reflects drag-adjusted programme
+
+### Sprint 20 — Constructa Admin Dashboard Phase 1
 - Protected route (`/admin`) — service role key, separate from contractor auth
 - Subscriber list: name, signup date, plan, last active, project count
 - Revenue estimate (MRR/ARR based on subscriber count × plan price)
 - Usage stats: proposals sent, estimates created, contracts reviewed
 - Platform health: DB size, API call counts, error rates
 
-### Sprint 19 — UI/UX Consistency Pass
-- Apply Contract Shield dark card aesthetic to all pages
-- All pages to same visual standard (currently Brief/Estimating lag behind)
-- Responsive pass for tablet (1024px breakpoint)
+### Sprint 21 — Proposal Versioning
+- Up-rev proposals (v1, v2, v3) with change tracking
+- Discount feature already built — versioning enables tracking discounts per revision
+- Show diff between versions (what changed in scope/price)
 
-### Sprint 20 — Pre-Construction Workflow Polish
-- Fix remaining data flow gaps (Brief → Estimate auto-population)
-- Address pre-fill from company profile
-- Known bug fixes (see below)
+### Sprint 22 — Billing Module Polish
+- Already functionally built — needs connecting to payment stages from Proposal
+- Programme → Billing milestone automation (phases → payment schedule)
+- Application for Payment form with retention calc
 
-### Sprint 21 — Drawing Upload & AI Takeoff (Headline Feature)
+### Sprint 23 — Drawing Upload & AI Takeoff (Headline Feature)
 - Promote Vision Takeoff from buried button to headline feature
 - Annotation overlay on uploaded drawings
-- Multi-page PDF support
-- Scale detection
+- Multi-page PDF support, scale detection
 - Drawing register (store multiple drawings per project)
 - Add to marketing site hero
 
-### Sprint 22 — Video Walkthrough AI
+### Sprint 24 — Video Walkthrough AI
 - Upload site survey video → GPT-4o Vision processes frames
-- Extracts rooms/areas/scope items
-- Maps to cost library
-- Generates site survey report PDF
-- Pre-fills Brief scope
+- Extracts rooms/areas/scope items, maps to cost library
+- Generates site survey report PDF, pre-fills Brief scope
 
-### Future
+--- BATCH 1 COMPLETE — LAUNCH POINT (Sprints 14–24) ---
+
+### Sprint 25 — Live Projects: Overview
+Project health dashboard for on-site delivery — budget RAG, programme %, outstanding invoices, quick-action buttons.
+
+### Sprint 26 — Live Projects: Cost Tracking
+Log actual costs vs estimate sections in real time. Committed costs, forecast final, over-budget alerts.
+
+### Sprint 27 — Live Projects: Billing & Valuations
+Payment schedule from Proposal, Application for Payment form, retention ledger, overdue alerts, formal PDF.
+
+### Sprint 28 — Live Projects: Variations
+Raise/price/approve variations, client approval tracking, variation log, Final Account incorporation, formal PDF.
+
+### Sprint 29 — Live Projects: Programme (Live Tracking)
+Planned vs actual Gantt, % complete per phase, delay recording, EOT log, early warning notices, AI weekly update narrative.
+
+### Sprint 30 — Live Projects: Communications
+Site instruction log, RFI tracker, Early Warning Notices, formal letter templates, document register (timestamped, non-editable).
+
+--- BATCH 2 COMPLETE — LIVE PROJECTS RELEASE (Sprints 25–30) ---
+
+### Sprint 31 — Closed Projects: Final Accounts
+Final Account summary, retention release tracker, agreement status, disputed amounts, formal PDF for client signature.
+
+### Sprint 32 — Closed Projects: Handover Documents
+Document pack builder (O&Ms, warranties, test certs, as-builts), client handover portal, Defects Liability Period tracker.
+
+### Sprint 33 — Closed Projects: Archive
+Project archiving, search, key data preserved, reuse estimate from archive, "Similar projects" matching for new bids.
+
+### Sprint 34 — Closed Projects: Lessons Learned
+Structured retrospective, AI analysis (estimated vs actual margin, programme vs actual), insight cards, win/loss analysis, feeds cost library rate suggestions.
+
+--- BATCH 3 COMPLETE — CLOSED PROJECTS RELEASE (Sprints 31–34) ---
+
+### Sprints 35–43 — Data & Admin Layer
+- Sprint 35: Data Foundation — anonymised aggregate tables + triggers (project/rate/labour/plant/programme/payment/variation/contract benchmarks)
+- Sprint 36: Admin Dashboard Phase 2 — data intelligence explorer, market rate maps, platform analytics
+- Sprint 37: Contractor Management Accounts — consolidated P&L, cash flow, WIP
+- Sprint 38: Xero integration
+- Sprint 39: QuickBooks / Sage integration
+- Sprint 40: Accounting Phase 2 — reconciliation, bank feeds
+- Sprint 41: Market Intelligence Product — benchmark reports/API for QS firms, developers, lenders, insurers
+- Sprint 42: Native Mobile App
+- Sprint 43: Regional Pricing Intelligence + Merchant Procurement Layer (Travis Perkins partnership)
+
+### Deferred / Post-launch (not yet sprinted)
 - Email/WhatsApp webhooks for cost capture (forward receipt → auto-log expense)
 - AI image reading for receipts (parse uploaded invoice → auto-populate cost fields)
-- Xero / QuickBooks integration
-- Native mobile app
-- Merchant procurement layer (Travis Perkins partnership)
+- Voice-to-proposal wizard
+- Full responsive mobile pass (Sprint 17 prevents breakage; full pass later)
 - Regional pricing intelligence (needs 50+ active users first)
-- Data product (benchmark reports for QS firms, developers, lenders)
 
 ---
 

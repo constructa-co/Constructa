@@ -22,6 +22,7 @@ export default function RootLayout({
   const pathname = headersList.get('x-pathname') || '';
   const isLandingPage = pathname === '/landing';
   const isPublicProposal = pathname.startsWith('/proposal/');
+  const isDashboardRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding');
 
   return (
     <html lang="en">
@@ -51,9 +52,9 @@ export default function RootLayout({
         </Script>
       </head>
       <body className={`${inter.className} bg-black text-white antialiased`}>
-        {!isPublicProposal && <Header />}
+        {!isPublicProposal && !isDashboardRoute && <Header />}
         <main>{children}</main>
-        {!isLandingPage && !isPublicProposal && <Footer />}
+        {!isLandingPage && !isPublicProposal && !isDashboardRoute && <Footer />}
       </body>
     </html>
   );

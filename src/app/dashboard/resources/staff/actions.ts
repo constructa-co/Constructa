@@ -5,12 +5,25 @@ import { revalidatePath } from "next/cache";
 
 export interface StaffResourceInput {
   id?: string;
-  name: string;
-  role?: string | null;
+  // Profile
+  title?: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  name: string;                     // derived: "Title FirstName LastName"
+  job_title?: string | null;
+  role?: string | null;             // legacy alias for job_title
+  // Rate mode
+  rate_mode: string;                // 'simple' | 'full'
+  // Simple mode
+  hourly_chargeout_rate: number;
+  overtime_chargeout_rate: number;
+  // Full buildup
   annual_salary: number;
   employer_ni_pct: number;
   employer_pension_pct: number;
   company_car_annual: number;
+  car_allowance_annual: number;
+  mobile_phone_annual: number;
   it_costs_annual: number;
   life_insurance_annual: number;
   other_benefits_annual: number;
@@ -33,12 +46,21 @@ export async function upsertStaffResourceAction(
 
   const payload = {
     user_id: user.id,
+    title: data.title ?? "Mr",
+    first_name: data.first_name ?? null,
+    last_name: data.last_name ?? null,
     name: data.name,
-    role: data.role ?? null,
+    job_title: data.job_title ?? null,
+    role: data.job_title ?? data.role ?? null,
+    rate_mode: data.rate_mode,
+    hourly_chargeout_rate: data.hourly_chargeout_rate,
+    overtime_chargeout_rate: data.overtime_chargeout_rate,
     annual_salary: data.annual_salary,
     employer_ni_pct: data.employer_ni_pct,
     employer_pension_pct: data.employer_pension_pct,
     company_car_annual: data.company_car_annual,
+    car_allowance_annual: data.car_allowance_annual,
+    mobile_phone_annual: data.mobile_phone_annual,
     it_costs_annual: data.it_costs_annual,
     life_insurance_annual: data.life_insurance_annual,
     other_benefits_annual: data.other_benefits_annual,
@@ -49,6 +71,7 @@ export async function upsertStaffResourceAction(
     profit_uplift_pct: data.profit_uplift_pct,
     notes: data.notes ?? null,
     is_active: data.is_active ?? true,
+    updated_at: new Date().toISOString(),
   };
 
   let error: { message: string } | null = null;

@@ -8,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -1221,7 +1220,7 @@ function OverheadTab({ projectId, totalCostsToDate, onDone }: OverheadTabProps) 
 
 // ── Root component ─────────────────────────────────────────────────────────────
 
-export function LogCostSheet({
+export default function LogCostSheet({
   projectId,
   isOpen,
   onClose,
@@ -1246,70 +1245,47 @@ export function LogCostSheet({
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
-          <TabsList className="w-full bg-transparent border-b border-slate-700 rounded-none h-auto p-0 mb-5 gap-0 justify-start">
+        {/* ── Custom tab bar (no shadcn Tabs needed) ── */}
+        <div className="mt-2">
+          <div className="flex border-b border-slate-700 mb-5 overflow-x-auto">
             {[
-              { value: "labour",       label: "Labour" },
-              { value: "plant-owned",  label: "Plant — Owned" },
-              { value: "plant-hired",  label: "Plant — Hired" },
-              { value: "materials",    label: "Materials" },
-              { value: "overhead",     label: "Overhead / Other" },
+              { value: "labour",      label: "Labour" },
+              { value: "plant-owned", label: "Plant — Owned" },
+              { value: "plant-hired", label: "Plant — Hired" },
+              { value: "materials",   label: "Materials" },
+              { value: "overhead",    label: "Overhead / Other" },
             ].map((tab) => (
-              <TabsTrigger
+              <button
                 key={tab.value}
-                value={tab.value}
-                className={`
-                  relative px-4 py-2.5 text-sm font-medium rounded-none border-0 bg-transparent
-                  transition-colors focus-visible:outline-none
-                  data-[state=inactive]:text-slate-400 data-[state=inactive]:hover:text-slate-200
-                  data-[state=active]:text-blue-400 data-[state=active]:shadow-none
-                  after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5
-                  data-[state=active]:after:bg-blue-500 data-[state=inactive]:after:bg-transparent
-                `}
+                type="button"
+                onClick={() => setActiveTab(tab.value)}
+                className={`flex-shrink-0 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === tab.value
+                    ? "border-blue-500 text-blue-400"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
               >
                 {tab.label}
-              </TabsTrigger>
+              </button>
             ))}
-          </TabsList>
+          </div>
 
-          <TabsContent value="labour" className="mt-0 focus-visible:outline-none">
-            <LabourTab
-              staffCatalogue={staffCatalogue}
-              projectId={projectId}
-              onDone={handleDone}
-            />
-          </TabsContent>
-
-          <TabsContent value="plant-owned" className="mt-0 focus-visible:outline-none">
-            <PlantOwnedTab
-              plantCatalogue={plantCatalogue}
-              projectId={projectId}
-              onDone={handleDone}
-            />
-          </TabsContent>
-
-          <TabsContent value="plant-hired" className="mt-0 focus-visible:outline-none">
-            <PlantHiredTab
-              projectId={projectId}
-              onDone={handleDone}
-            />
-          </TabsContent>
-
-          <TabsContent value="materials" className="mt-0 focus-visible:outline-none">
-            <MaterialsTab
-              projectId={projectId}
-              onDone={handleDone}
-            />
-          </TabsContent>
-
-          <TabsContent value="overhead" className="mt-0 focus-visible:outline-none">
-            <OverheadTab
-              projectId={projectId}
-              totalCostsToDate={totalCostsToDate}
-              onDone={handleDone}
-            />
-          </TabsContent>
-        </Tabs>
+          {activeTab === "labour" && (
+            <LabourTab staffCatalogue={staffCatalogue} projectId={projectId} onDone={handleDone} />
+          )}
+          {activeTab === "plant-owned" && (
+            <PlantOwnedTab plantCatalogue={plantCatalogue} projectId={projectId} onDone={handleDone} />
+          )}
+          {activeTab === "plant-hired" && (
+            <PlantHiredTab projectId={projectId} onDone={handleDone} />
+          )}
+          {activeTab === "materials" && (
+            <MaterialsTab projectId={projectId} onDone={handleDone} />
+          )}
+          {activeTab === "overhead" && (
+            <OverheadTab projectId={projectId} totalCostsToDate={totalCostsToDate} onDone={handleDone} />
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

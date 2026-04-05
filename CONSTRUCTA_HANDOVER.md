@@ -507,16 +507,68 @@ Structured retrospective, AI analysis (estimated vs actual margin, programme vs 
 
 --- BATCH 3 COMPLETE — CLOSED PROJECTS RELEASE (Sprints 31–34) ---
 
-### Sprints 35–43 — Data & Admin Layer
-- Sprint 35: Data Foundation — anonymised aggregate tables + triggers (project/rate/labour/plant/programme/payment/variation/contract benchmarks)
-- Sprint 36: Admin Dashboard Phase 2 — data intelligence explorer, market rate maps, platform analytics
-- Sprint 37: Contractor Management Accounts — consolidated P&L, cash flow, WIP
-- Sprint 38: Xero integration
-- Sprint 39: QuickBooks / Sage integration
-- Sprint 40: Accounting Phase 2 — reconciliation, bank feeds
-- Sprint 41: Market Intelligence Product — benchmark reports/API for QS firms, developers, lenders, insurers
-- Sprint 42: Native Mobile App
-- Sprint 43: Regional Pricing Intelligence + Merchant Procurement Layer (Travis Perkins partnership)
+## BATCH 4 — DATA & ADMIN LAYER (Sprints 35–43)
+> Transforms Constructa from a single-contractor SaaS into a data platform with proprietary intelligence.
+> Target: begin 9–12 months post-Batch 1 launch, once cross-contractor data volume is sufficient.
+
+### Sprint 35 — Data Foundation
+Pure database migration — no changes to contractor-facing app. Creates the anonymised
+aggregation layer that makes cross-contractor intelligence possible.
+
+Benchmark tables (no RLS, service-role only, no PII): `project_benchmarks`, `rate_benchmarks`,
+`labour_benchmarks`, `plant_benchmarks`, `material_benchmarks`, `programme_benchmarks`,
+`variation_benchmarks`, `contract_risk_benchmarks`. Supabase triggers fire on project close /
+invoice paid / variation approved to populate tables. GDPR consent gate (`contractors.data_consent`)
+added to onboarding and Settings before any trigger writes fire.
+
+### Sprint 36 — Admin Dashboard Phase 2
+Superadmin tooling for Constructa staff only — not visible to contractors. Data intelligence
+explorer, benchmark browser, market rate maps (choropleth by region/trade), anonymous percentile
+positioning, platform analytics (MAU/DAU/proposals), churn prediction, at-risk account scoring,
+feature usage heatmap.
+
+### Sprint 37 — Contractor Management Accounts
+Consolidated financial view across all of a contractor's projects — the equivalent of a
+management accounts pack generated automatically from Constructa data. Consolidated P&L,
+cash flow forecast (projected inflows vs committed outflows), WIP schedule, overhead absorption
+report, year-to-date summary by month, per-project comparison table, PDF and CSV export,
+financial year / calendar year / custom date range filter.
+
+### Sprint 38 — Xero Integration
+OAuth2 connection flow → push invoices on send → pull payment status daily → push expenses on
+cost log → trade section to Xero tracking category mapping (configurable) → sync log with retry
+→ disconnect/reconnect without losing history.
+
+### Sprint 39 — QuickBooks / Sage Integration
+Same OAuth2 push/pull pattern extended to QuickBooks Online and Sage Business Cloud — the two
+next most common accounting packages for UK SME contractors. Single unified sync settings page
+covers all three integrations (Xero / QuickBooks / Sage), one active at a time, with field mapping
+UI per platform and a sync health indicator (last synced, error count, items pending).
+
+### Sprint 40 — Accounting Phase 2: Reconciliation
+Bank feed import (CSV or Plaid open banking), transaction parser, auto-match bank transactions to
+Constructa invoices by amount + reference, manual match for unmatched items, reconciliation
+dashboard, VAT return preparation grouped by VAT period, MTD-compatible CSV export for HMRC
+Making Tax Digital, full audit trail of every match/unmatch.
+
+### Sprint 41 — Market Intelligence Product
+Constructa's benchmark data as a sellable B2B data product for QS firms, developers, lenders
+and insurers. REST data API (authenticated, rate-limited, paid tier), quarterly construction cost
+index by region/trade, B2B subscriber portal, tiered subscription pricing, white-label PDF report
+generator ("East Midlands Construction Cost Report Q2 2026"), data consent audit confirming all
+benchmark data passes through the Sprint 35 consent gate.
+
+### Sprint 42 — Native Mobile App
+React Native (Expo) or PWA — technology decision first. Core on-site workflows: log cost (all 5
+types), view project P&L, raise variation, check invoice status. Camera receipt capture (photo →
+Supabase Storage → cost entry). Push notifications for overdue payments and variation decisions.
+Offline mode with local queue (SQLite). Biometric auth. App Store and Google Play submission.
+
+### Sprint 43 — Regional Pricing Intelligence + Merchant Procurement Layer
+Regional rate benchmarks surfaced to contractors with percentile positioning and rate adjustment
+suggestions. Travis Perkins, Jewson and Selco integrations for live materials pricing linked to
+estimate lines — one-click order basket with pre-filled quantities, Constructa group pricing,
+delivery tracking auto-logged as cost entries, merchant analytics and referral fee model for admin.
 
 ### Deferred / Post-launch (not yet sprinted)
 - Email/WhatsApp webhooks for cost capture (forward receipt → auto-log expense)

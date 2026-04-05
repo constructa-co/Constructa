@@ -943,9 +943,153 @@ Turns project data into business intelligence — the flywheel that improves eve
 ---
 
 ### DEPRIORITISED (post-launch with real user data)
-- Mobile responsive full pass (Sprint 15 prevents breakage; full pass later)
+- Mobile responsive full pass (Sprint 17 prevents breakage; full pass later)
 - Voice-to-proposal wizard
-- SS-FS Gantt dependencies beyond Sprint 17 scope
+- SS-FS Gantt dependencies beyond Sprint 19 scope
+
+---
+
+## BATCH 4 — DATA & ADMIN LAYER (Sprints 35–43)
+> Transforms Constructa from a single-contractor tool into a platform with proprietary data.
+> These sprints run after Batch 3. They are not required for core SaaS revenue but unlock
+> the B2B data product, accounting integrations, mobile, and merchant procurement layer.
+> Target: begin 9–12 months post-Batch 1 launch, once sufficient cross-contractor data exists.
+
+### Sprint 35 — Data Foundation
+The aggregation layer that makes cross-contractor intelligence possible. Built entirely as
+a database migration — zero changes to the contractor-facing app required.
+
+**Benchmark tables (anonymised, no RLS, service-role only, no PII):**
+- `project_benchmarks` — project type, region, contract value band, margin %, duration weeks
+- `rate_benchmarks` — trade, role, region, day rate (anonymised median / P25 / P75)
+- `labour_benchmarks` — trade section, labour % of total cost, manhour productivity
+- `plant_benchmarks` — plant item, day rate, % of project cost, hire vs owned split
+- `material_benchmarks` — category, unit rate, regional variance, supplier type
+- `programme_benchmarks` — project type, contract value, planned weeks, actual weeks, slippage
+- `variation_benchmarks` — project type, variation count, uplift %, % approved / disputed
+- `contract_risk_benchmarks` — contract type, risk flag count, outcome (claim / no claim)
+
+**Triggers (fire on key events):**
+- [ ] On project status → 'closed': write to `project_benchmarks`, `programme_benchmarks`
+- [ ] On invoice status → 'paid': write to `payment_benchmarks` (days late, retention release)
+- [ ] On variation status → 'approved'/'disputed': write to `variation_benchmarks`
+- [ ] On estimate created: write budget rates to `rate_benchmarks` (anonymised)
+- [ ] On actual cost logged: write actuals to `labour/plant/material_benchmarks`
+- [ ] Data consent flag: `contractors.data_consent = true` gates all trigger writes (GDPR)
+- [ ] Add data consent checkbox to onboarding and Settings page
+
+### Sprint 36 — Admin Dashboard Phase 2
+Superadmin tooling to explore, visualise and act on the benchmark data accumulated in Sprint 35.
+Only accessible to Constructa staff — not visible to contractors.
+
+- [ ] Data intelligence explorer: query benchmark tables by region, project type, value band, date range
+- [ ] Benchmark browser: paginated table of all rate/labour/plant benchmarks with filters + CSV export
+- [ ] Market rate maps: choropleth map of UK regions showing median day rates by trade, powered by `rate_benchmarks`
+- [ ] Anonymous percentile positioning: "This contractor's labour rates are in the 70th percentile for London groundworks"
+- [ ] Platform analytics dashboard: MAU, DAU, proposals sent per day, estimates created, P&L modules activated
+- [ ] Churn prediction: flag contractors with no login >14 days, no proposal sent >30 days
+- [ ] At-risk accounts: combine churn signals into a risk score, surface top-20 at-risk accounts for intervention
+- [ ] Usage heatmap: which features are used most / least — informs deprioritisation decisions
+
+### Sprint 37 — Contractor Management Accounts
+A consolidated financial view across ALL of a contractor's projects — the equivalent of
+a simple management accounts pack, generated automatically from Constructa data.
+
+- [ ] Consolidated P&L: sum of all project margins (estimated vs actual) across the business for any date range
+- [ ] Cash flow forecast: projected inflows (outstanding applications) vs committed outflows (logged costs not yet paid)
+- [ ] WIP (Work In Progress) schedule: value of work done not yet invoiced across all live projects
+- [ ] Overhead absorption report: total business overhead vs overhead recovered via `overhead_pct` across all estimates
+- [ ] Year-to-date summary: revenue, cost, gross margin, overhead, net margin — by month
+- [ ] Per-project comparison table: all projects side by side — contract value, invoiced, received, margin %
+- [ ] Exportable to PDF (management accounts format) and CSV (for accountant import)
+- [ ] Date range picker: filter by financial year, calendar year, or custom range
+
+### Sprint 38 — Xero Integration
+Push invoices and expenses to Xero, pull payment status back. Eliminates double-entry
+between Constructa and the contractor's accounting software.
+
+- [ ] OAuth2 connection flow: "Connect to Xero" in Settings → Xero consent screen → token stored encrypted
+- [ ] Push invoices: on "Invoice Sent" in Constructa → create draft invoice in Xero (line items, amounts, due date)
+- [ ] Pull payment status: poll Xero daily → mark Constructa invoices as paid when Xero confirms receipt
+- [ ] Push expenses: on cost logged in P&L → create bill/expense in Xero (supplier, amount, category)
+- [ ] Trade section → Xero tracking category mapping: configurable in Settings (e.g. "Groundworks" → Xero tracking code "GW")
+- [ ] Sync log: timestamped record of every push/pull with status (success / error / skipped)
+- [ ] Error handling: show failed syncs in Settings with retry button and error detail
+- [ ] Disconnect/reconnect: revoke token and reconnect without losing sync history
+
+### Sprint 39 — QuickBooks / Sage Integration
+Same push/pull pattern as Xero, extended to the two next most common accounting packages
+used by UK SME contractors. Single unified sync settings page covers all three integrations.
+
+- [ ] QuickBooks Online OAuth2 connection flow (same pattern as Xero Sprint 38)
+- [ ] Push invoices to QuickBooks (QBO invoice API)
+- [ ] Pull payment status from QuickBooks
+- [ ] Push expenses to QuickBooks
+- [ ] Sage Business Cloud OAuth2 connection flow
+- [ ] Push invoices to Sage
+- [ ] Pull payment status from Sage
+- [ ] Push expenses to Sage
+- [ ] Unified sync settings page: shows all three integrations (Xero / QuickBooks / Sage), one active at a time
+- [ ] Sync health indicator: last synced timestamp, error count, items pending
+- [ ] Field mapping UI: map Constructa trade sections to accounting categories for each platform
+
+### Sprint 40 — Accounting Phase 2: Reconciliation
+Bank feed import and transaction matching — the step beyond just pushing to accounting software.
+Enables contractors to reconcile payments received against Constructa invoices without leaving the app.
+
+- [ ] Bank feed import: CSV upload (standard bank export format) or Plaid open banking connection
+- [ ] Transaction parser: extract date, payee/payer, reference, amount from bank CSV
+- [ ] Auto-match: fuzzy-match bank transactions to outstanding Constructa invoices by amount + reference
+- [ ] Manual match: review unmatched transactions and link to invoice or expense manually
+- [ ] Reconciliation dashboard: unmatched transactions, matched transactions, reconciled total vs outstanding
+- [ ] VAT return preparation: group expenses and income by VAT period, calculate VAT due/reclaimable
+- [ ] VAT summary export: MTD-compatible CSV for HMRC Making Tax Digital submission
+- [ ] Audit trail: every match/unmatch logged with timestamp and user
+
+### Sprint 41 — Market Intelligence Product
+Constructa's benchmark data becomes a sellable B2B data product for professionals who
+need accurate UK construction cost intelligence — QS firms, developers, lenders, insurers.
+
+- [ ] Data API: REST endpoints returning regional benchmark rates (authenticated, rate-limited, paid tier)
+- [ ] Quarterly construction cost index: median rates by trade + region + project type, published quarterly
+- [ ] Subscriber portal: separate dashboard for B2B data customers (not contractors) — browse, filter, download
+- [ ] B2B subscription pricing: tiered access (Single region £X/mo, National £Y/mo, Full API access £Z/mo)
+- [ ] White-label PDF report generator: "East Midlands Construction Cost Report Q2 2026" — downloadable on demand
+- [ ] Report builder UI: select region, project type, trade sections, date range → generate branded PDF
+- [ ] Data consent audit: confirm all benchmark data used in reports passes through the consent gate from Sprint 35
+- [ ] Partnership pipeline: target RICS-registered QS practices, development finance lenders, building insurers
+
+### Sprint 42 — Native Mobile App
+Core Constructa workflows available offline and on the go. Targets the on-site use case —
+a site manager or director who needs to log costs, check P&L, or raise a variation from the job.
+
+- [ ] Technology decision: React Native (Expo) or PWA — evaluate against App Store requirements
+- [ ] Core mobile workflows: log cost (all 5 types), view project P&L, raise variation, check invoice status
+- [ ] Camera receipt capture: photograph receipt → upload to Supabase Storage → attach to cost entry (replaces file picker)
+- [ ] Push notifications: overdue payment alerts, variation approved/rejected, programme milestone due
+- [ ] Offline mode: queue cost log entries locally, sync when back online (SQLite local store)
+- [ ] Biometric auth: Face ID / Touch ID login on supported devices
+- [ ] App Store submission: iOS App Store and Google Play Store — handle review process
+- [ ] Deep links: notification tap → opens correct project/screen in app
+- [ ] Mobile-optimised UI: all existing components adapted for touch and small screens
+
+### Sprint 43 — Regional Pricing Intelligence + Merchant Procurement Layer
+Closes the loop between Constructa's benchmark data and real purchasing decisions. Contractors
+see whether their rates are competitive, and can order materials directly from trade suppliers
+linked to their estimate lines — with pricing that reflects Constructa's collective buying power.
+
+- [ ] Regional rate benchmarks surfaced to contractors: "Your bricklayer rate is 12% above the London median"
+- [ ] Rate adjustment suggestions: "Based on 47 similar projects, consider repricing this section"
+- [ ] Percentile positioning card: per trade section, show contractor's rate vs P25/P50/P75 for their region
+- [ ] Travis Perkins integration: OAuth or API key connection, fetch live pricing for materials on estimate lines
+- [ ] Jewson integration: same pattern — live pricing for timber, civils, building materials
+- [ ] Selco integration: same pattern — focus on joinery and building materials
+- [ ] Materials ordering: from estimate lines → one-click create basket on merchant site with pre-filled quantities
+- [ ] Bulk pricing: Constructa negotiates group rates — contractors ordering via platform get preferential pricing
+- [ ] Delivery tracking: merchant order status → auto-log delivery as material cost entry in P&L
+- [ ] Merchant analytics (admin): which suppliers are used most, GMV through platform, referral fee model
+
+--- BATCH 4 COMPLETE — DATA & ADMIN LAYER ---
 
 ---
 

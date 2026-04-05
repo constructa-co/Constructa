@@ -2,11 +2,6 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { COST_TYPES, TRADE_SECTIONS } from "./constants";
-
-// Re-export so any existing server-side imports still work
-export { COST_TYPES, TRADE_SECTIONS };
-export type { CostType } from "./constants";
 
 // ── Log a new actual cost ──────────────────────────────────────────────────────
 export async function logCostAction(data: {
@@ -17,6 +12,8 @@ export async function logCostAction(data: {
     trade_section: string;
     expense_date: string;
     supplier?: string;
+    estimate_line_id?: string;
+    receipt_url?: string;
 }): Promise<{ error?: string }> {
     try {
         const supabase = createClient();
@@ -28,6 +25,8 @@ export async function logCostAction(data: {
             trade_section: data.trade_section,
             expense_date: data.expense_date,
             supplier: data.supplier || null,
+            estimate_line_id: data.estimate_line_id || null,
+            receipt_url: data.receipt_url || null,
         });
         if (error) return { error: error.message };
         revalidatePath("/dashboard/projects/p-and-l");

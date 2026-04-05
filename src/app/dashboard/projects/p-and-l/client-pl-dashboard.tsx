@@ -49,6 +49,7 @@ interface Props {
     invoices: any[];
     staffCatalogue: any[];
     plantCatalogue: any[];
+    estimateLines: any[];
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -163,6 +164,7 @@ export default function ClientPLDashboard({
     invoices,
     staffCatalogue,
     plantCatalogue,
+    estimateLines,
 }: Props) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
@@ -528,6 +530,7 @@ export default function ClientPLDashboard({
                             staffCatalogue={staffCatalogue}
                             plantCatalogue={plantCatalogue}
                             totalCostsToDate={costsPosted}
+                            estimateLines={estimateLines}
                         />
                     </div>
 

@@ -67,6 +67,13 @@ export interface PlantResource {
   profit_uplift_pct: number;
 }
 
+export interface EstimateLine {
+  id: string;
+  trade_section: string;
+  description: string;
+  line_total: number;
+}
+
 export interface LogCostSheetProps {
   projectId: string;
   isOpen: boolean;
@@ -75,6 +82,7 @@ export interface LogCostSheetProps {
   staffCatalogue: StaffResource[];
   plantCatalogue: PlantResource[];
   totalCostsToDate: number;
+  estimateLines: EstimateLine[];
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -166,28 +174,105 @@ const inputCls =
 
 const selectContentCls = "bg-slate-800 border-slate-700 text-slate-100";
 
-function TradeSectionSelect({
-  value,
+// ── WBS Picker — replaces generic trade section dropdown ──────────────────────
+// mode "section": pick a trade section only (for Labour — spans multiple activities)
+// mode "line":    pick a section, then optionally a specific estimate line item
+function WBSPicker({
+  lines,
+  mode,
+  tradeSection,
+  lineId,
   onChange,
 }: {
-  value: string;
-  onChange: (v: string) => void;
+  lines: EstimateLine[];
+  mode: "section" | "line";
+  tradeSection: string;
+  lineId: string;
+  onChange: (tradeSection: string, lineId: string) => void;
 }) {
+  // Derive distinct sections from estimate lines
+  const sections = [...new Set(lines.map((l) => l.trade_section).filter(Boolean))].sort();
+  const linesInSection = lines.filter((l) => l.trade_section === tradeSection);
+
+  // If no estimate lines — fall back to TRADE_SECTIONS constants
+  if (sections.length === 0) {
+    return (
+      <FieldRow label="Trade Section">
+        <Select value={tradeSection} onValueChange={(v) => onChange(v, "")}>
+          <SelectTrigger className={inputCls}>
+            <SelectValue placeholder="Select trade section" />
+          </SelectTrigger>
+          <SelectContent className={selectContentCls}>
+            {TRADE_SECTIONS.map((t) => (
+              <SelectItem key={t} value={t} className="text-slate-100 focus:bg-slate-700">{t}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FieldRow>
+    );
+  }
+
   return (
-    <FieldRow label="Trade Section">
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className={inputCls}>
-          <SelectValue placeholder="Select trade section" />
-        </SelectTrigger>
-        <SelectContent className={selectContentCls}>
-          {TRADE_SECTIONS.map((t) => (
-            <SelectItem key={t} value={t} className="text-slate-100 focus:bg-slate-700">
-              {t}
+    <div className="space-y-2">
+      <FieldRow label={mode === "line" ? "WBS Section" : "Trade Section (WBS)"}>
+        <Select
+          value={tradeSection}
+          onValueChange={(v) => onChange(v, "")}
+        >
+          <SelectTrigger className={inputCls}>
+            <SelectValue placeholder="Select from estimate…" />
+          </SelectTrigger>
+          <SelectContent className={selectContentCls}>
+            {sections.map((s) => (
+              <SelectItem key={s} value={s} className="text-slate-100 focus:bg-slate-700">{s}</SelectItem>
+            ))}
+            <SelectItem value="__other" className="text-slate-500 focus:bg-slate-700 italic">
+              Other / not in estimate
             </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </FieldRow>
+          </SelectContent>
+        </Select>
+      </FieldRow>
+
+      {/* Manual fallback when "Other" selected */}
+      {tradeSection === "__other" && (
+        <Select value={lineId} onValueChange={(v) => onChange("__other_manual_" + v, v)}>
+          <SelectTrigger className={inputCls}>
+            <SelectValue placeholder="Specify section…" />
+          </SelectTrigger>
+          <SelectContent className={selectContentCls}>
+            {TRADE_SECTIONS.map((t) => (
+              <SelectItem key={t} value={t} className="text-slate-100 focus:bg-slate-700">{t}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+
+      {/* Line item picker — only in "line" mode when a real section is selected */}
+      {mode === "line" && tradeSection && tradeSection !== "__other" && linesInSection.length > 0 && (
+        <FieldRow label="Specific Activity (optional)">
+          <Select value={lineId} onValueChange={(v) => onChange(tradeSection, v)}>
+            <SelectTrigger className={inputCls}>
+              <SelectValue placeholder="Select activity or leave blank for section only" />
+            </SelectTrigger>
+            <SelectContent className={selectContentCls}>
+              <SelectItem value="" className="text-slate-500 focus:bg-slate-700 italic">
+                — Section only —
+              </SelectItem>
+              {linesInSection.map((l) => (
+                <SelectItem key={l.id} value={l.id} className="text-slate-100 focus:bg-slate-700">
+                  {l.description}
+                  {l.line_total > 0 && (
+                    <span className="ml-2 text-slate-500 text-xs">
+                      ({gbp(l.line_total)})
+                    </span>
+                  )}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FieldRow>
+      )}
+    </div>
   );
 }
 
@@ -232,13 +317,17 @@ function NotesField({
 
 // ── Tab 1: Labour ─────────────────────────────────────────────────────────────
 
+type LabourTimeUnit = "hours" | "half_days" | "days";
+
 interface LabourState {
   mode: "catalogue" | "manual";
   staffId: string;
-  days: string;
+  qty: string;              // quantity of timeUnit
+  timeUnit: LabourTimeUnit;
   description: string;
   amount: string;
   tradeSection: string;
+  lineId: string;
   date: string;
   notes: string;
 }
@@ -246,10 +335,12 @@ interface LabourState {
 const labourDefault: LabourState = {
   mode: "catalogue",
   staffId: "",
-  days: "",
+  qty: "",
+  timeUnit: "days",
   description: "",
   amount: "",
   tradeSection: "",
+  lineId: "",
   date: today(),
   notes: "",
 };
@@ -257,10 +348,11 @@ const labourDefault: LabourState = {
 interface LabourTabProps {
   staffCatalogue: StaffResource[];
   projectId: string;
+  estimateLines: EstimateLine[];
   onDone: () => void;
 }
 
-function LabourTab({ staffCatalogue, projectId, onDone }: LabourTabProps) {
+function LabourTab({ staffCatalogue, projectId, estimateLines, onDone }: LabourTabProps) {
   const [form, setForm] = useState<LabourState>(labourDefault);
   const [isPending, startTransition] = useTransition();
 
@@ -273,19 +365,43 @@ function LabourTab({ staffCatalogue, projectId, onDone }: LabourTabProps) {
   const useCatalogue = form.mode === "catalogue" && staffCatalogue.length > 0;
   const selectedStaff = staffCatalogue.find((s) => s.id === form.staffId) ?? null;
   const dailyRate = selectedStaff ? calcStaffDailyChargeout(selectedStaff) : 0;
-  const days = parseFloat(form.days) || 0;
-  const catalogueTotal = dailyRate * days;
+  const hourlyRate = dailyRate / 8;
+
+  const qty = parseFloat(form.qty) || 0;
+
+  // Calculate amount based on time unit
+  function calcAmount(): number {
+    if (!selectedStaff) return 0;
+    switch (form.timeUnit) {
+      case "hours":     return hourlyRate * qty;
+      case "half_days": return dailyRate * 0.5 * qty;
+      case "days":      return dailyRate * qty;
+    }
+  }
+
+  const catalogueTotal = calcAmount();
+
+  const timeUnitLabels: Record<LabourTimeUnit, string> = {
+    hours: "hrs",
+    half_days: "half-days",
+    days: "days",
+  };
+
+  // Resolve trade section (handle "Other" fallback)
+  const resolvedSection = form.tradeSection.startsWith("__other_manual_")
+    ? form.tradeSection.replace("__other_manual_", "")
+    : form.tradeSection === "__other" ? "" : form.tradeSection;
 
   function validate(): string | null {
     if (useCatalogue) {
       if (!form.staffId) return "Please select a team member.";
-      if (days <= 0) return "Please enter a valid number of days.";
-      if (catalogueTotal <= 0) return "Daily rate is £0 — check this staff member's rate setup.";
+      if (qty <= 0) return "Please enter a valid time allocation.";
+      if (catalogueTotal <= 0) return "Calculated cost is £0 — check this staff member's rate setup.";
     } else {
       if (!form.description.trim()) return "Description is required.";
       if (parseFloat(form.amount) <= 0) return "Please enter a valid amount.";
     }
-    if (!form.tradeSection) return "Please select a trade section.";
+    if (!resolvedSection) return "Please select a trade section / WBS item.";
     if (!form.date) return "Please select a date.";
     return null;
   }
@@ -295,9 +411,10 @@ function LabourTab({ staffCatalogue, projectId, onDone }: LabourTabProps) {
     if (err) { toast.error(err); return; }
 
     const amount = useCatalogue ? catalogueTotal : parseFloat(form.amount);
-    const staffRole = selectedStaff!.job_title || selectedStaff!.role || null;
+    const staffRole = selectedStaff ? (selectedStaff.job_title || selectedStaff.role || null) : null;
+    const timeLabel = `${qty} ${timeUnitLabels[form.timeUnit]}`;
     const description = useCatalogue
-      ? `${selectedStaff!.name}${staffRole ? ` (${staffRole})` : ""} — ${days} day${days !== 1 ? "s" : ""}`
+      ? `${selectedStaff!.name}${staffRole ? ` (${staffRole})` : ""} — ${timeLabel}`
       : form.description.trim();
 
     startTransition(async () => {
@@ -306,9 +423,10 @@ function LabourTab({ staffCatalogue, projectId, onDone }: LabourTabProps) {
         description,
         amount,
         cost_type: "labour",
-        trade_section: form.tradeSection,
+        trade_section: resolvedSection,
         expense_date: form.date,
         supplier: useCatalogue ? selectedStaff!.id : undefined,
+        estimate_line_id: form.lineId || undefined,
       });
       if (res.error) {
         toast.error(res.error);
@@ -324,26 +442,12 @@ function LabourTab({ staffCatalogue, projectId, onDone }: LabourTabProps) {
     <div className="space-y-4">
       {staffCatalogue.length > 0 && (
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => set("mode", "catalogue")}
-            className={`text-sm px-3 py-1 rounded-full border transition-colors ${
-              form.mode === "catalogue"
-                ? "bg-blue-600 border-blue-600 text-white"
-                : "border-slate-600 text-slate-400 hover:border-slate-500"
-            }`}
-          >
+          <button type="button" onClick={() => set("mode", "catalogue")}
+            className={`text-sm px-3 py-1 rounded-full border transition-colors ${form.mode === "catalogue" ? "bg-blue-600 border-blue-600 text-white" : "border-slate-600 text-slate-400 hover:border-slate-500"}`}>
             From Catalogue
           </button>
-          <button
-            type="button"
-            onClick={() => set("mode", "manual")}
-            className={`text-sm px-3 py-1 rounded-full border transition-colors ${
-              form.mode === "manual"
-                ? "bg-blue-600 border-blue-600 text-white"
-                : "border-slate-600 text-slate-400 hover:border-slate-500"
-            }`}
-          >
+          <button type="button" onClick={() => set("mode", "manual")}
+            className={`text-sm px-3 py-1 rounded-full border transition-colors ${form.mode === "manual" ? "bg-blue-600 border-blue-600 text-white" : "border-slate-600 text-slate-400 hover:border-slate-500"}`}>
             Add Manually
           </button>
         </div>
@@ -353,9 +457,7 @@ function LabourTab({ staffCatalogue, projectId, onDone }: LabourTabProps) {
         <>
           <FieldRow label="Team Member">
             <Select value={form.staffId} onValueChange={(v) => set("staffId", v)}>
-              <SelectTrigger className={inputCls}>
-                <SelectValue placeholder="Select team member" />
-              </SelectTrigger>
+              <SelectTrigger className={inputCls}><SelectValue placeholder="Select team member" /></SelectTrigger>
               <SelectContent className={selectContentCls}>
                 {staffCatalogue.map((s) => (
                   <SelectItem key={s.id} value={s.id} className="text-slate-100 focus:bg-slate-700">
@@ -367,30 +469,40 @@ function LabourTab({ staffCatalogue, projectId, onDone }: LabourTabProps) {
           </FieldRow>
 
           {selectedStaff && (
-            <div className="text-sm text-slate-400 bg-slate-800/60 rounded-lg px-3 py-2 border border-slate-700">
-              Daily chargeout rate:{" "}
-              <span className="text-slate-200 font-medium">{gbp(dailyRate)}/day</span>
+            <div className="grid grid-cols-3 gap-2 text-xs bg-slate-800/60 rounded-lg px-3 py-2 border border-slate-700">
+              <div><span className="text-slate-500">Hourly: </span><span className="text-slate-200 font-medium">{gbp(hourlyRate)}</span></div>
+              <div><span className="text-slate-500">Daily: </span><span className="text-slate-200 font-medium">{gbp(dailyRate)}</span></div>
+              <div><span className="text-slate-500">Half-day: </span><span className="text-slate-200 font-medium">{gbp(dailyRate * 0.5)}</span></div>
             </div>
           )}
 
-          <FieldRow label="Number of Days">
-            <Input
-              type="number"
-              min="0"
-              step="0.5"
-              value={form.days}
-              onChange={(e) => set("days", e.target.value)}
-              placeholder="e.g. 3"
-              className={inputCls}
-            />
+          {/* Time allocation with unit picker */}
+          <FieldRow label="Time Allocation">
+            <div className="flex gap-2">
+              <Input
+                type="number" min="0" step="0.5"
+                value={form.qty}
+                onChange={(e) => set("qty", e.target.value)}
+                placeholder="e.g. 4"
+                className={`${inputCls} flex-1`}
+              />
+              <Select value={form.timeUnit} onValueChange={(v) => set("timeUnit", v as LabourTimeUnit)}>
+                <SelectTrigger className={`${inputCls} w-36`}><SelectValue /></SelectTrigger>
+                <SelectContent className={selectContentCls}>
+                  <SelectItem value="hours" className="text-slate-100 focus:bg-slate-700">Hours</SelectItem>
+                  <SelectItem value="half_days" className="text-slate-100 focus:bg-slate-700">Half Days</SelectItem>
+                  <SelectItem value="days" className="text-slate-100 focus:bg-slate-700">Full Days</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </FieldRow>
 
-          {selectedStaff && days > 0 && (
+          {selectedStaff && qty > 0 && (
             <SummaryCard
               label={`${selectedStaff.name}${selectedStaff.role ? ` (${selectedStaff.role})` : ""}`}
-              qty={days}
-              qtyUnit="days"
-              rate={dailyRate}
+              qty={qty}
+              qtyUnit={timeUnitLabels[form.timeUnit]}
+              rate={form.timeUnit === "hours" ? hourlyRate : form.timeUnit === "half_days" ? dailyRate * 0.5 : dailyRate}
               total={catalogueTotal}
             />
           )}
@@ -398,36 +510,28 @@ function LabourTab({ staffCatalogue, projectId, onDone }: LabourTabProps) {
       ) : (
         <>
           <FieldRow label="Description">
-            <Input
-              value={form.description}
-              onChange={(e) => set("description", e.target.value)}
-              placeholder="e.g. Site foreman — week 3"
-              className={inputCls}
-            />
+            <Input value={form.description} onChange={(e) => set("description", e.target.value)}
+              placeholder="e.g. Site foreman — week 3" className={inputCls} />
           </FieldRow>
           <FieldRow label="Amount (£)">
-            <Input
-              type="number"
-              min="0"
-              step="0.01"
-              value={form.amount}
-              onChange={(e) => set("amount", e.target.value)}
-              placeholder="0.00"
-              className={inputCls}
-            />
+            <Input type="number" min="0" step="0.01" value={form.amount}
+              onChange={(e) => set("amount", e.target.value)} placeholder="0.00" className={inputCls} />
           </FieldRow>
         </>
       )}
 
-      <TradeSectionSelect value={form.tradeSection} onChange={(v) => set("tradeSection", v)} />
+      {/* WBS — section-level for labour (spans multiple activities) */}
+      <WBSPicker
+        lines={estimateLines}
+        mode="section"
+        tradeSection={form.tradeSection}
+        lineId={form.lineId}
+        onChange={(s, l) => { set("tradeSection", s); set("lineId", l); }}
+      />
       <DateField value={form.date} onChange={(v) => set("date", v)} />
       <NotesField value={form.notes} onChange={(v) => set("notes", v)} />
 
-      <Button
-        onClick={handleSubmit}
-        disabled={isPending}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-      >
+      <Button onClick={handleSubmit} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
         {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : "Log Labour Cost"}
       </Button>
     </div>
@@ -443,6 +547,7 @@ interface PlantOwnedState {
   description: string;
   amount: string;
   tradeSection: string;
+  lineId: string;
   date: string;
   notes: string;
 }
@@ -454,6 +559,7 @@ const plantOwnedDefault: PlantOwnedState = {
   description: "",
   amount: "",
   tradeSection: "",
+  lineId: "",
   date: today(),
   notes: "",
 };
@@ -461,10 +567,11 @@ const plantOwnedDefault: PlantOwnedState = {
 interface PlantOwnedTabProps {
   plantCatalogue: PlantResource[];
   projectId: string;
+  estimateLines: EstimateLine[];
   onDone: () => void;
 }
 
-function PlantOwnedTab({ plantCatalogue, projectId, onDone }: PlantOwnedTabProps) {
+function PlantOwnedTab({ plantCatalogue, projectId, estimateLines, onDone }: PlantOwnedTabProps) {
   const [form, setForm] = useState<PlantOwnedState>(plantOwnedDefault);
   const [isPending, startTransition] = useTransition();
 
@@ -480,6 +587,10 @@ function PlantOwnedTab({ plantCatalogue, projectId, onDone }: PlantOwnedTabProps
   const days = parseFloat(form.days) || 0;
   const catalogueTotal = dailyRate * days;
 
+  const resolvedSection = form.tradeSection.startsWith("__other_manual_")
+    ? form.tradeSection.replace("__other_manual_", "")
+    : form.tradeSection === "__other" ? "" : form.tradeSection;
+
   function validate(): string | null {
     if (useCatalogue) {
       if (!form.plantId) return "Please select a plant item.";
@@ -489,7 +600,7 @@ function PlantOwnedTab({ plantCatalogue, projectId, onDone }: PlantOwnedTabProps
       if (!form.description.trim()) return "Description is required.";
       if (parseFloat(form.amount) <= 0) return "Please enter a valid amount.";
     }
-    if (!form.tradeSection) return "Please select a trade section.";
+    if (!resolvedSection) return "Please select a trade section / WBS item.";
     if (!form.date) return "Please select a date.";
     return null;
   }
@@ -509,8 +620,9 @@ function PlantOwnedTab({ plantCatalogue, projectId, onDone }: PlantOwnedTabProps
         description,
         amount,
         cost_type: "plant",
-        trade_section: form.tradeSection,
+        trade_section: resolvedSection,
         expense_date: form.date,
+        estimate_line_id: form.lineId || undefined,
       });
       if (res.error) {
         toast.error(res.error);
@@ -621,15 +733,17 @@ function PlantOwnedTab({ plantCatalogue, projectId, onDone }: PlantOwnedTabProps
         </>
       )}
 
-      <TradeSectionSelect value={form.tradeSection} onChange={(v) => set("tradeSection", v)} />
+      <WBSPicker
+        lines={estimateLines}
+        mode="line"
+        tradeSection={form.tradeSection}
+        lineId={form.lineId}
+        onChange={(s, l) => { set("tradeSection", s); set("lineId", l); }}
+      />
       <DateField value={form.date} onChange={(v) => set("date", v)} />
       <NotesField value={form.notes} onChange={(v) => set("notes", v)} />
 
-      <Button
-        onClick={handleSubmit}
-        disabled={isPending}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-      >
+      <Button onClick={handleSubmit} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
         {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : "Log Owned Plant Cost"}
       </Button>
     </div>
@@ -650,6 +764,7 @@ interface PlantHiredState {
   collectionCharge: string;
   invoiceRef: string;
   tradeSection: string;
+  lineId: string;
   date: string;
 }
 
@@ -663,15 +778,17 @@ const plantHiredDefault: PlantHiredState = {
   collectionCharge: "",
   invoiceRef: "",
   tradeSection: "",
+  lineId: "",
   date: today(),
 };
 
 interface PlantHiredTabProps {
   projectId: string;
+  estimateLines: EstimateLine[];
   onDone: () => void;
 }
 
-function PlantHiredTab({ projectId, onDone }: PlantHiredTabProps) {
+function PlantHiredTab({ projectId, estimateLines, onDone }: PlantHiredTabProps) {
   const [form, setForm] = useState<PlantHiredState>(plantHiredDefault);
   const [isPending, startTransition] = useTransition();
 
@@ -693,11 +810,15 @@ function PlantHiredTab({ projectId, onDone }: PlantHiredTabProps) {
     monthly: "months",
   };
 
+  const resolvedSection = form.tradeSection.startsWith("__other_manual_")
+    ? form.tradeSection.replace("__other_manual_", "")
+    : form.tradeSection === "__other" ? "" : form.tradeSection;
+
   function validate(): string | null {
     if (!form.equipmentDescription.trim()) return "Equipment description is required.";
     if (rate <= 0) return "Please enter a valid hire rate.";
     if (qty <= 0) return "Please enter a valid quantity.";
-    if (!form.tradeSection) return "Please select a trade section.";
+    if (!resolvedSection) return "Please select a trade section / WBS item.";
     if (!form.date) return "Please select a date.";
     return null;
   }
@@ -714,9 +835,10 @@ function PlantHiredTab({ projectId, onDone }: PlantHiredTabProps) {
         description,
         amount: total,
         cost_type: "plant",
-        trade_section: form.tradeSection,
+        trade_section: resolvedSection,
         expense_date: form.date,
         supplier: form.supplier.trim() || undefined,
+        estimate_line_id: form.lineId || undefined,
       });
       if (res.error) {
         toast.error(res.error);
@@ -840,14 +962,16 @@ function PlantHiredTab({ projectId, onDone }: PlantHiredTabProps) {
         </div>
       )}
 
-      <TradeSectionSelect value={form.tradeSection} onChange={(v) => set("tradeSection", v)} />
+      <WBSPicker
+        lines={estimateLines}
+        mode="line"
+        tradeSection={form.tradeSection}
+        lineId={form.lineId}
+        onChange={(s, l) => { set("tradeSection", s); set("lineId", l); }}
+      />
       <DateField value={form.date} onChange={(v) => set("date", v)} />
 
-      <Button
-        onClick={handleSubmit}
-        disabled={isPending}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-      >
+      <Button onClick={handleSubmit} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
         {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : "Log Hired Plant Cost"}
       </Button>
     </div>
@@ -869,6 +993,7 @@ interface MaterialsState {
   deliveryCharge: string;
   invoiceRef: string;
   tradeSection: string;
+  lineId: string;
   date: string;
 }
 
@@ -881,15 +1006,17 @@ const materialsDefault: MaterialsState = {
   deliveryCharge: "",
   invoiceRef: "",
   tradeSection: "",
+  lineId: "",
   date: today(),
 };
 
 interface MaterialsTabProps {
   projectId: string;
+  estimateLines: EstimateLine[];
   onDone: () => void;
 }
 
-function MaterialsTab({ projectId, onDone }: MaterialsTabProps) {
+function MaterialsTab({ projectId, estimateLines, onDone }: MaterialsTabProps) {
   const [form, setForm] = useState<MaterialsState>(materialsDefault);
   const [isPending, startTransition] = useTransition();
 
@@ -904,11 +1031,15 @@ function MaterialsTab({ projectId, onDone }: MaterialsTabProps) {
   const delivery = parseFloat(form.deliveryCharge) || 0;
   const total = qty * unitRate + delivery;
 
+  const resolvedSection = form.tradeSection.startsWith("__other_manual_")
+    ? form.tradeSection.replace("__other_manual_", "")
+    : form.tradeSection === "__other" ? "" : form.tradeSection;
+
   function validate(): string | null {
     if (!form.description.trim()) return "Description is required.";
     if (qty <= 0) return "Please enter a valid quantity.";
     if (unitRate <= 0) return "Please enter a valid unit rate.";
-    if (!form.tradeSection) return "Please select a trade section.";
+    if (!resolvedSection) return "Please select a trade section / WBS item.";
     if (!form.date) return "Please select a date.";
     return null;
   }
@@ -925,9 +1056,10 @@ function MaterialsTab({ projectId, onDone }: MaterialsTabProps) {
         description,
         amount: total,
         cost_type: "materials",
-        trade_section: form.tradeSection,
+        trade_section: resolvedSection,
         expense_date: form.date,
         supplier: form.supplier.trim() || undefined,
+        estimate_line_id: form.lineId || undefined,
       });
       if (res.error) {
         toast.error(res.error);
@@ -1032,14 +1164,16 @@ function MaterialsTab({ projectId, onDone }: MaterialsTabProps) {
         </div>
       )}
 
-      <TradeSectionSelect value={form.tradeSection} onChange={(v) => set("tradeSection", v)} />
+      <WBSPicker
+        lines={estimateLines}
+        mode="line"
+        tradeSection={form.tradeSection}
+        lineId={form.lineId}
+        onChange={(s, l) => { set("tradeSection", s); set("lineId", l); }}
+      />
       <DateField value={form.date} onChange={(v) => set("date", v)} />
 
-      <Button
-        onClick={handleSubmit}
-        disabled={isPending}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-      >
+      <Button onClick={handleSubmit} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
         {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : "Log Materials Cost"}
       </Button>
     </div>
@@ -1056,6 +1190,7 @@ interface OverheadState {
   fixedAmount: string;
   percentage: string;
   tradeSection: string;
+  lineId: string;
   date: string;
   notes: string;
 }
@@ -1066,6 +1201,7 @@ const overheadDefault: OverheadState = {
   fixedAmount: "",
   percentage: "",
   tradeSection: "",
+  lineId: "",
   date: today(),
   notes: "",
 };
@@ -1073,10 +1209,11 @@ const overheadDefault: OverheadState = {
 interface OverheadTabProps {
   projectId: string;
   totalCostsToDate: number;
+  estimateLines: EstimateLine[];
   onDone: () => void;
 }
 
-function OverheadTab({ projectId, totalCostsToDate, onDone }: OverheadTabProps) {
+function OverheadTab({ projectId, totalCostsToDate, estimateLines, onDone }: OverheadTabProps) {
   const [form, setForm] = useState<OverheadState>(overheadDefault);
   const [isPending, startTransition] = useTransition();
 
@@ -1090,13 +1227,17 @@ function OverheadTab({ projectId, totalCostsToDate, onDone }: OverheadTabProps) 
   const calculatedFromPct = (pct / 100) * totalCostsToDate;
   const amount = form.mode === "fixed" ? parseFloat(form.fixedAmount) || 0 : calculatedFromPct;
 
+  const resolvedSection = form.tradeSection.startsWith("__other_manual_")
+    ? form.tradeSection.replace("__other_manual_", "")
+    : form.tradeSection === "__other" ? "" : form.tradeSection;
+
   function validate(): string | null {
     if (!form.description.trim()) return "Description is required.";
     if (form.mode === "fixed" && (parseFloat(form.fixedAmount) || 0) <= 0)
       return "Please enter a valid amount.";
     if (form.mode === "percentage" && pct <= 0)
       return "Please enter a valid percentage.";
-    if (!form.tradeSection) return "Please select a trade section.";
+    if (!resolvedSection) return "Please select a trade section / WBS item.";
     if (!form.date) return "Please select a date.";
     return null;
   }
@@ -1116,8 +1257,9 @@ function OverheadTab({ projectId, totalCostsToDate, onDone }: OverheadTabProps) 
         description,
         amount,
         cost_type: "overhead",
-        trade_section: form.tradeSection,
+        trade_section: resolvedSection,
         expense_date: form.date,
+        estimate_line_id: form.lineId || undefined,
       });
       if (res.error) {
         toast.error(res.error);
@@ -1217,15 +1359,17 @@ function OverheadTab({ projectId, totalCostsToDate, onDone }: OverheadTabProps) 
         </div>
       )}
 
-      <TradeSectionSelect value={form.tradeSection} onChange={(v) => set("tradeSection", v)} />
+      <WBSPicker
+        lines={estimateLines}
+        mode="section"
+        tradeSection={form.tradeSection}
+        lineId={form.lineId}
+        onChange={(s, l) => { set("tradeSection", s); set("lineId", l); }}
+      />
       <DateField value={form.date} onChange={(v) => set("date", v)} />
       <NotesField value={form.notes} onChange={(v) => set("notes", v)} />
 
-      <Button
-        onClick={handleSubmit}
-        disabled={isPending}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-      >
+      <Button onClick={handleSubmit} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
         {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : "Log Overhead / Other Cost"}
       </Button>
     </div>
@@ -1242,6 +1386,7 @@ export default function LogCostSheet({
   staffCatalogue,
   plantCatalogue,
   totalCostsToDate,
+  estimateLines,
 }: LogCostSheetProps) {
   const [activeTab, setActiveTab] = useState("labour");
 
@@ -1285,19 +1430,19 @@ export default function LogCostSheet({
           </div>
 
           {activeTab === "labour" && (
-            <LabourTab staffCatalogue={staffCatalogue} projectId={projectId} onDone={handleDone} />
+            <LabourTab staffCatalogue={staffCatalogue} projectId={projectId} estimateLines={estimateLines} onDone={handleDone} />
           )}
           {activeTab === "plant-owned" && (
-            <PlantOwnedTab plantCatalogue={plantCatalogue} projectId={projectId} onDone={handleDone} />
+            <PlantOwnedTab plantCatalogue={plantCatalogue} projectId={projectId} estimateLines={estimateLines} onDone={handleDone} />
           )}
           {activeTab === "plant-hired" && (
-            <PlantHiredTab projectId={projectId} onDone={handleDone} />
+            <PlantHiredTab projectId={projectId} estimateLines={estimateLines} onDone={handleDone} />
           )}
           {activeTab === "materials" && (
-            <MaterialsTab projectId={projectId} onDone={handleDone} />
+            <MaterialsTab projectId={projectId} estimateLines={estimateLines} onDone={handleDone} />
           )}
           {activeTab === "overhead" && (
-            <OverheadTab projectId={projectId} totalCostsToDate={totalCostsToDate} onDone={handleDone} />
+            <OverheadTab projectId={projectId} totalCostsToDate={totalCostsToDate} estimateLines={estimateLines} onDone={handleDone} />
           )}
         </div>
       </DialogContent>

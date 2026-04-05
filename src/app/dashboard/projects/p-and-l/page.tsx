@@ -246,6 +246,7 @@ export default async function PLPage({ searchParams }: { searchParams: { project
                 invoices={invoices ?? []}
                 staffCatalogue={staffCatalogue ?? []}
                 plantCatalogue={plantCatalogue ?? []}
+                estimateLines={lines}
             />
         </div>
     );

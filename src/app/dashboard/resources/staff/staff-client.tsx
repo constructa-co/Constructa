@@ -238,6 +238,30 @@ function formToInput(f: FormState): StaffResourceInput {
   } as unknown as StaffResourceInput;
 }
 
+// ── UK Construction Job Title Suggestions ──────────────────────────────────────
+
+const JOB_TITLE_SUGGESTIONS = [
+  "Contracts Manager","Project Manager","Site Manager","Site Supervisor","Assistant Site Manager",
+  "Quantity Surveyor","Assistant QS","Commercial Manager","Estimator","Bid Manager",
+  "Groundworker","Senior Groundworker","Groundworks Foreman","Cat B Groundworker",
+  "Bricklayer","Senior Bricklayer","Bricklaying Foreman",
+  "Carpenter","Joiner","Carpenter & Joiner","Shopfitter",
+  "Plasterer","Dry Liner","Ceiling Fixer",
+  "Electrician","Electrical Foreman","Electrical Engineer",
+  "Plumber","Pipefitter","Heating Engineer","Gas Engineer",
+  "Roofer","Flat Roofer","Roofing Foreman",
+  "Tiler (Floor)","Tiler (Wall)","Tiler (Floor & Wall)",
+  "Painter & Decorator","Spray Painter",
+  "Steelfixer","Reinforced Concrete (RC) Labourer",
+  "Concrete Finisher","Concrete Pump Operator",
+  "Plant Operator","360 Operator","Dumper Driver","Telehandler Operator","Crane Operator","Forklift Driver",
+  "Scaffolder","Advanced Scaffolder","Scaffolding Foreman",
+  "Banksman / Slinger","Rigger",
+  "CSCS Labourer","General Operative",
+  "Health & Safety Manager","Temporary Works Coordinator",
+  "Director","Managing Director","Operations Director","Commercial Director",
+];
+
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
@@ -508,14 +532,18 @@ function StaffFormDialog({
                 </FieldGroup>
               </div>
 
-              {/* Job Title */}
+              {/* Job Title with autocomplete suggestions */}
               <FieldGroup label="Job Title">
                 <Input
+                  list="job-title-suggestions"
                   value={form.job_title}
                   onChange={(e) => set("job_title", e.target.value)}
                   placeholder="e.g. Site Manager, Electrician, Director"
                   className="bg-slate-800 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-blue-500"
                 />
+                <datalist id="job-title-suggestions">
+                  {JOB_TITLE_SUGGESTIONS.map((t) => <option key={t} value={t} />)}
+                </datalist>
               </FieldGroup>
             </div>
           </section>

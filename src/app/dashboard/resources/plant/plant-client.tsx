@@ -41,6 +41,30 @@ export interface PlantRow {
 // Category config
 // ---------------------------------------------------------------------------
 
+// ── UK Construction Plant Name Suggestions ────────────────────────────────────
+
+const PLANT_NAME_SUGGESTIONS = [
+  // Heavy plant
+  "1.5T Mini Digger","3T Mini Excavator","5T Excavator","8T Excavator","13T Excavator","20T Excavator","30T Excavator",
+  "1T Site Dumper","3T Site Dumper","6T Site Dumper","9T Site Dumper",
+  "Bulldozer / D6","Motor Grader","Vibratory Compactor","Roller",
+  // Lifting
+  "Mobile Crane","Tower Crane","Crawler Crane","Telescopic Handler / Telehandler","3.5T Forklift","5T Forklift",
+  "Cherry Picker / MEWP (12m)","Cherry Picker / MEWP (20m)","Spider Lift","Boom Lift",
+  // Light plant
+  "Road Saw / Floor Saw","Disc Cutter / Angle Grinder","Breaker (Electric)","Breaker (Petrol)","Compactor Plate","Vibrating Roller (Hand-guided)","Wacker Plate",
+  "Concrete Mixer","Concrete Pump","Poker Vibrator","Screed Rail System",
+  "Pressure Washer","Road Sweeper (pedestrian)","Road Sweeper (ride-on)",
+  // Tools
+  "SDS Drill","Rotary Hammer Drill","Core Drill","Chop Saw / Mitre Saw","Table Saw","Jigsaw","Circular Saw",
+  "Planer","Sander (Belt)","Angle Grinder","Nail Gun","Fixing Gun",
+  // Temp works
+  "Scaffold Tower","Trench Box / Drag Box","Trench Strut System","Shoring System","Formwork System","Props / Acrow Props",
+  "Lighting Tower","Generator (10kVA)","Generator (20kVA)","Generator (60kVA)",
+  "Welfare Unit","Toilet Block","Site Cabin / Office","Storage Container",
+  "Dewatering Pump","Submersible Pump",
+];
+
 const CATEGORIES: { value: PlantRow["category"]; label: string }[] = [
   { value: "heavy_plant",      label: "Heavy Plant" },
   { value: "light_plant",      label: "Light Plant" },
@@ -366,11 +390,15 @@ function PlantDialog({
                   <Label htmlFor="name">Name *</Label>
                   <Input
                     id="name"
+                    list="plant-name-suggestions"
                     value={form.name}
                     onChange={(e) => set("name", e.target.value)}
                     placeholder="e.g. 3T Mini Excavator"
                     required
                   />
+                  <datalist id="plant-name-suggestions">
+                    {PLANT_NAME_SUGGESTIONS.map((n) => <option key={n} value={n} />)}
+                  </datalist>
                 </div>
                 <div>
                   <Label htmlFor="category">Category</Label>

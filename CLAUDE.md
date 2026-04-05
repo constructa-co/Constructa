@@ -2,7 +2,7 @@
 
 > This file is auto-loaded by Claude Code at session start.
 > Read this before making any changes to the codebase.
-> Last updated: 5 April 2026 — Claude Code session (Sprint 13 complete + roadmap)
+> Last updated: 5 April 2026 — Claude Code session (Sprint 14 Job P&L Dashboard)
 > Previous sessions: Claude Code (4 Apr evening + night), Perplexity Computer (4 Apr morning)
 
 ---
@@ -230,6 +230,17 @@ cost_library_items:
 rate_buildups:
   organization_id (NULL = system), name, unit, built_up_rate
   components JSONB, total_manhours_per_unit
+
+variations (Sprint 14):
+  project_id, title, description, amount, status (Draft/Pending Approval/Approved/Rejected)
+
+invoices (Sprint 14):
+  project_id, invoice_number, type (Interim/Final), amount, status (Draft/Sent/Paid)
+
+project_expenses (enhanced Sprint 14):
+  project_id, description, amount, expense_date, supplier
+  cost_type  ← labour|materials|plant|subcontract|overhead|prelims|other
+  trade_section ← matches estimate_lines.trade_section for budget vs actual
 ```
 
 ---
@@ -322,6 +333,55 @@ The proposal editor page shows "Company profile complete — Tripod Construction
 ### BUG-004 — PDF download via `window.open()` (Low — UX)
 Chrome popup blocker intercepts the new tab, so PDFs download silently rather than opening. The download still works correctly but no visual confirmation.
 **Fix:** Replace `window.open(url)` with a programmatic `<a href=url download>` click trigger in `proposal-pdf-button.tsx`.
+
+---
+
+## Session Work Log (April 5 — Sprint 14: Job P&L Dashboard)
+
+### What was built this session (Sprint 14)
+
+**1. DB migrations (applied via Supabase MCP + local migration file):**
+- `variations` table — RLS-protected, linked to projects, status workflow (Draft/Pending/Approved/Rejected)
+- `invoices` table — RLS-protected, linked to projects, type (Interim/Final), status (Draft/Sent/Paid)
+- `project_expenses` enhanced — added `cost_type` TEXT (labour/materials/plant/subcontract/overhead/prelims/other) and `trade_section` TEXT
+- Migration file: `supabase/migrations/20260405000000_sprint14_pl_dashboard.sql`
+
+**2. New page: `/dashboard/projects/p-and-l`**
+- `page.tsx` — server component. Fetches estimate (with lines), expenses, invoices, variations. Computes full contract value (direct cost → prelims → overhead → risk → profit → discount) and total budget cost (direct + prelims). Passes all computed values + breakdowns to client.
+- `client-pl-dashboard.tsx` — 3-tab client component:
+  - KPI strip: Contract Value | Budget Cost | Est. Margin | Costs to Date | Invoiced to Date
+  - Budget burn progress bar with remaining/overrun callout + forecast margin at completion
+  - Tab 1 "Budget vs Actual": trade section table with budget, actual, variance, % spent progress bars, totals row
+  - Tab 2 "Cost Entries": log actual costs (type + section + supplier + date), delete entries, totals footer
+  - Tab 3 "Invoices": 3-card summary (invoiced/received/outstanding), invoice table with inline status changer
+- `actions.ts` — `logCostAction`, `deleteCostAction`, `updateInvoiceStatusAction`
+
+**3. Sidebar updated (`sidebar-nav.tsx`):**
+- "Billing & Invoicing" → `/dashboard/projects/billing` (was disabled)
+- "Variations" → `/dashboard/projects/variations` (was disabled)
+- "Job P&L" → `/dashboard/projects/p-and-l` (new)
+- "Cost Tracking" disabled placeholder removed (Job P&L is now that feature)
+
+**4. Billing actions.ts rewritten:**
+- Removed `organization_id` dependency (column never existed on `invoices` table)
+- Removed `getActiveOrganizationId` and `createValuationAction` (RPC didn't exist in DB)
+- Clean simple CRUD against `invoices` table matching its actual schema
+- Added `revalidatePath` for both billing and p-and-l pages
+
+### New DB schema additions
+```sql
+variations: id, project_id, title, description, amount, status, created_at
+invoices:   id, project_id, invoice_number, type, amount, status, created_at
+project_expenses (enhanced): + cost_type TEXT, + trade_section TEXT
+```
+
+### Key files created/changed
+- `src/app/dashboard/projects/p-and-l/page.tsx` (NEW)
+- `src/app/dashboard/projects/p-and-l/client-pl-dashboard.tsx` (NEW)
+- `src/app/dashboard/projects/p-and-l/actions.ts` (NEW)
+- `src/app/dashboard/projects/billing/actions.ts` (REWRITTEN — removed org_id)
+- `src/components/sidebar-nav.tsx` (enabled 3 live project links)
+- `supabase/migrations/20260405000000_sprint14_pl_dashboard.sql` (NEW)
 
 ---
 
@@ -551,12 +611,18 @@ Target: build Sprint 31 triggers early (low effort), Admin Phase 2 dashboard whe
 
 ---
 
-### Sprint 14 — Job P&L Dashboard — NEXT SPRINT
-- [ ] Live project margin: original estimate vs actual costs logged
-- [ ] Which jobs are making money — the #1 question for "Dave"
-- [ ] Connects billing module (invoiced) to estimate (budgeted)
-- [ ] Over-budget alert when costs exceed estimate section by >10%
-- [ ] Margin-at-completion forecast from spend-to-date rate
+### Sprint 14 — Job P&L Dashboard — ✅ FULLY COMPLETE (5 April 2026)
+- [x] Live project margin: original estimate vs actual costs logged
+- [x] Which jobs are making money — the #1 question for "Dave"
+- [x] Connects billing module (invoiced) to estimate (budgeted)
+- [x] Over-budget alert when costs exceed estimate section by >10%
+- [x] Margin-at-completion forecast from spend-to-date rate
+- [x] Budget vs actual breakdown by trade section (table with progress bars)
+- [x] Cost entry form: type (labour/materials/plant/subcontract/overhead/prelims/other), section, supplier
+- [x] Invoice tracker with status management (Draft/Sent/Paid)
+- [x] Invoiced / Received / Outstanding cash position strip
+- [x] Sidebar: Billing, Variations, Job P&L all now live (previously disabled "Soon")
+- [x] DB migrations applied: `variations`, `invoices` tables created; `project_expenses` enhanced
 
 ### Sprint 15 — UI/UX Consistency Pass — HIGH PRIORITY
 **Problem:** Overview and Contracts pages look excellent (dark theme, hero sections, clear hierarchy).

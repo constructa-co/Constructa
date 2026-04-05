@@ -280,6 +280,12 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
         setPhases((prev) => {
             const u = [...prev];
             u[idx] = { ...u[idx], dependsOn: depIdx >= 0 ? [depIdx] : [] };
+            // Auto-snap successor to start exactly when predecessor finishes
+            if (depIdx >= 0 && depIdx < prev.length) {
+                const pred = u[depIdx];
+                const predEnd = pred.startOffset + (pred.manualDays ?? pred.calculatedDays);
+                u[idx] = { ...u[idx], startOffset: predEnd };
+            }
             return u;
         });
     };

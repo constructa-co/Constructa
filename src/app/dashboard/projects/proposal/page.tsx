@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProjectNavBar from "@/components/project-navbar";
 import ClientEditor from "./client-editor";
+import ProjectPicker from "@/components/project-picker";
 
 export const dynamic = "force-dynamic";
 
@@ -11,12 +12,26 @@ export default async function ProposalPage({ searchParams }: { searchParams: { p
     // Auth check
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user ?? null;
-    if (!user) {
-        redirect('/login');
-    }
+    if (!user) redirect("/login");
 
     const { projectId } = searchParams;
-    if (!projectId) return <div className="p-8 text-slate-400">Missing Project ID</div>;
+
+    if (!projectId) {
+        const { data: projects } = await supabase
+            .from("projects")
+            .select("id, name, client_name, project_type, proposal_status, potential_value, updated_at")
+            .eq("user_id", user.id)
+            .order("updated_at", { ascending: false })
+            .limit(25);
+        return (
+            <ProjectPicker
+                projects={projects ?? []}
+                targetPath="/dashboard/projects/proposal"
+                title="Proposal Editor"
+                description="Select a project to edit and send your proposal"
+            />
+        );
+    }
 
     // Fetch project — scoped to user_id
     const { data: project } = await supabase

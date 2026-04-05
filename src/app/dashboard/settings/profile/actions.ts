@@ -20,6 +20,7 @@ export async function updateProfileAction(formData: FormData) {
         company_number: formData.get("company_number") as string,
         vat_number: formData.get("vat_number") as string,
         years_trading: formData.get("years_trading") ? parseInt(formData.get("years_trading") as string, 10) : null,
+        financial_year_start_month: formData.get("financial_year_start_month") ? parseInt(formData.get("financial_year_start_month") as string, 10) : 4,
         specialisms: formData.get("specialisms") as string,
         capability_statement: formData.get("capability_statement") as string,
         insurance_details: formData.get("insurance_details") as string,

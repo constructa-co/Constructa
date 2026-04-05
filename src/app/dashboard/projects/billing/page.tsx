@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import ProjectNavBar from "@/components/project-navbar";
 import ClientBilling from "./client-billing";
+import ProjectPicker from "@/components/project-picker";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +10,26 @@ export default async function BillingPage({ searchParams }: { searchParams: { pr
     const supabase = createClient();
     const { projectId } = searchParams;
 
-    if (!projectId) return <div>Missing Project ID</div>;
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
+    if (!user) redirect("/login");
+
+    if (!projectId) {
+        const { data: projects } = await supabase
+            .from("projects")
+            .select("id, name, client_name, project_type, proposal_status, potential_value, updated_at")
+            .eq("user_id", user.id)
+            .order("updated_at", { ascending: false })
+            .limit(25);
+        return (
+            <ProjectPicker
+                projects={projects ?? []}
+                targetPath="/dashboard/projects/billing"
+                title="Billing & Invoicing"
+                description="Select a project to manage invoices and payment applications"
+            />
+        );
+    }
 
     // 1. Fetch Project
     const { data: project } = await supabase.from("projects").select("*").eq("id", projectId).single();

@@ -158,7 +158,7 @@ export default function SidebarNav({ user }: SidebarNavProps) {
                 {/* Live Projects */}
                 <SectionLabel label="Live Projects" />
                 <div className="space-y-0.5">
-                    <NavItem href="/dashboard/live" icon={LayoutDashboard} label="Overview" active={is("/dashboard/live")} badge="Coming soon" />
+                    <NavItem href="/dashboard/live" icon={LayoutDashboard} label="Overview" active={is("/dashboard/live")} />
                     <NavItem href="/dashboard/projects/billing" icon={CreditCard} label="Billing & Invoicing" active={is("/dashboard/projects/billing")} />
                     <NavItem href="/dashboard/projects/variations" icon={GitBranch} label="Variations" active={is("/dashboard/projects/variations")} />
                     <NavItem href="/dashboard/projects/p-and-l" icon={TrendingUp} label="Job P&L" active={is("/dashboard/projects/p-and-l")} />

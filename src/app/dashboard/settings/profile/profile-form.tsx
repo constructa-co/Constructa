@@ -42,6 +42,7 @@ interface Profile {
     preferred_trades?: string[] | null;
     md_name?: string | null;
     md_message?: string | null;
+    financial_year_start_month?: number | null;
 }
 
 const THEMES = [
@@ -502,6 +503,23 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
                             className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
                             placeholder="15"
                         />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-400">Financial Year Start</label>
+                        <select
+                            name="financial_year_start_month"
+                            defaultValue={profile?.financial_year_start_month ?? 4}
+                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        >
+                            {[
+                                [1, "January"], [2, "February"], [3, "March"], [4, "April"],
+                                [5, "May"], [6, "June"], [7, "July"], [8, "August"],
+                                [9, "September"], [10, "October"], [11, "November"], [12, "December"],
+                            ].map(([num, name]) => (
+                                <option key={num} value={num}>{name} (FY starts {name})</option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-slate-600">Used for financial year period breakdowns in Job P&L reports. UK default: April.</p>
                     </div>
                 </div>
 

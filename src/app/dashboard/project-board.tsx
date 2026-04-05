@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateStatusAction, markAsWonAction } from "./board-actions";
 import { Card, CardContent } from "@/components/ui/card";
@@ -65,7 +65,14 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
 
+    // Optimistic status overrides — cards move immediately without waiting for server
+    const [optimisticStatus, setOptimisticStatus] = useState<Record<string, string>>({});
+
+    const getStatus = (p: any): string =>
+        optimisticStatus[p.id] ?? p.status ?? "Lead";
+
     const handleStatusChange = (projectId: string, newStatus: string) => {
+        setOptimisticStatus(prev => ({ ...prev, [projectId]: newStatus }));
         startTransition(async () => {
             await updateStatusAction(projectId, newStatus);
             router.refresh();
@@ -73,6 +80,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
     };
 
     const handleMarkAsWon = (projectId: string) => {
+        setOptimisticStatus(prev => ({ ...prev, [projectId]: "Active" }));
         startTransition(async () => {
             await markAsWonAction(projectId);
             router.refresh();
@@ -82,7 +90,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 h-full items-start min-w-[900px]">
             {COLUMNS.map(col => {
-                const items = projects.filter(p => (p.status || "Lead") === col.id);
+                const items = projects.filter(p => getStatus(p) === col.id);
                 const colTotal = items.reduce((sum, p) => sum + (p.potential_value || financials[p.id] || 0), 0);
 
                 return (
@@ -154,7 +162,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
 
                                             {/* STATUS SELECTOR */}
                                             <Select
-                                                defaultValue={p.status || "Lead"}
+                                                value={getStatus(p)}
                                                 onValueChange={(val) => handleStatusChange(p.id, val)}
                                                 disabled={isPending}
                                             >
@@ -174,8 +182,8 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 </SelectContent>
                                             </Select>
 
-                                            {/* MARK AS WON — show on Estimating / Proposal Sent */}
-                                            {(p.status === "Estimating" || p.status === "Proposal Sent" || (!p.status)) && (
+                                            {/* MARK AS WON — show on Lead / Estimating / Proposal Sent */}
+                                            {(getStatus(p) === "Lead" || getStatus(p) === "Estimating" || getStatus(p) === "Proposal Sent") && (
                                                 <button
                                                     onClick={() => handleMarkAsWon(p.id)}
                                                     disabled={isPending}
@@ -198,7 +206,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 <Link href={`/dashboard/projects/costs?projectId=${p.id}`} className="text-[9px] font-black uppercase text-green-600 hover:underline tracking-widest">
                                                     Costs
                                                 </Link>
-                                                {p.status === "Active" && (
+                                                {getStatus(p) === "Active" && (
                                                     <Link href={`/dashboard/projects/p-and-l?projectId=${p.id}`} className="text-[9px] font-black uppercase text-blue-500 hover:underline tracking-widest ml-auto">
                                                         P&amp;L →
                                                     </Link>

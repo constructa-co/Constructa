@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getActiveOrganizationId } from "@/lib/supabase/auth-utils";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import ProjectNavBar from "@/components/project-navbar";
 import EstimateClient from "./estimate-client";
 
@@ -95,56 +94,6 @@ export default async function EstimatingPage({ searchParams }: { searchParams: {
     return (
         <div className="max-w-7xl mx-auto p-8 pt-24 space-y-8">
             <ProjectNavBar projectId={activeProjectId} activeTab="estimating" />
-
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900">Estimating</h1>
-                    <p className="text-slate-500">
-                        Bill of Quantities for:{" "}
-                        <span className="text-black font-semibold">{project.name}</span>
-                    </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <form
-                        action={async (formData: FormData) => {
-                            "use server";
-                            const id = formData.get("projectId") as string;
-                            redirect(`/dashboard/projects/costs?projectId=${id}`);
-                        }}
-                        className="flex items-center gap-2"
-                    >
-                        <label className="text-sm font-medium text-slate-600 whitespace-nowrap">Project:</label>
-                        <select
-                            name="projectId"
-                            className="h-10 border rounded-md px-3 bg-white min-w-[200px] text-slate-900 border-slate-200 text-sm"
-                            defaultValue={activeProjectId}
-                        >
-                            {allProjects?.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                    {p.name}
-                                </option>
-                            ))}
-                        </select>
-                        <button
-                            type="submit"
-                            className="h-10 px-4 rounded-md text-sm font-medium bg-gray-900 text-white hover:bg-gray-700"
-                        >
-                            Go
-                        </button>
-                    </form>
-
-                    <Link href={`/dashboard/projects/schedule?projectId=${activeProjectId}`}
-                        className="h-10 px-4 rounded-md text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                        View Programme
-                    </Link>
-                    <Link href={`/dashboard/projects/schedule?projectId=${activeProjectId}`}
-                        className="h-10 px-4 rounded-md text-sm font-semibold bg-gray-900 text-white hover:bg-gray-700 flex items-center gap-2">
-                        Next: Programme →
-                    </Link>
-                </div>
-            </div>
 
             {/* Estimate Client */}
             <EstimateClient

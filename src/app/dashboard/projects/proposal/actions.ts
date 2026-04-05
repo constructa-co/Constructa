@@ -207,6 +207,32 @@ export async function saveProposalAction(formData: FormData) {
     return { success: true };
 }
 
+export async function getProposalLinkAction(projectId: string) {
+    const supabase = createClient();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
+    if (!user) return { success: false, url: null };
+
+    const { data: project } = await supabase
+        .from("projects")
+        .select("proposal_token")
+        .eq("id", projectId)
+        .eq("user_id", user.id)
+        .single();
+
+    let token = project?.proposal_token;
+    if (!token) {
+        token = crypto.randomUUID();
+        await supabase.from("projects")
+            .update({ proposal_token: token })
+            .eq("id", projectId)
+            .eq("user_id", user.id);
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app";
+    return { success: true, url: `${baseUrl}/proposal/${token}` };
+}
+
 export async function sendProposalAction(projectId: string) {
     const supabase = createClient();
     const { data: authData } = await supabase.auth.getUser();

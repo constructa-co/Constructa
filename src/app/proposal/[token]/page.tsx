@@ -10,7 +10,7 @@ export default async function ProposalAcceptancePage({ params }: { params: { tok
     // Fetch project by proposal_token — no auth required (public route)
     const { data: project } = await supabase
         .from("projects")
-        .select("id, name, client_name, potential_value, proposal_status, proposal_sent_at, proposal_accepted_at, proposal_accepted_by, user_id, scope_text, exclusions_text, payment_schedule, gantt_phases, project_type, start_date, site_address, client_address")
+        .select("id, name, client_name, potential_value, proposal_status, proposal_sent_at, proposal_accepted_at, proposal_accepted_by, user_id, scope_text, exclusions_text, payment_schedule, gantt_phases, programme_phases, timeline_phases, project_type, start_date, site_address, client_address")
         .eq("proposal_token", token)
         .single();
 
@@ -49,11 +49,17 @@ export default async function ProposalAcceptancePage({ params }: { params: { tok
     const sentAt = project.proposal_sent_at ? new Date(project.proposal_sent_at) : null;
     const isExpired = sentAt ? (Date.now() - sentAt.getTime()) > 30 * 86400000 : false;
 
-    // Calculate total project duration from gantt phases
+    // Calculate total project duration — try all phase sources in priority order
     let totalWeeks: number | null = null;
-    if (project.gantt_phases && Array.isArray(project.gantt_phases) && project.gantt_phases.length > 0) {
-        const totalDays = project.gantt_phases.reduce((sum: number, p: any) => sum + (p.duration_days || 0), 0);
-        totalWeeks = Math.ceil(totalDays / 7);
+    const programmePhasesRaw = project.programme_phases || project.timeline_phases || project.gantt_phases || [];
+    const allPhaseSources = Array.isArray(programmePhasesRaw) ? programmePhasesRaw : [];
+    if (allPhaseSources.length > 0) {
+        // programme_phases use calculatedDays/manualDays; gantt_phases use duration_days
+        const totalDays = allPhaseSources.reduce((sum: number, p: any) => {
+            const days = p.duration_days ?? p.manualDays ?? p.calculatedDays ?? 0;
+            return sum + days;
+        }, 0);
+        if (totalDays > 0) totalWeeks = Math.ceil(totalDays / 7);
     }
 
     const refCode = project.id.substring(0, 8).toUpperCase();

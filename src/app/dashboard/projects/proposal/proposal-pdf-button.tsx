@@ -5,6 +5,7 @@ import autoTable from "jspdf-autotable";
 import { Button } from "@/components/ui/button";
 import { FileDown, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { extractScopeBulletsAction } from "./actions";
 import { createClient } from "@/lib/supabase/client";
 
@@ -144,6 +145,9 @@ const STANDARD_TC_CLAUSES = [
     ["7 — Payments", "Payment dates are 21 Calendar days from receipt of Application. Any deductions by the Client must be formally notified as a 'Pay-Less-Notice' no later than 7 days following receipt of Application."],
     ["8 — Change Management", "Any Variations to the Scope must be issued in writing. The Contractor will respond within 7 Calendar days with any Cost and/or Time implications."],
     ["9 — Health, Safety & CDM", "The Client is a Domestic Client under the Construction Design Management (CDM) Regulations 2015. The Contractor shall act as Principal Contractor and comply with all CDM requirements."],
+    ["10 — Materials & Ownership", "All materials supplied and fixed by the Contractor shall remain the property of the Contractor until payment in full has been received. Risk in materials passes to the Client on delivery to site."],
+    ["11 — Practical Completion", "Practical Completion shall be certified in writing by the Contractor upon substantial completion of the Works. Minor snags shall not prevent Practical Completion being declared, provided they are remedied within the Defect Liability Period."],
+    ["12 — Confidentiality", "The terms, pricing, and conditions contained within this Proposal and resulting Contract are confidential between the parties and shall not be disclosed to any third party without the prior written consent of the other party."],
 ];
 
 export default function ProposalPdfButton({ estimates, project, profile, pricingMode, validityDays }: Props) {
@@ -162,6 +166,14 @@ export default function ProposalPdfButton({ estimates, project, profile, pricing
                 .single();
             const effectiveProfile = freshProfile ?? profile;
             await buildProposalPDF({ estimates, project, profile: effectiveProfile, pricingMode, validityDays });
+            toast.success("PDF generated successfully");
+        } catch (err) {
+            console.error("[PDF Generation Error]", err);
+            toast.error(
+                err instanceof Error
+                    ? `PDF generation failed: ${err.message}`
+                    : "PDF generation failed — check the console for details"
+            );
         } finally {
             setGenerating(false);
         }
@@ -1081,15 +1093,25 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
                 y = (doc as any).lastAutoTable.finalY + 5;
             });
 
-            // Show prelims as a separate line if present
+            // Show prelims with individual line items
+            const prelimLines = allLines.filter((l: any) => (l.trade_section || "General") === "Preliminaries");
             if (prelimsTotal > 0) {
                 const prelimsAllIn = prelimsTotal * ohRiskProfitMultiplier;
+                const prelimBodyRows = prelimLines.length > 0
+                    ? prelimLines.map((line: any) => {
+                        const desc = line.mom_item_code ? `[${line.mom_item_code}] ${line.description}` : line.description;
+                        const allInRate = (line.unit_rate || 0) * ohRiskProfitMultiplier;
+                        const allInTotal = (line.line_total || 0) * ohRiskProfitMultiplier;
+                        return [desc || "", String(line.quantity ?? ""), line.unit || "", formatGBP(allInRate), formatGBP(allInTotal)];
+                    })
+                    : [["Preliminaries", "1", "item", formatGBP(prelimsAllIn), formatGBP(prelimsAllIn)]];
                 autoTable(doc, {
                     startY: y,
                     head: [
                         [{ content: "Preliminaries", colSpan: 5, styles: { halign: "left" as const, fillColor: T.primary as any, textColor: T.accent as any, fontSize: 10, fontStyle: "bold" as const } }],
+                        ["Description", "Qty", "Unit", "Rate", "Total"],
                     ],
-                    body: [["Preliminaries", "1", "item", formatGBP(prelimsAllIn), formatGBP(prelimsAllIn)]],
+                    body: prelimBodyRows,
                     foot: [["Preliminaries Subtotal", "", "", "", formatGBP(prelimsAllIn)]],
                     theme: "grid",
                     margin: { left: ML, right: PAGE_W - MR },
@@ -1307,12 +1329,12 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         const projectStartDate = new Date(project?.start_date || Date.now());
         let cumulativeWeeks = 0;
         const phasesWithOffsets = phases.map((phase: any) => {
-            const durationDays = phase.duration_days || 7;
+            const durationDays = phase.duration_days ?? phase.manualDays ?? phase.calculatedDays ?? 7;
             const durationWeeks = Math.ceil(durationDays / 7);
             let startWeek: number;
 
             if (phase.startOffset !== undefined) {
-                startWeek = phase.startOffset;
+                startWeek = Math.round(phase.startOffset / 7);
             } else if (phase.start_date) {
                 const pStart = new Date(phase.start_date).getTime();
                 const projStart = projectStartDate.getTime();
@@ -1656,10 +1678,27 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
 
         // Key reasons box
         const reasons: string[] = [];
-        if (profile?.years_trading) reasons.push(`${profile.years_trading}+ years of experience`);
-        if (profile?.accreditations) reasons.push(`Accredited: ${profile.accreditations.split(/[,\n]/)[0].trim()}`);
-        if (profile?.insurance_details) reasons.push("Fully insured");
-        if (profile?.specialisms) reasons.push(`Specialists in ${profile.specialisms.split(/[,\n]/)[0].trim()}`);
+        if (profile?.years_trading) reasons.push(`${profile.years_trading}+ years of experience in the construction industry`);
+        if (profile?.accreditations) {
+            const accreds = String(profile.accreditations).split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean);
+            accreds.forEach((a: string) => reasons.push(`Accredited: ${a}`));
+        }
+        if (profile?.insurance_details) reasons.push("Fully insured — Public Liability, Employer's Liability & Contractors All Risk");
+        if (profile?.specialisms) {
+            const specs = String(profile.specialisms).split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean);
+            if (specs.length === 1) {
+                reasons.push(`Specialists in ${specs[0]}`);
+            } else if (specs.length > 1) {
+                reasons.push(`Specialists in: ${specs.join(", ")}`);
+            }
+        }
+        if (project?.project_type) reasons.push(`Experienced in ${project.project_type} projects`);
+        // Fallbacks if profile is sparse
+        if (reasons.length < 3) {
+            reasons.push("Dedicated project management from inception to completion");
+            reasons.push("Clear communication and transparent pricing — no hidden costs");
+            reasons.push("All works warranted and backed by our Defect Liability Period");
+        }
 
         if (reasons.length > 0) {
             doc.setFillColor(...T.surface);

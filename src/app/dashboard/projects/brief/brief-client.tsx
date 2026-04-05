@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Send, Loader2, Sparkles, ArrowRight, Save, MapPin, ClipboardList, Building2, User, Calendar, PoundSterling, AlignLeft, Layers } from "lucide-react";
+import { Send, Loader2, Sparkles, ArrowRight, Save, MapPin, ClipboardList, Building2, User, Calendar, PoundSterling, AlignLeft, Layers, ScanLine } from "lucide-react";
 import { processBriefChatAction, saveBriefAction, suggestEstimateLineItemsAction } from "./actions";
 
 const ALL_TRADES = [
@@ -137,6 +137,7 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
                 });
             }
             if (result.estimatedValue > 0) setEstimatedValue(result.estimatedValue);
+            if (result.startDate) setStartDate(result.startDate);
 
             setChatMessages(prev => [...prev, { role: "assistant", content: result.response }]);
         } catch {
@@ -320,6 +321,21 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
                         />
                     </SectionCard>
 
+                    {/* Drawing Upload callout */}
+                    <Link
+                        href={`/dashboard/projects/costs?projectId=${project.id}`}
+                        className="flex items-center gap-4 px-5 py-4 bg-purple-500/5 border-2 border-dashed border-purple-500/30 rounded-xl hover:bg-purple-500/10 hover:border-purple-500/50 transition-colors group"
+                    >
+                        <div className="h-10 w-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
+                            <ScanLine className="h-5 w-5 text-purple-400" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-sm font-semibold text-slate-200 group-hover:text-white">Got a drawing or floor plan?</p>
+                            <p className="text-xs text-slate-500 mt-0.5">Upload it in Estimating → AI extracts quantities automatically</p>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-purple-400 transition-colors flex-shrink-0" />
+                    </Link>
+
                     {/* Trade Sections */}
                     <SectionCard icon={Layers} title="Trade Sections">
                         <p className="text-xs text-slate-500 -mt-1">Select all trades involved in this project. The AI assistant can suggest these from your scope.</p>
@@ -364,7 +380,7 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
 
                         <button
                             onClick={handleSuggestEstimateLines}
-                            disabled={suggesting || !scope || selectedTrades.length === 0}
+                            disabled={suggesting}
                             className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-lg font-semibold text-sm hover:bg-emerald-600/30 disabled:opacity-40 transition-colors"
                         >
                             {suggesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}

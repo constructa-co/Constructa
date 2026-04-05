@@ -11,6 +11,7 @@ export async function processBriefChatAction(
   clientType: "domestic" | "commercial" | "public";
   suggestedTrades: string[];
   estimatedValue: number;
+  startDate: string | null;
   response: string;
 }> {
   return generateJSON<{
@@ -18,6 +19,7 @@ export async function processBriefChatAction(
     clientType: "domestic" | "commercial" | "public";
     suggestedTrades: string[];
     estimatedValue: number;
+    startDate: string | null;
     response: string;
   }>(
     `You are a construction project brief assistant for UK contractors.
@@ -25,21 +27,33 @@ export async function processBriefChatAction(
 
     Project context: ${JSON.stringify(projectContext)}
     Contractor says: "${message}"
+    Today's date: ${new Date().toISOString().split("T")[0]}
 
     Return JSON with:
     - scope: detailed scope of works paragraph (2-3 sentences, professional)
     - clientType: "domestic" | "commercial" | "public"
-    - suggestedTrades: array of trade names from this list only: [
-        "Groundworks & Civils", "Drainage", "Concrete / RC Works", "Masonry / Brickwork / Blockwork",
-        "Carpentry & Joinery", "Roofing", "Domestic Electrical", "Domestic Plumbing", "Domestic Heating",
-        "Plastering & Rendering", "Painting & Decorating", "Flooring", "Tiling", "Kitchen Installation",
-        "Bathroom Installation", "Windows, Doors & Glazing", "Insulation", "Drylining & Partitions",
-        "Landscaping & External Works", "Steel Frame / Steel Erection", "Structural Timber / Framing",
-        "Commercial Electrical", "Commercial Plumbing / Public Health", "Mechanical / HVAC",
-        "Surfacing, Paving & Kerbing", "Demolition & Strip Out", "Site Setup & Preliminaries",
-        "Builders / General Building", "EV Chargers", "Fencing & Gates"
+    - suggestedTrades: array of trade names from this list only (use EXACT names):
+      [
+        "Site Setup & Preliminaries", "Demolition & Strip Out", "Asbestos Removal",
+        "Temporary Works / Propping / Shoring", "Groundworks & Civils", "Drainage",
+        "Utilities – Water", "Utilities – Gas", "Utilities – Electric / Ducting",
+        "Piling", "Underpinning & Structural Stabilisation", "Concrete / RC Works",
+        "Steel Frame / Steel Erection", "Structural Timber / Framing",
+        "Masonry / Brickwork / Blockwork", "Cladding & Rainscreen", "Roofing",
+        "Waterproofing", "Insulation", "Windows, Doors & Glazing",
+        "Builders / General Building", "Scaffolding & Access", "Landscaping & External Works",
+        "Surfacing, Paving & Kerbing", "Fencing & Gates", "External Lighting",
+        "Domestic Electrical", "Commercial Electrical", "EV Chargers",
+        "Domestic Plumbing", "Commercial Plumbing / Public Health", "Mechanical / HVAC",
+        "Domestic Heating", "Air Conditioning / Refrigeration",
+        "Fire Alarm & Life Safety", "Security / CCTV / Access Control",
+        "Drylining & Partitions", "Plastering & Rendering", "Carpentry & Joinery",
+        "Kitchen Installation", "Bathroom Installation", "Tiling", "Flooring",
+        "Ceilings", "Painting & Decorating", "Fire Stopping",
+        "Specialist Finishes", "Waste Management / Logistics"
       ]
     - estimatedValue: estimated contract value in GBP as a number (0 if not mentioned)
+    - startDate: if the contractor mentions a start date or month (e.g. "start April", "beginning of June 2026", "start next month"), return it as an ISO date string (YYYY-MM-DD, first day of that month). Return null if not mentioned.
     - response: friendly conversational reply confirming what was extracted and asking if it looks right`
   );
 }
@@ -78,7 +92,37 @@ export async function saveBriefAction(projectId: string, data: {
 
   const { error } = await supabase.from("projects").update(updateData).eq("id", projectId);
   if (error) console.error("Save brief error:", error);
+
+  // Auto-scaffold estimate sections from selected trades if an estimate has no lines yet
+  if (data.brief_trade_sections?.length) {
+    const { data: activeEst } = await supabase
+      .from("estimates")
+      .select("id, estimate_lines(id)")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (activeEst && (!activeEst.estimate_lines || activeEst.estimate_lines.length === 0)) {
+      // Insert a placeholder line per trade section (no rate — just scaffolds the section)
+      const placeholders = data.brief_trade_sections.map((trade: string) => ({
+        estimate_id: activeEst.id,
+        trade_section: trade,
+        description: "",
+        quantity: 1,
+        unit: "item",
+        unit_rate: 0,
+        line_total: 0,
+        pricing_mode: "simple",
+      }));
+      await supabase.from("estimate_lines").insert(placeholders);
+    }
+  }
+
   revalidatePath("/dashboard/projects/brief");
+  revalidatePath("/dashboard/projects/schedule");
+  revalidatePath("/dashboard/projects/proposal");
+  revalidatePath("/proposal", "layout");
 }
 
 export async function suggestEstimateLineItemsAction(

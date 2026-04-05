@@ -32,15 +32,22 @@ interface Props {
 
 const TRADE_SECTIONS = [
     "Preliminaries",
+    "Demolition",
     "Groundworks",
     "Concrete",
     "Drainage",
     "Utilities",
     "Surfacing",
     "Masonry",
+    "Structural Steel",
+    "Roofing",
     "Carpentry",
+    "Windows & Doors",
     "Electrical",
     "Plumbing",
+    "Heating & HVAC",
+    "Drylining & Partitions",
+    "Plastering",
     "Finishes",
     "External Works",
     "Subcontract",
@@ -627,16 +634,24 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     {/* ADD SECTION */}
                     <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Add Section:</span>
-                        {TRADE_SECTIONS.filter((s) => !sectionGroups[s]?.length).map((section) => (
-                            <button
-                                type="button"
-                                key={section}
-                                onClick={() => handleAddLine(section)}
-                                className="px-3 py-1.5 rounded-md text-xs font-medium bg-slate-800/50 border border-slate-700 text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 hover:border-slate-600 transition-colors"
-                            >
-                                + {section}
-                            </button>
-                        ))}
+                        {TRADE_SECTIONS.map((section) => {
+                            const isActive = !!sectionGroups[section]?.length;
+                            return (
+                                <button
+                                    type="button"
+                                    key={section}
+                                    onClick={() => { if (!isActive) handleAddLine(section); }}
+                                    disabled={isActive}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                                        isActive
+                                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500 cursor-default"
+                                            : "bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 hover:border-slate-600"
+                                    }`}
+                                >
+                                    {isActive ? "✓" : "+"} {section}
+                                </button>
+                            );
+                        })}
                     </div>
 
                     {/* TRADE SECTIONS */}
@@ -725,7 +740,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     })}
 
                     {/* SUMMARY STRIP */}
-                    <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 sticky bottom-0 shadow-lg">
+                    <div className="bg-slate-900 border border-slate-700/50 rounded-xl p-5 sticky bottom-0 z-20 shadow-xl mt-4">
                         <h3 className="font-semibold text-[11px] uppercase tracking-wider text-slate-500 mb-4">Cost Summary</h3>
                         <div className="space-y-2">
                             <SummaryRow label="Direct Construction Cost" value={directCost} />
@@ -898,6 +913,7 @@ function LineItemRow({
 
             {/* Unit */}
             <select
+                key={line.unit}
                 defaultValue={line.unit}
                 onChange={(e) => onUpdate(line.id, { unit: e.target.value })}
                 className="h-8 px-1 border border-slate-700 rounded text-sm text-slate-300 bg-slate-900/50 focus:outline-none"
@@ -917,6 +933,7 @@ function LineItemRow({
                 </div>
             ) : (
                 <input
+                    key={line.unit_rate}
                     type="number"
                     step="0.01"
                     defaultValue={line.unit_rate}

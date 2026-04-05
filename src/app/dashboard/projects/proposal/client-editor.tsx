@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2, RefreshCw, FileDown, Send } from "lucide-react";
-import { saveProposalAction, generateAiScopeAction, sendProposalAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction, updatePaymentScheduleTypeAction, generateClosingStatementAction, saveClosingStatementAction, saveProposalOverridesAction } from "./actions";
+import { saveProposalAction, generateAiScopeAction, sendProposalAction, getProposalLinkAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction, updatePaymentScheduleTypeAction, generateClosingStatementAction, saveClosingStatementAction, saveProposalOverridesAction } from "./actions";
 import ProposalPdfButton from "./proposal-pdf-button";
 import AiWizard from "./ai-wizard";
 import Link from "next/link";
@@ -253,7 +253,7 @@ export default function ClientEditor({
     const [paymentScheduleType, setPaymentScheduleType] = useState<"percentage" | "milestone">(
         project?.payment_schedule_type || "percentage"
     );
-    const [useEstimatedTotal, setUseEstimatedTotal] = useState(false);
+    const [useEstimatedTotal, setUseEstimatedTotal] = useState(estimatedTotal > 0);
 
     const [pricingMode, setPricingMode] = useState<"full" | "summary">("full");
     const [validityDays, setValidityDays] = useState(30);
@@ -487,7 +487,7 @@ export default function ClientEditor({
 
     const handleCopyLink = async () => {
         setSending(true);
-        const result = await sendProposalAction(projectId);
+        const result = await getProposalLinkAction(projectId);
         if (result?.url) {
             await navigator.clipboard.writeText(result.url);
             setLinkCopied(true);
@@ -771,7 +771,7 @@ export default function ClientEditor({
                 </div>
 
                 {/* Estimator total banner */}
-                {estimatedTotal > 0 && !project?.potential_value && !useEstimatedTotal && (
+                {estimatedTotal > 0 && !useEstimatedTotal && (
                     <div className="flex items-center gap-3 px-4 py-3 bg-blue-950/40 border border-blue-700 rounded-xl">
                         <Info className="w-5 h-5 text-blue-300 flex-shrink-0" />
                         <div className="flex-1">

@@ -2,8 +2,9 @@
 
 import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { logCostAction, deleteCostAction, updateInvoiceStatusAction } from "./actions";
+import { deleteCostAction, updateInvoiceStatusAction } from "./actions";
 import { COST_TYPES, TRADE_SECTIONS } from "./constants";
+import LogCostSheet from "./log-cost-sheet";
 import { toast } from "sonner";
 import {
     PoundSterling,
@@ -21,16 +22,6 @@ import {
     GitBranch,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-    DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
     Select,
     SelectContent,
@@ -56,6 +47,8 @@ interface Props {
     approvedVarTotal: number;
     expenses: any[];
     invoices: any[];
+    staffCatalogue: any[];
+    plantCatalogue: any[];
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -168,6 +161,8 @@ export default function ClientPLDashboard({
     approvedVarTotal,
     expenses,
     invoices,
+    staffCatalogue,
+    plantCatalogue,
 }: Props) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
@@ -176,14 +171,6 @@ export default function ClientPLDashboard({
 
     // Drill-down expand state (by trade section name)
     const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
-
-    // Log cost form state
-    const [logDesc, setLogDesc]         = useState("");
-    const [logAmount, setLogAmount]     = useState("");
-    const [logType, setLogType]         = useState("materials");
-    const [logSection, setLogSection]   = useState("General");
-    const [logDate, setLogDate]         = useState(new Date().toISOString().split("T")[0]);
-    const [logSupplier, setLogSupplier] = useState("");
 
     // ── Computed P&L metrics ─────────────────────────────────────────────────
     const revisedContractValue = contractValue + approvedVarTotal;
@@ -229,36 +216,6 @@ export default function ClientPLDashboard({
     };
 
     // ── Handlers ─────────────────────────────────────────────────────────────
-    const handleLogCost = (e: React.FormEvent) => {
-        e.preventDefault();
-        const amount = parseFloat(logAmount);
-        if (!logDesc.trim() || isNaN(amount) || amount <= 0) {
-            toast.error("Please fill in all required fields with valid values.");
-            return;
-        }
-        startTransition(async () => {
-            const result = await logCostAction({
-                projectId,
-                description: logDesc.trim(),
-                amount,
-                cost_type: logType,
-                trade_section: logSection,
-                expense_date: logDate,
-                supplier: logSupplier.trim() || undefined,
-            });
-            if (result.error) {
-                toast.error("Failed to log cost: " + result.error);
-            } else {
-                toast.success("Cost logged successfully.");
-                router.refresh();
-                setIsLogOpen(false);
-                setLogDesc(""); setLogAmount(""); setLogSupplier("");
-                setLogType("materials"); setLogSection("General");
-                setLogDate(new Date().toISOString().split("T")[0]);
-            }
-        });
-    };
-
     const handleDeleteCost = (id: string) => {
         startTransition(async () => {
             await deleteCostAction(id);
@@ -556,104 +513,22 @@ export default function ClientPLDashboard({
                 <div className="space-y-3">
                     {/* Log Cost button */}
                     <div className="flex justify-end">
-                        <Dialog open={isLogOpen} onOpenChange={setIsLogOpen}>
-                            <DialogTrigger asChild>
-                                <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                                    <Plus className="w-4 h-4" /> Log Cost
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="bg-slate-900 border-slate-700 text-slate-100">
-                                <DialogHeader>
-                                    <DialogTitle className="text-slate-100">Log Actual Cost</DialogTitle>
-                                </DialogHeader>
-                                <form onSubmit={handleLogCost} className="space-y-4 pt-2">
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="col-span-2 space-y-1.5">
-                                            <Label className="text-slate-300 text-xs">Description *</Label>
-                                            <Input
-                                                value={logDesc}
-                                                onChange={e => setLogDesc(e.target.value)}
-                                                placeholder="e.g. Brickwork — Phase 1"
-                                                className="bg-slate-800 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                                                required
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-slate-300 text-xs">Amount (£) *</Label>
-                                            <Input
-                                                type="number"
-                                                step="0.01"
-                                                min="0"
-                                                value={logAmount}
-                                                onChange={e => setLogAmount(e.target.value)}
-                                                placeholder="0.00"
-                                                className="bg-slate-800 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                                                required
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-slate-300 text-xs">Date *</Label>
-                                            <Input
-                                                type="date"
-                                                value={logDate}
-                                                onChange={e => setLogDate(e.target.value)}
-                                                className="bg-slate-800 border-slate-600 text-slate-100"
-                                                required
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-slate-300 text-xs">Cost Type</Label>
-                                            <Select value={logType} onValueChange={setLogType}>
-                                                <SelectTrigger className="bg-slate-800 border-slate-600 text-slate-100">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent className="bg-slate-800 border-slate-600">
-                                                    {COST_TYPES.map(t => (
-                                                        <SelectItem key={t} value={t} className="text-slate-100 focus:bg-slate-700">
-                                                            {t.charAt(0).toUpperCase() + t.slice(1)}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-slate-300 text-xs">Trade Section</Label>
-                                            <Select value={logSection} onValueChange={setLogSection}>
-                                                <SelectTrigger className="bg-slate-800 border-slate-600 text-slate-100">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent className="bg-slate-800 border-slate-600 max-h-48">
-                                                    {TRADE_SECTIONS.map(s => (
-                                                        <SelectItem key={s} value={s} className="text-slate-100 focus:bg-slate-700">
-                                                            {s}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="col-span-2 space-y-1.5">
-                                            <Label className="text-slate-300 text-xs">Supplier / Subcontractor</Label>
-                                            <Input
-                                                value={logSupplier}
-                                                onChange={e => setLogSupplier(e.target.value)}
-                                                placeholder="Optional"
-                                                className="bg-slate-800 border-slate-600 text-slate-100 placeholder:text-slate-500"
-                                            />
-                                        </div>
-                                    </div>
-                                    <DialogFooter className="pt-2">
-                                        <Button
-                                            type="submit"
-                                            disabled={isPending}
-                                            className="bg-blue-600 hover:bg-blue-700 text-white w-full"
-                                        >
-                                            {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                                            Log Cost
-                                        </Button>
-                                    </DialogFooter>
-                                </form>
-                            </DialogContent>
-                        </Dialog>
+                        <Button
+                            size="sm"
+                            onClick={() => setIsLogOpen(true)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white gap-2"
+                        >
+                            <Plus className="w-4 h-4" /> Log Cost
+                        </Button>
+                        <LogCostSheet
+                            projectId={projectId}
+                            isOpen={isLogOpen}
+                            onClose={() => setIsLogOpen(false)}
+                            onSuccess={() => router.refresh()}
+                            staffCatalogue={staffCatalogue}
+                            plantCatalogue={plantCatalogue}
+                            totalCostsToDate={costsPosted}
+                        />
                     </div>
 
                     {/* Costs table */}

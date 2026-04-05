@@ -34,6 +34,9 @@ import {
     X,
     FolderKanban,
     Search,
+    Users,
+    Truck,
+    PieChart,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 
@@ -324,6 +327,9 @@ export default function SidebarNav({ user, projects }: SidebarNavProps) {
                     <SidebarSection label="Company Profile" sectionKey="company-profile" collapsed={collapsed["company-profile"] ?? true} onToggle={toggleSection}>
                         <NavItem href="/dashboard/settings/profile" icon={Building2} label="Profile" active={is("/dashboard/settings/profile")} />
                         <NavItem href="/dashboard/settings/case-studies" icon={Images} label="Case Studies" active={is("/dashboard/settings/case-studies")} />
+                        <NavItem href="/dashboard/resources/staff" icon={Users} label="Labour Rates" active={is("/dashboard/resources/staff")} />
+                        <NavItem href="/dashboard/resources/plant" icon={Truck} label="Plant Rates" active={is("/dashboard/resources/plant")} />
+                        <NavItem href="/dashboard/library" icon={BookOpen} label="Cost Library" active={is("/dashboard/library")} />
                         <NavItem href="/onboarding?force=true" icon={Wand2} label="Setup Wizard" active={false} />
                     </SidebarSection>
 
@@ -331,8 +337,6 @@ export default function SidebarNav({ user, projects }: SidebarNavProps) {
                     <SidebarSection label="Work Winning" sectionKey="work-winning" collapsed={collapsed["work-winning"] ?? true} onToggle={toggleSection}>
                         <NavItem href="/dashboard" icon={Kanban} label="Pipeline" active={pathname === "/dashboard"} />
                         <NavItem href="/dashboard/projects/new" icon={FilePlus} label="New Project" active={pathname?.includes("/projects/new") ?? false} />
-                        <NavItem href="/dashboard/library" icon={BookOpen} label="Cost Library" active={is("/dashboard/library")} />
-                        <NavItem href="/dashboard/resources" icon={Wrench} label="Resources" active={is("/dashboard/resources")} />
                     </SidebarSection>
 
                     {/* Pre-Construction */}

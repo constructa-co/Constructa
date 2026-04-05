@@ -155,12 +155,16 @@ export default async function PLPage({ searchParams }: { searchParams: { project
         { data: expenses },
         { data: invoices },
         { data: variations },
+        { data: staffCatalogue },
+        { data: plantCatalogue },
     ] = await Promise.all([
         supabase.from("projects").select("id, name, client_name, site_address").eq("id", projectId).eq("user_id", user.id).single(),
         supabase.from("estimates").select("*, estimate_lines(*)").eq("project_id", projectId),
         supabase.from("project_expenses").select("*").eq("project_id", projectId).order("expense_date", { ascending: false }),
         supabase.from("invoices").select("*").eq("project_id", projectId).order("created_at", { ascending: false }),
         supabase.from("variations").select("*").eq("project_id", projectId),
+        supabase.from("staff_resources").select("*").eq("user_id", user.id).eq("is_active", true).order("name"),
+        supabase.from("plant_resources").select("*").eq("user_id", user.id).eq("is_active", true).order("name"),
     ]);
 
     if (!project) redirect("/dashboard/projects/p-and-l");
@@ -240,6 +244,8 @@ export default async function PLPage({ searchParams }: { searchParams: { project
                 approvedVarTotal={approvedVarTotal}
                 expenses={expenses ?? []}
                 invoices={invoices ?? []}
+                staffCatalogue={staffCatalogue ?? []}
+                plantCatalogue={plantCatalogue ?? []}
             />
         </div>
     );

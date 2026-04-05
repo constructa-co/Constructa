@@ -194,8 +194,8 @@ export default function OnboardingClient({ initialFullName }: { initialFullName:
                     <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-600 rounded-2xl mb-4">
                         <span className="text-white font-bold text-2xl">C</span>
                     </div>
-                    <h1 className="text-3xl font-bold text-white">Welcome to Constructa</h1>
-                    <p className="text-slate-400 mt-2">Let&apos;s set up your account in a few quick steps.</p>
+                    <h1 className="text-3xl font-bold text-white">Company Profile</h1>
+                    <p className="text-slate-400 mt-2">Manage your business details, trade, and default terms.</p>
                 </div>
 
                 <StepIndicator current={step} total={4} />

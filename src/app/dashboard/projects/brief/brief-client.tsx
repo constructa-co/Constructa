@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Send, Loader2, Sparkles, ArrowRight, Save, MapPin } from "lucide-react";
+import { Send, Loader2, Sparkles, ArrowRight, Save, MapPin, ClipboardList, Building2, User, Calendar, PoundSterling, AlignLeft, Layers } from "lucide-react";
 import { processBriefChatAction, saveBriefAction, suggestEstimateLineItemsAction } from "./actions";
 
 const ALL_TRADES = [
@@ -61,6 +61,21 @@ interface Props {
     projectId: string;
 }
 
+const inputCls = "w-full h-11 rounded-lg border border-slate-700 bg-slate-900/50 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 transition-colors";
+const readonlyCls = "w-full h-11 rounded-lg border border-slate-700/50 bg-slate-900/30 px-3 text-sm text-slate-400 cursor-default";
+
+function SectionCard({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
+    return (
+        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 space-y-4">
+            <div className="flex items-center gap-2">
+                <Icon className="h-4 w-4 text-slate-500" />
+                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{title}</h2>
+            </div>
+            {children}
+        </div>
+    );
+}
+
 export default function BriefClient({ project, activeEstimateId, projectId }: Props) {
     const [isPending, startTransition] = useTransition();
 
@@ -113,7 +128,6 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
                 projectType: project.project_type,
             });
 
-            // Auto-fill form fields
             if (result.scope) setScope(result.scope);
             if (result.clientType) setClientType(result.clientType);
             if (result.suggestedTrades?.length) {
@@ -156,11 +170,7 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
         setSuggesting(true);
         setSuggestResult(null);
         try {
-            const result = await suggestEstimateLineItemsAction(
-                projectId,
-                scope,
-                selectedTrades
-            );
+            const result = await suggestEstimateLineItemsAction(projectId, scope, selectedTrades);
             if (!result) {
                 setSuggestResult({ success: false, message: 'Server error — please try again.' });
                 setSuggesting(false);
@@ -169,13 +179,10 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
             if (result.success) {
                 setSuggestResult({
                     success: true,
-                    message: `\u2713 ${result.linesCreated} line items created across ${result.sectionsCreated} sections \u2014 go to Estimating tab to review and add rates.`
+                    message: `✓ ${result.linesCreated} line items created across ${result.sectionsCreated} sections — go to Estimating to review and add rates.`
                 });
             } else {
-                setSuggestResult({
-                    success: false,
-                    message: `Failed to create estimate lines: ${result.error || 'Unknown error'}`
-                });
+                setSuggestResult({ success: false, message: `Failed to create estimate lines: ${result.error || 'Unknown error'}` });
             }
         } catch (err: any) {
             setSuggestResult({ success: false, message: err.message });
@@ -184,234 +191,274 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
         }
     };
 
-    const inputCls = "w-full h-11 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900";
-
     return (
-        <div className="grid lg:grid-cols-5 gap-8">
-            {/* LEFT — Brief Form (3 cols) */}
-            <div className="lg:col-span-3 space-y-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Project Brief</h1>
-                    <p className="text-sm text-gray-500 mt-1">Describe your project. The AI assistant on the right can help you fill this in.</p>
-                </div>
-
-                {/* Project Name + Client */}
-                <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-gray-600">Project Name</label>
-                        <input className={inputCls} value={project.name} readOnly />
+        <div className="space-y-6">
+            {/* Hero */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
+                        <ClipboardList className="h-6 w-6 text-blue-400" />
                     </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-gray-600">Client Name</label>
-                        <input className={inputCls} value={project.client_name} readOnly />
-                    </div>
-                </div>
-
-                {/* Client Type */}
-                <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-gray-600">Client Type</label>
-                    <div className="flex gap-2">
-                        {(["domestic", "commercial", "public"] as const).map(t => (
-                            <button
-                                key={t}
-                                type="button"
-                                onClick={() => setClientType(t)}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors capitalize ${
-                                    clientType === t
-                                        ? "bg-gray-900 text-white border-gray-900"
-                                        : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
-                                }`}
-                            >
-                                {t}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Site Address + Postcode */}
-                <div className="grid sm:grid-cols-3 gap-4">
-                    <div className="sm:col-span-2 space-y-1.5">
-                        <label className="text-sm font-medium text-gray-600">Site Address</label>
-                        <input className={inputCls} value={project.site_address || project.client_address || ''} readOnly />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-gray-600">Postcode</label>
-                        <div className="flex gap-2">
-                            <input
-                                className={inputCls}
-                                defaultValue={project.postcode}
-                                onBlur={e => handlePostcodeLookup(e.target.value)}
-                                placeholder="SW1A 1AA"
-                            />
-                            {lat && (
-                                <div className="flex items-center text-green-600">
-                                    <MapPin className="w-4 h-4" />
-                                </div>
-                            )}
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-2xl font-bold text-white">Project Brief</h1>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium">
+                                <Sparkles className="h-3 w-3" />
+                                AI-Powered
+                            </span>
                         </div>
-                        {region && <p className="text-xs text-gray-400">Region: {region}</p>}
+                        <p className="text-slate-400 text-sm mt-0.5">
+                            Describe your project. The AI assistant can help you build the brief from a single sentence.
+                        </p>
                     </div>
                 </div>
 
-                {/* Start date + Estimated value */}
-                <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-gray-600">Target Start Date</label>
-                        <input
-                            type="date"
-                            className={inputCls}
-                            value={startDate}
-                            onChange={e => setStartDate(e.target.value)}
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-gray-600">Estimated Value</label>
-                        <input
-                            type="number"
-                            className={inputCls}
-                            value={estimatedValue || ""}
-                            onChange={e => setEstimatedValue(Number(e.target.value) || 0)}
-                            placeholder="60000"
-                        />
-                    </div>
-                </div>
-
-                {/* Scope */}
-                <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-gray-600">Scope of Works</label>
-                    <textarea
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900"
-                        rows={5}
-                        value={scope}
-                        onChange={e => setScope(e.target.value)}
-                        placeholder="Describe the works in detail..."
-                    />
-                </div>
-
-                {/* Trade Sections */}
-                <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-gray-600">Trade Sections</label>
-                    <p className="text-xs text-gray-400 mb-2">Select the trades involved in this project.</p>
-                    <div className="grid grid-cols-3 gap-2 max-h-52 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                        {ALL_TRADES.map(trade => {
-                            const isSelected = selectedTrades.includes(trade);
-                            return (
-                                <button
-                                    key={trade}
-                                    type="button"
-                                    onClick={() => {
-                                        setSelectedTrades(prev =>
-                                            isSelected ? prev.filter(t => t !== trade) : [...prev, trade]
-                                        );
-                                    }}
-                                    className={`text-xs px-2 py-1.5 rounded-md border text-left transition-colors ${
-                                        isSelected
-                                            ? "bg-gray-900 text-white border-gray-900"
-                                            : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"
-                                    }`}
-                                >
-                                    {trade}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-3 pt-2">
-                    <button
-                        onClick={handleSave}
-                        disabled={isPending}
-                        className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-lg font-semibold text-sm hover:bg-gray-700 disabled:opacity-50"
-                    >
-                        <Save className="w-4 h-4" />
-                        {isPending ? "Saving..." : "Save Brief"}
-                    </button>
-
-                    <button
-                        onClick={handleSuggestEstimateLines}
-                        disabled={suggesting || !scope || selectedTrades.length === 0}
-                        className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 disabled:opacity-50"
-                    >
-                        <Sparkles className="w-4 h-4" />
-                        {suggesting ? "Generating..." : "Suggest Estimate Lines"}
-                    </button>
-
-                    <Link
-                        href={`/dashboard/projects/costs?projectId=${projectId}`}
-                        className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-200 text-gray-700 rounded-lg font-semibold text-sm hover:bg-gray-50"
-                    >
-                        Go to Estimating
-                        <ArrowRight className="w-4 h-4" />
-                    </Link>
-                </div>
-
-                {suggestResult && (
-                    <div className={`mt-3 px-4 py-3 rounded-lg text-sm font-medium ${
-                        suggestResult.success
-                            ? "bg-green-50 border border-green-200 text-green-800"
-                            : "bg-red-50 border border-red-200 text-red-800"
-                    }`}>
-                        {suggestResult.message}
-                    </div>
+                {/* Completion badge */}
+                {project.brief_completed && (
+                    <span className="px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
+                        Brief Complete
+                    </span>
                 )}
             </div>
 
-            {/* RIGHT — AI Chat Assistant (2 cols) */}
-            <div className="lg:col-span-2">
-                <div className="sticky top-24 border border-gray-200 rounded-xl bg-white overflow-hidden flex flex-col" style={{ height: "calc(100vh - 12rem)" }}>
-                    {/* Chat header */}
-                    <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                        <h3 className="text-sm font-bold text-gray-900">AI Brief Assistant</h3>
-                        <p className="text-xs text-gray-500">Describe your project and I'll help build the brief</p>
+            {/* Two-column layout */}
+            <div className="grid lg:grid-cols-5 gap-6">
+
+                {/* LEFT — Brief Form (3 cols) */}
+                <div className="lg:col-span-3 space-y-4">
+
+                    {/* Project Info */}
+                    <SectionCard icon={Building2} title="Project Details">
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-medium text-slate-400">Project Name</label>
+                                <input className={readonlyCls} value={project.name} readOnly />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-medium text-slate-400">Client Name</label>
+                                <input className={readonlyCls} value={project.client_name} readOnly />
+                            </div>
+                        </div>
+
+                        {/* Client Type */}
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-slate-400">Client Type</label>
+                            <div className="flex gap-2">
+                                {(["domestic", "commercial", "public"] as const).map(t => (
+                                    <button
+                                        key={t}
+                                        type="button"
+                                        onClick={() => setClientType(t)}
+                                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors capitalize ${
+                                            clientType === t
+                                                ? "bg-blue-600 text-white border-blue-600"
+                                                : "bg-slate-900/50 text-slate-400 border-slate-700 hover:border-slate-500 hover:text-slate-200"
+                                        }`}
+                                    >
+                                        {t}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </SectionCard>
+
+                    {/* Location & Dates */}
+                    <SectionCard icon={MapPin} title="Location & Dates">
+                        <div className="grid sm:grid-cols-3 gap-4">
+                            <div className="sm:col-span-2 space-y-1.5">
+                                <label className="text-xs font-medium text-slate-400">Site Address</label>
+                                <input className={readonlyCls} value={project.site_address || project.client_address || ''} readOnly />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-medium text-slate-400">Postcode</label>
+                                <div className="relative">
+                                    <input
+                                        className={inputCls}
+                                        defaultValue={project.postcode}
+                                        onBlur={e => handlePostcodeLookup(e.target.value)}
+                                        placeholder="SW1A 1AA"
+                                    />
+                                    {lat && (
+                                        <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-400" />
+                                    )}
+                                </div>
+                                {region && <p className="text-xs text-slate-500">{region}</p>}
+                            </div>
+                        </div>
+
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-medium text-slate-400">Target Start Date</label>
+                                <input
+                                    type="date"
+                                    className={inputCls + " [color-scheme:dark]"}
+                                    value={startDate}
+                                    onChange={e => setStartDate(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-medium text-slate-400">Estimated Value (£)</label>
+                                <input
+                                    type="number"
+                                    className={inputCls}
+                                    value={estimatedValue || ""}
+                                    onChange={e => setEstimatedValue(Number(e.target.value) || 0)}
+                                    placeholder="60000"
+                                />
+                            </div>
+                        </div>
+                    </SectionCard>
+
+                    {/* Scope */}
+                    <SectionCard icon={AlignLeft} title="Scope of Works">
+                        <textarea
+                            className="w-full rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 transition-colors resize-none"
+                            rows={5}
+                            value={scope}
+                            onChange={e => setScope(e.target.value)}
+                            placeholder="Describe the works in detail — or use the AI assistant to generate this from a brief description..."
+                        />
+                    </SectionCard>
+
+                    {/* Trade Sections */}
+                    <SectionCard icon={Layers} title="Trade Sections">
+                        <p className="text-xs text-slate-500 -mt-1">Select all trades involved in this project. The AI assistant can suggest these from your scope.</p>
+                        {selectedTrades.length > 0 && (
+                            <p className="text-xs text-blue-400 font-medium">{selectedTrades.length} trade{selectedTrades.length !== 1 ? 's' : ''} selected</p>
+                        )}
+                        <div className="grid grid-cols-3 gap-1.5 max-h-56 overflow-y-auto pr-1">
+                            {ALL_TRADES.map(trade => {
+                                const isSelected = selectedTrades.includes(trade);
+                                return (
+                                    <button
+                                        key={trade}
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedTrades(prev =>
+                                                isSelected ? prev.filter(t => t !== trade) : [...prev, trade]
+                                            );
+                                        }}
+                                        className={`text-xs px-2 py-1.5 rounded-md border text-left transition-colors leading-tight ${
+                                            isSelected
+                                                ? "bg-blue-600/20 text-blue-300 border-blue-500/40"
+                                                : "bg-slate-900/50 text-slate-400 border-slate-700 hover:border-slate-500 hover:text-slate-200"
+                                        }`}
+                                    >
+                                        {trade}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </SectionCard>
+
+                    {/* Actions */}
+                    <div className="flex flex-wrap items-center gap-3 pt-1">
+                        <button
+                            onClick={handleSave}
+                            disabled={isPending}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-500 disabled:opacity-50 transition-colors"
+                        >
+                            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            {isPending ? "Saving..." : "Save Brief"}
+                        </button>
+
+                        <button
+                            onClick={handleSuggestEstimateLines}
+                            disabled={suggesting || !scope || selectedTrades.length === 0}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-lg font-semibold text-sm hover:bg-emerald-600/30 disabled:opacity-40 transition-colors"
+                        >
+                            {suggesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                            {suggesting ? "Generating..." : "Suggest Estimate Lines"}
+                        </button>
+
+                        <Link
+                            href={`/dashboard/projects/costs?projectId=${projectId}`}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-slate-700/50 text-slate-300 border border-slate-600/50 rounded-lg font-semibold text-sm hover:bg-slate-700 transition-colors"
+                        >
+                            Go to Estimating
+                            <ArrowRight className="w-4 h-4" />
+                        </Link>
                     </div>
 
-                    {/* Chat messages */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                        {chatMessages.length === 0 && (
-                            <div className="text-center py-10 text-gray-400">
-                                <Sparkles className="w-8 h-8 mx-auto mb-3 text-gray-300" />
-                                <p className="text-sm">Tell me about your project and I'll help you build a complete brief.</p>
-                                <p className="text-xs mt-2 text-gray-300">e.g. "Two-storey rear extension, brick and block, bifold doors, start April, about 60k"</p>
-                            </div>
-                        )}
-                        {chatMessages.map((msg, i) => (
-                            <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                                <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
-                                    msg.role === "user"
-                                        ? "bg-gray-900 text-white"
-                                        : "bg-gray-100 text-gray-800"
-                                }`}>
-                                    {msg.content}
-                                </div>
-                            </div>
-                        ))}
-                        {chatLoading && (
-                            <div className="flex justify-start">
-                                <div className="bg-gray-100 rounded-lg px-3 py-2">
-                                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                    {suggestResult && (
+                        <div className={`px-4 py-3 rounded-lg text-sm font-medium border ${
+                            suggestResult.success
+                                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                : "bg-red-500/10 border-red-500/20 text-red-400"
+                        }`}>
+                            {suggestResult.message}
+                        </div>
+                    )}
+                </div>
 
-                    {/* Chat input */}
-                    <div className="border-t border-gray-200 p-3">
-                        <div className="flex gap-2">
-                            <input
-                                className="flex-1 h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900"
-                                value={chatInput}
-                                onChange={e => setChatInput(e.target.value)}
-                                onKeyDown={e => { if (e.key === "Enter") handleChatSend(); }}
-                                placeholder="Describe your project..."
-                            />
-                            <button
-                                onClick={handleChatSend}
-                                disabled={chatLoading || !chatInput.trim()}
-                                className="h-10 w-10 flex items-center justify-center rounded-lg bg-gray-900 text-white hover:bg-gray-700 disabled:opacity-50"
-                            >
-                                <Send className="w-4 h-4" />
-                            </button>
+                {/* RIGHT — AI Chat Assistant (2 cols) */}
+                <div className="lg:col-span-2">
+                    <div className="sticky top-24 bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden flex flex-col" style={{ height: "calc(100vh - 14rem)" }}>
+
+                        {/* Chat header */}
+                        <div className="px-4 py-3 bg-slate-900/50 border-b border-slate-700/50 flex items-center gap-3 flex-shrink-0">
+                            <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                                <Sparkles className="h-4 w-4 text-blue-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-semibold text-white">AI Brief Assistant</h3>
+                                <p className="text-xs text-slate-500">Describe your project and I'll help build the brief</p>
+                            </div>
+                        </div>
+
+                        {/* Chat messages */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                            {chatMessages.length === 0 && (
+                                <div className="text-center py-8 px-4">
+                                    <div className="h-14 w-14 mx-auto mb-4 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                                        <Sparkles className="h-7 w-7 text-blue-400" />
+                                    </div>
+                                    <p className="text-sm font-medium text-slate-300">Tell me about your project</p>
+                                    <p className="text-xs text-slate-500 mt-1">I'll extract the scope, trades and estimated value automatically</p>
+                                    <div className="mt-4 bg-slate-700/30 border border-slate-700/50 rounded-lg px-3 py-2.5 text-xs text-slate-500 italic text-left">
+                                        "Two-storey rear extension, brick and block, bifold doors, start April, about £60k"
+                                    </div>
+                                </div>
+                            )}
+                            {chatMessages.map((msg, i) => (
+                                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                                    <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
+                                        msg.role === "user"
+                                            ? "bg-blue-600 text-white"
+                                            : "bg-slate-700/60 text-slate-200 border border-slate-600/50"
+                                    }`}>
+                                        {msg.content}
+                                    </div>
+                                </div>
+                            ))}
+                            {chatLoading && (
+                                <div className="flex justify-start">
+                                    <div className="bg-slate-700/60 border border-slate-600/50 rounded-xl px-3 py-2.5 flex items-center gap-2">
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />
+                                        <span className="text-xs text-slate-500">Thinking…</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Chat input */}
+                        <div className="border-t border-slate-700/50 p-3 flex-shrink-0">
+                            <div className="flex gap-2">
+                                <input
+                                    className="flex-1 h-10 rounded-lg border border-slate-700 bg-slate-900/50 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 transition-colors"
+                                    value={chatInput}
+                                    onChange={e => setChatInput(e.target.value)}
+                                    onKeyDown={e => { if (e.key === "Enter") handleChatSend(); }}
+                                    placeholder="Describe your project..."
+                                />
+                                <button
+                                    onClick={handleChatSend}
+                                    disabled={chatLoading || !chatInput.trim()}
+                                    className="h-10 w-10 flex items-center justify-center rounded-lg bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-40 transition-colors flex-shrink-0"
+                                >
+                                    <Send className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

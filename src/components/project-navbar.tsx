@@ -17,7 +17,7 @@ const TABS = [
 
 export default function ProjectNavBar({ projectId, activeTab }: Props) {
   return (
-    <div className="border-b border-gray-200 mb-6">
+    <div className="border-b border-slate-700/50 mb-6">
       <nav className="flex gap-0 -mb-px overflow-x-auto">
         {TABS.map(({ key, label, icon: Icon, href }) => {
           const isActive = activeTab === key;
@@ -25,8 +25,8 @@ export default function ProjectNavBar({ projectId, activeTab }: Props) {
             <Link key={key} href={href(projectId)}
               className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
                 isActive
-                  ? "border-gray-900 text-gray-900"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ? "border-blue-500 text-white"
+                  : "border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600"
               }`}>
               <Icon className="w-4 h-4" />
               {label}

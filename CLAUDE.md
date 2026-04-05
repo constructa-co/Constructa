@@ -2,8 +2,8 @@
 
 > This file is auto-loaded by Claude Code at session start.
 > Read this before making any changes to the codebase.
-> Last updated: 5 April 2026 — Claude Code session (Sprints 15 & 16: Resource Catalogues + Cost Capture Enhancements)
-> Previous sessions: Claude Code Sprint 14 (5 Apr morning), Claude Code (4 Apr evening + night), Perplexity Computer (4 Apr morning)
+> Last updated: 5 April 2026 — Claude Code session (Sprints 17 & 18: UI/UX Dark Theme Pass + Pre-Construction Workflow Polish)
+> Previous sessions: Claude Code Sprints 15 & 16 (5 Apr), Claude Code Sprint 14 (5 Apr morning), Claude Code (4 Apr evening + night), Perplexity Computer (4 Apr morning)
 
 ---
 
@@ -322,9 +322,9 @@ If `node_modules` is stale, run `node /usr/local/bin/npm install` first.
 Both inputs have `name="md_name"`. Only the last one submits. If contractor types into the first field, value is silently discarded.
 **Fix:** Remove the duplicate at line 615, keep the one at 753.
 
-### BUG-002 — Client portal URL UX gap (Medium)
-`proposal_token` is only written when `saveProposalAction()` or `sendProposalAction()` is first called. If the contractor copies the link URL manually before saving/sending, it 404s with "Proposal Not Found". No warning shown.
-**Fix:** Either pre-generate the token on project creation, or show a "link not active — save proposal first" message in the actions panel.
+### BUG-002 — Client portal URL UX gap (Low — partially mitigated Sprint 18)
+`proposal_token` is now generated on first "Copy Link" click via `getProposalLinkAction` (Sprint 18 fix). However, if the contractor manually types the URL or shares a bookmark before ever clicking Copy Link, it still 404s. No warning shown in those edge cases.
+**Fix:** Pre-generate the token on project creation (`createProjectAction`), or detect missing token and show "proposal not yet activated" message on the public portal page.
 
 ### BUG-003 — Wrong company name in proposal editor banner (Medium)
 The proposal editor page shows "Company profile complete — Tripod Construction Ltd" instead of the profile's `company_name`. Likely caused by `proposal_company_name` override being set on the project record, or a stale/incorrect profile query.
@@ -333,6 +333,105 @@ The proposal editor page shows "Company profile complete — Tripod Construction
 ### BUG-004 — PDF download via `window.open()` (Low — UX)
 Chrome popup blocker intercepts the new tab, so PDFs download silently rather than opening. The download still works correctly but no visual confirmation.
 **Fix:** Replace `window.open(url)` with a programmatic `<a href=url download>` click trigger in `proposal-pdf-button.tsx`.
+
+---
+
+## Session Work Log (April 5 — Sprint 18: Pre-Construction Workflow Polish)
+
+### ✅ SPRINT 18 COMPLETE — 5 April 2026
+
+**Sprint 18 scope:** Fix all data-flow and PDF bugs in the 5-step pre-construction workflow. 15 backlog items across P0/P1/P2 priority tiers. All items completed.
+
+**Commit:** `6c9dd42` — deployed to Vercel as `dpl_5mEsArgjbxW3DnNMPmh1S9q33w1e` (READY ✅)
+
+**Root causes found:**
+
+- **Gantt data mismatch:** `programme_phases` saves `{ manualDays, calculatedDays, startOffset (in DAYS) }` but PDF read `duration_days` (non-existent) and treated `startOffset` as WEEKS → all bars wrong width and position
+- **Uncontrolled inputs:** `defaultValue` inputs don't re-render when props change → rate/unit fields stayed stale after library item selection → fixed with `key={value}` on each input
+- **`revalidatePath` gap:** `saveBriefAction` only revalidated `/brief` — schedule/proposal/public portal were stale → added 3 more paths
+- **`sendProposalAction` mis-used for copy:** `handleCopyLink` was calling `sendProposalAction` (sets `proposal_status: "sent"`) instead of a link-only action → added new `getProposalLinkAction`
+- **Prelims PDF:** Rendered as a single lump-sum row regardless of individual line items → fixed to render all `trade_section = "Preliminaries"` lines
+- **Why Choose Us:** `specialisms` field treated as a single string instead of being split by comma/newline
+
+**P0 — PDF bugs fixed:**
+1. **Gantt bar duration:** `phase.duration_days` → `phase.duration_days ?? phase.manualDays ?? phase.calculatedDays ?? 7`
+2. **Gantt bar start position:** `startWeek = phase.startOffset` → `startWeek = Math.round(phase.startOffset / 7)`
+3. **Preliminaries:** Replaced lump-sum row with per-line rendering from `estimate_lines` where `trade_section === "Preliminaries"`
+4. **Silent PDF failure:** Added `try/catch/finally` + `toast.error()` — errors now visible in UI and console
+5. **Contract value default:** `useState(estimatedTotal > 0)` so the estimate total is used immediately when estimate exists; removed guard that suppressed the "Use estimate total" banner
+
+**P1 — UX/data bugs fixed:**
+6. **Start date not populating:** `processBriefChatAction` now extracts `startDate` from natural language → `brief-client.tsx` calls `setStartDate(result.startDate)`
+7. **Rate/unit inputs stale:** Added `key={line.unit_rate}` and `key={line.unit}` to uncontrolled inputs in `estimate-client.tsx`
+8. **Duplicate project header:** Removed legacy project selector header block from `costs/page.tsx`
+9. **Cost Summary z-index:** Changed sticky panel from transparent bg + no z-index → `bg-slate-900 z-20` to prevent content overlapping
+10. **Copy Link sets status:** Replaced `sendProposalAction` with new `getProposalLinkAction` in `handleCopyLink` — copying link no longer marks proposal as "sent"
+
+**P2 — Enhancements:**
+11. **Auto-scaffold BoQ:** `saveBriefAction` now inserts placeholder estimate lines for each selected trade if estimate has no lines yet
+12. **Drawing upload callout:** Added purple dashed callout between Scope and Trade Sections on Brief page linking to `/dashboard/projects/costs`
+13. **Section chip shift-bug:** Chip `onClick` wrapped with `if (!isActive)` guard + `disabled` attr so clicking a populated section doesn't incorrectly add a new blank line
+14. **T&C clauses 10–12:** Added Material & Ownership, Practical Completion, Confidentiality to `STANDARD_TC_CLAUSES` in PDF
+15. **Why Choose Us:** Fixed specialism splitting (`split(/[,\n]/)`), added project_type bullet, fallback reasons when profile is sparse
+16. **AI trades list:** Updated `processBriefChatAction` prompt from 30 to 47 exact trade names matching `ALL_TRADES` in `brief-client.tsx`
+17. **TRADE_SECTIONS expanded:** 15 → 22 sections in `estimate-client.tsx` (added Drylining & Partitions, Plastering, External Works, Subcontract, Provisional Sums, General, etc.)
+18. **Public proposal `totalWeeks`:** Fixed `proposal/[token]/page.tsx` to read `manualDays ?? calculatedDays` from `programme_phases` and compute total weeks correctly; added `programme_phases` to select query
+
+**Key files changed:**
+- `src/app/dashboard/projects/proposal/proposal-pdf-button.tsx` — Gantt fix ×2, Prelims fix, T&Cs, Why Choose Us, error toast
+- `src/app/dashboard/projects/proposal/client-editor.tsx` — contract value default, Copy Link fix
+- `src/app/dashboard/projects/proposal/actions.ts` — new `getProposalLinkAction`
+- `src/app/dashboard/projects/brief/actions.ts` — `startDate` AI extraction, revalidatePath ×3, auto-scaffold BoQ
+- `src/app/dashboard/projects/brief/brief-client.tsx` — `startDate` population, drawing callout, chip fix, AI trades, Suggest button fix
+- `src/app/dashboard/projects/costs/estimate-client.tsx` — key props on inputs, z-index sticky panel, expanded TRADE_SECTIONS, chip guard
+- `src/app/dashboard/projects/costs/page.tsx` — remove duplicate legacy header
+- `src/app/proposal/[token]/page.tsx` — `programme_phases` in select, totalWeeks calculation fix
+
+---
+
+## Session Work Log (April 5 — Sprint 17: UI/UX Dark Theme Consistency Pass)
+
+### ✅ SPRINT 17 COMPLETE — 5 April 2026
+
+**Sprint 17 scope:** Apply the Contract Shield / Job P&L dark-theme standard consistently across all dashboard pages that were still using light or mixed styling.
+
+**Key changes per page:**
+
+**Brief page + Project Navbar:**
+- Hero block: ClipboardList icon, title, AI-Powered badge, completion badge
+- All form inputs dark-themed (`bg-slate-900/50 border-slate-700 text-slate-100`)
+- Client type toggle: blue active state; trade grid: blue selected state
+- Chat messages: blue user bubbles, slate-700 assistant bubbles; loading spinner with "Thinking…"
+- Project navbar: `border-slate-700/50` base, active tab `border-blue-500 text-white`
+
+**Estimating page:**
+- Dark header/tabs/section cards, all inputs/selects, cost summary strip
+- SummaryRow, line item rows, add-section buttons — all dark-slate standard
+
+**Programme page:**
+- Dark Gantt card, week headers, phase row inputs/borders, empty state, info strip, action buttons
+
+**New Project wizard + Onboarding:**
+- Removed `bg-white` wrappers, dark step indicator, dark cards, all inputs/labels
+- Onboarding: dark all 4 steps — trade selector buttons, specialism tags, AI draft button, insurance rows, T&C clauses
+
+**Variations + Billing:**
+- Both pages: hero block, KPI strip (`bg-slate-800/50`), dark card + table + dialog
+- Removed incorrect `activeTab="proposal"` from ProjectNavBar on both pages
+
+**Onboarding layout fix:**
+- Root layout: hide Header/Footer for `/onboarding` routes (was rendering marketing nav)
+- New `app/onboarding/layout.tsx`: wraps in DashboardShell + ThemeProvider
+
+**Key files changed:**
+- `src/app/dashboard/projects/brief/brief-client.tsx` — dark theme pass
+- `src/components/project-navbar.tsx` — dark tab styling
+- `src/app/dashboard/projects/variations/` — dark theme pass
+- `src/app/dashboard/projects/billing/` — dark theme pass
+- `src/app/dashboard/projects/schedule/client-page.tsx` — dark Gantt card
+- `src/app/dashboard/projects/costs/estimate-client.tsx` — dark inputs/cards
+- `src/app/dashboard/projects/new/` — dark wizard
+- `src/app/onboarding/` — dark all 4 steps + layout fix
 
 ---
 

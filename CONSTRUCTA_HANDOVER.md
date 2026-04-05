@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 5 April 2026 (end of Sprint 16)
+**Last updated:** 5 April 2026 (end of Sprint 18)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -403,37 +403,45 @@ Direct Cost (trade lines)
 | 14 | Job P&L Dashboard — KPI strip, budget vs actual by section + drill-down, 5-tab LogCostSheet, invoice tracker; Global P&L; Live Projects Overview; Kanban pipeline + optimistic updates; sidebar accordion; financial year month on profiles |
 | 15 | Resource Catalogues — Staff (simple/full rate modes, job title + 60-item autocomplete, full cost buildup, hourly/daily/annual table); Plant (simple/full rate modes, 6 new categories, depreciation model, 70-item name autocomplete, chargeout table); numeric input select-all UX; fix simple-rate staff £0 bug |
 | 16 | Cost Capture Enhancements — WBS-based cost logging (estimate lines picker, section and line modes); Labour time units (hours/half-days/days); Receipt/document upload (Supabase Storage `receipts` bucket, thumbnail + PDF icon, paperclip in table); Fix critical "use server" 500 bug; DB: estimate_line_id FK + receipt_url + all resource columns live |
+| 17 | UI/UX Dark Theme Consistency Pass — Brief page hero + dark inputs + chat bubbles; Project navbar dark tabs; Programme dark Gantt card; Estimating dark inputs/cards/summary; Variations + Billing dark theme + KPI strips; New Project wizard dark; Onboarding dark (all 4 steps); Onboarding layout fix (was rendering marketing header); correct ProjectNavBar activeTab on Variations/Billing |
+| 18 | Pre-Construction Workflow Polish — Fix Gantt bar width (manualDays/calculatedDays) and position (startOffset days→weeks); Fix Preliminaries PDF to render per-line not lump-sum; Add T&C clauses 10-12 (Materials, Practical Completion, Confidentiality); Fix Why Choose Us specialism splitting + project-type bullet + fallbacks; Add PDF error toast; Fix contract value default to use estimate total; New `getProposalLinkAction` (copy link no longer sets status=sent); Fix start date AI extraction in Brief; Fix rate/unit uncontrolled inputs with key prop; Fix Cost Summary z-index (z-20 + solid bg); Remove duplicate Estimating header; Auto-scaffold BoQ from Brief trade selection; Drawing upload callout on Brief page; Expand TRADE_SECTIONS 15→22; Expand AI trades prompt to 47 exact-match names; Fix chip shift-bug with disabled guard; Fix public proposal totalWeeks calculation |
 
-> ⚠️ **Sprint numbering note (5 April 2026):** Sprints 15 and 16 above are NEW sprints inserted between the original Sprint 14 (P&L) and the originally planned Sprint 15 (UI/UX Consistency Pass). All downstream sprints shift +2. Original roadmap end: Sprint 41. Corrected total: **Sprint 43**.
+> ⚠️ **Sprint numbering note (5 April 2026):** Sprints 15 and 16 above are NEW sprints inserted between the original Sprint 14 (P&L) and the originally planned Sprint 15 (UI/UX Consistency Pass). All downstream sprints shift +2. Original roadmap end: Sprint 41. Corrected total: **Sprint 44**.
 
 ---
 
 ## Sprint Backlog — Complete Roadmap (Sprints 15–44)
 
-### Sprint 17 — UI/UX Consistency Pass
-Every page to the Contract Shield / Job P&L dark-theme standard. Currently Brief, Estimating, Programme, Profile and Proposal editor lag behind significantly.
-- Audit every dashboard page against the Contracts/Overview benchmark
-- Consistent dark-slate base: `bg-slate-900` pages, `bg-slate-800/50` cards, `border-slate-700`
-- Hero/identity block on every major section (icon + title + subtitle + AI badge where applicable)
-- Tab bars, button styles, input styles unified across all pages
-- Typography scale consistent — headings, labels, helper text all matching
-- Empty states on every list/table (not just blank space)
-- Loading states: spinners/skeletons where AI calls take time
-- Mobile: nothing broken on a phone (full responsive is a later sprint)
-- Priority pages: Brief → Estimating → Programme → Profile/Settings → Proposal editor
+### ✅ Sprint 17 — UI/UX Dark Theme Consistency Pass (COMPLETE — 5 April 2026)
+Applied Contract Shield / Job P&L dark-theme standard to all lagging pages:
+- Brief page: hero block, dark inputs, dark chat bubbles, loading spinner text
+- Project navbar: dark tab styling (`border-blue-500` active, `border-slate-700/50` base)
+- Estimating: dark inputs/selects/cards/summary strip
+- Programme: dark Gantt card, week headers, phase row inputs
+- Variations + Billing: hero blocks, KPI strips, dark dialogs, correct `activeTab`
+- New Project wizard: removed `bg-white`, dark step indicators + cards
+- Onboarding: dark all 4 steps; new `layout.tsx` fixes marketing header appearing on `/onboarding`
 
-### Sprint 18 — Pre-Construction Workflow Polish
-The 5-step workflow functions but doesn't flow end-to-end correctly. Data from earlier steps doesn't reliably pull through to the Proposal.
-- Brief → Proposal: audit what scope flows through and what gets lost
-- Estimate → Proposal PDF: verify all section totals, line items, payment schedule render correctly
-- Programme → Proposal PDF: confirm programme_phases always renders, fallback works
-- Contracts → Proposal PDF: T&C tier, exclusions, clarifications, risk register all correct
-- Profile → Proposal PDF: logo, capability statement, MD message, case studies — full end-to-end test
-- Proposal editor UX: section-by-section review — editable vs auto-populated vs missing
-- Full end-to-end test: new project → all 5 steps → PDF → document any gaps
-- AI suggestions: each step should have AI assistance matching the quality of Brief/Contracts
+### ✅ Sprint 18 — Pre-Construction Workflow Polish (COMPLETE — 5 April 2026)
+All 15 backlog items delivered. Commit `6c9dd42`, deployed `dpl_5mEsArgjbxW3DnNMPmh1S9q33w1e` (READY).
+- **Gantt fixed:** bars now correct width (`manualDays ?? calculatedDays`) and position (`startOffset / 7` days→weeks)
+- **Prelims PDF:** renders individual line items, not a single lump-sum row
+- **T&Cs:** clauses 10–12 added (Materials & Ownership, Practical Completion, Confidentiality)
+- **Why Choose Us:** specialism splitting fixed, project-type bullet, fallback content when profile sparse
+- **PDF error toast:** `try/catch` + `toast.error()` — failures now visible
+- **Contract value:** defaults to estimate total when estimate exists (`useState(estimatedTotal > 0)`)
+- **Copy Link:** new `getProposalLinkAction` — no longer sets `proposal_status = "sent"` on copy
+- **Start date AI:** `processBriefChatAction` extracts start date → auto-fills the date field
+- **Rate/unit inputs:** `key={line.unit_rate}` / `key={line.unit}` — uncontrolled inputs now update on library selection
+- **Cost Summary z-index:** `z-20` + `bg-slate-900` — no longer overlapped by section content
+- **Estimating header:** removed legacy duplicate project selector
+- **Auto-scaffold BoQ:** `saveBriefAction` inserts placeholder estimate lines from brief trade selection
+- **Drawing callout:** purple dashed link on Brief page → Estimating (Vision Takeoff promo)
+- **TRADE_SECTIONS:** expanded 15 → 22 in estimate-client; chip click guarded with `disabled` prop
+- **AI trades prompt:** updated to 47 exact-match names from `ALL_TRADES`
+- **Public proposal:** `totalWeeks` now reads `manualDays ?? calculatedDays`; `programme_phases` added to select
 
-### Sprint 19 — Gantt Drag-and-Drop & Programme Polish
+### 🔜 Sprint 19 — Gantt Drag-and-Drop & Programme Polish ← NEXT
 - Drag bars left/right to adjust start offset (sequencing)
 - Drag right edge to resize duration
 - Dependencies: Finish-to-Start linking between phases (visual connector lines)

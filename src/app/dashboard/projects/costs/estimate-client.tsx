@@ -422,18 +422,18 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
         <div className="space-y-6">
             {/* HEADER WITH CTA */}
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-slate-900">Estimating</h1>
+                <h1 className="text-2xl font-bold text-white">Estimating</h1>
                 <div className="flex items-center gap-3">
                     {contractSum > 0 && (
-                        <span className="text-sm text-gray-500">Contract Sum: <strong>{formatGBP(contractSum)}</strong></span>
+                        <span className="text-sm text-slate-400">Contract Sum: <strong className="text-slate-200">{formatGBP(contractSum)}</strong></span>
                     )}
                     <Link href={`/dashboard/projects/schedule?projectId=${projectId}`}
-                        className="bg-white border border-gray-200 text-gray-700 px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-gray-50 flex items-center gap-2">
+                        className="bg-slate-800 border border-slate-700 text-slate-300 px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-2">
                         <CalendarDays className="w-4 h-4" />
                         View Programme
                     </Link>
                     <Link href={`/dashboard/projects/schedule?projectId=${projectId}`}
-                        className="bg-gray-900 text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-gray-700 flex items-center gap-2">
+                        className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-blue-500 transition-colors flex items-center gap-2">
                         <CalendarDays className="w-4 h-4" />
                         Next: Programme →
                     </Link>
@@ -449,8 +449,8 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                         onClick={() => setActiveTab(est.id)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
                             activeTab === est.id
-                                ? "bg-slate-900 text-white shadow-md"
-                                : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                                ? "bg-slate-700 text-white border border-slate-600"
+                                : "bg-slate-800/50 text-slate-400 border border-slate-700 hover:bg-slate-700/50 hover:text-slate-200"
                         }`}
                     >
                         {est.version_name || "Estimate"}
@@ -460,13 +460,13 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                 <button
                     type="button"
                     onClick={handleCreateEstimate}
-                    className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-500 transition-colors flex items-center gap-1.5"
                 >
                     <Plus className="w-4 h-4" /> New Estimate
                 </button>
 
                 {/* Save indicator */}
-                <div className="ml-auto text-xs text-slate-400 flex items-center gap-1.5">
+                <div className="ml-auto text-xs text-slate-500 flex items-center gap-1.5">
                     {saveStatus === "saving" && (
                         <>
                             <Loader2 className="w-3 h-3 animate-spin" /> Saving...
@@ -474,77 +474,82 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     )}
                     {saveStatus === "saved" && (
                         <>
-                            <Check className="w-3 h-3 text-green-500" /> Saved
+                            <Check className="w-3 h-3 text-emerald-400" /> Saved
                         </>
                     )}
                 </div>
             </div>
 
             {!currentEstimate ? (
-                <div className="text-center py-20 text-slate-400">
-                    <p className="text-lg mb-2">No estimates yet</p>
-                    <p className="text-sm">Click &quot;New Estimate&quot; to create your first Bill of Quantities.</p>
+                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl px-5 py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="h-12 w-12 rounded-xl bg-slate-700/50 flex items-center justify-center">
+                            <Plus className="h-6 w-6 text-slate-500" />
+                        </div>
+                        <p className="text-sm text-slate-500">No estimates yet</p>
+                        <p className="text-xs text-slate-600">Click &quot;New Estimate&quot; to create your first Bill of Quantities.</p>
+                    </div>
                 </div>
             ) : (
                 <>
                     {/* ESTIMATE HEADER */}
-                    <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
+                    <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 space-y-4">
                         <div className="flex flex-wrap items-end gap-4">
                             <div className="flex-1 min-w-[200px]">
-                                <label className="text-xs font-bold uppercase text-slate-500 block mb-1">Estimate Name</label>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Estimate Name</label>
                                 <input
                                     type="text"
                                     defaultValue={currentEstimate.version_name}
                                     onBlur={(e) => handleNameBlur(e.target.value)}
-                                    className="w-full h-10 px-3 border border-slate-200 rounded-md text-slate-900 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50"
                                 />
                             </div>
                             <div className="w-24">
-                                <label className="text-xs font-bold uppercase text-slate-500 block mb-1">Prelims %</label>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Prelims %</label>
                                 <input
                                     type="number"
                                     step="0.5"
                                     value={currentEstimate.prelims_pct}
                                     onChange={(e) => handleMarginChange("prelims_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("prelims_pct", parseFloat(e.target.value) || 0)}
-                                    className="w-full h-10 px-3 border border-slate-200 rounded-md text-slate-900 text-sm text-center"
+                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500/50"
                                 />
                             </div>
                             <div className="w-24">
-                                <label className="text-xs font-bold uppercase text-slate-500 block mb-1">Overhead %</label>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Overhead %</label>
                                 <input
                                     type="number"
                                     step="0.5"
                                     value={currentEstimate.overhead_pct}
                                     onChange={(e) => handleMarginChange("overhead_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("overhead_pct", parseFloat(e.target.value) || 0)}
-                                    className="w-full h-10 px-3 border border-slate-200 rounded-md text-slate-900 text-sm text-center"
+                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500/50"
                                 />
                             </div>
                             <div className="w-24">
-                                <label className="text-xs font-bold uppercase text-slate-500 block mb-1">Risk %</label>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Risk %</label>
                                 <input
                                     type="number"
                                     step="0.5"
                                     value={currentEstimate.risk_pct}
                                     onChange={(e) => handleMarginChange("risk_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("risk_pct", parseFloat(e.target.value) || 0)}
-                                    className="w-full h-10 px-3 border border-slate-200 rounded-md text-slate-900 text-sm text-center"
+                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500/50"
                                 />
                             </div>
                             <div className="w-24">
-                                <label className="text-xs font-bold uppercase text-slate-500 block mb-1">Profit %</label>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Profit %</label>
                                 <input
                                     type="number"
                                     step="0.5"
                                     value={currentEstimate.profit_pct}
                                     onChange={(e) => handleMarginChange("profit_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("profit_pct", parseFloat(e.target.value) || 0)}
-                                    className="w-full h-10 px-3 border border-slate-200 rounded-md text-slate-900 text-sm text-center"
+                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500/50"
                                 />
                             </div>
                             <div className="w-24">
-                                <label className="text-xs font-bold uppercase text-slate-500 block mb-1">Discount %</label>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Discount %</label>
                                 <input
                                     type="number"
                                     step="0.5"
@@ -561,26 +566,26 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                             .then(() => showSaved())
                                             .catch(console.error);
                                     }}
-                                    className="w-full h-10 px-3 border border-green-200 rounded-md text-green-700 text-sm text-center bg-green-50"
+                                    className="w-full h-10 px-3 border border-emerald-700/50 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
                                 />
                             </div>
                             <div className="flex gap-2">
                                 <button
                                     type="button"
                                     onClick={() => handleSetActive(currentEstimate.id)}
-                                    className={`h-10 px-4 rounded-md text-sm font-medium flex items-center gap-1.5 ${
+                                    className={`h-10 px-4 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
                                         currentEstimate.is_active
-                                            ? "bg-amber-100 text-amber-800 border border-amber-300"
-                                            : "bg-slate-100 text-slate-600 hover:bg-amber-50 border border-slate-200"
+                                            ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                                            : "bg-slate-700/50 text-slate-400 hover:bg-amber-500/10 hover:text-amber-400 border border-slate-600"
                                     }`}
                                 >
-                                    <Star className={`w-3.5 h-3.5 ${currentEstimate.is_active ? "fill-amber-500" : ""}`} />
+                                    <Star className={`w-3.5 h-3.5 ${currentEstimate.is_active ? "fill-amber-400" : ""}`} />
                                     {currentEstimate.is_active ? "Active" : "Use in Proposal"}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => handleDeleteEstimate(currentEstimate.id)}
-                                    className="h-10 px-3 rounded-md text-red-500 hover:bg-red-50 border border-slate-200"
+                                    className="h-10 px-3 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 border border-slate-700 transition-colors"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>
@@ -588,7 +593,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                         </div>
                         {currentEstimate.discount_pct > 0 && (
                             <div className="flex items-center gap-3">
-                                <label className="text-xs font-bold uppercase text-slate-500 whitespace-nowrap">Discount Reason</label>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">Discount Reason</label>
                                 <input
                                     type="text"
                                     value={currentEstimate.discount_reason || ""}
@@ -601,7 +606,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                             .then(() => showSaved())
                                             .catch(console.error);
                                     }}
-                                    className="flex-1 h-10 px-3 border border-green-200 rounded-md text-green-700 text-sm bg-green-50"
+                                    className="flex-1 h-10 px-3 border border-emerald-700/50 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
                                     placeholder="e.g. Returning client, early payment, etc."
                                 />
                             </div>
@@ -610,10 +615,10 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
 
                     {/* Vision Takeoff prompt — shown when estimate is empty */}
                     {displayLines.length === 0 && (
-                        <div className="mb-4 p-4 border-2 border-dashed border-purple-200 rounded-xl bg-purple-50/50 flex items-center justify-between">
+                        <div className="mb-4 p-4 border-2 border-dashed border-purple-500/30 rounded-xl bg-purple-500/5 flex items-center justify-between">
                             <div>
-                                <p className="font-medium text-gray-900">Got a drawing?</p>
-                                <p className="text-sm text-gray-600">Upload a floor plan or sketch and AI extracts quantities automatically.</p>
+                                <p className="font-medium text-slate-200">Got a drawing?</p>
+                                <p className="text-sm text-slate-400">Upload a floor plan or sketch and AI extracts quantities automatically.</p>
                             </div>
                             <VisionTakeoff onAddItem={handleAddFromVision} />
                         </div>
@@ -621,13 +626,13 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
 
                     {/* ADD SECTION */}
                     <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-bold uppercase text-slate-500">Add Section:</span>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Add Section:</span>
                         {TRADE_SECTIONS.filter((s) => !sectionGroups[s]?.length).map((section) => (
                             <button
                                 type="button"
                                 key={section}
                                 onClick={() => handleAddLine(section)}
-                                className="px-3 py-1.5 rounded-md text-xs font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                                className="px-3 py-1.5 rounded-md text-xs font-medium bg-slate-800/50 border border-slate-700 text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 hover:border-slate-600 transition-colors"
                             >
                                 + {section}
                             </button>
@@ -643,15 +648,15 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                         );
 
                         return (
-                            <div key={section} className="bg-white border border-slate-200 rounded-xl" style={{ overflow: "visible" }}>
+                            <div key={section} className="bg-slate-800/50 border border-slate-700/50 rounded-xl" style={{ overflow: "visible" }}>
                                 {/* Section header */}
-                                <div className="flex items-center justify-between px-5 py-3 bg-slate-900 text-white rounded-t-xl">
-                                    <h3 className="font-bold text-sm uppercase tracking-wide">{section}</h3>
-                                    <span className="font-bold text-sm">{formatGBP(sectionTotal)}</span>
+                                <div className="flex items-center justify-between px-5 py-3 bg-slate-900/50 border-b border-slate-700/50 rounded-t-xl">
+                                    <h3 className="font-bold text-sm uppercase tracking-wide text-slate-200">{section}</h3>
+                                    <span className="font-bold text-sm text-slate-100">{formatGBP(sectionTotal)}</span>
                                 </div>
 
                                 {/* Table header */}
-                                <div className="grid grid-cols-[70px_1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 bg-slate-50 border-b border-slate-200 text-xs font-bold uppercase text-slate-500">
+                                <div className="grid grid-cols-[70px_1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 bg-slate-900/30 border-b border-slate-700/50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                                     <div>Type</div>
                                     <div>Description</div>
                                     <div className="text-center">Qty</div>
@@ -666,7 +671,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                     <div key={line.id}>
                                         <div className="flex items-stretch">
                                             {/* Mode toggle button */}
-                                            <div className="flex items-center px-2 border-b border-slate-100">
+                                            <div className="flex items-center px-2 border-b border-slate-700/30">
                                                 <button
                                                     type="button"
                                                     onClick={() => handleTogglePricingMode(line.id, line.pricing_mode)}
@@ -674,7 +679,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                                     className={`flex-shrink-0 w-5 h-5 rounded text-xs font-bold border transition-colors ${
                                                         line.pricing_mode === "buildup"
                                                             ? "bg-blue-600 text-white border-blue-600"
-                                                            : "bg-white text-gray-400 border-gray-300 hover:border-blue-400"
+                                                            : "bg-slate-700 text-slate-400 border-slate-600 hover:border-blue-500 hover:text-slate-200"
                                                     }`}
                                                 >
                                                     +
@@ -711,7 +716,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                 <button
                                     type="button"
                                     onClick={() => handleAddLine(section)}
-                                    className="w-full px-5 py-2.5 text-left text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-1.5 transition-colors"
+                                    className="w-full px-5 py-2.5 text-left text-sm text-blue-400 hover:bg-blue-500/10 flex items-center gap-1.5 transition-colors"
                                 >
                                     <Plus className="w-4 h-4" /> Add line item
                                 </button>
@@ -720,8 +725,8 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     })}
 
                     {/* SUMMARY STRIP */}
-                    <div className="bg-white border border-slate-200 rounded-xl p-5 sticky bottom-0 shadow-lg">
-                        <h3 className="font-bold text-sm uppercase tracking-wide text-slate-500 mb-4">Cost Summary</h3>
+                    <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 sticky bottom-0 shadow-lg">
+                        <h3 className="font-semibold text-[11px] uppercase tracking-wider text-slate-500 mb-4">Cost Summary</h3>
                         <div className="space-y-2">
                             <SummaryRow label="Direct Construction Cost" value={directCost} />
                             {(prelimsTotal > 0 || prelimsPct > 0) && (
@@ -730,7 +735,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                     value={prelimsTotal}
                                 />
                             )}
-                            <div className="border-t border-slate-200 pt-2 mt-2">
+                            <div className="border-t border-slate-700/50 pt-2 mt-2">
                                 <SummaryRow label="Total Construction Cost" value={totalConstructionCost} bold />
                             </div>
                             {overheadPct > 0 && (
@@ -745,11 +750,11 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                             {discountPct > 0 && (
                                 <SummaryRow label={`Discount (${discountPct}%)`} value={-discountAmount} />
                             )}
-                            <div className="border-t-2 border-slate-900 pt-2 mt-2">
+                            <div className="border-t-2 border-slate-600 pt-2 mt-2">
                                 <SummaryRow label="CONTRACT SUM (exc. VAT)" value={contractSum} bold />
                             </div>
                             <SummaryRow label="VAT (20%)" value={vat} />
-                            <div className="border-t border-slate-200 pt-2 mt-2">
+                            <div className="border-t border-slate-700/50 pt-2 mt-2">
                                 <SummaryRow label="TOTAL inc. VAT" value={totalIncVat} bold large />
                             </div>
                         </div>
@@ -758,7 +763,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     {/* Bottom CTA */}
                     <div className="mt-8 flex justify-end">
                         <Link href={`/dashboard/projects/schedule?projectId=${projectId}`}
-                            className="bg-gray-900 text-white px-6 py-3 rounded-lg font-semibold text-sm hover:bg-gray-700 flex items-center gap-2">
+                            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold text-sm hover:bg-blue-500 transition-colors flex items-center gap-2">
                             <CalendarDays className="w-4 h-4" />
                             Next: Programme →
                         </Link>
@@ -812,12 +817,12 @@ function LineItemRow({
         : [];
 
     return (
-        <div className="grid grid-cols-[70px_1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 border-b border-slate-100 items-center hover:bg-slate-50/50">
+        <div className="grid grid-cols-[70px_1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 border-b border-slate-700/30 items-center hover:bg-slate-700/20 transition-colors">
             {/* Line type badge */}
             <select
                 value={line.line_type || "general"}
                 onChange={(e) => onUpdate(line.id, { line_type: e.target.value })}
-                className="h-8 px-1 border border-slate-200 rounded text-xs text-slate-600 bg-white truncate"
+                className="h-8 px-1 border border-slate-700 rounded text-xs text-slate-400 bg-slate-900/50 truncate focus:outline-none"
             >
                 {LINE_TYPES.map((t) => (
                     <option key={t} value={t}>
@@ -853,10 +858,10 @@ function LineItemRow({
                         }, 200);
                     }}
                     placeholder="Search library or type description..."
-                    className="w-full h-8 px-2 border border-slate-200 rounded text-sm text-slate-900 focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full h-8 px-2 border border-slate-700 rounded text-sm text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50 placeholder:text-slate-600"
                 />
                 {showDropdown && filtered.length > 0 && (
-                    <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
+                    <div className="absolute z-50 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
                         {filtered.map((item) => (
                             <button
                                 type="button"
@@ -867,13 +872,13 @@ function LineItemRow({
                                     setShowDropdown(false);
                                     onLibrarySelect(line.id, item.id, section);
                                 }}
-                                className="w-full text-left px-3 py-1.5 hover:bg-blue-50 flex items-center justify-between text-sm"
+                                className="w-full text-left px-3 py-1.5 hover:bg-slate-700/50 flex items-center justify-between text-sm transition-colors"
                             >
-                                <span className="text-slate-900 truncate">
-                                    <span className="text-slate-400 text-xs mr-1.5">{item.code}</span>
+                                <span className="text-slate-200 truncate">
+                                    <span className="text-slate-500 text-xs mr-1.5">{item.code}</span>
                                     {item.description}
                                 </span>
-                                <span className="text-slate-500 text-xs ml-2 whitespace-nowrap">
+                                <span className="text-slate-400 text-xs ml-2 whitespace-nowrap">
                                     {formatGBP(item.base_rate)}/{item.unit}
                                 </span>
                             </button>
@@ -888,14 +893,14 @@ function LineItemRow({
                 step="0.01"
                 defaultValue={line.quantity}
                 onBlur={(e) => onUpdate(line.id, { quantity: parseFloat(e.target.value) || 0 })}
-                className="h-8 px-2 border border-slate-200 rounded text-sm text-center text-slate-900"
+                className="h-8 px-2 border border-slate-700 rounded text-sm text-center text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
             />
 
             {/* Unit */}
             <select
                 defaultValue={line.unit}
                 onChange={(e) => onUpdate(line.id, { unit: e.target.value })}
-                className="h-8 px-1 border border-slate-200 rounded text-sm text-slate-900 bg-white"
+                className="h-8 px-1 border border-slate-700 rounded text-sm text-slate-300 bg-slate-900/50 focus:outline-none"
             >
                 {UNITS.map((u) => (
                     <option key={u} value={u}>
@@ -906,9 +911,9 @@ function LineItemRow({
 
             {/* Rate */}
             {line.pricing_mode === "buildup" ? (
-                <div className="h-8 px-2 rounded text-sm text-right font-medium text-blue-700 bg-blue-50 flex flex-col items-end justify-center leading-tight">
+                <div className="h-8 px-2 rounded text-sm text-right font-medium text-blue-400 bg-blue-500/10 flex flex-col items-end justify-center leading-tight">
                     <span>{formatGBP(line.unit_rate)}</span>
-                    <span className="text-[9px] text-blue-400">built up</span>
+                    <span className="text-[9px] text-blue-500">built up</span>
                 </div>
             ) : (
                 <input
@@ -916,12 +921,12 @@ function LineItemRow({
                     step="0.01"
                     defaultValue={line.unit_rate}
                     onBlur={(e) => onUpdate(line.id, { unit_rate: parseFloat(e.target.value) || 0 })}
-                    className="h-8 px-2 border border-slate-200 rounded text-sm text-right text-slate-900"
+                    className="h-8 px-2 border border-slate-700 rounded text-sm text-right text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
                 />
             )}
 
             {/* Total (readonly) */}
-            <div className="text-sm font-medium text-slate-900 text-right pr-2">
+            <div className="text-sm font-medium text-slate-200 text-right pr-2">
                 {formatGBP(line.line_total || 0)}
             </div>
 
@@ -929,7 +934,7 @@ function LineItemRow({
             <button
                 type="button"
                 onClick={() => onDelete(line.id)}
-                className="h-8 w-8 flex items-center justify-center rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                className="h-8 w-8 flex items-center justify-center rounded text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
             >
                 <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -941,10 +946,10 @@ function LineItemRow({
 function SummaryRow({ label, value, bold, large }: { label: string; value: number; bold?: boolean; large?: boolean }) {
     return (
         <div className="flex justify-between items-center">
-            <span className={`text-sm ${bold ? "font-bold text-slate-900" : "text-slate-600"} ${large ? "text-base" : ""}`}>
+            <span className={`text-sm ${bold ? "font-bold text-slate-100" : "text-slate-400"} ${large ? "text-base" : ""}`}>
                 {label}
             </span>
-            <span className={`${bold ? "font-bold text-slate-900" : "text-slate-700"} ${large ? "text-lg" : "text-sm"}`}>
+            <span className={`${bold ? "font-bold text-white" : "text-slate-300"} ${large ? "text-lg" : "text-sm"}`}>
                 {formatGBP(value)}
             </span>
         </div>

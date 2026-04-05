@@ -232,24 +232,24 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Programme</h1>
-                    <p className="text-sm text-slate-500">
+                    <h1 className="text-2xl font-bold text-white">Programme</h1>
+                    <p className="text-sm text-slate-400">
                         {project.name} — {estimate ? `From: ${estimate.version_name}` : "No active estimate"}
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
                     {saveStatus === "saving" && <span className="text-xs text-slate-400 animate-pulse">Saving...</span>}
-                    {saveStatus === "saved" && <span className="text-xs text-green-500">Saved</span>}
+                    {saveStatus === "saved" && <span className="text-xs text-emerald-400">Saved</span>}
                     <button
                         onClick={handleRegenerate}
-                        className="px-4 py-2 rounded-lg text-sm font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                        className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
                     >
                         Regenerate from estimate
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={isPending}
-                        className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-50"
+                        className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 transition-colors"
                     >
                         Save to Proposal
                     </button>
@@ -258,41 +258,48 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
             {/* Info */}
             {totalManhours > 0 && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-center gap-6 text-sm text-blue-700">
-                    <span>Total manhours: <strong>{totalManhours.toFixed(0)}h</strong></span>
-                    <span>Total duration: <strong>{totalDays} days</strong> ({totalWeeks} weeks)</span>
-                    <span>Start: <strong>{formatDate(projectStart)}</strong></span>
-                    <span>End: <strong>{formatDate(addDays(projectStart, totalDays))}</strong></span>
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg px-4 py-3 flex items-center gap-6 text-sm text-blue-300">
+                    <span>Total manhours: <strong className="text-blue-200">{totalManhours.toFixed(0)}h</strong></span>
+                    <span>Total duration: <strong className="text-blue-200">{totalDays} days</strong> ({totalWeeks} weeks)</span>
+                    <span>Start: <strong className="text-blue-200">{formatDate(projectStart)}</strong></span>
+                    <span>End: <strong className="text-blue-200">{formatDate(addDays(projectStart, totalDays))}</strong></span>
                 </div>
             )}
 
             {phases.length === 0 ? (
-                <div className="text-center py-20 text-slate-400">
-                    <p className="text-lg mb-2">No programme phases</p>
-                    <p className="text-sm">
-                        {estimate
-                            ? "Add labour components with manhours to your estimate lines to auto-generate a programme."
-                            : "Set an estimate as active to generate the programme."}
-                    </p>
+                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl px-5 py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="h-12 w-12 rounded-xl bg-slate-700/50 flex items-center justify-center">
+                            <svg className="h-6 w-6 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <p className="text-sm text-slate-500">No programme phases</p>
+                        <p className="text-xs text-slate-600">
+                            {estimate
+                                ? "Add labour components with manhours to your estimate lines to auto-generate a programme."
+                                : "Set an estimate as active to generate the programme."}
+                        </p>
+                    </div>
                 </div>
             ) : (
-                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
                     {/* Week headers */}
-                    <div className="flex border-b border-slate-200">
-                        <div className="w-64 flex-shrink-0 bg-slate-50 px-4 py-2 border-r border-slate-200">
-                            <span className="text-xs font-bold uppercase text-slate-500">Phase / Trade</span>
+                    <div className="flex border-b border-slate-700/50">
+                        <div className="w-64 flex-shrink-0 bg-slate-900/30 px-4 py-2 border-r border-slate-700/50">
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Phase / Trade</span>
                         </div>
-                        <div className="w-20 flex-shrink-0 bg-slate-50 px-2 py-2 border-r border-slate-200 text-center">
-                            <span className="text-xs font-bold uppercase text-slate-500">Days</span>
+                        <div className="w-20 flex-shrink-0 bg-slate-900/30 px-2 py-2 border-r border-slate-700/50 text-center">
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Days</span>
                         </div>
-                        <div className="w-20 flex-shrink-0 bg-slate-50 px-2 py-2 border-r border-slate-200 text-center">
-                            <span className="text-xs font-bold uppercase text-slate-500">Override</span>
+                        <div className="w-20 flex-shrink-0 bg-slate-900/30 px-2 py-2 border-r border-slate-700/50 text-center">
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Override</span>
                         </div>
-                        <div className="flex-1 bg-slate-50 flex">
+                        <div className="flex-1 bg-slate-900/30 flex">
                             {weekHeaders.map((wk, i) => (
                                 <div
                                     key={i}
-                                    className="flex-1 text-center text-[10px] text-slate-500 font-medium py-2 border-r border-slate-100 last:border-0"
+                                    className="flex-1 text-center text-[10px] text-slate-500 font-medium py-2 border-r border-slate-700/30 last:border-0"
                                     style={{ minWidth: 40 }}
                                 >
                                     {wk}
@@ -311,21 +318,21 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         const phaseEnd = addDays(projectStart, phase.startOffset + duration);
 
                         return (
-                            <div key={idx} className="flex border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
+                            <div key={idx} className="flex border-b border-slate-700/30 last:border-0 hover:bg-slate-700/20 transition-colors">
                                 {/* Phase name */}
-                                <div className="w-64 flex-shrink-0 px-4 py-3 border-r border-slate-100">
+                                <div className="w-64 flex-shrink-0 px-4 py-3 border-r border-slate-700/30">
                                     <input
-                                        className="font-medium text-sm text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-slate-500 outline-none w-full"
+                                        className="font-medium text-sm text-slate-100 bg-transparent border-b border-transparent hover:border-slate-600 focus:border-slate-500 outline-none w-full"
                                         value={phase.name}
                                         onChange={e => updatePhaseName(idx, e.target.value)}
                                     />
-                                    <div className="text-[10px] text-slate-400 flex items-center gap-2">
+                                    <div className="text-[10px] text-slate-500 flex items-center gap-2">
                                         <span>{formatDate(phaseStart)} – {formatDate(phaseEnd)}</span>
                                         {phase.manhours > 0 && <span>{phase.manhours.toFixed(0)}h</span>}
                                         <button
                                             type="button"
                                             onClick={() => deletePhase(idx)}
-                                            className="text-red-400 hover:text-red-600 ml-auto"
+                                            className="text-slate-600 hover:text-red-400 ml-auto transition-colors"
                                             title="Remove phase"
                                         >
                                             ×
@@ -334,15 +341,15 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                 </div>
 
                                 {/* Calculated duration */}
-                                <div className="w-20 flex-shrink-0 px-2 py-3 border-r border-slate-100 text-center text-sm text-slate-600">
+                                <div className="w-20 flex-shrink-0 px-2 py-3 border-r border-slate-700/30 text-center text-sm text-slate-400">
                                     {phase.calculatedDays}d
                                 </div>
 
                                 {/* Manual override */}
-                                <div className="w-20 flex-shrink-0 px-2 py-3 border-r border-slate-100 flex items-center justify-center">
+                                <div className="w-20 flex-shrink-0 px-2 py-3 border-r border-slate-700/30 flex items-center justify-center">
                                     <input
                                         type="number"
-                                        className="w-14 h-7 px-1 text-center text-xs border border-slate-200 rounded bg-white text-slate-700"
+                                        className="w-14 h-7 px-1 text-center text-xs border border-slate-700 rounded bg-slate-900/50 text-slate-100 focus:outline-none focus:border-blue-500/50"
                                         value={phase.manualDays ?? ""}
                                         onChange={(e) => handleManualDuration(idx, e.target.value)}
                                         placeholder="—"
@@ -351,7 +358,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
                                 {/* Gantt bar */}
                                 <div className="flex-1 relative py-3 px-1">
-                                    <div className="relative h-7 bg-slate-100 rounded overflow-hidden">
+                                    <div className="relative h-7 bg-slate-700/30 rounded overflow-hidden">
                                         <div
                                             className={`absolute h-full ${color} rounded opacity-90 text-white text-[10px] flex items-center justify-center whitespace-nowrap transition-all duration-300`}
                                             style={{
@@ -374,14 +381,14 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 <button
                     type="button"
                     onClick={addPhase}
-                    className="px-4 py-2 rounded-lg text-sm font-medium bg-white border border-dashed border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50"
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-800/50 border border-dashed border-slate-600 text-slate-400 hover:border-slate-500 hover:text-slate-200 hover:bg-slate-700/50 transition-colors"
                 >
                     + Add Phase
                 </button>
             </div>
 
             {/* Note */}
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500">
                 Durations calculated from estimated manhours (1 operative, 8hr day). Adjust manually if needed.
             </p>
         </div>

@@ -413,11 +413,11 @@ Direct Cost (trade lines)
 | 18 | Pre-Construction Workflow Polish — Fix Gantt bar width (manualDays/calculatedDays) and position (startOffset days→weeks); Fix Preliminaries PDF to render per-line not lump-sum; Add T&C clauses 10-12 (Materials, Practical Completion, Confidentiality); Fix Why Choose Us specialism splitting + project-type bullet + fallbacks; Add PDF error toast; Fix contract value default to use estimate total; New `getProposalLinkAction` (copy link no longer sets status=sent); Fix start date AI extraction in Brief; Fix rate/unit uncontrolled inputs with key prop; Fix Cost Summary z-index (z-20 + solid bg); Remove duplicate Estimating header; Auto-scaffold BoQ from Brief trade selection; Drawing upload callout on Brief page; Expand TRADE_SECTIONS 15→22; Expand AI trades prompt to 47 exact-match names; Fix chip shift-bug with disabled guard; Fix public proposal totalWeeks calculation |
 | 19 | Gantt Drag-and-Drop & Programme Polish — Drag bars to reposition (snaps to calendar week); Drag right edge to resize (snaps to working-week increments); Dependency arrows: "Starts After" select per phase → SVG amber bezier curves, auto-snaps successor to predecessor end; Critical path: yellow ring on phases ending in final week; Working week selector (4/5/6/7d, default 5, persisted localStorage); Monday-anchored start dates: date input snaps forward to Monday, week headers always show WC Mon dates; 4-card summary strip; Auto-sequence button; `updatePhasesAction` saves `start_date` to project and revalidates proposal paths; `calculatedDays`/`manualDays` = working days; `startOffset` = calendar days |
 
-> ⚠️ **Sprint numbering note (5 April 2026):** Sprints 15 and 16 above are NEW sprints inserted between the original Sprint 14 (P&L) and the originally planned Sprint 15 (UI/UX Consistency Pass). All downstream sprints shift +2. Original roadmap end: Sprint 41. Corrected total: **Sprint 44**.
+> ⚠️ **Sprint numbering note (5 April 2026):** Sprints 15 and 16 above are NEW sprints inserted between the original Sprint 14 (P&L) and the originally planned Sprint 15 (UI/UX Consistency Pass). All downstream sprints shift +2. Original roadmap end: Sprint 41. Corrected total: **Sprint 46** (further updated 6 April 2026: Sprints 23–24 added for Onboarding Polish and LemonSqueezy Billing, shifting all subsequent sprints +2).
 
 ---
 
-## Sprint Backlog — Complete Roadmap (Sprints 15–44)
+## Sprint Backlog — Complete Roadmap (Sprints 15–46)
 
 ### ✅ Sprint 17 — UI/UX Dark Theme Consistency Pass (COMPLETE — 5 April 2026)
 Applied Contract Shield / Job P&L dark-theme standard to all lagging pages:
@@ -458,6 +458,17 @@ Commits `abd72e3`, `4c91891`, `22a4b8e`.
 - **Monday start dates:** `snapToMonday()` on any date input; week headers always show WC Mon date; saved to `projects.start_date` on "Save to Proposal"
 - **Data model:** `calculatedDays`/`manualDays` = working days; `startOffset` = calendar days (multiples of 7)
 
+### ✅ Sprint 20 — Constructa Admin Dashboard Phase 1 (COMPLETE — 6 April 2026)
+Commit `ae36de8`.
+- **`/admin` route:** protected — middleware redirects unauthenticated users to `/login`; layout checks `user.email === ADMIN_EMAIL` env var (server-side), non-admins redirected to `/dashboard`
+- **Service role client:** `src/lib/supabase/admin.ts` — bypasses RLS, requires `SUPABASE_SERVICE_ROLE_KEY` env var (`.env.local` + Vercel), server-only
+- **Subscriber list:** fetches all profiles + auth user emails (via `supabase.auth.admin.listUsers`), joins with projects/estimates/contracts data; sortable/searchable table; Active/Inactive status badge (30-day activity)
+- **Revenue KPIs:** Total Subscribers, Active (30d), MRR (subscribers × £49/mo), ARR (MRR × 12) — `PLAN_PRICE_GBP` constant in `admin-client.tsx` to update when billing goes live
+- **Usage stats:** total projects, estimates, proposals sent, contracts reviewed — platform-wide aggregates
+- **Platform info panel:** Supabase project ref, region, hosting, AI model, link to Supabase dashboard
+- **Sidebar link:** `isAdmin` prop threaded through `dashboard/layout.tsx` → `DashboardShell` → `SidebarNav` — amber "⚡ Admin Dashboard" button shown only when email matches `ADMIN_EMAIL`
+- **Required env vars:** `ADMIN_EMAIL` + `SUPABASE_SERVICE_ROLE_KEY` (add to `.env.local` AND Vercel)
+
 ### ✅ Sprint 21 — Comprehensive BI Admin Dashboard (COMPLETE — 6 April 2026)
 Commit `182457f`. DB migration `sprint21_admin_bi_foundation`.
 - **9-tab admin dashboard** at `/admin`: Overview · Revenue & P&L · Growth · Retention · Engagement · Geography · Costs · Website · Reports
@@ -475,79 +486,75 @@ Commit `182457f`. DB migration `sprint21_admin_bi_foundation`.
 - **PLAN_PRICE_GBP = 49** in `types.ts` — single constant to update when Stripe billing goes live
 
 ### 🔜 Sprint 22 — Proposal Versioning ← NEXT
+- Up-rev proposals (v1, v2, v3) with full version history
+- Change tracking: what changed in scope, price, terms between versions
+- Version notes: "Revised following client call" annotations
+- Client portal always shows latest version
+- Discount tracking per revision
 
-### ✅ Sprint 20 — Constructa Admin Dashboard Phase 1 (COMPLETE — 6 April 2026)
-Commit `ae36de8`.
-- **`/admin` route:** protected — middleware redirects unauthenticated users to `/login`; layout checks `user.email === ADMIN_EMAIL` env var (server-side), non-admins redirected to `/dashboard`
-- **Service role client:** `src/lib/supabase/admin.ts` — bypasses RLS, requires `SUPABASE_SERVICE_ROLE_KEY` env var (`.env.local` + Vercel), server-only
-- **Subscriber list:** fetches all profiles + auth user emails (via `supabase.auth.admin.listUsers`), joins with projects/estimates/contracts data; sortable/searchable table; Active/Inactive status badge (30-day activity)
-- **Revenue KPIs:** Total Subscribers, Active (30d), MRR (subscribers × £49/mo), ARR (MRR × 12) — `PLAN_PRICE_GBP` constant in `admin-client.tsx` to update when billing goes live
-- **Usage stats:** total projects, estimates, proposals sent, contracts reviewed — platform-wide aggregates
-- **Platform info panel:** Supabase project ref, region, hosting, AI model, link to Supabase dashboard
-- **Sidebar link:** `isAdmin` prop threaded through `dashboard/layout.tsx` → `DashboardShell` → `SidebarNav` — amber "⚡ Admin Dashboard" button shown only when email matches `ADMIN_EMAIL`
-- **Required env vars:** `ADMIN_EMAIL` + `SUPABASE_SERVICE_ROLE_KEY` (add to `.env.local` AND Vercel)
+### Sprint 23 — Onboarding Polish + Email Notifications
+- First-time user experience improvements (guided tour, empty states, tooltips)
+- Email notification: "Your proposal has been viewed" → Resend to contractor when client opens proposal
+- Email notification: "Proposal accepted!" → Resend to contractor on client acceptance
+- Welcome email to new signups (Resend)
+- Onboarding completion checklist (company profile → first project → first estimate → first proposal)
 
-### Sprint 22 — Proposal Versioning
+### Sprint 24 — LemonSqueezy Billing Integration
+- LemonSqueezy replaces previously planned Stripe integration
+- Subscription management: checkout, webhooks, subscription status
+- Gating: restrict features or show upgrade prompt when no active subscription
+- Admin dashboard: real revenue data replaces estimated MRR
+- PLAN_PRICE_GBP constant updated from types.ts once pricing confirmed
 
-### Sprint 22 — Proposal Versioning
-- Up-rev proposals (v1, v2, v3) with change tracking
-- Discount feature already built — versioning enables tracking discounts per revision
-- Show diff between versions (what changed in scope/price)
-
-### Sprint 23 — Billing Module Polish
-- Already functionally built — needs connecting to payment stages from Proposal
-- Programme → Billing milestone automation (phases → payment schedule)
-- Application for Payment form with retention calc
-
-### Sprint 24 — Drawing Upload & AI Takeoff (Headline Feature)
+### Sprint 25 — Drawing Upload & AI Takeoff (Headline Feature)
 - Promote Vision Takeoff from buried button to headline feature
 - Annotation overlay on uploaded drawings
 - Multi-page PDF support, scale detection
 - Drawing register (store multiple drawings per project)
 - Add to marketing site hero
 
-### Sprint 24 — Video Walkthrough AI
+### Sprint 26 — Video Walkthrough AI
 - Upload site survey video → GPT-4o Vision processes frames
 - Extracts rooms/areas/scope items, maps to cost library
 - Generates site survey report PDF, pre-fills Brief scope
 
---- BATCH 1 COMPLETE — LAUNCH POINT (Sprints 14–24) ---
+--- BATCH 1 COMPLETE — LAUNCH POINT (Sprints 14–26) ---
 
-### Sprint 25 — Live Projects: Overview
+### Sprint 27 — Live Projects: Overview
 Project health dashboard for on-site delivery — budget RAG, programme %, outstanding invoices, quick-action buttons.
 
-### Sprint 26 — Live Projects: Cost Tracking
+### Sprint 28 — Live Projects: Cost Tracking
 Log actual costs vs estimate sections in real time. Committed costs, forecast final, over-budget alerts.
 
-### Sprint 27 — Live Projects: Billing & Valuations
+### Sprint 29 — Live Projects: Billing & Valuations
 Payment schedule from Proposal, Application for Payment form, retention ledger, overdue alerts, formal PDF.
 
-### Sprint 28 — Live Projects: Variations
+### Sprint 30 — Live Projects: Variations
 Raise/price/approve variations, client approval tracking, variation log, Final Account incorporation, formal PDF.
 
-### Sprint 29 — Live Projects: Programme (Live Tracking)
+### Sprint 31 — Live Projects: Programme (Live Tracking)
 Planned vs actual Gantt, % complete per phase, delay recording, EOT log, early warning notices, AI weekly update narrative.
 
-### Sprint 30 — Live Projects: Communications
+### Sprint 32 — Live Projects: Communications
 Site instruction log, RFI tracker, Early Warning Notices, formal letter templates, document register (timestamped, non-editable).
 
---- BATCH 2 COMPLETE — LIVE PROJECTS RELEASE (Sprints 25–30) ---
+--- BATCH 2 COMPLETE — LIVE PROJECTS RELEASE (Sprints 27–32) ---
 
-### Sprint 31 — Closed Projects: Final Accounts
+### Sprint 33 — Closed Projects: Final Accounts
 Final Account summary, retention release tracker, agreement status, disputed amounts, formal PDF for client signature.
 
-### Sprint 32 — Closed Projects: Handover Documents
+### Sprint 34 — Closed Projects: Handover Documents
 Document pack builder (O&Ms, warranties, test certs, as-builts), client handover portal, Defects Liability Period tracker.
 
-### Sprint 33 — Closed Projects: Archive
+### Sprint 35 — Closed Projects: Archive
 Project archiving, search, key data preserved, reuse estimate from archive, "Similar projects" matching for new bids.
 
-### Sprint 34 — Closed Projects: Lessons Learned
+### Sprint 36 — Closed Projects: Lessons Learned
 Structured retrospective, AI analysis (estimated vs actual margin, programme vs actual), insight cards, win/loss analysis, feeds cost library rate suggestions.
 
---- BATCH 3 COMPLETE — CLOSED PROJECTS RELEASE (Sprints 31–34) ---
+--- BATCH 3 COMPLETE — CLOSED PROJECTS RELEASE (Sprints 33–36) ---
 
-### Sprint 35 — Data Foundation
+### Sprint 37 — Data Foundation
 Pure database migration — no changes to contractor-facing app. Creates the anonymised
 aggregation layer that makes cross-contractor intelligence possible.
 
@@ -557,56 +564,56 @@ Benchmark tables (no RLS, service-role only, no PII): `project_benchmarks`, `rat
 invoice paid / variation approved to populate tables. GDPR consent gate (`contractors.data_consent`)
 added to onboarding and Settings before any trigger writes fire.
 
-### Sprint 36 — Admin Dashboard Phase 2
+### Sprint 38 — Admin Dashboard Phase 2
 Superadmin tooling for Constructa staff only — not visible to contractors. Data intelligence
 explorer, benchmark browser, market rate maps (choropleth by region/trade), anonymous percentile
 positioning, platform analytics (MAU/DAU/proposals), churn prediction, at-risk account scoring,
 feature usage heatmap.
 
-### Sprint 37 — Contractor Management Accounts
+### Sprint 39 — Contractor Management Accounts
 Consolidated financial view across all of a contractor's projects — the equivalent of a
 management accounts pack generated automatically from Constructa data. Consolidated P&L,
 cash flow forecast (projected inflows vs committed outflows), WIP schedule, overhead absorption
 report, year-to-date summary by month, per-project comparison table, PDF and CSV export,
 financial year / calendar year / custom date range filter.
 
-### Sprint 38 — Xero Integration
+### Sprint 40 — Xero Integration
 OAuth2 connection flow → push invoices on send → pull payment status daily → push expenses on
 cost log → trade section to Xero tracking category mapping (configurable) → sync log with retry
 → disconnect/reconnect without losing history.
 
-### Sprint 39 — QuickBooks / Sage Integration
+### Sprint 41 — QuickBooks / Sage Integration
 Same OAuth2 push/pull pattern extended to QuickBooks Online and Sage Business Cloud — the two
 next most common accounting packages for UK SME contractors. Single unified sync settings page
 covers all three integrations (Xero / QuickBooks / Sage), one active at a time, with field mapping
 UI per platform and a sync health indicator (last synced, error count, items pending).
 
-### Sprint 40 — Accounting Phase 2: Reconciliation
+### Sprint 42 — Accounting Phase 2: Reconciliation
 Bank feed import (CSV or Plaid open banking), transaction parser, auto-match bank transactions to
 Constructa invoices by amount + reference, manual match for unmatched items, reconciliation
 dashboard, VAT return preparation grouped by VAT period, MTD-compatible CSV export for HMRC
 Making Tax Digital, full audit trail of every match/unmatch.
 
-### Sprint 41 — Market Intelligence Product
+### Sprint 43 — Market Intelligence Product
 Constructa's benchmark data as a sellable B2B data product for QS firms, developers, lenders
 and insurers. REST data API (authenticated, rate-limited, paid tier), quarterly construction cost
 index by region/trade, B2B subscriber portal, tiered subscription pricing, white-label PDF report
 generator ("East Midlands Construction Cost Report Q2 2026"), data consent audit confirming all
-benchmark data passes through the Sprint 35 consent gate.
+benchmark data passes through the Sprint 37 consent gate.
 
-### Sprint 42 — Native Mobile App
+### Sprint 44 — Native Mobile App
 React Native (Expo) or PWA — technology decision first. Core on-site workflows: log cost (all 5
 types), view project P&L, raise variation, check invoice status. Camera receipt capture (photo →
 Supabase Storage → cost entry). Push notifications for overdue payments and variation decisions.
 Offline mode with local queue (SQLite). Biometric auth. App Store and Google Play submission.
 
-### Sprint 43 — Regional Pricing Intelligence + Merchant Procurement Layer
+### Sprint 45 — Regional Pricing Intelligence + Merchant Procurement Layer
 Regional rate benchmarks surfaced to contractors with percentile positioning and rate adjustment
 suggestions. Travis Perkins, Jewson and Selco integrations for live materials pricing linked to
 estimate lines — one-click order basket with pre-filled quantities, Constructa group pricing,
 delivery tracking auto-logged as cost entries, merchant analytics and referral fee model for admin.
 
-### Sprint 44 — Resource Planning & Staff Allocation
+### Sprint 46 — Resource Planning & Staff Allocation
 Cross-project resource management — lets contractors see whether they have the people available
 to deliver their pipeline. Solves over-committing labour across overlapping projects and surfaces
 conflicts before they become on-site crises.

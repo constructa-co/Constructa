@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { generateText, generateJSON } from "@/lib/ai";
+import { sendWelcomeEmail } from "@/lib/email";
 
 export async function saveOnboardingAction(formData: FormData) {
     const supabase = createClient();
@@ -42,6 +43,14 @@ export async function saveOnboardingAction(formData: FormData) {
         default_tc_overrides,
     };
 
+    // Check if this is the first time completing onboarding (company_name going from null → set)
+    const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("company_name")
+        .eq("id", user.id)
+        .single();
+    const isFirstTimeOnboarding = !existingProfile?.company_name && !!updateData.company_name;
+
     // Use UPDATE (not upsert) — profile row already exists from signup trigger
     const { error } = await supabase
         .from("profiles")
@@ -50,6 +59,17 @@ export async function saveOnboardingAction(formData: FormData) {
 
     if (error) {
         return { error: error.message };
+    }
+
+    // Sprint 23: Send welcome email on first-time onboarding completion (fire-and-forget)
+    if (isFirstTimeOnboarding && user.email) {
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app";
+        sendWelcomeEmail({
+            contractorEmail: user.email,
+            fullName: updateData.full_name || undefined,
+            companyName: updateData.company_name,
+            dashboardUrl: `${baseUrl}/dashboard`,
+        }).catch((e) => console.error("Welcome email failed:", e));
     }
 
     return { success: true };

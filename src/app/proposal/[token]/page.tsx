@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import AcceptanceClient from "./acceptance-client";
+import { sendContractorViewedNotification } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +30,8 @@ export default async function ProposalAcceptancePage({ params }: { params: { tok
     }
 
     // Mark as viewed if it was sent but not yet viewed/accepted
-    if (project.proposal_status === "sent") {
+    const wasJustViewed = project.proposal_status === "sent";
+    if (wasJustViewed) {
         await supabase
             .from("projects")
             .update({ proposal_status: "viewed" })
@@ -42,6 +45,26 @@ export default async function ProposalAcceptancePage({ params }: { params: { tok
         .select("company_name, logo_url, phone, website, accreditations, capability_statement, years_trading, specialisms, insurance_details")
         .eq("id", project.user_id)
         .single();
+
+    // Sprint 23: Fire "proposal viewed" notification email to contractor (fire-and-forget)
+    if (wasJustViewed) {
+        try {
+            const adminSupabase = createAdminClient();
+            const { data: contractorAuth } = await adminSupabase.auth.admin.getUserById(project.user_id);
+            const contractorEmail = contractorAuth?.user?.email;
+            if (contractorEmail) {
+                const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app";
+                sendContractorViewedNotification({
+                    contractorEmail,
+                    clientName: project.client_name || "Your client",
+                    projectName: project.name || "the project",
+                    proposalUrl: `${baseUrl}/dashboard/projects/proposal?projectId=${project.id}`,
+                }).catch((e) => console.error("Viewed notification email failed:", e));
+            }
+        } catch (e) {
+            console.error("Could not send viewed notification:", e);
+        }
+    }
 
     const companyName = profile?.company_name || "The Contractor";
 

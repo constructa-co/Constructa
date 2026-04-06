@@ -253,6 +253,48 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                 </Link>
             </div>
 
+            {/* SECTION A2 — Getting Started card (shown only when no projects yet) */}
+            {projects.length === 0 && (
+                <div className={`rounded-2xl border-2 border-dashed p-8 text-center ${
+                    isDark ? "border-[#2a2a2a] bg-[#1a1a1a]/50" : "border-gray-200 bg-gray-50"
+                }`}>
+                    <div className="mx-auto w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center mb-4">
+                        <span className="text-white font-bold text-2xl">C</span>
+                    </div>
+                    <h2 className={`text-xl font-bold mb-2 ${isDark ? "text-white" : "text-gray-900"}`}>
+                        Let&apos;s win your first job 🎉
+                    </h2>
+                    <p className={`text-sm mb-6 max-w-sm mx-auto ${isDark ? "text-[#a0a0a0]" : "text-gray-500"}`}>
+                        You&apos;re set up — now create your first project and send a professional proposal in minutes.
+                    </p>
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+                        {[
+                            { label: "Company profile", done: true },
+                            { label: "Create a project", done: false },
+                            { label: "Build your estimate", done: false },
+                            { label: "Send proposal", done: false },
+                        ].map(({ label, done }) => (
+                            <div key={label} className="flex items-center gap-2">
+                                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                                    done ? "bg-emerald-600 text-white" : isDark ? "bg-[#2a2a2a] text-[#a0a0a0]" : "bg-gray-200 text-gray-400"
+                                }`}>
+                                    {done ? "✓" : "○"}
+                                </span>
+                                <span className={`text-sm ${done ? (isDark ? "text-emerald-400 line-through" : "text-emerald-600 line-through") : (isDark ? "text-[#a0a0a0]" : "text-gray-600")}`}>
+                                    {label}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                    <Link
+                        href="/dashboard/projects/new"
+                        className="inline-flex items-center gap-2 font-bold text-sm px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-colors shadow-lg shadow-blue-600/20"
+                    >
+                        + Create Your First Project
+                    </Link>
+                </div>
+            )}
+
             {/* SECTION B — KPI Strip with period selector */}
             <div className="space-y-3">
                 {/* Period selector header */}

@@ -194,8 +194,8 @@ export default function OnboardingClient({ initialFullName }: { initialFullName:
                     <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-600 rounded-2xl mb-4">
                         <span className="text-white font-bold text-2xl">C</span>
                     </div>
-                    <h1 className="text-3xl font-bold text-white">Company Profile</h1>
-                    <p className="text-slate-400 mt-2">Manage your business details, trade, and default terms.</p>
+                    <h1 className="text-3xl font-bold text-white">Welcome to Constructa 👋</h1>
+                    <p className="text-slate-400 mt-2">Let's set up your company profile — it only takes 2 minutes and appears on all your proposals.</p>
                 </div>
 
                 <StepIndicator current={step} total={4} />
@@ -411,10 +411,15 @@ export default function OnboardingClient({ initialFullName }: { initialFullName:
 
                         <div className="flex items-center justify-between pt-2">
                             <button type="button" onClick={() => setStep(2)} className="px-5 py-2.5 text-slate-400 text-sm font-semibold hover:text-slate-200 transition-colors">← Back</button>
-                            <button type="button" onClick={() => setStep(4)}
-                                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-lg transition-colors">
-                                Next: Terms & Conditions →
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button type="button" onClick={() => setStep(4)} className="px-4 py-2 text-slate-500 text-sm hover:text-slate-300 transition-colors">
+                                    Skip →
+                                </button>
+                                <button type="button" onClick={() => setStep(4)}
+                                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-lg transition-colors">
+                                    Next: Terms & Conditions →
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -511,18 +516,21 @@ export default function OnboardingClient({ initialFullName }: { initialFullName:
 
                         <div className="flex items-center justify-between pt-2">
                             <button type="button" onClick={() => setStep(3)} className="px-5 py-2.5 text-slate-400 text-sm font-semibold hover:text-slate-200 transition-colors">← Back</button>
-                            <button type="button" onClick={handleFinish} disabled={saving}
-                                className="px-8 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold rounded-lg transition-colors text-sm min-w-[160px] flex items-center justify-center gap-2">
-                                {saving ? (
-                                    <>
-                                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                        </svg>
-                                        Saving...
-                                    </>
-                                ) : "Finish Setup →"}
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <p className="text-xs text-slate-600 hidden sm:block">Standard T&Cs are applied by default — safe to skip</p>
+                                <button type="button" onClick={handleFinish} disabled={saving}
+                                    className="px-8 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold rounded-lg transition-colors text-sm min-w-[160px] flex items-center justify-center gap-2">
+                                    {saving ? (
+                                        <>
+                                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                            </svg>
+                                            Saving...
+                                        </>
+                                    ) : "Finish Setup →"}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}

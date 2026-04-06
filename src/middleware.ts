@@ -91,6 +91,23 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/onboarding', request.url))
       }
     }
+
+    // Country capture: if user is authenticated and on any route, try to update country in profiles
+    // CF-IPCountry or x-vercel-ip-country header is set by Vercel edge network
+    if (user && !pathname.startsWith('/api/')) {
+        const country = request.headers.get('x-vercel-ip-country') ||
+                        request.headers.get('cf-ipcountry') ||
+                        null;
+        if (country && country !== 'XX') { // XX = unknown
+            // Fire-and-forget: update country if not already set
+            // Use the anon client (user is authenticated) — only update if country IS NULL
+            supabase.from('profiles')
+                .update({ country })
+                .eq('id', user.id)
+                .is('country', null)
+                .then(() => {}) // deliberately ignore result to not block request
+        }
+    }
   } catch (error) {
     console.error('Middleware Supabase error:', error);
   }

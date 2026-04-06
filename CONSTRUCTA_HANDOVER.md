@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 6 April 2026 (end of Sprint 22)
+**Last updated:** 6 April 2026 (end of Sprint 23)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -422,6 +422,7 @@ Direct Cost (trade lines)
 | 20 | Admin Dashboard Phase 1 — `/admin` route (ADMIN_EMAIL guard); service role client; subscriber list with active/inactive status; Revenue KPIs (MRR/ARR at £49/mo); platform-wide usage stats; sidebar amber admin link for admin user only |
 | 21 | Comprehensive BI Admin Dashboard — 9-tab investor-grade dashboard; MRR waterfall; cohort retention; DAU/WAU/MAU; Rule of 40; LTV/ARPU/churn; OpenAI cost integration; Plausible analytics integration; manual P&L cost entry; feature adoption heatmap; geography by country/region; automated report generator (daily/weekly/monthly/quarterly/annual); pure CSS charts (no external library) |
 | 22 | Proposal Versioning — `proposal_versions` table (JSONB snapshot, version number, notes, immutable); `current_version_number` on projects; `createProposalVersionAction`, `getProposalVersionsAction`, `restoreProposalVersionAction`; `VersionHistoryPanel` (collapsible sidebar, amber badge, two-step restore); version badge in status row; "Save Version" button with notes dialog |
+| 23 | Onboarding Polish + Email Notifications — `sendContractorViewedNotification` (fires on status sent→viewed, admin client email lookup, fire-and-forget); `sendWelcomeEmail` (fires on first onboarding completion); onboarding header "Welcome to Constructa"; Skip buttons on steps 3 & 4; dashboard empty-state getting-started checklist card with 4-step progress |
 
 > ⚠️ **Sprint numbering note (5 April 2026):** Sprints 15 and 16 above are NEW sprints inserted between the original Sprint 14 (P&L) and the originally planned Sprint 15 (UI/UX Consistency Pass). All downstream sprints shift +2. Original roadmap end: Sprint 41. Corrected total: **Sprint 46** (further updated 6 April 2026: Sprints 23–24 added for Onboarding Polish and LemonSqueezy Billing, shifting all subsequent sprints +2).
 
@@ -503,14 +504,16 @@ Commit `f755696`, deployed `dpl_7rd6jqcP5mC6ge4ed9yMh4TqYWic` (READY).
 - **`ClientEditor` changes**: version badge (amber `vN` pill) in status row; "Save Version (vN+1)" amber button; modal dialog with optional notes textarea; optimistic local state update so UI reflects new version immediately
 - **`page.tsx`**: fetches `proposal_versions` server-side, passes `proposalVersions` + `currentVersionNumber` as props
 
-### 🔜 Sprint 23 — Onboarding Polish + Email Notifications ← NEXT
+### ✅ Sprint 23 — Onboarding Polish + Email Notifications (COMPLETE — 6 April 2026)
+Commit `9033bc2`.
+- **`sendContractorViewedNotification`**: fires in `proposal/[token]/page.tsx` when a proposal status first transitions `sent → viewed`; uses `createAdminClient()` to look up contractor email; fire-and-forget so it never blocks the page render for the client
+- **`sendWelcomeEmail`**: fires in `onboarding/actions.ts` on first-time setup completion (when `company_name` goes from null → set); includes 4-step getting-started checklist in the email body
+- **Contractor acceptance notification** (`sendContractorAcceptanceNotification`) was already wired in `proposal/[token]/actions.ts` — confirmed working
+- **Onboarding header**: "Company Profile" → "Welcome to Constructa 👋" with time-estimate subtitle
+- **Skip buttons**: added to Step 3 (Capabilities) and helper copy on Step 4 (T&Cs)
+- **Dashboard empty state**: getting-started checklist card shown when user has 0 projects; 4-step progress tracker (Profile ✓ done, Create project / Estimate / Proposal as next steps); prominent CTA; theme-aware
 
-### Sprint 23 — Onboarding Polish + Email Notifications
-- First-time user experience improvements (guided tour, empty states, tooltips)
-- Email notification: "Your proposal has been viewed" → Resend to contractor when client opens proposal
-- Email notification: "Proposal accepted!" → Resend to contractor on client acceptance
-- Welcome email to new signups (Resend)
-- Onboarding completion checklist (company profile → first project → first estimate → first proposal)
+### 🔜 Sprint 24 — LemonSqueezy Billing Integration ← NEXT
 
 ### Sprint 24 — LemonSqueezy Billing Integration
 - LemonSqueezy replaces previously planned Stripe integration

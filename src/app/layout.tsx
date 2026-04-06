@@ -22,7 +22,13 @@ export default function RootLayout({
   const pathname = headersList.get('x-pathname') || '';
   const isLandingPage = pathname === '/landing';
   const isPublicProposal = pathname.startsWith('/proposal/');
-  const isDashboardRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding');
+  // Hide marketing header/footer on all app routes (dashboard, onboarding, auth flows, admin, login)
+  const isDashboardRoute =
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/onboarding') ||
+    pathname.startsWith('/auth/') ||
+    pathname.startsWith('/admin') ||
+    pathname === '/login';
 
   return (
     <html lang="en">

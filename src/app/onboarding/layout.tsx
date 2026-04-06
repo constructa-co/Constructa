@@ -16,10 +16,11 @@ export default async function OnboardingLayout({ children }: { children: React.R
     ]);
 
     const initialTheme = profile?.theme_preference || 'system-c';
+    const isAdmin = !!process.env.ADMIN_EMAIL && user.email === process.env.ADMIN_EMAIL;
 
     return (
         <ThemeProvider initialTheme={initialTheme}>
-            <DashboardShell user={{ email: user.email }} projects={projects || []}>
+            <DashboardShell user={{ email: user.email }} projects={projects || []} isAdmin={isAdmin}>
                 {children}
             </DashboardShell>
             <Toaster richColors position="bottom-right" />

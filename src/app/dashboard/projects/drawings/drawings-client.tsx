@@ -43,8 +43,8 @@ function formatBytes(bytes: number): string {
 
 async function loadPdfJs() {
     const pdfjs = await import("pdfjs-dist");
-    // Use CDN worker to avoid bundling the heavy worker file
-    pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+    // Use unpkg CDN worker — cdnjs lags behind; pdfjs v5+ uses .mjs extension
+    pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
     return pdfjs;
 }
 

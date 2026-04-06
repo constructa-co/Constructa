@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 6 April 2026 (end of Sprint 21)
+**Last updated:** 6 April 2026 (end of Sprint 22)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -120,6 +120,13 @@ projects          — id, user_id, name, client_name, site_address, postcode, la
                     proposal_status TEXT ('draft'|'sent'|'accepted'|'declined')
                     proposal_sent_at TIMESTAMPTZ, proposal_accepted_at TIMESTAMPTZ
                     status TEXT (kanban: 'lead'|'estimating'|'proposal_sent'|'active'|'completed'|'lost')
+                    current_version_number INT NOT NULL DEFAULT 1  ← Sprint 22
+
+-- Proposal Versioning (Sprint 22)
+proposal_versions — id, project_id, version_number INT, notes TEXT, snapshot JSONB,
+                    created_at TIMESTAMPTZ, created_by UUID
+                    UNIQUE (project_id, version_number)
+                    RLS: users can SELECT/INSERT for their own projects; no UPDATE/DELETE (immutable)
 
 -- Estimating
 estimates         — id, project_id, is_active, overhead_pct, profit_pct, risk_pct,
@@ -412,6 +419,9 @@ Direct Cost (trade lines)
 | 17 | UI/UX Dark Theme Consistency Pass — Brief page hero + dark inputs + chat bubbles; Project navbar dark tabs; Programme dark Gantt card; Estimating dark inputs/cards/summary; Variations + Billing dark theme + KPI strips; New Project wizard dark; Onboarding dark (all 4 steps); Onboarding layout fix (was rendering marketing header); correct ProjectNavBar activeTab on Variations/Billing |
 | 18 | Pre-Construction Workflow Polish — Fix Gantt bar width (manualDays/calculatedDays) and position (startOffset days→weeks); Fix Preliminaries PDF to render per-line not lump-sum; Add T&C clauses 10-12 (Materials, Practical Completion, Confidentiality); Fix Why Choose Us specialism splitting + project-type bullet + fallbacks; Add PDF error toast; Fix contract value default to use estimate total; New `getProposalLinkAction` (copy link no longer sets status=sent); Fix start date AI extraction in Brief; Fix rate/unit uncontrolled inputs with key prop; Fix Cost Summary z-index (z-20 + solid bg); Remove duplicate Estimating header; Auto-scaffold BoQ from Brief trade selection; Drawing upload callout on Brief page; Expand TRADE_SECTIONS 15→22; Expand AI trades prompt to 47 exact-match names; Fix chip shift-bug with disabled guard; Fix public proposal totalWeeks calculation |
 | 19 | Gantt Drag-and-Drop & Programme Polish — Drag bars to reposition (snaps to calendar week); Drag right edge to resize (snaps to working-week increments); Dependency arrows: "Starts After" select per phase → SVG amber bezier curves, auto-snaps successor to predecessor end; Critical path: yellow ring on phases ending in final week; Working week selector (4/5/6/7d, default 5, persisted localStorage); Monday-anchored start dates: date input snaps forward to Monday, week headers always show WC Mon dates; 4-card summary strip; Auto-sequence button; `updatePhasesAction` saves `start_date` to project and revalidates proposal paths; `calculatedDays`/`manualDays` = working days; `startOffset` = calendar days |
+| 20 | Admin Dashboard Phase 1 — `/admin` route (ADMIN_EMAIL guard); service role client; subscriber list with active/inactive status; Revenue KPIs (MRR/ARR at £49/mo); platform-wide usage stats; sidebar amber admin link for admin user only |
+| 21 | Comprehensive BI Admin Dashboard — 9-tab investor-grade dashboard; MRR waterfall; cohort retention; DAU/WAU/MAU; Rule of 40; LTV/ARPU/churn; OpenAI cost integration; Plausible analytics integration; manual P&L cost entry; feature adoption heatmap; geography by country/region; automated report generator (daily/weekly/monthly/quarterly/annual); pure CSS charts (no external library) |
+| 22 | Proposal Versioning — `proposal_versions` table (JSONB snapshot, version number, notes, immutable); `current_version_number` on projects; `createProposalVersionAction`, `getProposalVersionsAction`, `restoreProposalVersionAction`; `VersionHistoryPanel` (collapsible sidebar, amber badge, two-step restore); version badge in status row; "Save Version" button with notes dialog |
 
 > ⚠️ **Sprint numbering note (5 April 2026):** Sprints 15 and 16 above are NEW sprints inserted between the original Sprint 14 (P&L) and the originally planned Sprint 15 (UI/UX Consistency Pass). All downstream sprints shift +2. Original roadmap end: Sprint 41. Corrected total: **Sprint 46** (further updated 6 April 2026: Sprints 23–24 added for Onboarding Polish and LemonSqueezy Billing, shifting all subsequent sprints +2).
 
@@ -485,12 +495,15 @@ Commit `182457f`. DB migration `sprint21_admin_bi_foundation`.
 - **Pure CSS charts**: BarChart, SparkLine, KpiCard, CohortGrid — no external library
 - **PLAN_PRICE_GBP = 49** in `types.ts` — single constant to update when Stripe billing goes live
 
-### 🔜 Sprint 22 — Proposal Versioning ← NEXT
-- Up-rev proposals (v1, v2, v3) with full version history
-- Change tracking: what changed in scope, price, terms between versions
-- Version notes: "Revised following client call" annotations
-- Client portal always shows latest version
-- Discount tracking per revision
+### ✅ Sprint 22 — Proposal Versioning (COMPLETE — 6 April 2026)
+Commit `f755696`, deployed `dpl_7rd6jqcP5mC6ge4ed9yMh4TqYWic` (READY).
+- **DB migration** `sprint22_proposal_versions`: `proposal_versions` table (id, project_id, version_number, notes, snapshot JSONB, created_at, created_by); `projects.current_version_number INT DEFAULT 1`; RLS — SELECT/INSERT for own projects, no UPDATE/DELETE (immutable history)
+- **Server actions** in `proposal/actions.ts`: `createProposalVersionAction` (snapshots 20 fields → JSONB, bumps version number); `getProposalVersionsAction` (newest-first list); `restoreProposalVersionAction` (writes snapshot back to project row)
+- **`VersionHistoryPanel`** component: collapsible sidebar accordion, version count badge, amber current-version pill, formatted date + notes per row, two-step "Restore → Confirm?" flow, reload on restore
+- **`ClientEditor` changes**: version badge (amber `vN` pill) in status row; "Save Version (vN+1)" amber button; modal dialog with optional notes textarea; optimistic local state update so UI reflects new version immediately
+- **`page.tsx`**: fetches `proposal_versions` server-side, passes `proposalVersions` + `currentVersionNumber` as props
+
+### 🔜 Sprint 23 — Onboarding Polish + Email Notifications ← NEXT
 
 ### Sprint 23 — Onboarding Polish + Email Notifications
 - First-time user experience improvements (guided tour, empty states, tooltips)

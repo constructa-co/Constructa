@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 6 April 2026 (end of Sprint 20)
+**Last updated:** 6 April 2026 (end of Sprint 21)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -458,6 +458,24 @@ Commits `abd72e3`, `4c91891`, `22a4b8e`.
 - **Monday start dates:** `snapToMonday()` on any date input; week headers always show WC Mon date; saved to `projects.start_date` on "Save to Proposal"
 - **Data model:** `calculatedDays`/`manualDays` = working days; `startOffset` = calendar days (multiples of 7)
 
+### ✅ Sprint 21 — Comprehensive BI Admin Dashboard (COMPLETE — 6 April 2026)
+Commit `182457f`. DB migration `sprint21_admin_bi_foundation`.
+- **9-tab admin dashboard** at `/admin`: Overview · Revenue & P&L · Growth · Retention · Engagement · Geography · Costs · Website · Reports
+- **Investor-grade SaaS metrics**: Rule of 40, MRR waterfall, ARR trajectory, cohort retention grid, LTV, ARPU, churn rate, DAU/WAU/MAU, stickiness, activation rate, burn multiple (TBD), LTV:CAC (TBD)
+- **Automated reports**: Daily/Weekly/Monthly/Quarterly/Annual report text generator; print-to-PDF; email via Resend
+- **OpenAI cost integration**: usage API → daily spend chart, MTD cost, cost per user (in Costs tab)
+- **Plausible website analytics**: visitors, pageviews, bounce rate, top pages, traffic sources, conversion rate (requires `PLAUSIBLE_API_KEY`)
+- **P&L engine**: revenue − COGS (OpenAI + manual infrastructure) = gross profit; EBITDA; runway; cost per user
+- **Manual cost entry**: form in Costs tab writes to `admin_costs` table (service role only)
+- **Feature adoption heatmap**: % of users who used each of 8 features
+- **Geography**: UK regions from `projects.region`; user countries from `profiles.country`
+- **Country capture**: middleware reads `x-vercel-ip-country` Vercel Edge header, updates `profiles.country` once per user
+- **DB additions**: `profiles.country`, `profiles.signup_source`, `admin_costs` table
+- **Pure CSS charts**: BarChart, SparkLine, KpiCard, CohortGrid — no external library
+- **PLAN_PRICE_GBP = 49** in `types.ts` — single constant to update when Stripe billing goes live
+
+### 🔜 Sprint 22 — Proposal Versioning ← NEXT
+
 ### ✅ Sprint 20 — Constructa Admin Dashboard Phase 1 (COMPLETE — 6 April 2026)
 Commit `ae36de8`.
 - **`/admin` route:** protected — middleware redirects unauthenticated users to `/login`; layout checks `user.email === ADMIN_EMAIL` env var (server-side), non-admins redirected to `/dashboard`
@@ -469,7 +487,7 @@ Commit `ae36de8`.
 - **Sidebar link:** `isAdmin` prop threaded through `dashboard/layout.tsx` → `DashboardShell` → `SidebarNav` — amber "⚡ Admin Dashboard" button shown only when email matches `ADMIN_EMAIL`
 - **Required env vars:** `ADMIN_EMAIL` + `SUPABASE_SERVICE_ROLE_KEY` (add to `.env.local` AND Vercel)
 
-### 🔜 Sprint 21 — Proposal Versioning ← NEXT
+### Sprint 22 — Proposal Versioning
 
 ### Sprint 22 — Proposal Versioning
 - Up-rev proposals (v1, v2, v3) with change tracking

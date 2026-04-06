@@ -2,7 +2,7 @@
 
 > This file is auto-loaded by Claude Code at session start.
 > Read this before making any changes to the codebase.
-> Last updated: 6 April 2026 — Claude Code session (Sprint 20: Admin Dashboard Phase 1)
+> Last updated: 6 April 2026 — Claude Code session (Sprint 21: Comprehensive BI Admin Dashboard)
 > Previous sessions: Claude Code Sprint 19 (6 Apr), Claude Code Sprints 15-18 (5 Apr), Claude Code Sprint 14 (5 Apr morning), Claude Code (4 Apr evening + night), Perplexity Computer (4 Apr morning)
 
 ---
@@ -333,6 +333,52 @@ The proposal editor page shows "Company profile complete — Tripod Construction
 ### BUG-004 — PDF download via `window.open()` (Low — UX)
 Chrome popup blocker intercepts the new tab, so PDFs download silently rather than opening. The download still works correctly but no visual confirmation.
 **Fix:** Replace `window.open(url)` with a programmatic `<a href=url download>` click trigger in `proposal-pdf-button.tsx`.
+
+---
+
+## Session Work Log (April 6 — Sprint 21: Comprehensive Business Intelligence Dashboard)
+
+### ✅ SPRINT 21 COMPLETE — 6 April 2026
+
+**Sprint 21 scope:** Full investor-grade SaaS metrics dashboard replacing the basic Sprint 20 admin — 9 tabs, all VC metrics, P&L, cohort retention, OpenAI costs, Plausible website analytics, automated reports, country tracking, email delivery.
+
+**Commit:** `182457f`
+
+**New files:**
+- `src/app/admin/types.ts` — shared TypeScript interfaces for all BI data (AdminData, SubscriberRow, RevenueMetrics, RetentionMetrics, EngagementMetrics, GeographyMetrics, CostMetrics, PlausibleMetrics, CohortRow, etc.)
+- `src/app/admin/page.tsx` — complete rewrite: fetches auth users, profiles, projects, estimates, admin_costs in parallel; all JS aggregations (MAU/WAU/DAU, cohorts, MRR waterfall, activation funnel, feature adoption, geography, churn); OpenAI usage API; Plausible API
+- `src/app/admin/actions.ts` — `saveCostEntryAction` (insert admin_costs row), `sendReportEmailAction` (Resend API)
+- `src/app/admin/admin-client.tsx` — complete rewrite: 9-tab controller with sticky tab bar, amber active state, auto-refresh button
+- `src/app/admin/components/bar-chart.tsx` — CSS-only bar chart (no library), auto-rotating labels >8 bars, hover tooltips
+- `src/app/admin/components/spark-line.tsx` — mini inline sparkline for KPI cards
+- `src/app/admin/components/kpi-card.tsx` — KPI card with delta badge, sparkline, sm/md/lg sizes, accent/alert states
+- `src/app/admin/components/cohort-grid.tsx` — retention cohort grid, colour-coded by % retained
+- `src/app/admin/tabs/overview-tab.tsx` — Command centre: alert strip, Rule of 40 hero, 8 KPI cards with sparklines, quick stats, mini charts, investor KPI row
+- `src/app/admin/tabs/revenue-tab.tsx` — MRR waterfall, ARR trajectory, growth rates table, revenue forecast, unit economics, breakeven calc
+- `src/app/admin/tabs/growth-tab.tsx` — 5 signup KPI cards, period-toggle trend chart, growth rate table, acquisition funnel, new subscriber list
+- `src/app/admin/tabs/retention-tab.tsx` — MAU/WAU/DAU, stickiness, churn rate, activation funnel, at-risk users table, cohort retention grid
+- `src/app/admin/tabs/engagement-tab.tsx` — proposal funnel with conversion rates, feature adoption table with progress bars, AI usage panel, power users leaderboard
+- `src/app/admin/tabs/geography-tab.tsx` — UK regions + global countries breakdown, global readiness checklist
+- `src/app/admin/tabs/costs-tab.tsx` — P&L summary with gross profit, OpenAI MTD spend, manual cost entry form, unit economics
+- `src/app/admin/tabs/website-tab.tsx` — Plausible analytics (visitors, pages, sources, conversion) with setup guide if not configured
+- `src/app/admin/tabs/reports-tab.tsx` — Daily/Weekly/Monthly/Quarterly/Annual report generator, print/PDF export, email via Resend
+
+**DB migration:** `sprint21_admin_bi_foundation`
+- `profiles.country TEXT` — populated from `x-vercel-ip-country` header on each request (fire-and-forget, sets once)
+- `profiles.signup_source TEXT` — ready for UTM capture
+- `admin_costs` table — month, category, description, amount_gbp; RLS blocks all direct access (service role only)
+
+**Key architectural decisions:**
+- All charts are pure CSS/Tailwind — no charting library added
+- All heavy data aggregation is server-side (page.tsx) — client components are display-only
+- PLAN_PRICE_GBP = 49 constant in types.ts — single place to update when Stripe goes live
+- OpenAI costs estimated from token usage × blended gpt-4o-mini rate (£0.40/1M tokens × 0.79 USD→GBP)
+- Plausible requires PLAUSIBLE_API_KEY env var — website tab shows setup instructions if missing
+- Country capture: middleware reads `x-vercel-ip-country` (Vercel Edge sets this), updates profiles where country IS NULL
+
+**Required env vars (not yet added — add when needed):**
+- `PLAUSIBLE_API_KEY` — for website analytics tab
+- `RESEND_API_KEY` — already in .env.local, used for report emails
 
 ---
 

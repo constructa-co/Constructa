@@ -1,15 +1,16 @@
 "use client";
 import Link from "next/link";
-import { ClipboardList, Calculator, CalendarDays, FileText, Scale } from "lucide-react";
+import { ClipboardList, Calculator, CalendarDays, FileText, Scale, Layers } from "lucide-react";
 
 interface Props {
   projectId: string;
-  activeTab: "brief" | "estimating" | "programme" | "contracts" | "proposal";
+  activeTab: "brief" | "estimating" | "programme" | "contracts" | "proposal" | "drawings";
 }
 
 const TABS = [
   { key: "brief",      label: "Brief",      icon: ClipboardList, href: (id: string) => `/dashboard/projects/brief?projectId=${id}` },
   { key: "estimating", label: "Estimating", icon: Calculator,    href: (id: string) => `/dashboard/projects/costs?projectId=${id}` },
+  { key: "drawings",   label: "Drawings",   icon: Layers,        href: (id: string) => `/dashboard/projects/drawings?projectId=${id}` },
   { key: "programme",  label: "Programme",  icon: CalendarDays,  href: (id: string) => `/dashboard/projects/schedule?projectId=${id}` },
   { key: "contracts",  label: "Contracts",  icon: Scale,         href: (id: string) => `/dashboard/projects/contracts?projectId=${id}` },
   { key: "proposal",   label: "Proposal",   icon: FileText,      href: (id: string) => `/dashboard/projects/proposal?projectId=${id}` },

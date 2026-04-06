@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 6 April 2026 (end of Sprint 23)
+**Last updated:** 6 April 2026 (end of Sprint 25)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -61,6 +61,7 @@ src/
         costs/            ← Step 2: Full BoQ estimating tool
         schedule/         ← Step 3: Programme / Gantt
         contracts/        ← Step 4: T&Cs, risk register, AI contract review
+        drawings/         ← Drawing AI Takeoff (Sprint 25)
         proposal/         ← Step 5: Proposal editor + PDF export
         billing/          ← Post-contract: invoicing
         variations/       ← Post-contract: scope changes
@@ -175,6 +176,16 @@ invoices          — id, project_id, invoice_number, type ('Interim'|'Final'),
 
 variations        — id, project_id, title, description, amount,
                     status ('Draft'|'Pending Approval'|'Approved'|'Rejected')
+
+-- Drawing AI Takeoff (Sprint 25)
+drawing_extractions — id, project_id, user_id, filename, file_size_kb INT, format TEXT,
+                      page_count INT, pages_processed INT,
+                      extracted_items JSONB (array of DrawingResultItem),
+                      raw_ai_response TEXT,
+                      status TEXT ('processing'|'processed'|'error'),
+                      error_message TEXT, created_at TIMESTAMPTZ
+                      NOTE: Files are NEVER stored — only metadata + AI results saved.
+                      PDFs are rendered to JPEG in-browser via pdfjs-dist, sent to GPT-4o Vision.
 
 -- Library
 cost_library_items — code, description, unit, base_rate, category, is_system_default
@@ -294,9 +305,12 @@ WORK WINNING
 PRE-CONSTRUCTION  (accordion, auto-expands on project select)
   Brief           /dashboard/projects/brief?projectId=X
   Estimating      /dashboard/projects/costs?projectId=X
+  Drawings        /dashboard/projects/drawings?projectId=X  ← Sprint 25
   Programme       /dashboard/projects/schedule?projectId=X
   Contracts       /dashboard/projects/contracts?projectId=X
   Proposal        /dashboard/projects/proposal?projectId=X
+
+Project navbar tabs: Brief / Estimating / Drawings / Programme / Contracts / Proposal
   ── divider ──
   Cost Library    /dashboard/library
 
@@ -360,7 +374,7 @@ AI features currently built:
 - Case study AI enhancement
 - MD message AI rewrite
 - Proposal full generation
-- Vision Takeoff: upload floor plan → AI extracts items/quantities → one-click add to estimate
+- Drawing AI Takeoff: upload PDF/image drawing → pdfjs renders to JPEG pages → GPT-4o Vision multi-image analysis → extract quantities by trade section → match to cost library → add to estimate (Sprint 25)
 
 ---
 
@@ -423,6 +437,8 @@ Direct Cost (trade lines)
 | 21 | Comprehensive BI Admin Dashboard — 9-tab investor-grade dashboard; MRR waterfall; cohort retention; DAU/WAU/MAU; Rule of 40; LTV/ARPU/churn; OpenAI cost integration; Plausible analytics integration; manual P&L cost entry; feature adoption heatmap; geography by country/region; automated report generator (daily/weekly/monthly/quarterly/annual); pure CSS charts (no external library) |
 | 22 | Proposal Versioning — `proposal_versions` table (JSONB snapshot, version number, notes, immutable); `current_version_number` on projects; `createProposalVersionAction`, `getProposalVersionsAction`, `restoreProposalVersionAction`; `VersionHistoryPanel` (collapsible sidebar, amber badge, two-step restore); version badge in status row; "Save Version" button with notes dialog |
 | 23 | Onboarding Polish + Email Notifications — `sendContractorViewedNotification` (fires on status sent→viewed, admin client email lookup, fire-and-forget); `sendWelcomeEmail` (fires on first onboarding completion); onboarding header "Welcome to Constructa"; Skip buttons on steps 3 & 4; dashboard empty-state getting-started checklist card with 4-step progress |
+| 24 | SKIPPED — LemonSqueezy Billing deferred to later sprint |
+| 25 | Drawing AI Takeoff — `drawing_extractions` DB table; `analyzeDrawingPagesAction` (in-browser PDF→JPEG via pdfjs-dist, multi-image GPT-4o Vision, cost library matching); `getDrawingExtractionsAction`; `addItemsToEstimateAction`; `/drawings` page with drag-drop upload, live progress, extraction results panel with checkboxes + trade section grouping, drawing register; Drawings tab added to project navbar; files never stored in Supabase (process-only architecture) |
 
 > ⚠️ **Sprint numbering note (5 April 2026):** Sprints 15 and 16 above are NEW sprints inserted between the original Sprint 14 (P&L) and the originally planned Sprint 15 (UI/UX Consistency Pass). All downstream sprints shift +2. Original roadmap end: Sprint 41. Corrected total: **Sprint 46** (further updated 6 April 2026: Sprints 23–24 added for Onboarding Polish and LemonSqueezy Billing, shifting all subsequent sprints +2).
 
@@ -513,21 +529,24 @@ Commit `9033bc2`.
 - **Skip buttons**: added to Step 3 (Capabilities) and helper copy on Step 4 (T&Cs)
 - **Dashboard empty state**: getting-started checklist card shown when user has 0 projects; 4-step progress tracker (Profile ✓ done, Create project / Estimate / Proposal as next steps); prominent CTA; theme-aware
 
-### 🔜 Sprint 24 — LemonSqueezy Billing Integration ← NEXT
+### ✅ Sprint 25 — Drawing Upload & AI Takeoff (COMPLETE — 6 April 2026)
+- **`drawing_extractions` table**: process-only — files never stored, only metadata + AI results
+- **`analyzeDrawingPagesAction`**: creates pending DB record → renders PDF pages to JPEG in-browser via `pdfjs-dist` (CDN worker) → sends up to 10 pages as multi-image GPT-4o Vision call → parses extracted items → matches against cost library via `generateJSON` → updates DB record with results
+- **`addItemsToEstimateAction`**: finds active estimate, bulk-inserts lines, recalculates total
+- **`/dashboard/projects/drawings`**: server page + `DrawingsClient` component
+- **Drawings tab**: added to `project-navbar.tsx` between Estimating and Programme
+- **UX**: drag-drop upload zone, page-by-page render progress, per-trade-section accordion, checkbox selection, "Add to Estimate" CTA, drawing register for past extractions
+- **CAD handling**: DWG/RVT/SKP/IFC rejected with friendly message to export to PDF first
+- **Sprint 47** deferred: native CAD/BIM/SketchUp viewer for in-app measurement
 
-### Sprint 24 — LemonSqueezy Billing Integration
+### 🔜 Sprint 26 — Video Walkthrough AI ← NEXT
+
+### Sprint 24 — LemonSqueezy Billing Integration (DEFERRED — skipped by user)
 - LemonSqueezy replaces previously planned Stripe integration
 - Subscription management: checkout, webhooks, subscription status
 - Gating: restrict features or show upgrade prompt when no active subscription
 - Admin dashboard: real revenue data replaces estimated MRR
 - PLAN_PRICE_GBP constant updated from types.ts once pricing confirmed
-
-### Sprint 25 — Drawing Upload & AI Takeoff (Headline Feature)
-- Promote Vision Takeoff from buried button to headline feature
-- Annotation overlay on uploaded drawings
-- Multi-page PDF support, scale detection
-- Drawing register (store multiple drawings per project)
-- Add to marketing site hero
 
 ### Sprint 26 — Video Walkthrough AI
 - Upload site survey video → GPT-4o Vision processes frames
@@ -639,6 +658,27 @@ availability calculator (free days vs contracted days), red flag alerts for over
 holiday and absence register (planned leave blocks availability automatically), demand vs supply
 aggregate view, under-resourcing alerts where allocated days fall short of estimated manhours,
 subcontractor slot allocation, weekly resource schedule export (PDF/CSV).
+
+### Sprint 47 — In-App CAD / BIM / SketchUp Viewer *(Strategic moat — confirmed by owner, 6 April 2026)*
+Embed a browser-native drawing viewer supporting the main construction file formats, giving contractors
+basic measurement and markup capability inside Constructa without switching to external tools.
+
+**Phase 1 — View & Measure:**
+- DWG/DXF viewer via open-source or licensed renderer (options: `OpenLayers + ol-plot`, Autodesk Platform Services viewer, or `@dxfom/dxf-viewer`)
+- Revit (IFC export) viewer via `web-ifc-viewer` or `IfcOpenShell-web`
+- SketchUp (GLTF/OBJ export) via Three.js or Babylon.js
+- PDF drawing viewer (building on Sprint 25 PDF.js foundation) with scale detection and measurement overlay
+- Linear and area measurement tools — click-to-measure with scale calibration
+
+**Phase 2 — Markup & Takeoff:**
+- Annotation layer (rooms, elements) persisted per drawing in `drawing_annotations` table
+- AI-assisted element detection overlaid on viewer canvas
+- One-click: annotated elements → estimate lines
+- Drawing revision comparison (highlight changes between Rev A and Rev B)
+
+**Strategic rationale:** No other SME contractor tool offers in-app drawing measurement. This closes the loop between "what the client has sent" and "what goes into the estimate" without the contractor ever leaving Constructa. Significant moat against competitors.
+
+**Tech stack decision needed before build:** Evaluate Autodesk Platform Services (APS/Forge) vs open-source stack. APS supports DWG/RVT natively but has per-view pricing. Open source (web-ifc + dxf-viewer + Three.js) is free but requires more build effort and only works with open formats (IFC/DXF/GLTF).
 
 ### Deferred / Post-launch (not yet sprinted)
 - Email/WhatsApp webhooks for cost capture (forward receipt → auto-log expense)

@@ -594,3 +594,174 @@ export async function saveProposalOverridesAction(
     const supabase = createClient();
     await supabase.from('projects').update(overrides).eq('id', projectId);
 }
+
+// ─── Sprint 22: Proposal Versioning ──────────────────────────────────────────
+
+export interface ProposalVersionRow {
+    id: string;
+    project_id: string;
+    version_number: number;
+    notes: string | null;
+    snapshot: Record<string, any>;
+    created_at: string;
+}
+
+/** Snapshot the current proposal state and increment the version number. */
+export async function createProposalVersionAction(
+    projectId: string,
+    notes: string
+): Promise<{ success: boolean; error?: string; version_number?: number }> {
+    const supabase = createClient();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
+    if (!user) return { success: false, error: "Not authenticated" };
+
+    // Fetch current project (scoped to user)
+    // Cast to any to work around stale Supabase generated types (current_version_number added in Sprint 22)
+    const { data: projectRaw, error: projectErr } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", projectId)
+        .eq("user_id", user.id)
+        .single();
+
+    if (projectErr || !projectRaw) return { success: false, error: "Project not found" };
+    const project = projectRaw as any;
+
+    const nextVersion = (project.current_version_number || 1) + 1;
+
+    // Build snapshot — everything that represents the proposal at this point in time
+    const snapshot: Record<string, any> = {
+        scope_text: project.scope_text,
+        proposal_introduction: project.proposal_introduction,
+        exclusions_text: project.exclusions_text,
+        clarifications_text: project.clarifications_text,
+        proposal_capability: project.proposal_capability,
+        proposal_company_name: project.proposal_company_name,
+        closing_statement: project.closing_statement,
+        discount_pct: project.discount_pct,
+        discount_reason: project.discount_reason,
+        tc_tier: project.tc_tier,
+        tc_overrides: project.tc_overrides,
+        contract_exclusions: project.contract_exclusions,
+        contract_clarifications: project.contract_clarifications,
+        risk_register: project.risk_register,
+        programme_phases: project.programme_phases,
+        gantt_phases: project.gantt_phases,
+        payment_schedule: project.payment_schedule,
+        payment_schedule_type: project.payment_schedule_type,
+        selected_case_study_ids: project.selected_case_study_ids,
+        potential_value: project.potential_value,
+        site_photos: project.site_photos,
+    };
+
+    // Insert version row
+    const { error: insertErr } = await supabase
+        .from("proposal_versions")
+        .insert({
+            project_id: projectId,
+            version_number: nextVersion,
+            notes: notes.trim() || null,
+            snapshot,
+            created_by: user.id,
+        });
+
+    if (insertErr) return { success: false, error: insertErr.message };
+
+    // Update projects.current_version_number
+    await supabase
+        .from("projects")
+        .update({ current_version_number: nextVersion })
+        .eq("id", projectId)
+        .eq("user_id", user.id);
+
+    revalidatePath(`/dashboard/projects/proposal?projectId=${projectId}`);
+    return { success: true, version_number: nextVersion };
+}
+
+/** Fetch full version history for a project (newest first). */
+export async function getProposalVersionsAction(
+    projectId: string
+): Promise<{ success: boolean; versions?: ProposalVersionRow[]; error?: string }> {
+    const supabase = createClient();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
+    if (!user) return { success: false, error: "Not authenticated" };
+
+    // Verify project belongs to user
+    const { data: project } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("id", projectId)
+        .eq("user_id", user.id)
+        .single();
+
+    if (!project) return { success: false, error: "Project not found" };
+
+    const { data, error } = await supabase
+        .from("proposal_versions")
+        .select("id, project_id, version_number, notes, snapshot, created_at")
+        .eq("project_id", projectId)
+        .order("version_number", { ascending: false });
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, versions: (data || []) as ProposalVersionRow[] };
+}
+
+/** Restore a past version — writes snapshot fields back to the project row. */
+export async function restoreProposalVersionAction(
+    projectId: string,
+    versionId: string
+): Promise<{ success: boolean; error?: string }> {
+    const supabase = createClient();
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
+    if (!user) return { success: false, error: "Not authenticated" };
+
+    // Verify ownership (select * to avoid stale-type issues with new columns)
+    const { data: project } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("id", projectId)
+        .eq("user_id", user.id)
+        .single();
+
+    if (!project) return { success: false, error: "Project not found" };
+
+    // Fetch the version
+    const { data: version, error: vErr } = await supabase
+        .from("proposal_versions")
+        .select("snapshot, version_number")
+        .eq("id", versionId)
+        .eq("project_id", projectId)
+        .single();
+
+    if (vErr || !version) return { success: false, error: "Version not found" };
+
+    const snap = version.snapshot as Record<string, any>;
+
+    // Write snapshot fields back to project (exclude any nulls in snapshot)
+    const updateFields: Record<string, any> = {};
+    const snapshotKeys = [
+        "scope_text", "proposal_introduction", "exclusions_text", "clarifications_text",
+        "proposal_capability", "proposal_company_name", "closing_statement",
+        "discount_pct", "discount_reason", "tc_tier", "tc_overrides",
+        "contract_exclusions", "contract_clarifications", "risk_register",
+        "programme_phases", "gantt_phases", "payment_schedule", "payment_schedule_type",
+        "selected_case_study_ids", "potential_value", "site_photos",
+    ];
+    snapshotKeys.forEach((k) => {
+        if (k in snap) updateFields[k] = snap[k];
+    });
+
+    const { error: updateErr } = await supabase
+        .from("projects")
+        .update(updateFields)
+        .eq("id", projectId)
+        .eq("user_id", user.id);
+
+    if (updateErr) return { success: false, error: updateErr.message };
+
+    revalidatePath(`/dashboard/projects/proposal?projectId=${projectId}`);
+    return { success: true };
+}

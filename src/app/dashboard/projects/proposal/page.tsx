@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import ProjectNavBar from "@/components/project-navbar";
 import ClientEditor from "./client-editor";
 import ProjectPicker from "@/components/project-picker";
+import type { ProposalVersionRow } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,13 @@ export default async function ProposalPage({ searchParams }: { searchParams: { p
         .eq("id", user.id)
         .single();
 
+    // Fetch proposal version history (newest first)
+    const { data: versions } = await supabase
+        .from("proposal_versions")
+        .select("id, project_id, version_number, notes, snapshot, created_at")
+        .eq("project_id", projectId)
+        .order("version_number", { ascending: false });
+
     return (
         <div className="max-w-7xl mx-auto px-6 py-8 min-h-screen">
             <div className="flex flex-col gap-4 mb-6">
@@ -84,6 +92,8 @@ export default async function ProposalPage({ searchParams }: { searchParams: { p
                 project={project}
                 profile={profile}
                 estimatedTotal={estimatedTotal}
+                proposalVersions={(versions || []) as ProposalVersionRow[]}
+                currentVersionNumber={project?.current_version_number ?? 1}
             />
         </div>
     );

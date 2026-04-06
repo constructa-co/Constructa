@@ -68,11 +68,18 @@ export async function middleware(request: NextRequest) {
     const user = authData?.user
     const pathname = request.nextUrl.pathname
 
+    // Protect /dashboard routes
     if (pathname.startsWith('/dashboard') && !user) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
 
+    // Protect /admin routes — must be authenticated (email check happens in layout)
+    if (pathname.startsWith('/admin') && !user) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+
     // Onboarding redirect: if authenticated + accessing dashboard + no company_name + not already on onboarding
+    // Skip for /admin routes so admin doesn't get caught in onboarding loop
     if (user && pathname.startsWith('/dashboard') && !pathname.startsWith('/onboarding')) {
       const { data: profile } = await supabase
         .from('profiles')

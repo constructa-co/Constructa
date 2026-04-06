@@ -49,6 +49,7 @@ interface Project {
 interface SidebarNavProps {
     user: { email?: string };
     projects: Project[];
+    isAdmin?: boolean;
 }
 
 // ── NavItem ───────────────────────────────────────────────────────────────────
@@ -127,7 +128,7 @@ function SidebarSection({
 const SECTION_KEYS = ["company-profile", "work-winning", "pre-construction", "live-projects", "closed-projects"];
 
 // ── Main Component ────────────────────────────────────────────────────────────
-export default function SidebarNav({ user, projects }: SidebarNavProps) {
+export default function SidebarNav({ user, projects, isAdmin = false }: SidebarNavProps) {
     const pathname = usePathname();
     const { theme, setTheme } = useTheme();
     const isDark = theme === "dark";
@@ -369,6 +370,19 @@ export default function SidebarNav({ user, projects }: SidebarNavProps) {
 
                 </div>
             </div>
+
+            {/* Admin Link — only shown to platform admin */}
+            {isAdmin && (
+                <div className="px-4 pb-1">
+                    <a
+                        href="/admin"
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-900/20 hover:bg-amber-900/40 text-amber-500 hover:text-amber-400 transition-all text-xs font-medium border border-amber-800/30"
+                    >
+                        <span className="text-base leading-none">⚡</span>
+                        <span>Admin Dashboard</span>
+                    </a>
+                </div>
+            )}
 
             {/* Theme Toggle */}
             <div className="px-4 pb-3">

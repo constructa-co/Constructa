@@ -469,6 +469,12 @@ export default function DrawingsClient({ projectId, projectName, initialExtracti
                 base64Pages
             );
 
+            if (!result) {
+                setError("The server did not respond. The drawing may be too large — try a smaller PDF or fewer pages.");
+                setUploadState("error");
+                return;
+            }
+
             if (result.success && result.extraction) {
                 setActiveExtraction(result.extraction);
                 setExtractions((prev) => [result.extraction!, ...prev.filter((e) => e.id !== result.extraction!.id)]);

@@ -2,8 +2,8 @@
 
 > This file is auto-loaded by Claude Code at session start.
 > Read this before making any changes to the codebase.
-> Last updated: 5 April 2026 — Claude Code session (Sprint 19: Gantt Drag-and-Drop, Working Week, Monday Starts)
-> Previous sessions: Claude Code Sprints 15 & 16 (5 Apr), Claude Code Sprint 14 (5 Apr morning), Claude Code (4 Apr evening + night), Perplexity Computer (4 Apr morning)
+> Last updated: 6 April 2026 — Claude Code session (Sprint 20: Admin Dashboard Phase 1)
+> Previous sessions: Claude Code Sprint 19 (6 Apr), Claude Code Sprints 15-18 (5 Apr), Claude Code Sprint 14 (5 Apr morning), Claude Code (4 Apr evening + night), Perplexity Computer (4 Apr morning)
 
 ---
 
@@ -333,6 +333,55 @@ The proposal editor page shows "Company profile complete — Tripod Construction
 ### BUG-004 — PDF download via `window.open()` (Low — UX)
 Chrome popup blocker intercepts the new tab, so PDFs download silently rather than opening. The download still works correctly but no visual confirmation.
 **Fix:** Replace `window.open(url)` with a programmatic `<a href=url download>` click trigger in `proposal-pdf-button.tsx`.
+
+---
+
+## Session Work Log (April 6 — Sprint 20: Admin Dashboard Phase 1)
+
+### ✅ SPRINT 20 COMPLETE — 6 April 2026
+
+**Sprint 20 scope:** Protected `/admin` route with subscriber list, revenue KPIs (MRR/ARR), platform usage stats, and platform info panel.
+
+**Commit:** `ae36de8`
+
+**Features delivered:**
+
+**1. Supabase Admin Client (`src/lib/supabase/admin.ts`):**
+- Service role client that bypasses RLS
+- Requires `SUPABASE_SERVICE_ROLE_KEY` env var (`.env.local` + Vercel)
+- Server-only — never imported in client components
+
+**2. Admin Route Protection:**
+- Middleware updated: `/admin` redirected to `/login` if not authenticated
+- Onboarding redirect skipped for `/admin` paths
+- `src/app/admin/layout.tsx`: email-based guard — checks logged-in user's email against `ADMIN_EMAIL` env var; redirects non-admins to `/dashboard`
+- `noindex, nofollow` meta robots on all admin pages
+
+**3. Admin Data Fetching (`src/app/admin/page.tsx`):**
+- Fetches all profiles, projects, estimates, contract flags in parallel
+- Joins data in JS: project counts, proposal counts, last active timestamp, contracts reviewed per user
+- Pulls user emails from `supabase.auth.admin.listUsers()` (service role only)
+- Passes compiled `AdminStats` object to client component
+
+**4. Admin Dashboard UI (`src/app/admin/admin-client.tsx`):**
+- Dark-themed (zinc-950) separate from contractor app styles
+- Revenue KPI strip: Total Subscribers, Active (30d), MRR (subscribers × £49), ARR (MRR × 12)
+- Subscriber table: sortable by any column, searchable by company/email, status badge (Active/Inactive based on 30d activity)
+- Platform usage: projects created, estimates built, proposals sent, contracts reviewed
+- Platform info: DB ref, region, hosting, AI model
+- Footer link to Supabase dashboard
+
+**5. Sidebar Admin Link:**
+- `ADMIN_EMAIL` check in `dashboard/layout.tsx` → `isAdmin` prop → `DashboardShell` → `SidebarNav`
+- Amber-accented "⚡ Admin Dashboard" button shown only to platform admin
+
+**Required env vars (add to `.env.local` + Vercel):**
+```
+ADMIN_EMAIL=your@email.com
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+```
+
+**Architecture note:** All admin data fetching is server-only. The service role key never reaches the browser. `ADMIN_EMAIL` is a server-side env var (not `NEXT_PUBLIC_`).
 
 ---
 

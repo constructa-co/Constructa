@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 5 April 2026 (end of Sprint 19)
+**Last updated:** 6 April 2026 (end of Sprint 20)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -88,6 +88,12 @@ src/
     supabase/
       client.ts           ← Browser client (createBrowserClient)
       server.ts           ← Server client (createServerClient)
+      admin.ts            ← Service role client (bypasses RLS) — server-only, Sprint 20
+  app/
+    admin/                ← Platform admin dashboard (Sprint 20)
+      layout.tsx          ← Email-based auth guard (ADMIN_EMAIL env var)
+      page.tsx            ← Server: fetches all subscriber/usage data via service role
+      admin-client.tsx    ← Client: KPI strip, subscriber table, usage stats, platform info
 ```
 
 ---
@@ -452,24 +458,30 @@ Commits `abd72e3`, `4c91891`, `22a4b8e`.
 - **Monday start dates:** `snapToMonday()` on any date input; week headers always show WC Mon date; saved to `projects.start_date` on "Save to Proposal"
 - **Data model:** `calculatedDays`/`manualDays` = working days; `startOffset` = calendar days (multiples of 7)
 
-### 🔜 Sprint 20 — Constructa Admin Dashboard Phase 1 ← NEXT
-- Protected route (`/admin`) — service role key, separate from contractor auth
-- Subscriber list: name, signup date, plan, last active, project count
-- Revenue estimate (MRR/ARR based on subscriber count × plan price)
-- Usage stats: proposals sent, estimates created, contracts reviewed
-- Platform health: DB size, API call counts, error rates
+### ✅ Sprint 20 — Constructa Admin Dashboard Phase 1 (COMPLETE — 6 April 2026)
+Commit `ae36de8`.
+- **`/admin` route:** protected — middleware redirects unauthenticated users to `/login`; layout checks `user.email === ADMIN_EMAIL` env var (server-side), non-admins redirected to `/dashboard`
+- **Service role client:** `src/lib/supabase/admin.ts` — bypasses RLS, requires `SUPABASE_SERVICE_ROLE_KEY` env var (`.env.local` + Vercel), server-only
+- **Subscriber list:** fetches all profiles + auth user emails (via `supabase.auth.admin.listUsers`), joins with projects/estimates/contracts data; sortable/searchable table; Active/Inactive status badge (30-day activity)
+- **Revenue KPIs:** Total Subscribers, Active (30d), MRR (subscribers × £49/mo), ARR (MRR × 12) — `PLAN_PRICE_GBP` constant in `admin-client.tsx` to update when billing goes live
+- **Usage stats:** total projects, estimates, proposals sent, contracts reviewed — platform-wide aggregates
+- **Platform info panel:** Supabase project ref, region, hosting, AI model, link to Supabase dashboard
+- **Sidebar link:** `isAdmin` prop threaded through `dashboard/layout.tsx` → `DashboardShell` → `SidebarNav` — amber "⚡ Admin Dashboard" button shown only when email matches `ADMIN_EMAIL`
+- **Required env vars:** `ADMIN_EMAIL` + `SUPABASE_SERVICE_ROLE_KEY` (add to `.env.local` AND Vercel)
 
-### Sprint 21 — Proposal Versioning
+### 🔜 Sprint 21 — Proposal Versioning ← NEXT
+
+### Sprint 22 — Proposal Versioning
 - Up-rev proposals (v1, v2, v3) with change tracking
 - Discount feature already built — versioning enables tracking discounts per revision
 - Show diff between versions (what changed in scope/price)
 
-### Sprint 22 — Billing Module Polish
+### Sprint 23 — Billing Module Polish
 - Already functionally built — needs connecting to payment stages from Proposal
 - Programme → Billing milestone automation (phases → payment schedule)
 - Application for Payment form with retention calc
 
-### Sprint 23 — Drawing Upload & AI Takeoff (Headline Feature)
+### Sprint 24 — Drawing Upload & AI Takeoff (Headline Feature)
 - Promote Vision Takeoff from buried button to headline feature
 - Annotation overlay on uploaded drawings
 - Multi-page PDF support, scale detection

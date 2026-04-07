@@ -161,8 +161,10 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
     const [isDragging, setIsDragging] = useState(false);
 
-    const ganttRef     = useRef<HTMLDivElement>(null);
-    const dragStateRef = useRef<DragState | null>(null);
+    const ganttRef        = useRef<HTMLDivElement>(null);
+    const dragStateRef    = useRef<DragState | null>(null);
+    const isInitialMount  = useRef(true);
+    const autoSaveTimer   = useRef<NodeJS.Timeout | null>(null);
 
     // ── Working week (persisted in localStorage per project) ──────────────
     const DPW_KEY = `prog_dpw_${projectId}`;
@@ -203,6 +205,28 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const [phases, setPhases] = useState<Phase[]>(initialPhases);
     const phasesRef = useRef<Phase[]>(phases);
     useEffect(() => { phasesRef.current = phases; }, [phases]);
+
+    // ── Auto-save phases whenever they change (debounced 1.5s) ───────────
+    // Runs on every phases/programmeStart change except the very first mount,
+    // so page refreshes never lose tweaks made since the last manual save.
+    useEffect(() => {
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+        if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+        autoSaveTimer.current = setTimeout(() => {
+            const startDateStr = toInputDate(programmeStart);
+            updatePhasesAction(project.id, phasesRef.current, startDateStr)
+                .then(() => {
+                    setSaveStatus("saved");
+                    setTimeout(() => setSaveStatus("idle"), 2000);
+                })
+                .catch(console.error);
+        }, 1500);
+        return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phases, programmeStart]);
 
     useEffect(() => {
         if (phases.length === 0) {
@@ -385,12 +409,15 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
     // ── Save / Regenerate ─────────────────────────────────────────────────
     const handleSave = () => {
+        // Cancel any pending auto-save so we don't double-fire
+        if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
         startTransition(async () => {
             setSaveStatus("saving");
             const startDateStr = toInputDate(programmeStart);
             await updatePhasesAction(project.id, phases, startDateStr);
             setSaveStatus("saved");
             setTimeout(() => setSaveStatus("idle"), 2500);
+            toast.success("Programme saved to proposal");
         });
     };
 
@@ -441,7 +468,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     {saveStatus === "saving" && <span className="text-xs text-slate-400 animate-pulse">Saving…</span>}
-                    {saveStatus === "saved"  && <span className="text-xs text-emerald-400">✓ Saved to proposal</span>}
+                    {saveStatus === "saved"  && <span className="text-xs text-emerald-400">✓ Auto-saved</span>}
                     {phases.length > 1 && (
                         <button type="button" onClick={sequencePhases}
                             className="px-3 py-2 rounded-lg text-xs font-medium bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">

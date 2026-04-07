@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 7 April 2026 (end of Sprint 26a — Client BoQ Import, fully committed)
+**Last updated:** 7 April 2026 (end of Sprint 28 — Live Projects: Cost Tracking, fully committed)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -65,11 +65,15 @@ src/
         proposal/         ← Step 5: Proposal editor + PDF export
         billing/          ← Post-contract: invoicing
         variations/       ← Post-contract: scope changes
+        overview/         ← Live project health dashboard (Sprint 27)
+          page.tsx         ← Server: RAG status, burn %, programme %, KPIs
+          overview-client.tsx      ← Client: KPI cards, ProgrammeBar, invoices, quick actions
         p-and-l/          ← Job P&L dashboard (Sprint 14+)
-          page.tsx         ← Server: fetches all data, computes KPIs
-          client-pl-dashboard.tsx  ← Client: tabs (Overview/Budget/Costs/Invoices)
-          log-cost-sheet.tsx       ← 5-tab cost logging dialog
-          actions.ts               ← Server actions (logCostAction, deleteCostAction, etc.)
+          page.tsx         ← Server: fetches all data, computes KPIs; splits actual vs committed
+          client-pl-dashboard.tsx  ← Client: tabs (Overview/Budget/Costs/Invoices); committed KPI + stacked bar + 7-col section table
+          log-cost-sheet.tsx       ← 6-tab cost logging dialog (incl. Subcontract with committed/actual toggle)
+          section-forecast-popover.tsx  ← Inline per-section forecast editor (Sprint 28)
+          actions.ts               ← Server actions (logCostAction, upsertSectionForecastAction, deleteCostAction, etc.)
           constants.ts             ← COST_TYPES, TRADE_SECTIONS (NOT "use server")
           global-pl-client.tsx     ← Global portfolio P&L view
       settings/
@@ -173,6 +177,11 @@ project_expenses  — id, project_id, description, supplier, amount, expense_dat
                     trade_section TEXT
                     estimate_line_id UUID FK → estimate_lines(id) ON DELETE SET NULL
                     receipt_url TEXT  ← Supabase Storage public URL
+                    cost_status TEXT DEFAULT 'actual' CHECK IN ('actual','committed')  ← Sprint 28
+
+project_section_forecasts  — id UUID PK, project_id UUID FK → projects(id) ON DELETE CASCADE
+                             trade_section TEXT NOT NULL, forecast_cost NUMERIC, updated_at TIMESTAMPTZ
+                             UNIQUE (project_id, trade_section)  ← Sprint 28; user-editable override
 
 invoices          — id, project_id, invoice_number, type ('Interim'|'Final'),
                     amount, status ('Draft'|'Sent'|'Paid'), created_at
@@ -444,6 +453,9 @@ Direct Cost (trade lines)
 | 24 | SKIPPED — LemonSqueezy Billing deferred to later sprint |
 | 26 | Video Walkthrough AI — upload site survey video (MP4/MOV/WebM, 200MB, 2min); extract 20 frames in-browser via HTML5 canvas; extract + resample audio via Web Audio API; transcribe narration via Whisper-1; combined GPT-4o Vision call (narration = primary, frames = context); returns scope/trades/value/observations; "Apply to Brief" populates all fields; full workflow: video → brief → estimate → programme in under 1 minute |
 | 26a | Client BoQ Import — upload client-provided BoQ (Excel or PDF) in Estimating tab; AI parses via GPT-4o Vision (PDF) or SheetJS+AI (Excel); preserves client's sections, item refs, descriptions; creates estimate flagged `is_client_boq`; preview grouped by section with amber qty warning; export priced BoQ to Excel (Priced_filename.xlsx) with cost summary appended |
+| 26a bugs | **Post-import bug fixes:** (1) BoQ tab reverting on navigation — root cause: `router.push` is soft nav, useState init doesn't re-run; fixed via `window.location.href` with `?tab=<id>` URL param + project-scoped sessionStorage key `constructa_tab_<projectId>`; (2) Programme pulling wrong estimate — root cause: BoQ import set `is_active: false` AND programme filtered out `is_client_boq` estimates; fixed: `createBoQEstimateAction` auto-sets imported BoQ as active; programme logic now uses `is_active` only; existing production data fixed via Supabase MCP SQL |
+| 27 | Live Projects: Overview — per-project health dashboard; RAG status (Green/Amber/Red based on burn % and programme %); 4-card KPI strip (Contract Value, Budget Cost, Costs Posted, Gross Margin); burn bar with % label; ProgrammeBar mini-Gantt with today-marker; outstanding invoices list; 4 quick-action buttons; Overview tab added to project navbar (first position); Live Projects > Overview link in sidebar |
+| 28 | Live Projects: Cost Tracking — `cost_status` column on `project_expenses` (actual/committed); `project_section_forecasts` table (user-editable per-section forecast override with upsert); 6th KPI card "Committed" (amber); stacked burn bar (solid actual + translucent amber committed); section table expanded to 7 columns (Budget, Actual, Committed, Forecast Final, Variance, %); AlertTriangle badge on over-budget sections; inline forecast editor `SectionForecastPopover` (pencil → £ input → save/clear); Subcontract tab in Log Cost sheet with Committed/Actual toggle |
 | 25 | Drawing AI Takeoff — `drawing_extractions` DB table; `analyzeDrawingPagesAction` (in-browser PDF→JPEG via pdfjs-dist, multi-image GPT-4o Vision, cost library matching); `getDrawingExtractionsAction`; `addItemsToEstimateAction`; `/drawings` page with drag-drop upload, live progress, extraction results panel with checkboxes + trade section grouping, drawing register; Drawings tab added to project navbar; files never stored in Supabase (process-only architecture) |
 
 > ⚠️ **Sprint numbering note (5 April 2026):** Sprints 15 and 16 above are NEW sprints inserted between the original Sprint 14 (P&L) and the originally planned Sprint 15 (UI/UX Consistency Pass). All downstream sprints shift +2. Original roadmap end: Sprint 41. Corrected total: **Sprint 46** (further updated 6 April 2026: Sprints 23–24 added for Onboarding Polish and LemonSqueezy Billing, shifting all subsequent sprints +2).
@@ -591,7 +603,20 @@ A client QS sometimes sends an unpriced BoQ (NRM2, SMM7 or bespoke) that the con
 - **Audio failure is non-fatal**: if browser can't decode audio (no track, codec issue), analysis continues with visuals only
 - **Demonstrated end-to-end**: video walkthrough → brief → suggest estimate lines → programme — full pre-construction workflow in under 1 minute
 
-### 🔜 Sprint 27 — Live Projects: Overview ← NEXT
+### ✅ Sprint 27 — Live Projects: Overview (COMPLETE — 7 April 2026)
+Commit on `main`, deployed to Vercel (READY).
+
+Per-project health dashboard sitting above the project tab area. Replaces the old blank overview stub.
+
+**Files:**
+- `src/app/dashboard/projects/overview/page.tsx` (NEW — server component): parallel fetches project, estimates, expenses, invoices, variations; computes contractValue (from active estimate lines + overhead/risk/profit/discount %s), budgetCost (direct + prelims), costsPosted, burnPct, programmePct (from `start_date` + `programme_phases` JSON with `startOffset + ceil(manualDays/daysPerWeek)*7` calendar-day end per phase), currentPhaseName, RAG status
+- `src/app/dashboard/projects/overview/overview-client.tsx` (NEW): RAG badge component, 4 KPI cards (Contract Value, Budget Cost, Costs Posted, Margin), burn progress bar, `ProgrammeBar` mini-Gantt (proportional phase blocks + white "today" line), outstanding invoices list, 4 quick-action buttons (Log Cost, Raise Invoice, Add Variation, View P&L)
+- `src/components/project-navbar.tsx` (modified): `"overview"` added to activeTab union; Overview tab first in TABS array with Activity icon → `/dashboard/projects/overview?projectId=…`
+- `src/components/sidebar-nav.tsx` (modified): Live Projects > Overview links to `/dashboard/projects/overview`
+
+**RAG logic:** Green = burn < 85% AND programme < 90%; Amber = burn 85–100% OR programme 90–100%; Red = burn > 100% OR programme > 100%
+
+**Programme %:** `totalCalendarDays = max(startOffset + ceil(manualDays / daysPerWeek) * 7)` across all phases; `elapsedDays = today − start_date`; `programmePct = elapsedDays / totalCalendarDays * 100`
 
 ### Sprint 24 — LemonSqueezy Billing Integration (DEFERRED — skipped by user)
 - LemonSqueezy replaces previously planned Stripe integration
@@ -602,13 +627,25 @@ A client QS sometimes sends an unpriced BoQ (NRM2, SMM7 or bespoke) that the con
 
 --- BATCH 1 COMPLETE — LAUNCH POINT (Sprints 14–26) ---
 
-### Sprint 27 — Live Projects: Overview
-Project health dashboard for on-site delivery — budget RAG, programme %, outstanding invoices, quick-action buttons.
+### ✅ Sprint 27 — Live Projects: Overview *(see full entry above in Sprint History)*
 
-### Sprint 28 — Live Projects: Cost Tracking
-Log actual costs vs estimate sections in real time. Committed costs, forecast final, over-budget alerts.
+### ✅ Sprint 28 — Live Projects: Cost Tracking (COMPLETE — 7 April 2026)
+Commit `82fb44a`, deployed `dpl_2HqivLXMcGrzuJDXTQCM9dbJAPPM` (READY).
 
-### Sprint 29 — Live Projects: Billing & Valuations
+**DB migrations applied via Supabase MCP:**
+- `cost_status TEXT DEFAULT 'actual' CHECK (cost_status IN ('actual','committed'))` added to `project_expenses` — all existing rows default to `'actual'` (non-breaking)
+- `project_section_forecasts` table created: `id UUID PK`, `project_id UUID FK → projects(id) ON DELETE CASCADE`, `trade_section TEXT NOT NULL`, `forecast_cost NUMERIC`, `updated_at TIMESTAMPTZ`, unique constraint on `(project_id, trade_section)`; RLS: SELECT/INSERT/UPDATE/DELETE for own projects only
+
+**Files changed:**
+- `src/app/dashboard/projects/p-and-l/actions.ts`: `logCostAction` gains `cost_status?: "actual" | "committed"` param (defaults `"actual"`); new `upsertSectionForecastAction(projectId, tradeSection, forecastCost | null)` upserts `project_section_forecasts` on conflict `(project_id, trade_section)`
+- `src/app/dashboard/projects/p-and-l/page.tsx`: fetches `project_section_forecasts`; splits expenses into `actualExpenses` (status=actual) and `committedExpenses` (status=committed); computes `committedTotal`, `committedBySection`; `actualMap` built from actualExpenses only; all passed as new props to `ClientPLDashboard`
+- `src/app/dashboard/projects/p-and-l/client-pl-dashboard.tsx`: 3 new props (`committedTotal`, `committedBySection`, `sectionForecasts`); `totalExposure = costsPosted + committedTotal`; `isOverBudget` uses totalExposure; 6th KPI card "Committed" (amber, ShieldAlert icon); stacked burn bar (solid blue = actual, translucent amber = committed); section table expanded to 7 columns (Budget, Actual, Committed, Forecast Final, Variance, %); `mergedSections` now includes `committed`, `forecastFinal` (override OR actual+committed+remainingBudget), `forecastOverride`, `isOver`; AlertTriangle badge on isOver rows; `SectionForecastPopover` imported; section grid `xl:grid-cols-6`
+- `src/app/dashboard/projects/p-and-l/section-forecast-popover.tsx` (NEW): pencil icon (hidden, visible on `group-hover`) expands to inline £ input; Save (Check) calls `upsertSectionForecastAction` + `router.refresh()`; Clear (X) sets forecast to null; Escape closes without saving; Enter submits
+- `src/app/dashboard/projects/p-and-l/log-cost-sheet.tsx`: new `SubcontractTab` component with Committed/Actual radio at top; fields: description, supplier, trade section, amount, date; calls `logCostAction` with `cost_type: 'subcontract'` and chosen `cost_status`; tab added between Materials and Overhead
+
+**Build fix:** `AlertTriangle` from Lucide does not accept a `title` prop — removed `title="Forecast over budget"` from JSX (commit `82fb44a`)
+
+### 🔜 Sprint 29 — Live Projects: Billing & Valuations ← NEXT
 Payment schedule from Proposal, Application for Payment form, retention ledger, overdue alerts, formal PDF.
 
 ### Sprint 30 — Live Projects: Variations

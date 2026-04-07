@@ -410,62 +410,103 @@ export default function DrawingsClient({ projectId, projectName, initialExtracti
         return CAD_EXTENSIONS.includes(ext);
     }
 
-    async function processFile(file: File) {
+    async function processFiles(files: File[]) {
         setError(null);
         setActiveExtraction(null);
 
-        // Check CAD formats
-        if (isCadFile(file.name)) {
+        // Separate valid from CAD/unsupported
+        const cadFiles = files.filter((f) => isCadFile(f.name));
+        const validFiles = files.filter(
+            (f) => !isCadFile(f.name) && (ACCEPTED_TYPES.includes(f.type) || f.name.toLowerCase().endsWith(".pdf"))
+        );
+
+        if (cadFiles.length > 0 && validFiles.length === 0) {
             setError(
-                `CAD files (${file.name.split(".").pop()?.toUpperCase()}) cannot be read directly. Please export your drawing to PDF first, then upload the PDF.`
+                `CAD files (${cadFiles.map((f) => f.name.split(".").pop()?.toUpperCase()).join(", ")}) cannot be read directly. Please export to PDF first.`
             );
             return;
         }
 
-        // Check accepted types
-        if (!ACCEPTED_TYPES.includes(file.type) && !file.name.toLowerCase().endsWith(".pdf")) {
-            setError(`Unsupported file type. Please upload a PDF, PNG, JPG, or WebP file.`);
+        if (validFiles.length === 0) {
+            setError("No supported files found. Please upload PDF, PNG, JPG, or WebP files.");
             return;
         }
 
-        const fileSizeKb = Math.round(file.size / 1024);
-        setCurrentFilename(file.name);
+        // Build display name
+        const packLabel = validFiles.length === 1
+            ? validFiles[0].name
+            : `Drawing Pack — ${validFiles.length} drawings`;
+        setCurrentFilename(packLabel);
+
+        const totalSizeKb = Math.round(validFiles.reduce((s, f) => s + f.size, 0) / 1024);
 
         try {
-            let base64Pages: string[] = [];
-            let pageCount = 1;
-            const format = file.name.toLowerCase().endsWith(".pdf") ? "PDF" : file.type.split("/")[1].toUpperCase();
+            setUploadState("rendering");
 
-            if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
-                setUploadState("rendering");
-                setProgress({ current: 0, total: 1 });
-                const result = await renderPdfToBase64Pages(file, (current, total) => {
-                    setProgress({ current, total });
-                });
-                base64Pages = result.base64Pages;
-                pageCount = result.pageCount;
-            } else {
-                // Single image file
-                setUploadState("rendering");
-                const b64 = await imageFileToBase64(file);
-                base64Pages = [b64];
-                pageCount = 1;
+            // Spread page budget evenly across files — at least 1 page per file, max 10 total
+            const PAGE_BUDGET = 10;
+            const pagesPerFile = Math.max(1, Math.floor(PAGE_BUDGET / validFiles.length));
+            let allBase64Pages: string[] = [];
+            let totalPageCount = 0;
+            let pagesRendered = 0;
+            const totalPagesToRender = Math.min(PAGE_BUDGET, validFiles.length * pagesPerFile);
+
+            setProgress({ current: 0, total: totalPagesToRender });
+
+            for (const file of validFiles) {
+                if (allBase64Pages.length >= PAGE_BUDGET) break;
+
+                const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+                const remaining = PAGE_BUDGET - allBase64Pages.length;
+                const limit = Math.min(pagesPerFile, remaining);
+
+                if (isPdf) {
+                    // Render up to `limit` pages from this PDF
+                    const pdfjs = await loadPdfJs();
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+                    totalPageCount += pdf.numPages;
+                    const pagesToRender = Math.min(pdf.numPages, limit);
+                    for (let i = 1; i <= pagesToRender; i++) {
+                        const page = await pdf.getPage(i);
+                        const viewport = page.getViewport({ scale: 1.5 });
+                        const canvas = document.createElement("canvas");
+                        canvas.width = viewport.width;
+                        canvas.height = viewport.height;
+                        const ctx = canvas.getContext("2d")!;
+                        await page.render({ canvasContext: ctx as any, viewport, canvas }).promise;
+                        allBase64Pages.push(canvas.toDataURL("image/jpeg", 0.82));
+                        pagesRendered++;
+                        setProgress({ current: pagesRendered, total: totalPagesToRender });
+                    }
+                } else {
+                    // Single image file
+                    const b64 = await imageFileToBase64(file);
+                    allBase64Pages.push(b64);
+                    totalPageCount += 1;
+                    pagesRendered++;
+                    setProgress({ current: pagesRendered, total: totalPagesToRender });
+                }
             }
 
             setUploadState("analysing");
             setProgress(null);
 
+            const format = validFiles.length === 1
+                ? (validFiles[0].name.toLowerCase().endsWith(".pdf") ? "PDF" : validFiles[0].type.split("/")[1].toUpperCase())
+                : "Mixed Pack";
+
             const result = await analyzeDrawingPagesAction(
                 projectId,
-                file.name,
-                fileSizeKb,
+                packLabel,
+                totalSizeKb,
                 format,
-                pageCount,
-                base64Pages
+                totalPageCount,
+                allBase64Pages
             );
 
             if (!result) {
-                setError("The server did not respond. The drawing may be too large — try a smaller PDF or fewer pages.");
+                setError("The server did not respond. Try uploading fewer drawings at once.");
                 setUploadState("error");
                 return;
             }
@@ -487,7 +528,7 @@ export default function DrawingsClient({ projectId, projectName, initialExtracti
 
     function handleFileSelect(files: FileList | null) {
         if (!files || files.length === 0) return;
-        processFile(files[0]);
+        processFiles(Array.from(files));
     }
 
     const handleDrop = useCallback((e: React.DragEvent) => {
@@ -537,18 +578,19 @@ export default function DrawingsClient({ projectId, projectName, initialExtracti
                         ref={fileInputRef}
                         type="file"
                         accept=".pdf,.png,.jpg,.jpeg,.webp"
+                        multiple
                         className="hidden"
                         onChange={(e) => handleFileSelect(e.target.files)}
                     />
                     <Upload className="w-10 h-10 text-slate-500 mx-auto mb-3" />
                     <p className="text-slate-200 font-medium mb-1">
-                        {isDragging ? "Drop your drawing here" : "Upload a drawing to analyse"}
+                        {isDragging ? "Drop your drawings here" : "Upload drawings to analyse"}
                     </p>
                     <p className="text-slate-400 text-sm mb-3">
-                        Drag & drop or click to browse
+                        Drag & drop or click to browse · Select multiple files at once
                     </p>
                     <p className="text-slate-500 text-xs">
-                        Accepts PDF, PNG, JPG, WebP · Max 10 pages processed per file
+                        Accepts PDF, PNG, JPG, WebP · GA drawings + detail drawings processed together
                     </p>
                     <p className="text-slate-600 text-xs mt-1">
                         For CAD files (DWG, RVT, SKP), please export to PDF first
@@ -566,7 +608,7 @@ export default function DrawingsClient({ projectId, projectName, initialExtracti
                     <p className="text-slate-400 text-sm mb-1">{currentFilename}</p>
                     {progress && uploadState === "rendering" && (
                         <p className="text-slate-500 text-xs">
-                            Page {progress.current} of {progress.total}
+                            Rendering page {progress.current} of {progress.total}…
                         </p>
                     )}
                     {uploadState === "analysing" && (

@@ -89,9 +89,18 @@ export async function analyzeDrawingPagesAction(
             };
         });
 
-        const prompt = `You are an expert UK Quantity Surveyor performing a measured survey from construction drawings.
+        const prompt = `You are an expert UK Quantity Surveyor performing a measured survey from a construction drawing pack.
 
-Analyse ALL provided drawing pages and extract a comprehensive list of construction elements and quantities.
+You may be given pages from multiple drawing types in the same pack:
+- GA drawings (General Arrangement): floor plans, elevations, sections, site plans → use these for QUANTITIES (m², m, nr)
+- Detail drawings: junctions, build-ups, specifications, fixing details → use these for SPECIFICATION (what the element actually is, how it is constructed)
+
+When both a GA drawing and a related detail drawing are present, COMBINE the information:
+- Take the quantity from the GA drawing
+- Take the specification/description from the detail drawing
+- Produce a single properly specified BoQ item, e.g. "Kingspan KS1000 secret-fix metal cladding panel, 80mm insulation" rather than just "External Cladding"
+
+If only a detail drawing is present with no measurable quantity, still list the specified element with an estimated quantity of 1 item so the contractor can price it.
 
 EXTRACT (where visible):
 - Structural elements: foundations, columns, beams, slabs, walls (external + internal)
@@ -101,6 +110,7 @@ EXTRACT (where visible):
 - M&E indicators: WCs, basins, baths, showers, electrical consumer units, radiators
 - External works: paving, fencing, drainage, landscaping areas (m²)
 - Any labelled room areas or dimensions shown on drawings
+- Any specified products, systems or materials shown on detail drawings
 
 RULES:
 - Use UK construction measurement conventions (m, m², m³, nr, kg, tonne, item)

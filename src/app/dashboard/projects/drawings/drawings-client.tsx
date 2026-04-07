@@ -399,22 +399,31 @@ export default function DrawingsClient({ projectId, projectName, initialExtracti
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [uploadState, setUploadState] = useState<UploadState>("idle");
-    const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
+    const [progress, setProgress] = useState<{ file: string; fileIndex: number; fileCount: number; page: number; pageTotal: number } | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [activeExtraction, setActiveExtraction] = useState<DrawingExtraction | null>(null);
+    const [activeExtractions, setActiveExtractions] = useState<DrawingExtraction[]>([]);
     const [extractions, setExtractions] = useState<DrawingExtraction[]>(initialExtractions);
-    const [currentFilename, setCurrentFilename] = useState<string>("");
 
     function isCadFile(filename: string): boolean {
         const ext = filename.toLowerCase().substring(filename.lastIndexOf("."));
         return CAD_EXTENSIONS.includes(ext);
     }
 
+    async function renderFile(file: File, onProgress: (page: number, total: number) => void): Promise<{ base64Pages: string[]; pageCount: number }> {
+        const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+        if (isPdf) {
+            return renderPdfToBase64Pages(file, onProgress);
+        } else {
+            const b64 = await imageFileToBase64(file);
+            onProgress(1, 1);
+            return { base64Pages: [b64], pageCount: 1 };
+        }
+    }
+
     async function processFiles(files: File[]) {
         setError(null);
-        setActiveExtraction(null);
+        setActiveExtractions([]);
 
-        // Separate valid from CAD/unsupported
         const cadFiles = files.filter((f) => isCadFile(f.name));
         const validFiles = files.filter(
             (f) => !isCadFile(f.name) && (ACCEPTED_TYPES.includes(f.type) || f.name.toLowerCase().endsWith(".pdf"))
@@ -426,99 +435,69 @@ export default function DrawingsClient({ projectId, projectName, initialExtracti
             );
             return;
         }
-
         if (validFiles.length === 0) {
             setError("No supported files found. Please upload PDF, PNG, JPG, or WebP files.");
             return;
         }
 
-        // Build display name
-        const packLabel = validFiles.length === 1
-            ? validFiles[0].name
-            : `Drawing Pack — ${validFiles.length} drawings`;
-        setCurrentFilename(packLabel);
-
-        const totalSizeKb = Math.round(validFiles.reduce((s, f) => s + f.size, 0) / 1024);
+        // Warn about any CAD files mixed in with valid files
+        let cadWarning = "";
+        if (cadFiles.length > 0) {
+            cadWarning = `Note: ${cadFiles.length} CAD file(s) were skipped — export to PDF to include them.`;
+        }
 
         try {
-            setUploadState("rendering");
+            // ── Process each file individually — one AI call each ──────────────
+            // This is intentional: combining files into one call causes the AI to
+            // synthesise and lose quantity detail from GA drawings.
+            const newExtractions: DrawingExtraction[] = [];
 
-            // Spread page budget evenly across files — at least 1 page per file, max 10 total
-            const PAGE_BUDGET = 10;
-            const pagesPerFile = Math.max(1, Math.floor(PAGE_BUDGET / validFiles.length));
-            let allBase64Pages: string[] = [];
-            let totalPageCount = 0;
-            let pagesRendered = 0;
-            const totalPagesToRender = Math.min(PAGE_BUDGET, validFiles.length * pagesPerFile);
+            for (let i = 0; i < validFiles.length; i++) {
+                const file = validFiles[i];
+                const format = file.name.toLowerCase().endsWith(".pdf") ? "PDF" : file.type.split("/")[1].toUpperCase();
+                const fileSizeKb = Math.round(file.size / 1024);
 
-            setProgress({ current: 0, total: totalPagesToRender });
+                // Render pages
+                setUploadState("rendering");
+                setProgress({ file: file.name, fileIndex: i + 1, fileCount: validFiles.length, page: 0, pageTotal: 1 });
 
-            for (const file of validFiles) {
-                if (allBase64Pages.length >= PAGE_BUDGET) break;
+                const { base64Pages, pageCount } = await renderFile(file, (page, pageTotal) => {
+                    setProgress({ file: file.name, fileIndex: i + 1, fileCount: validFiles.length, page, pageTotal });
+                });
 
-                const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-                const remaining = PAGE_BUDGET - allBase64Pages.length;
-                const limit = Math.min(pagesPerFile, remaining);
+                // Analyse
+                setUploadState("analysing");
+                setProgress(null);
 
-                if (isPdf) {
-                    // Render up to `limit` pages from this PDF
-                    const pdfjs = await loadPdfJs();
-                    const arrayBuffer = await file.arrayBuffer();
-                    const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-                    totalPageCount += pdf.numPages;
-                    const pagesToRender = Math.min(pdf.numPages, limit);
-                    for (let i = 1; i <= pagesToRender; i++) {
-                        const page = await pdf.getPage(i);
-                        const viewport = page.getViewport({ scale: 1.5 });
-                        const canvas = document.createElement("canvas");
-                        canvas.width = viewport.width;
-                        canvas.height = viewport.height;
-                        const ctx = canvas.getContext("2d")!;
-                        await page.render({ canvasContext: ctx as any, viewport, canvas }).promise;
-                        allBase64Pages.push(canvas.toDataURL("image/jpeg", 0.82));
-                        pagesRendered++;
-                        setProgress({ current: pagesRendered, total: totalPagesToRender });
-                    }
+                const result = await analyzeDrawingPagesAction(
+                    projectId,
+                    file.name,
+                    fileSizeKb,
+                    format,
+                    pageCount,
+                    base64Pages
+                );
+
+                if (!result) {
+                    setError(`Server did not respond for "${file.name}". It may be too large.`);
+                    setUploadState("error");
+                    return;
+                }
+
+                if (result.success && result.extraction) {
+                    newExtractions.push(result.extraction);
+                    // Show results as they come in
+                    setActiveExtractions((prev) => [...prev, result.extraction!]);
+                    setExtractions((prev) => [result.extraction!, ...prev.filter((e) => e.id !== result.extraction!.id)]);
                 } else {
-                    // Single image file
-                    const b64 = await imageFileToBase64(file);
-                    allBase64Pages.push(b64);
-                    totalPageCount += 1;
-                    pagesRendered++;
-                    setProgress({ current: pagesRendered, total: totalPagesToRender });
+                    // Non-fatal — continue with remaining files, show error inline
+                    setExtractions((prev) => prev); // no-op, keeps existing
                 }
             }
 
-            setUploadState("analysing");
-            setProgress(null);
+            setUploadState("done");
+            if (cadWarning) setError(cadWarning);
 
-            const format = validFiles.length === 1
-                ? (validFiles[0].name.toLowerCase().endsWith(".pdf") ? "PDF" : validFiles[0].type.split("/")[1].toUpperCase())
-                : "Mixed Pack";
-
-            const result = await analyzeDrawingPagesAction(
-                projectId,
-                packLabel,
-                totalSizeKb,
-                format,
-                totalPageCount,
-                allBase64Pages
-            );
-
-            if (!result) {
-                setError("The server did not respond. Try uploading fewer drawings at once.");
-                setUploadState("error");
-                return;
-            }
-
-            if (result.success && result.extraction) {
-                setActiveExtraction(result.extraction);
-                setExtractions((prev) => [result.extraction!, ...prev.filter((e) => e.id !== result.extraction!.id)]);
-                setUploadState("done");
-            } else {
-                setError(result.error || "Analysis failed. Please try again.");
-                setUploadState("error");
-            }
         } catch (err: any) {
             console.error("Drawing processing error:", err);
             setError(err.message || "An unexpected error occurred.");
@@ -603,67 +582,77 @@ export default function DrawingsClient({ projectId, projectName, initialExtracti
                 <div className="bg-slate-800 border border-slate-700 rounded-xl p-10 text-center">
                     <Loader2 className="w-10 h-10 text-blue-400 animate-spin mx-auto mb-4" />
                     <p className="text-white font-medium mb-1">
-                        {uploadState === "rendering" ? "Rendering drawing pages…" : "AI is analysing your drawing…"}
+                        {uploadState === "rendering" ? "Rendering drawing pages…" : "AI is analysing drawing…"}
                     </p>
-                    <p className="text-slate-400 text-sm mb-1">{currentFilename}</p>
-                    {progress && uploadState === "rendering" && (
-                        <p className="text-slate-500 text-xs">
-                            Rendering page {progress.current} of {progress.total}…
-                        </p>
+                    {progress && (
+                        <>
+                            <p className="text-slate-300 text-sm mb-0.5 truncate max-w-sm mx-auto">{progress.file}</p>
+                            <p className="text-slate-500 text-xs">
+                                Drawing {progress.fileIndex} of {progress.fileCount}
+                                {uploadState === "rendering" && progress.pageTotal > 1
+                                    ? ` · page ${progress.page} of ${progress.pageTotal}`
+                                    : ""}
+                            </p>
+                        </>
                     )}
-                    {uploadState === "analysing" && (
-                        <p className="text-slate-500 text-xs">
-                            Extracting quantities and matching cost library…
-                        </p>
+                    {!progress && uploadState === "analysing" && (
+                        <p className="text-slate-500 text-xs">Extracting quantities and matching cost library…</p>
                     )}
                 </div>
             )}
 
-            {/* Error state */}
+            {/* Error / warning state */}
             {error && (
-                <div className="bg-red-900/20 border border-red-700/50 rounded-xl p-4 flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div className={`border rounded-xl p-4 flex items-start gap-3 ${
+                    uploadState === "error"
+                        ? "bg-red-900/20 border-red-700/50"
+                        : "bg-amber-900/20 border-amber-700/50"
+                }`}>
+                    <AlertTriangle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${uploadState === "error" ? "text-red-400" : "text-amber-400"}`} />
                     <div className="flex-1">
-                        <p className="text-red-300 text-sm font-medium">Upload failed</p>
-                        <p className="text-red-400/80 text-sm mt-1">{error}</p>
+                        <p className={`text-sm font-medium ${uploadState === "error" ? "text-red-300" : "text-amber-300"}`}>
+                            {uploadState === "error" ? "Upload failed" : "Note"}
+                        </p>
+                        <p className={`text-sm mt-1 ${uploadState === "error" ? "text-red-400/80" : "text-amber-400/80"}`}>{error}</p>
                     </div>
                     <button
-                        onClick={() => { setError(null); setUploadState("idle"); }}
-                        className="text-red-500 hover:text-red-400 transition-colors"
+                        onClick={() => { setError(null); if (uploadState === "error") setUploadState("idle"); }}
+                        className={`transition-colors ${uploadState === "error" ? "text-red-500 hover:text-red-400" : "text-amber-500 hover:text-amber-400"}`}
                     >
                         <X className="w-4 h-4" />
                     </button>
                 </div>
             )}
 
-            {/* Try another drawing button after done */}
+            {/* Upload another button after done */}
             {uploadState === "done" && !isProcessing && (
                 <button
                     onClick={() => {
                         setUploadState("idle");
-                        setActiveExtraction(null);
+                        setActiveExtractions([]);
                         setError(null);
                         if (fileInputRef.current) fileInputRef.current.value = "";
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm rounded-lg transition-colors"
                 >
                     <Upload className="w-4 h-4" />
-                    Upload another drawing
+                    Upload more drawings
                 </button>
             )}
 
-            {/* Active extraction results */}
-            {activeExtraction && (
+            {/* Active extraction results — one panel per drawing */}
+            {activeExtractions.map((ex) => (
                 <ExtractionResultsPanel
-                    extraction={activeExtraction}
+                    key={ex.id}
+                    extraction={ex}
                     projectId={projectId}
-                    onDismiss={() => setActiveExtraction(null)}
+                    onDismiss={() => setActiveExtractions((prev) => prev.filter((e) => e.id !== ex.id))}
                 />
-            )}
+            ))}
 
             {/* Drawing register */}
             <DrawingRegister
-                extractions={extractions.filter((e) => e.id !== activeExtraction?.id)}
+                extractions={extractions.filter((e) => !activeExtractions.some((a) => a.id === e.id))}
                 projectId={projectId}
             />
         </div>

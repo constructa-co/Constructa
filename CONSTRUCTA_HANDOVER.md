@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 7 April 2026 (end of Sprint 25 — fully tested and working)
+**Last updated:** 7 April 2026 (end of Sprint 26 — fully tested and working)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -438,6 +438,7 @@ Direct Cost (trade lines)
 | 22 | Proposal Versioning — `proposal_versions` table (JSONB snapshot, version number, notes, immutable); `current_version_number` on projects; `createProposalVersionAction`, `getProposalVersionsAction`, `restoreProposalVersionAction`; `VersionHistoryPanel` (collapsible sidebar, amber badge, two-step restore); version badge in status row; "Save Version" button with notes dialog |
 | 23 | Onboarding Polish + Email Notifications — `sendContractorViewedNotification` (fires on status sent→viewed, admin client email lookup, fire-and-forget); `sendWelcomeEmail` (fires on first onboarding completion); onboarding header "Welcome to Constructa"; Skip buttons on steps 3 & 4; dashboard empty-state getting-started checklist card with 4-step progress |
 | 24 | SKIPPED — LemonSqueezy Billing deferred to later sprint |
+| 26 | Video Walkthrough AI — upload site survey video (MP4/MOV/WebM, 200MB, 2min); extract 20 frames in-browser via HTML5 canvas; extract + resample audio via Web Audio API; transcribe narration via Whisper-1; combined GPT-4o Vision call (narration = primary, frames = context); returns scope/trades/value/observations; "Apply to Brief" populates all fields; full workflow: video → brief → estimate → programme in under 1 minute |
 | 25 | Drawing AI Takeoff — `drawing_extractions` DB table; `analyzeDrawingPagesAction` (in-browser PDF→JPEG via pdfjs-dist, multi-image GPT-4o Vision, cost library matching); `getDrawingExtractionsAction`; `addItemsToEstimateAction`; `/drawings` page with drag-drop upload, live progress, extraction results panel with checkboxes + trade section grouping, drawing register; Drawings tab added to project navbar; files never stored in Supabase (process-only architecture) |
 
 > ⚠️ **Sprint numbering note (5 April 2026):** Sprints 15 and 16 above are NEW sprints inserted between the original Sprint 14 (P&L) and the originally planned Sprint 15 (UI/UX Consistency Pass). All downstream sprints shift +2. Original roadmap end: Sprint 41. Corrected total: **Sprint 46** (further updated 6 April 2026: Sprints 23–24 added for Onboarding Polish and LemonSqueezy Billing, shifting all subsequent sprints +2).
@@ -545,7 +546,21 @@ Commit `9033bc2`.
 - **Rates hidden**: suggested rates from library matching NOT shown on drawings panel — appear on Estimating page only after items added
 - **Sprint 47** deferred: native CAD/BIM/SketchUp viewer for in-app measurement
 
-### 🔜 Sprint 26 — Video Walkthrough AI ← NEXT
+### ✅ Sprint 26 — Video Walkthrough AI (COMPLETE — 7 April 2026, fully tested)
+- **`VideoWalkthrough` component**: full-width section at top of Brief page, purple border
+- **`analyzeVideoAction`**: accepts up to 20 base64 JPEG frames + optional audio transcript, sends to GPT-4o Vision, returns scope/trades/value/observations
+- **`transcribeAudioAction`**: accepts base64 WAV, sends to Whisper-1, returns transcript text
+- **In-browser frame extraction**: HTML5 video element seeks to 20 evenly-spaced timestamps → canvas → JPEG 640px → base64. Raw video never sent to server.
+- **In-browser audio extraction**: Web Audio API `decodeAudioData` → `OfflineAudioContext` resample 16kHz mono → WAV header + PCM → base64. Frames + audio extracted in parallel.
+- **Three-step progress**: "Extracting video frames…" → "Transcribing your narration…" → "Combining narration + visuals to build your brief…"
+- **Narration-first prompt**: transcript flagged as PRIMARY source in GPT-4o prompt; frames provide visual context (conditions, access, hazards). This is critical — visuals alone miss spoken scope.
+- **Results panel**: scope preview, purple trade chips, estimated value, collapsible site observations
+- **"Apply to Brief"**: one click pushes scope + trades + value + start date into Brief form; AI chat panel receives confirmation message
+- **Limits**: 200MB file, 2-minute duration (iPhone 1-min video ~100MB HEVC)
+- **Audio failure is non-fatal**: if browser can't decode audio (no track, codec issue), analysis continues with visuals only
+- **Demonstrated end-to-end**: video walkthrough → brief → suggest estimate lines → programme — full pre-construction workflow in under 1 minute
+
+### 🔜 Sprint 27 — Live Projects: Overview ← NEXT
 
 ### Sprint 24 — LemonSqueezy Billing Integration (DEFERRED — skipped by user)
 - LemonSqueezy replaces previously planned Stripe integration
@@ -553,11 +568,6 @@ Commit `9033bc2`.
 - Gating: restrict features or show upgrade prompt when no active subscription
 - Admin dashboard: real revenue data replaces estimated MRR
 - PLAN_PRICE_GBP constant updated from types.ts once pricing confirmed
-
-### Sprint 26 — Video Walkthrough AI
-- Upload site survey video → GPT-4o Vision processes frames
-- Extracts rooms/areas/scope items, maps to cost library
-- Generates site survey report PDF, pre-fills Brief scope
 
 --- BATCH 1 COMPLETE — LAUNCH POINT (Sprints 14–26) ---
 

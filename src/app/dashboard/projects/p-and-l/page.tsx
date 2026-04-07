@@ -157,6 +157,7 @@ export default async function PLPage({ searchParams }: { searchParams: { project
         { data: variations },
         { data: staffCatalogue },
         { data: plantCatalogue },
+        { data: sectionForecasts },
     ] = await Promise.all([
         supabase.from("projects").select("id, name, client_name, site_address").eq("id", projectId).eq("user_id", user.id).single(),
         supabase.from("estimates").select("*, estimate_lines(*)").eq("project_id", projectId),
@@ -165,6 +166,7 @@ export default async function PLPage({ searchParams }: { searchParams: { project
         supabase.from("variations").select("*").eq("project_id", projectId),
         supabase.from("staff_resources").select("*").eq("user_id", user.id).eq("is_active", true).order("name"),
         supabase.from("plant_resources").select("*").eq("user_id", user.id).eq("is_active", true).order("name"),
+        supabase.from("project_section_forecasts").select("trade_section, forecast_cost").eq("project_id", projectId),
     ]);
 
     if (!project) redirect("/dashboard/projects/p-and-l");
@@ -201,16 +203,30 @@ export default async function PLPage({ searchParams }: { searchParams: { project
         .map(([section, budget]) => ({ section, budget }))
         .sort((a, b) => b.budget - a.budget);
 
+    // Split expenses into actual (invoiced/paid) vs committed (PO placed, not yet invoiced)
+    const actualExpenses     = (expenses ?? []).filter((e: any) => (e.cost_status ?? "actual") === "actual");
+    const committedExpenses  = (expenses ?? []).filter((e: any) => e.cost_status === "committed");
+
+    const costsPosted      = actualExpenses.reduce((s: number, e: any) => s + Number(e.amount), 0);
+    const committedTotal   = committedExpenses.reduce((s: number, e: any) => s + Number(e.amount), 0);
+    const invoicedTotal    = (invoices ?? []).reduce((s: number, i: any) => s + Number(i.amount), 0);
+    const receivedTotal    = (invoices ?? []).filter((i: any) => i.status === "Paid").reduce((s: number, i: any) => s + Number(i.amount), 0);
+    const approvedVarTotal = (variations ?? []).filter((v: any) => v.status === "Approved").reduce((s: number, v: any) => s + Number(v.amount), 0);
+
+    // Actual costs by section (only invoiced/paid expenses)
     const actualMap = new Map<string, number>();
-    for (const e of (expenses ?? [])) {
+    for (const e of actualExpenses) {
         const s = (e.trade_section as string) || "General";
         actualMap.set(s, (actualMap.get(s) ?? 0) + (Number(e.amount) || 0));
     }
 
-    const costsPosted      = (expenses ?? []).reduce((s: number, e: any) => s + Number(e.amount), 0);
-    const invoicedTotal    = (invoices ?? []).reduce((s: number, i: any) => s + Number(i.amount), 0);
-    const receivedTotal    = (invoices ?? []).filter((i: any) => i.status === "Paid").reduce((s: number, i: any) => s + Number(i.amount), 0);
-    const approvedVarTotal = (variations ?? []).filter((v: any) => v.status === "Approved").reduce((s: number, v: any) => s + Number(v.amount), 0);
+    // Committed costs by section (for the section table)
+    const committedBySectionMap = new Map<string, number>();
+    for (const e of committedExpenses) {
+        const s = (e.trade_section as string) || "General";
+        committedBySectionMap.set(s, (committedBySectionMap.get(s) ?? 0) + Number(e.amount));
+    }
+    const committedBySection = Array.from(committedBySectionMap.entries()).map(([section, committed]) => ({ section, committed }));
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-8 min-h-screen">
@@ -239,6 +255,9 @@ export default async function PLPage({ searchParams }: { searchParams: { project
                 budgetBySection={budgetBySection}
                 actualBySection={Array.from(actualMap.entries()).map(([section, actual]) => ({ section, actual }))}
                 costsPosted={costsPosted}
+                committedTotal={committedTotal}
+                committedBySection={committedBySection}
+                sectionForecasts={(sectionForecasts ?? []).map((f: any) => ({ section: f.trade_section, forecastCost: Number(f.forecast_cost) }))}
                 invoicedTotal={invoicedTotal}
                 receivedTotal={receivedTotal}
                 approvedVarTotal={approvedVarTotal}

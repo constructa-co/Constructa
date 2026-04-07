@@ -1516,6 +1516,112 @@ function OverheadTab({ projectId, totalCostsToDate, estimateLines, onDone }: Ove
 
 // ── Root component ─────────────────────────────────────────────────────────────
 
+// ── Subcontract / Committed Tab ────────────────────────────────────────────────
+const subcontractDefault = {
+  description: "",
+  supplier: "",
+  trade_section: "",
+  amount: "",
+  date: today(),
+  cost_status: "committed" as "actual" | "committed",
+};
+
+function SubcontractTab({ projectId, estimateLines, onDone }: { projectId: string; estimateLines: EstimateLine[]; onDone: () => void }) {
+  const [form, setForm] = useState(subcontractDefault);
+  const [isPending, startTransition] = useTransition();
+
+  const set = (k: keyof typeof subcontractDefault, v: string) => setForm(prev => ({ ...prev, [k]: v }));
+
+  const resolvedSection = form.trade_section ||
+    (estimateLines.find(l => l.id === "")?.trade_section) || "General";
+
+  function handleSubmit() {
+    const amount = parseFloat(form.amount);
+    if (!form.description.trim() || isNaN(amount) || amount <= 0) {
+      toast.error("Description and amount are required.");
+      return;
+    }
+    startTransition(async () => {
+      const res = await logCostAction({
+        projectId,
+        description: form.description.trim(),
+        amount,
+        cost_type: "subcontract",
+        trade_section: form.trade_section || "General",
+        expense_date: form.date,
+        supplier: form.supplier || undefined,
+        cost_status: form.cost_status,
+      });
+      if (res.error) {
+        toast.error(res.error);
+      } else {
+        toast.success(form.cost_status === "committed" ? "Subcontract order committed." : "Subcontract cost logged.");
+        setForm(subcontractDefault);
+        onDone();
+      }
+    });
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Status toggle — committed vs actual */}
+      <div className="flex gap-2 p-1 bg-slate-800 rounded-lg">
+        {(["committed", "actual"] as const).map(s => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => set("cost_status", s)}
+            className={`flex-1 py-2 text-sm rounded-md font-medium transition-colors ${
+              form.cost_status === s
+                ? s === "committed" ? "bg-amber-600 text-white" : "bg-blue-600 text-white"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            {s === "committed" ? "Committed — PO placed" : "Actual — invoice received"}
+          </button>
+        ))}
+      </div>
+      <p className="text-xs text-slate-500">
+        {form.cost_status === "committed"
+          ? "Use for orders placed but not yet invoiced. Counts toward forecast, not costs-to-date."
+          : "Use when the invoice has been received and posted."}
+      </p>
+
+      <FieldRow label="Description *">
+        <Input value={form.description} onChange={e => set("description", e.target.value)}
+          placeholder="e.g. Ground-works subcontract — Phase 1" className={inputCls} />
+      </FieldRow>
+
+      <FieldRow label="Supplier / Subcontractor">
+        <Input value={form.supplier} onChange={e => set("supplier", e.target.value)}
+          placeholder="e.g. ABC Groundworks Ltd" className={inputCls} />
+      </FieldRow>
+
+      <FieldRow label="Trade Section">
+        <Select value={form.trade_section} onValueChange={v => set("trade_section", v)}>
+          <SelectTrigger className={inputCls}><SelectValue placeholder="Select section" /></SelectTrigger>
+          <SelectContent className="bg-slate-800 border-slate-700">
+            {TRADE_SECTIONS.map(s => <SelectItem key={s} value={s} className="text-slate-200 focus:bg-slate-700">{s}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </FieldRow>
+
+      <FieldRow label="Amount (£) *">
+        <Input type="number" min="0" step="0.01" value={form.amount} onChange={e => set("amount", e.target.value)}
+          placeholder="0.00" className={inputCls} />
+      </FieldRow>
+
+      <FieldRow label="Date">
+        <Input type="date" value={form.date} onChange={e => set("date", e.target.value)} className={inputCls} />
+      </FieldRow>
+
+      <Button onClick={handleSubmit} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-500 text-white">
+        {isPending ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Saving…</> : "Log Subcontract Cost"}
+      </Button>
+    </div>
+  );
+}
+
 export default function LogCostSheet({
   projectId,
   isOpen,
@@ -1546,11 +1652,12 @@ export default function LogCostSheet({
         <div className="mt-2">
           <div className="flex border-b border-slate-700 mb-5 overflow-x-auto">
             {[
-              { value: "labour",      label: "Labour" },
-              { value: "plant-owned", label: "Plant — Owned" },
-              { value: "plant-hired", label: "Plant — Hired" },
-              { value: "materials",   label: "Materials" },
-              { value: "overhead",    label: "Overhead / Other" },
+              { value: "labour",       label: "Labour" },
+              { value: "plant-owned",  label: "Plant — Owned" },
+              { value: "plant-hired",  label: "Plant — Hired" },
+              { value: "materials",    label: "Materials" },
+              { value: "subcontract",  label: "Subcontract" },
+              { value: "overhead",     label: "Overhead / Other" },
             ].map((tab) => (
               <button
                 key={tab.value}
@@ -1578,6 +1685,9 @@ export default function LogCostSheet({
           )}
           {activeTab === "materials" && (
             <MaterialsTab projectId={projectId} estimateLines={estimateLines} onDone={handleDone} />
+          )}
+          {activeTab === "subcontract" && (
+            <SubcontractTab projectId={projectId} estimateLines={estimateLines} onDone={handleDone} />
           )}
           {activeTab === "overhead" && (
             <OverheadTab projectId={projectId} totalCostsToDate={totalCostsToDate} estimateLines={estimateLines} onDone={handleDone} />

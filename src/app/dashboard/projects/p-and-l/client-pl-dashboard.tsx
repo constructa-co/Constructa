@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { deleteCostAction, updateInvoiceStatusAction } from "./actions";
 import { COST_TYPES, TRADE_SECTIONS } from "./constants";
 import LogCostSheet from "./log-cost-sheet";
+import SectionForecastPopover from "./section-forecast-popover";
 import { toast } from "sonner";
 import {
     PoundSterling,
@@ -43,6 +44,9 @@ interface Props {
     budgetBySection: Array<{ section: string; budget: number }>;
     actualBySection: Array<{ section: string; actual: number }>;
     costsPosted: number;
+    committedTotal: number;
+    committedBySection: Array<{ section: string; committed: number }>;
+    sectionForecasts: Array<{ section: string; forecastCost: number }>;
     invoicedTotal: number;
     receivedTotal: number;
     approvedVarTotal: number;
@@ -158,6 +162,9 @@ export default function ClientPLDashboard({
     budgetBySection,
     actualBySection,
     costsPosted,
+    committedTotal,
+    committedBySection,
+    sectionForecasts,
     invoicedTotal,
     receivedTotal,
     approvedVarTotal,
@@ -180,12 +187,13 @@ export default function ClientPLDashboard({
     const totalBudgetWithRisk  = totalBudgetCost + riskAmt;
     const estimatedMargin      = contractValue - totalBudgetCost;
     const estimatedMarginPct   = contractValue > 0 ? (estimatedMargin / contractValue) * 100 : 0;
-    const budgetRemaining      = totalBudgetWithRisk - costsPosted;
-    const forecastMargin       = revisedContractValue - (costsPosted + Math.max(budgetRemaining, 0));
+    const totalExposure        = costsPosted + committedTotal;
+    const budgetRemaining      = totalBudgetWithRisk - totalExposure;
+    const forecastMargin       = revisedContractValue - (totalExposure + Math.max(budgetRemaining, 0));
     const forecastMarginPct    = revisedContractValue > 0 ? (forecastMargin / revisedContractValue) * 100 : 0;
     const costBurnPct          = totalBudgetWithRisk > 0 ? (costsPosted / totalBudgetWithRisk) * 100 : 0;
     const outstandingDebt      = invoicedTotal - receivedTotal;
-    const isOverBudget         = costsPosted > totalBudgetWithRisk * 1.1;
+    const isOverBudget         = totalExposure > totalBudgetWithRisk * 1.1;
 
     // ── Build drill-down: actual costs by section → cost_type ────────────────
     const actualByCostType = new Map<string, Map<string, number>>();
@@ -197,16 +205,27 @@ export default function ClientPLDashboard({
         typeMap.set(costType, (typeMap.get(costType) ?? 0) + Number(exp.amount));
     }
 
-    // ── Merge budget + actual by section ────────────────────────────────────
+    // ── Merge budget + actual + committed + forecast by section ─────────────
     const allSections = Array.from(
-        new Set([...budgetBySection.map(b => b.section), ...actualBySection.map(a => a.section)])
+        new Set([
+            ...budgetBySection.map(b => b.section),
+            ...actualBySection.map(a => a.section),
+            ...committedBySection.map(c => c.section),
+        ])
     );
     const mergedSections = allSections.map(section => {
-        const budget   = budgetBySection.find(b => b.section === section)?.budget ?? 0;
-        const actual   = actualBySection.find(a => a.section === section)?.actual ?? 0;
-        const variance = budget - actual;
-        const spentPct = budget > 0 ? (actual / budget) * 100 : 0;
-        return { section, budget, actual, variance, spentPct };
+        const budget    = budgetBySection.find(b => b.section === section)?.budget ?? 0;
+        const actual    = actualBySection.find(a => a.section === section)?.actual ?? 0;
+        const committed = committedBySection.find(c => c.section === section)?.committed ?? 0;
+        const forecastOverride = sectionForecasts.find(f => f.section === section)?.forecastCost ?? null;
+        // Forecast final = user override if set, else actual + committed + remaining budget
+        const forecastFinal = forecastOverride != null
+            ? forecastOverride
+            : actual + committed + Math.max(budget - actual - committed, 0);
+        const variance  = budget - forecastFinal;
+        const spentPct  = budget > 0 ? ((actual + committed) / budget) * 100 : 0;
+        const isOver    = forecastFinal > budget * 1.05 && budget > 0;
+        return { section, budget, actual, committed, forecastFinal, forecastOverride, variance, spentPct, isOver };
     }).sort((a, b) => b.budget - a.budget);
 
     // ── Toggle drill-down row ────────────────────────────────────────────────
@@ -251,7 +270,7 @@ export default function ClientPLDashboard({
         <div className="space-y-6">
 
             {/* ── KPI Strip ───────────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
                 <KpiCard
                     label="Contract Value"
                     value={gbp(contractValue)}
@@ -282,6 +301,13 @@ export default function ClientPLDashboard({
                     warn={isOverBudget}
                 />
                 <KpiCard
+                    label="Committed"
+                    value={gbp(committedTotal)}
+                    sub={committedTotal > 0 ? `${gbp(totalExposure, true)} total exposure` : "No POs placed"}
+                    color={committedTotal > 0 ? "amber" : "slate"}
+                    icon={ShieldAlert}
+                />
+                <KpiCard
                     label="Invoiced to Date"
                     value={gbp(invoicedTotal)}
                     sub={`${gbp(receivedTotal, true)} received`}
@@ -295,8 +321,9 @@ export default function ClientPLDashboard({
                 <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 space-y-2">
                     <div className="flex justify-between items-center text-xs">
                         <span className="text-slate-400 font-medium">
-                            Budget Burn — {pct(costsPosted, totalBudgetWithRisk)} spent
-                            {riskAmt > 0 && <span className="text-slate-500"> (incl. {gbp(riskAmt, true)} risk allowance)</span>}
+                            Budget Burn — {pct(totalExposure, totalBudgetWithRisk)} exposure
+                            {committedTotal > 0 && <span className="text-amber-400/70"> (incl. {gbp(committedTotal, true)} committed)</span>}
+                            {riskAmt > 0 && <span className="text-slate-500"> · incl. {gbp(riskAmt, true)} risk</span>}
                         </span>
                         <span className={`font-semibold ${budgetRemaining < 0 ? "text-red-400" : "text-slate-300"}`}>
                             {budgetRemaining >= 0
@@ -304,7 +331,15 @@ export default function ClientPLDashboard({
                                 : gbp(Math.abs(budgetRemaining), true) + " over budget"}
                         </span>
                     </div>
-                    <ProgressBar value={costsPosted} max={totalBudgetWithRisk} color={burnColor(costBurnPct)} />
+                    {/* Stacked bar: actual (solid) + committed (hatched amber) */}
+                    <div className="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden flex">
+                        <div className={`h-full rounded-l-full transition-all ${burnColor(costBurnPct) === "green" ? "bg-green-500" : burnColor(costBurnPct) === "amber" ? "bg-amber-400" : "bg-red-500"}`}
+                            style={{ width: `${Math.min((costsPosted / totalBudgetWithRisk) * 100, 100)}%` }} />
+                        {committedTotal > 0 && (
+                            <div className="h-full bg-amber-400/40 transition-all"
+                                style={{ width: `${Math.min((committedTotal / totalBudgetWithRisk) * 100, 100)}%` }} />
+                        )}
+                    </div>
                     {forecastMargin !== estimatedMargin && (
                         <div className="text-[11px] text-slate-500">
                             Forecast margin at completion:{" "}
@@ -355,24 +390,26 @@ export default function ClientPLDashboard({
                                         <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Trade Section</th>
                                         <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Budget</th>
                                         <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Actual</th>
+                                        <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-amber-500/70">Committed</th>
+                                        <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Forecast Final</th>
                                         <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Variance</th>
                                         <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">% Spent</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {mergedSections.map((row, i) => {
-                                        const isOver     = row.actual > row.budget * 1.1 && row.budget > 0;
-                                        const isNearOver = row.actual > row.budget * 0.85 && row.budget > 0;
+                                        const isNearOver = row.spentPct > 85 && row.budget > 0;
                                         const isExpanded = expandedSections.has(row.section);
                                         const typeBreakdown = actualByCostType.get(row.section);
                                         const hasBreakdown  = typeBreakdown && typeBreakdown.size > 0;
+                                        const forecastOverride = row.forecastOverride;
 
                                         return (
                                             <React.Fragment key={row.section}>
                                                 {/* Main section row */}
                                                 <tr
                                                     onClick={() => hasBreakdown && toggleDrillDown(row.section)}
-                                                    className={`border-b border-slate-700/30 transition-colors ${hasBreakdown ? "cursor-pointer hover:bg-slate-700/20" : "hover:bg-slate-700/10"}`}
+                                                    className={`border-b border-slate-700/30 transition-colors group ${hasBreakdown ? "cursor-pointer hover:bg-slate-700/20" : "hover:bg-slate-700/10"}`}
                                                 >
                                                     <td className="px-4 py-3 text-slate-200 font-medium">
                                                         <div className="flex items-center gap-2">
@@ -381,17 +418,38 @@ export default function ClientPLDashboard({
                                                             ) : (
                                                                 <span className="w-3.5 h-3.5 flex-shrink-0" />
                                                             )}
+                                                            {row.isOver && (
+                                                                <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" title="Forecast over budget" />
+                                                            )}
                                                             {row.section}
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3 text-right text-slate-300 font-mono text-xs">{row.budget > 0 ? gbp(row.budget) : "—"}</td>
                                                     <td className="px-4 py-3 text-right font-mono text-xs">
-                                                        <span className={row.actual > 0 ? (isOver ? "text-red-400" : "text-slate-300") : "text-slate-600"}>
+                                                        <span className={row.actual > 0 ? "text-slate-300" : "text-slate-600"}>
                                                             {row.actual > 0 ? gbp(row.actual) : "—"}
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-3 text-right font-mono text-xs">
-                                                        {row.budget > 0 || row.actual > 0 ? (
+                                                        <span className={row.committed > 0 ? "text-amber-400" : "text-slate-600"}>
+                                                            {row.committed > 0 ? gbp(row.committed) : "—"}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right font-mono text-xs" onClick={e => e.stopPropagation()}>
+                                                        <div className="flex items-center justify-end">
+                                                            <span className={forecastOverride != null ? "text-blue-400 font-semibold" : row.isOver ? "text-red-400" : "text-slate-300"}>
+                                                                {gbp(row.forecastFinal)}
+                                                            </span>
+                                                            <SectionForecastPopover
+                                                                projectId={projectId}
+                                                                section={row.section}
+                                                                currentForecast={forecastOverride}
+                                                                budget={row.budget}
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right font-mono text-xs">
+                                                        {row.budget > 0 ? (
                                                             <span className={row.variance >= 0 ? "text-green-400" : "text-red-400"}>
                                                                 {row.variance >= 0 ? "+" : ""}{gbp(row.variance)}
                                                             </span>
@@ -401,12 +459,12 @@ export default function ClientPLDashboard({
                                                         <div className="flex items-center gap-2">
                                                             <div className="flex-1">
                                                                 <ProgressBar
-                                                                    value={row.actual}
-                                                                    max={row.budget || row.actual}
-                                                                    color={isOver ? "red" : isNearOver ? "amber" : "green"}
+                                                                    value={row.actual + row.committed}
+                                                                    max={row.budget || (row.actual + row.committed)}
+                                                                    color={row.isOver ? "red" : isNearOver ? "amber" : "green"}
                                                                 />
                                                             </div>
-                                                            <span className={`text-[10px] font-mono w-10 text-right ${isOver ? "text-red-400" : "text-slate-400"}`}>
+                                                            <span className={`text-[10px] font-mono w-10 text-right ${row.isOver ? "text-red-400" : "text-slate-400"}`}>
                                                                 {row.budget > 0 ? `${row.spentPct.toFixed(0)}%` : "—"}
                                                             </span>
                                                         </div>
@@ -416,7 +474,7 @@ export default function ClientPLDashboard({
                                                 {/* Drill-down: cost type breakdown */}
                                                 {isExpanded && hasBreakdown && (
                                                     <tr className="border-b border-slate-700/20 bg-slate-900/40">
-                                                        <td colSpan={5} className="px-4 py-0">
+                                                        <td colSpan={7} className="px-4 py-0">
                                                             <div className="py-2 space-y-0.5 pl-6">
                                                                 <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600 pb-1">
                                                                     <span>Cost Type</span>
@@ -487,7 +545,7 @@ export default function ClientPLDashboard({
                                     <tfoot>
                                         <tr className="border-t border-slate-600/50 bg-slate-700/20">
                                             <td className="px-4 py-3 text-slate-300 font-bold text-xs uppercase tracking-wide">
-                                                Total Budget
+                                                Totals
                                                 {riskAmt > 0 && <span className="text-slate-500 font-normal normal-case"> (incl. risk)</span>}
                                             </td>
                                             <td className="px-4 py-3 text-right text-slate-200 font-bold font-mono text-xs">{gbp(totalBudgetWithRisk)}</td>
@@ -495,12 +553,20 @@ export default function ClientPLDashboard({
                                                 <span className={isOverBudget ? "text-red-400" : "text-slate-200"}>{gbp(costsPosted)}</span>
                                             </td>
                                             <td className="px-4 py-3 text-right font-bold font-mono text-xs">
-                                                <span className={totalBudgetWithRisk - costsPosted >= 0 ? "text-green-400" : "text-red-400"}>
-                                                    {totalBudgetWithRisk - costsPosted >= 0 ? "+" : ""}{gbp(totalBudgetWithRisk - costsPosted)}
+                                                <span className={committedTotal > 0 ? "text-amber-400" : "text-slate-600"}>{committedTotal > 0 ? gbp(committedTotal) : "—"}</span>
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-bold font-mono text-xs">
+                                                <span className={isOverBudget ? "text-red-400" : "text-slate-200"}>
+                                                    {gbp(mergedSections.reduce((s, r) => s + r.forecastFinal, 0))}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-bold font-mono text-xs">
+                                                <span className={budgetRemaining >= 0 ? "text-green-400" : "text-red-400"}>
+                                                    {budgetRemaining >= 0 ? "+" : ""}{gbp(budgetRemaining)}
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3 text-[10px] font-mono text-slate-400">
-                                                {totalBudgetWithRisk > 0 ? `${((costsPosted / totalBudgetWithRisk) * 100).toFixed(0)}%` : "—"}
+                                                {totalBudgetWithRisk > 0 ? `${((totalExposure / totalBudgetWithRisk) * 100).toFixed(0)}%` : "—"}
                                             </td>
                                         </tr>
                                     </tfoot>

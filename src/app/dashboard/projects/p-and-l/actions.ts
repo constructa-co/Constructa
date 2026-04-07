@@ -14,6 +14,7 @@ export async function logCostAction(data: {
     supplier?: string;
     estimate_line_id?: string;
     receipt_url?: string;
+    cost_status?: "actual" | "committed";
 }): Promise<{ error?: string }> {
     try {
         const supabase = createClient();
@@ -27,7 +28,30 @@ export async function logCostAction(data: {
             supplier: data.supplier || null,
             estimate_line_id: data.estimate_line_id || null,
             receipt_url: data.receipt_url || null,
+            cost_status: data.cost_status ?? "actual",
         });
+        if (error) return { error: error.message };
+        revalidatePath("/dashboard/projects/p-and-l");
+        return {};
+    } catch (e: unknown) {
+        return { error: e instanceof Error ? e.message : "Unknown error" };
+    }
+}
+
+// ── Upsert a per-section forecast override ─────────────────────────────────────
+export async function upsertSectionForecastAction(
+    projectId: string,
+    tradeSection: string,
+    forecastCost: number | null
+): Promise<{ error?: string }> {
+    try {
+        const supabase = createClient();
+        const { error } = await supabase
+            .from("project_section_forecasts")
+            .upsert(
+                { project_id: projectId, trade_section: tradeSection, forecast_cost: forecastCost, updated_at: new Date().toISOString() },
+                { onConflict: "project_id,trade_section" }
+            );
         if (error) return { error: error.message };
         revalidatePath("/dashboard/projects/p-and-l");
         return {};

@@ -5,6 +5,7 @@ import ProjectNavBar from "@/components/project-navbar";
 import EstimateClient from "./estimate-client";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60; // BoQ import (GPT-4o Vision PDF / Excel AI parse) can take 20-40s
 
 export default async function EstimatingPage({ searchParams }: { searchParams: { projectId?: string } }) {
     const supabase = createClient();

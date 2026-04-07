@@ -252,10 +252,10 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
         if (importedEstimateIdRef.current) {
             const id = importedEstimateIdRef.current;
             importedEstimateIdRef.current = null;
-            // Navigate to the costs page with the new tab ID in the URL.
-            // page.tsx reads searchParams.tab and passes it as defaultTabId, which is
-            // then picked up by the useState initializer above — survives future navigations too.
-            router.push(`/dashboard/projects/costs?projectId=${projectId}&tab=${id}`);
+            // Use a full navigation (not router.push) so the client component fully remounts,
+            // the server re-fetches the new estimate, and the useState initializer picks up defaultTabId.
+            // sessionStorage is also updated by the initializer so subsequent soft-navigations work too.
+            window.location.href = `/dashboard/projects/costs?projectId=${projectId}&tab=${id}`;
         }
     };
 

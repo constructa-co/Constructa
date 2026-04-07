@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 7 April 2026 (end of Sprint 26 — fully tested and working)
+**Last updated:** 7 April 2026 (end of Sprint 26a — Client BoQ Import, fully committed)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -132,9 +132,12 @@ proposal_versions — id, project_id, version_number INT, notes TEXT, snapshot J
 -- Estimating
 estimates         — id, project_id, is_active, overhead_pct, profit_pct, risk_pct,
                     prelims_pct, discount_pct, total_cost
+                    is_client_boq BOOLEAN DEFAULT false  ← Sprint 26a
+                    client_boq_filename TEXT              ← Sprint 26a (original filename)
 
 estimate_lines    — id, estimate_id, project_id, trade_section, description,
                     qty, unit, unit_rate, line_total, pricing_mode ('simple'|'buildup')
+                    client_ref TEXT  ← Sprint 26a (client's item reference, e.g. "2.1.3")
 
 estimate_line_components — id, estimate_line_id, component_type ('labour'|'plant'|'material'
                            |'consumable'|'temp_works'|'subcontract')
@@ -375,6 +378,7 @@ AI features currently built:
 - MD message AI rewrite
 - Proposal full generation
 - Drawing AI Takeoff: upload PDF/image drawing → pdfjs renders to JPEG pages → GPT-4o Vision multi-image analysis → extract quantities by trade section → match to cost library → add to estimate (Sprint 25)
+- Client BoQ Import: upload Excel (SheetJS rows → AI column detection) or PDF (pdfjs → GPT-4o Vision) → parse client's exact sections + item refs → create estimate → export priced Excel back to client (Sprint 26a)
 
 ---
 
@@ -439,6 +443,7 @@ Direct Cost (trade lines)
 | 23 | Onboarding Polish + Email Notifications — `sendContractorViewedNotification` (fires on status sent→viewed, admin client email lookup, fire-and-forget); `sendWelcomeEmail` (fires on first onboarding completion); onboarding header "Welcome to Constructa"; Skip buttons on steps 3 & 4; dashboard empty-state getting-started checklist card with 4-step progress |
 | 24 | SKIPPED — LemonSqueezy Billing deferred to later sprint |
 | 26 | Video Walkthrough AI — upload site survey video (MP4/MOV/WebM, 200MB, 2min); extract 20 frames in-browser via HTML5 canvas; extract + resample audio via Web Audio API; transcribe narration via Whisper-1; combined GPT-4o Vision call (narration = primary, frames = context); returns scope/trades/value/observations; "Apply to Brief" populates all fields; full workflow: video → brief → estimate → programme in under 1 minute |
+| 26a | Client BoQ Import — upload client-provided BoQ (Excel or PDF) in Estimating tab; AI parses via GPT-4o Vision (PDF) or SheetJS+AI (Excel); preserves client's sections, item refs, descriptions; creates estimate flagged `is_client_boq`; preview grouped by section with amber qty warning; export priced BoQ to Excel (Priced_filename.xlsx) with cost summary appended |
 | 25 | Drawing AI Takeoff — `drawing_extractions` DB table; `analyzeDrawingPagesAction` (in-browser PDF→JPEG via pdfjs-dist, multi-image GPT-4o Vision, cost library matching); `getDrawingExtractionsAction`; `addItemsToEstimateAction`; `/drawings` page with drag-drop upload, live progress, extraction results panel with checkboxes + trade section grouping, drawing register; Drawings tab added to project navbar; files never stored in Supabase (process-only architecture) |
 
 > ⚠️ **Sprint numbering note (5 April 2026):** Sprints 15 and 16 above are NEW sprints inserted between the original Sprint 14 (P&L) and the originally planned Sprint 15 (UI/UX Consistency Pass). All downstream sprints shift +2. Original roadmap end: Sprint 41. Corrected total: **Sprint 46** (further updated 6 April 2026: Sprints 23–24 added for Onboarding Polish and LemonSqueezy Billing, shifting all subsequent sprints +2).
@@ -545,6 +550,32 @@ Commit `9033bc2`.
 - **Body limit**: `next.config.mjs` `serverActions.bodySizeLimit = "25mb"` for base64 page payloads
 - **Rates hidden**: suggested rates from library matching NOT shown on drawings panel — appear on Estimating page only after items added
 - **Sprint 47** deferred: native CAD/BIM/SketchUp viewer for in-app measurement
+
+### ✅ Sprint 26a — Client BoQ Import (COMPLETE — 7 April 2026)
+Commit `78ae468`.
+
+A client QS sometimes sends an unpriced BoQ (NRM2, SMM7 or bespoke) that the contractor must price and return. Sprint 26a imports it exactly — preserving the client's sections and item references for like-for-like comparison.
+
+**Files:**
+- `boq-import-action.ts`: three server actions:
+  - `parseBoQFromPdfAction` — in-browser PDF→JPEG via pdfjs → GPT-4o Vision → structured JSON (client_ref, section, description, quantity, unit). Preserves all headings including provisional sums and PC sums.
+  - `parseBoQFromExcelDataAction` — accepts rows from SheetJS (first 200), passes tab-separated text to `generateJSON`, AI identifies column structure.
+  - `createBoQEstimateAction` — inserts estimate (`is_client_boq: true`, `client_boq_filename`), bulk-inserts lines with `client_ref`, auto-advances project status to "Estimating"
+- `boq-import.tsx`: modal dialog — upload zone (Excel/PDF, 25MB); states: idle → parsing → preview → importing → done; preview grouped by section with collapsible accordions showing client_ref + qty/unit; amber warning for blank quantities (imported as qty=1 placeholder); "Import N items" CTA
+- `boq-excel-export.ts`: client-side SheetJS export — `exportBoQToExcel(estimate)` — grouped by client sections, Ref column included for client BoQ, priced columns (rate + total), full cost summary at bottom; filename = `Priced_<original_filename>.xlsx`
+- `types.ts`: `EstimateLine.client_ref?: string | null`; `Estimate.is_client_boq?: boolean`; `Estimate.client_boq_filename?: string | null`
+- `estimate-client.tsx`:
+  - "Import Client BoQ" button (emerald) next to "New Estimate" in tabs area
+  - Green banner on client BoQ estimates: filename + instructions + "Export to Excel" button
+  - **Ref column** (50px) replaces Type/Line type column for client BoQ line items
+  - Build-up toggle hidden for client BoQ rows (rate-entry only)
+  - `BoQImport` modal rendered at root; on close after successful import: `window.location.reload()` to re-fetch estimate from server
+
+**DB migration:** `sprint26a_client_boq_import` — adds `is_client_boq`, `client_boq_filename` to estimates; `client_ref` to estimate_lines. Applied via Supabase MCP.
+
+**Sprint 26b (future):** client-format PDF export matching client's section structure; toggle between Constructa summary format and client format on proposal.
+
+---
 
 ### ✅ Sprint 26 — Video Walkthrough AI (COMPLETE — 7 April 2026, fully tested)
 - **`VideoWalkthrough` component**: full-width section at top of Brief page, purple border

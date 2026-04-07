@@ -6,7 +6,7 @@ import { analyzeVideoAction, type VideoAnalysisResult } from "./actions";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MAX_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
+const MAX_SIZE_BYTES = 200 * 1024 * 1024; // 200 MB
 const MAX_DURATION_SECS = 120;           // 2 minutes
 const FRAME_COUNT = 20;                  // frames to extract and send
 const ACCEPTED_VIDEO = ["video/mp4", "video/quicktime", "video/x-msvideo", "video/webm", "video/mov"];
@@ -100,7 +100,7 @@ export default function VideoWalkthrough({ onApply }: Props) {
 
         // Validate size
         if (file.size > MAX_SIZE_BYTES) {
-            setError(`File is ${(file.size / 1024 / 1024).toFixed(0)}MB — please keep videos under 50MB.`);
+            setError(`File is ${(file.size / 1024 / 1024).toFixed(0)}MB — please keep videos under 200MB.`);
             return;
         }
 
@@ -200,7 +200,7 @@ export default function VideoWalkthrough({ onApply }: Props) {
                         <p className="text-slate-200 font-medium text-sm mb-1">
                             {isDragging ? "Drop your video here" : "Upload a site walkthrough video"}
                         </p>
-                        <p className="text-slate-500 text-xs">MP4, MOV, WebM · Max 50MB · Max 2 minutes</p>
+                        <p className="text-slate-500 text-xs">MP4, MOV, WebM · Max 200MB · Max 2 minutes</p>
                     </div>
                 )}
 

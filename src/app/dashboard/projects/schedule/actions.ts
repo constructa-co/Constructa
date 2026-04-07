@@ -73,8 +73,12 @@ export async function getEstimatePhasesAction(
     if (!estimate) return [];
 
     const sectionManhours: Record<string, number> = {};
+    const sectionHasLines: Record<string, boolean> = {};
+
     (estimate.estimate_lines || []).forEach((line: any) => {
         const section = line.trade_section || "General";
+        sectionHasLines[section] = true;
+
         const lineManHours = (line.estimate_line_components || []).reduce(
             (sum: number, c: any) => sum + (c.total_manhours || 0),
             0
@@ -82,7 +86,14 @@ export async function getEstimatePhasesAction(
         sectionManhours[section] = (sectionManhours[section] || 0) + lineManHours * (line.quantity || 1);
     });
 
-    const sections = Object.keys(sectionManhours).filter(s => sectionManhours[s] > 0);
+    // Include all sections that have lines — not just those with calculated manhours.
+    // Lines added from Drawing AI Takeoff (and other simple lines) have no components
+    // so their manhours = 0, but they should still appear as programme phases.
+    // For sections with no manhour data, default to 5 working days as a placeholder.
+    const allSections = Object.keys(sectionHasLines);
+    const sections = allSections.length > 0
+        ? allSections
+        : Object.keys(sectionManhours).filter(s => sectionManhours[s] > 0);
 
     if (sections.length === 0) {
         const { data: proj } = await supabase
@@ -104,10 +115,12 @@ export async function getEstimatePhasesAction(
     // Return working days; client converts to calendar days using daysPerWeek
     let offset = 0;
     return sections.map(section => {
-        const manhours = sectionManhours[section];
-        const calculatedDays = Math.max(Math.ceil(manhours / 8), 1);
+        const manhours = sectionManhours[section] || 0;
+        // If no manhour data (e.g. simple lines from Drawing AI Takeoff),
+        // default to 5 working days so the phase still appears on the Gantt
+        const calculatedDays = manhours > 0 ? Math.max(Math.ceil(manhours / 8), 1) : 5;
         const phase = { name: section, calculatedDays, manualDays: null, manhours, startOffset: offset };
-        offset += calculatedDays; // client re-sequences on load
+        offset += calculatedDays;
         return phase;
     });
 }

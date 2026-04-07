@@ -280,10 +280,9 @@ export async function addItemsToEstimateAction(
         return { success: false, added: 0, error: "No estimate found for this project. Create an estimate first." };
     }
 
-    // Insert all items
+    // Insert all items — project_id is NOT a column on estimate_lines
     const linesToInsert = items.map((item) => ({
         estimate_id: estimateId,
-        project_id: projectId,
         trade_section: item.trade_section || "General",
         description: item.item_name,
         quantity: item.estimated_quantity,

@@ -231,11 +231,6 @@ function ExtractionResultsPanel({
                                     <span className="text-slate-400 text-xs font-mono whitespace-nowrap">
                                         {item.estimated_quantity} {item.unit}
                                     </span>
-                                    {item.suggested_rate > 0 && (
-                                        <span className="text-emerald-400 text-xs font-mono whitespace-nowrap ml-2">
-                                            £{item.suggested_rate.toFixed(2)}
-                                        </span>
-                                    )}
                                 </button>
                             ))}
                         </div>

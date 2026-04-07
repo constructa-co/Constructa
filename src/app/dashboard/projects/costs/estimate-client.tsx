@@ -2,6 +2,7 @@
 // v3 - extracted BuildUpPanel as standalone client component
 
 import { useState, useTransition, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
     createEstimateAction,
     updateEstimateMarginsAction,
@@ -14,10 +15,12 @@ import {
     setPricingModeAction,
     saveDiscountAction,
 } from "./actions";
-import { Plus, Trash2, Check, Star, Loader2, CalendarDays, Sparkles } from "lucide-react";
+import { Plus, Trash2, Check, Star, Loader2, CalendarDays, ClipboardList, FileDown } from "lucide-react";
 import Link from "next/link";
 import BuildUpPanel from "./build-up-panel";
 import VisionTakeoff from "@/app/dashboard/foundations/vision-takeoff";
+import BoQImport from "./boq-import";
+import { exportBoQToExcel } from "./boq-excel-export";
 import type { EstimateLineComponent, EstimateLine, Estimate, CostLibraryItem, LabourRate, RateBuildup } from "./types";
 
 interface Props {
@@ -65,12 +68,15 @@ function formatGBP(n: number): string {
 
 // ─── Main Component ──────────────────────────────────────
 export default function EstimateClient({ estimates: initialEstimates, costLibrary, projectId, orgId, rateBuildups, labourRates, preferredTrades }: Props) {
+    const router = useRouter();
     const [estimates, setEstimates] = useState<Estimate[]>(() => initialEstimates);
     const [activeTab, setActiveTab] = useState<string>(estimates[0]?.id || "");
     const [_isPending, startTransition] = useTransition();
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [openBuildUpPanels, setOpenBuildUpPanels] = useState<Set<string>>(new Set());
+    const [showBoQImport, setShowBoQImport] = useState(false);
+    const [pendingBoQEstimateId, setPendingBoQEstimateId] = useState<string | null>(null);
 
     const currentEstimate = estimates.find((e) => e.id === activeTab);
 
@@ -206,6 +212,20 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
             showSaved();
         } catch (err) {
             console.error(err);
+        }
+    };
+
+    // ─── BoQ Import handler ──────────────────────────────
+    const handleBoQImported = (estimateId: string, _filename: string) => {
+        setPendingBoQEstimateId(estimateId);
+    };
+
+    const handleBoQClose = () => {
+        setShowBoQImport(false);
+        if (pendingBoQEstimateId) {
+            // Reload page so server re-fetches the new estimate
+            router.refresh();
+            window.location.reload();
         }
     };
 
@@ -426,6 +446,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
     });
 
     return (
+        <>
         <div className="space-y-6">
             {/* HEADER WITH CTA */}
             <div className="flex items-center justify-between">
@@ -471,6 +492,13 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                 >
                     <Plus className="w-4 h-4" /> New Estimate
                 </button>
+                <button
+                    type="button"
+                    onClick={() => setShowBoQImport(true)}
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-700 hover:bg-emerald-600 text-white transition-colors flex items-center gap-1.5"
+                >
+                    <ClipboardList className="w-4 h-4" /> Import Client BoQ
+                </button>
 
                 {/* Save indicator */}
                 <div className="ml-auto text-xs text-slate-500 flex items-center gap-1.5">
@@ -499,6 +527,30 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                 </div>
             ) : (
                 <>
+                    {/* CLIENT BOQ BANNER */}
+                    {currentEstimate.is_client_boq && (
+                        <div className="flex items-center justify-between bg-emerald-900/20 border border-emerald-700/40 rounded-xl px-5 py-3">
+                            <div className="flex items-center gap-2.5">
+                                <ClipboardList className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                <div>
+                                    <span className="text-emerald-300 text-sm font-medium">Client BoQ</span>
+                                    {currentEstimate.client_boq_filename && (
+                                        <span className="text-emerald-600 text-xs ml-2">{currentEstimate.client_boq_filename}</span>
+                                    )}
+                                    <p className="text-emerald-600/80 text-xs mt-0.5">Client's sections and references are preserved. Add your rates then export to Excel.</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => exportBoQToExcel(currentEstimate)}
+                                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
+                            >
+                                <FileDown className="w-4 h-4" />
+                                Export to Excel
+                            </button>
+                        </div>
+                    )}
+
                     {/* ESTIMATE HEADER */}
                     <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 space-y-4">
                         <div className="flex flex-wrap items-end gap-4">
@@ -671,41 +723,56 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                 </div>
 
                                 {/* Table header */}
-                                <div className="grid grid-cols-[70px_1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 bg-slate-900/30 border-b border-slate-700/50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                                    <div>Type</div>
-                                    <div>Description</div>
-                                    <div className="text-center">Qty</div>
-                                    <div className="text-center">Unit</div>
-                                    <div className="text-right">Rate</div>
-                                    <div className="text-right">Total</div>
-                                    <div></div>
-                                </div>
+                                {currentEstimate.is_client_boq ? (
+                                    <div className="grid grid-cols-[50px_1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 bg-slate-900/30 border-b border-slate-700/50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                                        <div>Ref</div>
+                                        <div>Description</div>
+                                        <div className="text-center">Qty</div>
+                                        <div className="text-center">Unit</div>
+                                        <div className="text-right">Rate</div>
+                                        <div className="text-right">Total</div>
+                                        <div></div>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-[70px_1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 bg-slate-900/30 border-b border-slate-700/50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                                        <div>Type</div>
+                                        <div>Description</div>
+                                        <div className="text-center">Qty</div>
+                                        <div className="text-center">Unit</div>
+                                        <div className="text-right">Rate</div>
+                                        <div className="text-right">Total</div>
+                                        <div></div>
+                                    </div>
+                                )}
 
                                 {/* Line items */}
                                 {sectionLines.map((line) => (
                                     <div key={line.id}>
                                         <div className="flex items-stretch">
-                                            {/* Mode toggle button */}
-                                            <div className="flex items-center px-2 border-b border-slate-700/30">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleTogglePricingMode(line.id, line.pricing_mode)}
-                                                    title={line.pricing_mode === "buildup" ? "Switch to simple rate" : "Build up from first principles"}
-                                                    className={`flex-shrink-0 w-5 h-5 rounded text-xs font-bold border transition-colors ${
-                                                        line.pricing_mode === "buildup"
-                                                            ? "bg-blue-600 text-white border-blue-600"
-                                                            : "bg-slate-700 text-slate-400 border-slate-600 hover:border-blue-500 hover:text-slate-200"
-                                                    }`}
-                                                >
-                                                    +
-                                                </button>
-                                            </div>
+                                            {/* Mode toggle button — hidden for client BoQ lines */}
+                                            {!currentEstimate.is_client_boq && (
+                                                <div className="flex items-center px-2 border-b border-slate-700/30">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleTogglePricingMode(line.id, line.pricing_mode)}
+                                                        title={line.pricing_mode === "buildup" ? "Switch to simple rate" : "Build up from first principles"}
+                                                        className={`flex-shrink-0 w-5 h-5 rounded text-xs font-bold border transition-colors ${
+                                                            line.pricing_mode === "buildup"
+                                                                ? "bg-blue-600 text-white border-blue-600"
+                                                                : "bg-slate-700 text-slate-400 border-slate-600 hover:border-blue-500 hover:text-slate-200"
+                                                        }`}
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                            )}
                                             <div className="flex-1">
                                                 <LineItemRow
                                                     line={line}
                                                     library={sectionLibrary}
                                                     allLibrary={costLibrary}
                                                     section={section}
+                                                    isClientBoQ={!!currentEstimate.is_client_boq}
                                                     onUpdate={handleUpdateLine}
                                                     onDelete={handleDeleteLine}
                                                     onLibrarySelect={handleLibrarySelect}
@@ -786,6 +853,16 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                 </>
             )}
         </div>
+
+        {/* BoQ Import Modal */}
+        {showBoQImport && (
+            <BoQImport
+                projectId={projectId}
+                onImported={handleBoQImported}
+                onClose={handleBoQClose}
+            />
+        )}
+        </>
     );
 }
 
@@ -795,6 +872,7 @@ function LineItemRow({
     library,
     allLibrary,
     section,
+    isClientBoQ,
     onUpdate,
     onDelete,
     onLibrarySelect,
@@ -803,6 +881,7 @@ function LineItemRow({
     library: CostLibraryItem[];
     allLibrary: CostLibraryItem[];
     section: string;
+    isClientBoQ?: boolean;
     onUpdate: (id: string, updates: Partial<EstimateLine>) => void;
     onDelete: (id: string) => void;
     onLibrarySelect: (lineId: string, itemId: string, section: string) => void;
@@ -832,19 +911,29 @@ function LineItemRow({
         : [];
 
     return (
-        <div className="grid grid-cols-[70px_1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 border-b border-slate-700/30 items-center hover:bg-slate-700/20 transition-colors">
-            {/* Line type badge */}
-            <select
-                value={line.line_type || "general"}
-                onChange={(e) => onUpdate(line.id, { line_type: e.target.value })}
-                className="h-8 px-1 border border-slate-700 rounded text-xs text-slate-400 bg-slate-900/50 truncate focus:outline-none"
-            >
-                {LINE_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                        {t.charAt(0).toUpperCase() + t.slice(1)}
-                    </option>
-                ))}
-            </select>
+        <div className={`grid gap-2 px-5 py-2 border-b border-slate-700/30 items-center hover:bg-slate-700/20 transition-colors ${
+            isClientBoQ
+                ? "grid-cols-[50px_1fr_80px_80px_100px_100px_40px]"
+                : "grid-cols-[70px_1fr_80px_80px_100px_100px_40px]"
+        }`}>
+            {/* Client ref (BoQ) or line type badge (standard) */}
+            {isClientBoQ ? (
+                <span className="text-slate-500 text-xs font-mono truncate" title={line.client_ref || ""}>
+                    {line.client_ref || ""}
+                </span>
+            ) : (
+                <select
+                    value={line.line_type || "general"}
+                    onChange={(e) => onUpdate(line.id, { line_type: e.target.value })}
+                    className="h-8 px-1 border border-slate-700 rounded text-xs text-slate-400 bg-slate-900/50 truncate focus:outline-none"
+                >
+                    {LINE_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                            {t.charAt(0).toUpperCase() + t.slice(1)}
+                        </option>
+                    ))}
+                </select>
+            )}
 
             {/* Description with library search — free-text supported */}
             <div className="relative" ref={dropdownRef} style={{ overflow: "visible" }}>

@@ -27,6 +27,7 @@ export interface EstimateLine {
     notes?: string | null;
     pricing_mode: "simple" | "buildup";
     estimate_line_components: EstimateLineComponent[];
+    client_ref?: string | null;
 }
 
 export interface Estimate {
@@ -41,6 +42,8 @@ export interface Estimate {
     discount_reason: string;
     total_cost: number;
     is_active: boolean;
+    is_client_boq?: boolean;
+    client_boq_filename?: string | null;
     estimate_lines: EstimateLine[];
 }
 

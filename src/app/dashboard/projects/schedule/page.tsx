@@ -39,8 +39,15 @@ export default async function SchedulePage({ searchParams }: { searchParams: { p
         .eq("project_id", project.id)
         .order("created_at");
 
-    // Find the active estimate, or fall back to the first one
-    const activeEstimate = (estimates || []).find((e: any) => e.is_active) || (estimates || [])[0] || null;
+    // For programme generation, prefer a non-client-BoQ estimate.
+    // Client BoQs use the client's section structure which is for pricing, not sequencing.
+    const nonBoQ = (estimates || []).filter((e: any) => !e.is_client_boq);
+    const activeEstimate =
+        nonBoQ.find((e: any) => e.is_active) ||
+        nonBoQ[0] ||
+        (estimates || []).find((e: any) => e.is_active) ||
+        (estimates || [])[0] ||
+        null;
 
     return (
         <div className="max-w-7xl mx-auto p-8 pt-24 space-y-8">

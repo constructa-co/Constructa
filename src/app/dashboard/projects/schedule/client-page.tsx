@@ -161,10 +161,11 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
     const [isDragging, setIsDragging] = useState(false);
 
-    const ganttRef        = useRef<HTMLDivElement>(null);
-    const dragStateRef    = useRef<DragState | null>(null);
-    const isInitialMount  = useRef(true);
-    const autoSaveTimer   = useRef<NodeJS.Timeout | null>(null);
+    const ganttRef           = useRef<HTMLDivElement>(null);
+    const dragStateRef       = useRef<DragState | null>(null);
+    const isInitialMount     = useRef(true);
+    const autoSaveTimer      = useRef<NodeJS.Timeout | null>(null);
+    const programmeStartRef  = useRef<Date | null>(null);
 
     // ── Working week (persisted in localStorage per project) ──────────────
     const DPW_KEY = `prog_dpw_${projectId}`;
@@ -206,9 +207,12 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const phasesRef = useRef<Phase[]>(phases);
     useEffect(() => { phasesRef.current = phases; }, [phases]);
 
-    // ── Auto-save phases whenever they change (debounced 1.5s) ───────────
-    // Runs on every phases/programmeStart change except the very first mount,
-    // so page refreshes never lose tweaks made since the last manual save.
+    // Keep programmeStartRef current so unmount flush can read it
+    useEffect(() => { programmeStartRef.current = programmeStart; }, [programmeStart]);
+
+    // ── Auto-save phases whenever they change (debounced 500ms) ──────────
+    // 500ms is fast enough that normal navigation won't lose changes.
+    // Skips the initial mount so we don't save on first render.
     useEffect(() => {
         if (isInitialMount.current) {
             isInitialMount.current = false;
@@ -216,17 +220,32 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
         }
         if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
         autoSaveTimer.current = setTimeout(() => {
-            const startDateStr = toInputDate(programmeStart);
+            autoSaveTimer.current = null;
+            const startDateStr = toInputDate(programmeStartRef.current || programmeStart);
             updatePhasesAction(project.id, phasesRef.current, startDateStr)
                 .then(() => {
                     setSaveStatus("saved");
                     setTimeout(() => setSaveStatus("idle"), 2000);
                 })
                 .catch(console.error);
-        }, 1500);
+        }, 500);
         return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phases, programmeStart]);
+
+    // ── Flush unsaved changes immediately when navigating away ────────────
+    useEffect(() => {
+        return () => {
+            if (autoSaveTimer.current) {
+                clearTimeout(autoSaveTimer.current);
+                autoSaveTimer.current = null;
+                const startDateStr = toInputDate(programmeStartRef.current || new Date());
+                // Fire-and-forget — best-effort save on unmount
+                updatePhasesAction(project.id, phasesRef.current, startDateStr).catch(console.error);
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         if (phases.length === 0) {

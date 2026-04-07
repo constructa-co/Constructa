@@ -67,16 +67,29 @@ function formatGBP(n: number): string {
 }
 
 // ─── Main Component ──────────────────────────────────────
+const BOQ_SELECT_KEY = "constructa_select_estimate";
+
 export default function EstimateClient({ estimates: initialEstimates, costLibrary, projectId, orgId, rateBuildups, labourRates, preferredTrades }: Props) {
     const router = useRouter();
     const [estimates, setEstimates] = useState<Estimate[]>(() => initialEstimates);
-    const [activeTab, setActiveTab] = useState<string>(estimates[0]?.id || "");
+
+    // On mount, check if a freshly-imported BoQ estimate should be auto-selected
+    const [activeTab, setActiveTab] = useState<string>(() => {
+        if (typeof window !== "undefined") {
+            const pending = sessionStorage.getItem(BOQ_SELECT_KEY);
+            if (pending && initialEstimates.some((e) => e.id === pending)) {
+                sessionStorage.removeItem(BOQ_SELECT_KEY);
+                return pending;
+            }
+        }
+        return initialEstimates[0]?.id || "";
+    });
+
     const [_isPending, startTransition] = useTransition();
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [openBuildUpPanels, setOpenBuildUpPanels] = useState<Set<string>>(new Set());
     const [showBoQImport, setShowBoQImport] = useState(false);
-    const [pendingBoQEstimateId, setPendingBoQEstimateId] = useState<string | null>(null);
 
     const currentEstimate = estimates.find((e) => e.id === activeTab);
 
@@ -217,14 +230,16 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
 
     // ─── BoQ Import handler ──────────────────────────────
     const handleBoQImported = (estimateId: string, _filename: string) => {
-        setPendingBoQEstimateId(estimateId);
+        // Store in sessionStorage so the reloaded page auto-selects this tab
+        if (typeof window !== "undefined") {
+            sessionStorage.setItem(BOQ_SELECT_KEY, estimateId);
+        }
     };
 
-    const handleBoQClose = () => {
+    const handleBoQClose = (didImport?: boolean) => {
         setShowBoQImport(false);
-        if (pendingBoQEstimateId) {
-            // Reload page so server re-fetches the new estimate
-            router.refresh();
+        if (didImport || (typeof window !== "undefined" && sessionStorage.getItem(BOQ_SELECT_KEY))) {
+            // Reload so server re-fetches the new estimate; sessionStorage key selects it
             window.location.reload();
         }
     };
@@ -859,7 +874,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
             <BoQImport
                 projectId={projectId}
                 onImported={handleBoQImported}
-                onClose={handleBoQClose}
+                onClose={() => handleBoQClose()}
             />
         )}
         </>

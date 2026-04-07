@@ -69,7 +69,13 @@ export async function getEstimatePhasesAction(
         .eq("project_id", projectId)
         .order("created_at");
 
-    const estimate = (estimates || []).find((e: any) => e.is_active) || (estimates || [])[0];
+    // Prefer non-client-BoQ estimates for programme generation
+    const nonBoQ = (estimates || []).filter((e: any) => !e.is_client_boq);
+    const estimate =
+        nonBoQ.find((e: any) => e.is_active) ||
+        nonBoQ[0] ||
+        (estimates || []).find((e: any) => e.is_active) ||
+        (estimates || [])[0];
     if (!estimate) return [];
 
     const sectionManhours: Record<string, number> = {};

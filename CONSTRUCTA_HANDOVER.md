@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 6 April 2026 (end of Sprint 25)
+**Last updated:** 7 April 2026 (end of Sprint 25 — fully tested and working)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -529,14 +529,20 @@ Commit `9033bc2`.
 - **Skip buttons**: added to Step 3 (Capabilities) and helper copy on Step 4 (T&Cs)
 - **Dashboard empty state**: getting-started checklist card shown when user has 0 projects; 4-step progress tracker (Profile ✓ done, Create project / Estimate / Proposal as next steps); prominent CTA; theme-aware
 
-### ✅ Sprint 25 — Drawing Upload & AI Takeoff (COMPLETE — 6 April 2026)
+### ✅ Sprint 25 — Drawing Upload & AI Takeoff (COMPLETE — 7 April 2026, fully tested)
 - **`drawing_extractions` table**: process-only — files never stored, only metadata + AI results
-- **`analyzeDrawingPagesAction`**: creates pending DB record → renders PDF pages to JPEG in-browser via `pdfjs-dist` (CDN worker) → sends up to 10 pages as multi-image GPT-4o Vision call → parses extracted items → matches against cost library via `generateJSON` → updates DB record with results
-- **`addItemsToEstimateAction`**: finds active estimate, bulk-inserts lines, recalculates total
-- **`/dashboard/projects/drawings`**: server page + `DrawingsClient` component
-- **Drawings tab**: added to `project-navbar.tsx` between Estimating and Programme
-- **UX**: drag-drop upload zone, page-by-page render progress, per-trade-section accordion, checkbox selection, "Add to Estimate" CTA, drawing register for past extractions
-- **CAD handling**: DWG/RVT/SKP/IFC rejected with friendly message to export to PDF first
+- **`analyzeDrawingPagesAction`**: creates pending DB record → renders PDF pages to JPEG in-browser via `pdfjs-dist` (unpkg CDN worker, v5+ uses `.mjs`) → sends up to 10 pages as multi-image GPT-4o Vision call → parses extracted items → matches against cost library via `generateJSON` → updates DB record with results
+- **`addItemsToEstimateAction`**: finds active/any estimate, bulk-inserts lines (NO `project_id` — not a column on `estimate_lines`), recalculates total
+- **`/dashboard/projects/drawings`**: server page (`maxDuration = 60`) + `DrawingsClient` component
+- **Drawings tab**: added to `project-navbar.tsx` between Estimating and Programme; activeTab type updated
+- **Multi-file upload**: drag-drop or click selects multiple PDFs/images at once — each processed individually with its own AI call (sequential). Critical: do NOT combine into one call — the AI synthesises and loses quantity detail from GA drawings
+- **Per-file processing**: renders each file, shows progress as "Drawing 2 of 4 · page 1 of 3", results panels appear as each drawing completes
+- **GA + detail drawing awareness**: AI prompt instructs it to use GA drawings for quantities and detail drawings for specification, producing properly described BoQ items (e.g. "Naylor faced fire rated concrete lintel, 215×100mm — 2 item")
+- **Multiple result panels**: one panel per drawing, each with its own checkbox selection and "Add N to Estimate" CTA
+- **Drawing register**: past extractions listed below upload zone, expandable, quick "Add all" button
+- **CAD handling**: DWG/RVT/SKP/IFC/DXF rejected with amber warning (non-fatal if mixed with valid files)
+- **Body limit**: `next.config.mjs` `serverActions.bodySizeLimit = "25mb"` for base64 page payloads
+- **Rates hidden**: suggested rates from library matching NOT shown on drawings panel — appear on Estimating page only after items added
 - **Sprint 47** deferred: native CAD/BIM/SketchUp viewer for in-app measurement
 
 ### 🔜 Sprint 26 — Video Walkthrough AI ← NEXT

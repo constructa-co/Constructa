@@ -31,6 +31,7 @@ interface Props {
     rateBuildups: RateBuildup[];
     labourRates: LabourRate[];
     preferredTrades: string[];
+    defaultTabId?: string;
 }
 
 const TRADE_SECTIONS = [
@@ -67,23 +68,35 @@ function formatGBP(n: number): string {
 }
 
 // ─── Main Component ──────────────────────────────────────
-const BOQ_SELECT_KEY = "constructa_select_estimate";
 
-export default function EstimateClient({ estimates: initialEstimates, costLibrary, projectId, orgId, rateBuildups, labourRates, preferredTrades }: Props) {
+export default function EstimateClient({ estimates: initialEstimates, costLibrary, projectId, orgId, rateBuildups, labourRates, preferredTrades, defaultTabId }: Props) {
     const router = useRouter();
     const [estimates, setEstimates] = useState<Estimate[]>(() => initialEstimates);
 
-    // On mount, check if a freshly-imported BoQ estimate should be auto-selected
-    const [activeTab, setActiveTab] = useState<string>(() => {
+    // Project-scoped sessionStorage key so tab selection survives navigation within the same project
+    const TAB_KEY = `constructa_tab_${projectId}`;
+
+    // Ref to hold newly-imported estimate ID across the close handler — avoids stale closure issues
+    const importedEstimateIdRef = useRef<string | null>(null);
+
+    // Tab selection priority: URL param (defaultTabId) > sessionStorage > first estimate
+    const [activeTab, setActiveTabState] = useState<string>(() => {
+        if (defaultTabId && initialEstimates.some((e) => e.id === defaultTabId)) {
+            if (typeof window !== "undefined") sessionStorage.setItem(TAB_KEY, defaultTabId);
+            return defaultTabId;
+        }
         if (typeof window !== "undefined") {
-            const pending = sessionStorage.getItem(BOQ_SELECT_KEY);
-            if (pending && initialEstimates.some((e) => e.id === pending)) {
-                sessionStorage.removeItem(BOQ_SELECT_KEY);
-                return pending;
-            }
+            const saved = sessionStorage.getItem(TAB_KEY);
+            if (saved && initialEstimates.some((e) => e.id === saved)) return saved;
         }
         return initialEstimates[0]?.id || "";
     });
+
+    // Wrapper that keeps sessionStorage in sync whenever the tab changes
+    const setActiveTab = (id: string) => {
+        setActiveTabState(id);
+        if (typeof window !== "undefined") sessionStorage.setItem(TAB_KEY, id);
+    };
 
     const [_isPending, startTransition] = useTransition();
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
@@ -230,17 +243,19 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
 
     // ─── BoQ Import handler ──────────────────────────────
     const handleBoQImported = (estimateId: string, _filename: string) => {
-        // Store in sessionStorage so the reloaded page auto-selects this tab
-        if (typeof window !== "undefined") {
-            sessionStorage.setItem(BOQ_SELECT_KEY, estimateId);
-        }
+        // Store the new estimate ID in a ref — the modal hasn't closed yet so we can't navigate yet
+        importedEstimateIdRef.current = estimateId;
     };
 
-    const handleBoQClose = (didImport?: boolean) => {
+    const handleBoQClose = () => {
         setShowBoQImport(false);
-        if (didImport || (typeof window !== "undefined" && sessionStorage.getItem(BOQ_SELECT_KEY))) {
-            // Reload so server re-fetches the new estimate; sessionStorage key selects it
-            window.location.reload();
+        if (importedEstimateIdRef.current) {
+            const id = importedEstimateIdRef.current;
+            importedEstimateIdRef.current = null;
+            // Navigate to the costs page with the new tab ID in the URL.
+            // page.tsx reads searchParams.tab and passes it as defaultTabId, which is
+            // then picked up by the useState initializer above — survives future navigations too.
+            router.push(`/dashboard/projects/costs?projectId=${projectId}&tab=${id}`);
         }
     };
 

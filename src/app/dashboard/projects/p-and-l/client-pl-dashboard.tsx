@@ -419,7 +419,7 @@ export default function ClientPLDashboard({
                                                                 <span className="w-3.5 h-3.5 flex-shrink-0" />
                                                             )}
                                                             {row.isOver && (
-                                                                <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" title="Forecast over budget" />
+                                                                <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
                                                             )}
                                                             {row.section}
                                                         </div>

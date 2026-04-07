@@ -4,6 +4,7 @@ import ProjectNavBar from "@/components/project-navbar";
 import BriefClient from "./brief-client";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60; // Video analysis (20 frames → GPT-4o Vision) can take 20-40s
 
 // Extract postcode from site_address if separate postcode field doesn't exist
 function extractPostcode(address: string): string {

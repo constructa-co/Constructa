@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Send, Loader2, Sparkles, ArrowRight, Save, MapPin, ClipboardList, Building2, User, Calendar, PoundSterling, AlignLeft, Layers, ScanLine } from "lucide-react";
-import { processBriefChatAction, saveBriefAction, suggestEstimateLineItemsAction } from "./actions";
+import { processBriefChatAction, saveBriefAction, suggestEstimateLineItemsAction, type VideoAnalysisResult } from "./actions";
+import VideoWalkthrough from "./video-walkthrough";
 
 const ALL_TRADES = [
     'Site Setup & Preliminaries', 'Demolition & Strip Out', 'Asbestos Removal',
@@ -163,6 +164,20 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
         });
     };
 
+    const handleVideoApply = (videoResult: VideoAnalysisResult) => {
+        if (videoResult.scope) setScope(videoResult.scope);
+        if (videoResult.suggestedTrades?.length) {
+            setSelectedTrades(prev => Array.from(new Set([...prev, ...videoResult.suggestedTrades])));
+        }
+        if (videoResult.estimatedValue > 0) setEstimatedValue(videoResult.estimatedValue);
+        if (videoResult.startDate) setStartDate(videoResult.startDate);
+        // Add a chat message confirming what was applied
+        setChatMessages(prev => [...prev, {
+            role: "assistant",
+            content: `I've applied the video analysis to your brief. Scope has been updated with ${videoResult.observations.length} site observation${videoResult.observations.length !== 1 ? "s" : ""} noted, and ${videoResult.suggestedTrades.length} trade section${videoResult.suggestedTrades.length !== 1 ? "s" : ""} added. Review the form on the left and save when ready.`
+        }]);
+    };
+
     const handleSuggestEstimateLines = async () => {
         if (!scope || selectedTrades.length === 0) {
             toast.error("Add a scope and select trades first");
@@ -221,6 +236,9 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
                     </span>
                 )}
             </div>
+
+            {/* Video Site Survey — Sprint 26 */}
+            <VideoWalkthrough onApply={handleVideoApply} />
 
             {/* Two-column layout */}
             <div className="grid lg:grid-cols-5 gap-6">

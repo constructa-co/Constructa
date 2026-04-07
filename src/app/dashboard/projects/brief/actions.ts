@@ -2,6 +2,7 @@
 import { generateJSON } from "@/lib/ai";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import OpenAI from "openai";
 
 export async function processBriefChatAction(
   message: string,
@@ -224,5 +225,115 @@ export async function suggestEstimateLineItemsAction(
   } catch (err: any) {
     console.error('suggestEstimateLineItemsAction error:', err);
     return { success: false, sectionsCreated: 0, linesCreated: 0, error: err.message };
+  }
+}
+
+// ─── Sprint 26: Video Walkthrough AI ─────────────────────────────────────────
+// base64Frames: array of data:image/jpeg;base64,... strings (up to 20 frames)
+// extracted evenly from video duration in-browser
+
+export interface VideoAnalysisResult {
+  scope: string;
+  suggestedTrades: string[];
+  estimatedValue: number;
+  observations: string[];   // bullet-point site observations
+  startDate: string | null;
+}
+
+export async function analyzeVideoAction(
+  base64Frames: string[]
+): Promise<{ success: boolean; result?: VideoAnalysisResult; error?: string }> {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) return { success: false, error: "AI not configured" };
+
+  const framesToSend = base64Frames.slice(0, 20);
+
+  try {
+    const client = new OpenAI({ apiKey });
+
+    const imageContent = framesToSend.map((frame) => {
+      const base64Data = frame.includes(",") ? frame.split(",")[1] : frame;
+      return {
+        type: "image_url" as const,
+        image_url: {
+          url: `data:image/jpeg;base64,${base64Data}`,
+          detail: "low" as const,   // low detail for video frames — faster + cheaper
+        },
+      };
+    });
+
+    const prompt = `You are an expert UK construction surveyor reviewing a site walkthrough video.
+
+These ${framesToSend.length} frames are extracted evenly from a contractor's site survey video.
+
+Analyse the frames and extract:
+1. A professional scope of works paragraph (2-3 sentences describing what work is needed)
+2. Relevant trade sections from the project
+3. Key site observations (condition of existing structure, access issues, notable features, hazards)
+4. A rough estimated contract value in GBP (integer, 0 if impossible to estimate)
+
+Return ONLY valid JSON — no markdown, no commentary:
+{
+  "scope": "Professional scope of works paragraph...",
+  "suggestedTrades": ["Trade 1", "Trade 2"],
+  "estimatedValue": 50000,
+  "observations": ["Observation 1", "Observation 2"],
+  "startDate": null
+}
+
+Trade sections must come from this list only (use EXACT names):
+Site Setup & Preliminaries, Demolition & Strip Out, Asbestos Removal,
+Temporary Works / Propping / Shoring, Groundworks & Civils, Drainage,
+Utilities – Water, Utilities – Gas, Utilities – Electric / Ducting,
+Piling, Underpinning & Structural Stabilisation, Concrete / RC Works,
+Steel Frame / Steel Erection, Structural Timber / Framing,
+Masonry / Brickwork / Blockwork, Cladding & Rainscreen, Roofing,
+Waterproofing, Insulation, Windows, Doors & Glazing,
+Builders / General Building, Scaffolding & Access, Landscaping & External Works,
+Surfacing, Paving & Kerbing, Fencing & Gates, External Lighting,
+Domestic Electrical, Commercial Electrical, EV Chargers,
+Domestic Plumbing, Commercial Plumbing / Public Health, Mechanical / HVAC,
+Domestic Heating, Air Conditioning / Refrigeration,
+Fire Alarm & Life Safety, Security / CCTV / Access Control,
+Drylining & Partitions, Plastering & Rendering, Carpentry & Joinery,
+Kitchen Installation, Bathroom Installation, Tiling, Flooring,
+Ceilings, Painting & Decorating, Fire Stopping,
+Specialist Finishes, Waste Management / Logistics`;
+
+    const response = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      max_tokens: 1500,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "text", text: prompt },
+          ...imageContent,
+        ],
+      }],
+    });
+
+    const rawText = response.choices[0]?.message?.content || "{}";
+
+    let parsed: VideoAnalysisResult;
+    try {
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      parsed = JSON.parse(jsonMatch?.[0] || rawText);
+    } catch {
+      return { success: false, error: "AI returned an unexpected response. Please try again." };
+    }
+
+    return {
+      success: true,
+      result: {
+        scope: parsed.scope || "",
+        suggestedTrades: Array.isArray(parsed.suggestedTrades) ? parsed.suggestedTrades : [],
+        estimatedValue: typeof parsed.estimatedValue === "number" ? parsed.estimatedValue : 0,
+        observations: Array.isArray(parsed.observations) ? parsed.observations : [],
+        startDate: parsed.startDate || null,
+      },
+    };
+  } catch (err: any) {
+    console.error("Video analysis error:", err);
+    return { success: false, error: err.message || "Video analysis failed" };
   }
 }

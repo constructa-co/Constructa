@@ -567,17 +567,33 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                     {currentEstimate.client_boq_filename && (
                                         <span className="text-emerald-600 text-xs ml-2">{currentEstimate.client_boq_filename}</span>
                                     )}
-                                    <p className="text-emerald-600/80 text-xs mt-0.5">Client's sections and references are preserved. Add your rates then export to Excel.</p>
+                                    <p className="text-emerald-600/80 text-xs mt-0.5">
+                                        {currentEstimate.is_active
+                                            ? "Active — programme will be generated from these sections."
+                                            : "Not active — set as active so the programme uses these sections."}
+                                    </p>
                                 </div>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => exportBoQToExcel(currentEstimate)}
-                                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
-                            >
-                                <FileDown className="w-4 h-4" />
-                                Export to Excel
-                            </button>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                {!currentEstimate.is_active && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSetActive(currentEstimate.id)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium rounded-lg transition-colors"
+                                    >
+                                        <Star className="w-4 h-4" />
+                                        Set as Active
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => exportBoQToExcel(currentEstimate)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
+                                >
+                                    <FileDown className="w-4 h-4" />
+                                    Export to Excel
+                                </button>
+                            </div>
                         </div>
                     )}
 

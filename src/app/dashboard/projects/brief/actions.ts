@@ -240,8 +240,28 @@ export interface VideoAnalysisResult {
   startDate: string | null;
 }
 
+export async function transcribeAudioAction(base64Wav: string): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) return "";
+  try {
+    const client = new OpenAI({ apiKey });
+    const buffer = Buffer.from(base64Wav, "base64");
+    const file = new File([buffer], "audio.wav", { type: "audio/wav" });
+    const transcription = await client.audio.transcriptions.create({
+      model: "whisper-1",
+      file,
+      language: "en",
+    });
+    return transcription.text || "";
+  } catch (err: any) {
+    console.error("Audio transcription error:", err);
+    return ""; // non-fatal — analysis continues without transcript
+  }
+}
+
 export async function analyzeVideoAction(
-  base64Frames: string[]
+  base64Frames: string[],
+  audioTranscript?: string
 ): Promise<{ success: boolean; result?: VideoAnalysisResult; error?: string }> {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) return { success: false, error: "AI not configured" };
@@ -262,14 +282,18 @@ export async function analyzeVideoAction(
       };
     });
 
+    const transcriptSection = audioTranscript
+      ? `\nCONTRACTOR'S SPOKEN NARRATION (transcribed from video audio):\n"${audioTranscript}"\n\nThis narration is the PRIMARY source — it describes exactly what the contractor wants done. Use it as the main basis for scope, trade sections and estimated value. The visual frames provide supporting context (site conditions, access, existing features).\n`
+      : "\nNo audio narration available — rely on visual analysis only.\n";
+
     const prompt = `You are an expert UK construction surveyor reviewing a site walkthrough video.
 
 These ${framesToSend.length} frames are extracted evenly from a contractor's site survey video.
-
-Analyse the frames and extract:
-1. A professional scope of works paragraph (2-3 sentences describing what work is needed)
-2. Relevant trade sections from the project
-3. Key site observations (condition of existing structure, access issues, notable features, hazards)
+${transcriptSection}
+Analyse everything and extract:
+1. A professional scope of works paragraph (2-3 sentences describing what work is needed, based primarily on narration if available)
+2. Relevant trade sections — must reflect what the contractor actually described/showed
+3. Key site observations (condition of existing structure, access issues, notable features, hazards visible in frames)
 4. A rough estimated contract value in GBP (integer, 0 if impossible to estimate)
 
 Return ONLY valid JSON — no markdown, no commentary:

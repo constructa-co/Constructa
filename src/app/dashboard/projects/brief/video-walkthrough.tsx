@@ -2,7 +2,7 @@
 
 import { useRef, useState, useCallback } from "react";
 import { Video, Upload, Loader2, AlertTriangle, X, CheckCircle, Eye, ChevronDown, ChevronRight } from "lucide-react";
-import { analyzeVideoAction, type VideoAnalysisResult } from "./actions";
+import { analyzeVideoAction, transcribeAudioAction, type VideoAnalysisResult } from "./actions";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -73,9 +73,79 @@ async function extractFrames(
     });
 }
 
+// ─── Audio extraction → WAV base64 (for Whisper transcription) ───────────────
+// Decodes the video's audio track in-browser, resamples to 16kHz mono,
+// encodes as WAV, and returns base64. Never sends the raw video to the server.
+// Returns null silently if the browser can't decode the audio.
+
+function writeWavString(view: DataView, offset: number, str: string) {
+    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+}
+
+function audioBufferToWav(buffer: AudioBuffer): ArrayBuffer {
+    const samples = buffer.getChannelData(0);
+    const dataLen = samples.length * 2;
+    const wav = new ArrayBuffer(44 + dataLen);
+    const v = new DataView(wav);
+    writeWavString(v, 0, "RIFF");
+    v.setUint32(4, 36 + dataLen, true);
+    writeWavString(v, 8, "WAVE");
+    writeWavString(v, 12, "fmt ");
+    v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true);         // PCM
+    v.setUint16(22, 1, true);         // mono
+    v.setUint32(24, buffer.sampleRate, true);
+    v.setUint32(28, buffer.sampleRate * 2, true);
+    v.setUint16(32, 2, true);
+    v.setUint16(34, 16, true);
+    writeWavString(v, 36, "data");
+    v.setUint32(40, dataLen, true);
+    let offset = 44;
+    for (let i = 0; i < samples.length; i++) {
+        const s = Math.max(-1, Math.min(1, samples[i]));
+        v.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        offset += 2;
+    }
+    return wav;
+}
+
+async function extractAudioBase64(file: File): Promise<string | null> {
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        // Decode the video's audio track
+        const audioCtx = new AudioContext();
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        await audioCtx.close();
+        // Resample to 16kHz mono — Whisper's ideal input
+        const targetRate = 16000;
+        const offlineCtx = new OfflineAudioContext(
+            1,
+            Math.ceil(audioBuffer.duration * targetRate),
+            targetRate
+        );
+        const src = offlineCtx.createBufferSource();
+        src.buffer = audioBuffer;
+        src.connect(offlineCtx.destination);
+        src.start();
+        const resampled = await offlineCtx.startRendering();
+        const wav = audioBufferToWav(resampled);
+        // Base64 encode in chunks to avoid call stack overflow on large buffers
+        const bytes = new Uint8Array(wav);
+        let binary = "";
+        const chunk = 8192;
+        for (let i = 0; i < bytes.length; i += chunk) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+        }
+        return btoa(binary);
+    } catch {
+        // Audio extraction failed (e.g. no audio track, codec unsupported) — continue without
+        return null;
+    }
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-type State = "idle" | "extracting" | "analysing" | "done" | "error";
+type State = "idle" | "extracting" | "transcribing" | "analysing" | "done" | "error";
 
 export default function VideoWalkthrough({ onApply }: Props) {
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -105,19 +175,28 @@ export default function VideoWalkthrough({ onApply }: Props) {
         }
 
         try {
-            // Step 1: Extract frames
+            // Step 1: Extract frames + audio in parallel
             setState("extracting");
             setProgress({ current: 0, total: FRAME_COUNT });
 
-            const frames = await extractFrames(file, (current, total) => {
-                setProgress({ current, total });
-            });
+            const [frames, audioBase64] = await Promise.all([
+                extractFrames(file, (current, total) => setProgress({ current, total })),
+                extractAudioBase64(file),   // silent no-op if no audio track
+            ]);
 
-            // Step 2: Send to AI
+            // Step 2: Transcribe audio via Whisper (if audio extracted)
+            let transcript = "";
+            if (audioBase64) {
+                setState("transcribing");
+                setProgress(null);
+                transcript = await transcribeAudioAction(audioBase64);
+            }
+
+            // Step 3: Vision analysis — frames + transcript together
             setState("analysing");
             setProgress(null);
 
-            const response = await analyzeVideoAction(frames);
+            const response = await analyzeVideoAction(frames, transcript);
 
             if (!response) {
                 setError("Server did not respond. Please try again.");
@@ -164,7 +243,7 @@ export default function VideoWalkthrough({ onApply }: Props) {
         if (fileInputRef.current) fileInputRef.current.value = "";
     }
 
-    const isProcessing = state === "extracting" || state === "analysing";
+    const isProcessing = state === "extracting" || state === "transcribing" || state === "analysing";
 
     return (
         <div className="bg-slate-800/50 border border-purple-500/20 rounded-xl overflow-hidden">
@@ -209,15 +288,20 @@ export default function VideoWalkthrough({ onApply }: Props) {
                     <div className="py-6 text-center">
                         <Loader2 className="w-8 h-8 text-purple-400 animate-spin mx-auto mb-3" />
                         <p className="text-white font-medium text-sm mb-1">
-                            {state === "extracting" ? "Extracting video frames…" : "AI is analysing your site survey…"}
+                            {state === "extracting" ? "Extracting video frames…"
+                                : state === "transcribing" ? "Transcribing your narration…"
+                                : "AI is analysing your site survey…"}
                         </p>
                         {progress && state === "extracting" && (
                             <p className="text-slate-500 text-xs">
                                 Frame {progress.current} of {progress.total}
                             </p>
                         )}
+                        {state === "transcribing" && (
+                            <p className="text-slate-500 text-xs">Converting speech to text via Whisper…</p>
+                        )}
                         {state === "analysing" && (
-                            <p className="text-slate-500 text-xs">Reading rooms, conditions, trade sections…</p>
+                            <p className="text-slate-500 text-xs">Combining narration + visuals to build your brief…</p>
                         )}
                     </div>
                 )}

@@ -69,11 +69,9 @@ export async function getEstimatePhasesAction(
         .eq("project_id", projectId)
         .order("created_at");
 
-    // Prefer non-client-BoQ estimates for programme generation
-    const nonBoQ = (estimates || []).filter((e: any) => !e.is_client_boq);
+    // Use whatever estimate is marked active — if the client BoQ has been imported it
+    // will be set as active and its sections become the programme phases.
     const estimate =
-        nonBoQ.find((e: any) => e.is_active) ||
-        nonBoQ[0] ||
         (estimates || []).find((e: any) => e.is_active) ||
         (estimates || [])[0];
     if (!estimate) return [];

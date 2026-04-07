@@ -39,12 +39,9 @@ export default async function SchedulePage({ searchParams }: { searchParams: { p
         .eq("project_id", project.id)
         .order("created_at");
 
-    // For programme generation, prefer a non-client-BoQ estimate.
-    // Client BoQs use the client's section structure which is for pricing, not sequencing.
-    const nonBoQ = (estimates || []).filter((e: any) => !e.is_client_boq);
+    // Use whatever estimate is marked active — if the client BoQ has been imported it
+    // will be set as active and its sections become the programme phases.
     const activeEstimate =
-        nonBoQ.find((e: any) => e.is_active) ||
-        nonBoQ[0] ||
         (estimates || []).find((e: any) => e.is_active) ||
         (estimates || [])[0] ||
         null;

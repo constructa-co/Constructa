@@ -174,6 +174,10 @@ export async function createBoQEstimateAction(
 
     if (estErr || !estimate) return { success: false, error: estErr?.message || "Failed to create estimate" };
 
+    // The client BoQ supersedes any previous estimate — deactivate all others first
+    await supabase.from("estimates").update({ is_active: false }).eq("project_id", projectId).neq("id", estimate.id);
+    await supabase.from("estimates").update({ is_active: true }).eq("id", estimate.id);
+
     // Insert lines — skip blank description rows, keep section headers
     const linesToInsert = boq.lines
         .filter((l) => l.description?.trim())

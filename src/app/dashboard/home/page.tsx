@@ -7,52 +7,68 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
     const supabase = createClient();
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect("/login");
 
-    // Projects — all fields needed for command centre
-    const { data: projects } = await supabase
-        .from("projects")
-        .select(
-            "id, name, client_name, status, potential_value, proposal_status, proposal_sent_at, proposal_accepted_at, proposal_accepted_by, created_at, updated_at, validity_days"
-        )
-        .eq("user_id", user.id)
-        .order("updated_at", { ascending: false });
+    const [
+        { data: projects },
+        { data: profile },
+        { data: estimates },
+        { data: invoices },
+        { data: variations },
+        { data: changeEvents },
+        { data: rfis },
+        { data: ewns },
+    ] = await Promise.all([
+        supabase
+            .from("projects")
+            .select("id, name, client_name, status, potential_value, proposal_status, proposal_sent_at, proposal_accepted_at, proposal_accepted_by, created_at, updated_at, validity_days, start_date, programme_phases")
+            .eq("user_id", user.id)
+            .order("updated_at", { ascending: false }),
 
-    // Full profile for completion scoring
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("company_name, logo_url, capability_statement, md_name, md_message, phone, accreditations, years_trading")
-        .eq("id", user.id)
-        .single();
+        supabase
+            .from("profiles")
+            .select("company_name, logo_url, capability_statement, md_name, md_message, phone, accreditations, years_trading")
+            .eq("id", user.id)
+            .single(),
 
-    // Active estimate totals
-    const { data: estimates } = await supabase
-        .from("estimates")
-        .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, is_active")
-        .eq("is_active", true);
+        supabase
+            .from("estimates")
+            .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, discount_pct, is_active")
+            .eq("is_active", true),
 
-    // Billing invoices (table may not exist yet)
-    let invoices: any[] = [];
-    try {
-        const { data } = await supabase
+        supabase
             .from("invoices")
-            .select("id, amount, status, project_id")
-            .in("status", ["draft", "sent"])
-            .limit(50);
-        invoices = data || [];
-    } catch {
-        invoices = [];
-    }
+            .select("id, project_id, amount, status, due_date, paid_date, net_due, retention_held, is_retention_release, period_number, gross_valuation, invoice_date")
+            .order("invoice_date", { ascending: false }),
+
+        supabase
+            .from("variations")
+            .select("id, project_id, amount, status, variation_number, title"),
+
+        supabase
+            .from("change_events")
+            .select("id, project_id, reference, title, status, value_claimed, value_agreed, time_claimed_days"),
+
+        supabase
+            .from("rfis")
+            .select("id, project_id, reference, question, status, date_due"),
+
+        supabase
+            .from("early_warning_notices")
+            .select("id, project_id, reference, title, status, potential_cost_impact, potential_time_impact_days"),
+    ]);
 
     return (
         <HomeClient
-            projects={projects || []}
-            estimates={estimates || []}
-            invoices={invoices}
+            projects={projects ?? []}
             profile={profile}
+            estimates={estimates ?? []}
+            invoices={invoices ?? []}
+            variations={variations ?? []}
+            changeEvents={changeEvents ?? []}
+            rfis={rfis ?? []}
+            ewns={ewns ?? []}
             userId={user.id}
         />
     );

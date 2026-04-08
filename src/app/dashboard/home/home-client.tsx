@@ -2,581 +2,500 @@
 
 import Link from "next/link";
 import {
-    TrendingUp,
-    HardHat,
-    Archive,
-    Plus,
-    ArrowRight,
-    Clock,
-    CheckCircle2,
-    AlertCircle,
-    LayoutDashboard,
-    Calculator,
-    Building2,
-    FileText,
-    AlertTriangle,
-    CircleDot,
+    TrendingUp, HardHat, Plus, ArrowRight, Clock, CheckCircle2, AlertCircle,
+    AlertTriangle, FileText, CreditCard, GitBranch, RefreshCw, MessageSquare,
+    Banknote, ShieldAlert, CalendarDays, Activity,
 } from "lucide-react";
 
-interface Project {
-    id: string;
-    name: string;
-    client_name: string;
-    status: string;
-    potential_value: number;
-    proposal_status: string;
-    proposal_sent_at: string | null;
-    proposal_accepted_at: string | null;
-    proposal_accepted_by?: string | null;
-    created_at: string;
-    updated_at: string;
-    validity_days?: number;
-}
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const fmt = (n: number) => {
+    if (n >= 1_000_000) return `£${(n / 1_000_000).toFixed(1)}m`;
+    if (n >= 1_000)     return `£${(n / 1_000).toFixed(0)}k`;
+    return `£${n.toLocaleString("en-GB")}`;
+};
 
-interface HomeClientProps {
-    projects: Project[];
-    estimates: any[];
-    invoices: any[];
-    profile: {
-        company_name?: string;
-        logo_url?: string;
-        capability_statement?: string;
-        md_name?: string;
-        md_message?: string;
-        phone?: string;
-        accreditations?: string;
-        years_trading?: string;
-    } | null;
-    userId: string;
-}
+const fmtDate = (d: string) =>
+    new Date(d + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
-function fmt(n: number) {
-    if (n >= 1000000) return `£${(n / 1000000).toFixed(1)}m`;
-    if (n >= 1000) return `£${(n / 1000).toFixed(0)}k`;
-    return `£${n.toLocaleString()}`;
-}
-
-function timeAgo(date: string) {
-    const diff = Date.now() - new Date(date).getTime();
-    const days = Math.floor(diff / 86400000);
+const timeAgo = (date: string) => {
+    const days = Math.floor((Date.now() - new Date(date).getTime()) / 86400000);
     if (days === 0) return "Today";
     if (days === 1) return "Yesterday";
-    if (days < 7) return `${days}d ago`;
+    if (days < 7)  return `${days}d ago`;
     if (days < 30) return `${Math.floor(days / 7)}w ago`;
     return new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+};
+
+const today = new Date(); today.setHours(0, 0, 0, 0);
+
+// ── Props ─────────────────────────────────────────────────────────────────────
+interface Props {
+    projects:     any[];
+    profile:      any;
+    estimates:    any[];
+    invoices:     any[];
+    variations:   any[];
+    changeEvents: any[];
+    rfis:         any[];
+    ewns:         any[];
+    userId:       string;
 }
 
-function StatusPill({ status, acceptedAt }: { status: string; acceptedAt: string | null }) {
-    if (acceptedAt) return (
-        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-500/15 text-green-400">Accepted</span>
+// ── KPI card ─────────────────────────────────────────────────────────────────
+function KpiCard({ label, value, sub, colour, icon: Icon, href }: {
+    label: string; value: string; sub: string; colour: string; icon: any; href?: string;
+}) {
+    const inner = (
+        <div className={`bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 ${href ? "hover:border-slate-600 transition-colors" : ""}`}>
+            <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</p>
+                <Icon className={`w-4 h-4 ${colour}`} />
+            </div>
+            <p className={`text-2xl font-bold ${colour}`}>{value}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{sub}</p>
+        </div>
     );
-    if (status === "sent") return (
-        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400">Sent</span>
-    );
-    if (status === "viewed") return (
-        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400">Viewed</span>
-    );
-    if (status === "declined") return (
-        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400">Declined</span>
-    );
+    return href ? <Link href={href}>{inner}</Link> : inner;
+}
+
+// ── Alert banner ──────────────────────────────────────────────────────────────
+function AlertBanner({ colour, icon: Icon, title, children }: {
+    colour: "amber" | "red" | "green" | "blue"; icon: any; title: string; children: React.ReactNode;
+}) {
+    const styles = {
+        amber: "bg-amber-500/10 border-amber-500/30 text-amber-300",
+        red:   "bg-red-500/10 border-red-500/30 text-red-300",
+        green: "bg-emerald-500/10 border-emerald-500/30 text-emerald-300",
+        blue:  "bg-blue-500/10 border-blue-500/30 text-blue-300",
+    };
+    const iconStyles = {
+        amber: "text-amber-400", red: "text-red-400", green: "text-emerald-400", blue: "text-blue-400",
+    };
     return (
-        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">Draft</span>
+        <div className={`border rounded-xl p-4 flex items-start gap-3 ${styles[colour]}`}>
+            <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${iconStyles[colour]}`} />
+            <div>
+                <p className="text-sm font-semibold">{title}</p>
+                <div className="mt-1 space-y-0.5 text-xs opacity-80">{children}</div>
+            </div>
+        </div>
     );
 }
 
-function ActivityDot({ status, acceptedAt }: { status: string; acceptedAt: string | null }) {
-    if (acceptedAt) return <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0" />;
-    if (status === "sent") return <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />;
-    if (status === "viewed") return <div className="w-2 h-2 rounded-full bg-purple-500 mt-1.5 flex-shrink-0" />;
-    if (status === "declined") return <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />;
-    return <div className="w-2 h-2 rounded-full bg-slate-600 mt-1.5 flex-shrink-0" />;
+// ── Project status badge ──────────────────────────────────────────────────────
+function StatusBadge({ status }: { status: string }) {
+    const s: Record<string, string> = {
+        active:      "bg-emerald-500/15 text-emerald-400",
+        lead:        "bg-slate-700 text-slate-400",
+        estimating:  "bg-blue-500/15 text-blue-400",
+        proposal_sent: "bg-purple-500/15 text-purple-400",
+        completed:   "bg-slate-700 text-slate-500",
+        lost:        "bg-red-500/15 text-red-400",
+    };
+    return (
+        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${s[status] ?? s.lead}`}>
+            {status?.replace(/_/g, " ") ?? "lead"}
+        </span>
+    );
 }
 
-function profileScore(profile: HomeClientProps["profile"]): { score: number; total: number; missing: string[] } {
-    const checks = [
-        { label: "Company name", ok: !!(profile?.company_name) },
-        { label: "Capability statement", ok: (profile?.capability_statement?.length || 0) >= 30 },
-        { label: "Company logo", ok: !!(profile?.logo_url) },
-        { label: "MD name", ok: !!(profile?.md_name) },
-        { label: "MD message", ok: (profile?.md_message?.length || 0) >= 20 },
-        { label: "Phone number", ok: !!(profile?.phone) },
-        { label: "Accreditations", ok: !!(profile?.accreditations) },
-    ];
-    const missing = checks.filter(c => !c.ok).map(c => c.label);
-    return { score: checks.filter(c => c.ok).length, total: checks.length, missing };
+// ── Programme delay calc ──────────────────────────────────────────────────────
+function getProjectProgrammeDelay(project: any): number {
+    const phases: any[] = project.programme_phases ?? [];
+    if (!phases.length || !project.start_date) return 0;
+    const start = new Date(project.start_date + "T00:00:00");
+    let maxDelay = 0;
+    for (const ph of phases) {
+        const baseDays = ph.manualDays ?? ph.calculatedDays ?? 0;
+        const baselineFinish = new Date(start.getTime() + (ph.startOffset + baseDays) * 86400000);
+        const revised = ph.revised_planned_finish ? new Date(ph.revised_planned_finish + "T00:00:00") : null;
+        const actual  = ph.actual_finish_date ? new Date(ph.actual_finish_date + "T00:00:00") : null;
+        const planned = revised ?? baselineFinish;
+        if (actual) {
+            const delay = Math.round((actual.getTime() - planned.getTime()) / 86400000);
+            if (delay > maxDelay) maxDelay = delay;
+        }
+    }
+    return maxDelay;
 }
 
-export default function HomeClient({ projects, invoices, profile }: HomeClientProps) {
-    const allProjects = projects || [];
+export default function HomeClient({ projects, profile, estimates, invoices, variations, changeEvents, rfis, ewns }: Props) {
 
-    // Pipeline = active proposals (not accepted, not closed)
-    const pipelineProjects = allProjects.filter(
-        (p) => p.proposal_status !== "accepted" && p.status !== "closed" && p.status !== "completed"
+    // ── Project categories ────────────────────────────────────────────────────
+    const activeProjects  = projects.filter(p => p.status === "active");
+    const pipelineProjects = projects.filter(p => ["lead","estimating","proposal_sent"].includes(p.status));
+    const closedProjects  = projects.filter(p => ["completed","lost"].includes(p.status));
+    const pipelineValue   = pipelineProjects.reduce((s, p) => s + (p.potential_value || 0), 0);
+
+    // ── Win rate (90d) ────────────────────────────────────────────────────────
+    const cutoff = new Date(Date.now() - 90 * 86400000);
+    const decided = projects.filter(p =>
+        new Date(p.created_at) > cutoff &&
+        (p.proposal_status === "accepted" || p.proposal_status === "declined")
     );
-    const pipelineValue = pipelineProjects.reduce((s, p) => s + (p.potential_value || 0), 0);
+    const won = decided.filter(p => p.proposal_status === "accepted").length;
+    const winRate = decided.length > 0 ? Math.round((won / decided.length) * 100) : null;
 
-    // Active = accepted proposals / on-site
-    const activeProjects = allProjects.filter(
-        (p) => p.proposal_accepted_at || p.status === "active" || p.status === "won"
+    // ── Invoice KPIs ──────────────────────────────────────────────────────────
+    const normalInvoices   = invoices.filter(i => !i.is_retention_release);
+    const sentInvoices     = invoices.filter(i => i.status === "Sent" && !i.is_retention_release);
+    const totalOutstanding = sentInvoices.reduce((s, i) => s + (i.net_due ?? i.amount ?? 0), 0);
+    const overdueInvoices  = sentInvoices.filter(i => i.due_date && new Date(i.due_date + "T00:00:00") < today);
+    const totalOverdue     = overdueInvoices.reduce((s, i) => s + (i.net_due ?? i.amount ?? 0), 0);
+    const totalRetHeld     = normalInvoices.reduce((s, i) => s + (i.retention_held ?? 0), 0);
+    const retReleased      = invoices.filter(i => i.is_retention_release && i.status === "Paid").reduce((s, i) => s + (i.amount ?? 0), 0);
+    const retOutstanding   = totalRetHeld - retReleased;
+
+    // ── Variations ────────────────────────────────────────────────────────────
+    const pendingVars      = variations.filter(v => v.status === "Pending Approval");
+    const pendingVarValue  = pendingVars.reduce((s, v) => s + Math.abs(v.amount || 0), 0);
+
+    // ── Change events ─────────────────────────────────────────────────────────
+    const openCEs          = changeEvents.filter(c => !["Agreed","Rejected","Withdrawn"].includes(c.status));
+    const ceExposure       = openCEs.reduce((s, c) => s + (c.value_claimed || 0), 0);
+
+    // ── RFIs ──────────────────────────────────────────────────────────────────
+    const openRfis         = rfis.filter(r => r.status !== "Closed");
+    const overdueRfis      = openRfis.filter(r => r.date_due && new Date(r.date_due + "T00:00:00") < today);
+
+    // ── EWNs ──────────────────────────────────────────────────────────────────
+    const openEwns         = ewns.filter(e => e.status !== "Closed");
+    const ewnExposure      = openEwns.reduce((s, e) => s + (e.potential_cost_impact || 0), 0);
+
+    // ── Proposals: expiring / recently accepted / viewed ─────────────────────
+    const recentlyAccepted = projects.filter(p =>
+        p.proposal_accepted_at && (Date.now() - new Date(p.proposal_accepted_at).getTime()) < 7 * 86400000
     );
-
-    // Closed
-    const closedProjects = allProjects.filter(
-        (p) => p.status === "closed" || p.status === "completed"
+    const recentlyViewed = projects.filter(p =>
+        p.proposal_status === "viewed" && (Date.now() - new Date(p.updated_at).getTime()) < 48 * 3600000
     );
-
-    // Pre-construction in progress
-    const preConProjects = allProjects.filter(
-        (p) => !p.proposal_accepted_at && p.status !== "closed" && p.status !== "completed" && p.status !== "won"
-    );
-
-    // Win rate (last 90 days)
-    const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-    const recentDecided = allProjects.filter(
-        (p) =>
-            new Date(p.created_at) > cutoff &&
-            (p.proposal_status === "accepted" || p.proposal_status === "declined")
-    );
-    const won = recentDecided.filter((p) => p.proposal_status === "accepted").length;
-    const winRate = recentDecided.length > 0 ? Math.round((won / recentDecided.length) * 100) : null;
-
-    // Outstanding invoices
-    const outstandingValue = (invoices || []).reduce((s: number, i: any) => s + (i.amount || 0), 0);
-
-    // Recently accepted (last 7 days)
-    const recentlyAccepted = allProjects.filter((p) => {
-        if (!p.proposal_accepted_at) return false;
-        return (Date.now() - new Date(p.proposal_accepted_at).getTime()) < 7 * 86400000;
-    });
-
-    // Recently viewed by client (status changed to viewed in last 48h — updated_at proxy)
-    const recentlyViewed = allProjects.filter((p) => {
-        if (p.proposal_status !== "viewed") return false;
-        return (Date.now() - new Date(p.updated_at).getTime()) < 48 * 3600000;
-    });
-
-    // Proposals expiring soon (sent, not accepted, within 5 days of validity)
-    const expiringSoon = allProjects.filter((p) => {
+    const expiringSoon = projects.filter(p => {
         if (!p.proposal_sent_at || p.proposal_accepted_at || p.proposal_status === "declined") return false;
-        if (p.proposal_status !== "sent" && p.proposal_status !== "viewed") return false;
+        if (!["sent","viewed"].includes(p.proposal_status)) return false;
         const sentDays = Math.floor((Date.now() - new Date(p.proposal_sent_at).getTime()) / 86400000);
-        const validity = p.validity_days || 30;
-        const remaining = validity - sentDays;
+        const remaining = (p.validity_days || 30) - sentDays;
         return remaining >= 0 && remaining <= 5;
     });
 
-    // Recent activity feed
-    const recentActivity = [...allProjects]
-        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-        .slice(0, 8);
+    // ── Per-active-project data ───────────────────────────────────────────────
+    const activeProjectsWithData = activeProjects.map(p => {
+        const projInvoices    = invoices.filter(i => i.project_id === p.id && !i.is_retention_release);
+        const projOutstanding = projInvoices.filter(i => i.status === "Sent").reduce((s, i) => s + (i.net_due ?? i.amount ?? 0), 0);
+        const projOverdue     = projInvoices.filter(i => i.status === "Sent" && i.due_date && new Date(i.due_date + "T00:00:00") < today).length;
+        const projPendingVars = variations.filter(v => v.project_id === p.id && v.status === "Pending Approval").length;
+        const projOpenRfis    = rfis.filter(r => r.project_id === p.id && r.status !== "Closed").length;
+        const projOpenCEs     = changeEvents.filter(c => c.project_id === p.id && !["Agreed","Rejected","Withdrawn"].includes(c.status)).length;
+        const progDelay       = getProjectProgrammeDelay(p);
 
-    // Profile completion
-    const { score: profScore, total: profTotal, missing: profMissing } = profileScore(profile);
-    const profPct = Math.round((profScore / profTotal) * 100);
-    const profileComplete = profScore === profTotal;
+        // Contract value from active estimate
+        const est = estimates.find(e => e.project_id === p.id);
+        let contractValue = p.potential_value ?? 0;
+        if (est) {
+            const base = est.total_cost || 0;
+            const overhead = base * ((est.overhead_pct || 0) / 100);
+            const risk     = (base + overhead) * 0.05;
+            const profit   = (base + overhead + risk) * ((est.profit_pct || 0) / 100);
+            const gross    = base + overhead + risk + profit;
+            contractValue  = Math.round((gross - gross * ((est.discount_pct || 0) / 100)) * 100) / 100 || contractValue;
+        }
+
+        return { ...p, projOutstanding, projOverdue, projPendingVars, projOpenRfis, projOpenCEs, progDelay, contractValue };
+    });
 
     return (
         <div className="min-h-screen bg-[#0a0a0a] p-6">
-            <div className="max-w-7xl mx-auto space-y-6">
+            <div className="max-w-7xl mx-auto space-y-5">
 
-                {/* Header */}
+                {/* ── Header ── */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-100">
-                            {profile?.company_name || "Command Centre"}
+                        <h1 className="text-2xl font-bold text-white">
+                            {profile?.company_name ?? "Dashboard"}
                         </h1>
-                        <p className="text-slate-500 text-sm mt-0.5">Business overview</p>
+                        <p className="text-slate-500 text-sm mt-0.5">
+                            {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                        </p>
                     </div>
-                    <Link
-                        href="/dashboard/projects/new"
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors"
-                    >
+                    <Link href="/dashboard/projects/new"
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors">
                         <Plus className="w-4 h-4" />
                         New Project
                     </Link>
                 </div>
 
-                {/* Proposal accepted alerts */}
+                {/* ── Alert banners ── */}
                 {recentlyAccepted.length > 0 && (
-                    <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex items-start gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-green-300">
-                                {recentlyAccepted.length === 1
-                                    ? "Proposal accepted!"
-                                    : `${recentlyAccepted.length} proposals accepted this week`}
-                            </p>
-                            <div className="mt-1 space-y-0.5">
-                                {recentlyAccepted.map((p) => (
-                                    <Link
-                                        key={p.id}
-                                        href={`/dashboard/projects/proposal?projectId=${p.id}`}
-                                        className="flex items-center gap-2 text-xs text-green-400/80 hover:text-green-300"
-                                    >
-                                        <ArrowRight className="w-3 h-3 flex-shrink-0" />
-                                        {p.name}{p.proposal_accepted_by ? ` — accepted by ${p.proposal_accepted_by}` : ""}
-                                        {p.potential_value > 0 && ` · ${fmt(p.potential_value)}`}
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+                    <AlertBanner colour="green" icon={CheckCircle2} title={`${recentlyAccepted.length === 1 ? "Proposal accepted!" : `${recentlyAccepted.length} proposals accepted this week`}`}>
+                        {recentlyAccepted.map(p => (
+                            <Link key={p.id} href={`/dashboard/projects/overview?projectId=${p.id}`} className="flex items-center gap-1.5 hover:opacity-100 opacity-90">
+                                <ArrowRight className="w-3 h-3" /> {p.name}{p.potential_value > 0 ? ` · ${fmt(p.potential_value)}` : ""} — set up billing & programme
+                            </Link>
+                        ))}
+                    </AlertBanner>
                 )}
 
-                {/* Proposal viewed alerts */}
+                {overdueInvoices.length > 0 && (
+                    <AlertBanner colour="red" icon={AlertCircle} title={`${overdueInvoices.length} overdue invoice${overdueInvoices.length > 1 ? "s" : ""} — ${fmt(totalOverdue)} outstanding`}>
+                        {overdueInvoices.slice(0, 3).map(i => {
+                            const proj = projects.find(p => p.id === i.project_id);
+                            const days = Math.round((today.getTime() - new Date(i.due_date + "T00:00:00").getTime()) / 86400000);
+                            return (
+                                <Link key={i.id} href={`/dashboard/projects/billing?projectId=${i.project_id}`} className="flex items-center gap-1.5 hover:opacity-100 opacity-90">
+                                    <ArrowRight className="w-3 h-3" /> {proj?.name ?? "Unknown"} · {fmt(i.net_due ?? i.amount ?? 0)} · {days}d overdue
+                                </Link>
+                            );
+                        })}
+                    </AlertBanner>
+                )}
+
+                {overdueRfis.length > 0 && (
+                    <AlertBanner colour="amber" icon={MessageSquare} title={`${overdueRfis.length} overdue RFI${overdueRfis.length > 1 ? "s" : ""} awaiting response`}>
+                        {overdueRfis.slice(0, 3).map(r => {
+                            const proj = projects.find(p => p.id === r.project_id);
+                            return (
+                                <Link key={r.id} href={`/dashboard/projects/communications?projectId=${r.project_id}`} className="flex items-center gap-1.5 hover:opacity-100 opacity-90">
+                                    <ArrowRight className="w-3 h-3" /> {r.reference} · {proj?.name ?? ""} — due {fmtDate(r.date_due)}
+                                </Link>
+                            );
+                        })}
+                    </AlertBanner>
+                )}
+
                 {recentlyViewed.length > 0 && (
-                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 flex items-start gap-3">
-                        <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-blue-300">
-                                {recentlyViewed.length === 1
-                                    ? "A client has viewed your proposal"
-                                    : `${recentlyViewed.length} proposals viewed by clients recently`}
-                            </p>
-                            <div className="mt-1 space-y-0.5">
-                                {recentlyViewed.map((p) => (
-                                    <Link
-                                        key={p.id}
-                                        href={`/dashboard/projects/proposal?projectId=${p.id}`}
-                                        className="flex items-center gap-2 text-xs text-blue-400/80 hover:text-blue-300"
-                                    >
-                                        <ArrowRight className="w-3 h-3 flex-shrink-0" />
-                                        {p.name} — {p.client_name} · follow up now
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+                    <AlertBanner colour="blue" icon={AlertCircle} title={`${recentlyViewed.length === 1 ? "A client has viewed your proposal" : `${recentlyViewed.length} proposals viewed recently`} — follow up now`}>
+                        {recentlyViewed.map(p => (
+                            <Link key={p.id} href={`/dashboard/projects/proposal?projectId=${p.id}`} className="flex items-center gap-1.5 hover:opacity-100 opacity-90">
+                                <ArrowRight className="w-3 h-3" /> {p.name} — {p.client_name}
+                            </Link>
+                        ))}
+                    </AlertBanner>
                 )}
 
-                {/* Expiring soon alert */}
                 {expiringSoon.length > 0 && (
-                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-amber-300">
-                                {expiringSoon.length === 1
-                                    ? "1 proposal expiring soon"
-                                    : `${expiringSoon.length} proposals expiring soon`}
-                            </p>
-                            <div className="mt-1 space-y-0.5">
-                                {expiringSoon.map((p) => {
-                                    const sentDays = Math.floor((Date.now() - new Date(p.proposal_sent_at!).getTime()) / 86400000);
-                                    const remaining = (p.validity_days || 30) - sentDays;
-                                    return (
-                                        <Link
-                                            key={p.id}
-                                            href={`/dashboard/projects/proposal?projectId=${p.id}`}
-                                            className="flex items-center gap-2 text-xs text-amber-400/80 hover:text-amber-300"
-                                        >
-                                            <ArrowRight className="w-3 h-3 flex-shrink-0" />
-                                            {p.name} — {remaining === 0 ? "expires today" : `${remaining}d remaining`}
-                                        </Link>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
+                    <AlertBanner colour="amber" icon={AlertTriangle} title={`${expiringSoon.length} proposal${expiringSoon.length > 1 ? "s" : ""} expiring soon`}>
+                        {expiringSoon.map(p => {
+                            const sentDays = Math.floor((Date.now() - new Date(p.proposal_sent_at).getTime()) / 86400000);
+                            const remaining = (p.validity_days || 30) - sentDays;
+                            return (
+                                <Link key={p.id} href={`/dashboard/projects/proposal?projectId=${p.id}`} className="flex items-center gap-1.5 hover:opacity-100 opacity-90">
+                                    <ArrowRight className="w-3 h-3" /> {p.name} — {remaining === 0 ? "expires today" : `${remaining}d remaining`}
+                                </Link>
+                            );
+                        })}
+                    </AlertBanner>
                 )}
 
-                {/* KPI strip */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[
-                        {
-                            label: "Pipeline Value",
-                            value: fmt(pipelineValue),
-                            sub: `${pipelineProjects.length} active proposal${pipelineProjects.length !== 1 ? "s" : ""}`,
-                            color: "text-blue-400",
-                            bg: "bg-blue-500/10",
-                            border: "border-blue-500/20",
-                            Icon: TrendingUp,
-                        },
-                        {
-                            label: "Active Projects",
-                            value: activeProjects.length.toString(),
-                            sub: activeProjects.length === 0 ? "none on site" : "on site / in progress",
-                            color: "text-green-400",
-                            bg: "bg-green-500/10",
-                            border: "border-green-500/20",
-                            Icon: HardHat,
-                        },
-                        {
-                            label: "Outstanding",
-                            value: outstandingValue > 0 ? fmt(outstandingValue) : "—",
-                            sub: outstandingValue > 0 ? `${invoices.length} invoice${invoices.length !== 1 ? "s" : ""}` : "no open invoices",
-                            color: outstandingValue > 0 ? "text-amber-400" : "text-slate-500",
-                            bg: outstandingValue > 0 ? "bg-amber-500/10" : "bg-slate-800/50",
-                            border: outstandingValue > 0 ? "border-amber-500/20" : "border-slate-700",
-                            Icon: AlertCircle,
-                        },
-                        {
-                            label: "Win Rate (90d)",
-                            value: winRate !== null ? `${winRate}%` : "—",
-                            sub: recentDecided.length > 0 ? `${won} of ${recentDecided.length} proposals` : "no proposals decided yet",
-                            color: winRate !== null && winRate >= 50 ? "text-purple-400" : "text-slate-500",
-                            bg: "bg-purple-500/10",
-                            border: "border-purple-500/20",
-                            Icon: CheckCircle2,
-                        },
-                    ].map(({ label, value, sub, color, bg, border, Icon }) => (
-                        <div key={label} className={`${bg} border ${border} rounded-xl p-5`}>
-                            <div className="flex items-center justify-between mb-3">
-                                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                                    {label}
-                                </span>
-                                <Icon className={`w-4 h-4 ${color}`} />
-                            </div>
-                            <div className={`text-2xl font-bold ${color}`}>{value}</div>
-                            <div className="text-xs text-slate-500 mt-1">{sub}</div>
-                        </div>
-                    ))}
+                {/* ── KPI strip row 1: financial ── */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <KpiCard label="Pipeline Value"    value={fmt(pipelineValue)}   sub={`${pipelineProjects.length} active proposals`} colour="text-blue-400"    icon={TrendingUp}  href="/dashboard" />
+                    <KpiCard label="Active Projects"   value={String(activeProjects.length)} sub={activeProjects.length === 0 ? "none on site" : "on site"} colour="text-emerald-400" icon={HardHat} />
+                    <KpiCard label="Certified Outstanding" value={totalOutstanding > 0 ? fmt(totalOutstanding) : "—"} sub={totalOutstanding > 0 ? `${sentInvoices.length} sent invoice${sentInvoices.length !== 1 ? "s" : ""}` : "all invoices paid"} colour={totalOutstanding > 0 ? "text-amber-400" : "text-slate-500"} icon={CreditCard} />
+                    <KpiCard label="Retention Held"   value={retOutstanding > 0 ? fmt(retOutstanding) : "—"} sub={retOutstanding > 0 ? "across all projects" : "none outstanding"} colour={retOutstanding > 0 ? "text-orange-400" : "text-slate-500"} icon={Banknote} />
                 </div>
 
-                {/* Main grid: section cards + activity feed */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* ── KPI strip row 2: project health ── */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <KpiCard label="Pending Variations" value={pendingVarValue > 0 ? fmt(pendingVarValue) : String(pendingVars.length)} sub={`${pendingVars.length} awaiting approval`} colour={pendingVars.length > 0 ? "text-violet-400" : "text-slate-500"} icon={GitBranch} />
+                    <KpiCard label="CE Exposure"        value={ceExposure > 0 ? fmt(ceExposure) : "—"} sub={`${openCEs.length} open change event${openCEs.length !== 1 ? "s" : ""}`} colour={ceExposure > 0 ? "text-red-400" : "text-slate-500"} icon={ShieldAlert} />
+                    <KpiCard label="Open RFIs"          value={String(openRfis.length)} sub={overdueRfis.length > 0 ? `${overdueRfis.length} overdue` : "none overdue"} colour={overdueRfis.length > 0 ? "text-red-400" : openRfis.length > 0 ? "text-amber-400" : "text-slate-500"} icon={MessageSquare} />
+                    <KpiCard label="Win Rate (90d)"     value={winRate !== null ? `${winRate}%` : "—"} sub={decided.length > 0 ? `${won} of ${decided.length} decided` : "no data yet"} colour={winRate !== null && winRate >= 50 ? "text-purple-400" : "text-slate-500"} icon={CheckCircle2} />
+                </div>
 
-                    {/* Section cards — 2 cols */}
+                {/* ── Main content: active projects + right panel ── */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+                    {/* Active projects table */}
                     <div className="lg:col-span-2 space-y-4">
 
-                        {/* Company Profile card */}
-                        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                            <div className="flex items-center justify-between mb-4">
+                        {/* Active projects */}
+                        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
+                            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/50">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center">
-                                        <Building2 className="w-4 h-4 text-slate-400" />
-                                    </div>
-                                    <h2 className="font-semibold text-slate-100">Company Profile</h2>
+                                    <HardHat className="w-4 h-4 text-emerald-400" />
+                                    <h2 className="text-sm font-semibold text-white">Active Projects</h2>
                                 </div>
-                                {profileComplete ? (
-                                    <span className="flex items-center gap-1 text-xs font-medium text-green-400">
-                                        <CheckCircle2 className="w-3.5 h-3.5" /> Complete
-                                    </span>
-                                ) : (
-                                    <span className="text-xs text-amber-400 font-medium">{profScore}/{profTotal} complete</span>
-                                )}
+                                <span className="text-xs text-slate-500">{activeProjects.length} on site</span>
                             </div>
 
-                            {/* Progress bar */}
-                            <div className="w-full bg-slate-800 rounded-full h-1.5 mb-4">
-                                <div
-                                    className={`h-1.5 rounded-full transition-all ${profileComplete ? "bg-green-500" : "bg-blue-500"}`}
-                                    style={{ width: `${profPct}%` }}
-                                />
-                            </div>
-
-                            {!profileComplete && profMissing.length > 0 && (
-                                <p className="text-xs text-slate-500 mb-3">
-                                    Missing: {profMissing.join(" · ")}
-                                </p>
-                            )}
-
-                            <div className="flex items-center justify-between">
-                                <div className="grid grid-cols-2 gap-x-8 gap-y-1">
-                                    <div className="flex justify-between text-xs gap-4">
-                                        <span className="text-slate-500">Case Studies</span>
-                                        <Link href="/dashboard/settings/case-studies" className="text-blue-400 hover:underline">Manage</Link>
-                                    </div>
-                                    <div className="flex justify-between text-xs gap-4">
-                                        <span className="text-slate-500">PDF Theme</span>
-                                        <Link href="/dashboard/settings/profile" className="text-blue-400 hover:underline">Change</Link>
-                                    </div>
-                                </div>
-                                <Link
-                                    href="/dashboard/settings/profile"
-                                    className="flex items-center gap-1 text-xs text-blue-400 hover:underline font-medium"
-                                >
-                                    Edit profile <ArrowRight className="w-3 h-3" />
-                                </Link>
-                            </div>
-                        </div>
-
-                        {/* 2x2 section cards */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-                            {/* Work Winning */}
-                            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                                        <LayoutDashboard className="w-4 h-4 text-blue-400" />
-                                    </div>
-                                    <h2 className="font-semibold text-slate-100">Work Winning</h2>
-                                </div>
-                                <div className="space-y-2 mb-4">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">Pipeline proposals</span>
-                                        <span className="font-medium text-slate-200">{pipelineProjects.length}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">Pipeline value</span>
-                                        <span className="font-medium text-blue-400">{fmt(pipelineValue)}</span>
-                                    </div>
-                                    {expiringSoon.length > 0 && (
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-amber-400">Expiring soon</span>
-                                            <span className="font-medium text-amber-400">{expiringSoon.length}</span>
-                                        </div>
-                                    )}
-                                </div>
-                                <Link href="/dashboard" className="flex items-center gap-1 text-xs text-blue-400 hover:underline font-medium">
-                                    View pipeline <ArrowRight className="w-3 h-3" />
-                                </Link>
-                            </div>
-
-                            {/* Pre-Construction */}
-                            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center">
-                                        <Calculator className="w-4 h-4 text-purple-400" />
-                                    </div>
-                                    <h2 className="font-semibold text-slate-100">Pre-Construction</h2>
-                                </div>
-                                <div className="space-y-2 mb-4">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">In progress</span>
-                                        <span className="font-medium text-slate-200">{preConProjects.length}</span>
-                                    </div>
-                                    <div className="text-xs text-slate-600 pt-1">
-                                        Brief · Estimate · Programme · Contracts · Proposal
-                                    </div>
-                                </div>
-                                {preConProjects[0] ? (
-                                    <Link
-                                        href={`/dashboard/projects/brief?projectId=${preConProjects[0].id}`}
-                                        className="flex items-center gap-1 text-xs text-purple-400 hover:underline font-medium"
-                                    >
-                                        Continue: {preConProjects[0].name} <ArrowRight className="w-3 h-3" />
-                                    </Link>
-                                ) : (
-                                    <Link href="/dashboard/projects/new" className="flex items-center gap-1 text-xs text-purple-400 hover:underline font-medium">
-                                        Start a new project <ArrowRight className="w-3 h-3" />
-                                    </Link>
-                                )}
-                            </div>
-
-                            {/* Live Projects */}
-                            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center">
-                                        <HardHat className="w-4 h-4 text-green-400" />
-                                    </div>
-                                    <h2 className="font-semibold text-slate-100">Live Projects</h2>
-                                </div>
-                                <div className="space-y-2 mb-4">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">On site</span>
-                                        <span className="font-medium text-slate-200">{activeProjects.length}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">Outstanding</span>
-                                        <span className={`font-medium ${outstandingValue > 0 ? "text-amber-400" : "text-slate-500"}`}>
-                                            {outstandingValue > 0 ? fmt(outstandingValue) : "—"}
-                                        </span>
-                                    </div>
-                                </div>
-                                <span className="flex items-center gap-1 text-xs text-slate-600">
-                                    <Clock className="w-3 h-3" /> Billing &amp; variations coming soon
-                                </span>
-                            </div>
-
-                            {/* Closed Projects */}
-                            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center">
-                                        <Archive className="w-4 h-4 text-slate-400" />
-                                    </div>
-                                    <h2 className="font-semibold text-slate-100">Closed Projects</h2>
-                                </div>
-                                <div className="space-y-2 mb-4">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">Completed</span>
-                                        <span className="font-medium text-slate-200">{closedProjects.length}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">Total delivered</span>
-                                        <span className="font-medium text-slate-300">
-                                            {fmt(closedProjects.reduce((s, p) => s + (p.potential_value || 0), 0))}
-                                        </span>
-                                    </div>
-                                </div>
-                                <span className="flex items-center gap-1 text-xs text-slate-600">
-                                    <Clock className="w-3 h-3" /> Archive &amp; final accounts coming soon
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Activity feed */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                        <h2 className="font-semibold text-slate-100 mb-1 flex items-center gap-2">
-                            <CircleDot className="w-4 h-4 text-slate-400" />
-                            Recent Activity
-                        </h2>
-                        <p className="text-xs text-slate-500 mb-4">Last updated projects</p>
-
-                        <div className="space-y-1">
-                            {recentActivity.length === 0 ? (
-                                <div className="py-6 text-center">
-                                    <p className="text-sm text-slate-500">No projects yet.</p>
-                                    <Link href="/dashboard/projects/new" className="text-xs text-blue-400 hover:underline mt-1 inline-block">
-                                        Create your first →
-                                    </Link>
+                            {activeProjectsWithData.length === 0 ? (
+                                <div className="px-5 py-10 text-center">
+                                    <p className="text-slate-500 text-sm">No active projects yet.</p>
+                                    <Link href="/dashboard" className="text-xs text-blue-400 hover:underline mt-1 inline-block">View pipeline →</Link>
                                 </div>
                             ) : (
-                                recentActivity.map((p) => (
-                                    <Link
-                                        key={p.id}
-                                        href={`/dashboard/projects/proposal?projectId=${p.id}`}
-                                        className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-slate-800/60 transition group"
-                                    >
-                                        <ActivityDot status={p.proposal_status} acceptedAt={p.proposal_accepted_at} />
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="text-sm font-medium text-slate-200 truncate group-hover:text-white">
-                                                    {p.name}
-                                                </span>
-                                                <StatusPill status={p.proposal_status} acceptedAt={p.proposal_accepted_at} />
+                                <div className="divide-y divide-slate-700/30">
+                                    {activeProjectsWithData.map(p => (
+                                        <div key={p.id} className="px-5 py-4 hover:bg-slate-700/10 transition-colors">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <Link href={`/dashboard/projects/overview?projectId=${p.id}`}
+                                                            className="text-sm font-semibold text-white hover:text-blue-300 transition-colors truncate">
+                                                            {p.name}
+                                                        </Link>
+                                                        <StatusBadge status={p.status} />
+                                                        {p.progDelay > 0 && (
+                                                            <span className="text-[10px] font-semibold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">
+                                                                +{p.progDelay}d delay
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-slate-500 mt-0.5">{p.client_name}</p>
+                                                </div>
+                                                <div className="text-right flex-shrink-0">
+                                                    {p.projOutstanding > 0 ? (
+                                                        <>
+                                                            <p className="text-sm font-semibold text-amber-400">{fmt(p.projOutstanding)}</p>
+                                                            <p className="text-[11px] text-slate-500">outstanding</p>
+                                                        </>
+                                                    ) : (
+                                                        <p className="text-xs text-slate-600">—</p>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className="text-xs text-slate-500 mt-0.5">
-                                                {p.client_name} · {timeAgo(p.updated_at)}
-                                                {p.potential_value > 0 && ` · ${fmt(p.potential_value)}`}
+
+                                            {/* Per-project alert chips */}
+                                            <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                                {p.projOverdue > 0 && (
+                                                    <Link href={`/dashboard/projects/billing?projectId=${p.id}`}
+                                                        className="flex items-center gap-1 text-[10px] text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full hover:bg-red-500/20 transition-colors">
+                                                        <AlertCircle className="w-2.5 h-2.5" /> {p.projOverdue} overdue
+                                                    </Link>
+                                                )}
+                                                {p.projPendingVars > 0 && (
+                                                    <Link href={`/dashboard/projects/variations?projectId=${p.id}`}
+                                                        className="flex items-center gap-1 text-[10px] text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-full hover:bg-violet-500/20 transition-colors">
+                                                        <GitBranch className="w-2.5 h-2.5" /> {p.projPendingVars} variation{p.projPendingVars > 1 ? "s" : ""}
+                                                    </Link>
+                                                )}
+                                                {p.projOpenRfis > 0 && (
+                                                    <Link href={`/dashboard/projects/communications?projectId=${p.id}`}
+                                                        className="flex items-center gap-1 text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full hover:bg-amber-500/20 transition-colors">
+                                                        <MessageSquare className="w-2.5 h-2.5" /> {p.projOpenRfis} RFI{p.projOpenRfis > 1 ? "s" : ""}
+                                                    </Link>
+                                                )}
+                                                {p.projOpenCEs > 0 && (
+                                                    <Link href={`/dashboard/projects/change-management?projectId=${p.id}`}
+                                                        className="flex items-center gap-1 text-[10px] text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full hover:bg-red-500/20 transition-colors">
+                                                        <ShieldAlert className="w-2.5 h-2.5" /> {p.projOpenCEs} CE{p.projOpenCEs > 1 ? "s" : ""}
+                                                    </Link>
+                                                )}
+                                                {/* Quick links */}
+                                                <div className="ml-auto flex items-center gap-1">
+                                                    {[
+                                                        { icon: Activity,  href: `/dashboard/projects/overview?projectId=${p.id}`,     title: "Overview" },
+                                                        { icon: CreditCard,href: `/dashboard/projects/billing?projectId=${p.id}`,      title: "Billing" },
+                                                        { icon: CalendarDays, href: `/dashboard/projects/programme?projectId=${p.id}`, title: "Programme" },
+                                                    ].map(({ icon: Icon, href, title }) => (
+                                                        <Link key={title} href={href} title={title}
+                                                            className="p-1.5 rounded text-slate-600 hover:text-slate-300 hover:bg-slate-700/50 transition-colors">
+                                                            <Icon className="w-3.5 h-3.5" />
+                                                        </Link>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
-                                    </Link>
-                                ))
+                                    ))}
+                                </div>
                             )}
                         </div>
 
-                        {allProjects.length > 0 && (
-                            <div className="mt-4 pt-4 border-t border-slate-800">
-                                <Link
-                                    href="/dashboard"
-                                    className="text-xs text-blue-400 hover:underline font-medium flex items-center gap-1"
-                                >
-                                    View full pipeline <ArrowRight className="w-3 h-3" />
-                                </Link>
+                        {/* Pipeline summary */}
+                        {pipelineProjects.length > 0 && (
+                            <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
+                                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/50">
+                                    <div className="flex items-center gap-2">
+                                        <TrendingUp className="w-4 h-4 text-blue-400" />
+                                        <h2 className="text-sm font-semibold text-white">Pipeline</h2>
+                                    </div>
+                                    <Link href="/dashboard" className="text-xs text-blue-400 hover:underline">View all →</Link>
+                                </div>
+                                <div className="divide-y divide-slate-700/30">
+                                    {pipelineProjects.slice(0, 5).map(p => (
+                                        <Link key={p.id} href={`/dashboard/projects/proposal?projectId=${p.id}`}
+                                            className="flex items-center justify-between px-5 py-3 hover:bg-slate-700/10 transition-colors group">
+                                            <div>
+                                                <p className="text-sm font-medium text-slate-200 group-hover:text-white">{p.name}</p>
+                                                <p className="text-xs text-slate-500">{p.client_name} · {timeAgo(p.updated_at)}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                {p.potential_value > 0 && <p className="text-sm font-semibold text-blue-400">{fmt(p.potential_value)}</p>}
+                                                <StatusBadge status={p.proposal_status ?? p.status} />
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>
 
-                </div>
+                    {/* Right panel */}
+                    <div className="space-y-4">
 
-                {/* Quick actions footer strip */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {[
-                        { label: "New Project", href: "/dashboard/projects/new", Icon: Plus, color: "text-blue-400" },
-                        { label: "View Pipeline", href: "/dashboard", Icon: LayoutDashboard, color: "text-slate-300" },
-                        { label: "Cost Library", href: "/dashboard/library", Icon: Calculator, color: "text-slate-300" },
-                        { label: "Edit Profile", href: "/dashboard/settings/profile", Icon: FileText, color: "text-slate-300" },
-                    ].map(({ label, href, Icon, color }) => (
-                        <Link
-                            key={label}
-                            href={href}
-                            className="flex items-center gap-2.5 bg-slate-900 border border-slate-800 hover:border-slate-700 hover:bg-slate-800/70 rounded-lg px-4 py-3 text-sm font-medium transition-colors group"
-                        >
-                            <Icon className={`w-4 h-4 ${color} group-hover:text-white transition-colors`} />
-                            <span className="text-slate-400 group-hover:text-slate-200 transition-colors">{label}</span>
-                        </Link>
-                    ))}
+                        {/* Financial snapshot */}
+                        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
+                            <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                                <Banknote className="w-4 h-4 text-amber-400" />
+                                Financial Snapshot
+                            </h3>
+                            <div className="space-y-3">
+                                {[
+                                    { label: "Total certified outstanding", value: fmt(totalOutstanding), colour: totalOutstanding > 0 ? "text-amber-400" : "text-slate-500", href: undefined },
+                                    { label: "Overdue invoices", value: totalOverdue > 0 ? fmt(totalOverdue) : "—", colour: totalOverdue > 0 ? "text-red-400" : "text-slate-500", href: undefined },
+                                    { label: "Retention held", value: retOutstanding > 0 ? fmt(retOutstanding) : "—", colour: retOutstanding > 0 ? "text-orange-400" : "text-slate-500", href: undefined },
+                                    { label: "CE exposure (claimed)", value: ceExposure > 0 ? fmt(ceExposure) : "—", colour: ceExposure > 0 ? "text-red-400" : "text-slate-500", href: undefined },
+                                    { label: "EWN exposure", value: ewnExposure > 0 ? fmt(ewnExposure) : "—", colour: ewnExposure > 0 ? "text-amber-400" : "text-slate-500", href: undefined },
+                                ].map(({ label, value, colour }) => (
+                                    <div key={label} className="flex items-center justify-between">
+                                        <span className="text-xs text-slate-500">{label}</span>
+                                        <span className={`text-sm font-semibold ${colour}`}>{value}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Quick actions */}
+                        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
+                            <h3 className="text-sm font-semibold text-white mb-3">Quick Actions</h3>
+                            <div className="space-y-1.5">
+                                {[
+                                    { label: "New Project",        href: "/dashboard/projects/new",      icon: Plus,         colour: "text-blue-400" },
+                                    { label: "View Pipeline",      href: "/dashboard",                    icon: TrendingUp,   colour: "text-blue-400" },
+                                    { label: "Billing & Invoices", href: "/dashboard/projects/billing",  icon: CreditCard,   colour: "text-amber-400" },
+                                    { label: "Variations",         href: "/dashboard/projects/variations",icon: GitBranch,   colour: "text-violet-400" },
+                                    { label: "Change Management",  href: "/dashboard/projects/change-management", icon: RefreshCw, colour: "text-red-400" },
+                                    { label: "Communications",     href: "/dashboard/projects/communications", icon: MessageSquare, colour: "text-cyan-400" },
+                                    { label: "Final Accounts",     href: "/dashboard/projects/final-account", icon: FileText, colour: "text-slate-400" },
+                                ].map(({ label, href, icon: Icon, colour }) => (
+                                    <Link key={label} href={href}
+                                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors group">
+                                        <Icon className={`w-3.5 h-3.5 ${colour} group-hover:scale-110 transition-transform`} />
+                                        {label}
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Closed projects summary */}
+                        {closedProjects.length > 0 && (
+                            <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
+                                <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                                    <Clock className="w-4 h-4 text-slate-500" />
+                                    Closed Projects
+                                </h3>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-500">Completed</span>
+                                        <span className="text-slate-300 font-semibold">{closedProjects.filter(p => p.status === "completed").length}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-500">Total delivered</span>
+                                        <span className="text-slate-300 font-semibold">{fmt(closedProjects.reduce((s, p) => s + (p.potential_value || 0), 0))}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
             </div>

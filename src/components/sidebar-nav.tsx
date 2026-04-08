@@ -357,7 +357,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                         <NavItem href={pLink("/dashboard/projects/variations")} icon={GitBranch} label="Variations" active={is("/dashboard/projects/variations")} />
                         <NavItem href={pLink("/dashboard/projects/p-and-l")} icon={TrendingUp} label="Job P&L" active={is("/dashboard/projects/p-and-l")} />
                         <NavItem href={pLink("/dashboard/projects/change-management")} icon={RefreshCw} label="Change Management" active={is("/dashboard/projects/change-management")} />
-                        <NavItem href="#" icon={CalendarDays} label="Programme" disabled />
+                        <NavItem href={pLink("/dashboard/projects/programme")} icon={CalendarDays} label="Programme" active={is("/dashboard/projects/programme")} />
                         <NavItem href={pLink("/dashboard/projects/communications")} icon={MessageSquare} label="Communications" active={is("/dashboard/projects/communications")} />
                     </SidebarSection>
 

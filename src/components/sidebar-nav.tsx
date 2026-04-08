@@ -365,7 +365,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                     <SidebarSection label="Closed Projects" sectionKey="closed-projects" collapsed={collapsed["closed-projects"] ?? true} onToggle={toggleSection}>
                         <NavItem href="#" icon={Archive} label="Archive" disabled />
                         <NavItem href={pLink("/dashboard/projects/final-account")} icon={Receipt} label="Final Accounts" active={is("/dashboard/projects/final-account")} />
-                        <NavItem href="#" icon={FolderOpen} label="Handover Documents" disabled />
+                        <NavItem href={pLink("/dashboard/projects/handover-documents")} icon={FolderOpen} label="Handover Documents" active={is("/dashboard/projects/handover-documents")} />
                         <NavItem href="#" icon={BookMarked} label="Lessons Learned" disabled />
                     </SidebarSection>
 

@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 7 April 2026 (end of Sprint 28 — Live Projects: Cost Tracking, fully committed)
+**Last updated:** 8 April 2026 (end of Sprint 37 — Live Programme: As-Built vs Baseline Gantt, fully committed)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -186,8 +186,59 @@ project_section_forecasts  — id UUID PK, project_id UUID FK → projects(id) O
 invoices          — id, project_id, invoice_number, type ('Interim'|'Final'),
                     amount, status ('Draft'|'Sent'|'Paid'), created_at
 
+invoices          — id, project_id, invoice_number, invoice_date, type, amount, status,
+                    due_date, paid_date, retention_pct, gross_valuation, previous_cert,
+                    retention_held, net_due, is_retention_release BOOL, period_number INT
+                    (Sprint 29: AfP accounting columns added)
+
+payment_schedule_milestones — id, project_id, user_id, title, due_date, amount,
+                    status ('Pending'|'Due'|'Paid'), notes  ← Sprint 29
+
 variations        — id, project_id, title, description, amount,
-                    status ('Draft'|'Pending Approval'|'Approved'|'Rejected')
+                    status ('Draft'|'Pending Approval'|'Approved'|'Rejected'),
+                    variation_number TEXT (e.g. VAR-001), instruction_type, trade_section,
+                    instructed_by, date_instructed, approval_date, approval_reference,
+                    rejection_reason  ← Sprint 30 additions
+
+-- Live Projects: Communications (Sprint 32)
+site_instructions — id, project_id, user_id, reference (SI-001), title, description,
+                    instruction_type, issued_to, date_issued, status, notes
+rfis              — id, project_id, user_id, reference (RFI-001), question, addressee,
+                    date_sent, date_due, date_responded, response_summary, status
+early_warning_notices — id, project_id, user_id, reference (EWN-001), title, description,
+                    ewn_type, potential_cost_impact, potential_time_impact_days,
+                    date_issued, status, notes
+document_register — id, project_id, user_id, reference (DOC-001), title, document_type,
+                    direction ('sent'|'received'), date, from_party, to_party, notes
+
+-- Live Projects: Change Management (Sprint 34)
+change_events     — id, project_id, user_id, reference (CE-001), title, description,
+                    type (Compensation Event|EOT|Contract Notice|Loss & Expense|etc.),
+                    status (Draft|Notified|Submitted|Assessed|Agreed|Rejected|Withdrawn),
+                    issued_by, clause_reference, value_claimed, value_agreed,
+                    time_claimed_days, time_agreed_days,
+                    date_notified, date_submitted, date_assessed, date_agreed, notes
+
+-- Closed Projects: Final Accounts (Sprint 33)
+final_accounts    — id, project_id UNIQUE, user_id, status (Draft|Agreed|Disputed|Signed),
+                    agreed_amount, disputed_amount, dispute_notes,
+                    agreed_date, signed_date, agreement_reference, notes
+final_account_adjustments — id, project_id, user_id, description, type (Addition|Deduction),
+                    amount, notes, order_index
+
+-- Closed Projects: Handover Documents (Sprint 35)
+handover_items    — id, project_id, user_id, category, title, description,
+                    status (Pending|Received|Issued|N/A), required BOOL,
+                    date_received, issued_to, notes, order_index
+                    NOTE: 16 standard items auto-seeded on first open per project
+
+-- Closed Projects: Lessons Learned (Sprint 36)
+lessons_learned   — id, project_id UNIQUE, user_id, overall_rating INT(1-5),
+                    client_satisfaction INT(1-5), financial_outcome, programme_outcome,
+                    summary, ai_narrative
+lesson_items      — id, project_id, user_id, type (Went Well|Improvement|Risk|Opportunity),
+                    category, title, detail, impact (Low|Medium|High),
+                    action_required BOOL, action_owner, order_index
 
 -- Drawing AI Takeoff (Sprint 25)
 drawing_extractions — id, project_id, user_id, filename, file_size_kb INT, format TEXT,
@@ -246,9 +297,20 @@ A contractor creates a project and works through 5 pre-construction tabs:
 
 Then post-contract (Live Projects):
 ```
-6. BILLING     → Interim/Final valuations, Draft→Sent→Paid tracking
-7. VARIATIONS  → Scope changes, approval workflow, feeds into billing
-8. JOB P&L     → Real-time financial position per project + portfolio view
+6. OVERVIEW        → Per-project health dashboard (RAG, burn %, programme %)
+7. BILLING         → AfP accounting, retention ledger, aged debt
+8. VARIATIONS      → VAR-001 numbering, approval workflow, PDF instruction
+9. JOB P&L         → Real-time financial position, committed costs, section forecasts
+10. CHANGE MGMT    → CE-001 register, EOT / Contract Notice / Loss & Expense
+11. PROGRAMME      → As-built vs baseline Gantt, delay reasons, revised planned finish
+12. COMMS          → Site Instructions, RFIs, EWNs, Document Register
+```
+
+Then project close (Closed Projects):
+```
+13. FINAL ACCOUNT   → Financial settlement statement, status machine, PDF for signature
+14. HANDOVER DOCS   → 16-item checklist (O&Ms, warranties, as-builts, certs), progress %
+15. LESSONS LEARNED → Star ratings, structured lessons, AI narrative
 ```
 
 ---
@@ -327,10 +389,19 @@ Project navbar tabs: Brief / Estimating / Drawings / Programme / Contracts / Pro
   Cost Library    /dashboard/library
 
 LIVE PROJECTS
-  Overview        /dashboard/live
-  Job P&L         /dashboard/projects/p-and-l?projectId=X
-  Billing         /dashboard/projects/billing?projectId=X
-  Variations      /dashboard/projects/variations?projectId=X
+  Project Overview    /dashboard/projects/overview?projectId=X   ← Sprint 27
+  Billing & Invoicing /dashboard/projects/billing?projectId=X    ← Sprint 29
+  Variations          /dashboard/projects/variations?projectId=X ← Sprint 30
+  Job P&L             /dashboard/projects/p-and-l?projectId=X
+  Change Management   /dashboard/projects/change-management?projectId=X  ← Sprint 34
+  Programme           /dashboard/projects/programme?projectId=X  ← Sprint 37 (as-built)
+  Communications      /dashboard/projects/communications?projectId=X     ← Sprint 32
+
+CLOSED PROJECTS
+  Archive             (disabled — Sprint 38 pending)
+  Final Accounts      /dashboard/projects/final-account?projectId=X      ← Sprint 33
+  Handover Documents  /dashboard/projects/handover-documents?projectId=X ← Sprint 35
+  Lessons Learned     /dashboard/projects/lessons-learned?projectId=X    ← Sprint 36
 ```
 
 Sidebar state is persisted in `localStorage`. Active project is stored in `localStorage` and auto-appended to all module links. True accordion behaviour: opening any section closes all others.
@@ -454,8 +525,17 @@ Direct Cost (trade lines)
 | 26 | Video Walkthrough AI — upload site survey video (MP4/MOV/WebM, 200MB, 2min); extract 20 frames in-browser via HTML5 canvas; extract + resample audio via Web Audio API; transcribe narration via Whisper-1; combined GPT-4o Vision call (narration = primary, frames = context); returns scope/trades/value/observations; "Apply to Brief" populates all fields; full workflow: video → brief → estimate → programme in under 1 minute |
 | 26a | Client BoQ Import — upload client-provided BoQ (Excel or PDF) in Estimating tab; AI parses via GPT-4o Vision (PDF) or SheetJS+AI (Excel); preserves client's sections, item refs, descriptions; creates estimate flagged `is_client_boq`; preview grouped by section with amber qty warning; export priced BoQ to Excel (Priced_filename.xlsx) with cost summary appended |
 | 26a bugs | **Post-import bug fixes:** (1) BoQ tab reverting on navigation — root cause: `router.push` is soft nav, useState init doesn't re-run; fixed via `window.location.href` with `?tab=<id>` URL param + project-scoped sessionStorage key `constructa_tab_<projectId>`; (2) Programme pulling wrong estimate — root cause: BoQ import set `is_active: false` AND programme filtered out `is_client_boq` estimates; fixed: `createBoQEstimateAction` auto-sets imported BoQ as active; programme logic now uses `is_active` only; existing production data fixed via Supabase MCP SQL |
-| 27 | Live Projects: Overview — per-project health dashboard; RAG status (Green/Amber/Red based on burn % and programme %); 4-card KPI strip (Contract Value, Budget Cost, Costs Posted, Gross Margin); burn bar with % label; ProgrammeBar mini-Gantt with today-marker; outstanding invoices list; 4 quick-action buttons; Overview tab added to project navbar (first position); Live Projects > Overview link in sidebar |
-| 28 | Live Projects: Cost Tracking — `cost_status` column on `project_expenses` (actual/committed); `project_section_forecasts` table (user-editable per-section forecast override with upsert); 6th KPI card "Committed" (amber); stacked burn bar (solid actual + translucent amber committed); section table expanded to 7 columns (Budget, Actual, Committed, Forecast Final, Variance, %); AlertTriangle badge on over-budget sections; inline forecast editor `SectionForecastPopover` (pencil → £ input → save/clear); Subcontract tab in Log Cost sheet with Committed/Actual toggle |
+| 27 | Live Projects: Overview — per-project health dashboard; RAG status; 4-card KPI strip; burn bar; ProgrammeBar mini-Gantt; outstanding invoices list; 4 quick-action buttons |
+| 28 | Live Projects: Cost Tracking — committed costs, section forecasts, stacked burn bar, 7-col section table, SectionForecastPopover, Subcontract tab |
+| 29 | Live Projects: Billing & Valuations — AfP accounting (gross→less prev cert→less retention→net due); retention ledger; aged debt bands (current/1-30/31-60/61-90/90+); payment milestones; DB: due_date, paid_date, retention_pct, gross_valuation, previous_cert, retention_held, net_due, is_retention_release, period_number on invoices |
+| 30 | Live Projects: Variations — VAR-001 auto-numbering; 7 instruction types; Draft→Pending→Approved/Rejected workflow; approval reference capture; PDF variation instruction; negative amounts as (£x) for omissions |
+| 31 | Live Projects: Programme Live Tracking — pct_complete + actual_start/finish on Phase interface; % overlay on Gantt bars; LiveTrackingPanel with per-phase sliders + dates; AI weekly update narrative via GPT-4o stored in programme_updates table |
+| 32 | Live Projects: Communications — 4 tables (site_instructions, rfis, early_warning_notices, document_register) with auto-numbered refs; SI + EWN PDF export; RFI respond dialog; document direction badges; EWN £/time exposure footer |
+| 33 | Closed Projects: Final Accounts — financial settlement (originalContractSum + variations + adjustments = adjustedContractSum); status machine (Draft/Agreed/Disputed/Signed); adjustment CRUD; variations schedule; certification history; PDF with signature block |
+| 34 | Live Projects: Change Management — CE-001 register; 8 event types; status workflow (Draft→Notified→Submitted→Assessed→Agreed/Rejected/Withdrawn); financial + time impact tracking (claimed vs agreed); expandable row detail |
+| 35 | Closed Projects: Handover Documents — 16 standard items auto-seeded (O&M manuals, warranties, as-builts, test certs, H&S file, compliance certs); progress bar; click-to-cycle status badges; grouped by category |
+| 36 | Closed Projects: Lessons Learned — star ratings (overall + client satisfaction); financial/programme outcome selectors; structured lesson items (Went Well/Improvement/Risk/Opportunity) with impact + action tracking; AI narrative via GPT-4o |
+| 37 | Live Programme: As-Built vs Baseline Gantt — dual-bar Gantt (baseline grey + actual coloured); today line; revised planned finish (dashed amber); delay calculation per phase (forecast from progress rate); delay reason (9 categories); total programme delay summary; delay panel listing all delayed phases. Fields stored in programme_phases JSONB (no migration needed) |
 | 25 | Drawing AI Takeoff — `drawing_extractions` DB table; `analyzeDrawingPagesAction` (in-browser PDF→JPEG via pdfjs-dist, multi-image GPT-4o Vision, cost library matching); `getDrawingExtractionsAction`; `addItemsToEstimateAction`; `/drawings` page with drag-drop upload, live progress, extraction results panel with checkboxes + trade section grouping, drawing register; Drawings tab added to project navbar; files never stored in Supabase (process-only architecture) |
 
 > ⚠️ **Sprint numbering note (5 April 2026):** Sprints 15 and 16 above are NEW sprints inserted between the original Sprint 14 (P&L) and the originally planned Sprint 15 (UI/UX Consistency Pass). All downstream sprints shift +2. Original roadmap end: Sprint 41. Corrected total: **Sprint 46** (further updated 6 April 2026: Sprints 23–24 added for Onboarding Polish and LemonSqueezy Billing, shifting all subsequent sprints +2).
@@ -645,35 +725,30 @@ Commit `82fb44a`, deployed `dpl_2HqivLXMcGrzuJDXTQCM9dbJAPPM` (READY).
 
 **Build fix:** `AlertTriangle` from Lucide does not accept a `title` prop — removed `title="Forecast over budget"` from JSX (commit `82fb44a`)
 
-### 🔜 Sprint 29 — Live Projects: Billing & Valuations ← NEXT
-Payment schedule from Proposal, Application for Payment form, retention ledger, overdue alerts, formal PDF.
+### ✅ Sprint 29 — Live Projects: Billing & Valuations (COMPLETE — 8 April 2026)
+### ✅ Sprint 30 — Live Projects: Variations (COMPLETE — 8 April 2026)
+### ✅ Sprint 31 — Live Projects: Programme Live Tracking (COMPLETE — 8 April 2026)
+### ✅ Sprint 32 — Live Projects: Communications (COMPLETE — 8 April 2026)
 
-### Sprint 30 — Live Projects: Variations
-Raise/price/approve variations, client approval tracking, variation log, Final Account incorporation, formal PDF.
+--- BATCH 2 COMPLETE — LIVE PROJECTS RELEASE (Sprints 27–32) ✅ ---
 
-### Sprint 31 — Live Projects: Programme (Live Tracking)
-Planned vs actual Gantt, % complete per phase, delay recording, EOT log, early warning notices, AI weekly update narrative.
+### ✅ Sprint 33 — Closed Projects: Final Accounts (COMPLETE — 8 April 2026)
+### ✅ Sprint 34 — Live Projects: Change Management (COMPLETE — 8 April 2026)
+### ✅ Sprint 35 — Closed Projects: Handover Documents (COMPLETE — 8 April 2026)
+### ✅ Sprint 36 — Closed Projects: Lessons Learned (COMPLETE — 8 April 2026)
+### ✅ Sprint 37 — Live Programme: As-Built vs Baseline Gantt (COMPLETE — 8 April 2026)
+- Dual-bar Gantt; delay tracking; revised planned finish; today line; delay reason (9 categories)
+- Only one sidebar item still disabled: Archive (Closed Projects)
 
-### Sprint 32 — Live Projects: Communications
-Site instruction log, RFI tracker, Early Warning Notices, formal letter templates, document register (timestamped, non-editable).
+--- BATCH 3 COMPLETE — CLOSED PROJECTS RELEASE (Sprints 33–37) ✅ ---
 
---- BATCH 2 COMPLETE — LIVE PROJECTS RELEASE (Sprints 27–32) ---
+### 🔜 Sprint 38 — Dashboard Home Rebuild ← NEXT
+Cross-project executive summary at `/dashboard/home`. KPI cards surfacing data from all new modules: active projects, total certified outstanding, overdue invoices, retention held, open RFIs, pending variations, change event exposure, total programme delay. Replace the current basic home page with a proper ops dashboard.
 
-### Sprint 33 — Closed Projects: Final Accounts
-Final Account summary, retention release tracker, agreement status, disputed amounts, formal PDF for client signature.
+### Sprint 39 — Project Archive
+Mark project as closed/archived; freeze edits; searchable archive view; key financial outcome preserved. Enables "Similar projects" matching for new bids.
 
-### Sprint 34 — Closed Projects: Handover Documents
-Document pack builder (O&Ms, warranties, test certs, as-builts), client handover portal, Defects Liability Period tracker.
-
-### Sprint 35 — Closed Projects: Archive
-Project archiving, search, key data preserved, reuse estimate from archive, "Similar projects" matching for new bids.
-
-### Sprint 36 — Closed Projects: Lessons Learned
-Structured retrospective, AI analysis (estimated vs actual margin, programme vs actual), insight cards, win/loss analysis, feeds cost library rate suggestions.
-
---- BATCH 3 COMPLETE — CLOSED PROJECTS RELEASE (Sprints 33–36) ---
-
-### Sprint 37 — Data Foundation
+### Sprint 40 — Data Foundation (previously Sprint 37)
 Pure database migration — no changes to contractor-facing app. Creates the anonymised
 aggregation layer that makes cross-contractor intelligence possible.
 

@@ -1,20 +1,21 @@
 "use client";
 import Link from "next/link";
-import { ClipboardList, Calculator, CalendarDays, FileText, Scale, Layers, Activity } from "lucide-react";
+import { ClipboardList, Calculator, CalendarDays, FileText, Scale, Layers, Activity, MessageSquare } from "lucide-react";
 
 interface Props {
   projectId: string;
-  activeTab: "overview" | "brief" | "estimating" | "programme" | "contracts" | "proposal" | "drawings";
+  activeTab: "overview" | "brief" | "estimating" | "programme" | "contracts" | "proposal" | "drawings" | "communications";
 }
 
 const TABS = [
-  { key: "overview",   label: "Overview",   icon: Activity,      href: (id: string) => `/dashboard/projects/overview?projectId=${id}` },
-  { key: "brief",      label: "Brief",      icon: ClipboardList, href: (id: string) => `/dashboard/projects/brief?projectId=${id}` },
-  { key: "estimating", label: "Estimating", icon: Calculator,    href: (id: string) => `/dashboard/projects/costs?projectId=${id}` },
-  { key: "drawings",   label: "Drawings",   icon: Layers,        href: (id: string) => `/dashboard/projects/drawings?projectId=${id}` },
-  { key: "programme",  label: "Programme",  icon: CalendarDays,  href: (id: string) => `/dashboard/projects/schedule?projectId=${id}` },
-  { key: "contracts",  label: "Contracts",  icon: Scale,         href: (id: string) => `/dashboard/projects/contracts?projectId=${id}` },
-  { key: "proposal",   label: "Proposal",   icon: FileText,      href: (id: string) => `/dashboard/projects/proposal?projectId=${id}` },
+  { key: "overview",        label: "Overview",        icon: Activity,       href: (id: string) => `/dashboard/projects/overview?projectId=${id}` },
+  { key: "brief",           label: "Brief",           icon: ClipboardList,  href: (id: string) => `/dashboard/projects/brief?projectId=${id}` },
+  { key: "estimating",      label: "Estimating",      icon: Calculator,     href: (id: string) => `/dashboard/projects/costs?projectId=${id}` },
+  { key: "drawings",        label: "Drawings",        icon: Layers,         href: (id: string) => `/dashboard/projects/drawings?projectId=${id}` },
+  { key: "programme",       label: "Programme",       icon: CalendarDays,   href: (id: string) => `/dashboard/projects/schedule?projectId=${id}` },
+  { key: "contracts",       label: "Contracts",       icon: Scale,          href: (id: string) => `/dashboard/projects/contracts?projectId=${id}` },
+  { key: "proposal",        label: "Proposal",        icon: FileText,       href: (id: string) => `/dashboard/projects/proposal?projectId=${id}` },
+  { key: "communications",  label: "Comms",           icon: MessageSquare,  href: (id: string) => `/dashboard/projects/communications?projectId=${id}` },
 ];
 
 export default function ProjectNavBar({ projectId, activeTab }: Props) {

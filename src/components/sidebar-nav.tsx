@@ -358,7 +358,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                         <NavItem href={pLink("/dashboard/projects/p-and-l")} icon={TrendingUp} label="Job P&L" active={is("/dashboard/projects/p-and-l")} />
                         <NavItem href="#" icon={RefreshCw} label="Change Management" disabled />
                         <NavItem href="#" icon={CalendarDays} label="Programme" disabled />
-                        <NavItem href="#" icon={MessageSquare} label="Communications" disabled />
+                        <NavItem href={pLink("/dashboard/projects/communications")} icon={MessageSquare} label="Communications" active={is("/dashboard/projects/communications")} />
                     </SidebarSection>
 
                     {/* Closed Projects */}

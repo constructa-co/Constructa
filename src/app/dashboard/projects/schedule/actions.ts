@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { generateText } from "@/lib/ai";
 
 export async function updateDependencyAction(formData: FormData) {
     const supabase = createClient();
@@ -141,4 +142,73 @@ export async function saveProgrammePhasesAction(
 
     if (error) console.error("Save programme phases error:", error);
     revalidatePath("/dashboard/projects/schedule");
+}
+
+// ── Sprint 31: Live Programme Tracking ───────────────────────────────────────
+
+export async function generateWeeklyUpdateAction(projectId: string): Promise<string> {
+    const supabase = createClient();
+
+    const { data: project } = await supabase
+        .from("projects")
+        .select("name, client_name, start_date, programme_phases")
+        .eq("id", projectId)
+        .single();
+
+    if (!project) throw new Error("Project not found");
+
+    const phases: any[] = project.programme_phases || [];
+    const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+
+    const phaseLines = phases.map((p: any) => {
+        const pct = p.pct_complete ?? 0;
+        const status = pct === 100 ? "Complete" : pct > 0 ? `${pct}% complete` : "Not started";
+        const actual = p.actual_start_date ? `Started ${new Date(p.actual_start_date + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : "";
+        return `- ${p.name}: ${status}${actual ? ` (${actual})` : ""}${p.actual_finish_date ? `, finished ${new Date(p.actual_finish_date + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}`;
+    }).join("\n");
+
+    const overallPct = phases.length > 0
+        ? Math.round(phases.reduce((s: number, p: any) => s + (p.pct_complete ?? 0), 0) / phases.length)
+        : 0;
+
+    const prompt = `You are a construction project manager writing a concise weekly progress update for a UK contractor.
+
+Project: ${project.name}
+Client: ${project.client_name || "Client"}
+Report date: ${today}
+Overall completion: ${overallPct}%
+
+Phase progress:
+${phaseLines}
+
+Write a professional weekly progress update in plain English (3–5 short paragraphs). Cover:
+1. Overall progress summary
+2. What was completed or is in progress this week
+3. Any phases not yet started and planned sequence
+4. A positive, professional closing note
+
+Keep it factual, concise and suitable to send directly to the client. Do not use bullet points. Use UK English spelling.`;
+
+    const narrative = await generateText(prompt);
+
+    // Store the narrative
+    await supabase.from("programme_updates").insert([{
+        project_id:      projectId,
+        narrative,
+        phases_snapshot: phases,
+    }]);
+
+    revalidatePath(`/dashboard/projects/schedule?projectId=${projectId}`);
+    return narrative;
+}
+
+export async function getProgrammeUpdatesAction(projectId: string) {
+    const supabase = createClient();
+    const { data } = await supabase
+        .from("programme_updates")
+        .select("id, narrative, created_at")
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: false })
+        .limit(10);
+    return data || [];
 }

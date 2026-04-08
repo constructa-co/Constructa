@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useMemo, useEffect, useRef, useCallback } from "react";
 import { updatePhasesAction, getEstimatePhasesAction, saveProgrammePhasesAction } from "./actions";
+import ProgrammeAiUpdate from "./programme-ai-update";
 import { toast } from "sonner";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -13,6 +14,10 @@ interface Phase {
     startOffset: number;       // calendar days from project start (always multiple of 7)
     color?: string;
     dependsOn?: number[];      // indices of predecessor phases
+    // Sprint 31 — Live Tracking
+    pct_complete?: number;         // 0–100
+    actual_start_date?: string;    // YYYY-MM-DD
+    actual_finish_date?: string;   // YYYY-MM-DD
 }
 
 interface EstimateLineComponent {
@@ -160,6 +165,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const [isPending, startTransition] = useTransition();
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
     const [isDragging, setIsDragging] = useState(false);
+    const [showLiveTracking, setShowLiveTracking] = useState(false);
 
     const ganttRef           = useRef<HTMLDivElement>(null);
     const dragStateRef       = useRef<DragState | null>(null);
@@ -797,8 +803,15 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                             isCritical ? "ring-2 ring-yellow-400 ring-offset-1 ring-offset-slate-900" : "",
                                             isActive ? "opacity-80 shadow-xl" : "opacity-90 hover:opacity-100 shadow-sm",
                                         ].join(" ")}>
+                                            {/* % complete overlay */}
+                                            {(phase.pct_complete ?? 0) > 0 && (
+                                                <div
+                                                    className="absolute bottom-0 left-0 h-1.5 bg-white/40 rounded-b-md"
+                                                    style={{ width: `${phase.pct_complete}%` }}
+                                                />
+                                            )}
                                             <span className="text-white text-[10px] font-semibold truncate select-none">
-                                                {workingDur}d
+                                                {(phase.pct_complete ?? 0) > 0 ? `${phase.pct_complete}%` : `${workingDur}d`}
                                             </span>
                                             {/* Resize handle */}
                                             <div
@@ -827,11 +840,204 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-800/50 border border-dashed border-slate-600 text-slate-400 hover:border-slate-500 hover:text-slate-200 hover:bg-slate-700/50 transition-colors">
                         + Add Phase
                     </button>
-                    <p className="text-[11px] text-slate-500">
-                        Days = working days ({daysPerWeek}d/wk). Bar width = calendar span. ★ = critical path.
-                    </p>
+                    <div className="flex items-center gap-3">
+                        <p className="text-[11px] text-slate-500">
+                            Days = working days ({daysPerWeek}d/wk). Bar width = calendar span. ★ = critical path.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => setShowLiveTracking(v => !v)}
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${showLiveTracking ? "bg-emerald-600/20 border-emerald-500/40 text-emerald-400" : "bg-slate-800/50 border-slate-600 text-slate-400 hover:text-slate-200 hover:border-slate-500"}`}
+                        >
+                            {showLiveTracking ? "▲ Hide Live Tracking" : "▼ Live Tracking"}
+                        </button>
+                    </div>
                 </div>
             )}
+
+            {/* ── Live Tracking Panel (Sprint 31) ── */}
+            {showLiveTracking && phases.length > 0 && (
+                <LiveTrackingPanel
+                    phases={phases}
+                    programmeStart={programmeStart}
+                    daysPerWeek={daysPerWeek}
+                    projectId={projectId}
+                    project={project}
+                    onPhasesChange={setPhases}
+                />
+            )}
+        </div>
+    );
+}
+
+// ─── Live Tracking Panel ──────────────────────────────────────────────────────
+function LiveTrackingPanel({
+    phases, programmeStart, daysPerWeek, projectId, project, onPhasesChange,
+}: {
+    phases: Phase[];
+    programmeStart: Date;
+    daysPerWeek: number;
+    projectId: string;
+    project: Props["project"];
+    onPhasesChange: (phases: Phase[]) => void;
+}) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const overallPct = phases.length > 0
+        ? Math.round(phases.reduce((s, p) => s + (p.pct_complete ?? 0), 0) / phases.length)
+        : 0;
+    const complete = phases.filter(p => (p.pct_complete ?? 0) === 100).length;
+    const inProgress = phases.filter(p => (p.pct_complete ?? 0) > 0 && (p.pct_complete ?? 0) < 100).length;
+    const delayed = phases.filter(p => {
+        const calDur = Math.ceil((p.manualDays ?? p.calculatedDays) / daysPerWeek) * 7;
+        const plannedEnd = new Date(programmeStart);
+        plannedEnd.setDate(plannedEnd.getDate() + p.startOffset + calDur);
+        return plannedEnd < today && (p.pct_complete ?? 0) < 100;
+    }).length;
+
+    const handlePctChange = (idx: number, pct: number) => {
+        onPhasesChange(phases.map((p, i) => i === idx ? { ...p, pct_complete: pct } : p));
+    };
+    const handleActualDate = (idx: number, field: "actual_start_date" | "actual_finish_date", val: string) => {
+        onPhasesChange(phases.map((p, i) => i === idx ? { ...p, [field]: val || undefined } : p));
+    };
+
+    return (
+        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-slate-700/50">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-sm font-semibold text-white">Live Programme Tracking</h2>
+                        <p className="text-xs text-slate-500 mt-0.5">Update % complete and actual dates — saves automatically with the Gantt</p>
+                    </div>
+                    <div className="flex items-center gap-6">
+                        <div className="text-right">
+                            <p className="text-[11px] text-slate-500 uppercase tracking-wider">Overall</p>
+                            <p className={`text-xl font-bold ${overallPct === 100 ? "text-emerald-400" : overallPct > 0 ? "text-blue-400" : "text-slate-400"}`}>{overallPct}%</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[11px] text-slate-500 uppercase tracking-wider">Complete</p>
+                            <p className="text-xl font-bold text-emerald-400">{complete}</p>
+                        </div>
+                        {inProgress > 0 && (
+                            <div className="text-right">
+                                <p className="text-[11px] text-slate-500 uppercase tracking-wider">In Progress</p>
+                                <p className="text-xl font-bold text-blue-400">{inProgress}</p>
+                            </div>
+                        )}
+                        {delayed > 0 && (
+                            <div className="text-right">
+                                <p className="text-[11px] text-slate-500 uppercase tracking-wider">Delayed</p>
+                                <p className="text-xl font-bold text-red-400">{delayed}</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+                {/* Overall progress bar */}
+                <div className="mt-3 h-2 bg-slate-700/50 rounded-full overflow-hidden">
+                    <div
+                        className={`h-full rounded-full transition-all duration-300 ${overallPct === 100 ? "bg-emerald-500" : "bg-blue-500"}`}
+                        style={{ width: `${overallPct}%` }}
+                    />
+                </div>
+            </div>
+
+            {/* Phase table */}
+            <table className="w-full text-sm">
+                <thead>
+                    <tr className="border-b border-slate-700/50">
+                        {["Phase", "Planned Dates", "% Complete", "Actual Start", "Actual Finish", "Status"].map(h => (
+                            <th key={h} className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 ${h === "% Complete" ? "text-center" : "text-left"}`}>{h}</th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {phases.map((phase, idx) => {
+                        const calDur = Math.ceil((phase.manualDays ?? phase.calculatedDays) / daysPerWeek) * 7;
+                        const plannedStart = new Date(programmeStart);
+                        plannedStart.setDate(plannedStart.getDate() + phase.startOffset);
+                        const plannedEnd = new Date(plannedStart);
+                        plannedEnd.setDate(plannedEnd.getDate() + calDur);
+                        const pct = phase.pct_complete ?? 0;
+                        const isDelayed = plannedEnd < today && pct < 100;
+                        const isComplete = pct === 100;
+                        const isInProgress = pct > 0 && pct < 100;
+                        const notStarted = pct === 0;
+
+                        const statusLabel = isComplete ? "Complete" : isDelayed ? "Delayed" : isInProgress ? "In Progress" : "Not Started";
+                        const statusClass = isComplete
+                            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                            : isDelayed
+                                ? "bg-red-500/10 border-red-500/20 text-red-400"
+                                : isInProgress
+                                    ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                                    : "bg-slate-700/30 border-slate-600/30 text-slate-500";
+
+                        const colorDef = ["bg-blue-500","bg-emerald-500","bg-orange-500","bg-purple-500","bg-red-500","bg-teal-500","bg-indigo-500","bg-pink-500","bg-yellow-500","bg-cyan-500"];
+
+                        return (
+                            <tr key={idx} className={`border-b border-slate-700/30 hover:bg-slate-700/10 transition-colors ${idx === phases.length - 1 ? "border-0" : ""}`}>
+                                <td className="px-4 py-3">
+                                    <div className="flex items-center gap-2">
+                                        <div className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${colorDef[idx % colorDef.length]}`} />
+                                        <span className="text-sm font-semibold text-slate-100">{phase.name}</span>
+                                    </div>
+                                </td>
+                                <td className="px-4 py-3">
+                                    <p className="text-xs text-slate-400">
+                                        {plannedStart.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                                        {" → "}
+                                        {plannedEnd.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                                    </p>
+                                    <p className="text-[10px] text-slate-600 mt-0.5">{phase.manualDays ?? phase.calculatedDays}d working</p>
+                                </td>
+                                <td className="px-4 py-3">
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="range"
+                                            min={0}
+                                            max={100}
+                                            step={5}
+                                            value={pct}
+                                            onChange={e => handlePctChange(idx, parseInt(e.target.value))}
+                                            className="w-24 h-1.5 accent-blue-500"
+                                        />
+                                        <span className={`text-xs font-bold w-8 ${isComplete ? "text-emerald-400" : isDelayed ? "text-red-400" : "text-slate-300"}`}>{pct}%</span>
+                                    </div>
+                                </td>
+                                <td className="px-4 py-3">
+                                    <input
+                                        type="date"
+                                        value={phase.actual_start_date ?? ""}
+                                        onChange={e => handleActualDate(idx, "actual_start_date", e.target.value)}
+                                        className="h-7 px-2 text-xs bg-slate-900/50 border border-slate-700 rounded text-slate-300 focus:outline-none focus:border-blue-500/50"
+                                    />
+                                </td>
+                                <td className="px-4 py-3">
+                                    <input
+                                        type="date"
+                                        value={phase.actual_finish_date ?? ""}
+                                        onChange={e => handleActualDate(idx, "actual_finish_date", e.target.value)}
+                                        className="h-7 px-2 text-xs bg-slate-900/50 border border-slate-700 rounded text-slate-300 focus:outline-none focus:border-blue-500/50"
+                                    />
+                                </td>
+                                <td className="px-4 py-3">
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${statusClass}`}>
+                                        {statusLabel}
+                                    </span>
+                                </td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+
+            {/* AI Update section */}
+            <div className="border-t border-slate-700/50 p-5">
+                <ProgrammeAiUpdate projectId={projectId} projectName={project.name} />
+            </div>
         </div>
     );
 }

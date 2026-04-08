@@ -804,7 +804,7 @@ Cross-project resource management — lets contractors see whether they have the
 
 Staff allocation calendar (per person, per project), cross-project Gantt overlay, resource availability calculator (free days vs contracted days), red flag alerts for over-allocation, holiday and absence register (planned leave blocks availability automatically), demand vs supply aggregate view, under-resourcing alerts where allocated days fall short of estimated manhours, subcontractor slot allocation, weekly resource schedule export (PDF/CSV).
 
-### Sprint 47 — In-App CAD / BIM / SketchUp Viewer *(Strategic moat — confirmed by owner, 6 April 2026)*
+### Sprint 51 — In-App CAD / BIM / SketchUp Viewer *(Strategic moat — confirmed by owner, 6 April 2026)*
 Embed a browser-native drawing viewer supporting the main construction file formats, giving contractors
 basic measurement and markup capability inside Constructa without switching to external tools.
 
@@ -875,3 +875,69 @@ Constructa currently solves: 3, 4, 5 (and partially 1 and 2 via Contract Shield 
 Target: UK SME contractors £500k–£10m turnover
 Entry hook: Proposal tool → win work faster with professional proposals
 Key metric: First sent proposal under 10 minutes from signup
+
+---
+
+## Strategic Decisions Log *(8 April 2026)*
+
+### Billing timing — owner decision
+LemonSqueezy billing is intentionally deferred beyond the immediate sprint backlog. Owner is based in UAE and needs to establish a freezone company, business bank account, and LemonSqueezy merchant account before going live with payments. This is infrastructure, not a product decision. Building the full product first is a deliberate choice:
+
+- All functionality will be built and locally tested before any billing gate is applied
+- On the live site, unfinished or unbilled features can be hidden via disabled nav items or feature flags — the codebase already uses this pattern (Archive is currently disabled)
+- Once the full product is complete, a structured testing pass will run through the full Brief → Final Account workflow with real data before any contractor is charged
+- The marketing site will be updated once the full feature set is known — building to completion first means the marketing site gets written once accurately, not revised every sprint
+
+**Overrides:** Perplexity Computer's recommendation to move billing to Sprint 40. Owner's call, rationale accepted.
+
+### Testing strategy — owner decision
+Formal test suite (Playwright, Jest) will be introduced after full feature completion, not sprint-by-sprint. The structured testing approach will be:
+1. Full workflow test: new project → estimate → programme → proposal → live project → billing → P&L → final account → handover → lessons learned — run with real numbers that can be manually verified
+2. Financial logic specifically: contract value, invoice netting, retention, P&L margin — these are the highest-risk outputs
+3. Known bugs resolved before any contractor is given access
+
+**Rationale:** Testing a half-built product generates false signal. Testing the complete integrated product gives cleaner diagnostics.
+
+### Build momentum — owner instruction
+Priority is completing the full remaining sprint backlog at pace. Some rework is acceptable and expected. The bigger vision (full lifecycle, AI-native, differentiated from legacy tools) is the goal. Refactoring and polish come after completion, not during.
+
+---
+
+## Sprint Plan to Completion — Revised (8 April 2026)
+
+Current status: **Sprint 38 complete.** 12 sprints to full product completion (Sprints 39–50), plus 1 strategic moat sprint (51 — CAD/BIM Viewer, longer-horizon).
+
+| Sprint | Module | Notes |
+|--------|--------|-------|
+| **39** | **Project Archive** | Enable Archive nav item; close/freeze projects; searchable archive view; financial outcome preserved; archive → benchmark seed pipeline designed here to avoid Sprint 41 retrofit |
+| **40** | **Contractor Management Accounts** | Cross-project consolidated P&L; cash flow forecast; WIP schedule; overhead absorption; FY/calendar/custom date range; PDF + CSV export |
+| **41** | **CIS Compliance** *(new — not in previous roadmap)* | UK legal obligation for contractors with subbies; subcontractor verification (HMRC status check), 20%/30% deduction calculation, monthly return prep; genuinely differentiating — no competitor tool handles this well |
+| **42** | **Data Foundation & Benchmark Layer** | Pure DB migration; anonymised aggregation tables; Supabase triggers on project archive / invoice paid / variation approved; GDPR consent gate on onboarding |
+| **43** | **Admin Dashboard Phase 2** | Intelligence explorer; benchmark browser; market rate maps by region/trade; percentile positioning; churn prediction; at-risk account scoring; builds on Sprint 21 tabs |
+| **44** | **Xero Integration** | OAuth2; push invoices on send; pull payment status daily; push expenses on cost log; trade section → Xero tracking category mapping; sync log with retry |
+| **45** | **QuickBooks / Sage Integration** | Same OAuth2 pattern; unified sync settings page for all three integrations (Xero/QB/Sage); one active at a time; field mapping UI; sync health indicator |
+| **46** | **LemonSqueezy Billing** *(pending UAE company + bank setup)* | Checkout flow; subscription webhooks; feature gating (Free: 3 proposals watermarked / Pro £49 / Business £99); real revenue data replaces estimated MRR in admin |
+| **47** | **Market Intelligence Product** | B2B data API (authenticated, rate-limited, paid tier); quarterly construction cost index by region/trade; white-label PDF reports; B2B subscriber portal |
+| **48** | **Native Mobile App** | React Native (Expo) or PWA; core on-site workflows: log cost, view P&L, raise variation, check invoice; camera receipt capture; push notifications; offline queue |
+| **49** | **Regional Pricing + Merchant Procurement** | Rate benchmarks with percentile positioning; Travis Perkins / Jewson / Selco live pricing; one-click order basket; delivery tracking auto-logged as costs |
+| **50** | **Resource Planning & Staff Allocation** | Cross-project labour calendar; Gantt overlay; availability calculator; over-allocation alerts; holiday/absence register; weekly schedule export |
+| **51** | **CAD / BIM / SketchUp Viewer** *(strategic moat)* | Browser-native DWG/DXF/IFC/SKP viewer; linear + area measurement; annotation layer; AI element detection; one-click → estimate lines |
+
+### Pre-Sprint 39 housekeeping (no full sprint needed)
+Before Sprint 39 kicks off, the following minor items should be resolved in the opening commit:
+- [ ] Fix plant simple-mode £0 bug in log-cost-sheet.tsx (same pattern as Sprint 16 staff fix — add `rate_mode` + `daily_chargeout_rate` to `PlantResource` interface, branch on `rate_mode === "simple"`)
+- [ ] Remove `drizzle-orm` from package.json (dead dependency — all queries use Supabase JS client)
+- [ ] Check and guard/delete orphaned `/dashboard/data/` and `/dashboard/foundations/` routes
+- [ ] Verify xlsx AGPL licensing position before billing goes live (SheetJS Pro may be required for commercial SaaS)
+
+### What "done" looks like
+Full product is complete when a UK SME contractor can:
+1. Film a site walkthrough → get a structured estimate in under 1 minute
+2. Win the job → proposal to client → digital acceptance
+3. Run the job → billing, variations, change management, programme tracking, communications
+4. Close the job → final account, handover documents, lessons learned
+5. See everything → home ops dashboard, management accounts, resource availability
+6. Connect their accountant → Xero/QB/Sage sync
+7. Stay compliant → CIS returns handled within the platform
+
+That is a product with no direct equivalent in the UK SME construction market.

@@ -30,16 +30,39 @@ export default async function BillingPage({ searchParams }: { searchParams: { pr
         );
     }
 
-    const { data: project } = await supabase.from("projects").select("*").eq("id", projectId).single();
-    const { data: estimates } = await supabase.from("estimates").select("total_cost").eq("project_id", projectId);
-    const originalContractSum = estimates?.reduce((sum, e) => sum + e.total_cost, 0) || 0;
-    const { data: variations } = await supabase.from("variations").select("*").eq("project_id", projectId).eq("status", "Approved");
-    const approvedVariationsTotal = variations?.reduce((sum, v) => sum + Number(v.amount), 0) || 0;
-    const { data: invoices } = await supabase.from("invoices").select("*").eq("project_id", projectId).order('created_at', { ascending: false });
+    const [
+        { data: project },
+        { data: estimates },
+        { data: variations },
+        { data: invoices },
+        { data: milestones },
+    ] = await Promise.all([
+        supabase.from("projects").select("*").eq("id", projectId).single(),
+        supabase.from("estimates").select("id, total_cost, is_active, overhead_pct, risk_pct, profit_pct, discount_pct").eq("project_id", projectId),
+        supabase.from("variations").select("*").eq("project_id", projectId).eq("status", "Approved"),
+        supabase.from("invoices").select("*").eq("project_id", projectId).order("created_at", { ascending: true }),
+        supabase.from("payment_schedule_milestones").select("*").eq("project_id", projectId).order("order_index", { ascending: true }),
+    ]);
+
+    // Contract value: use active estimate with uplifts, else sum all estimates
+    const activeEstimate = (estimates || []).find((e: any) => e.is_active) || (estimates || [])[0];
+    let originalContractSum = 0;
+    if (activeEstimate) {
+        const base = activeEstimate.total_cost || 0;
+        const overhead = base * ((activeEstimate.overhead_pct || 0) / 100);
+        const risk     = (base + overhead) * ((activeEstimate.risk_pct || 0) / 100);
+        const profit   = (base + overhead + risk) * ((activeEstimate.profit_pct || 0) / 100);
+        const gross    = base + overhead + risk + profit;
+        const discount = gross * ((activeEstimate.discount_pct || 0) / 100);
+        originalContractSum = Math.round((gross - discount) * 100) / 100;
+    } else {
+        originalContractSum = (estimates || []).reduce((s: number, e: any) => s + e.total_cost, 0);
+    }
+
+    const approvedVariationsTotal = (variations || []).reduce((s: number, v: any) => s + Number(v.amount), 0);
 
     return (
         <div className="max-w-6xl mx-auto p-8 space-y-6">
-            {/* Hero */}
             <div className="flex items-center gap-4">
                 <div className="h-12 w-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
                     <svg className="h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -47,9 +70,9 @@ export default async function BillingPage({ searchParams }: { searchParams: { pr
                     </svg>
                 </div>
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Billing & Invoicing</h1>
+                    <h1 className="text-2xl font-bold text-white">Billing & Valuations</h1>
                     <p className="text-slate-400 text-sm mt-0.5">
-                        Payment valuations & final account — <span className="text-slate-300">{project?.name}</span>
+                        Applications for payment, retention & aged debt — <span className="text-slate-300">{project?.name}</span>
                     </p>
                 </div>
             </div>
@@ -61,6 +84,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pr
                 approvedVariationsTotal={approvedVariationsTotal}
                 variations={variations || []}
                 initialInvoices={invoices || []}
+                initialMilestones={milestones || []}
             />
         </div>
     );

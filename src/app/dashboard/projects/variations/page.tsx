@@ -52,6 +52,7 @@ export default async function VariationsPage({ searchParams }: { searchParams: {
 
             <ClientVariations
                 projectId={projectId}
+                project={project}
                 initialVariations={variations || []}
             />
         </div>

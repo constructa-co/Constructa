@@ -160,6 +160,58 @@ export interface PlausibleMetrics {
     topSources: Array<{ source: string; visitors: number }>;
 }
 
+// ─── Benchmarks ───────────────────────────────────────────────────────────────
+export interface BenchmarkRow {
+    project_type: string | null;
+    contract_value_band: string | null;
+    count: number;
+    avg_gross_margin_pct: number | null;
+    avg_variation_rate_pct: number | null;
+    avg_programme_delay_days: number | null;
+    avg_subcontract_cost_pct: number | null;
+    pct_delivered_on_time: number | null;
+}
+
+export interface BenchmarkMetrics {
+    totalContributions: number;
+    consentedContractors: number;
+    rows: BenchmarkRow[];           // grouped by type + band
+    avgMarginAll: number | null;
+    avgDelayAll: number | null;
+}
+
+// ─── Intelligence ─────────────────────────────────────────────────────────────
+export interface AtRiskDetail {
+    id: string;
+    email: string | null;
+    company_name: string | null;
+    created_at: string;
+    last_active: string | null;
+    days_since_signup: number;
+    project_count: number;
+    risk_reason: string;
+    risk_score: number;   // 1–3: 1=low, 2=medium, 3=high
+}
+
+export interface FeatureUsageRow {
+    feature: string;
+    icon: string;
+    users: number;
+    pct: number;
+    trend: "up" | "flat" | "down";
+}
+
+export interface IntelligenceMetrics {
+    atRisk: AtRiskDetail[];
+    featureHeatmap: FeatureUsageRow[];
+    platformHealth: {
+        activationRate: number;       // % who created ≥1 project
+        proposalConversionRate: number;
+        avgTimeToFirstProject: number; // days
+        powerUsers: number;           // ≥3 projects in last 30d
+    };
+}
+
 // ─── Full admin data ──────────────────────────────────────────────────────────
 export interface AdminData {
     // Core subscriber list
@@ -208,4 +260,8 @@ export interface AdminData {
     ltvCacRatio: number | null;
     cacPaybackMonths: number | null;
     burnMultiple: number | null;
+
+    // Sprint 43
+    benchmarks: BenchmarkMetrics;
+    intelligence: IntelligenceMetrics;
 }

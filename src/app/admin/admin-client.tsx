@@ -12,18 +12,22 @@ import GeographyTab from "./tabs/geography-tab";
 import CostsTab from "./tabs/costs-tab";
 import WebsiteTab from "./tabs/website-tab";
 import ReportsTab from "./tabs/reports-tab";
+import BenchmarksTab from "./tabs/benchmarks-tab";
+import IntelligenceTab from "./tabs/intelligence-tab";
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 const TABS = [
-    { id: "overview",   label: "Overview",      icon: "⚡" },
-    { id: "revenue",    label: "Revenue & P&L", icon: "💰" },
-    { id: "growth",     label: "Growth",        icon: "📈" },
-    { id: "retention",  label: "Retention",     icon: "🔄" },
-    { id: "engagement", label: "Engagement",    icon: "🛠" },
-    { id: "geography",  label: "Geography",     icon: "🌍" },
-    { id: "costs",      label: "Costs",         icon: "💸" },
-    { id: "website",    label: "Website",       icon: "🌐" },
-    { id: "reports",    label: "Reports",       icon: "📄" },
+    { id: "overview",      label: "Overview",      icon: "⚡" },
+    { id: "revenue",       label: "Revenue & P&L", icon: "💰" },
+    { id: "growth",        label: "Growth",        icon: "📈" },
+    { id: "retention",     label: "Retention",     icon: "🔄" },
+    { id: "engagement",    label: "Engagement",    icon: "🛠" },
+    { id: "geography",     label: "Geography",     icon: "🌍" },
+    { id: "costs",         label: "Costs",         icon: "💸" },
+    { id: "website",       label: "Website",       icon: "🌐" },
+    { id: "benchmarks",    label: "Benchmarks",    icon: "📊" },
+    { id: "intelligence",  label: "Intelligence",  icon: "🧠" },
+    { id: "reports",       label: "Reports",       icon: "📄" },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
@@ -82,15 +86,17 @@ export default function AdminClient({ data }: { data: AdminData }) {
 
             {/* ── Tab content ── */}
             <div className="p-4 md:p-6">
-                {activeTab === "overview"   && <OverviewTab   data={data} />}
-                {activeTab === "revenue"    && <RevenueTab    data={data} />}
-                {activeTab === "growth"     && <GrowthTab     data={data} />}
-                {activeTab === "retention"  && <RetentionTab  data={data} />}
-                {activeTab === "engagement" && <EngagementTab data={data} />}
-                {activeTab === "geography"  && <GeographyTab  data={data} />}
-                {activeTab === "costs"      && <CostsTab      data={data} />}
-                {activeTab === "website"    && <WebsiteTab    data={data} />}
-                {activeTab === "reports"    && <ReportsTab    data={data} />}
+                {activeTab === "overview"     && <OverviewTab     data={data} />}
+                {activeTab === "revenue"      && <RevenueTab      data={data} />}
+                {activeTab === "growth"       && <GrowthTab       data={data} />}
+                {activeTab === "retention"    && <RetentionTab    data={data} />}
+                {activeTab === "engagement"   && <EngagementTab   data={data} />}
+                {activeTab === "geography"    && <GeographyTab    data={data} />}
+                {activeTab === "costs"        && <CostsTab        data={data} />}
+                {activeTab === "website"      && <WebsiteTab      data={data} />}
+                {activeTab === "benchmarks"   && <BenchmarksTab   data={data} />}
+                {activeTab === "intelligence" && <IntelligenceTab data={data} />}
+                {activeTab === "reports"      && <ReportsTab      data={data} />}
             </div>
         </div>
     );

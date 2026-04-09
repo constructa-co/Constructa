@@ -15,6 +15,9 @@ import {
     GeoRow,
     OpenAIUsageDay,
     PlausibleMetrics,
+    BenchmarkRow,
+    AtRiskDetail,
+    FeatureUsageRow,
 } from "./types";
 
 // ─── Helper functions ─────────────────────────────────────────────────────────
@@ -271,6 +274,26 @@ export default async function AdminPage() {
     const safeProjects = projects ?? [];
     const safeEstimates = estimates ?? [];
     const safeAdminCosts = adminCosts ?? [];
+
+    // ── Sprint 43: fetch benchmark + consent data ────────────────────────────
+    const [
+        { data: rawBenchmarks },
+        { data: consentProfiles },
+        { data: liveProjects },
+        { data: invoices },
+        { data: variations },
+        { data: costRows },
+    ] = await Promise.all([
+        supabase.from("project_benchmarks").select("*"),
+        supabase.from("profiles").select("id, data_consent").eq("data_consent", true),
+        supabase.from("projects").select("id, user_id, created_at, status, is_archived").eq("is_archived", false),
+        supabase.from("invoices").select("id, user_id, status, created_at"),
+        supabase.from("variations").select("id, user_id, status, created_at"),
+        supabase.from("project_expenses").select("id, user_id, cost_type, created_at"),
+    ]);
+
+    const safeBenchmarks = rawBenchmarks ?? [];
+    const consentedCount = consentProfiles?.length ?? 0;
 
     const now = new Date();
 
@@ -954,6 +977,143 @@ export default async function AdminPage() {
         ltvCacRatio: null,
         cacPaybackMonths: null,
         burnMultiple: null,
+
+        // ── Sprint 43: Benchmarks ──────────────────────────────────────────────
+        benchmarks: (() => {
+            // Group by project_type + contract_value_band
+            const bandOrder = ["0-50k", "50k-100k", "100k-250k", "250k-500k", "500k+"];
+            type BKey = string;
+            const grouped = new Map<BKey, typeof safeBenchmarks>();
+            for (const r of safeBenchmarks) {
+                const key = `${r.project_type ?? "Unknown"}||${r.contract_value_band ?? "Unknown"}`;
+                if (!grouped.has(key)) grouped.set(key, []);
+                grouped.get(key)!.push(r);
+            }
+            const rows: BenchmarkRow[] = Array.from(grouped.entries())
+                .map(([key, items]) => {
+                    const [project_type, contract_value_band] = key.split("||");
+                    const avg = (field: keyof typeof items[0]) => {
+                        const vals = items.map(i => i[field] as number | null).filter(v => v != null) as number[];
+                        return vals.length ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10 : null;
+                    };
+                    const onTime = items.filter(i => (i.programme_delay_days ?? 0) <= 0).length;
+                    return {
+                        project_type: project_type === "Unknown" ? null : project_type,
+                        contract_value_band: contract_value_band === "Unknown" ? null : contract_value_band,
+                        count: items.length,
+                        avg_gross_margin_pct: avg("gross_margin_pct"),
+                        avg_variation_rate_pct: avg("variation_rate_pct"),
+                        avg_programme_delay_days: avg("programme_delay_days"),
+                        avg_subcontract_cost_pct: avg("subcontract_cost_pct"),
+                        pct_delivered_on_time: items.length > 0 ? Math.round((onTime / items.length) * 100) : null,
+                    };
+                })
+                .sort((a, b) => bandOrder.indexOf(a.contract_value_band ?? "") - bandOrder.indexOf(b.contract_value_band ?? ""));
+
+            const avgMarginAll = safeBenchmarks.length
+                ? Math.round(safeBenchmarks.reduce((s, r) => s + (r.gross_margin_pct ?? 0), 0) / safeBenchmarks.length * 10) / 10
+                : null;
+            const avgDelayAll = safeBenchmarks.length
+                ? Math.round(safeBenchmarks.reduce((s, r) => s + (r.programme_delay_days ?? 0), 0) / safeBenchmarks.length * 10) / 10
+                : null;
+
+            return {
+                totalContributions: safeBenchmarks.length,
+                consentedContractors: consentedCount,
+                rows,
+                avgMarginAll,
+                avgDelayAll,
+            };
+        })(),
+
+        // ── Sprint 43: Intelligence ────────────────────────────────────────────
+        intelligence: (() => {
+            const liveProjectsByUser = new Map<string, number>();
+            for (const p of (liveProjects ?? [])) {
+                liveProjectsByUser.set(p.user_id, (liveProjectsByUser.get(p.user_id) ?? 0) + 1);
+            }
+
+            // At-risk: subscribers who signed up > 7 days ago but are showing warning signs
+            const atRisk: AtRiskDetail[] = [];
+            for (const sub of authUsers) {
+                const daysSince = daysDiff(new Date(sub.created_at), now);
+                if (daysSince < 3) continue;
+                const projectCount = liveProjectsByUser.get(sub.id) ?? 0;
+                const lastActive = sub.last_sign_in_at;
+                const daysSinceActive = lastActive ? daysDiff(new Date(lastActive), now) : daysSince;
+
+                const reasons: string[] = [];
+                let score = 0;
+
+                if (daysSince > 7 && projectCount === 0) { reasons.push("No projects started"); score += 3; }
+                if (daysSince > 30 && daysSinceActive > 14) { reasons.push("Inactive 14d+"); score += 2; }
+                if (daysSince > 14 && projectCount === 0) { reasons.push("No activity in 14 days"); score += 1; }
+                if (daysSinceActive > 30) { reasons.push("Inactive 30d+"); score += 2; }
+
+                if (score > 0) {
+                    const profile = safeProfiles.find(p => p.id === sub.id);
+                    atRisk.push({
+                        id: sub.id,
+                        email: sub.email ?? null,
+                        company_name: profile?.company_name ?? null,
+                        created_at: sub.created_at,
+                        last_active: lastActive ?? null,
+                        days_since_signup: daysSince,
+                        project_count: projectCount,
+                        risk_reason: reasons[0] ?? "Inactive",
+                        risk_score: Math.min(3, score) as 1 | 2 | 3,
+                    });
+                }
+            }
+            atRisk.sort((a, b) => b.risk_score - a.risk_score);
+
+            // Feature heatmap
+            const totalUsers = authUsers.length;
+            const usersWithInvoice = new Set((invoices ?? []).map(i => i.user_id)).size;
+            const usersWithVariation = new Set((variations ?? []).map(v => v.user_id)).size;
+            const usersWithExpense = new Set((costRows ?? []).map(c => c.user_id)).size;
+            const usersWithSubcontract = new Set((costRows ?? []).filter(c => c.cost_type === "subcontract").map(c => c.user_id)).size;
+
+            const featureHeatmap: FeatureUsageRow[] = [
+                { feature: "Projects", icon: "🏗", users: liveProjectsByUser.size, pct: totalUsers > 0 ? Math.round(liveProjectsByUser.size / totalUsers * 100) : 0, trend: "up" as const },
+                { feature: "Cost Tracking", icon: "💰", users: usersWithExpense, pct: totalUsers > 0 ? Math.round(usersWithExpense / totalUsers * 100) : 0, trend: "up" as const },
+                { feature: "Invoicing", icon: "📄", users: usersWithInvoice, pct: totalUsers > 0 ? Math.round(usersWithInvoice / totalUsers * 100) : 0, trend: "flat" as const },
+                { feature: "Variations", icon: "🔄", users: usersWithVariation, pct: totalUsers > 0 ? Math.round(usersWithVariation / totalUsers * 100) : 0, trend: "flat" as const },
+                { feature: "Subcontracting", icon: "🤝", users: usersWithSubcontract, pct: totalUsers > 0 ? Math.round(usersWithSubcontract / totalUsers * 100) : 0, trend: "up" as const },
+                { feature: "Proposals", icon: "📝", users: totalProposalsSent, pct: totalUsers > 0 ? Math.round(Math.min(totalProposalsSent, totalUsers) / totalUsers * 100) : 0, trend: "up" as const },
+            ].sort((a, b) => b.pct - a.pct);
+
+            // Power users: ≥3 active projects
+            const powerUsers = Array.from(liveProjectsByUser.values()).filter(c => c >= 3).length;
+            const usersWithAnyProject = liveProjectsByUser.size;
+            const activationRate = totalUsers > 0 ? Math.round(usersWithAnyProject / totalUsers * 100) : 0;
+
+            // Avg time to first project
+            const firstProjectTimes: number[] = [];
+            for (const p of (liveProjects ?? [])) {
+                const authUser = authUsers.find(u => u.id === p.user_id);
+                if (authUser) {
+                    const days = daysDiff(new Date(authUser.created_at), new Date(p.created_at));
+                    if (days >= 0) firstProjectTimes.push(days);
+                }
+            }
+            const avgTimeToFirstProject = firstProjectTimes.length
+                ? Math.round(firstProjectTimes.reduce((a, b) => a + b, 0) / firstProjectTimes.length)
+                : 0;
+
+            return {
+                atRisk,
+                featureHeatmap,
+                platformHealth: {
+                    activationRate,
+                    proposalConversionRate: totalProposalsSent > 0
+                        ? Math.round(totalProposalsAccepted / totalProposalsSent * 100)
+                        : 0,
+                    avgTimeToFirstProject,
+                    powerUsers,
+                },
+            };
+        })(),
     };
 
     return <AdminClient data={data} />;

@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 9 April 2026 (end of Sprint 48 — Market Intelligence Product: API keys, benchmarks API, intelligence dashboard)
+**Last updated:** 9 April 2026 (end of Sprint 49 — PWA: installable, offline-capable, on-site hub)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -936,7 +936,8 @@ Current status: **Sprint 40 complete.** 11 sprints to full product completion (S
 | *(skip)* | **QuickBooks / Sage** *(deferred)* | External dependency — build when needed |
 | *(skip)* | **LemonSqueezy Billing** *(deferred — UAE company setup)* | Pending freezone company + bank account |
 | ✅ **48** | **Market Intelligence Product** *(COMPLETE — 9 Apr 2026)* | `api_keys` + `api_usage_log` tables; SHA-256 hashed keys (never stored plaintext); `/api/v1/benchmarks` GET endpoint with Bearer auth, rate limiting, aggregation, CORS; API key management UI (create, copy-once, revoke); Business Intelligence contractor dashboard (vs industry benchmarks); sidebar links added |
-| **49** | **Native Mobile App** ← NEXT | React Native (Expo) or PWA; core on-site workflows: log cost, view P&L, raise variation, check invoice; camera receipt capture; push notifications; offline queue |
+| ✅ **49** | **Progressive Web App** *(COMPLETE — 9 Apr 2026)* | `manifest.json` (installable, shortcuts); `public/sw.js` (offline fallback + nav caching); `/dashboard/mobile` on-site hub (project selector, 4 quick-action tiles, recent costs + variations); `capture="environment"` on receipt upload for camera; install banner with dismiss; theme-color + apple-touch-icon meta |
+| **50** | **Regional Pricing + Merchant Procurement** ← NEXT | Rate benchmarks with percentile positioning; Travis Perkins / Jewson / Selco live pricing; one-click order basket; delivery tracking auto-logged as costs |
 | **50** | **Regional Pricing + Merchant Procurement** | Rate benchmarks with percentile positioning; Travis Perkins / Jewson / Selco live pricing; one-click order basket; delivery tracking auto-logged as costs |
 | **51** | **Resource Planning & Staff Allocation** | Cross-project labour calendar; Gantt overlay; availability calculator; over-allocation alerts; holiday/absence register; weekly schedule export |
 | **52** | **CAD / BIM / SketchUp Viewer** *(strategic moat)* | Browser-native DWG/DXF/IFC/SKP viewer; linear + area measurement; annotation layer; AI element detection; one-click → estimate lines |

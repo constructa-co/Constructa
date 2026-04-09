@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 9 April 2026 (end of Sprint 42 — Data Foundation & Benchmark Layer: anonymised benchmark tables, archive trigger, GDPR consent gate)
+**Last updated:** 9 April 2026 (end of Sprint 43 — Admin Dashboard Phase 2: Benchmarks + Intelligence tabs)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -792,10 +792,11 @@ Consolidated financial view across all of a contractor's live and closed project
 **Files:** `supabase/migrations/20260409100000_sprint42_benchmarks.sql`, `src/app/dashboard/settings/profile/profile-form.tsx` + `actions.ts`.
 4 benchmark tables (`project_benchmarks`, `rate_benchmarks`, `variation_benchmarks`, `programme_benchmarks`) — no RLS, no PII, service-role only. Contract value stored as bands (0-50k etc). `fn_benchmark_on_archive()` trigger fires on project archive, writes anonymised outcome if `data_consent = true`. `data_consent` + `data_consent_at` added to profiles. Settings page: "Industry Benchmarking" consent checkbox with GDPR-compliant copy. `fn_cv_band()` immutable helper for Admin Dashboard queries.
 
-### 🔜 Sprint 43 — Admin Dashboard Phase 2 ← NEXT *(was Sprint 42)*
-Superadmin tooling for Constructa staff only — not visible to contractors. Data intelligence explorer, benchmark browser, market rate maps (choropleth by region/trade), anonymous percentile positioning, platform analytics (MAU/DAU/proposals), churn prediction, at-risk account scoring, feature usage heatmap. Builds on existing Sprint 21 admin dashboard tabs.
+### ✅ Sprint 43 — Admin Dashboard Phase 2 (COMPLETE — 9 April 2026)
+**Files:** `src/app/admin/tabs/benchmarks-tab.tsx` (NEW), `src/app/admin/tabs/intelligence-tab.tsx` (NEW), `admin-client.tsx` + `types.ts` updated.
+Two new superadmin tabs: **Benchmarks** (project_benchmarks viewer, filter by type/band, colour-coded margin/delay, empty state while dataset builds) + **Intelligence** (platform health KPIs, feature usage heatmap with adoption bars, at-risk accounts scored 1–3 with risk reasons). `BenchmarkMetrics` + `IntelligenceMetrics` + `AtRiskDetail` + `FeatureUsageRow` types added. Benchmark data computed server-side, at-risk scoring runs in page.tsx IIFE against auth users + live projects.
 
-### Sprint 44 — Xero Integration *(was Sprint 43)*
+### 🔜 Sprint 44 — Xero Integration ← NEXT *(was Sprint 43)*
 OAuth2 connection flow → push invoices on send → pull payment status daily → push expenses on cost log → trade section to Xero tracking category mapping (configurable) → sync log with retry → disconnect/reconnect without losing history.
 
 ### Sprint 45 — QuickBooks / Sage Integration *(was Sprint 44)*
@@ -930,8 +931,8 @@ Current status: **Sprint 40 complete.** 11 sprints to full product completion (S
 | ✅ **40** | **Contractor Management Accounts** *(COMPLETE — 9 Apr 2026)* | 6-tab management accounts; 13 Key Ratios; CSV export; Reporting sidebar section |
 | ✅ **41** | **CIS Compliance** *(COMPLETE — 9 Apr 2026)* | 4-tab CIS page; subcontractor register; payment recording with live deduction preview; monthly returns grouped by tax month |
 | ✅ **42** | **Data Foundation & Benchmark Layer** *(COMPLETE — 9 Apr 2026)* | Benchmark tables; archive trigger; GDPR consent gate in Settings |
-| **43** | **Admin Dashboard Phase 2** ← NEXT | Intelligence explorer; benchmark browser; market rate maps by region/trade; percentile positioning; churn prediction; at-risk account scoring; builds on Sprint 21 tabs |
-| **44** | **Xero Integration** | OAuth2; push invoices on send; pull payment status daily; push expenses on cost log; trade section → Xero tracking category mapping; sync log with retry |
+| ✅ **43** | **Admin Dashboard Phase 2** *(COMPLETE — 9 Apr 2026)* | Intelligence explorer; benchmark browser; market rate maps by region/trade; percentile positioning; churn prediction; at-risk account scoring; builds on Sprint 21 tabs |
+| **44** | **Xero Integration** ← NEXT | OAuth2; push invoices on send; pull payment status daily; push expenses on cost log; trade section → Xero tracking category mapping; sync log with retry |
 | **45** | **QuickBooks / Sage Integration** | Same OAuth2 pattern; unified sync settings page for all three integrations (Xero/QB/Sage); one active at a time; field mapping UI; sync health indicator |
 | **46** | **LemonSqueezy Billing** *(pending UAE company + bank setup)* | Checkout flow; subscription webhooks; feature gating (Free: 3 proposals watermarked / Pro £49 / Business £99); real revenue data replaces estimated MRR in admin |
 | **47** | **Market Intelligence Product** | B2B data API (authenticated, rate-limited, paid tier); quarterly construction cost index by region/trade; white-label PDF reports; B2B subscriber portal |

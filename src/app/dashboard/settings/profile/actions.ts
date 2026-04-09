@@ -37,6 +37,8 @@ export async function updateProfileAction(formData: FormData) {
             const raw = formData.get("preferred_trades") as string;
             try { return raw ? JSON.parse(raw) : []; } catch { return []; }
         })(),
+        data_consent: formData.get("data_consent") === "true",
+        data_consent_at: formData.get("data_consent") === "true" ? new Date().toISOString() : null,
     };
 
     // Case studies — stored as JSONB

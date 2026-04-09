@@ -43,6 +43,7 @@ interface Profile {
     md_name?: string | null;
     md_message?: string | null;
     financial_year_start_month?: number | null;
+    data_consent?: boolean | null;
 }
 
 const THEMES = [
@@ -776,6 +777,32 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
                         placeholder="Thank you for considering us for this project. We pride ourselves on delivering quality work on time and within budget..."
                     />
                 </div>
+            </div>
+
+            {/* ── Data Consent ──────────────────────────────────────────────── */}
+            <div className="rounded-xl border border-slate-700 bg-slate-900 p-6 space-y-3">
+                <h2 className="text-base font-semibold text-white">Industry Benchmarking</h2>
+                <p className="text-sm text-slate-400">
+                    Help improve Constructa&apos;s industry benchmarks by contributing anonymised data from your closed projects.
+                    No company names, client names, or contact details are ever shared. Only aggregated figures
+                    (margin %, project type, contract value band, programme duration) are used.
+                </p>
+                <label className="flex items-start gap-3 cursor-pointer group">
+                    <input
+                        type="checkbox"
+                        name="data_consent"
+                        value="true"
+                        defaultChecked={profile?.data_consent ?? false}
+                        className="mt-0.5 w-4 h-4 rounded accent-blue-600"
+                    />
+                    <span className="text-sm text-slate-300 group-hover:text-white transition-colors">
+                        I consent to contributing anonymised benchmark data from my archived projects
+                    </span>
+                </label>
+                <p className="text-xs text-slate-500">
+                    You can withdraw consent at any time by unchecking this box. Previously contributed data
+                    cannot be retroactively removed as it is fully anonymised with no link back to your account.
+                </p>
             </div>
 
             <button

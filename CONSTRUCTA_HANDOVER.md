@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 9 April 2026 (end of Sprint 49 — PWA: installable, offline-capable, on-site hub)
+**Last updated:** 9 April 2026 (end of Sprint 50 — Material Rates & Procurement)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -817,8 +817,11 @@ OAuth2 connect/disconnect flow, auto token refresh (5-min expiry buffer), push A
 ### ✅ Sprint 49 — Progressive Web App *(COMPLETE — 9 April 2026)*
 `manifest.json` (installable, shortcuts); `public/sw.js` (offline fallback + nav caching); `/dashboard/mobile` on-site hub (project selector, 4 quick-action tiles, recent feed); `capture="environment"` on receipt upload; install banner; theme-color + apple-touch-icon; SW registered in root layout.
 
-### 🔜 Sprint 50 — Material Rates & Procurement ← NEXT
-Indicative UK material prices seeded by region and trade. `/dashboard/materials` comparison page — filter by region/trade, see price ranges, add items to a basket, one-click prefill into P&L cost log. `material_prices` table in Supabase. Realistic prices drawn from published UK data (BCIS/Barbour ABI equivalents). Live supplier API integrations (Travis Perkins / Jewson / Selco) deferred until formal API agreements in place.
+### ✅ Sprint 50 — Material Rates & Procurement *(COMPLETE — 9 April 2026)*
+`material_prices` table (RLS: authenticated read). 90 indicative UK trade prices seeded across 10 categories (Groundworks, Brickwork, Roofing, Carpentry, Plastering, Plumbing, Electrical, External Works, Flooring, Windows & Doors, Insulation), with low/mid/high price ranges, regional variants, and source dates. `/dashboard/materials` page: filter by trade + region + search, price range visualisation, expandable row detail. Basket panel with qty controls, running total, "Log all to Job P&L" → passes `basketItems` param to pre-populate cost log. Sidebar: Material Rates under Reporting.
+
+### 🔜 Sprint 51 — Resource Planning & Staff Allocation ← NEXT
+Cross-project resource management — labour calendar, availability calculator, over-allocation alerts, holiday/absence register, weekly schedule export.
 
 ### Sprint 51 — Resource Planning & Staff Allocation *(was Sprint 50)*
 Cross-project resource management — lets contractors see whether they have the people available to deliver their pipeline. Solves over-committing labour across overlapping projects and surfaces conflicts before they become on-site crises.

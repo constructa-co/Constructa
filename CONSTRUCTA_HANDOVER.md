@@ -367,47 +367,53 @@ Cross-project dashboard:
 
 ---
 
-## Sidebar Navigation (current state)
+## Sidebar Navigation (current state — Sprint 49)
 
 ```
-COMPANY PROFILE
-  Profile         /dashboard/settings/profile
-  Case Studies    /dashboard/settings/case-studies
-  Setup Wizard    /onboarding?force=true
-  Resources
-    Staff         /dashboard/resources/staff
-    Plant         /dashboard/resources/plant
+OVERVIEW (always visible)
+  Overview          /dashboard/home
+  On-site Hub       /dashboard/mobile          ← Sprint 49 (PWA quick-action hub)
 
-WORK WINNING
-  Dashboard       /dashboard  (Kanban: Lead/Estimating/Proposal Sent/Active/Completed/Lost)
-  New Project     /dashboard/projects/new
+COMPANY PROFILE (accordion)
+  Profile           /dashboard/settings/profile
+  Case Studies      /dashboard/settings/case-studies
+  Integrations      /dashboard/settings/integrations  ← Sprint 44 (Xero)
+  API Keys          /dashboard/settings/api-keys      ← Sprint 48
+  Labour Rates      /dashboard/resources/staff
+  Plant Rates       /dashboard/resources/plant
+  Cost Library      /dashboard/library
+  Setup Wizard      /onboarding?force=true
 
-PRE-CONSTRUCTION  (accordion, auto-expands on project select)
-  Brief           /dashboard/projects/brief?projectId=X
-  Estimating      /dashboard/projects/costs?projectId=X
-  Drawings        /dashboard/projects/drawings?projectId=X  ← Sprint 25
-  Programme       /dashboard/projects/schedule?projectId=X
-  Contracts       /dashboard/projects/contracts?projectId=X
-  Proposal        /dashboard/projects/proposal?projectId=X
+WORK WINNING (accordion)
+  Pipeline          /dashboard  (Kanban: Lead/Estimating/Proposal Sent/Active/Completed/Lost)
+  New Project       /dashboard/projects/new
 
-Project navbar tabs: Brief / Estimating / Drawings / Programme / Contracts / Proposal
-  ── divider ──
-  Cost Library    /dashboard/library
+PRE-CONSTRUCTION (accordion, auto-expands on project select)
+  Briefs            /dashboard/projects/brief?projectId=X
+  Estimates         /dashboard/projects/costs?projectId=X
+  Programmes        /dashboard/projects/schedule?projectId=X
+  Contracts         /dashboard/projects/contracts?projectId=X
+  Proposals         /dashboard/projects/proposal?projectId=X
 
-LIVE PROJECTS
-  Project Overview    /dashboard/projects/overview?projectId=X   ← Sprint 27
-  Billing & Invoicing /dashboard/projects/billing?projectId=X    ← Sprint 29
-  Variations          /dashboard/projects/variations?projectId=X ← Sprint 30
+LIVE PROJECTS (accordion)
+  Project Overview    /dashboard/projects/overview?projectId=X
+  Billing & Invoicing /dashboard/projects/billing?projectId=X
+  Variations          /dashboard/projects/variations?projectId=X
   Job P&L             /dashboard/projects/p-and-l?projectId=X
-  Change Management   /dashboard/projects/change-management?projectId=X  ← Sprint 34
-  Programme           /dashboard/projects/programme?projectId=X  ← Sprint 37 (as-built)
-  Communications      /dashboard/projects/communications?projectId=X     ← Sprint 32
+  Change Management   /dashboard/projects/change-management?projectId=X
+  Programme           /dashboard/projects/programme?projectId=X
+  Communications      /dashboard/projects/communications?projectId=X
 
-CLOSED PROJECTS
-  Archive             (disabled — Sprint 39 pending)
-  Final Accounts      /dashboard/projects/final-account?projectId=X      ← Sprint 33
-  Handover Documents  /dashboard/projects/handover-documents?projectId=X ← Sprint 35
-  Lessons Learned     /dashboard/projects/lessons-learned?projectId=X    ← Sprint 36
+CLOSED PROJECTS (accordion)
+  Archive             /dashboard/projects/archive
+  Final Accounts      /dashboard/projects/final-account?projectId=X
+  Handover Documents  /dashboard/projects/handover-documents?projectId=X
+  Lessons Learned     /dashboard/projects/lessons-learned?projectId=X
+
+REPORTING (always visible, no accordion)
+  Management Accounts  /dashboard/management-accounts  ← Sprint 40
+  CIS Compliance       /dashboard/cis                  ← Sprint 41
+  Business Intelligence /dashboard/intelligence        ← Sprint 48
 ```
 
 Sidebar state is persisted in `localStorage`. Active project is stored in `localStorage` and auto-appended to all module links. True accordion behaviour: opening any section closes all others.
@@ -796,26 +802,23 @@ Consolidated financial view across all of a contractor's live and closed project
 **Files:** `src/app/admin/tabs/benchmarks-tab.tsx` (NEW), `src/app/admin/tabs/intelligence-tab.tsx` (NEW), `admin-client.tsx` + `types.ts` updated.
 Two new superadmin tabs: **Benchmarks** (project_benchmarks viewer, filter by type/band, colour-coded margin/delay, empty state while dataset builds) + **Intelligence** (platform health KPIs, feature usage heatmap with adoption bars, at-risk accounts scored 1–3 with risk reasons). `BenchmarkMetrics` + `IntelligenceMetrics` + `AtRiskDetail` + `FeatureUsageRow` types added. Benchmark data computed server-side, at-risk scoring runs in page.tsx IIFE against auth users + live projects.
 
-### 🔜 Sprint 44 — Xero Integration ← NEXT *(was Sprint 43)*
-OAuth2 connection flow → push invoices on send → pull payment status daily → push expenses on cost log → trade section to Xero tracking category mapping (configurable) → sync log with retry → disconnect/reconnect without losing history.
+### ✅ Sprint 44 — Xero Integration *(COMPLETE — 9 April 2026)*
+OAuth2 connect/disconnect flow, auto token refresh (5-min expiry buffer), push ACCREC invoices to Xero, pull PAID status back to Constructa, sync log UI with history table. Env vars (XERO_CLIENT_ID, XERO_CLIENT_SECRET, XERO_REDIRECT_URI) stored in Vercel — activate once developer account is confirmed.
 
-### Sprint 45 — QuickBooks / Sage Integration *(was Sprint 44)*
-Same OAuth2 push/pull pattern extended to QuickBooks Online and Sage Business Cloud — the two next most common accounting packages for UK SME contractors. Single unified sync settings page covers all three integrations (Xero / QuickBooks / Sage), one active at a time, with field mapping UI per platform and a sync health indicator (last synced, error count, items pending).
+### Sprint 45 — QuickBooks / Sage Integration *(deferred — external dependency)*
 
-### Sprint 46 — Accounting Phase 2: Reconciliation *(was Sprint 45)*
-Bank feed import (CSV or Plaid open banking), transaction parser, auto-match bank transactions to Constructa invoices by amount + reference, manual match for unmatched items, reconciliation dashboard, VAT return preparation grouped by VAT period, MTD-compatible CSV export for HMRC Making Tax Digital, full audit trail of every match/unmatch.
+### Sprint 46 — Accounting Reconciliation *(deferred)*
 
-### Sprint 47 — LemonSqueezy Billing Integration *(deferred from Sprint 24; was Sprint 46)*
-OAuth subscription management: checkout flow, webhooks for subscription events, subscription status gating (restrict or show upgrade prompt on feature access). Admin dashboard shows real revenue data replacing estimated MRR. `PLAN_PRICE_GBP` constant updated once pricing confirmed.
+### Sprint 47 — LemonSqueezy Billing *(deferred — UAE company setup pending)*
 
-### Sprint 48 — Market Intelligence Product *(was Sprint 47)*
-Constructa's benchmark data as a sellable B2B data product for QS firms, developers, lenders and insurers. REST data API (authenticated, rate-limited, paid tier), quarterly construction cost index by region/trade, B2B subscriber portal, tiered subscription pricing, white-label PDF report generator ("East Midlands Construction Cost Report Q2 2026"), data consent audit confirming all benchmark data passes through the Sprint 42 consent gate.
+### ✅ Sprint 48 — Market Intelligence Product *(COMPLETE — 9 April 2026)*
+`api_keys` + `api_usage_log` tables; SHA-256 hashed keys; `/api/v1/benchmarks` GET endpoint (Bearer auth, rate limit, aggregation, CORS); API key management UI (create/copy-once/revoke); Business Intelligence contractor dashboard (vs benchmarks); `increment_api_key_requests` RPC; sidebar links.
 
-### Sprint 49 — Native Mobile App *(was Sprint 48)*
-React Native (Expo) or PWA — technology decision first. Core on-site workflows: log cost (all 5 types), view project P&L, raise variation, check invoice status. Camera receipt capture (photo → Supabase Storage → cost entry). Push notifications for overdue payments and variation decisions. Offline mode with local queue (SQLite). Biometric auth. App Store and Google Play submission.
+### ✅ Sprint 49 — Progressive Web App *(COMPLETE — 9 April 2026)*
+`manifest.json` (installable, shortcuts); `public/sw.js` (offline fallback + nav caching); `/dashboard/mobile` on-site hub (project selector, 4 quick-action tiles, recent feed); `capture="environment"` on receipt upload; install banner; theme-color + apple-touch-icon; SW registered in root layout.
 
-### Sprint 50 — Regional Pricing Intelligence + Merchant Procurement Layer *(was Sprint 49)*
-Regional rate benchmarks surfaced to contractors with percentile positioning and rate adjustment suggestions. Travis Perkins, Jewson and Selco integrations for live materials pricing linked to estimate lines — one-click order basket with pre-filled quantities, Constructa group pricing, delivery tracking auto-logged as cost entries, merchant analytics and referral fee model for admin.
+### 🔜 Sprint 50 — Material Rates & Procurement ← NEXT
+Indicative UK material prices seeded by region and trade. `/dashboard/materials` comparison page — filter by region/trade, see price ranges, add items to a basket, one-click prefill into P&L cost log. `material_prices` table in Supabase. Realistic prices drawn from published UK data (BCIS/Barbour ABI equivalents). Live supplier API integrations (Travis Perkins / Jewson / Selco) deferred until formal API agreements in place.
 
 ### Sprint 51 — Resource Planning & Staff Allocation *(was Sprint 50)*
 Cross-project resource management — lets contractors see whether they have the people available to deliver their pipeline. Solves over-committing labour across overlapping projects and surfaces conflicts before they become on-site crises.

@@ -40,6 +40,8 @@ import {
     Activity,
     BarChart2,
     HardHat,
+    Key,
+    Lightbulb,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 
@@ -332,6 +334,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                         <NavItem href="/dashboard/settings/profile" icon={Building2} label="Profile" active={is("/dashboard/settings/profile")} />
                         <NavItem href="/dashboard/settings/case-studies" icon={Images} label="Case Studies" active={is("/dashboard/settings/case-studies")} />
                         <NavItem href="/dashboard/settings/integrations" icon={RefreshCw} label="Integrations" active={is("/dashboard/settings/integrations")} />
+                        <NavItem href="/dashboard/settings/api-keys" icon={Key} label="API Keys" active={is("/dashboard/settings/api-keys")} />
                         <NavItem href="/dashboard/resources/staff" icon={Users} label="Labour Rates" active={is("/dashboard/resources/staff")} />
                         <NavItem href="/dashboard/resources/plant" icon={Truck} label="Plant Rates" active={is("/dashboard/resources/plant")} />
                         <NavItem href="/dashboard/library" icon={BookOpen} label="Cost Library" active={is("/dashboard/library")} />
@@ -377,6 +380,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                         <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 pb-1.5">Reporting</div>
                         <NavItem href="/dashboard/management-accounts" icon={BarChart2} label="Management Accounts" active={is("/dashboard/management-accounts")} />
                         <NavItem href="/dashboard/cis" icon={HardHat} label="CIS Compliance" active={is("/dashboard/cis")} />
+                        <NavItem href="/dashboard/intelligence" icon={Lightbulb} label="Business Intelligence" active={is("/dashboard/intelligence")} />
                     </div>
 
                 </div>

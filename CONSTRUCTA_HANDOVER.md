@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 8 April 2026 (end of Sprint 38 — Dashboard Home Rebuild: cross-project ops dashboard, fully committed)
+**Last updated:** 9 April 2026 (end of Sprint 40 — Contractor Management Accounts: consolidated P&L, cash flow, WIP, Key Ratios with 13 construction-specific metrics, CSV export)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -764,47 +764,71 @@ Cross-project executive ops dashboard at `/dashboard/home`. Replaces the old sta
 
 --- BATCH 4 COMPLETE — DASHBOARD INTELLIGENCE (Sprint 38) ✅ ---
 
-### 🔜 Sprint 39 — Project Archive ← NEXT
-Mark project as closed/archived; enable Archive sidebar item (currently the only disabled nav item). Freeze edits on archived projects. Searchable/filterable archive view at `/dashboard/projects/archive`. Preserve key financial outcome (contract value, final account amount, margin). Enables "similar projects" pattern matching for future bids and the benchmark layer in Sprint 41.
+### ✅ Sprint 39 — Project Archive (COMPLETE — 9 April 2026)
+Mark project as closed/archived; Archive sidebar item enabled. Searchable/filterable archive view at `/dashboard/projects/archive`. Financial outcome preserved in `archive_snapshots` table (immutable snapshot at close time). Two-step restore confirmation. Retention alert banner. Archive initiated from Project Overview page via Close & Archive dialog.
 
-### Sprint 40 — Contractor Management Accounts
-Consolidated financial view across all of a contractor's live and closed projects — the equivalent of a management accounts pack generated automatically from Constructa data. Consolidated P&L (revenue, costs, gross margin by project), cash flow forecast (projected inflows from outstanding invoices vs committed outflows from project expenses), WIP schedule, overhead absorption report, year-to-date summary by month, per-project comparison table. PDF and CSV export. Financial year / calendar year / custom date range filter.
+**Files changed:**
+- `src/app/dashboard/projects/archive/actions.ts` (NEW): `archiveProjectAction` (gathers snapshot → writes `archive_snapshots` → sets `is_archived`), `restoreProjectAction`, `getArchivedProjectsAction`
+- `src/app/dashboard/projects/archive/page.tsx` (NEW): server component, calls `getArchivedProjectsAction`
+- `src/app/dashboard/projects/archive/archive-client.tsx` (NEW): 3-card KPI strip, retention alert, search + type filter, expandable rows, two-step restore
+- `src/app/dashboard/projects/overview/overview-client.tsx` (modified): Archive dialog added at bottom, "Close & Archive Project" link, `archiveReason` state
+- `src/components/sidebar-nav.tsx` (modified): Archive NavItem enabled
+- `supabase/migrations/` (NEW): `archive_snapshots` table + `is_archived`, `archived_at`, `archived_by`, `archive_reason` columns on `projects`
 
-### Sprint 41 — Data Foundation & Benchmark Layer
+### ✅ Sprint 40 — Contractor Management Accounts (COMPLETE — 9 April 2026)
+Consolidated financial view across all of a contractor's live and closed projects. 7 parallel DB fetches. 6 tabs: Overview (KPI cards + monthly bar chart), P&L by Project, Cash Flow (90-day forecast), WIP Schedule, Key Ratios, Export (CSV). Archive snapshots used as source-of-truth for closed projects. Sidebar Reporting section added (static label + direct NavItem — avoids dead-link accordion bug).
+
+**Files changed:**
+- `src/app/dashboard/management-accounts/page.tsx` (NEW): 7 parallel Promise.all fetches (profile, projects, estimates, invoices, expenses, variations, archive_snapshots)
+- `src/app/dashboard/management-accounts/management-accounts-client.tsx` (NEW): full 6-tab client component; `calcContractValue()` margin hierarchy; `fyBounds()` FY helper; IIFE pattern for Key Ratios local variable scoping; 13 ratios (Gross Margin %, Mark-up %, Overhead Absorption Rate, Subcontractor Cost %, Debtor Days, Cash Conversion Rate, WIP to Revenue %, Retention %, Invoice Coverage %, Variation Rate %, Win Rate %, Cost Overrun Rate %, Avg Revenue per Project); traffic-light status (good/warn/bad/neutral); Healthy/Monitor/Action Required summary strip; CSV download
+- `src/components/sidebar-nav.tsx` (modified): Reporting section (static div label + NavItem to `/dashboard/management-accounts`); `BarChart2` lucide import added
+- `src/lib/db/index.ts`, `src/lib/db/schema.ts` (DELETED): orphaned drizzle-orm files that broke Vercel build after drizzle-orm removed from package.json
+
+### 🔜 Sprint 41 — CIS Compliance ← NEXT
+UK Construction Industry Scheme — a genuine legal obligation for contractors using subbies. No competitor handles this well; it's a meaningful differentiator.
+
+**Scope:**
+- Subcontractor register: CIS status (Gross / Standard 20% / Higher 30%), UTR, verification reference, last verification date
+- Deduction calculator: net payment + CIS deduction calculated per payment, matched to Constructa cost entries
+- Monthly CIS return preparation: aggregate deductions per subcontractor for the tax month (6th–5th), one-click summary for submission to HMRC
+- CIS deduction statement generation (PDF) for each subcontractor
+- Settings: contractor's own CIS status + PAYE reference stored on profile
+
+### Sprint 42 — Data Foundation & Benchmark Layer *(was Sprint 41)*
 Pure database migration — no changes to contractor-facing app. Creates the anonymised aggregation layer for cross-contractor intelligence.
 
 Benchmark tables (no RLS, service-role only, no PII): `project_benchmarks`, `rate_benchmarks`, `labour_benchmarks`, `plant_benchmarks`, `material_benchmarks`, `programme_benchmarks`, `variation_benchmarks`, `contract_risk_benchmarks`. Supabase triggers fire on project close / invoice paid / variation approved to populate tables. GDPR consent gate (`contractors.data_consent`) added to onboarding and Settings before any trigger writes fire.
 
-### Sprint 42 — Admin Dashboard Phase 2
+### Sprint 43 — Admin Dashboard Phase 2 *(was Sprint 42)*
 Superadmin tooling for Constructa staff only — not visible to contractors. Data intelligence explorer, benchmark browser, market rate maps (choropleth by region/trade), anonymous percentile positioning, platform analytics (MAU/DAU/proposals), churn prediction, at-risk account scoring, feature usage heatmap. Builds on existing Sprint 21 admin dashboard tabs.
 
-### Sprint 43 — Xero Integration
+### Sprint 44 — Xero Integration *(was Sprint 43)*
 OAuth2 connection flow → push invoices on send → pull payment status daily → push expenses on cost log → trade section to Xero tracking category mapping (configurable) → sync log with retry → disconnect/reconnect without losing history.
 
-### Sprint 44 — QuickBooks / Sage Integration
+### Sprint 45 — QuickBooks / Sage Integration *(was Sprint 44)*
 Same OAuth2 push/pull pattern extended to QuickBooks Online and Sage Business Cloud — the two next most common accounting packages for UK SME contractors. Single unified sync settings page covers all three integrations (Xero / QuickBooks / Sage), one active at a time, with field mapping UI per platform and a sync health indicator (last synced, error count, items pending).
 
-### Sprint 45 — Accounting Phase 2: Reconciliation
+### Sprint 46 — Accounting Phase 2: Reconciliation *(was Sprint 45)*
 Bank feed import (CSV or Plaid open banking), transaction parser, auto-match bank transactions to Constructa invoices by amount + reference, manual match for unmatched items, reconciliation dashboard, VAT return preparation grouped by VAT period, MTD-compatible CSV export for HMRC Making Tax Digital, full audit trail of every match/unmatch.
 
-### Sprint 46 — LemonSqueezy Billing Integration *(deferred from Sprint 24)*
+### Sprint 47 — LemonSqueezy Billing Integration *(deferred from Sprint 24; was Sprint 46)*
 OAuth subscription management: checkout flow, webhooks for subscription events, subscription status gating (restrict or show upgrade prompt on feature access). Admin dashboard shows real revenue data replacing estimated MRR. `PLAN_PRICE_GBP` constant updated once pricing confirmed.
 
-### Sprint 47 — Market Intelligence Product
-Constructa's benchmark data as a sellable B2B data product for QS firms, developers, lenders and insurers. REST data API (authenticated, rate-limited, paid tier), quarterly construction cost index by region/trade, B2B subscriber portal, tiered subscription pricing, white-label PDF report generator ("East Midlands Construction Cost Report Q2 2026"), data consent audit confirming all benchmark data passes through the Sprint 41 consent gate.
+### Sprint 48 — Market Intelligence Product *(was Sprint 47)*
+Constructa's benchmark data as a sellable B2B data product for QS firms, developers, lenders and insurers. REST data API (authenticated, rate-limited, paid tier), quarterly construction cost index by region/trade, B2B subscriber portal, tiered subscription pricing, white-label PDF report generator ("East Midlands Construction Cost Report Q2 2026"), data consent audit confirming all benchmark data passes through the Sprint 42 consent gate.
 
-### Sprint 48 — Native Mobile App
+### Sprint 49 — Native Mobile App *(was Sprint 48)*
 React Native (Expo) or PWA — technology decision first. Core on-site workflows: log cost (all 5 types), view project P&L, raise variation, check invoice status. Camera receipt capture (photo → Supabase Storage → cost entry). Push notifications for overdue payments and variation decisions. Offline mode with local queue (SQLite). Biometric auth. App Store and Google Play submission.
 
-### Sprint 49 — Regional Pricing Intelligence + Merchant Procurement Layer
+### Sprint 50 — Regional Pricing Intelligence + Merchant Procurement Layer *(was Sprint 49)*
 Regional rate benchmarks surfaced to contractors with percentile positioning and rate adjustment suggestions. Travis Perkins, Jewson and Selco integrations for live materials pricing linked to estimate lines — one-click order basket with pre-filled quantities, Constructa group pricing, delivery tracking auto-logged as cost entries, merchant analytics and referral fee model for admin.
 
-### Sprint 50 — Resource Planning & Staff Allocation
+### Sprint 51 — Resource Planning & Staff Allocation *(was Sprint 50)*
 Cross-project resource management — lets contractors see whether they have the people available to deliver their pipeline. Solves over-committing labour across overlapping projects and surfaces conflicts before they become on-site crises.
 
 Staff allocation calendar (per person, per project), cross-project Gantt overlay, resource availability calculator (free days vs contracted days), red flag alerts for over-allocation, holiday and absence register (planned leave blocks availability automatically), demand vs supply aggregate view, under-resourcing alerts where allocated days fall short of estimated manhours, subcontractor slot allocation, weekly resource schedule export (PDF/CSV).
 
-### Sprint 51 — In-App CAD / BIM / SketchUp Viewer *(Strategic moat — confirmed by owner, 6 April 2026)*
+### Sprint 52 — In-App CAD / BIM / SketchUp Viewer *(was Sprint 51; Strategic moat — confirmed by owner, 6 April 2026)*
 Embed a browser-native drawing viewer supporting the main construction file formats, giving contractors
 basic measurement and markup capability inside Constructa without switching to external tools.
 
@@ -905,13 +929,13 @@ Priority is completing the full remaining sprint backlog at pace. Some rework is
 
 ## Sprint Plan to Completion — Revised (8 April 2026)
 
-Current status: **Sprint 38 complete.** 12 sprints to full product completion (Sprints 39–50), plus 1 strategic moat sprint (51 — CAD/BIM Viewer, longer-horizon).
+Current status: **Sprint 40 complete.** 11 sprints to full product completion (Sprints 41–51), plus 1 strategic moat sprint (52 — CAD/BIM Viewer, longer-horizon).
 
 | Sprint | Module | Notes |
 |--------|--------|-------|
-| **39** | **Project Archive** | Enable Archive nav item; close/freeze projects; searchable archive view; financial outcome preserved; archive → benchmark seed pipeline designed here to avoid Sprint 41 retrofit |
-| **40** | **Contractor Management Accounts** | Cross-project consolidated P&L; cash flow forecast; WIP schedule; overhead absorption; FY/calendar/custom date range; PDF + CSV export |
-| **41** | **CIS Compliance** *(new — not in previous roadmap)* | UK legal obligation for contractors with subbies; subcontractor verification (HMRC status check), 20%/30% deduction calculation, monthly return prep; genuinely differentiating — no competitor tool handles this well |
+| ✅ **39** | **Project Archive** *(COMPLETE — 9 Apr 2026)* | Archive nav enabled; `archive_snapshots` table; close/restore flow; searchable archive view |
+| ✅ **40** | **Contractor Management Accounts** *(COMPLETE — 9 Apr 2026)* | 6-tab management accounts; 13 Key Ratios; CSV export; Reporting sidebar section |
+| **41** | **CIS Compliance** ← NEXT *(new — not in previous roadmap)* | UK legal obligation for contractors with subbies; subcontractor verification (HMRC status check), 20%/30% deduction calculation, monthly return prep; genuinely differentiating — no competitor tool handles this well |
 | **42** | **Data Foundation & Benchmark Layer** | Pure DB migration; anonymised aggregation tables; Supabase triggers on project archive / invoice paid / variation approved; GDPR consent gate on onboarding |
 | **43** | **Admin Dashboard Phase 2** | Intelligence explorer; benchmark browser; market rate maps by region/trade; percentile positioning; churn prediction; at-risk account scoring; builds on Sprint 21 tabs |
 | **44** | **Xero Integration** | OAuth2; push invoices on send; pull payment status daily; push expenses on cost log; trade section → Xero tracking category mapping; sync log with retry |

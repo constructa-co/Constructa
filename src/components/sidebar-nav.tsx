@@ -43,6 +43,7 @@ import {
     Key,
     Lightbulb,
     Smartphone,
+    Package,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 
@@ -383,6 +384,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                         <NavItem href="/dashboard/management-accounts" icon={BarChart2} label="Management Accounts" active={is("/dashboard/management-accounts")} />
                         <NavItem href="/dashboard/cis" icon={HardHat} label="CIS Compliance" active={is("/dashboard/cis")} />
                         <NavItem href="/dashboard/intelligence" icon={Lightbulb} label="Business Intelligence" active={is("/dashboard/intelligence")} />
+                        <NavItem href="/dashboard/materials" icon={Package} label="Material Rates" active={is("/dashboard/materials")} />
                     </div>
 
                 </div>

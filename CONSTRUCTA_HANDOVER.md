@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 9 April 2026 (end of Sprint 43 — Admin Dashboard Phase 2: Benchmarks + Intelligence tabs)
+**Last updated:** 9 April 2026 (end of Sprint 48 — Market Intelligence Product: API keys, benchmarks API, intelligence dashboard)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -932,14 +932,14 @@ Current status: **Sprint 40 complete.** 11 sprints to full product completion (S
 | ✅ **41** | **CIS Compliance** *(COMPLETE — 9 Apr 2026)* | 4-tab CIS page; subcontractor register; payment recording with live deduction preview; monthly returns grouped by tax month |
 | ✅ **42** | **Data Foundation & Benchmark Layer** *(COMPLETE — 9 Apr 2026)* | Benchmark tables; archive trigger; GDPR consent gate in Settings |
 | ✅ **43** | **Admin Dashboard Phase 2** *(COMPLETE — 9 Apr 2026)* | Intelligence explorer; benchmark browser; market rate maps by region/trade; percentile positioning; churn prediction; at-risk account scoring; builds on Sprint 21 tabs |
-| **44** | **Xero Integration** ← NEXT | OAuth2; push invoices on send; pull payment status daily; push expenses on cost log; trade section → Xero tracking category mapping; sync log with retry |
-| **45** | **QuickBooks / Sage Integration** | Same OAuth2 pattern; unified sync settings page for all three integrations (Xero/QB/Sage); one active at a time; field mapping UI; sync health indicator |
-| **46** | **LemonSqueezy Billing** *(pending UAE company + bank setup)* | Checkout flow; subscription webhooks; feature gating (Free: 3 proposals watermarked / Pro £49 / Business £99); real revenue data replaces estimated MRR in admin |
-| **47** | **Market Intelligence Product** | B2B data API (authenticated, rate-limited, paid tier); quarterly construction cost index by region/trade; white-label PDF reports; B2B subscriber portal |
-| **48** | **Native Mobile App** | React Native (Expo) or PWA; core on-site workflows: log cost, view P&L, raise variation, check invoice; camera receipt capture; push notifications; offline queue |
-| **49** | **Regional Pricing + Merchant Procurement** | Rate benchmarks with percentile positioning; Travis Perkins / Jewson / Selco live pricing; one-click order basket; delivery tracking auto-logged as costs |
-| **50** | **Resource Planning & Staff Allocation** | Cross-project labour calendar; Gantt overlay; availability calculator; over-allocation alerts; holiday/absence register; weekly schedule export |
-| **51** | **CAD / BIM / SketchUp Viewer** *(strategic moat)* | Browser-native DWG/DXF/IFC/SKP viewer; linear + area measurement; annotation layer; AI element detection; one-click → estimate lines |
+| ✅ **44** | **Xero Integration** *(COMPLETE — 9 Apr 2026)* | OAuth2 connect/disconnect; auto token refresh; push invoices to Xero; pull PAID status back; sync log UI; env vars (XERO_CLIENT_ID etc.) needed in Vercel when developer account ready |
+| *(skip)* | **QuickBooks / Sage** *(deferred)* | External dependency — build when needed |
+| *(skip)* | **LemonSqueezy Billing** *(deferred — UAE company setup)* | Pending freezone company + bank account |
+| ✅ **48** | **Market Intelligence Product** *(COMPLETE — 9 Apr 2026)* | `api_keys` + `api_usage_log` tables; SHA-256 hashed keys (never stored plaintext); `/api/v1/benchmarks` GET endpoint with Bearer auth, rate limiting, aggregation, CORS; API key management UI (create, copy-once, revoke); Business Intelligence contractor dashboard (vs industry benchmarks); sidebar links added |
+| **49** | **Native Mobile App** ← NEXT | React Native (Expo) or PWA; core on-site workflows: log cost, view P&L, raise variation, check invoice; camera receipt capture; push notifications; offline queue |
+| **50** | **Regional Pricing + Merchant Procurement** | Rate benchmarks with percentile positioning; Travis Perkins / Jewson / Selco live pricing; one-click order basket; delivery tracking auto-logged as costs |
+| **51** | **Resource Planning & Staff Allocation** | Cross-project labour calendar; Gantt overlay; availability calculator; over-allocation alerts; holiday/absence register; weekly schedule export |
+| **52** | **CAD / BIM / SketchUp Viewer** *(strategic moat)* | Browser-native DWG/DXF/IFC/SKP viewer; linear + area measurement; annotation layer; AI element detection; one-click → estimate lines |
 
 ### Pre-Sprint 39 housekeeping (no full sprint needed)
 Before Sprint 39 kicks off, the following minor items should be resolved in the opening commit:

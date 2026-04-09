@@ -24,7 +24,7 @@ interface Props {
 }
 
 type DateRange = "fy" | "last_fy" | "cy" | "last_12m" | "all";
-type Tab = "overview" | "pl" | "cashflow" | "wip" | "export";
+type Tab = "overview" | "pl" | "cashflow" | "wip" | "ratios" | "export";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -220,6 +220,7 @@ export default function ManagementAccountsClient({ profile, projects, estimates,
     { id: "pl", label: "P&L by Project" },
     { id: "cashflow", label: "Cash Flow" },
     { id: "wip", label: "WIP Schedule" },
+    { id: "ratios", label: "Key Ratios" },
     { id: "export", label: "Export" },
   ];
 
@@ -568,6 +569,249 @@ export default function ManagementAccountsClient({ profile, projects, estimates,
             </div>
           </>
         )}
+
+        {/* ── KEY RATIOS TAB ────────────────────────────────────────────────── */}
+        {tab === "ratios" && (() => {
+          // ── Ratio computations ──────────────────────────────────────────────
+
+          // Totals needed
+          const totalRevenue = projectData.reduce((s, p) => s + p.totalPaid, 0);
+          const totalCosts = projectData.reduce((s, p) => s + p.totalCosts, 0);
+          const totalContractValue = projectData.reduce((s, p) => s + p.contractValue, 0);
+          const totalInvoiced = projectData.reduce((s, p) => s + p.totalInvoiced, 0);
+          const totalOutstanding = projectData.reduce((s, p) => s + p.outstanding, 0);
+          const totalRetention = projectData.reduce((s, p) => s + p.retentionHeld, 0);
+          const totalApprovedVars = variations.filter(v => v.status === "Approved").reduce((s, v) => s + (v.amount ?? 0), 0);
+          const overheadCosts = expenses.filter(e => e.cost_type === "overhead").reduce((s, e) => s + e.amount, 0);
+          const directCosts = expenses.filter(e => e.cost_type !== "overhead").reduce((s, e) => s + e.amount, 0);
+          const subcontractCosts = expenses.filter(e => e.cost_type === "subcontract").reduce((s, e) => s + e.amount, 0);
+          const wipBalance = projectData.filter(p => p.status === "active").reduce((s, p) => s + Math.max(0, p.contractValue - p.totalInvoiced), 0);
+
+          // Win rate from Kanban pipeline
+          const wonProjects = projects.filter(p => ["active", "completed"].includes(p.status ?? "") || p.is_archived).length;
+          const lostProjects = projects.filter(p => p.status === "lost").length;
+          const winRateDenom = wonProjects + lostProjects;
+          const winRate = winRateDenom > 0 ? (wonProjects / winRateDenom) * 100 : null;
+
+          // Projects over budget
+          const activeWithCosts = projectData.filter(p => p.contractValue > 0 && p.totalCosts > 0);
+          const overBudgetCount = activeWithCosts.filter(p => p.totalCosts > p.contractValue).length;
+          const overBudgetRate = activeWithCosts.length > 0 ? (overBudgetCount / activeWithCosts.length) * 100 : null;
+
+          // Annualised revenue for WIP ratio (use 12-month rolling)
+          const twelveMonthsAgo = addDays(new Date(), -365);
+          const annualRevenue = invoices
+            .filter(i => i.status === "Paid" && i.paid_date && new Date(i.paid_date) >= twelveMonthsAgo)
+            .reduce((s, i) => s + i.amount, 0);
+
+          // Ratios
+          const grossMargin = totalRevenue > 0 ? ((totalRevenue - totalCosts) / totalRevenue) * 100 : null;
+          const markUp = totalCosts > 0 ? ((totalRevenue - totalCosts) / totalCosts) * 100 : null;
+          const debtorDays = totalRevenue > 0 ? (totalOutstanding / totalRevenue) * 365 : null;
+          const wipToRevenue = annualRevenue > 0 ? (wipBalance / annualRevenue) * 100 : null;
+          const retentionPct = totalInvoiced > 0 ? (totalRetention / totalInvoiced) * 100 : null;
+          const cashConversion = totalInvoiced > 0 ? (totalRevenue / totalInvoiced) * 100 : null;
+          const overheadAbsorption = directCosts > 0 ? (overheadCosts / directCosts) * 100 : null;
+          const subcontractPct = totalCosts > 0 ? (subcontractCosts / totalCosts) * 100 : null;
+          const variationRate = totalContractValue > 0 ? (totalApprovedVars / totalContractValue) * 100 : null;
+          const invoiceCoverage = totalContractValue > 0 ? (totalInvoiced / totalContractValue) * 100 : null;
+          const revenuePerProject = projectData.length > 0 ? totalRevenue / projectData.length : null;
+
+          type RatioStatus = "good" | "warn" | "bad" | "neutral";
+
+          interface RatioRow {
+            label: string;
+            value: string;
+            benchmark: string;
+            interpretation: string;
+            status: RatioStatus;
+            category: string;
+          }
+
+          function ratioStatus(val: number | null, good: (v: number) => boolean, warn: (v: number) => boolean): RatioStatus {
+            if (val === null) return "neutral";
+            if (good(val)) return "good";
+            if (warn(val)) return "warn";
+            return "bad";
+          }
+
+          const ratios: RatioRow[] = [
+            // Profitability
+            {
+              category: "Profitability",
+              label: "Gross Margin %",
+              value: grossMargin !== null ? pct(grossMargin) : "—",
+              benchmark: "Target: 15–25% for SME contractor",
+              interpretation: grossMargin !== null ? (grossMargin >= 15 ? "Healthy margin" : grossMargin >= 8 ? "Marginal — review pricing" : "Below viable — urgent attention") : "No revenue data",
+              status: ratioStatus(grossMargin, v => v >= 15, v => v >= 8),
+            },
+            {
+              category: "Profitability",
+              label: "Mark-up %",
+              value: markUp !== null ? pct(markUp) : "—",
+              benchmark: "Target: 20–35% on direct costs",
+              interpretation: markUp !== null ? (markUp >= 20 ? "Strong mark-up" : markUp >= 10 ? "Low mark-up — consider pricing uplift" : "Unsustainable — costs exceed revenue") : "No data",
+              status: ratioStatus(markUp, v => v >= 20, v => v >= 10),
+            },
+            {
+              category: "Profitability",
+              label: "Overhead Absorption Rate",
+              value: overheadAbsorption !== null ? pct(overheadAbsorption) : "—",
+              benchmark: "Typical: 8–15% of direct costs",
+              interpretation: overheadAbsorption !== null ? (overheadAbsorption <= 15 ? "Well controlled" : overheadAbsorption <= 25 ? "Elevated — monitor office costs" : "High — overheads eroding margin") : "No overhead data logged",
+              status: ratioStatus(overheadAbsorption, v => v <= 15, v => v <= 25),
+            },
+            {
+              category: "Profitability",
+              label: "Subcontractor Cost %",
+              value: subcontractPct !== null ? pct(subcontractPct) : "—",
+              benchmark: "Typical: 30–60% depending on model",
+              interpretation: subcontractPct !== null ? (subcontractPct <= 60 ? "Normal subcontract mix" : "High subcontract reliance — margin risk if subbies underprice") : "No data",
+              status: ratioStatus(subcontractPct, v => v <= 60, v => v <= 75),
+            },
+            // Liquidity & Cash
+            {
+              category: "Liquidity & Cash",
+              label: "Debtor Days",
+              value: debtorDays !== null ? `${Math.round(debtorDays)} days` : "—",
+              benchmark: "Target: under 45 days",
+              interpretation: debtorDays !== null ? (debtorDays <= 30 ? "Excellent — clients paying promptly" : debtorDays <= 45 ? "Good" : debtorDays <= 60 ? "Slow — chase outstanding invoices" : "Critical — cash flow risk") : "No data",
+              status: ratioStatus(debtorDays, v => v <= 30, v => v <= 45),
+            },
+            {
+              category: "Liquidity & Cash",
+              label: "Cash Conversion Rate",
+              value: cashConversion !== null ? pct(cashConversion) : "—",
+              benchmark: "Target: above 85%",
+              interpretation: cashConversion !== null ? (cashConversion >= 90 ? "Strong — collecting what you invoice" : cashConversion >= 75 ? "Moderate — some invoices uncollected" : "Weak — significant collection problem") : "No data",
+              status: ratioStatus(cashConversion, v => v >= 90, v => v >= 75),
+            },
+            {
+              category: "Liquidity & Cash",
+              label: "WIP to Annual Revenue %",
+              value: wipToRevenue !== null ? pct(wipToRevenue) : "—",
+              benchmark: "Healthy: under 25%",
+              interpretation: wipToRevenue !== null ? (wipToRevenue <= 15 ? "Good — billing keeping pace with work" : wipToRevenue <= 25 ? "Monitor — uninvoiced work building up" : "High — invoice more frequently") : "No data",
+              status: ratioStatus(wipToRevenue, v => v <= 15, v => v <= 25),
+            },
+            {
+              category: "Liquidity & Cash",
+              label: "Retention as % of Invoiced",
+              value: retentionPct !== null ? pct(retentionPct) : "—",
+              benchmark: "Typical: 3–5%",
+              interpretation: retentionPct !== null ? (retentionPct <= 5 ? "Normal retention level" : retentionPct <= 8 ? "Elevated — chase retention releases" : "High — significant cash tied up in retention") : "No data",
+              status: ratioStatus(retentionPct, v => v <= 5, v => v <= 8),
+            },
+            // Operational
+            {
+              category: "Operational",
+              label: "Invoice Coverage %",
+              value: invoiceCoverage !== null ? pct(invoiceCoverage) : "—",
+              benchmark: "Should track work completed %",
+              interpretation: invoiceCoverage !== null ? (invoiceCoverage >= 80 ? "Billing well ahead of contract" : invoiceCoverage >= 50 ? "Normal mid-project billing position" : "Under-billed — raise applications") : "No data",
+              status: ratioStatus(invoiceCoverage, v => v >= 80, v => v >= 50),
+            },
+            {
+              category: "Operational",
+              label: "Variation Rate %",
+              value: variationRate !== null ? pct(variationRate) : "—",
+              benchmark: "Typical: 5–15% on complex projects",
+              interpretation: variationRate !== null ? (variationRate <= 15 ? "Normal scope change level" : variationRate <= 30 ? "High variations — scope definition issue or good change control" : "Very high — review contract risk profile") : "No data",
+              status: ratioStatus(variationRate, v => v <= 15, v => v <= 30),
+            },
+            {
+              category: "Operational",
+              label: "Win Rate %",
+              value: winRate !== null ? pct(winRate) : "—",
+              benchmark: "Target: above 40% for tendered work",
+              interpretation: winRate !== null ? (winRate >= 50 ? "Strong win rate" : winRate >= 35 ? "Competitive — room to improve pricing strategy" : "Low — review tender quality or pricing") : "No won/lost data",
+              status: ratioStatus(winRate, v => v >= 50, v => v >= 35),
+            },
+            {
+              category: "Operational",
+              label: "Cost Overrun Rate %",
+              value: overBudgetRate !== null ? pct(overBudgetRate) : "—",
+              benchmark: "Target: under 15% of projects",
+              interpretation: overBudgetRate !== null ? (overBudgetRate === 0 ? "No projects over budget" : overBudgetRate <= 15 ? "Low overrun rate — good cost control" : overBudgetRate <= 30 ? "Moderate — review estimating accuracy" : "High overrun rate — systematic estimating or cost issue") : "No data",
+              status: ratioStatus(overBudgetRate, v => v <= 15, v => v <= 30),
+            },
+            {
+              category: "Operational",
+              label: "Average Revenue per Project",
+              value: revenuePerProject !== null ? gbp(revenuePerProject) : "—",
+              benchmark: "Track trend over time",
+              interpretation: revenuePerProject !== null ? (revenuePerProject >= 50000 ? "Strong average job size" : revenuePerProject >= 20000 ? "Mid-range jobs" : "Small jobs — consider minimum contract value") : "No revenue data",
+              status: "neutral",
+            },
+          ];
+
+          const categories = Array.from(new Set(ratios.map(r => r.category)));
+
+          const statusColour: Record<RatioStatus, string> = {
+            good: "text-emerald-400",
+            warn: "text-amber-400",
+            bad: "text-red-400",
+            neutral: "text-slate-400",
+          };
+          const statusBg: Record<RatioStatus, string> = {
+            good: "bg-emerald-500/10 border-emerald-500/20",
+            warn: "bg-amber-500/10 border-amber-500/20",
+            bad: "bg-red-500/10 border-red-500/20",
+            neutral: "bg-slate-800/40 border-slate-700/40",
+          };
+          const statusDot: Record<RatioStatus, string> = {
+            good: "bg-emerald-400",
+            warn: "bg-amber-400",
+            bad: "bg-red-400",
+            neutral: "bg-slate-500",
+          };
+
+          return (
+            <div className="space-y-6">
+              {/* Summary strip */}
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { label: "Healthy", count: ratios.filter(r => r.status === "good").length, colour: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" },
+                  { label: "Monitor", count: ratios.filter(r => r.status === "warn").length, colour: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20" },
+                  { label: "Action Required", count: ratios.filter(r => r.status === "bad").length, colour: "text-red-400", bg: "bg-red-500/10 border-red-500/20" },
+                ].map(s => (
+                  <div key={s.label} className={`border rounded-xl p-4 ${s.bg}`}>
+                    <div className={`text-3xl font-bold ${s.colour}`}>{s.count}</div>
+                    <div className={`text-sm font-medium ${s.colour} mt-0.5`}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-xs text-slate-500">
+                Benchmarks are typical ranges for UK SME construction contractors. Based on all-time data — use the date filter on other tabs to analyse period-specific performance.
+              </p>
+
+              {/* Ratios by category */}
+              {categories.map(cat => (
+                <div key={cat} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                  <div className="px-5 py-3 border-b border-slate-800">
+                    <h3 className="text-sm font-semibold text-slate-200">{cat}</h3>
+                  </div>
+                  <div className="divide-y divide-slate-800/60">
+                    {ratios.filter(r => r.category === cat).map(r => (
+                      <div key={r.label} className={`flex items-start gap-4 px-5 py-4 ${statusBg[r.status]} border-0`}>
+                        <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${statusDot[r.status]}`} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-4 flex-wrap">
+                            <span className="text-sm font-medium text-slate-200">{r.label}</span>
+                            <span className={`text-lg font-bold tabular-nums ${statusColour[r.status]}`}>{r.value}</span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">{r.interpretation}</p>
+                          <p className="text-xs text-slate-600 mt-0.5">{r.benchmark}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* ── EXPORT TAB ────────────────────────────────────────────────────── */}
         {tab === "export" && (

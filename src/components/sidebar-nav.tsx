@@ -39,6 +39,7 @@ import {
     PieChart,
     Activity,
     BarChart2,
+    HardHat,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 
@@ -374,6 +375,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                     <div className="pt-1">
                         <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 pb-1.5">Reporting</div>
                         <NavItem href="/dashboard/management-accounts" icon={BarChart2} label="Management Accounts" active={is("/dashboard/management-accounts")} />
+                        <NavItem href="/dashboard/cis" icon={HardHat} label="CIS Compliance" active={is("/dashboard/cis")} />
                     </div>
 
                 </div>

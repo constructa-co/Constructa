@@ -42,6 +42,7 @@ import {
     HardHat,
     Key,
     Lightbulb,
+    Smartphone,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 
@@ -258,6 +259,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                 {/* Overview — always visible */}
                 <div className="pb-2">
                     <NavItem href="/dashboard/home" icon={LayoutDashboard} label="Overview" active={is("/dashboard/home")} />
+                    <NavItem href="/dashboard/mobile" icon={Smartphone} label="On-site Hub" active={is("/dashboard/mobile")} />
                 </div>
 
                 {/* ── Active Project Selector — always visible, at top ─── */}

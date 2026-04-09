@@ -408,6 +408,7 @@ function ReceiptUpload({
           <input
             type="file"
             accept="image/*,application/pdf"
+            capture="environment"
             className="hidden"
             onChange={handleFile}
             disabled={uploading}

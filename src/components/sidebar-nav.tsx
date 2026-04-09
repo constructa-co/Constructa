@@ -38,6 +38,7 @@ import {
     Truck,
     PieChart,
     Activity,
+    BarChart2,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 
@@ -367,6 +368,11 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                         <NavItem href={pLink("/dashboard/projects/final-account")} icon={Receipt} label="Final Accounts" active={is("/dashboard/projects/final-account")} />
                         <NavItem href={pLink("/dashboard/projects/handover-documents")} icon={FolderOpen} label="Handover Documents" active={is("/dashboard/projects/handover-documents")} />
                         <NavItem href={pLink("/dashboard/projects/lessons-learned")} icon={BookMarked} label="Lessons Learned" active={is("/dashboard/projects/lessons-learned")} />
+                    </SidebarSection>
+
+                    {/* Reporting */}
+                    <SidebarSection label="Reporting" sectionKey="reporting" collapsed={collapsed["reporting"] ?? true} onToggle={toggleSection}>
+                        <NavItem href="/dashboard/management-accounts" icon={BarChart2} label="Management Accounts" active={is("/dashboard/management-accounts")} />
                     </SidebarSection>
 
                 </div>

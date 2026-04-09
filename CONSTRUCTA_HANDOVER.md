@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 9 April 2026 (end of Sprint 40 — Contractor Management Accounts: consolidated P&L, cash flow, WIP, Key Ratios with 13 construction-specific metrics, CSV export)
+**Last updated:** 9 April 2026 (end of Sprint 42 — Data Foundation & Benchmark Layer: anonymised benchmark tables, archive trigger, GDPR consent gate)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -784,22 +784,15 @@ Consolidated financial view across all of a contractor's live and closed project
 - `src/components/sidebar-nav.tsx` (modified): Reporting section (static div label + NavItem to `/dashboard/management-accounts`); `BarChart2` lucide import added
 - `src/lib/db/index.ts`, `src/lib/db/schema.ts` (DELETED): orphaned drizzle-orm files that broke Vercel build after drizzle-orm removed from package.json
 
-### 🔜 Sprint 41 — CIS Compliance ← NEXT
-UK Construction Industry Scheme — a genuine legal obligation for contractors using subbies. No competitor handles this well; it's a meaningful differentiator.
+### ✅ Sprint 41 — CIS Compliance (COMPLETE — 9 April 2026)
+**Files:** `src/app/dashboard/cis/` (page.tsx, cis-client.tsx, actions.ts), `supabase/migrations/20260409000000_sprint41_cis.sql`, sidebar updated with HardHat icon.
+4-tab page: Overview (KPI strip, unverified warning, recent payments, how-CIS-works explainer), Subcontractors (register CRUD, status badges, UTR/verification), Payments (record with live deduction preview, gross/materials/labour split), Monthly Returns (tax month grouping, CIS300 per-subcontractor table, mark statements sent). CIS settings panel (contractor UTR, PAYE ref, Accounts Office ref). `cis_subcontractors` + `cis_payments` tables with RLS; `tax_month_start` computed in app (`getTaxMonthStart`).
 
-**Scope:**
-- Subcontractor register: CIS status (Gross / Standard 20% / Higher 30%), UTR, verification reference, last verification date
-- Deduction calculator: net payment + CIS deduction calculated per payment, matched to Constructa cost entries
-- Monthly CIS return preparation: aggregate deductions per subcontractor for the tax month (6th–5th), one-click summary for submission to HMRC
-- CIS deduction statement generation (PDF) for each subcontractor
-- Settings: contractor's own CIS status + PAYE reference stored on profile
+### ✅ Sprint 42 — Data Foundation & Benchmark Layer (COMPLETE — 9 April 2026)
+**Files:** `supabase/migrations/20260409100000_sprint42_benchmarks.sql`, `src/app/dashboard/settings/profile/profile-form.tsx` + `actions.ts`.
+4 benchmark tables (`project_benchmarks`, `rate_benchmarks`, `variation_benchmarks`, `programme_benchmarks`) — no RLS, no PII, service-role only. Contract value stored as bands (0-50k etc). `fn_benchmark_on_archive()` trigger fires on project archive, writes anonymised outcome if `data_consent = true`. `data_consent` + `data_consent_at` added to profiles. Settings page: "Industry Benchmarking" consent checkbox with GDPR-compliant copy. `fn_cv_band()` immutable helper for Admin Dashboard queries.
 
-### Sprint 42 — Data Foundation & Benchmark Layer *(was Sprint 41)*
-Pure database migration — no changes to contractor-facing app. Creates the anonymised aggregation layer for cross-contractor intelligence.
-
-Benchmark tables (no RLS, service-role only, no PII): `project_benchmarks`, `rate_benchmarks`, `labour_benchmarks`, `plant_benchmarks`, `material_benchmarks`, `programme_benchmarks`, `variation_benchmarks`, `contract_risk_benchmarks`. Supabase triggers fire on project close / invoice paid / variation approved to populate tables. GDPR consent gate (`contractors.data_consent`) added to onboarding and Settings before any trigger writes fire.
-
-### Sprint 43 — Admin Dashboard Phase 2 *(was Sprint 42)*
+### 🔜 Sprint 43 — Admin Dashboard Phase 2 ← NEXT *(was Sprint 42)*
 Superadmin tooling for Constructa staff only — not visible to contractors. Data intelligence explorer, benchmark browser, market rate maps (choropleth by region/trade), anonymous percentile positioning, platform analytics (MAU/DAU/proposals), churn prediction, at-risk account scoring, feature usage heatmap. Builds on existing Sprint 21 admin dashboard tabs.
 
 ### Sprint 44 — Xero Integration *(was Sprint 43)*
@@ -935,9 +928,9 @@ Current status: **Sprint 40 complete.** 11 sprints to full product completion (S
 |--------|--------|-------|
 | ✅ **39** | **Project Archive** *(COMPLETE — 9 Apr 2026)* | Archive nav enabled; `archive_snapshots` table; close/restore flow; searchable archive view |
 | ✅ **40** | **Contractor Management Accounts** *(COMPLETE — 9 Apr 2026)* | 6-tab management accounts; 13 Key Ratios; CSV export; Reporting sidebar section |
-| **41** | **CIS Compliance** ← NEXT *(new — not in previous roadmap)* | UK legal obligation for contractors with subbies; subcontractor verification (HMRC status check), 20%/30% deduction calculation, monthly return prep; genuinely differentiating — no competitor tool handles this well |
-| **42** | **Data Foundation & Benchmark Layer** | Pure DB migration; anonymised aggregation tables; Supabase triggers on project archive / invoice paid / variation approved; GDPR consent gate on onboarding |
-| **43** | **Admin Dashboard Phase 2** | Intelligence explorer; benchmark browser; market rate maps by region/trade; percentile positioning; churn prediction; at-risk account scoring; builds on Sprint 21 tabs |
+| ✅ **41** | **CIS Compliance** *(COMPLETE — 9 Apr 2026)* | 4-tab CIS page; subcontractor register; payment recording with live deduction preview; monthly returns grouped by tax month |
+| ✅ **42** | **Data Foundation & Benchmark Layer** *(COMPLETE — 9 Apr 2026)* | Benchmark tables; archive trigger; GDPR consent gate in Settings |
+| **43** | **Admin Dashboard Phase 2** ← NEXT | Intelligence explorer; benchmark browser; market rate maps by region/trade; percentile positioning; churn prediction; at-risk account scoring; builds on Sprint 21 tabs |
 | **44** | **Xero Integration** | OAuth2; push invoices on send; pull payment status daily; push expenses on cost log; trade section → Xero tracking category mapping; sync log with retry |
 | **45** | **QuickBooks / Sage Integration** | Same OAuth2 pattern; unified sync settings page for all three integrations (Xero/QB/Sage); one active at a time; field mapping UI; sync health indicator |
 | **46** | **LemonSqueezy Billing** *(pending UAE company + bank setup)* | Checkout flow; subscription webhooks; feature gating (Free: 3 proposals watermarked / Pro £49 / Business £99); real revenue data replaces estimated MRR in admin |

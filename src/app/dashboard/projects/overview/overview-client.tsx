@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { TrendingUp, CreditCard, GitBranch, CalendarDays, ChevronRight, Activity } from "lucide-react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { TrendingUp, CreditCard, GitBranch, CalendarDays, ChevronRight, Activity, Archive } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { archiveProjectAction } from "../archive/actions";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Phase {
@@ -161,7 +169,25 @@ export default function OverviewClient({
     approvedVars, programmePct, currentPhaseName, totalCalendarDays,
     burnPct, overallRag, budgetRag, programmeRag,
 }: Props) {
+    const router = useRouter();
+    const [isPending, startTransition] = useTransition();
+    const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+    const [archiveReason, setArchiveReason] = useState("");
+
     const p = (path: string) => `${path}?projectId=${projectId}`;
+
+    function handleArchive() {
+        startTransition(async () => {
+            const result = await archiveProjectAction(projectId, archiveReason);
+            if (result.error) {
+                toast.error("Failed to archive: " + result.error);
+            } else {
+                toast.success("Project archived");
+                setShowArchiveDialog(false);
+                router.push("/dashboard/projects/archive");
+            }
+        });
+    }
 
     return (
         <div className="space-y-6">
@@ -298,7 +324,7 @@ export default function OverviewClient({
             </div>
 
             {/* ── Quick Actions ────────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-start">
                 <Link href={p("/dashboard/projects/p-and-l")}
                     className="flex items-center gap-3 bg-slate-800/50 hover:bg-slate-700/60 border border-slate-700/50 hover:border-slate-600 rounded-xl p-4 transition-all group">
                     <div className="w-9 h-9 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-500/25 transition-colors">
@@ -343,6 +369,58 @@ export default function OverviewClient({
                     </div>
                 </Link>
             </div>
+
+            {/* ── Archive ──────────────────────────────────────────────────── */}
+            <div className="border-t border-slate-700/40 pt-4 flex justify-end">
+                <button
+                    onClick={() => setShowArchiveDialog(true)}
+                    className="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                    <Archive className="w-3.5 h-3.5" />
+                    Close & Archive Project
+                </button>
+            </div>
+
+            {/* ── Archive Dialog ────────────────────────────────────────────── */}
+            <Dialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
+                <DialogContent className="bg-slate-900 border-slate-700 text-slate-100 max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-white">Archive Project</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-2">
+                        <p className="text-sm text-slate-400">
+                            Archiving <strong className="text-slate-200">{project.name}</strong> will freeze all edits and save a financial snapshot. You can restore it at any time from the Archive.
+                        </p>
+                        <div className="space-y-1.5">
+                            <Label className="text-slate-300 text-sm">Completion notes <span className="text-slate-500">(optional)</span></Label>
+                            <Textarea
+                                placeholder="e.g. Project completed on programme, client satisfied, retention to be claimed in 6 months…"
+                                value={archiveReason}
+                                onChange={(e) => setArchiveReason(e.target.value)}
+                                className="bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500 resize-none"
+                                rows={3}
+                            />
+                        </div>
+                        <div className="flex gap-3 pt-1">
+                            <Button
+                                variant="outline"
+                                className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-800"
+                                onClick={() => setShowArchiveDialog(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                className="flex-1 bg-zinc-700 hover:bg-zinc-600 text-white"
+                                disabled={isPending}
+                                onClick={handleArchive}
+                            >
+                                <Archive className="w-4 h-4 mr-2" />
+                                {isPending ? "Archiving…" : "Archive Project"}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
         </div>
     );

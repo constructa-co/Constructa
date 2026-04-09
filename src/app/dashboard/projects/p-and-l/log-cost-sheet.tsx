@@ -56,6 +56,10 @@ export interface PlantResource {
   id: string;
   name: string;
   category: string;
+  // Rate mode
+  rate_mode: string;              // 'simple' | 'full'
+  daily_chargeout_rate: number;   // used in simple mode
+  // Full buildup fields
   purchase_price: number;
   depreciation_years: number;
   residual_value: number;
@@ -118,6 +122,7 @@ function calcStaffDailyChargeout(s: StaffResource): number {
 }
 
 function calcPlantDailyChargeout(p: PlantResource): number {
+  if (p.rate_mode === "simple") return p.daily_chargeout_rate;
   const annualDepreciation =
     p.depreciation_years > 0
       ? (p.purchase_price - p.residual_value) / p.depreciation_years

@@ -898,6 +898,31 @@ Full end-to-end workflow test: Brief → Estimate → Programme → Proposal →
 
 ---
 
+### Sprint 58 — Reporting Module *(client + internal)*
+Construction reporting is currently done in Word/WhatsApp. Constructa should generate branded reports in 2 clicks from live data.
+
+**Scope:**
+- **Weekly Progress Report** — programme % complete, cost to date vs budget, variations logged, issues/risks, next week's planned activities. Auto-populated from live project data. PDF export with contractor branding.
+- **Site Photos** — photo upload with date, location tag, activity tag. Stored per project. Included in progress reports. Before/after comparison view.
+- **Close-Out / Handover Report** — final programme, final account summary, defects log, O&M documents, warranties. Auto-generated PDF from project data.
+- **Client-Facing Dashboard** — read-only view (no login required, shareable link) showing programme, cost summary, latest progress report, photos.
+- **Internal Business Report** — across all live projects: total contract value, certified to date, cost to date, margin, cashflow forecast. Mirrors management accounts but presented as a one-page board report.
+- **Internal Project Report** — single project: full job P&L, WIP position, variation log, resource utilisation, programme status.
+
+**Key design principle:** Reports pull live data — never stale. Contractor clicks "Generate Report", reviews, sends. No data entry.
+
+---
+
+### Post-Sprint: AI-Assisted Testing & Pre-Launch Hardening
+Before sharing with real contractors:
+1. Claude Code (Chrome plugin) — systematic walkthrough of every workflow end-to-end
+2. Additional AI agents (ChatGPT Codex, Gemini, Perplexity) — independent probing for edge cases and UX friction
+3. Robert manual walkthrough
+4. Closed beta: 3–5 real contractors, structured feedback
+Goal: product that blows people's socks off on first use — not just functional but fast, intuitive, and genuinely better than their current system.
+
+---
+
 ### Post-Launch (not yet sprinted — future roadmap)
 - **Email/WhatsApp receipt capture** — forward a photo → auto-log cost entry via AI image parsing
 - **Voice-to-proposal** — describe job on phone → AI structures estimate
@@ -905,6 +930,27 @@ Full end-to-end workflow test: Brief → Estimate → Programme → Proposal →
 - **Push notifications** — overdue payments, variation decisions (requires native app or Web Push API)
 - **Multi-user / team accounts** — currently single-user per account; add `organisation_members` table and role-based access
 - **Client portal** — read-only login for client to view proposals, sign contracts, approve variations, track programme
+- **In-house accounting bolt-on** — full financial accounts, corporation tax, balance sheet as a £20/month add-on. Data already exists in Constructa (job P&Ls, overheads, invoices, cost basis). Build when data history is established and Xero integration is proven. Widens moat significantly — switching cost becomes very high.
+
+---
+
+### Long-Term Platform Vision (12–24 months post-launch)
+**Phase 1 — nail it for small contractors (current focus)**
+UK SME contractors £500k–£3m. Every workflow faster and better than their current cobbled-together system. One-stop shop.
+
+**Phase 2 — scale up-market**
+- Programme: compete with P6 / Asta Powerproject — multi-level WBS, resource-loaded programmes, critical path, float analysis
+- Estimating: compete with Candy — better UI, AI-assisted takeoff, live material pricing
+- CAD/BIM: compete with Bentley viewer, CostX — in-browser measurement, SketchUp-style modelling, rendering
+- Commercial: compete with Procore — full contract administration at scale, multi-tier subcontracting, NEC/JCT workflows
+- Planning AI: compete with nPlan / AnaPlan — predictive programme analytics, delay risk modelling
+
+**Phase 3 — full financial infrastructure**
+- In-house accounting package (bolt-on, see above)
+- Working capital / contractor finance
+- Client payment escrow
+
+**Key strategic insight:** Procore built upmarket from small contractors using the same playbook. The difference is Constructa is AI-native from day one — the ceiling is higher. Start by serving "Dave" better than anyone else, then grow up with customers as they scale.
 
 ---
 
@@ -942,11 +988,15 @@ Constructa currently solves: 3, 4, 5 (and partially 1 and 2 via Contract Shield 
 
 ## Product Vision
 
-**Stage 1 (now):** SaaS subscription tool for UK SME contractors
-**Stage 2:** Merchant procurement layer (Travis Perkins etc.) — group buying, price transparency
-**Stage 3:** Financial infrastructure — contractor working capital, client property finance, escrow stage payments, accountancy software integration
+**Mission:** One-stop shop for contractors to run their entire business — from first estimate to final account and beyond.
 
-Target: UK SME contractors £500k–£10m turnover
+**Stage 1 (now):** SaaS for UK SME contractors £500k–£3m. Nail the core workflow. Ship reporting. Harden UX. Go live.
+**Stage 2:** Scale up-market — programme, estimating, CAD/BIM tools that compete with P6, Candy, CostX, Procore for larger contractors.
+**Stage 3:** Financial infrastructure — in-house accounting bolt-on (corporation tax, balance sheet, VAT), working capital, escrow stage payments.
+
+**Strategic positioning:** AI-native construction OS. Not a feature-add to existing tools — a replacement for the entire stack.
+
+Target: UK SME contractors £500k–£10m turnover (Stage 1), major contractors (Stage 2+)
 Entry hook: Proposal tool → win work faster with professional proposals
 Key metric: First sent proposal under 10 minutes from signup
 

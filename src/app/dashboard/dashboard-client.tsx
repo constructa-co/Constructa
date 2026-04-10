@@ -469,7 +469,6 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                             {i < arr.length - 1 && <span className={isDark ? "text-[#303030]" : "text-gray-200"}>→</span>}
                         </span>
                     ))}
-                    <span className={`ml-auto ${isDark ? "text-[#404040]" : "text-gray-300"}`}>Hover stage name for details</span>
                 </div>
             )}
 

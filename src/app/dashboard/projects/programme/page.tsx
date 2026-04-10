@@ -32,11 +32,12 @@ export default async function AsBuiltProgrammePage({ searchParams }: { searchPar
 
     const { data: project } = await supabase
         .from("projects")
-        .select("id, name, start_date, programme_phases, timeline_phases")
+        .select("id, name, start_date, programme_phases")
         .eq("id", projectId)
+        .eq("user_id", user.id)
         .single();
 
-    const phases: any[] = project?.programme_phases ?? project?.timeline_phases ?? [];
+    const phases: any[] = project?.programme_phases ?? [];
 
     return (
         <div className="max-w-7xl mx-auto p-8 space-y-6">

@@ -208,7 +208,7 @@ export default function ClientEditor({
         project?.proposal_introduction || initialBriefScope || ""
     );
     const [scope, setScope] = useState(
-        initialScope || initialBriefScope || ""
+        initialScope || ""
     );
     const [exclusions, setExclusions] = useState(
         initialExclusions || initialContractExclusions || ""
@@ -258,7 +258,6 @@ export default function ClientEditor({
     const [paymentScheduleType, setPaymentScheduleType] = useState<"percentage" | "milestone">(
         project?.payment_schedule_type || "percentage"
     );
-    const [useEstimatedTotal, setUseEstimatedTotal] = useState(estimatedTotal > 0);
 
     const [pricingMode, setPricingMode] = useState<"full" | "summary">("full");
     const [validityDays, setValidityDays] = useState(30);
@@ -368,8 +367,10 @@ export default function ClientEditor({
         });
     }
 
-    const contractValue = useEstimatedTotal && estimatedTotal > 0
-        ? estimatedTotal
+    const activeEst = estimates.find((e: any) => e.is_active) ?? estimates[0];
+    const computedContractSum = activeEst ? computeEstimateContractSum(activeEst).contractSum : 0;
+    const contractValue = computedContractSum > 0
+        ? computedContractSum
         : (project?.potential_value || 0);
 
     // Sequential mode: compute start dates iteratively
@@ -809,25 +810,6 @@ export default function ClientEditor({
                     </div>
                 </div>
 
-                {/* Estimator total banner */}
-                {estimatedTotal > 0 && !useEstimatedTotal && (
-                    <div className="flex items-center gap-3 px-4 py-3 bg-blue-950/40 border border-blue-700 rounded-xl">
-                        <Info className="w-5 h-5 text-blue-300 flex-shrink-0" />
-                        <div className="flex-1">
-                            <p className="text-sm font-semibold text-blue-200">
-                                Your estimator total is £{Number(estimatedTotal).toLocaleString("en-GB")} — use this as the contract value?
-                            </p>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => setUseEstimatedTotal(true)}
-                            className="text-xs font-bold text-blue-300 hover:text-blue-200 whitespace-nowrap border border-blue-700 rounded-lg px-3 py-1.5 hover:bg-blue-900/30 transition-colors"
-                        >
-                            Yes, use it
-                        </button>
-                    </div>
-                )}
-
                 {/* SECTION 3: Client Introduction */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
                     <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
@@ -890,14 +872,9 @@ export default function ClientEditor({
                         </Button>
                     </div>
                     <div className="p-6">
-                        {scopePreFilled && (
-                            <div className="text-xs text-blue-400 bg-blue-500/10 border border-blue-500/30 px-3 py-1.5 rounded mb-2">
-                                Pre-filled from Brief — edit as needed
-                            </div>
-                        )}
                         <p className="text-xs text-slate-500 mb-3">Full scope narrative describing all works to be carried out.</p>
                         {scopePreFilled && (
-                            <div className="text-xs text-blue-400 bg-blue-900/20 border border-blue-800/30 px-3 py-1.5 rounded mb-2">
+                            <div className="text-xs text-blue-400 bg-blue-500/10 border border-blue-500/30 px-3 py-1.5 rounded mb-2">
                                 Pre-filled from Brief — edit as needed
                             </div>
                         )}
@@ -909,7 +886,7 @@ export default function ClientEditor({
                         <Textarea
                             value={scope}
                             onChange={(e) => setScope(e.target.value)}
-                            className="w-full border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-600 focus-visible:ring-blue-600 min-h-[200px] text-sm leading-relaxed font-mono"
+                            className="w-full border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-600 focus-visible:ring-blue-600 min-h-[200px] text-sm leading-relaxed"
                             placeholder="Describe the physical works to be carried out. Use AI to draft from your bill of quantities..."
                         />
                     </div>

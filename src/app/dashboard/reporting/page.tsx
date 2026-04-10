@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import ReportingClient from "./reporting-client";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export default async function ReportingPage({
   searchParams,
@@ -18,9 +19,9 @@ export default async function ReportingPage({
   // Fetch all projects for selectors
   const { data: projects } = await supabase
     .from("projects")
-    .select("id, name, client_name, project_type, status, start_date, end_date, potential_value")
+    .select("id, name, client_name, project_type, status, start_date, potential_value")
     .eq("user_id", user.id)
-    .order("updated_at", { ascending: false });
+    .order("created_at", { ascending: false });
 
   const projectIds = (projects ?? []).map((p: any) => p.id);
 

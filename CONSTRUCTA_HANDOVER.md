@@ -826,19 +826,24 @@ OAuth2 connect/disconnect flow, auto token refresh (5-min expiry buffer), push A
 
 **Codebase at close of Sprint 50:** 230 TypeScript files · ~54,000 lines · 74 migrations · 20 dashboard routes · live on Vercel
 
-### 🔜 Sprint 51 — Resource Planning & Staff Allocation ← START HERE
-Cross-project labour management. Contractors currently have no way to see whether they have people available across their pipeline.
+### ✅ Sprint 51 — Resource Planning & Portfolio Management *(10 April 2026)*
+Portfolio-level labour management. CSS Gantt timeline showing all projects + staff across the full portfolio horizon.
 
-**Scope:**
-- `staff_allocations` table: `staff_resource_id`, `project_id`, `user_id`, `week_starting` (Monday), `allocated_days` NUMERIC
-- `staff_absence` table: `staff_resource_id`, `user_id`, `absence_type` (Holiday/Sick/Training), `start_date`, `end_date`
-- `/dashboard/resources/staff/allocations` — weekly grid view per person; columns = projects; cells = days allocated; colour-coded (green <80% capacity, amber 80–100%, red over)
-- Cross-project summary: total allocated days vs available days per person per week
-- Over-allocation alert strip on Home Dashboard for any person >100% in the next 4 weeks
-- Demand vs supply view: compare `estimated_manhours` from estimate lines against allocated days per project
-- Weekly schedule export (PDF/CSV) — who is where, which week
+**Delivered:**
+- `resource_allocations` table: staff ↔ project date-range assignments, `role_placeholder` for unnamed/bid-stage, `is_confirmed` for tentative, `days_per_week`, RLS
+- `staff_absence` table: Holiday/Sick/Training/Other with date range, RLS
+- `staff_type` column on `staff_resources`: `direct_labour` | `overhead` (feeds management accounts overhead absorption)
+- `/dashboard/resources/portfolio` — 3-tab client component:
+  - **Portfolio Timeline** — CSS Gantt; project rows with coloured phase segments; staff rows split into Direct Labour / Overhead sections; gap overlays (amber dashed); conflict rings (red); absence blocks; today line
+  - **Manage Allocations** — CRUD form for allocations + quick absence add; grouped by project
+  - **Demand vs Supply** — estimate manhours → trade sections vs allocated days; cross-project trade summary table with gap/over-allocation colour coding
+- KPI strip (projects, staff, conflicts), conflict alert banner
+- `sidebar-nav.tsx` updated — Resources section added above Reporting with Resource Portfolio link
+- Migration: `20260410000000_sprint51_resource_planning.sql` applied to Supabase
 
-**Key tables to read:** `staff_resources`, `estimate_line_components` (manhours), `project_schedules` (dates), `projects`
+**Key files:** `src/app/dashboard/resources/portfolio/` (page.tsx, portfolio-client.tsx, actions.ts), migration above
+
+**Future hook:** Management Accounts Key Ratios → query `staff_type = 'overhead'` for overhead headcount / absorption rate
 
 ---
 

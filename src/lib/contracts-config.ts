@@ -1,0 +1,734 @@
+// ─── Constructa Contract Administration Engine ────────────────────────────────
+// Config-driven rules for NEC / JCT / FIDIC contract suites.
+// Rules live here (immutable per contract type); DB holds project-specific instances.
+
+export type ContractSuite = "NEC" | "JCT" | "FIDIC" | "BESPOKE";
+
+export type ContractType =
+  | "NEC4_ECC"
+  | "NEC3_ECC"
+  | "NEC4_PSC"
+  | "NEC3_PSC"
+  | "JCT_SBC"
+  | "JCT_DB"
+  | "JCT_IC"
+  | "JCT_MW"
+  | "FIDIC_RED_1999"
+  | "FIDIC_YELLOW_1999"
+  | "FIDIC_SILVER_1999"
+  | "FIDIC_RED_2017"
+  | "FIDIC_YELLOW_2017"
+  | "BESPOKE";
+
+export type ObligationParty = "contractor" | "employer" | "supervisor";
+
+export interface ObligationTemplate {
+  type: string;
+  label: string;
+  clauseRef: string;
+  party: ObligationParty;
+  daysFromAward?: number;            // one-off, triggered at contract award
+  recurring?: "monthly" | "weekly";  // ongoing cycle
+}
+
+export interface EventStep {
+  step: string;
+  label: string;
+  party: ObligationParty;
+  daysFromPrevious: number;
+  clauseRef: string;
+  actionType: "notify" | "respond" | "submit" | "assess" | "certify" | "pay";
+  // if true, no response = deemed acceptance by other party
+  deemedAcceptance?: boolean;
+}
+
+export interface EventConfig {
+  label: string;           // "Compensation Event" | "Variation" | "Claim" | "Extension of Time"
+  shortLabel: string;      // "CE" | "Var" | "Claim" | "EoT"
+  // Time bar: contractor must notify within N days of becoming aware. null = no hard bar.
+  contractorTimeBarDays: number | null;
+  timeBarClause: string | null;
+  // Ordered response chain created when event is raised
+  chain: EventStep[];
+}
+
+export interface PaymentCycle {
+  frequency: "monthly" | "fortnightly" | "on_application";
+  certificationDays: number;
+  paymentDays: number;        // from certification / assessment date
+  clauseRef: string;
+  applicationLabel: string;   // "Payment Application" | "Interim Application" | "Monthly Statement"
+}
+
+export interface ContractConfig {
+  label: string;
+  shortLabel: string;
+  suite: ContractSuite;
+  // Human-readable terminology mapped to a universal key
+  terminology: {
+    supervisor: string;        // "Project Manager" | "Architect" | "Engineer"
+    mainEvent: string;         // "Compensation Event" | "Variation" | "Claim"
+    earlyWarning: string;      // "Early Warning" | "Notice" | "Notice"
+    programme: string;
+    paymentApp: string;
+    employer: string;          // "Client" | "Employer"
+  };
+  options: { value: string; label: string }[];   // NEC Option A–F, JCT flavours
+  // Obligations auto-created when contract is set up
+  onAward: ObligationTemplate[];
+  // Events that can be raised on this contract type
+  events: Record<string, EventConfig>;
+  payment: PaymentCycle;
+}
+
+// ─── NEC4 ECC ─────────────────────────────────────────────────────────────────
+
+const NEC4_ECC: ContractConfig = {
+  label: "NEC4 Engineering and Construction Contract",
+  shortLabel: "NEC4 ECC",
+  suite: "NEC",
+  terminology: {
+    supervisor:  "Project Manager",
+    mainEvent:   "Compensation Event",
+    earlyWarning: "Early Warning",
+    programme:   "Programme",
+    paymentApp:  "Payment Application",
+    employer:    "Client",
+  },
+  options: [
+    { value: "A", label: "Option A — Priced contract with activity schedule" },
+    { value: "B", label: "Option B — Priced contract with bill of quantities" },
+    { value: "C", label: "Option C — Target contract with activity schedule" },
+    { value: "D", label: "Option D — Target contract with bill of quantities" },
+    { value: "E", label: "Option E — Cost reimbursable contract" },
+    { value: "F", label: "Option F — Management contract" },
+  ],
+  onAward: [
+    {
+      type: "programme_submission",
+      label: "Submit first programme to Project Manager",
+      clauseRef: "31.3",
+      party: "contractor",
+      daysFromAward: 14,
+    },
+    {
+      type: "insurance_certificates",
+      label: "Provide insurance certificates",
+      clauseRef: "84.2",
+      party: "contractor",
+      daysFromAward: 14,
+    },
+    {
+      type: "monthly_progress_report",
+      label: "Monthly progress report to Project Manager",
+      clauseRef: "32.1",
+      party: "contractor",
+      recurring: "monthly",
+    },
+    {
+      type: "monthly_payment_application",
+      label: "Payment application (assessment date)",
+      clauseRef: "50.1",
+      party: "contractor",
+      recurring: "monthly",
+    },
+  ],
+  events: {
+    compensation_event: {
+      label: "Compensation Event",
+      shortLabel: "CE",
+      contractorTimeBarDays: 56,   // 8 weeks cl. 61.3
+      timeBarClause: "61.3",
+      chain: [
+        {
+          step: "contractor_notifies_ce",
+          label: "Contractor notifies CE",
+          party: "contractor",
+          daysFromPrevious: 0,
+          clauseRef: "61.3",
+          actionType: "notify",
+        },
+        {
+          step: "pm_decides_ce",
+          label: "PM decides: CE or not a CE",
+          party: "supervisor",
+          daysFromPrevious: 7,
+          clauseRef: "61.4",
+          actionType: "respond",
+          deemedAcceptance: true,
+        },
+        {
+          step: "contractor_submits_quotation",
+          label: "Contractor submits quotation",
+          party: "contractor",
+          daysFromPrevious: 21,
+          clauseRef: "62.3",
+          actionType: "submit",
+        },
+        {
+          step: "pm_replies_quotation",
+          label: "PM accepts, instructs revision, or makes own assessment",
+          party: "supervisor",
+          daysFromPrevious: 14,
+          clauseRef: "62.4",
+          actionType: "assess",
+          deemedAcceptance: true,   // cl. 62.6 — contractor notifies after 2 weeks silence
+        },
+      ],
+    },
+    pm_notifies_ce: {
+      label: "CE Notified by PM",
+      shortLabel: "CE (PM)",
+      contractorTimeBarDays: null,
+      timeBarClause: null,
+      chain: [
+        {
+          step: "pm_notifies_ce",
+          label: "PM notifies compensation event",
+          party: "supervisor",
+          daysFromPrevious: 0,
+          clauseRef: "61.1",
+          actionType: "notify",
+        },
+        {
+          step: "contractor_submits_quotation",
+          label: "Contractor submits quotation",
+          party: "contractor",
+          daysFromPrevious: 21,
+          clauseRef: "62.3",
+          actionType: "submit",
+        },
+        {
+          step: "pm_replies_quotation",
+          label: "PM accepts, instructs revision, or makes own assessment",
+          party: "supervisor",
+          daysFromPrevious: 14,
+          clauseRef: "62.4",
+          actionType: "assess",
+          deemedAcceptance: true,
+        },
+      ],
+    },
+    early_warning: {
+      label: "Early Warning",
+      shortLabel: "EW",
+      contractorTimeBarDays: null,
+      timeBarClause: null,
+      chain: [
+        {
+          step: "ew_raised",
+          label: "Early Warning raised",
+          party: "contractor",
+          daysFromPrevious: 0,
+          clauseRef: "15.1",
+          actionType: "notify",
+        },
+        {
+          step: "risk_reduction_meeting",
+          label: "Risk Reduction Meeting",
+          party: "supervisor",
+          daysFromPrevious: 14,
+          clauseRef: "15.4",
+          actionType: "respond",
+        },
+      ],
+    },
+    programme_submission: {
+      label: "Programme Submission",
+      shortLabel: "Prog",
+      contractorTimeBarDays: null,
+      timeBarClause: null,
+      chain: [
+        {
+          step: "contractor_submits_programme",
+          label: "Contractor submits revised programme",
+          party: "contractor",
+          daysFromPrevious: 0,
+          clauseRef: "32.2",
+          actionType: "submit",
+        },
+        {
+          step: "pm_accepts_programme",
+          label: "PM accepts or notifies reasons for not accepting",
+          party: "supervisor",
+          daysFromPrevious: 14,
+          clauseRef: "31.3",
+          actionType: "respond",
+        },
+      ],
+    },
+  },
+  payment: {
+    frequency: "monthly",
+    certificationDays: 7,    // cl. 50.1 — within 1 week of assessment date
+    paymentDays: 21,         // cl. 51.2 — 3 weeks from assessment date
+    clauseRef: "50–51",
+    applicationLabel: "Payment Application",
+  },
+};
+
+// ─── NEC3 ECC — same structure, slightly different clauses ───────────────────
+
+const NEC3_ECC: ContractConfig = {
+  ...NEC4_ECC,
+  label: "NEC3 Engineering and Construction Contract",
+  shortLabel: "NEC3 ECC",
+  events: {
+    ...NEC4_ECC.events,
+    compensation_event: {
+      ...NEC4_ECC.events.compensation_event,
+      chain: NEC4_ECC.events.compensation_event.chain.map(s =>
+        s.step === "pm_decides_ce" ? { ...s, clauseRef: "61.4", daysFromPrevious: 7 } : s
+      ),
+    },
+  },
+};
+
+// ─── JCT SBC 2016 ─────────────────────────────────────────────────────────────
+
+const JCT_SBC: ContractConfig = {
+  label: "JCT Standard Building Contract 2016",
+  shortLabel: "JCT SBC",
+  suite: "JCT",
+  terminology: {
+    supervisor:  "Architect / Contract Administrator",
+    mainEvent:   "Variation",
+    earlyWarning: "Notice",
+    programme:   "Master Programme",
+    paymentApp:  "Interim Application",
+    employer:    "Employer",
+  },
+  options: [
+    { value: "SBC_Q", label: "SBC/Q — With Quantities" },
+    { value: "SBC_XQ", label: "SBC/XQ — Without Quantities" },
+    { value: "SBC_AQ", label: "SBC/AQ — Approximate Quantities" },
+  ],
+  onAward: [
+    {
+      type: "master_programme",
+      label: "Provide Master Programme",
+      clauseRef: "2.9.1",
+      party: "contractor",
+      daysFromAward: 14,
+    },
+    {
+      type: "insurance_policies",
+      label: "Provide evidence of insurance policies",
+      clauseRef: "6.1",
+      party: "contractor",
+      daysFromAward: 14,
+    },
+    {
+      type: "monthly_interim_application",
+      label: "Monthly interim valuation / application",
+      clauseRef: "4.8",
+      party: "contractor",
+      recurring: "monthly",
+    },
+  ],
+  events: {
+    variation: {
+      label: "Architect's Instruction / Variation",
+      shortLabel: "Var",
+      contractorTimeBarDays: null,
+      timeBarClause: null,
+      chain: [
+        {
+          step: "architect_issues_instruction",
+          label: "Architect issues instruction",
+          party: "supervisor",
+          daysFromPrevious: 0,
+          clauseRef: "3.10",
+          actionType: "notify",
+        },
+        {
+          step: "contractor_objection_window",
+          label: "Contractor may object (reasonable objection)",
+          party: "contractor",
+          daysFromPrevious: 7,
+          clauseRef: "3.10",
+          actionType: "respond",
+        },
+        {
+          step: "variation_valuation",
+          label: "Variation valued and included in interim",
+          party: "supervisor",
+          daysFromPrevious: 28,
+          clauseRef: "5.2",
+          actionType: "assess",
+        },
+      ],
+    },
+    extension_of_time: {
+      label: "Extension of Time",
+      shortLabel: "EoT",
+      contractorTimeBarDays: null,   // JCT: "forthwith" — not a hard bar in days
+      timeBarClause: "2.27.1",
+      chain: [
+        {
+          step: "contractor_notifies_relevant_event",
+          label: "Contractor notifies Relevant Event forthwith",
+          party: "contractor",
+          daysFromPrevious: 0,
+          clauseRef: "2.27.1",
+          actionType: "notify",
+        },
+        {
+          step: "contractor_provides_particulars",
+          label: "Contractor provides further particulars and estimate",
+          party: "contractor",
+          daysFromPrevious: 14,
+          clauseRef: "2.27.2",
+          actionType: "submit",
+        },
+        {
+          step: "architect_fixes_new_date",
+          label: "Architect fixes new Completion Date",
+          party: "supervisor",
+          daysFromPrevious: 84,    // 12 weeks cl. 2.28.1
+          clauseRef: "2.28.1",
+          actionType: "assess",
+        },
+      ],
+    },
+    loss_and_expense: {
+      label: "Loss and Expense",
+      shortLabel: "L&E",
+      contractorTimeBarDays: null,
+      timeBarClause: "4.20",
+      chain: [
+        {
+          step: "contractor_makes_application",
+          label: "Contractor makes application for L&E",
+          party: "contractor",
+          daysFromPrevious: 0,
+          clauseRef: "4.20.1",
+          actionType: "notify",
+        },
+        {
+          step: "contractor_provides_information",
+          label: "Contractor provides further information on request",
+          party: "contractor",
+          daysFromPrevious: 14,
+          clauseRef: "4.20.2",
+          actionType: "submit",
+        },
+        {
+          step: "architect_ascertains_amount",
+          label: "Architect / QS ascertains amount",
+          party: "supervisor",
+          daysFromPrevious: 28,
+          clauseRef: "4.20.3",
+          actionType: "assess",
+        },
+      ],
+    },
+  },
+  payment: {
+    frequency: "monthly",
+    certificationDays: 5,    // cl. 4.9 — 5 working days
+    paymentDays: 14,         // cl. 4.13.1 — 14 days from cert
+    clauseRef: "4.8–4.15",
+    applicationLabel: "Interim Application",
+  },
+};
+
+const JCT_DB: ContractConfig = {
+  ...JCT_SBC,
+  label: "JCT Design and Build Contract 2016",
+  shortLabel: "JCT D&B",
+  options: [{ value: "DB_2016", label: "Design and Build 2016" }],
+  terminology: {
+    ...JCT_SBC.terminology,
+    supervisor: "Employer's Agent",
+  },
+};
+
+const JCT_IC: ContractConfig = {
+  ...JCT_SBC,
+  label: "JCT Intermediate Building Contract 2016",
+  shortLabel: "JCT IC",
+  options: [
+    { value: "IC_2016", label: "IC/2016 — Without Contractor's Design" },
+    { value: "ICD_2016", label: "ICD/2016 — With Contractor's Design" },
+  ],
+};
+
+const JCT_MW: ContractConfig = {
+  ...JCT_SBC,
+  label: "JCT Minor Works Building Contract 2016",
+  shortLabel: "JCT MW",
+  options: [
+    { value: "MW_2016", label: "MW/2016" },
+    { value: "MWD_2016", label: "MWD/2016 — With Contractor's Design" },
+  ],
+};
+
+// ─── FIDIC Red Book 1999 ──────────────────────────────────────────────────────
+
+const FIDIC_RED_1999: ContractConfig = {
+  label: "FIDIC Conditions of Contract for Construction (Red Book) 1999",
+  shortLabel: "FIDIC Red",
+  suite: "FIDIC",
+  terminology: {
+    supervisor:  "Engineer",
+    mainEvent:   "Claim",
+    earlyWarning: "Notice",
+    programme:   "Programme",
+    paymentApp:  "Monthly Statement",
+    employer:    "Employer",
+  },
+  options: [
+    { value: "RED_1999", label: "Red Book 1999 (Employer-designed)" },
+  ],
+  onAward: [
+    {
+      type: "programme_submission",
+      label: "Submit detailed programme",
+      clauseRef: "8.3",
+      party: "contractor",
+      daysFromAward: 28,
+    },
+    {
+      type: "cash_flow_forecast",
+      label: "Submit cash flow forecast",
+      clauseRef: "14.4",
+      party: "contractor",
+      daysFromAward: 28,
+    },
+    {
+      type: "monthly_statement",
+      label: "Monthly statement to Engineer",
+      clauseRef: "14.3",
+      party: "contractor",
+      recurring: "monthly",
+    },
+  ],
+  events: {
+    claim: {
+      label: "Contractor's Claim",
+      shortLabel: "Claim",
+      contractorTimeBarDays: 28,   // cl. 20.1 — 28 days of becoming aware
+      timeBarClause: "20.1",
+      chain: [
+        {
+          step: "contractor_notices_claim",
+          label: "Contractor gives notice of claim",
+          party: "contractor",
+          daysFromPrevious: 0,
+          clauseRef: "20.1",
+          actionType: "notify",
+        },
+        {
+          step: "contractor_submits_detailed_claim",
+          label: "Contractor submits fully detailed claim",
+          party: "contractor",
+          daysFromPrevious: 42,
+          clauseRef: "20.1",
+          actionType: "submit",
+        },
+        {
+          step: "engineer_responds",
+          label: "Engineer responds to claim",
+          party: "supervisor",
+          daysFromPrevious: 42,
+          clauseRef: "20.1",
+          actionType: "respond",
+        },
+      ],
+    },
+    engineer_instruction: {
+      label: "Engineer's Instruction / Variation",
+      shortLabel: "EI",
+      contractorTimeBarDays: null,
+      timeBarClause: null,
+      chain: [
+        {
+          step: "engineer_issues_instruction",
+          label: "Engineer issues instruction",
+          party: "supervisor",
+          daysFromPrevious: 0,
+          clauseRef: "13.1",
+          actionType: "notify",
+        },
+        {
+          step: "contractor_gives_notice",
+          label: "Contractor gives notice if instruction causes delay/cost",
+          party: "contractor",
+          daysFromPrevious: 28,
+          clauseRef: "20.1",
+          actionType: "notify",
+        },
+        {
+          step: "engineer_agrees_adjustment",
+          label: "Engineer agrees Time/Cost adjustment",
+          party: "supervisor",
+          daysFromPrevious: 42,
+          clauseRef: "13.3",
+          actionType: "assess",
+        },
+      ],
+    },
+  },
+  payment: {
+    frequency: "monthly",
+    certificationDays: 28,   // cl. 14.6 — Engineer certifies within 28 days
+    paymentDays: 56,         // cl. 14.7 — payment within 56 days of statement
+    clauseRef: "14.3–14.7",
+    applicationLabel: "Monthly Statement",
+  },
+};
+
+const FIDIC_YELLOW_1999: ContractConfig = {
+  ...FIDIC_RED_1999,
+  label: "FIDIC Conditions of Contract for Plant and Design-Build (Yellow Book) 1999",
+  shortLabel: "FIDIC Yellow",
+  options: [{ value: "YELLOW_1999", label: "Yellow Book 1999 (Contractor-designed)" }],
+  terminology: {
+    ...FIDIC_RED_1999.terminology,
+    supervisor: "Engineer",
+  },
+};
+
+const FIDIC_SILVER_1999: ContractConfig = {
+  ...FIDIC_RED_1999,
+  label: "FIDIC Conditions of Contract for EPC/Turnkey Projects (Silver Book) 1999",
+  shortLabel: "FIDIC Silver",
+  options: [{ value: "SILVER_1999", label: "Silver Book 1999 (EPC/Turnkey)" }],
+};
+
+const FIDIC_RED_2017: ContractConfig = {
+  ...FIDIC_RED_1999,
+  label: "FIDIC Conditions of Contract for Construction (Red Book) 2017",
+  shortLabel: "FIDIC Red 2017",
+  options: [{ value: "RED_2017", label: "Red Book 2017 (Employer-designed)" }],
+  events: {
+    ...FIDIC_RED_1999.events,
+    claim: {
+      ...FIDIC_RED_1999.events.claim,
+      // 2017 edition: 28 days still applies cl. 20.2.1
+      chain: FIDIC_RED_1999.events.claim.chain.map(s =>
+        s.step === "engineer_responds" ? { ...s, daysFromPrevious: 84 } : s // 2017: 84 days to agree/determine
+      ),
+    },
+  },
+};
+
+const FIDIC_YELLOW_2017: ContractConfig = {
+  ...FIDIC_RED_2017,
+  label: "FIDIC Conditions of Contract for Plant and Design-Build (Yellow Book) 2017",
+  shortLabel: "FIDIC Yellow 2017",
+  options: [{ value: "YELLOW_2017", label: "Yellow Book 2017 (Contractor-designed)" }],
+};
+
+const BESPOKE: ContractConfig = {
+  label: "Bespoke / Other Contract",
+  shortLabel: "Bespoke",
+  suite: "BESPOKE",
+  terminology: {
+    supervisor:  "Contract Administrator",
+    mainEvent:   "Variation / Claim",
+    earlyWarning: "Notice",
+    programme:   "Programme",
+    paymentApp:  "Payment Application",
+    employer:    "Employer",
+  },
+  options: [{ value: "BESPOKE", label: "Bespoke" }],
+  onAward: [],
+  events: {
+    event: {
+      label: "Event / Notice",
+      shortLabel: "Event",
+      contractorTimeBarDays: null,
+      timeBarClause: null,
+      chain: [
+        {
+          step: "event_raised",
+          label: "Event / Notice raised",
+          party: "contractor",
+          daysFromPrevious: 0,
+          clauseRef: "—",
+          actionType: "notify",
+        },
+        {
+          step: "response_due",
+          label: "Response due",
+          party: "supervisor",
+          daysFromPrevious: 28,
+          clauseRef: "—",
+          actionType: "respond",
+        },
+      ],
+    },
+  },
+  payment: {
+    frequency: "monthly",
+    certificationDays: 14,
+    paymentDays: 30,
+    clauseRef: "—",
+    applicationLabel: "Payment Application",
+  },
+};
+
+// ─── Master config map ────────────────────────────────────────────────────────
+
+export const CONTRACTS_CONFIG: Record<ContractType, ContractConfig> = {
+  NEC4_ECC,
+  NEC3_ECC,
+  NEC4_PSC: { ...NEC4_ECC, label: "NEC4 Professional Services Contract", shortLabel: "NEC4 PSC" },
+  NEC3_PSC: { ...NEC3_ECC, label: "NEC3 Professional Services Contract", shortLabel: "NEC3 PSC" },
+  JCT_SBC,
+  JCT_DB,
+  JCT_IC,
+  JCT_MW,
+  FIDIC_RED_1999,
+  FIDIC_YELLOW_1999,
+  FIDIC_SILVER_1999,
+  FIDIC_RED_2017,
+  FIDIC_YELLOW_2017,
+  BESPOKE,
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** All contract types grouped by suite for UI selectors */
+export const CONTRACT_TYPE_OPTIONS: { value: ContractType; label: string; suite: ContractSuite }[] = [
+  { value: "NEC4_ECC",         label: "NEC4 Engineering and Construction Contract",  suite: "NEC" },
+  { value: "NEC3_ECC",         label: "NEC3 Engineering and Construction Contract",  suite: "NEC" },
+  { value: "NEC4_PSC",         label: "NEC4 Professional Services Contract",         suite: "NEC" },
+  { value: "NEC3_PSC",         label: "NEC3 Professional Services Contract",         suite: "NEC" },
+  { value: "JCT_SBC",          label: "JCT Standard Building Contract 2016",         suite: "JCT" },
+  { value: "JCT_DB",           label: "JCT Design and Build Contract 2016",          suite: "JCT" },
+  { value: "JCT_IC",           label: "JCT Intermediate Building Contract 2016",     suite: "JCT" },
+  { value: "JCT_MW",           label: "JCT Minor Works Building Contract 2016",      suite: "JCT" },
+  { value: "FIDIC_RED_1999",   label: "FIDIC Red Book 1999",                         suite: "FIDIC" },
+  { value: "FIDIC_YELLOW_1999",label: "FIDIC Yellow Book 1999",                      suite: "FIDIC" },
+  { value: "FIDIC_SILVER_1999",label: "FIDIC Silver Book 1999 (EPC/Turnkey)",        suite: "FIDIC" },
+  { value: "FIDIC_RED_2017",   label: "FIDIC Red Book 2017",                         suite: "FIDIC" },
+  { value: "FIDIC_YELLOW_2017",label: "FIDIC Yellow Book 2017",                      suite: "FIDIC" },
+  { value: "BESPOKE",          label: "Bespoke / Other Contract",                   suite: "BESPOKE" },
+];
+
+/** Add N calendar days to a date string (YYYY-MM-DD) */
+export function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split("T")[0];
+}
+
+/** Days remaining until a due date (negative = overdue) */
+export function daysUntil(dueDateStr: string): number {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const due = new Date(dueDateStr);
+  return Math.round((due.getTime() - now.getTime()) / 86_400_000);
+}
+
+/** RAG status for an obligation */
+export function obligationRag(dueDateStr: string, status: string): "red" | "amber" | "green" | "done" {
+  if (status === "complete") return "done";
+  const d = daysUntil(dueDateStr);
+  if (d < 0) return "red";
+  if (d <= 7) return "amber";
+  return "green";
+}

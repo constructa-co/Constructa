@@ -864,12 +864,28 @@ All code is already built (Sprint 44). Activate by adding env vars to Vercel:
 
 ---
 
-### Sprint 54 — QuickBooks / Sage Integration *(deferred — external dependency)*
+### ✅ Sprint 54 — Accounting Reconciliation *(10 April 2026)*
+**Delivered:**
+- Bank CSV import: column auto-detection (date/description/reference/amount/balance/debit+credit), preview before commit, batch tracking
+- Auto-match: credits matched to unpaid invoices by amount (±2p), date proximity (60 days), invoice number in reference (+confidence boost)
+- Reconciliation UI: match to invoice / categorise as expense / mark unmatched; edit/unmatch any row
+- Company P&L: 12-month revenue (paid invoices), direct costs (project_expenses actual), gross margin, overhead costs, net profit — monthly breakdown table
+- Aged Debtors: portfolio view, current / 1-30 / 31-60 / 61-90 / 90+ bands with total outstanding
+- VAT periods: output/input VAT, HMRC period key, open/submitted/paid status, net VAT due
+- Overhead costs CRUD: category breakdown with bar chart, VAT capture, supplier & reference fields
+- Schema: `bank_transactions`, `bank_reconciliation`, `vat_periods`, `overhead_costs` (new); `payment_schedule_milestones` patched (user_id added, RLS enabled); `archive_snapshots` confirmed existing
+- `/dashboard/accounting` route, Accounting link added to sidebar under Resources
+
+**Key files:** `src/app/dashboard/accounting/` (page.tsx, accounting-client.tsx, actions.ts), migration `20260410100000_sprint54_accounting_reconciliation.sql`
+
+---
+
+### Sprint 55 — QuickBooks / Sage Integration *(deferred — external dependency)*
 Same OAuth2 push/pull pattern as Xero. Unified sync settings page covering all three integrations (one active at a time). Build when there is demand from contractors using QB/Sage.
 
 ---
 
-### Sprint 55 — In-App CAD / BIM / Drawing Viewer *(strategic moat)*
+### Sprint 56 — In-App CAD / BIM / Drawing Viewer *(strategic moat)*
 Browser-native drawing viewer — the only SME contractor tool with in-app measurement. Closes the loop: client sends drawings → contractor measures → estimate lines auto-populate. No context switch out of Constructa.
 
 **Phase 1 — View & Measure:**
@@ -888,12 +904,11 @@ Browser-native drawing viewer — the only SME contractor tool with in-app measu
 
 ---
 
-### Sprint 56 — Accounting Reconciliation *(deferred — post-billing)*
-Bank feed CSV import, auto-match transactions to Constructa invoices, manual match UI, VAT period grouping, MTD-compatible HMRC export. Build after billing is live and contractors are generating real invoice volumes.
+### Sprint 57 — Polish, Testing & Pre-Launch QA *(renumbered)*
 
 ---
 
-### Sprint 57 — Polish, Testing & Pre-Launch QA
+### Sprint 57 — Polish, Testing & Pre-Launch QA *(was Sprint 57)*
 Full end-to-end workflow test: Brief → Estimate → Programme → Proposal → Win → Live → Billing → P&L → Final Account → Handover → Lessons Learned — run with real numbers. Fix any financial logic discrepancies. Full mobile responsive pass. Playwright smoke tests for the critical path. Fix all known bugs (listed below).
 
 ---
@@ -910,6 +925,40 @@ Construction reporting is currently done in Word/WhatsApp. Constructa should gen
 - **Internal Project Report** — single project: full job P&L, WIP position, variation log, resource utilisation, programme status.
 
 **Key design principle:** Reports pull live data — never stale. Contractor clicks "Generate Report", reviews, sends. No data entry.
+
+---
+
+### Sprint 59 — Contract Administration Suite *(post-launch, high-value add-on)*
+Universal contract management layer. CEMAR (now Thinkproject) only covers NEC — JCT (the most common form for SME contractors) is completely unserved by any equivalent tool. CEMAR is acknowledged by name in NEC4 contracts and costs £5k–£20k+/year — entirely inaccessible to small contractors.
+
+**Vision:** Multi-contract-suite administration tool + AI claims module. Can also be sold as a standalone product targeting claims consultants and lawyers.
+
+**Contract suites to support:**
+- **NEC3 / NEC4** — ECC, PSC, TSC, subcontracts. Compensation events (8-week time bar), early warnings, programme submissions, defined cost, PWDD
+- **JCT** — Design & Build, SBC, Intermediate, Minor Works, MTC, subcontracts. Extensions of time, loss & expense, interim valuations, practical completion, defects
+- **FIDIC** — Red/Yellow/Silver Book. Engineer's instructions, claims procedure, DAB/dispute board
+- **Bespoke contracts** — upload any contract → AI extracts key clauses, notice periods, obligations → builds custom workflow
+
+**Core features:**
+- Action dashboard: overdue obligations flagged with days remaining, time bar warnings (NEC 8-week CE notice is a career-saver for small contractors)
+- Automated notification drafts: AI pre-populates early warning notices, CE notifications, EoT applications from project data already in Constructa (programme, variations, costs)
+- Correspondence register: all contractual communications logged with clause references, sent/received/overdue status
+- Delegated authority settings: PM/CA/Engineer authorities per contract
+- Audit trail: full record for adjudication
+
+**Claims Module (AI-assisted, per-claim fee):**
+- Contractor uploads contract + relevant correspondence/documents
+- System already has: programme baseline, as-built dates, variations, costs — 80% of evidence assembled automatically
+- SCL Delay Analysis Protocol: As-Planned vs As-Built, Time Impact Analysis, Collapsed As-Built, Windows Analysis
+- AI drafts claim narrative, EOT application, loss & expense schedule, adjudication notice
+- Seeded with precedent claims corpus to reduce hallucination
+- Pricing model: per-claim fee (£50 CE notification → £250 EOT → £500–2,500 L&E → £2,500–5,000 full adjudication bundle)
+
+**Standalone product angle:** `constructa-claims.com` or similar — targeted at claims consultants and lawyers who don't use Constructa but want AI-assisted claim drafting. Same tech, second revenue stream.
+
+**Tech approach:** Contract type selector on project creation. Store as `contract_type` + `contract_data` JSONB (specific clauses, notice periods, parties) on `projects`. Build NEC first (cleanest workflow), then JCT, then bespoke upload.
+
+**Key tables needed:** `contract_obligations`, `contract_communications`, `contract_events` (EW/CE/EoT), `claims`
 
 ---
 

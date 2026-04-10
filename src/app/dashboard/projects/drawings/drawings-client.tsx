@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import type { DrawingExtraction, DrawingResultItem } from "./actions";
 import { analyzeDrawingPagesAction, addItemsToEstimateAction } from "./actions";
+import DrawingViewer from "./drawing-viewer";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -399,6 +400,7 @@ export default function DrawingsClient({ projectId, projectName, initialExtracti
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [uploadState, setUploadState] = useState<UploadState>("idle");
+    const [showViewer, setShowViewer] = useState(false);
     const [progress, setProgress] = useState<{ file: string; fileIndex: number; fileCount: number; page: number; pageTotal: number } | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [activeExtractions, setActiveExtractions] = useState<DrawingExtraction[]>([]);
@@ -529,6 +531,15 @@ export default function DrawingsClient({ projectId, projectName, initialExtracti
 
     return (
         <div className="space-y-6">
+            {/* Full-screen drawing viewer */}
+            {showViewer && (
+                <DrawingViewer
+                    projectId={projectId}
+                    projectName={projectName}
+                    onClose={() => setShowViewer(false)}
+                />
+            )}
+
             {/* Page header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -538,6 +549,13 @@ export default function DrawingsClient({ projectId, projectName, initialExtracti
                     </h1>
                     <p className="text-slate-400 text-sm mt-0.5">{projectName}</p>
                 </div>
+                <button
+                    onClick={() => setShowViewer(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded-lg transition-colors border border-slate-600"
+                >
+                    <FolderOpen className="w-4 h-4" />
+                    View &amp; Measure
+                </button>
             </div>
 
             {/* Upload zone */}

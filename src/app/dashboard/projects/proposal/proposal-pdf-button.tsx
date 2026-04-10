@@ -1643,23 +1643,11 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
         y = Math.max(riskLeftY, riskRightY) + 6;
     }
 
-    // ─── Closing Statement ──────────────────────────────────────
-    const closingText = project?.closing_statement ||
-        `Thank you for considering ${companyName} for this project. We are confident our expertise and commitment to quality make us the right choice. We look forward to delivering an outstanding result for you.`;
-    {
-        y = ensureSpace(doc, y, 30, companyName, docTitle, totalPagesRef, T);
-        y += 6;
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(10);
-        doc.setTextColor(...T.textDark);
-        const closingLines = doc.splitTextToSize(sanitiseText(closingText), CW);
-        doc.text(closingLines, ML, y);
-        y += closingLines.length * 5.5 + 10;
-    }
-
     // ═══════════════════════════════════════════════════════════
     // WHY CHOOSE US / CLOSING STATEMENT PAGE
     // ═══════════════════════════════════════════════════════════
+    const closingText = project?.closing_statement ||
+        `Thank you for considering ${companyName} for this project. We are confident our expertise and commitment to quality make us the right choice. We look forward to delivering an outstanding result for you.`;
     {
         doc.addPage();
         totalPagesRef.n++;
@@ -1737,9 +1725,18 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
             y += 28;
         }
 
+        // Closing statement
+        y += 10;
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(10);
+        doc.setTextColor(...T.textDark);
+        const closingLines = doc.splitTextToSize(sanitiseText(closingText), CW);
+        doc.text(closingLines, ML, y);
+        y += closingLines.length * 5.5 + 10;
+
         // MD sign-off
         if (profile?.md_name) {
-            y += 8;
+            y += 4;
             doc.setFont("helvetica", "italic");
             doc.setFontSize(10);
             doc.setTextColor(...T.textMid);

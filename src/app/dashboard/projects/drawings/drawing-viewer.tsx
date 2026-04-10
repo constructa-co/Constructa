@@ -4,13 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   X, ZoomIn, ZoomOut, Maximize2, Ruler, MousePointer,
   Triangle, Hash, Target, ChevronLeft, ChevronRight,
-  PlusCircle, Trash2, Download,
+  PlusCircle, Trash2, Download, Type, Square,
 } from "lucide-react";
 import { saveMeasurementsAction, addMeasurementsToEstimateAction } from "./measure-actions";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Tool = "pan" | "calibrate" | "linear" | "area" | "count";
+type Tool = "pan" | "calibrate" | "linear" | "area" | "count" | "text" | "highlight";
 
 interface Point { x: number; y: number }
 
@@ -22,6 +22,20 @@ interface Measurement {
   unit: string;
   label: string;
   tradeSection: string;
+}
+
+interface TextAnnotation {
+  id: string;
+  point: Point;
+  text: string;
+  colour: string;
+}
+
+interface Highlight {
+  id: string;
+  start: Point;
+  end: Point;
+  colour: string;
 }
 
 interface CalibrationState {
@@ -74,7 +88,11 @@ const TOOL_INFO: Record<Tool, { icon: React.ElementType; label: string; hint: st
   linear:    { icon: Ruler,        label: "Linear",    hint: "Click start then end point" },
   area:      { icon: Triangle,     label: "Area",      hint: "Click points, double-click to close" },
   count:     { icon: Hash,         label: "Count",     hint: "Click to place markers" },
+  text:      { icon: Type,         label: "Text",      hint: "Click to place a text annotation" },
+  highlight: { icon: Square,       label: "Highlight", hint: "Drag to draw a highlight box" },
 };
+
+const MARKUP_COLOURS = ["#fbbf24", "#ef4444", "#3b82f6", "#10b981", "#8b5cf6", "#f97316"];
 
 // ── PDF loader ────────────────────────────────────────────────────────────────
 
@@ -100,6 +118,13 @@ export default function DrawingViewer({ projectId, projectName, onClose }: Props
   const panOrigin = useRef<Point>({ x: 0, y: 0 });
 
   const [tool, setTool] = useState<Tool>("pan");
+  const [markupColour, setMarkupColour] = useState("#fbbf24");
+  const [textAnnotations, setTextAnnotations] = useState<TextAnnotation[]>([]);
+  const [highlights, setHighlights] = useState<Highlight[]>([]);
+  const [textInput, setTextInput] = useState<{ point: Point } | null>(null);
+  const [textInputValue, setTextInputValue] = useState("");
+  const [highlightStart, setHighlightStart] = useState<Point | null>(null);
+  const [highlightPreview, setHighlightPreview] = useState<{ start: Point; end: Point } | null>(null);
   const [calibration, setCalibration] = useState<CalibrationState>({ points: [], realDistance: null, pxPerMetre: null });
   const [calibDistInput, setCalibDistInput] = useState("");
   const [showCalibInput, setShowCalibInput] = useState(false);
@@ -300,6 +325,52 @@ export default function DrawingViewer({ projectId, projectName, onClose }: Props
       }
     }
 
+    // ── Draw highlights ────────────────────────────────────────────────────
+    for (const h of highlights) {
+      const w = h.end.x - h.start.x;
+      const ht = h.end.y - h.start.y;
+      ctx.fillStyle = h.colour + "33";
+      ctx.strokeStyle = h.colour;
+      ctx.lineWidth = 2 / zoom;
+      ctx.fillRect(h.start.x, h.start.y, w, ht);
+      ctx.strokeRect(h.start.x, h.start.y, w, ht);
+    }
+
+    // ── Highlight preview while dragging ──────────────────────────────────
+    if (highlightPreview) {
+      const w = highlightPreview.end.x - highlightPreview.start.x;
+      const ht = highlightPreview.end.y - highlightPreview.start.y;
+      ctx.fillStyle = markupColour + "22";
+      ctx.strokeStyle = markupColour;
+      ctx.lineWidth = 1.5 / zoom;
+      ctx.setLineDash([4 / zoom, 3 / zoom]);
+      ctx.fillRect(highlightPreview.start.x, highlightPreview.start.y, w, ht);
+      ctx.strokeRect(highlightPreview.start.x, highlightPreview.start.y, w, ht);
+      ctx.setLineDash([]);
+    }
+
+    // ── Draw text annotations ──────────────────────────────────────────────
+    for (const ann of textAnnotations) {
+      const fontSize = 14 / zoom;
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      const metrics = ctx.measureText(ann.text);
+      const padding = 4 / zoom;
+      // Background pill
+      ctx.fillStyle = ann.colour + "dd";
+      ctx.beginPath();
+      ctx.roundRect(
+        ann.point.x - padding,
+        ann.point.y - fontSize - padding,
+        metrics.width + padding * 2,
+        fontSize + padding * 2,
+        3 / zoom
+      );
+      ctx.fill();
+      // Text
+      ctx.fillStyle = "#fff";
+      ctx.fillText(ann.text, ann.point.x, ann.point.y);
+    }
+
     // ── Draw calibration points ────────────────────────────────────────────
     for (const pt of calibration.points) {
       ctx.beginPath();
@@ -362,7 +433,7 @@ export default function DrawingViewer({ projectId, projectName, onClose }: Props
       }
     }
 
-  }, [measurements, calibration, activePts, mousePos, tool, zoom, selectedMeasId]);
+  }, [measurements, calibration, activePts, mousePos, tool, zoom, selectedMeasId, highlights, highlightPreview, textAnnotations, markupColour]);
 
   // ── Mouse handlers ────────────────────────────────────────────────────────
 
@@ -434,6 +505,17 @@ export default function DrawingViewer({ projectId, projectName, onClose }: Props
       return;
     }
 
+    if (tool === "text") {
+      setTextInput({ point: pt });
+      setTextInputValue("");
+      return;
+    }
+
+    if (tool === "highlight") {
+      setHighlightStart(pt);
+      return;
+    }
+
     if (tool === "count") {
       // Add point to active count, or start new
       setActivePts(prev => {
@@ -474,11 +556,32 @@ export default function DrawingViewer({ projectId, projectName, onClose }: Props
         y: panOrigin.current.y + (e.clientY - panStart.current.y),
       });
     }
-  }, [toCanvasCoords, isPanning, tool]);
 
-  const handleMouseUp = useCallback(() => {
+    if (tool === "highlight" && highlightStart) {
+      setHighlightPreview({ start: highlightStart, end: pt });
+    }
+  }, [toCanvasCoords, isPanning, tool, highlightStart]);
+
+  const handleMouseUp = useCallback((e: React.MouseEvent) => {
     setIsPanning(false);
-  }, []);
+    if (tool === "highlight" && highlightStart && highlightPreview) {
+      const w = Math.abs(highlightPreview.end.x - highlightPreview.start.x);
+      const h = Math.abs(highlightPreview.end.y - highlightPreview.start.y);
+      if (w > 5 && h > 5) {
+        const start = {
+          x: Math.min(highlightStart.x, highlightPreview.end.x),
+          y: Math.min(highlightStart.y, highlightPreview.end.y),
+        };
+        const end = {
+          x: Math.max(highlightStart.x, highlightPreview.end.x),
+          y: Math.max(highlightStart.y, highlightPreview.end.y),
+        };
+        setHighlights(prev => [...prev, { id: crypto.randomUUID(), start, end, colour: markupColour }]);
+      }
+      setHighlightStart(null);
+      setHighlightPreview(null);
+    }
+  }, [tool, highlightStart, highlightPreview, markupColour]);
 
   const handleDblClick = useCallback((e: React.MouseEvent) => {
     if (tool === "area" && activePts.length >= 3) {
@@ -605,6 +708,17 @@ export default function DrawingViewer({ projectId, projectName, onClose }: Props
           </button>
         </div>
 
+        {/* Markup colour picker — shown for text/highlight tools */}
+        {(tool === "text" || tool === "highlight") && (
+          <div className="flex items-center gap-1.5 px-2">
+            {MARKUP_COLOURS.map(c => (
+              <button key={c} onClick={() => setMarkupColour(c)}
+                className={`w-5 h-5 rounded-full transition-all ${markupColour === c ? "ring-2 ring-white ring-offset-1 ring-offset-[#141414]" : ""}`}
+                style={{ background: c }} />
+            ))}
+          </div>
+        )}
+
         {/* Calibration status */}
         {calibration.pxPerMetre && (
           <span className="text-xs px-2 py-1 bg-emerald-500/15 text-emerald-400 rounded-full">
@@ -625,7 +739,7 @@ export default function DrawingViewer({ projectId, projectName, onClose }: Props
             {(Object.keys(TOOL_INFO) as Tool[]).map(t => {
               const { icon: Icon, label, hint } = TOOL_INFO[t];
               return (
-                <button key={t} onClick={() => { setTool(t); setActivePts([]); }}
+                <button key={t} onClick={() => { setTool(t); setActivePts([]); setHighlightStart(null); setHighlightPreview(null); setTextInput(null); }}
                   title={`${label}: ${hint}`}
                   className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
                     tool === t ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-white/10 hover:text-white"
@@ -782,6 +896,54 @@ export default function DrawingViewer({ projectId, projectName, onClose }: Props
           {tool === "calibrate" && calibration.points.length === 0 && <span>Click first point of known distance</span>}
           {tool === "calibrate" && calibration.points.length === 1 && <span className="text-amber-400">Click second point</span>}
           <span className="ml-auto">Scroll to zoom · Pan tool to drag</span>
+        </div>
+      )}
+
+      {/* Text annotation input */}
+      {textInput && (
+        <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl p-4 w-72 space-y-3">
+            <h3 className="text-white font-semibold text-sm">Add Text Annotation</h3>
+            <input
+              autoFocus
+              value={textInputValue}
+              onChange={e => setTextInputValue(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter" && textInputValue.trim()) {
+                  setTextAnnotations(prev => [...prev, {
+                    id: crypto.randomUUID(),
+                    point: textInput.point,
+                    text: textInputValue.trim(),
+                    colour: markupColour,
+                  }]);
+                  setTextInput(null);
+                  setTextInputValue("");
+                }
+                if (e.key === "Escape") { setTextInput(null); setTextInputValue(""); }
+              }}
+              placeholder="Type annotation…"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+            />
+            <div className="flex gap-2">
+              <button onClick={() => { setTextInput(null); setTextInputValue(""); }}
+                className="flex-1 py-2 rounded-lg bg-white/5 text-slate-300 text-sm hover:bg-white/10 transition-all">Cancel</button>
+              <button
+                onClick={() => {
+                  if (!textInputValue.trim()) return;
+                  setTextAnnotations(prev => [...prev, {
+                    id: crypto.randomUUID(),
+                    point: textInput.point,
+                    text: textInputValue.trim(),
+                    colour: markupColour,
+                  }]);
+                  setTextInput(null);
+                  setTextInputValue("");
+                }}
+                className="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-all">
+                Place
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

@@ -885,35 +885,29 @@ Same OAuth2 push/pull pattern as Xero. Unified sync settings page covering all t
 
 ---
 
-### Sprint 56 — In-App CAD / BIM / Drawing Viewer *(strategic moat)*
-Browser-native drawing viewer — the only SME contractor tool with in-app measurement. Closes the loop: client sends drawings → contractor measures → estimate lines auto-populate. No context switch out of Constructa.
+### ✅ Sprint 56 — Drawing Viewer & Measurement *(10 April 2026)*
+PDF/image viewer with interactive measurement tools built on existing `pdfjs-dist`. CAD/Revit/IFC deferred to post-launch Stage 2 — PDF is the standard deliverable at tender stage for SME contractors.
 
-**Phase 1 — View & Measure:**
-- PDF drawings: build on existing `pdfjs-dist` (Sprint 25) — add scale calibration + linear/area measurement overlay
-- DWG/DXF: `@dxfom/dxf-viewer` (open source, MIT) — renders in canvas, no Autodesk dependency
-- IFC (Revit exports): `web-ifc-viewer` — browser-native BIM model viewer
-- SketchUp: GLTF/OBJ export via Three.js
+**Delivered:**
+- Full-screen viewer: PDF (multi-page, 2.5x high-res render) + PNG/JPG/WebP
+- **Scale calibration** — click 2 points of known dimension, enter real distance → sets px/m ratio
+- **Linear measurement** — click start + end, live distance preview, tick marks, labelled line
+- **Area measurement** — polygon tool, double-click or click first point to close, area at centroid
+- **Count tool** — click to place markers, running total
+- **Text annotation** — click to place labelled text in chosen colour
+- **Highlight tool** — drag to draw semi-transparent rectangle overlay in chosen colour
+- 6-colour palette for markup tools
+- Zoom (scroll wheel + buttons), pan (drag), measurements redraw correctly at any zoom
+- Measurements panel: label each, assign trade section, delete individual items
+- Add to Estimate: pushes measurements as estimate line items to active estimate
+- Save measurements: persists to `drawing_measurements` table
+- "View & Measure" button added to existing Drawing AI Takeoff page
 
-**Phase 2 — Markup & Takeoff:**
-- `drawing_annotations` table: annotation layer persisted per drawing
-- AI element detection overlaid on canvas (existing GPT-4o Vision pipeline from Sprint 25)
-- One-click: annotated element → estimate line
-- Revision comparison: highlight changes between Rev A and Rev B
-
-**Tech decision:** Start with PDF measurement (zero new dependencies, immediate value). Add DXF next. IFC/SketchUp are Phase 2.
-
----
-
-### Sprint 57 — Polish, Testing & Pre-Launch QA *(renumbered)*
-
----
-
-### Sprint 57 — Polish, Testing & Pre-Launch QA *(was Sprint 57)*
-Full end-to-end workflow test: Brief → Estimate → Programme → Proposal → Win → Live → Billing → P&L → Final Account → Handover → Lessons Learned — run with real numbers. Fix any financial logic discrepancies. Full mobile responsive pass. Playwright smoke tests for the critical path. Fix all known bugs (listed below).
+**Future (Stage 2):** DXF native rendering (`@dxfom/dxf-viewer`), IFC viewer (`@thatopen/components`)
 
 ---
 
-### Sprint 58 — Reporting Module *(client + internal)*
+### Sprint 58 — Reporting Module *(client + internal)* ← NEXT
 Construction reporting is currently done in Word/WhatsApp. Constructa should generate branded reports in 2 clicks from live data.
 
 **Scope:**
@@ -962,6 +956,13 @@ Universal contract management layer. CEMAR (now Thinkproject) only covers NEC �
 
 ---
 
+### Sprint 57 — Polish, Testing & Pre-Launch QA *(LAST — most extensive)*
+Full end-to-end workflow test: Brief → Estimate → Programme → Proposal → Win → Live → Billing → P&L → Final Account → Handover → Lessons Learned — run with real numbers. Fix any financial logic discrepancies. Full mobile responsive pass. Playwright smoke tests for the critical path. Fix all known bugs. Improve proposal output quality and report outputs.
+
+**Scope for this sprint is deliberately broad** — by this point all features are in place and the focus shifts entirely to quality: speed, UX clarity, output quality (proposals, reports), edge case handling, and ensuring the full workflow flows without friction.
+
+---
+
 ### Post-Sprint: AI-Assisted Testing & Pre-Launch Hardening
 Before sharing with real contractors:
 1. Claude Code (Chrome plugin) — systematic walkthrough of every workflow end-to-end
@@ -969,6 +970,10 @@ Before sharing with real contractors:
 3. Robert manual walkthrough
 4. Closed beta: 3–5 real contractors, structured feedback
 Goal: product that blows people's socks off on first use — not just functional but fast, intuitive, and genuinely better than their current system.
+
+**After beta → Marketing site update** — rebuild/update constructa.co with accurate feature detail, screenshots, pricing, and case studies from beta users. Then go live.
+
+**Post-launch focus:** Make existing functions excellent before adding new ones. Outputs (proposals, reports) are the priority improvement after launch. CAD/Revit viewer, programme tools competing with P6/Asta, estimating competing with CostX/Candy — all Stage 2.
 
 ---
 

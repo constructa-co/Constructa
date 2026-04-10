@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 10 April 2026 (Sprint 58 complete — Reporting Module)
+**Last updated:** 10 April 2026 (Sprint 57 QA complete — 8 bugs fixed across 5 files)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -280,6 +280,12 @@ rate_buildups      — saved first-principles rate build-ups
 
 8. **Use `gpt-4o-mini` only** for all AI calls.
 
+9. **`projects` table — confirmed non-existent columns (DO NOT SELECT):**
+   - `updated_at` — does NOT exist; use `created_at` for ordering
+   - `end_date` — does NOT exist
+   - `timeline_phases` — does NOT exist; use `programme_phases` (JSONB)
+   Selecting any of these causes the entire Supabase query to return `null` silently (no error, just null data).
+
 ---
 
 ## Workflow: How the product works
@@ -505,13 +511,20 @@ Direct Cost (trade lines)
 1. Cover page
 2. About Us (company profile, MD message)
 3. Case studies (selected, full page each)
-4. Project Brief & Scope
-5. Fee Proposal (section totals, margins hidden, TOTAL INC. VAT primary)
+4. Project Brief & Scope (two-column: intro + overview left, scope bullets right)
+5. Fee Proposal (section totals, margins hidden, TOTAL INC. VAT primary, payment schedule)
 6. Project Timeline (Gantt from `project.programme_phases`)
-7. Commercial Terms (exclusions + clarifications)
-8. Risk & Opportunities
-9. Why Choose Us (closing statement + discount callout)
+7. Commercial Terms (exclusions + clarifications left, T&Cs right)
+8. Risk & Opportunities (if any in risk_register)
+9. Why Choose Us (reasons box + closing statement + discount callout if applicable)
 10. Acceptance / signature page
+
+**Key PDF rules:**
+- Margins (overhead/risk/profit) are NEVER shown — all-in rates only
+- `computeEstimateContractSum(est)` is the canonical contract value function (see `client-editor.tsx`)
+- Cover shows CONTRACT VALUE inc. VAT (= contractSum × 1.2)
+- `profile.pdf_theme` controls colour scheme ('slate'|'navy'|'forest')
+- Closing statement is inside Why Choose Us section (NOT a separate page) — critical: it was previously creating a near-blank page when T&Cs overflowed
 
 ---
 
@@ -966,8 +979,25 @@ Universal contract management layer. CEMAR (now Thinkproject) only covers NEC �
 
 ---
 
-### Sprint 57 — Polish, Testing & Pre-Launch QA *(LAST — most extensive)*
-Full end-to-end workflow test: Brief → Estimate → Programme → Proposal → Win → Live → Billing → P&L → Final Account → Handover → Lessons Learned — run with real numbers. Fix any financial logic discrepancies. Full mobile responsive pass. Playwright smoke tests for the critical path. Fix all known bugs. Improve proposal output quality and report outputs.
+### ✅ Sprint 57 — Chrome QA Audit (COMPLETE — 10 April 2026)
+Commits `5752d6d` and `c759374`. Full live Chrome walkthrough of all modules. 8 bugs identified and fixed.
+
+**Bugs fixed:**
+1. `dashboard-client.tsx` — Removed permanent "HOVER STAGE NAME FOR DETAILS" static `<span>` from pipeline header (was always visible, `text-[#404040]` colour not enough to hide it)
+2. `proposal/client-editor.tsx` — `scope` state was falling back to `initialBriefScope`, making Client Introduction and Scope of Works identical; fix: `scope` only uses `initialScope || ""`
+3. `proposal/client-editor.tsx` — Scope of Works textarea had `font-mono` class; removed
+4. `proposal/client-editor.tsx` — Contract value used raw `estimatedTotal` prop (sum of `total_cost` without multipliers); now computes via `computeEstimateContractSum(activeEst).contractSum`
+5. `projects/programme/page.tsx` — Query selected `timeline_phases` (non-existent column) causing entire project row to return null → subtitle blank; fixed by removing bad column, added `.eq("user_id", user.id)`
+6. `dashboard/reporting/page.tsx` — Query selected `end_date` (non-existent) and ordered by `updated_at` (non-existent) → projects array null → blank project picker
+7. `dashboard/reporting/page.tsx` — Same root cause as #6; Portfolio showed "0 Projects"; fixed by removing bad columns, `updated_at` → `created_at`
+8. `proposal/proposal-pdf-button.tsx` — Standalone closing statement block appeared after T&Cs and before always-new-page Why Choose section, creating a near-blank page when T&C right column overflowed; moved closing text into the Why Choose section (PDF now 10 pages not 11)
+
+**Known remaining data issue:** Test project "22 Birchwood Avenue" has identical text saved in both `proposal_introduction` and `scope_text` DB columns (pre-dates bug fix #2). Use "Rewrite with AI" on Client Introduction to differentiate.
+
+---
+
+### Sprint 57 *(original scope)* — Polish, Testing & Pre-Launch QA *(in progress)*
+Full end-to-end workflow test: Brief → Estimate → Programme → Proposal → Win → Live → Billing → P&L → Final Account → Handover → Lessons Learned — run with real numbers. Fix any financial logic discrepancies. Full mobile responsive pass. Fix all known bugs. Improve proposal output quality and report outputs.
 
 **Scope for this sprint is deliberately broad** — by this point all features are in place and the focus shifts entirely to quality: speed, UX clarity, output quality (proposals, reports), edge case handling, and ensuring the full workflow flows without friction.
 
@@ -1021,9 +1051,10 @@ UK SME contractors £500k–£3m. Every workflow faster and better than their cu
 ## Known Bugs
 
 - [ ] Address concatenation showing "18 Jackdaw DriveColchester," in About Us PDF (missing space/comma)
-- [ ] About Us page has whitespace when MD message not set
-- [ ] Programme: "From: From Brief" subtitle shows even when phases are from estimate lines
-- [ ] Plant resource `calcPlantDailyChargeout` in log-cost-sheet doesn't yet branch on `rate_mode === "simple"` — simple-mode plant always shows £0 in the owned plant tab (plant_resources.daily_chargeout_rate exists in DB but `PlantResource` interface in log-cost-sheet.tsx is missing `rate_mode` and `daily_chargeout_rate` fields — same pattern as the staff fix in Sprint 16)
+- [ ] PDF About Us page has large blank space at bottom when company bio is short (content doesn't fill page — design/data issue, not a code bug)
+- [ ] Plant resource `calcPlantDailyChargeout` in log-cost-sheet doesn't yet branch on `rate_mode === "simple"` — simple-mode plant always shows £0 in the owned plant tab (`PlantResource` interface missing `rate_mode` + `daily_chargeout_rate` fields)
+- [ ] Billing: Revised Contract Sum shows £1,593.90 vs £1,753.29 shown elsewhere — likely ex-VAT vs inc-VAT or different multiplier basis; needs investigation
+- [ ] Test project "22 Birchwood Avenue": `proposal_introduction` and `scope_text` DB columns contain identical text (code bug #2 fixed, but existing DB data not auto-corrected — use AI Rewrite on Client Introduction)
 
 ---
 

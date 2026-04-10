@@ -378,6 +378,12 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                         <NavItem href={pLink("/dashboard/projects/lessons-learned")} icon={BookMarked} label="Lessons Learned" active={is("/dashboard/projects/lessons-learned")} />
                     </SidebarSection>
 
+                    {/* Resources — direct links, no accordion */}
+                    <div className="pt-1">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 pb-1.5">Resources</div>
+                        <NavItem href="/dashboard/resources/portfolio" icon={PieChart} label="Resource Portfolio" active={is("/dashboard/resources/portfolio")} />
+                    </div>
+
                     {/* Reporting — direct links, no accordion */}
                     <div className="pt-1">
                         <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 pb-1.5">Reporting</div>

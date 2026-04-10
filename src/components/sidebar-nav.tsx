@@ -388,6 +388,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                     {/* Reporting — direct links, no accordion */}
                     <div className="pt-1">
                         <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 pb-1.5">Reporting</div>
+                        <NavItem href="/dashboard/reporting" icon={FileText} label="Reports & Photos" active={is("/dashboard/reporting")} />
                         <NavItem href="/dashboard/management-accounts" icon={BarChart2} label="Management Accounts" active={is("/dashboard/management-accounts")} />
                         <NavItem href="/dashboard/cis" icon={HardHat} label="CIS Compliance" active={is("/dashboard/cis")} />
                         <NavItem href="/dashboard/intelligence" icon={Lightbulb} label="Business Intelligence" active={is("/dashboard/intelligence")} />

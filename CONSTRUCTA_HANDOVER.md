@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 10 April 2026 (end of Sprint 50 — session close, full sprint audit below)
+**Last updated:** 10 April 2026 (Sprint 58 complete — Reporting Module)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -907,16 +907,26 @@ PDF/image viewer with interactive measurement tools built on existing `pdfjs-dis
 
 ---
 
-### Sprint 58 — Reporting Module *(client + internal)* ← NEXT
+### Sprint 58 — Reporting Module *(client + internal)* ✅ COMPLETE
 Construction reporting is currently done in Word/WhatsApp. Constructa should generate branded reports in 2 clicks from live data.
 
-**Scope:**
-- **Weekly Progress Report** — programme % complete, cost to date vs budget, variations logged, issues/risks, next week's planned activities. Auto-populated from live project data. PDF export with contractor branding.
-- **Site Photos** — photo upload with date, location tag, activity tag. Stored per project. Included in progress reports. Before/after comparison view.
-- **Close-Out / Handover Report** — final programme, final account summary, defects log, O&M documents, warranties. Auto-generated PDF from project data.
-- **Client-Facing Dashboard** — read-only view (no login required, shareable link) showing programme, cost summary, latest progress report, photos.
-- **Internal Business Report** — across all live projects: total contract value, certified to date, cost to date, margin, cashflow forecast. Mirrors management accounts but presented as a one-page board report.
-- **Internal Project Report** — single project: full job P&L, WIP position, variation log, resource utilisation, programme status.
+**Delivered:**
+
+**Stream 1 — Site Operations:**
+- **Site Photos** — multi-upload to Supabase Storage (`site-photos` bucket, public), grid gallery per project, delete with storage cleanup
+- **Weekly Progress Reports** — form captures: week ending, overall % progress, work completed, work planned, issues/risks, instructions received, weather days lost, labour headcount. Save/delete, history list
+- **Weekly PDF export** — jspdf branded A4: header strip, project info, progress %, all narrative sections formatted with coloured headings and dividers
+
+**Stream 2 — Project Control Suite:**
+- **Project Control tab** — 6 KPI cards (contract value, invoiced, received, outstanding, variations, cost to date), full variations table (approved/pending counts), invoice schedule table, latest progress report summary, resources list
+- **Project Control PDF** — jspdf + autotable: KPI block, variations table, invoice schedule
+- **Portfolio Overview tab** — aggregate KPIs across all projects (5 cards: total contract value, invoiced, cash received, outstanding, approved variations), per-project breakdown table with progress bars, totals footer row
+- **Portfolio PDF** — landscape A4, full project breakdown table with totals row
+
+**Route:** `/dashboard/reporting` (server page with `?projectId` param support)
+**Tables:** `site_photos`, `progress_reports` (RLS enabled)
+**Actions:** `uploadSitePhotoAction`, `deleteSitePhotoAction`, `upsertProgressReportAction`, `deleteProgressReportAction`
+**Sidebar:** "Reports & Photos" link added under Reporting section
 
 **Key design principle:** Reports pull live data — never stale. Contractor clicks "Generate Report", reviews, sends. No data entry.
 

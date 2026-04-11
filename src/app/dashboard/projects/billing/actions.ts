@@ -2,6 +2,7 @@
 
 import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
+import { CreateAfpSchema, parseInput } from "@/lib/validation/schemas";
 
 function revalidateBilling(projectId: string) {
     revalidatePath(`/dashboard/projects/billing?projectId=${projectId}`);
@@ -21,28 +22,31 @@ export async function createAfpAction(data: {
     retention_pct: number;
     due_date?: string;
 }) {
+    const input = parseInput(CreateAfpSchema, data, "application for payment");
     const { supabase } = await requireAuth();
-    const gross_this_cert = data.gross_valuation - data.previous_cert;
-    const retention_held = data.gross_valuation * (data.retention_pct / 100);
-    const net_due = gross_this_cert - retention_held;
+    // Guard against negative net_due from a previous_cert > gross_valuation
+    // (impossible under the schema today, but defensive).
+    const gross_this_cert = Math.max(0, input.gross_valuation - input.previous_cert);
+    const retention_held = input.gross_valuation * (input.retention_pct / 100);
+    const net_due = Math.max(0, gross_this_cert - retention_held);
 
     const { error } = await supabase.from("invoices").insert([{
-        project_id:       data.project_id,
-        invoice_number:   data.invoice_number,
-        type:             data.type,
+        project_id:       input.project_id,
+        invoice_number:   input.invoice_number,
+        type:             input.type,
         amount:           net_due,
         status:           "Draft",
-        period_number:    data.period_number,
-        gross_valuation:  data.gross_valuation,
-        previous_cert:    data.previous_cert,
-        retention_pct:    data.retention_pct,
+        period_number:    input.period_number,
+        gross_valuation:  input.gross_valuation,
+        previous_cert:    input.previous_cert,
+        retention_pct:    input.retention_pct,
         retention_held:   retention_held,
         net_due:          net_due,
-        due_date:         data.due_date || null,
+        due_date:         input.due_date || null,
         is_retention_release: false,
     }]);
     if (error) throw new Error(error.message);
-    revalidateBilling(data.project_id);
+    revalidateBilling(input.project_id);
 }
 
 export async function releaseRetentionAction(data: {

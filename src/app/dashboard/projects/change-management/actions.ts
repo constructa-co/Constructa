@@ -2,6 +2,7 @@
 
 import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
+import { CreateChangeEventSchema, parseInput } from "@/lib/validation/schemas";
 
 function revalidate(projectId: string) {
     revalidatePath(`/dashboard/projects/change-management?projectId=${projectId}`);
@@ -20,26 +21,27 @@ export async function createChangeEventAction(data: {
     date_notified?: string;
     notes?: string;
 }) {
+    const input = parseInput(CreateChangeEventSchema, data, "change event");
     const { user, supabase } = await requireAuth();
 
     // Auto-number: CE-001, CE-002 …
     const { count } = await supabase
         .from("change_events")
         .select("id", { count: "exact", head: true })
-        .eq("project_id", data.project_id);
+        .eq("project_id", input.project_id);
 
     const reference = `CE-${String((count ?? 0) + 1).padStart(3, "0")}`;
 
     const { error } = await supabase.from("change_events").insert([{
-        ...data,
+        ...input,
         user_id: user.id,
         reference,
         status: "Draft",
-        value_claimed: data.value_claimed ?? 0,
-        time_claimed_days: data.time_claimed_days ?? 0,
+        value_claimed: input.value_claimed ?? 0,
+        time_claimed_days: input.time_claimed_days ?? 0,
     }]);
     if (error) throw new Error(error.message);
-    revalidate(data.project_id);
+    revalidate(input.project_id);
 }
 
 export async function updateChangeEventAction(

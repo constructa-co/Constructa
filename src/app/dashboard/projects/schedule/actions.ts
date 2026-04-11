@@ -3,6 +3,7 @@
 import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 import { generateText } from "@/lib/ai";
+import { UpdatePhasesSchema, parseInput } from "@/lib/validation/schemas";
 
 export async function updateDependencyAction(formData: FormData) {
     const { supabase } = await requireAuth();
@@ -41,18 +42,20 @@ export async function updatePhasesAction(
     }[],
     startDate?: string   // ISO YYYY-MM-DD — if provided, saves to projects.start_date
 ): Promise<void> {
-    const { supabase } = await requireAuth();
+    const input = parseInput(UpdatePhasesSchema, { projectId, phases, startDate }, "programme phases");
+    const { user, supabase } = await requireAuth();
     // Note: projects has no `timeline_phases` column — writing it used to cause the
     // whole UPDATE to fail silently, meaning programme edits weren't saved.
     const payload: Record<string, unknown> = {
-        programme_phases: phases,
+        programme_phases: input.phases,
     };
-    if (startDate) payload.start_date = startDate;
+    if (input.startDate) payload.start_date = input.startDate;
 
     const { error } = await supabase
         .from("projects")
         .update(payload)
-        .eq("id", projectId);
+        .eq("id", input.projectId)
+        .eq("user_id", user.id);
 
     if (error) console.error("Update phases error:", error);
     revalidatePath("/dashboard/projects/schedule");

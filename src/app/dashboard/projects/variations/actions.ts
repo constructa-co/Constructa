@@ -2,6 +2,7 @@
 
 import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
+import { CreateVariationSchema, parseInput } from "@/lib/validation/schemas";
 
 function revalidateVariations(projectId: string) {
     revalidatePath(`/dashboard/projects/variations?projectId=${projectId}`);
@@ -20,30 +21,31 @@ export async function createVariationAction(data: {
     instructed_by?: string;
     date_instructed?: string;
 }) {
+    const input = parseInput(CreateVariationSchema, data, "variation");
     const { supabase } = await requireAuth();
 
     // Auto-generate variation number
     const { count } = await supabase
         .from("variations")
         .select("id", { count: "exact", head: true })
-        .eq("project_id", data.project_id);
+        .eq("project_id", input.project_id);
     const nextNum = (count ?? 0) + 1;
     const variation_number = `VAR-${String(nextNum).padStart(3, "0")}`;
 
     const { error } = await supabase.from("variations").insert([{
-        project_id:     data.project_id,
-        title:          data.title,
-        description:    data.description,
-        amount:         data.amount,
-        status:         "Draft",
+        project_id:       input.project_id,
+        title:            input.title,
+        description:      input.description,
+        amount:           input.amount,
+        status:           "Draft",
         variation_number,
-        instruction_type: data.instruction_type || "Client Instruction",
-        trade_section:    data.trade_section   || null,
-        instructed_by:    data.instructed_by   || null,
-        date_instructed:  data.date_instructed || null,
+        instruction_type: input.instruction_type || "Client Instruction",
+        trade_section:    input.trade_section   || null,
+        instructed_by:    input.instructed_by   || null,
+        date_instructed:  input.date_instructed || null,
     }]);
     if (error) throw new Error(error.message);
-    revalidateVariations(data.project_id);
+    revalidateVariations(input.project_id);
 }
 
 export async function updateVariationStatusAction(

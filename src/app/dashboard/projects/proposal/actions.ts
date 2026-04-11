@@ -1,6 +1,7 @@
 "use server";
 
 import { requireAuth } from "@/lib/supabase/auth-utils";
+import { SaveProposalSchema, parseInput } from "@/lib/validation/schemas";
 import { revalidatePath } from "next/cache";
 import { generateJSON, generateText } from "@/lib/ai";
 import { sendProposalEmail } from "@/lib/email";
@@ -142,13 +143,25 @@ Rules:
 export async function saveProposalAction(formData: FormData) {
     const { user, supabase } = await requireAuth();
 
-    const id = formData.get("projectId") as string;
+    // Validate the user-editable text fields before touching the DB. We validate
+    // only the free-text portions here because the JSONB fields (gantt, photos,
+    // T&Cs, payment schedule) are parsed with try/catch below and have their
+    // own shape-checking downstream.
+    const rawInput = {
+        projectId:             formData.get("projectId") ?? "",
+        scope:                 (formData.get("scope") as string | null) ?? undefined,
+        exclusions:            (formData.get("exclusions") as string | null) ?? undefined,
+        clarifications:        (formData.get("clarifications") as string | null) ?? undefined,
+        proposal_introduction: (formData.get("proposal_introduction") as string | null) ?? undefined,
+    };
+    const input = parseInput(SaveProposalSchema, rawInput, "proposal save");
+    const id = input.projectId;
 
     const updateData: Record<string, any> = {
-        scope_text: formData.get("scope"),
-        exclusions_text: formData.get("exclusions"),
-        clarifications_text: formData.get("clarifications"),
-        proposal_introduction: formData.get("proposal_introduction"),
+        scope_text:            input.scope ?? null,
+        exclusions_text:       input.exclusions ?? null,
+        clarifications_text:   input.clarifications ?? null,
+        proposal_introduction: input.proposal_introduction ?? null,
     };
 
     // Gantt phases

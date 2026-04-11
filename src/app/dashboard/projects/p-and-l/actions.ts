@@ -2,6 +2,11 @@
 
 import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
+import {
+    LogCostSchema,
+    SectionForecastSchema,
+    parseInput,
+} from "@/lib/validation/schemas";
 
 // ── Log a new actual cost ──────────────────────────────────────────────────────
 export async function logCostAction(data: {
@@ -17,18 +22,19 @@ export async function logCostAction(data: {
     cost_status?: "actual" | "committed";
 }): Promise<{ error?: string }> {
     try {
+        const input = parseInput(LogCostSchema, data, "cost entry");
         const { supabase } = await requireAuth();
         const { error } = await supabase.from("project_expenses").insert({
-            project_id: data.projectId,
-            description: data.description,
-            amount: data.amount,
-            cost_type: data.cost_type,
-            trade_section: data.trade_section,
-            expense_date: data.expense_date,
-            supplier: data.supplier || null,
-            estimate_line_id: data.estimate_line_id || null,
-            receipt_url: data.receipt_url || null,
-            cost_status: data.cost_status ?? "actual",
+            project_id: input.projectId,
+            description: input.description,
+            amount: input.amount,
+            cost_type: input.cost_type,
+            trade_section: input.trade_section,
+            expense_date: input.expense_date,
+            supplier: input.supplier || null,
+            estimate_line_id: input.estimate_line_id || null,
+            receipt_url: input.receipt_url || null,
+            cost_status: input.cost_status ?? "actual",
         });
         if (error) return { error: error.message };
         revalidatePath("/dashboard/projects/p-and-l");
@@ -45,11 +51,16 @@ export async function upsertSectionForecastAction(
     forecastCost: number | null
 ): Promise<{ error?: string }> {
     try {
+        const input = parseInput(
+            SectionForecastSchema,
+            { projectId, tradeSection, forecastCost },
+            "forecast override"
+        );
         const { supabase } = await requireAuth();
         const { error } = await supabase
             .from("project_section_forecasts")
             .upsert(
-                { project_id: projectId, trade_section: tradeSection, forecast_cost: forecastCost, updated_at: new Date().toISOString() },
+                { project_id: input.projectId, trade_section: input.tradeSection, forecast_cost: input.forecastCost, updated_at: new Date().toISOString() },
                 { onConflict: "project_id,trade_section" }
             );
         if (error) return { error: error.message };

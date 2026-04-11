@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/supabase/auth-utils";
 import { generateJSON } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
 import OpenAI from "openai";
+import { CreateBoQEstimateSchema, parseInput } from "@/lib/validation/schemas";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -151,6 +152,11 @@ export async function createBoQEstimateAction(
     projectId: string,
     boq: ParsedClientBoQ
 ): Promise<{ success: boolean; estimateId?: string; error?: string }> {
+    try {
+        parseInput(CreateBoQEstimateSchema, { projectId, boq }, "client BoQ import");
+    } catch (err) {
+        return { success: false, error: err instanceof Error ? err.message : "Invalid BoQ payload" };
+    }
     const { supabase } = await requireAuth();
 
     // Create the estimate flagged as client BoQ

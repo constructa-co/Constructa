@@ -14,6 +14,33 @@
 
 ---
 
+## Current State at a Glance (11 April 2026)
+
+**Last sprint completed:** Sprint 57 QA Audit (8 bugs fixed, Chrome walkthrough of all modules)
+**App status:** Live and functional at https://constructa-nu.vercel.app — all modules operational
+**Git:** All code on `main`, clean working tree, Vercel auto-deploys on push
+**Test project in DB:** "22 Birchwood Avenue — Kitchen Extension & Loft Conversion" (`projectId: 7b08021a-9ca2-4262-836b-970891608cbe`)
+**Supabase:** `pudadynieiuypxeoimnz` — 74 migrations applied, all tables and RLS in place
+
+**What's built (59 sprints):**
+- Full pre-construction workflow: AI Brief → BoQ Estimating → Gantt Programme → Contract Review → Proposal PDF
+- Full live project workflow: Overview → Billing/AfP → Variations → Job P&L → Change Management → Programme → Communications
+- Full project close: Final Accounts → Handover Documents → Lessons Learned
+- Cross-project: Pipeline Kanban, Management Accounts, CIS, Business Intelligence, Reporting
+- AI throughout: brief chat, estimate line suggestions, contract risk analysis, proposal generation, drawing takeoff, video walkthrough, claims drafting
+- Resource catalogues: Staff, Plant, Materials (with live pricing)
+- Admin dashboard: 9-tab BI with subscriber management
+
+**Immediately next:**
+1. Complete Sprint 57 QA — remaining passes by Perplexity, ChatGPT, Antigravity, and Robert manual walkthrough
+2. Fix remaining known bugs (see Known Bugs section)
+3. Proposal output refinement — flow and PDF quality pass
+4. Sprint 59 Contract Administration Suite — CEMAR-equivalent for NEC/JCT/FIDIC + Claims Module
+
+**Do NOT touch:** `src/app/(marketing)/` — that's constructa.co landing page, entirely separate project
+
+---
+
 ## Credentials & Infrastructure
 
 > **SECURITY:** All credentials are stored in `.env.local` (not committed) and in Vercel environment variables.
@@ -373,7 +400,7 @@ Cross-project dashboard:
 
 ---
 
-## Sidebar Navigation (current state — Sprint 49)
+## Sidebar Navigation (current state — Sprint 59)
 
 ```
 OVERVIEW (always visible)
@@ -388,6 +415,7 @@ COMPANY PROFILE (accordion)
   Labour Rates      /dashboard/resources/staff
   Plant Rates       /dashboard/resources/plant
   Cost Library      /dashboard/library
+  Material Rates    /dashboard/resources/material-rates  ← Sprint 50
   Setup Wizard      /onboarding?force=true
 
 WORK WINNING (accordion)
@@ -409,6 +437,7 @@ LIVE PROJECTS (accordion)
   Change Management   /dashboard/projects/change-management?projectId=X
   Programme           /dashboard/projects/programme?projectId=X
   Communications      /dashboard/projects/communications?projectId=X
+  Contract Admin      /dashboard/projects/contract-admin?projectId=X  ← Sprint 59
 
 CLOSED PROJECTS (accordion)
   Archive             /dashboard/projects/archive
@@ -416,7 +445,11 @@ CLOSED PROJECTS (accordion)
   Handover Documents  /dashboard/projects/handover-documents?projectId=X
   Lessons Learned     /dashboard/projects/lessons-learned?projectId=X
 
+RESOURCES (always visible)
+  Resource Portfolio  /dashboard/resources/portfolio  ← Sprint 51
+
 REPORTING (always visible, no accordion)
+  Reports & Photos     /dashboard/reporting             ← Sprint 58
   Management Accounts  /dashboard/management-accounts  ← Sprint 40
   CIS Compliance       /dashboard/cis                  ← Sprint 41
   Business Intelligence /dashboard/intelligence        ← Sprint 48
@@ -976,6 +1009,13 @@ Universal contract management layer. CEMAR (now Thinkproject) only covers NEC �
 **Tech approach:** Contract type selector on project creation. Store as `contract_type` + `contract_data` JSONB (specific clauses, notice periods, parties) on `projects`. Build NEC first (cleanest workflow), then JCT, then bespoke upload.
 
 **Key tables needed:** `contract_obligations`, `contract_communications`, `contract_events` (EW/CE/EoT), `claims`
+
+**Owner notes (11 April 2026) — strategic rationale:**
+- NEC is brutal on time bars — miss the 8-week window to notify a CE and you've potentially lost tens of thousands of pounds. Small contractors routinely write this money off because they don't know their obligations or are too busy on site. "You have 6 days left to notify CE #4 or you lose entitlement" is genuinely career-saving.
+- SCL Delay Analysis Protocol has four methodologies: As-Planned vs As-Built, Time Impact Analysis, Collapsed As-Built, Windows Analysis. The last two are what adjudicators actually respect. Constructa holds baseline + as-built dates already — it can run these analyses automatically. No specialist claims consultant does this today without Excel.
+- AI approach: LLMs hallucinate on technical docs but are excellent at structure and argument framing when given good source material. Seed with 20–30 well-drafted precedent claims (EOT, loss & expense, prolongation, disruption). Give it: contract type + specific clause numbers + factual narrative → output formal notice or claim document.
+- Pricing confirmed: CE notification £50 / EOT claim £250–500 / full L&E £500–2,500 / adjudication bundle £2,500–5,000. Fraction of consultant fees (£150–300/hr × 20hr minimum). First draft in minutes.
+- Both bolt-in (inside Constructa, knows all project context) AND standalone (upload documents only) make sense simultaneously.
 
 ---
 

@@ -39,7 +39,30 @@ interface Props {
     changeEvents: any[];
     rfis:         any[];
     ewns:         any[];
+    // Sprint 59 — cross-project Contract Administration alerts.
+    contractEvents:      ContractEventLike[];
+    contractObligations: ContractObligationLike[];
     userId:       string;
+}
+
+interface ContractEventLike {
+    id: string;
+    project_id: string;
+    reference: string | null;
+    title: string | null;
+    status: string;
+    time_bar_date: string | null;
+    date_aware: string | null;
+    event_type: string;
+}
+
+interface ContractObligationLike {
+    id: string;
+    project_id: string;
+    label: string;
+    clause_ref: string | null;
+    due_date: string | null;
+    status: string;
 }
 
 // ── KPI card ─────────────────────────────────────────────────────────────────
@@ -120,7 +143,7 @@ function getProjectProgrammeDelay(project: any): number {
     return maxDelay;
 }
 
-export default function HomeClient({ projects, profile, estimates, invoices, variations, changeEvents, rfis, ewns }: Props) {
+export default function HomeClient({ projects, profile, estimates, invoices, variations, changeEvents, rfis, ewns, contractEvents, contractObligations }: Props) {
 
     // ── Project categories ────────────────────────────────────────────────────
     // Sprint 58 P1.5: unified via isActiveProject/isPipelineProject/isClosedProject
@@ -185,6 +208,48 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
         return remaining >= 0 && remaining <= 5;
     });
 
+    // ── Sprint 59 — cross-project Contract Administration alerts ─────────────
+    // Time bars: open contract events whose contractor notification deadline
+    // (time_bar_date) falls within the next 14 days. The hard-bar bug class
+    // these prevent — missing an NEC 56-day CE notification — is the
+    // "career-saving" feature Robert called out: small contractors lose tens
+    // of thousands of pounds when nobody on site remembers a clause 61.3
+    // deadline.
+    const timeBarsAtRisk = (contractEvents ?? [])
+        .map(e => {
+            const d = e.time_bar_date
+                ? Math.round((new Date(e.time_bar_date + "T00:00:00").getTime() - today.getTime()) / 86400000)
+                : null;
+            return { event: e, daysRemaining: d };
+        })
+        .filter(x => x.daysRemaining !== null && x.daysRemaining >= -7 && x.daysRemaining <= 14)
+        .sort((a, b) => (a.daysRemaining ?? 0) - (b.daysRemaining ?? 0));
+
+    // Overdue contractual obligations across all projects (programme submissions,
+    // monthly payment apps, insurance certificates etc — anything the
+    // CONTRACTS_CONFIG engine seeded on award).
+    const overdueObligations = (contractObligations ?? [])
+        .map(o => {
+            const d = o.due_date
+                ? Math.round((new Date(o.due_date + "T00:00:00").getTime() - today.getTime()) / 86400000)
+                : null;
+            return { obligation: o, daysRemaining: d };
+        })
+        .filter(x => x.daysRemaining !== null && x.daysRemaining < 0)
+        .sort((a, b) => (a.daysRemaining ?? 0) - (b.daysRemaining ?? 0));
+
+    const dueSoonObligations = (contractObligations ?? [])
+        .map(o => {
+            const d = o.due_date
+                ? Math.round((new Date(o.due_date + "T00:00:00").getTime() - today.getTime()) / 86400000)
+                : null;
+            return { obligation: o, daysRemaining: d };
+        })
+        .filter(x => x.daysRemaining !== null && x.daysRemaining >= 0 && x.daysRemaining <= 7)
+        .sort((a, b) => (a.daysRemaining ?? 0) - (b.daysRemaining ?? 0));
+
+    const projectName = (id: string) => projects.find(p => p.id === id)?.name ?? "Unknown project";
+
     // ── Per-active-project data ───────────────────────────────────────────────
     const activeProjectsWithData = activeProjects.map(p => {
         const projInvoices    = invoices.filter(i => i.project_id === p.id && !i.is_retention_release);
@@ -241,6 +306,111 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
                 </div>
 
                 {/* ── Alert banners ── */}
+                {/*
+                  Sprint 59 — contract time-bar warnings sit at the very top
+                  of the alert stack because missing one is the single most
+                  expensive mistake a contractor can make. NEC4 cl. 61.3 gives
+                  a hard 56-day window to notify a Compensation Event; miss it
+                  and the contractor loses entitlement entirely. Banner is RED
+                  on its own (no other red banner on the page nudges it down)
+                  with the days-remaining number bold and prominent.
+                */}
+                {timeBarsAtRisk.length > 0 && (
+                    <AlertBanner
+                        colour="red"
+                        icon={AlertTriangle}
+                        title={`${timeBarsAtRisk.length} contract time bar${timeBarsAtRisk.length > 1 ? "s" : ""} expiring soon — risk of losing entitlement`}
+                    >
+                        {timeBarsAtRisk.slice(0, 5).map(({ event, daysRemaining }) => {
+                            const d = daysRemaining ?? 0;
+                            const phrase =
+                                d < 0   ? `${Math.abs(d)}d OVERDUE`
+                              : d === 0 ? "expires today"
+                              : d === 1 ? "1 day left"
+                                        : `${d} days left`;
+                            return (
+                                <Link
+                                    key={event.id}
+                                    href={`/dashboard/projects/contract-admin?projectId=${event.project_id}`}
+                                    className="flex items-center gap-1.5 hover:opacity-100 opacity-90"
+                                >
+                                    <ArrowRight className="w-3 h-3" />
+                                    <span>
+                                        {event.reference ?? "Event"} — {event.title ?? "Untitled"} · {projectName(event.project_id)} ·{" "}
+                                        <strong className="font-bold">{phrase}</strong>
+                                    </span>
+                                </Link>
+                            );
+                        })}
+                        {timeBarsAtRisk.length > 5 && (
+                            <p className="text-[11px] opacity-70 mt-1">+{timeBarsAtRisk.length - 5} more — see Contract Admin per project</p>
+                        )}
+                    </AlertBanner>
+                )}
+
+                {/*
+                  Sprint 59 — overdue contractual obligations across all
+                  projects. Programme submissions, monthly payment apps,
+                  insurance certificates etc. The CONTRACTS_CONFIG engine
+                  seeded these on contract award and they're now past their
+                  due_date. Separate from time bars because the
+                  consequences are different — these are missed deadlines
+                  but recoverable, time bars are entitlement-lost.
+                */}
+                {overdueObligations.length > 0 && (
+                    <AlertBanner
+                        colour="red"
+                        icon={AlertCircle}
+                        title={`${overdueObligations.length} contractual obligation${overdueObligations.length > 1 ? "s" : ""} overdue`}
+                    >
+                        {overdueObligations.slice(0, 5).map(({ obligation, daysRemaining }) => (
+                            <Link
+                                key={obligation.id}
+                                href={`/dashboard/projects/contract-admin?projectId=${obligation.project_id}`}
+                                className="flex items-center gap-1.5 hover:opacity-100 opacity-90"
+                            >
+                                <ArrowRight className="w-3 h-3" />
+                                <span>
+                                    {obligation.label} {obligation.clause_ref ? `(cl. ${obligation.clause_ref})` : ""} · {projectName(obligation.project_id)} ·{" "}
+                                    <strong className="font-bold">{Math.abs(daysRemaining ?? 0)}d overdue</strong>
+                                </span>
+                            </Link>
+                        ))}
+                        {overdueObligations.length > 5 && (
+                            <p className="text-[11px] opacity-70 mt-1">+{overdueObligations.length - 5} more</p>
+                        )}
+                    </AlertBanner>
+                )}
+
+                {/*
+                  Sprint 59 — obligations due within the next 7 days. Amber,
+                  not red, because they're still actionable and on time.
+                */}
+                {dueSoonObligations.length > 0 && (
+                    <AlertBanner
+                        colour="amber"
+                        icon={Clock}
+                        title={`${dueSoonObligations.length} contractual obligation${dueSoonObligations.length > 1 ? "s" : ""} due this week`}
+                    >
+                        {dueSoonObligations.slice(0, 5).map(({ obligation, daysRemaining }) => {
+                            const d = daysRemaining ?? 0;
+                            const phrase = d === 0 ? "due today" : d === 1 ? "due tomorrow" : `${d} days`;
+                            return (
+                                <Link
+                                    key={obligation.id}
+                                    href={`/dashboard/projects/contract-admin?projectId=${obligation.project_id}`}
+                                    className="flex items-center gap-1.5 hover:opacity-100 opacity-90"
+                                >
+                                    <ArrowRight className="w-3 h-3" />
+                                    <span>
+                                        {obligation.label} {obligation.clause_ref ? `(cl. ${obligation.clause_ref})` : ""} · {projectName(obligation.project_id)} · {phrase}
+                                    </span>
+                                </Link>
+                            );
+                        })}
+                    </AlertBanner>
+                )}
+
                 {recentlyAccepted.length > 0 && (
                     <AlertBanner colour="green" icon={CheckCircle2} title={`${recentlyAccepted.length === 1 ? "Proposal accepted!" : `${recentlyAccepted.length} proposals accepted this week`}`}>
                         {recentlyAccepted.map(p => (

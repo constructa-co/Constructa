@@ -19,6 +19,8 @@ export default async function HomePage() {
         { data: changeEvents },
         { data: rfis },
         { data: ewns },
+        { data: contractEvents },
+        { data: contractObligations },
     ] = await Promise.all([
         supabase
             .from("projects")
@@ -57,6 +59,26 @@ export default async function HomePage() {
         supabase
             .from("early_warning_notices")
             .select("id, project_id, reference, title, status, potential_cost_impact, potential_time_impact_days"),
+
+        // Sprint 59 — cross-project contract events with a live time bar.
+        // Filtered to status 'open' so closed/agreed CE notices don't sit in the
+        // alert banner forever. RLS handles the user_id scoping.
+        supabase
+            .from("contract_events")
+            .select("id, project_id, reference, title, status, time_bar_date, date_aware, event_type")
+            .eq("user_id", user.id)
+            .eq("status", "open")
+            .not("time_bar_date", "is", null),
+
+        // Sprint 59 — cross-project obligations that are open or pending.
+        // Anything with a due_date in the past or within the next 7 days
+        // surfaces on the home dashboard so the contractor can't miss it.
+        supabase
+            .from("contract_obligations")
+            .select("id, project_id, label, clause_ref, due_date, status")
+            .eq("user_id", user.id)
+            .neq("status", "complete")
+            .not("due_date", "is", null),
     ]);
 
     return (
@@ -69,6 +91,8 @@ export default async function HomePage() {
             changeEvents={changeEvents ?? []}
             rfis={rfis ?? []}
             ewns={ewns ?? []}
+            contractEvents={contractEvents ?? []}
+            contractObligations={contractObligations ?? []}
             userId={user.id}
         />
     );

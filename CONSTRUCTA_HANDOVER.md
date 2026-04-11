@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 11 April 2026 — late evening session (Sprint 58 COMPLETE + Sprint 59 cross-project contract alerts shipped)
+**Last updated:** 11 April 2026 — night session (Sprint 58 COMPLETE + Sprint 59 home alerts + daily email cron + per-event AI guidance)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -16,7 +16,7 @@
 
 ## Current State at a Glance (11 April 2026 — evening)
 
-**Last sprint completed:** Sprint 58 — Hardening, Quick Quote & Polish (all 3 phases, 17 commits `4480ad7` → `587cd4b`). **Sprint 59 — Contract Administration Suite IN PROGRESS** (1 commit shipped: `e149cfa` cross-project contract alerts on home dashboard).
+**Last sprint completed:** Sprint 58 — Hardening, Quick Quote & Polish (all 3 phases, 17 commits `4480ad7` → `587cd4b`). **Sprint 59 — Contract Administration Suite IN PROGRESS** (3 commits shipped: `e149cfa` cross-project home alerts, `0593fc9` daily email cron + idempotency table, `bde2fce` per-event clause-specific AI guidance).
 **App status:** Live and functional at https://constructa-nu.vercel.app — all modules operational
 **Git:** All code on `main`, clean working tree, Vercel auto-deploys on push
 **Test project in DB:** "22 Birchwood Avenue — Kitchen Extension & Loft Conversion" (`projectId: 7b08021a-9ca2-4262-836b-970891608cbe`)
@@ -39,14 +39,15 @@ the right posture; their raw reports are archived at
 `docs/reviews/2026-04-11/` for future context.
 
 **Immediately next (Sprint 59 continuation):**
-1. **Sprint 59 — Contract Administration Suite.** Substantially built before this session and 1 commit shipped today.
+1. **Sprint 59 — Contract Administration Suite.** Substantially built before this session and now with 3 sprint-59 commits shipped on top.
    - **What was already in place:** 5 DB tables (`contract_settings`, `contract_obligations`, `contract_events`, `contract_communications`, `claims`), `src/lib/contracts-config.ts` config-driven engine covering NEC4/NEC3/JCT/FIDIC/Bespoke variants with terminology, options, on-award obligations, event chains, response steps and payment cycles. `setupContractAction`, `raiseEventAction` (auto-calculates `time_bar_date = addDays(date_aware, contractorTimeBarDays)`), `logCommunicationAction`, `raiseClaimAction`, `draftNoticeAction`, `draftClaimAction` all implemented with `requireAuth()` from Sprint 58. Contract-admin client (1,108 lines) with 5 tabs (dashboard, obligations, events, communications, claims) and per-event time-bar pills.
-   - **Sprint 59 commit `e149cfa`:** Cross-project contract alerts surfaced on the home dashboard. Three new red/amber AlertBanners at the top of the alert stack: time bars expiring within 14 days (red, "career-saving" feature per Robert's brief), overdue obligations (red), and obligations due this week (amber). Each row deep-links to `/dashboard/projects/contract-admin?projectId=X`.
-   - **Still pending in Sprint 59 (none are launch blockers):**
-     - Email notifications when a time bar is < 7 days out
-     - JCT and FIDIC variants of `draftNoticeAction` (currently NEC-only)
-     - SCL Delay Analysis Protocol (As-Planned vs As-Built / Time Impact Analysis) — data is there, analysis logic isn't built
+   - **Sprint 59 commit `e149cfa` — cross-project home alerts:** Three new red/amber AlertBanners at the top of the home dashboard alert stack — time bars expiring within 14 days (red, "career-saving" feature), overdue obligations (red), obligations due this week (amber). Each row deep-links to `/dashboard/projects/contract-admin?projectId=X`. The in-app side of the loop.
+   - **Sprint 59 commit `0593fc9` — daily email cron with idempotency:** New `/api/cron/contract-alerts` route (Vercel cron daily at 07:00 UTC), `sendContractAlertEmail` digest template in `src/lib/email.ts`, and `contract_alert_notifications` idempotency table (migration `20260411203000`). The cadence rules: first alert when an item enters the warning window, second alert 7 days later if still in window, daily alerts in the final 3 days for time bars ≤ 3 days out, stop entirely once status is `complete` or the time bar passed by more than 7 days. Per-user processing with per-user failure isolation. **Requires `CRON_SECRET` env var in Vercel project — generate with `openssl rand -hex 32` and add via Vercel dashboard before relying on the cron.** The push side of the loop.
+   - **Sprint 59 commit `bde2fce` — per-event AI guidance:** Added optional `aiGuidance?: string` field on `EventConfig` in `contracts-config.ts` carrying multi-paragraph clause-specific drafting guidance. Populated for 6 high-value events: NEC4 CE (cl. 61.3), NEC4 EW (cl. 15.1), NEC3 CE (cl. 61.3 — derived from NEC4 with `replace(/NEC4/g, "NEC3")`), JCT SBC Variation (cl. 3.10), JCT SBC EoT (cl. 2.27.1 — references Walter Lilly v Mackay on "forthwith"), JCT SBC L&E (cl. 4.20 — covers Hudson/Emden/Eichleay heads of claim), FIDIC Red 1999 Claim (cl. 20.1 — references Obrascon v AG of Gibraltar on the hard 28-day bar). `draftNoticeAction` system prompt now appends this guidance when present and falls back to the generic prompt cleanly when absent. **Note:** the pre-existing `draftNoticeAction` was already config-driven and worked for any contract suite — the earlier handover note that it was "NEC-only" was wrong. This commit makes the drafts sharper, not broader.
+   - **Still pending in Sprint 59 (none launch-blocking):**
+     - SCL Delay Analysis Protocol (As-Planned vs As-Built / Time Impact Analysis / Collapsed As-Built / Windows Analysis) — programme_phases data is there, analysis math isn't built
      - Sub-contractor / supervisor portal for read-only acknowledgment of response deadlines
+     - aiGuidance for the remaining FIDIC events (engineer_instruction, the 2017-edition variants beyond claim) — left as future work because the existing generic prompt still works for those
 2. End-to-end QA walkthrough on the hardened + streamlined build.
 3. Launch readiness pass with 3-5 real beta contractors.
 

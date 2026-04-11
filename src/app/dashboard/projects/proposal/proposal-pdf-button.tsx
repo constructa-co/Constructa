@@ -8,6 +8,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { extractScopeBulletsAction } from "./actions";
 import { createClient } from "@/lib/supabase/client";
+// Sprint 58 P3.4 — delegate the QS hierarchy to the canonical helper
+// so the proposal PDF can never drift from the editor, billing, or
+// overview. Imported under a clear alias because the file still
+// defines a thin local wrapper called `computeContractSum`.
+import { computeContractSum as canonicalComputeContractSum } from "@/lib/financial";
 
 interface Props {
     estimates: any[];
@@ -293,36 +298,18 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     const activeEstimate = estimates.find((est: any) => est.is_active);
     const pdfEstimates = activeEstimate ? [activeEstimate] : estimates;
 
-    // CORRECT QS COST HIERARCHY for PDF
+    // Sprint 58 P3.4 — delegated to the canonical `computeContractSum`
+    // in src/lib/financial.ts. Previously this was a 27-line inline
+    // reimplementation of the QS hierarchy. Any future drift is now
+    // caught by the 35 Vitest tests in src/lib/financial.test.ts.
+    //
+    // Thin wrapper because the local call sites destructure
+    // `directCost`, `prelimsTotal`, `totalConstructionCost`,
+    // `contractSum` and `ohRiskProfitMultiplier` — all of which the
+    // canonical helper returns (plus overheadAmount / riskAmount /
+    // profitAmount / discountAmount as bonus fields we don't yet use).
     const computeContractSum = (est: any) => {
-        const allLines = est.estimate_lines || [];
-        const directCost = allLines
-            .filter((l: any) => l.trade_section !== "Preliminaries" && (l.line_total || 0) > 0)
-            .reduce((sum: number, l: any) => sum + (l.line_total || 0), 0);
-        const explicitPrelimsLines = allLines.filter((l: any) => l.trade_section === "Preliminaries");
-        const explicitPrelimsTotal = explicitPrelimsLines.reduce((sum: number, l: any) => sum + (l.line_total || 0), 0);
-        const prelimsFromPct = directCost * ((est.prelims_pct || 0) / 100);
-        const prelimsTotal = explicitPrelimsLines.length > 0 ? explicitPrelimsTotal : prelimsFromPct;
-        const totalConstructionCost = directCost + prelimsTotal;
-        const overheadPct = est.overhead_pct || 0;
-        const riskPct = est.risk_pct || 0;
-        const profitPct = est.profit_pct || 0;
-        const discountPct = est.discount_pct || 0;
-        const ohRiskProfitMultiplier = (1 + overheadPct / 100) * (1 + riskPct / 100) * (1 + profitPct / 100) * (1 - discountPct / 100);
-        const overheadAmount = totalConstructionCost * (overheadPct / 100);
-        const costPlusOverhead = totalConstructionCost + overheadAmount;
-        const riskAmount = costPlusOverhead * (riskPct / 100);
-        const adjustedTotal = costPlusOverhead + riskAmount;
-        const profitAmount = adjustedTotal * (profitPct / 100);
-        const preDiscountSum = adjustedTotal + profitAmount;
-        const discountAmount = preDiscountSum * (discountPct / 100);
-        return {
-            directCost,
-            prelimsTotal,
-            totalConstructionCost,
-            contractSum: preDiscountSum - discountAmount,
-            ohRiskProfitMultiplier,
-        };
+        return canonicalComputeContractSum(est ?? {}, est?.estimate_lines || []);
     };
 
     const grandTotal = pdfEstimates.reduce((sum: number, est: any) => {

@@ -5,6 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2, RefreshCw, FileDown, Send, History } from "lucide-react";
 import { saveProposalAction, generateAiScopeAction, sendProposalAction, getProposalLinkAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction, updatePaymentScheduleTypeAction, generateClosingStatementAction, saveClosingStatementAction, saveProposalOverridesAction, createProposalVersionAction, type ProposalVersionRow } from "./actions";
+// Sprint 58 P3.4 — delegate the QS math to the canonical helper so the
+// editor can never silently diverge from the proposal PDF, billing page,
+// or P&L dashboard. All 35 Vitest tests in src/lib/financial.test.ts
+// pin the math and any regression here fails CI.
+import { computeContractSum } from "@/lib/financial";
 import VersionHistoryPanel from "./version-history-panel";
 import ProposalPdfButton from "./proposal-pdf-button";
 import AiWizard from "./ai-wizard";
@@ -107,33 +112,37 @@ const MILESTONE_TRIGGERS = [
     'Custom...',
 ];
 
+/**
+ * Wraps the canonical `computeContractSum` with the editor-specific
+ * `sectionTotals` map that `populateFromEstimate` needs. The contract
+ * sum, direct cost, prelims, and ohRiskProfitMultiplier all come
+ * straight from the canonical library — we only add sectionTotals on
+ * top because it's a UI-specific derivative.
+ *
+ * Sprint 58 P3.4 — previously this was a 27-line inline reimplementation
+ * of the QS hierarchy which caused the £1,593 vs £1,753 drift fixed
+ * in Sprint 57. Now delegated.
+ */
 function computeEstimateContractSum(est: any) {
-    const allLines = est.estimate_lines || [];
-    const directCost = allLines
-        .filter((l: any) => l.trade_section !== "Preliminaries" && (l.line_total || 0) > 0)
-        .reduce((sum: number, l: any) => sum + (l.line_total || 0), 0);
-    const explicitPrelimsLines = allLines.filter((l: any) => l.trade_section === "Preliminaries");
-    const explicitPrelimsTotal = explicitPrelimsLines.reduce((sum: number, l: any) => sum + (l.line_total || 0), 0);
-    const prelimsFromPct = directCost * ((est.prelims_pct || 0) / 100);
-    const prelimsTotal = explicitPrelimsLines.length > 0 ? explicitPrelimsTotal : prelimsFromPct;
-    const totalConstructionCost = directCost + prelimsTotal;
-    const overheadAmount = totalConstructionCost * ((est.overhead_pct || 0) / 100);
-    const costPlusOverhead = totalConstructionCost + overheadAmount;
-    const riskAmount = costPlusOverhead * ((est.risk_pct || 0) / 100);
-    const adjustedTotal = costPlusOverhead + riskAmount;
-    const profitAmount = adjustedTotal * ((est.profit_pct || 0) / 100);
-    const contractSum = adjustedTotal + profitAmount;
-    const ohRiskProfitMultiplier = (1 + (est.overhead_pct || 0) / 100) * (1 + (est.risk_pct || 0) / 100) * (1 + (est.profit_pct || 0) / 100);
+    const allLines = est?.estimate_lines || [];
+    const breakdown = computeContractSum(est ?? {}, allLines);
 
-    // Section totals
+    // Section totals — direct cost per section, excluding Preliminaries.
+    // Used by `populateFromEstimate` to build milestone stages.
     const sectionTotals: Record<string, number> = {};
     allLines.forEach((l: any) => {
         const sec = l.trade_section || "General";
         if (sec === "Preliminaries") return;
-        sectionTotals[sec] = (sectionTotals[sec] || 0) + (l.line_total || 0);
+        sectionTotals[sec] = (sectionTotals[sec] || 0) + (Number(l.line_total) || 0);
     });
 
-    return { directCost, prelimsTotal, contractSum, ohRiskProfitMultiplier, sectionTotals };
+    return {
+        directCost:              breakdown.directCost,
+        prelimsTotal:            breakdown.prelimsTotal,
+        contractSum:             breakdown.contractSum,
+        ohRiskProfitMultiplier:  breakdown.ohRiskProfitMultiplier,
+        sectionTotals,
+    };
 }
 
 function formatGBP(n: number): string {

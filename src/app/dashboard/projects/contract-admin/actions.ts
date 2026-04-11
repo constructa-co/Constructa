@@ -291,10 +291,21 @@ export async function draftNoticeAction(data: {
   const eventConfig = config.events[data.eventType];
   const term = config.terminology;
 
-  const systemPrompt = `You are an expert construction contracts consultant specialising in ${config.label}.
+  // Sprint 59 P3 — inject the per-event clause-specific guidance from
+  // contracts-config.ts into the system prompt. NEC, JCT and FIDIC each
+  // have very different conventions for what a notice MUST contain
+  // (NEC 61.3 needs "date aware" wording, JCT 2.27.1 needs "forthwith",
+  // FIDIC 20.1 has a hard 28-day condition precedent). The generic
+  // suite-agnostic prompt was producing competent-but-bland drafts;
+  // the guidance turns them into clause-correct ones.
+  const baseSystemPrompt = `You are an expert construction contracts consultant specialising in ${config.label}.
 You draft formal contractual notices that are precise, clause-referenced, and comply with the contract requirements.
 Always use the correct terminology for this contract: ${term.supervisor} (not "Engineer" or "Architect" unless correct), ${term.employer} (not "Client" unless correct).
 Be concise, professional, and reference specific clause numbers. Do not add pleasantries.`;
+
+  const systemPrompt = eventConfig.aiGuidance
+    ? `${baseSystemPrompt}\n\n=== CLAUSE-SPECIFIC GUIDANCE FOR THIS EVENT ===\n${eventConfig.aiGuidance}\n=== END GUIDANCE ===`
+    : baseSystemPrompt;
 
   const userPrompt = `Draft a formal ${eventConfig.label} notice for the following:
 

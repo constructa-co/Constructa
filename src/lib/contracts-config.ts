@@ -50,6 +50,14 @@ export interface EventConfig {
   timeBarClause: string | null;
   // Ordered response chain created when event is raised
   chain: EventStep[];
+  // Sprint 59 P3 — clause-specific guidance fed to the AI when drafting a
+  // notice for this event. Each suite has its own conventions about what
+  // a notice MUST contain (e.g. NEC 61.3 needs explicit date-aware wording,
+  // FIDIC 20.1 needs a "fully detailed claim" submission within 42 days).
+  // The drafter prepends this to the system prompt so the output is sharper.
+  // Optional — events without specific guidance fall back to the generic
+  // contract-suite system prompt.
+  aiGuidance?: string;
 }
 
 export interface PaymentCycle {
@@ -139,6 +147,18 @@ const NEC4_ECC: ContractConfig = {
       shortLabel: "CE",
       contractorTimeBarDays: 56,   // 8 weeks cl. 61.3
       timeBarClause: "61.3",
+      aiGuidance: `NEC4 cl. 61.3 — the Contractor must notify the Project Manager of a compensation event within EIGHT WEEKS of becoming aware of it. If the Contractor fails to notify within this period, they are NOT entitled to a change in the Prices, Completion Date, or Key Date for that event.
+
+The notice MUST:
+- Be in writing, separately from any other communication (cl. 13.1, 13.7)
+- Identify the event by reference to the relevant cl. 60.1 sub-clause where applicable
+- State the date the Contractor became aware of the event (this triggers the 8-week clock)
+- Briefly describe the event and its likely effect on Prices, Completion Date, or Key Date
+- Be addressed to the Project Manager (NOT the Client)
+
+After notification, the Contractor will be required to submit a quotation under cl. 62. Do not include the quotation in the notice itself.
+
+Use NEC4 terminology only: "Contractor", "Project Manager", "Client", "Compensation Event", "Defined Cost", "Working Areas". Do not use legal jargon or external contract terms.`,
       chain: [
         {
           step: "contractor_notifies_ce",
@@ -214,6 +234,21 @@ const NEC4_ECC: ContractConfig = {
       shortLabel: "EW",
       contractorTimeBarDays: null,
       timeBarClause: null,
+      aiGuidance: `NEC4 cl. 15.1 — both parties have a duty to give an Early Warning Notice as soon as either becomes aware of any matter which could:
+- Increase the total of the Prices
+- Delay Completion or a Key Date
+- Impair the performance of the works in use
+- Increase the Contractor's total cost
+
+This is NOT a claim — it is a notice triggering a Risk Reduction Meeting (cl. 15.4) where both parties cooperate on mitigation. Failure to notify can be reflected when the PM later assesses any related compensation event (cl. 61.5).
+
+The notice MUST:
+- Be in writing
+- Briefly describe the matter and its likely effect
+- Be entered in the Early Warning Register (cl. 15.3)
+- Propose a date for a Risk Reduction Meeting
+
+Tone: collaborative, not adversarial. The whole point of NEC's early warning regime is to surface problems early so they can be solved jointly.`,
       chain: [
         {
           step: "ew_raised",
@@ -277,6 +312,11 @@ const NEC3_ECC: ContractConfig = {
     ...NEC4_ECC.events,
     compensation_event: {
       ...NEC4_ECC.events.compensation_event,
+      // NEC3 uses the same 8-week time bar at cl. 61.3 as NEC4. The
+      // guidance text below mirrors the NEC4 version but renames the
+      // contract throughout so the AI doesn't accidentally cite NEC4
+      // wording when drafting an NEC3 notice.
+      aiGuidance: NEC4_ECC.events.compensation_event.aiGuidance?.replace(/NEC4/g, "NEC3"),
       chain: NEC4_ECC.events.compensation_event.chain.map(s =>
         s.step === "pm_decides_ce" ? { ...s, clauseRef: "61.4", daysFromPrevious: 7 } : s
       ),
@@ -332,6 +372,21 @@ const JCT_SBC: ContractConfig = {
       shortLabel: "Var",
       contractorTimeBarDays: null,
       timeBarClause: null,
+      aiGuidance: `JCT SBC 2016 cl. 3.10 — the Architect / Contract Administrator may issue instructions in writing requiring a Variation. The Contractor must comply unless the variation involves:
+- Work the Contractor cannot reasonably carry out
+- A change to the obligations or restrictions imposed by the Employer
+in which case the Contractor may make reasonable objection in writing to the Architect under cl. 3.10.1.
+
+Any Variation that affects regular progress will be valued under section 5 (Variations and Provisional Sums) and may give rise to a Relevant Event under cl. 2.29 (Extension of Time) and / or a matter under cl. 4.22 (Loss and Expense).
+
+The notice MUST:
+- Be addressed to the Architect / Contract Administrator
+- Reference the AI/Variation number if known
+- Confirm receipt and either acceptance or reasonable objection
+- State whether the Contractor considers the Variation will affect time or money
+- If time or money is affected, signpost an EoT notice (cl. 2.27) and L&E application (cl. 4.20) to follow
+
+Use JCT terminology only: "Contractor", "Architect / Contract Administrator", "Employer", "Variation", "Relevant Event", "Loss and Expense".`,
       chain: [
         {
           step: "architect_issues_instruction",
@@ -364,6 +419,21 @@ const JCT_SBC: ContractConfig = {
       shortLabel: "EoT",
       contractorTimeBarDays: null,   // JCT: "forthwith" — not a hard bar in days
       timeBarClause: "2.27.1",
+      aiGuidance: `JCT SBC 2016 cl. 2.27.1 — when it becomes reasonably apparent that progress is being or is likely to be delayed, the Contractor must FORTHWITH give written notice to the Architect / Contract Administrator of the material circumstances, including the cause(s) of the delay, and identify any Relevant Event.
+
+This is NOT a hard time bar in days, but the case law (Walter Lilly v Mackay) makes clear that "forthwith" means "as soon as reasonably practicable" — typically within days, not weeks. Failure to notify forthwith may not extinguish the right to an extension but it weakens the contractor's position.
+
+The notice MUST:
+- Be in writing, addressed to the Architect / CA
+- Identify each Relevant Event under cl. 2.29 (e.g. cl. 2.29.6 Variations, cl. 2.29.7 instructions, cl. 2.29.13 specified perils, cl. 2.29.14 force majeure)
+- State the date(s) of the Relevant Event(s) and when they became apparent
+- Describe the material circumstances and cause of delay
+- Estimate the expected delay to the Completion Date (an estimate is fine — a precise figure follows in the cl. 2.27.2 particulars)
+- Reserve the right to provide further particulars under cl. 2.27.2
+
+The Architect must then make a fair and reasonable extension under cl. 2.28.1 within 12 weeks of receipt of the cl. 2.27.2 particulars. Without the initial notice, this clock never starts.
+
+Use JCT terminology only: "Contractor", "Architect / Contract Administrator", "Employer", "Relevant Event", "Completion Date", "Date for Completion".`,
       chain: [
         {
           step: "contractor_notifies_relevant_event",
@@ -396,6 +466,26 @@ const JCT_SBC: ContractConfig = {
       shortLabel: "L&E",
       contractorTimeBarDays: null,
       timeBarClause: "4.20",
+      aiGuidance: `JCT SBC 2016 cl. 4.20 — the Contractor may apply to the Architect / Contract Administrator for ascertainment of any direct loss and/or expense incurred (or likely to be incurred) for which the Contractor would not be reimbursed under any other provision of the Contract, where regular progress has been or is likely to be materially affected by a Relevant Matter (cl. 4.22).
+
+The application MUST:
+- Be in writing
+- Be made as SOON as the loss/expense has become or is likely to become apparent (cl. 4.20.1) — the post-2016 amendments require contemporaneous notice
+- Identify each Relevant Matter under cl. 4.22 (e.g. cl. 4.22.1 Variations, cl. 4.22.5 instructions, cl. 4.22.6 employer's failure to give possession)
+- State the basis on which the Contractor considers the matter has materially affected regular progress
+- Where reasonably practicable, contain such information as is necessary to enable the Architect / QS to ascertain the loss / expense (cl. 4.20.2)
+
+Common heads of claim include:
+- Site preliminaries / time-related on-costs
+- Head office overheads (e.g. Hudson, Emden, or Eichleay formula)
+- Loss of profit / contribution
+- Increased subcontractor costs
+- Disruption costs (productivity loss)
+- Finance charges on additional working capital
+
+Do NOT speculate about quantum in the initial application — the Architect / QS will ascertain it. The contractor's job here is to (1) identify the Relevant Matter, (2) demonstrate material effect on regular progress, and (3) commit to providing further information on request.
+
+Use JCT terminology only: "Contractor", "Architect / Contract Administrator", "Quantity Surveyor", "Employer", "Relevant Matter", "ascertainment", "regular progress".`,
       chain: [
         {
           step: "contractor_makes_application",
@@ -510,6 +600,26 @@ const FIDIC_RED_1999: ContractConfig = {
       shortLabel: "Claim",
       contractorTimeBarDays: 28,   // cl. 20.1 — 28 days of becoming aware
       timeBarClause: "20.1",
+      aiGuidance: `FIDIC Red Book 1999 cl. 20.1 — the Contractor must give notice to the Engineer describing the event or circumstance giving rise to the claim within TWENTY-EIGHT DAYS after the Contractor became aware (or should have become aware) of the event. If the Contractor fails to give notice within this period:
+- The Time for Completion shall not be extended
+- The Contractor shall not be entitled to additional payment
+- The Employer is discharged from all liability in connection with the claim
+This is a HARD CONDITION PRECEDENT — the courts (Obrascon v Attorney General of Gibraltar) have confirmed FIDIC 20.1 is a true time bar.
+
+The notice MUST:
+- Be in writing, addressed to the Engineer
+- Describe the event or circumstance giving rise to the claim
+- State the date of the event AND the date the Contractor became aware
+- Reference cl. 20.1 (and the substantive Sub-Clause supporting the claim — e.g. cl. 8.4 EOT, cl. 13.7 changes in legislation)
+- Be kept brief — the FULLY DETAILED claim follows under the same clause within 42 days
+
+After notice, the Contractor MUST:
+- Keep contemporary records (cl. 20.1 second paragraph)
+- Submit the fully detailed claim within 42 days of becoming aware (or such other period as the Engineer may approve)
+- Submit further interim claims at monthly intervals if the event has continuing effect
+- Submit a final claim within 28 days after the end of the effects
+
+Use FIDIC terminology only: "Contractor", "Engineer", "Employer", "Time for Completion", "Variation", "Sub-Clause", "Cost", "reasonable profit". Do NOT use NEC or JCT terminology.`,
       chain: [
         {
           step: "contractor_notices_claim",

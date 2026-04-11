@@ -43,6 +43,16 @@ interface Props {
     contractValue: number;
     budgetCost: number;
     costsPosted: number;
+    /** Committed but not yet actualised costs (Sprint 28). */
+    committedTotal: number;
+    /**
+     * Forecast at completion — actual + committed + remaining budget per
+     * section, with any user-entered section forecast overrides applied.
+     * Drives the forecast-margin RAG added in Sprint 58 P1.4.
+     */
+    forecastFinal: number;
+    forecastMargin: number;
+    forecastMarginPct: number;
     invoicedTotal: number;
     receivedTotal: number;
     outstandingAmt: number;
@@ -55,6 +65,7 @@ interface Props {
     overallRag: "green" | "amber" | "red";
     budgetRag: "green" | "amber" | "red";
     programmeRag: "green" | "amber" | "red";
+    forecastRag: "green" | "amber" | "red";
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -80,6 +91,32 @@ function ragBadgeBg(rag: "green" | "amber" | "red") {
 
 function ragLabel(rag: "green" | "amber" | "red") {
     return rag === "red" ? "At Risk" : rag === "amber" ? "Monitor" : "On Track";
+}
+
+/**
+ * Build a detailed tooltip/label explaining *why* a project is not on track —
+ * Perplexity caught us showing green "On Track" on a project forecast to lose
+ * money. When overall RAG is not green, list the failing dimensions.
+ */
+function ragReason(
+    overall: "green" | "amber" | "red",
+    budgetRag: "green" | "amber" | "red",
+    programmeRag: "green" | "amber" | "red",
+    forecastRag: "green" | "amber" | "red",
+    forecastMargin: number,
+): string {
+    if (overall === "green") return "Budget, programme and forecast margin all within tolerance";
+    const reasons: string[] = [];
+    if (budgetRag !== "green") reasons.push(`Budget ${budgetRag === "red" ? "overspent" : "tight"}`);
+    if (programmeRag !== "green") reasons.push(`Programme ${programmeRag === "red" ? "overrun" : "tight"}`);
+    if (forecastRag !== "green") {
+        reasons.push(
+            forecastMargin < 0
+                ? `Forecast loss of ${gbp(Math.abs(forecastMargin))}`
+                : "Margin under 5%"
+        );
+    }
+    return reasons.join(" · ") || "Review project status";
 }
 
 function formatDate(iso: string): string {
@@ -165,9 +202,10 @@ function ProgrammeBar({ phases, programmePct, totalCalendarDays }: {
 export default function OverviewClient({
     project, projectId,
     contractValue, budgetCost, costsPosted,
+    committedTotal, forecastFinal, forecastMargin, forecastMarginPct,
     invoicedTotal, receivedTotal, outstandingAmt, outstandingInvoices,
     approvedVars, programmePct, currentPhaseName, totalCalendarDays,
-    burnPct, overallRag, budgetRag, programmeRag,
+    burnPct, overallRag, budgetRag, programmeRag, forecastRag,
 }: Props) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
@@ -204,14 +242,24 @@ export default function OverviewClient({
                         )}
                     </div>
                 </div>
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-semibold flex-shrink-0 ${ragBadgeBg(overallRag)}`}>
+                <div
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-semibold flex-shrink-0 ${ragBadgeBg(overallRag)}`}
+                    title={ragReason(overallRag, budgetRag, programmeRag, forecastRag, forecastMargin)}
+                >
                     <Activity className="w-4 h-4" />
                     {ragLabel(overallRag)}
                 </div>
             </div>
 
+            {/* ── RAG dimension strip — why we're in this state ─────────────── */}
+            {overallRag !== "green" && (
+                <div className={`rounded-xl border px-4 py-3 text-xs font-medium ${ragBadgeBg(overallRag)}`}>
+                    {ragReason(overallRag, budgetRag, programmeRag, forecastRag, forecastMargin)}
+                </div>
+            )}
+
             {/* ── KPI Strip ────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <KpiCard
                     label="Contract Value"
                     value={gbp(contractValue + approvedVars)}
@@ -220,8 +268,26 @@ export default function OverviewClient({
                 <KpiCard
                     label="Budget Burn"
                     value={`${Math.round(burnPct)}%`}
-                    sub={`${gbp(costsPosted)} of ${gbp(budgetCost)} budget`}
+                    sub={
+                        committedTotal > 0
+                            ? `${gbp(costsPosted)} actual + ${gbp(committedTotal)} committed`
+                            : `${gbp(costsPosted)} of ${gbp(budgetCost)}`
+                    }
                     rag={budgetRag}
+                />
+                <KpiCard
+                    label="Forecast Margin"
+                    value={
+                        forecastMargin < 0
+                            ? `-${gbp(Math.abs(forecastMargin))}`
+                            : gbp(forecastMargin)
+                    }
+                    sub={
+                        contractValue > 0
+                            ? `${Math.round(forecastMarginPct)}% of contract · ${gbp(forecastFinal)} final`
+                            : "No contract value"
+                    }
+                    rag={forecastRag}
                 />
                 <KpiCard
                     label="Programme"

@@ -39,9 +39,13 @@ the right posture; their raw reports are archived at
 `docs/reviews/2026-04-11/` for future context.
 
 **Immediately next:**
-1. Sprint 58 Phase 3 (optional polish — shared PDF service, core domain type interfaces, reporting project selector fix, Final Account formatting, light mode verification). None are launch blockers.
-2. End-to-end QA walkthrough on the hardened + streamlined build (Vercel has all commits through `9cafdba`).
-3. Sprint 59 — Contract Administration Suite polish (scaffolded, not production-ready).
+1. **Sprint 58 Phase 3 — IN PROGRESS.** Extending the hardening sprint with the polish items that were originally tagged nice-to-have. Priority order:
+   - P3.1 quick wins: Final Account `£–0.00` display fix, reporting project selector refinement, light mode verification
+   - P3.2: core domain type interfaces (`Project`, `Estimate`, `EstimateLine`, `Profile`) replacing the worst `any` offenders
+   - P3.3: extract shared PDF service from the 7 generators — proposal PDF builder currently 1,935 lines; safe to attempt now because the 35 financial Vitest tests pin the math
+   - P3.4: migrate proposal editor + PDF builder to the canonical `src/lib/financial.ts` so nothing rolls its own QS hierarchy anywhere in the codebase
+2. Sprint 59 — Contract Administration Suite polish (scaffolded, not production-ready) — picking up after Sprint 58 is closed.
+3. End-to-end QA walkthrough on the hardened + streamlined build.
 4. Launch readiness pass with 3-5 real beta contractors.
 
 **Sprint 58 outcome in one line:** the product moved from "very impressive AI-built prototype" to "robust enough to show real contractors" — error boundaries, defence-in-depth auth on every mutating action, Zod validation on the 8 highest-risk actions, a canonical financial library with 35 Vitest tests pinning the math, honest RAG status, unified KPI definitions, sidebar context sync, test data cleaned, observability seam, AND the Quick Quote path + proposal autosave + forgot-password flow on top.

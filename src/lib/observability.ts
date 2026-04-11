@@ -39,8 +39,16 @@ let sentryProbed = false;
  * package isn't installed or the DSN isn't configured, so callers can
  * safely no-op. Wrapped in try/catch so a broken install never crashes
  * the error boundary itself.
+ *
+ * Implementation note: Next.js / Webpack statically analyses
+ * `import("...")` string literals and will fail the build if the module
+ * isn't on disk — even inside try/catch. To keep `@sentry/nextjs` a
+ * TRULY optional dependency (no package.json entry, no bundling cost,
+ * no build failure when missing) we go through `eval("require")`.
+ * The `eval` call is NEVER reached unless `SENTRY_DSN` is set, so in
+ * normal operation this is zero-overhead.
  */
-async function resolveSentry(): Promise<SentryLike | null> {
+function resolveSentry(): SentryLike | null {
     if (sentryProbed) return cachedSentry;
     sentryProbed = true;
 
@@ -50,11 +58,14 @@ async function resolveSentry(): Promise<SentryLike | null> {
         null;
     if (!dsn) return null;
 
+    // Server-side runtime only. `eval("require")` is an ESLint smell but
+    // it's the canonical way to hide a dynamic require from bundlers —
+    // exactly what we want for an opt-in observability provider.
+    if (typeof window !== "undefined") return null;
     try {
-        // Dynamic import so a missing package doesn't break the build.
-        // @ts-expect-error — optional dep not in package.json yet
-        const mod = await import("@sentry/nextjs");
-        cachedSentry = mod as SentryLike;
+        // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-eval
+        const req = eval("require") as NodeRequire;
+        cachedSentry = req("@sentry/nextjs") as SentryLike;
         return cachedSentry;
     } catch {
         return null;
@@ -90,11 +101,12 @@ export function reportError(error: unknown, context: ErrorContext = {}): void {
         console.error(`[${source}]`, error, { digest, extra: context.extra });
     }
 
-    // 2. Fire-and-forget to Sentry if available. We deliberately don't
-    //    await this — React error boundaries are sync, and holding them
-    //    up for a network call would make the UX worse not better.
-    void resolveSentry().then((sentry) => {
-        if (!sentry?.captureException) return;
+    // 2. Fire-and-forget to Sentry if available. `resolveSentry()` is
+    //    sync and returns null unless the DSN is set AND the package is
+    //    installed on the server — so this is a pure no-op in normal
+    //    operation.
+    const sentry = resolveSentry();
+    if (sentry?.captureException) {
         try {
             sentry.captureException(error, {
                 tags: { source },
@@ -103,5 +115,5 @@ export function reportError(error: unknown, context: ErrorContext = {}): void {
         } catch {
             // Swallow — we already logged above.
         }
-    });
+    }
 }

@@ -3,18 +3,50 @@
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import { Button } from "@/components/ui/button";
-import { Download, FileText } from "lucide-react";
+import { Download } from "lucide-react";
+import { formatGbp } from "@/lib/pdf/pdf-money";
+
+// Sprint 58 P3.3 — the PDF button only needs a small subset of the
+// canonical Invoice/Project/Variation shapes, and the parent component
+// (client-billing.tsx) has its own narrower local Invoice interface.
+// Use structural subsets here so both callers can satisfy the props
+// without forcing a cascade of refactors up the tree.
+interface InvoiceLike {
+    invoice_number?: string | null;
+    type?: "Interim" | "Final" | null;
+    amount: number;
+    created_at?: string | null;
+}
+
+interface ProjectLike {
+    name: string;
+    client_name?: string | null;
+}
+
+interface VariationLike {
+    title: string;
+    amount: number;
+}
 
 interface Props {
-    invoice: any;
-    project: any;
+    invoice: InvoiceLike;
+    project: ProjectLike;
     originalContractSum: number;
-    variations: any[];
+    variations: VariationLike[];
 }
 
 export default function InvoicePdfButton({ invoice, project, originalContractSum, variations }: Props) {
     const generatePdf = () => {
-        const doc = new jsPDF() as any;
+        // Sprint 58 P3.3 — migrated to the canonical `formatGbp` helper
+        // in @/lib/pdf/pdf-money so this PDF can never print "£-0.00"
+        // and always uses proper UK formatting. Typed props come from
+        // @/types/domain so a renamed field on `projects` would fail the
+        // TS build rather than silently rendering "undefined" in the
+        // document.
+        const doc = new jsPDF() as jsPDF & {
+            autoTable: (opts: Record<string, unknown>) => void;
+            lastAutoTable: { finalY: number };
+        };
         const margin = 20;
         let currentY = 20;
 
@@ -36,9 +68,15 @@ export default function InvoicePdfButton({ invoice, project, originalContractSum
 
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
-        doc.text(`Invoice No: ${invoice.invoice_number}`, 120, currentY + 7);
-        doc.text(`Date: ${new Date(invoice.created_at).toLocaleDateString()}`, 120, currentY + 12);
-        doc.text(`Type: ${invoice.type} Account`, 120, currentY + 17);
+        doc.text(`Invoice No: ${invoice.invoice_number ?? ""}`, 120, currentY + 7);
+        if (invoice.created_at) {
+            doc.text(
+                `Date: ${new Date(invoice.created_at).toLocaleDateString("en-GB")}`,
+                120,
+                currentY + 12,
+            );
+        }
+        doc.text(`Type: ${invoice.type ?? "Interim"} Account`, 120, currentY + 17);
 
         currentY += 40;
 
@@ -56,24 +94,31 @@ export default function InvoicePdfButton({ invoice, project, originalContractSum
         currentY += 25;
 
         // --- FINANCIAL DATA TABLE ---
-        const tableRows: any[][] = [
-            ["Original Contract Sum", `GBP ${originalContractSum.toLocaleString()}`]
+        type Cell = string | { content: string; styles: { fontStyle: string } };
+        const tableRows: Cell[][] = [
+            ["Original Contract Sum", formatGbp(originalContractSum)],
         ];
 
-        variations.forEach((v, index) => {
-            tableRows.push([`Variation: ${v.title}`, `GBP ${v.amount.toLocaleString()}`]);
+        variations.forEach((v) => {
+            tableRows.push([`Variation: ${v.title}`, formatGbp(v.amount)]);
         });
 
-        tableRows.push([{ content: "REVISED CONTRACT VALUE", styles: { fontStyle: 'bold' } }, { content: `GBP ${(originalContractSum + variations.reduce((s, v) => s + Number(v.amount), 0)).toLocaleString()}`, styles: { fontStyle: 'bold' } }]);
+        const revisedValue =
+            originalContractSum +
+            variations.reduce((s, v) => s + Number(v.amount), 0);
+        tableRows.push([
+            { content: "REVISED CONTRACT VALUE", styles: { fontStyle: "bold" } },
+            { content: formatGbp(revisedValue), styles: { fontStyle: "bold" } },
+        ]);
 
         doc.autoTable({
             startY: currentY,
             margin: { left: margin, right: margin },
-            head: [['Description', 'Amount']],
+            head: [["Description", "Amount"]],
             body: tableRows,
-            theme: 'striped',
+            theme: "striped",
             headStyles: { fillStyle: [15, 23, 42], textColor: 255 },
-            styles: { fontSize: 9 }
+            styles: { fontSize: 9 },
         });
 
         currentY = doc.lastAutoTable.finalY + 20;
@@ -85,14 +130,18 @@ export default function InvoicePdfButton({ invoice, project, originalContractSum
 
         doc.setFontSize(18);
         doc.setTextColor(37, 99, 235); // Blue-600
-        doc.text(`GBP ${invoice.amount.toLocaleString('en-GB', { minimumFractionDigits: 2 })}`, margin, currentY + 10);
+        doc.text(formatGbp(invoice.amount), margin, currentY + 10);
 
         // --- FOOTER ---
         doc.setFontSize(8);
         doc.setTextColor(150);
-        doc.text("All variations have been formally checked and approved. Please remit payment within 14 days.", margin, 280);
+        doc.text(
+            "All variations have been formally checked and approved. Please remit payment within 14 days.",
+            margin,
+            280,
+        );
 
-        doc.save(`Invoice_${invoice.invoice_number}_${project.name}.pdf`);
+        doc.save(`Invoice_${invoice.invoice_number ?? "draft"}_${project.name}.pdf`);
     };
 
     return (

@@ -3,13 +3,36 @@
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import { Download } from "lucide-react";
+// Sprint 58 P3.3 — migrated to the shared pdf-money helper.
+import { formatGbp as gbp } from "@/lib/pdf/pdf-money";
 
-interface Props {
-    variation: any;
-    project: any;
+// Subset prop shapes — covers both the local Variation interface in
+// variations-client.tsx and the canonical @/types/domain one.
+interface VariationLike {
+    title?: string | null;
+    description?: string | null;
+    amount: number | string;
+    variation_number?: string | null;
+    instruction_type?: string | null;
+    trade_section?: string | null;
+    instructed_by?: string | null;
+    date_instructed?: string | null;
+    status?: string | null;
+    approval_reference?: string | null;
+    approval_date?: string | null;
+    rejection_reason?: string | null;
 }
 
-const gbp = (n: number) => `£${Number(n).toLocaleString("en-GB", { minimumFractionDigits: 2 })}`;
+interface ProjectLike {
+    name: string;
+    client_name?: string | null;
+    site_address?: string | null;
+}
+
+interface Props {
+    variation: VariationLike;
+    project: ProjectLike;
+}
 
 export default function VariationPdfButton({ variation, project }: Props) {
     const generatePdf = () => {
@@ -40,13 +63,14 @@ export default function VariationPdfButton({ variation, project }: Props) {
             Draft:              [100, 116, 139],
             Rejected:           [239, 68, 68],
         };
-        const sc = statusColours[variation.status] ?? statusColours.Draft;
+        const status = variation.status ?? "Draft";
+        const sc = statusColours[status] ?? statusColours.Draft;
         doc.setFillColor(...sc);
         doc.roundedRect(pageW - margin - 36, 12, 36, 10, 2, 2, "F");
         doc.setFontSize(8);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(255, 255, 255);
-        doc.text(variation.status.toUpperCase(), pageW - margin - 18, 19, { align: "center" });
+        doc.text(status.toUpperCase(), pageW - margin - 18, 19, { align: "center" });
 
         y = 50;
 

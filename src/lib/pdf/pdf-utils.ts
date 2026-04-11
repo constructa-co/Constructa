@@ -53,14 +53,16 @@ export function buildDocHeader(
     doc: jsPDF,
     options: {
         documentTitle: string;
+        // Sprint 58 P3.3 — accept `null` on every field so callers can pass
+        // Supabase rows straight through without coercing away nulls.
         profile?: {
-            company_name?: string;
-            address_line1?: string;
-            city?: string;
-            postcode?: string;
-            phone?: string;
-            email?: string;
-            website?: string;
+            company_name?: string | null;
+            address_line1?: string | null;
+            city?: string | null;
+            postcode?: string | null;
+            phone?: string | null;
+            email?: string | null;
+            website?: string | null;
         };
         rightBlockLines?: string[]; // Optional right-aligned summary block (e.g. invoice totals)
     }

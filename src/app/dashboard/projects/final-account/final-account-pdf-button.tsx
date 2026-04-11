@@ -1,12 +1,9 @@
 "use client";
 
 import { FileDown } from "lucide-react";
-
-// Sprint 58 P3.1 — normalise -0 so the PDF never prints "£-0.00".
-const gbp = (n: number) => {
-    const v = Object.is(n, -0) || n === 0 ? 0 : Number(n);
-    return `£${v.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-};
+// Sprint 58 P3.3 — use the canonical formatter from @/lib/pdf/pdf-money
+// so every document in the app shares one implementation.
+import { formatGbp as gbp } from "@/lib/pdf/pdf-money";
 
 const fmtDate = (d?: string | null) =>
     d ? new Date(d + "T00:00:00").toLocaleDateString("en-GB") : "—";

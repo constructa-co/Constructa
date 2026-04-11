@@ -15,10 +15,26 @@ import {
     BRAND,
 } from "@/lib/pdf/pdf-utils";
 
+// Sprint 58 P3.3 — structural subset so the parent doesn't need to
+// know about every domain field, but the common ones are type-checked.
+interface ProjectLike {
+    name?: string | null;
+}
+
+interface ProfileLike {
+    company_name?: string | null;
+    address_line1?: string | null;
+    city?: string | null;
+    postcode?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    website?: string | null;
+}
+
 interface Props {
-    project: any;
+    project: ProjectLike;
     contractText: string;
-    profile?: any;
+    profile?: ProfileLike;
 }
 
 export default function ContractPdfButton({ project, contractText, profile }: Props) {

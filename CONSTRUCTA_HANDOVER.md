@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 11 April 2026 — night session (Sprint 58 COMPLETE + Sprint 59 home alerts + daily email cron + per-event AI guidance)
+**Last updated:** 11 April 2026 — end-of-day close-out (Sprint 58 COMPLETE + Sprint 59 P1+P2+P3 shipped + full Perplexity/Grok tracker + tomorrow's gap-fillers)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -70,6 +70,352 @@ the right posture; their raw reports are archived at
 **Sprint 58 outcome in one line:** the product moved from "very impressive AI-built prototype" to "robust enough to ship to real contractors" — error boundaries, defence-in-depth auth on every mutating action, Zod validation on the 8 highest-risk actions, a canonical financial library with 35 Vitest tests pinning the math, shared PDF helpers with 19 more tests, honest RAG status, unified KPI definitions, sidebar context sync, test data cleaned, observability seam, core domain type interfaces, Quick Quote path, proposal autosave, forgot-password flow, and both the proposal editor and PDF builder now delegate their QS math to the canonical helper so nothing can drift silently again.
 
 **Do NOT touch:** `src/app/(marketing)/` — that's constructa.co landing page, entirely separate project
+
+---
+
+## Session Close-Out — 11 April 2026 (Night)
+
+This was a long single-day session that ran from Sprint 57 polish through a full
+Sprint 58 (three phases) and into Sprint 59 Phases 1–3. Total commits: ~27,
+from `2b2b5c8` (schema-mismatch sweep) through `7014807` (Sprint 59 P2+P3
+handover close-out) and then this doc update. Working tree is clean, 0
+TypeScript errors, 54/54 Vitest tests passing, `next build` clean, Vercel has
+deployed every commit.
+
+### What this session shipped (high-level, in commit order)
+
+**Phase 1 — schema + billing sweep:**
+- `2b2b5c8` swept 14 files of silent schema-mismatch bugs (non-existent
+  `updated_at` / `end_date` / `timeline_phases` / `validity_days` columns
+  Supabase was dropping silently), including the `updatePhasesAction` write
+  path that had been eating every programme edit since Sprint 19.
+- `587cd4b` caught a parallel drift in proposal editor: it was computing a
+  contract sum that skipped `discount_pct`, so any estimate with a non-zero
+  discount showed different numbers in the editor vs the generated PDF. The
+  editor now delegates to canonical `computeContractSum`.
+- Billing page revised-contract-sum formula was missing the 10% prelims uplift
+  (£1,593.90 vs £1,753.29) — fixed and later prevented structurally by
+  extracting `src/lib/financial.ts`.
+
+**Sprint 58 Phase 1 (robustness):**
+- `src/app/global-error.tsx`, `src/app/dashboard/error.tsx`,
+  `src/app/dashboard/projects/error.tsx` + matching `loading.tsx` files — no
+  more white screens on a render error, scoped fallbacks that preserve the
+  shell.
+- `src/lib/supabase/auth-utils.ts` new `requireAuth()` helper returning
+  `{ user: { id, email? }, supabase }`. Rolled through **~40 mutating server
+  actions across 42 files** — every write path now has defence-in-depth auth
+  and fails closed on a missing session.
+- `src/lib/observability.ts` `reportError()` wrapper with a synchronous
+  `eval("require")` pattern to hide `@sentry/nextjs` from Webpack's static
+  analysis (learned the hard way in commit `d30be6b` → `c964eed`: dynamic
+  `await import()` in a try/catch still breaks the build if the package isn't
+  in `node_modules`).
+- Three-dimensional honest RAG status on Overview: now factors forecast margin
+  alongside budget and programme, so "On Track" green cannot lie when the job
+  is losing money.
+- Shared `isActiveProject` / `isPipelineProject` / `isClosedProject`
+  predicates in `src/lib/project-helpers.ts` — fixed the "home shows 0 active
+  / pipeline shows 1 / accounts shows 0" KPI mismatch that came from
+  capitalisation-sensitive status filters scattered across the codebase.
+- Sidebar active-project widget now reads `projectId` from the URL on every
+  navigation instead of relying on local state — no more stale "Select a
+  project…" on Variations / Reporting.
+
+**Sprint 58 Phase 2 (canonical math + validation):**
+- `src/lib/financial.ts` — canonical QS library:
+  `computeContractSum`, `computeBudgetCost`, `computeAfp`,
+  `computeForecastFinal`, `computeForecastMargin`, `computeCisDeduction`,
+  `toNumber`, `roundMoney`, `pctProgress`. Every caller (proposal editor,
+  proposal PDF, billing, overview, job P&L, management accounts) now
+  delegates through this.
+- `src/lib/financial.test.ts` — 35 Vitest tests including a "22 Birchwood
+  canonical" test that asserts exactly £1,753.29 so the contract-sum drift
+  class of bug is structurally locked down.
+- `src/lib/pdf/pdf-theme.ts` — SLATE/NAVY/FOREST palettes with
+  `getPdfTheme()` that falls back to slate on unknown values.
+- `src/lib/pdf/pdf-money.ts` + `pdf-money.test.ts` — `formatGbp`,
+  `formatDeduction`, `formatSignedGbp`, `formatGbpShort` with 19 tests
+  covering `-0`, `NaN`, `null`, `undefined`, negative zero formatting.
+- `src/lib/validation/schemas.ts` — 8 Zod schemas on the highest-risk
+  mutating actions (log cost, section forecast, create AfP, create variation,
+  programme phase, create change event, save proposal, create BoQ estimate)
+  plus a reusable `parseInput()` helper.
+- `src/types/domain.ts` — canonical Project / Estimate / EstimateLine /
+  EstimateLineComponent / Profile / Variation / Invoice / ProjectExpense /
+  StaffResource / PlantResource structural subset interfaces so callers can
+  narrow without fighting the generated Supabase types.
+
+**Sprint 58 Phase 3 (streamlining + polish):**
+- **Quick Quote path** (`/dashboard/projects/quick-quote/`): template picker
+  → 5-field form → immediately-seeded estimate + proposal. Migration
+  `20260411180000_sprint58_quick_quote_templates.sql` creates
+  `project_templates` plus 6 seeded templates (Kitchen Extension, Loft
+  Conversion, Bathroom, Driveway, Garden Room, Custom). `createQuickQuoteFromTemplateAction`
+  is `requireAuth()`-gated and Zod-validated. Clicks-to-PDF target: < 5
+  minutes on a cold start. **No functional loss for larger projects** — the
+  full wizard is still there.
+- `src/app/auth/forgot-password/page.tsx` + a "Forgot password?" link on
+  `/login` → closes the Grok finding that a real contractor who forgot their
+  password had no recovery path.
+- Proposal editor autosave with a status indicator ("Saved just now" / "Saving
+  …" / "Not saved").
+- PDF service migration: 4 of 7 generators now delegate to
+  `src/lib/pdf/pdf-theme.ts` + `pdf-money.ts` (proposal, contract,
+  final-account, variation). The remaining 3 are the gap-filler for
+  tomorrow — see below.
+
+**Sprint 59 Phase 1 (contract administration suite — already in place at
+session start):**
+- 5 DB tables (`contract_settings`, `contract_obligations`,
+  `contract_events`, `contract_communications`, `claims`).
+- `src/lib/contracts-config.ts` config-driven engine covering NEC4 ECC,
+  NEC3 ECC, JCT SBC, FIDIC Red 1999, FIDIC Yellow 2017 and Bespoke variants
+  with terminology, options, on-award obligations, event chains, response
+  steps and payment cycles.
+- All server actions (`setupContractAction`, `raiseEventAction` with
+  automatic `time_bar_date = addDays(date_aware, contractorTimeBarDays)`,
+  `logCommunicationAction`, `raiseClaimAction`, `draftNoticeAction`,
+  `draftClaimAction`) `requireAuth()`-gated.
+- Contract-admin client (1,108 lines) with 5 tabs (dashboard, obligations,
+  events, communications, claims) and per-event time-bar pills.
+
+**Sprint 59 Phase 2 (the push + pull loop for contract alerts — this
+session):**
+- `e149cfa` cross-project home alerts: three new red/amber AlertBanners at the
+  top of `home-client.tsx` — time bars expiring within 14 days (red,
+  career-saving feature), overdue obligations (red), obligations due this
+  week (amber). Each row deep-links to
+  `/dashboard/projects/contract-admin?projectId=X`. This is the **in-app**
+  half of the loop: what the contractor sees when they open Constructa.
+- `0593fc9` daily email cron:
+  - `src/app/api/cron/contract-alerts/route.ts` — Vercel cron at 07:00 UTC
+    daily, scoped by `CRON_SECRET` bearer header, sweeps every user's open
+    contract events + obligations, buckets by `user_id`, and calls
+    `sendContractAlertEmail` per bucket.
+  - `decideStage()` cadence rules: first alert always fires when an item
+    enters the window; weekly re-warn until the item is within 3 days of
+    the bar; daily alerts in the final 3 days; stop entirely once status is
+    `complete` or the bar has passed by more than 7 days.
+  - `src/lib/email.ts` added `sendContractAlertEmail` digest template with
+    urgency badges and deep-links.
+  - `supabase/migrations/20260411203000_sprint59_contract_alert_notifications.sql`
+    creates the idempotency table keyed on `(event_id OR obligation_id,
+    alert_type, stage, sent_at)`.
+  - `vercel.json` cron registration added.
+  - `env.local.example` documents `CRON_SECRET` (generate with
+    `openssl rand -hex 32`) and `NEXT_PUBLIC_APP_URL`.
+  - **Action required before relying on the cron:** add `CRON_SECRET` to
+    Vercel project env vars.
+  This is the **push** half of the loop: what the contractor gets in their
+  inbox at 08:00 BST when they're not looking at the app.
+
+**Sprint 59 Phase 3 (sharper AI drafting — this session):**
+- `bde2fce` per-event clause-specific `aiGuidance?: string` field on
+  `EventConfig`. Populated for 6 high-value events: NEC4 CE (cl. 61.3),
+  NEC4 EW (cl. 15.1), NEC3 CE (cl. 61.3 — derived from NEC4 via
+  `.replace(/NEC4/g, "NEC3")`), JCT SBC Variation (cl. 3.10), JCT SBC EoT
+  (cl. 2.27.1 — references Walter Lilly v Mackay on "forthwith"),
+  JCT SBC L&E (cl. 4.20 — covers Hudson/Emden/Eichleay heads of claim),
+  FIDIC Red 1999 Claim (cl. 20.1 — references Obrascon v AG of Gibraltar on
+  the hard 28-day bar). `draftNoticeAction` appends this guidance to its
+  system prompt when present and falls back to the generic prompt cleanly
+  when absent. Correction to an earlier note: `draftNoticeAction` was
+  already config-driven and worked for any suite — this commit makes drafts
+  sharper per clause, not broader across suites.
+
+### Perplexity + Grok review — outstanding tracker
+
+Both independent reviews are archived at `docs/reviews/2026-04-11/` (Perplexity
+live-app, Perplexity codebase, Grok red-team notes, Claude response).
+
+**Legend:** ✅ Done this session · ◐ Partial · ☐ Not done · ⏭ Deliberately
+deferred
+
+#### Perplexity — Phase 1 (Robustness)
+
+| # | Item | Status | Notes |
+|---|------|:-:|---|
+| 1 | Error boundaries (global + dashboard + projects) | ✅ | `global-error.tsx`, `dashboard/error.tsx`, `projects/error.tsx` + loading skeletons |
+| 2 | `requireAuth()` defence-in-depth on mutating actions | ✅ | ~40 actions across 42 files |
+| 3 | Honest RAG status (budget + programme + forecast margin) | ✅ | Three-dimensional, no more lying green |
+| 4 | Unified Active Projects KPI | ✅ | Shared `isActiveProject()` predicate |
+| 5 | Sidebar context sync with URL params | ✅ | Reads `projectId` on every nav |
+| 6 | Test data removed from production pipeline | ✅ | "TEST SCROLL" / "Mr Test" card cleared |
+
+#### Perplexity — Phase 2 (Validation + canonical math)
+
+| # | Item | Status | Notes |
+|---|------|:-:|---|
+| 7 | Canonical `src/lib/financial.ts` | ✅ | 35 Vitest tests, 22 Birchwood canonical test pins £1,753.29 |
+| 8 | Proposal editor / PDF / billing / overview / P&L all delegate to `financial.ts` | ✅ | Drift class of bug structurally prevented |
+| 9 | Zod validation on highest-risk actions | ✅ | 8 schemas in `src/lib/validation/schemas.ts` |
+| 10 | Shared PDF helpers (theme + money) | ◐ | Libraries shipped + 19 tests; 4 of 7 generators migrated — **remaining 3 generators deferred to tomorrow** |
+| 11 | Core domain type interfaces | ✅ | `src/types/domain.ts` with structural subset pattern |
+
+#### Perplexity — Phase 3 (Streamlining + polish)
+
+| # | Item | Status | Notes |
+|---|------|:-:|---|
+| 12 | Quick Quote path with seeded templates | ✅ | 6 templates, clicks-to-PDF < 5 min |
+| 13 | Proposal editor autosave | ✅ | Status indicator live |
+| 14 | Forgot-password flow | ✅ | `/auth/forgot-password` + login link |
+| 15 | Reporting page loads wrong project (opens with "14 Maple Close") | ☐ | **Defer — tomorrow gap-filler** (sidebar context sync fixed on most pages, Reporting still bypasses) |
+| 16 | Final Account "£–0.00" negative zero | ✅ | `formatGbp` normalises `-0` in `pdf-money.ts` |
+| 17 | Light mode toggle verification | ◐ | Toggle works, but a couple of tertiary surfaces (resource tables) still hard-code slate — **tomorrow low-priority polish** |
+
+#### Perplexity — Strategic gaps (beyond the three phases)
+
+| # | Item | Status | Notes |
+|---|------|:-:|---|
+| 18 | Decompose monolithic `proposal-pdf-button.tsx` (~1.4k LOC) | ☐ | **Tomorrow priority #1 gap-filler** — ship alongside the remaining 3 generator migrations |
+| 19 | Case studies duplication across proposal sections | ☐ | **Tomorrow priority #3 gap-filler** — case studies rendered twice when both "About Us" and dedicated section are selected |
+| 20 | Formal onboarding walkthrough | ☐ | **Tomorrow priority #5 gap-filler** — scope is a 3-step popover tour + a single "try Quick Quote" CTA, not a full product tour |
+| 21 | One-tap cost capture in PWA hub | ☐ | **Tomorrow priority #4 gap-filler** — `/mobile` already exists from Sprint 49; needs a prominent "Log cost" FAB wired to `logCostAction` |
+| 22 | Login redirect routing correction | ☐ | **Tomorrow priority #2 gap-filler** — `/login` redirects to `/dashboard` (CRM kanban) but beta contractors expect `/dashboard/home` (ops dashboard) |
+| 23 | Formal test suite (Playwright) | ⏭ | Owner decision: defer until feature-complete; 54 Vitest unit tests is the current bar |
+| 24 | LemonSqueezy billing | ⏭ | Owner decision: UAE entity setup is the blocker, not code |
+| 25 | Marketing site updates | ⏭ | Owner decision: rewrite once against the final feature set, not per sprint |
+
+#### Grok — Red-team additions
+
+| # | Item | Status | Notes |
+|---|------|:-:|---|
+| G1 | Schema-mismatch silent failures (`updatePhasesAction` etc.) | ✅ | Swept in `2b2b5c8` — every stale column reference in the codebase |
+| G2 | Proposal editor / PDF numeric drift (discount step skipped) | ✅ | `587cd4b` — editor now delegates to `computeContractSum` |
+| G3 | Billing page contract sum drift (prelims skipped) | ✅ | Fixed + structurally prevented via canonical library |
+| G4 | No forgot-password path | ✅ | Shipped |
+| G5 | Sentry never loads in dev because `import()` resolves eagerly | ✅ | `eval("require")` pattern in `observability.ts` |
+| G6 | Contract Administration Suite flagged as the highest-leverage next build | ✅ | Sprint 59 P1+P2+P3 all shipped |
+| G7 | "Career-saving" — cross-project time-bar visibility at a glance | ✅ | Home dashboard alerts + daily email cron |
+
+#### Outstanding summary
+
+- **Done:** 17 items across Phases 1/2/3 + Grok
+- **Partial:** 2 items (PDF generator migration 4/7, light mode tertiary surfaces)
+- **Not done:** 6 items (all queued as tomorrow's gap-fillers or deliberately
+  deferred — see next section)
+- **Deliberately deferred (owner decision):** Playwright, LemonSqueezy,
+  marketing site rewrite
+
+### Where I disagreed with reviews (and why)
+
+- **Perplexity: "move billing to Sprint 40."** Declined on owner instruction —
+  UAE company setup is the actual blocker, not code. Building the full
+  product first means the marketing site + billing get written once against
+  the final feature set.
+- **Perplexity: "introduce Playwright this sprint."** Declined on owner
+  instruction — testing a half-built product generates false signal. The
+  54-test Vitest unit bar is currently sufficient given the canonical library
+  pattern.
+- **Grok: "draftNoticeAction is NEC-only."** Declined after reading the code —
+  `draftNoticeAction` was already config-driven and suite-agnostic. The
+  aiGuidance commit made the drafts sharper per clause rather than broader
+  across suites. (This was also wrong in an earlier version of this handover;
+  corrected in `bde2fce`'s commit message.)
+
+### Bonus fixes (not in any review, caught by me mid-session)
+
+- PDF cover title em-dash orphan wrap
+- PDF About Us blank-space filler with 2×2 Our Commitment block
+- PDF address camelCase ("Jackdaw DriveColchester" → "Jackdaw Drive, Colchester")
+- 22 Birchwood `proposal_introduction` was literally a duplicate of
+  `scope_text` — rewritten via Supabase MCP
+- Proposal editor section ordering now matches PDF output
+- Duplicate "Pre-filled from Brief" banner in Client Introduction
+
+---
+
+## Tomorrow's Plan — 12 April 2026
+
+### Priority gap-fillers (Sprint 58 close-out)
+
+In priority order. Each is scoped to ~45–90 minutes of focused work.
+
+**1. Decompose `proposal-pdf-button.tsx` + finish PDF service migration**
+- The monolith is ~1.4k LOC and is the last big file that doesn't delegate to
+  `src/lib/pdf/pdf-theme.ts` + `pdf-money.ts`.
+- Split into: `proposal-sections/` directory with one file per section (cover,
+  about-us, scope, case-studies, programme, pricing, closing), a small
+  `build-proposal-doc.ts` orchestrator, and a button shell.
+- Migrate the remaining 3 generators (the ones still doing their own theme
+  lookups and currency formatting) to the shared helpers.
+- Expected outcome: every generator in `src/lib/pdf/` and `src/components/`
+  uses `getPdfTheme()` + `formatGbp()`. The drift class of bug is fully
+  closed at the PDF layer as well as the math layer.
+
+**2. Login redirect → `/dashboard/home`**
+- `src/app/login/page.tsx` currently `redirect("/dashboard")` which lands on
+  the CRM kanban. Beta contractors have said they expect an ops dashboard on
+  first login.
+- Change to `/dashboard/home` and verify the deep-link query-param flow still
+  works (e.g. post-acceptance email flow redirects).
+- Trivial — 10 minutes max including the verification round.
+
+**3. Case studies duplication fix**
+- When a user enables case studies in both "About Us" and as a dedicated
+  section, the PDF renders them twice. Pick one canonical location (dedicated
+  section) and conditionally hide in About Us, OR dedupe at the data layer so
+  whichever section renders them first wins.
+- Recommendation: dedupe at the data layer in `build-proposal-doc.ts` (which
+  will exist after gap-filler #1).
+
+**4. One-tap cost capture in PWA hub**
+- `/mobile` exists from Sprint 49 but has no prominent CTA for the field-based
+  "log a cost I just incurred" use case.
+- Add a floating action button on `/mobile` that opens a streamlined 3-field
+  form (amount, category, photo) → wires into the existing `logCostAction`
+  with the user's most recently opened project as the default.
+- Keep the full `log-cost-sheet` available for desktop. This is an additive
+  path, not a replacement.
+
+**5. Formal onboarding walkthrough**
+- Scope: a 3-step popover tour on first login (`profiles.onboarding_seen_at IS
+  NULL`) + a single "try Quick Quote" CTA on the home dashboard if the user
+  has zero projects.
+- NOT: a full product tour of every module. That's waste until we have real
+  contractor feedback on what's confusing.
+- Migration: add `onboarding_seen_at TIMESTAMPTZ` on `profiles`, mark on
+  tour dismiss.
+
+### Deliberately deferred (do not attempt)
+
+- Formal Playwright / Cypress test suite (owner decision)
+- LemonSqueezy billing (owner decision — UAE entity setup)
+- Marketing site rewrite (owner decision — wait for final feature set)
+- CAD / BIM / drawing viewer full build (longer horizon, Sprint 55)
+
+### Sprint 59 remaining items (after the gap-fillers)
+
+None are launch-blocking — Sprint 59 Phase 1+2+3 already gives the contractor
+the "career-saving" visibility. These are longer-horizon:
+
+- **SCL Delay Analysis Protocol** — As-Planned vs As-Built / Time Impact
+  Analysis / Collapsed As-Built / Windows Analysis. The `programme_phases`
+  JSONB already has the data; the analysis math isn't built. Scope is ~2
+  days of focused work. Worth building before any upmarket pivot because
+  it's the single most valuable feature for contractors on NEC4 / JCT at
+  £5m+ projects.
+- **Sub-contractor / supervisor portal** — read-only acknowledgment of
+  response deadlines. Scope is ~1 day: a magic-link auth flow, a scoped
+  `contract_obligations` view, and an "I acknowledge" button that writes
+  back to `contract_communications`.
+- **aiGuidance for the remaining FIDIC events** — `engineer_instruction`
+  and the 2017-edition variants beyond Claim. The existing generic prompt
+  still works; this is a "make the drafts sharper" improvement, not a
+  correctness fix. Scope is ~2 hours.
+
+### Environment variable reminders
+
+- `CRON_SECRET` — **required before the 07:00 UTC cron fires meaningfully.**
+  Generate with `openssl rand -hex 32`. Add to Vercel project env vars. The
+  current cron handler returns 401 when the secret is absent (safe default).
+- `NEXT_PUBLIC_APP_URL` — optional but the email digest deep-links use it.
+  Defaults to `https://constructa-nu.vercel.app`.
+- `SENTRY_DSN` — optional; `observability.ts` no-ops cleanly when absent.
+- `OPENAI_API_KEY` — already in Vercel.
+- `RESEND_API_KEY` — already in Vercel (required for the contract-alerts cron
+  to actually send mail).
 
 ---
 

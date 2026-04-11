@@ -16,9 +16,9 @@ export default async function BillingPage({ searchParams }: { searchParams: { pr
     if (!projectId) {
         const { data: projects } = await supabase
             .from("projects")
-            .select("id, name, client_name, project_type, proposal_status, potential_value, updated_at")
+            .select("id, name, client_name, project_type, proposal_status, potential_value, created_at")
             .eq("user_id", user.id)
-            .order("updated_at", { ascending: false })
+            .order("created_at", { ascending: false })
             .limit(25);
         return (
             <ProjectPicker
@@ -38,25 +38,40 @@ export default async function BillingPage({ searchParams }: { searchParams: { pr
         { data: milestones },
     ] = await Promise.all([
         supabase.from("projects").select("*").eq("id", projectId).single(),
-        supabase.from("estimates").select("id, total_cost, is_active, overhead_pct, risk_pct, profit_pct, discount_pct").eq("project_id", projectId),
+        supabase.from("estimates").select("id, total_cost, is_active, prelims_pct, overhead_pct, risk_pct, profit_pct, discount_pct, estimate_lines(trade_section, line_total)").eq("project_id", projectId),
         supabase.from("variations").select("*").eq("project_id", projectId).eq("status", "Approved"),
         supabase.from("invoices").select("*").eq("project_id", projectId).order("created_at", { ascending: true }),
         supabase.from("payment_schedule_milestones").select("*").eq("project_id", projectId).order("order_index", { ascending: true }),
     ]);
 
-    // Contract value: use active estimate with uplifts, else sum all estimates
+    // Contract value — canonical QS hierarchy that matches the Proposal PDF and
+    // client-editor.tsx computeEstimateContractSum(): direct cost + prelims first,
+    // THEN overhead/risk/profit compounded, THEN discount.
     const activeEstimate = (estimates || []).find((e: any) => e.is_active) || (estimates || [])[0];
     let originalContractSum = 0;
     if (activeEstimate) {
-        const base = activeEstimate.total_cost || 0;
-        const overhead = base * ((activeEstimate.overhead_pct || 0) / 100);
-        const risk     = (base + overhead) * ((activeEstimate.risk_pct || 0) / 100);
-        const profit   = (base + overhead + risk) * ((activeEstimate.profit_pct || 0) / 100);
-        const gross    = base + overhead + risk + profit;
-        const discount = gross * ((activeEstimate.discount_pct || 0) / 100);
-        originalContractSum = Math.round((gross - discount) * 100) / 100;
+        const lines: any[] = activeEstimate.estimate_lines || [];
+        const directCost = lines
+            .filter((l) => l.trade_section !== "Preliminaries" && (l.line_total || 0) > 0)
+            .reduce((s, l) => s + Number(l.line_total || 0), 0);
+        const explicitPrelims = lines
+            .filter((l) => l.trade_section === "Preliminaries")
+            .reduce((s, l) => s + Number(l.line_total || 0), 0);
+        // Fall back to total_cost if there are no line records at all (legacy estimates).
+        const fallbackBase = directCost > 0 ? directCost : (Number(activeEstimate.total_cost) || 0);
+        const prelimsFromPct = fallbackBase * ((Number(activeEstimate.prelims_pct) || 0) / 100);
+        const prelimsTotal = explicitPrelims > 0 ? explicitPrelims : prelimsFromPct;
+        const totalConstruction = fallbackBase + prelimsTotal;
+        const overhead = totalConstruction * ((Number(activeEstimate.overhead_pct) || 0) / 100);
+        const costPlusOverhead = totalConstruction + overhead;
+        const risk = costPlusOverhead * ((Number(activeEstimate.risk_pct) || 0) / 100);
+        const adjusted = costPlusOverhead + risk;
+        const profit = adjusted * ((Number(activeEstimate.profit_pct) || 0) / 100);
+        const preDiscount = adjusted + profit;
+        const discount = preDiscount * ((Number(activeEstimate.discount_pct) || 0) / 100);
+        originalContractSum = Math.round((preDiscount - discount) * 100) / 100;
     } else {
-        originalContractSum = (estimates || []).reduce((s: number, e: any) => s + e.total_cost, 0);
+        originalContractSum = (estimates || []).reduce((s: number, e: any) => s + (Number(e.total_cost) || 0), 0);
     }
 
     const approvedVariationsTotal = (variations || []).reduce((s: number, v: any) => s + Number(v.amount), 0);

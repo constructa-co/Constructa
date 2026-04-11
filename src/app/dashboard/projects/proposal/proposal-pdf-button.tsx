@@ -116,7 +116,12 @@ function formatGBP(n: number): string {
 function splitAddress(address: string): string[] {
     if (!address) return [];
     return address
-        .replace(/([a-z])([A-Z])/g, '$1\n$2')
+        // Insert a space at any camelCase join (e.g. "DriveColchester" → "Drive Colchester")
+        // so the street stays on one visual line rather than being artificially split.
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        // Collapse accidental double-spaces left by the step above or by user input.
+        .replace(/\s{2,}/g, ' ')
+        // Commas (with or without trailing space) are the real line breaks.
         .replace(/,\s*/g, '\n')
         .split('\n')
         .map(s => s.trim())
@@ -383,12 +388,25 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
     y += 6;
 
     // Center: project name
+    // Break on em/en dash first so the dash never orphans to the start of a line.
+    // Each segment is then word-wrapped independently and scaled down if too wide.
     y = 110;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(42);
+    const titleSegments = projectName
+        .split(/\s*[\u2014\u2013]\s*/)
+        .map((s: string) => s.trim())
+        .filter(Boolean);
+    let titleFontSize = 42;
+    let titleLines: string[] = [];
+    // Auto-fit: shrink font until longest segment fits CW - 20 at chosen size
+    for (; titleFontSize >= 24; titleFontSize -= 2) {
+        doc.setFontSize(titleFontSize);
+        titleLines = titleSegments.flatMap((seg: string) => doc.splitTextToSize(seg, CW - 20) as string[]);
+        const widest = Math.max(...titleLines.map((l: string) => doc.getTextWidth(l)));
+        if (widest <= CW - 20) break;
+    }
+    const titleLineH = Math.round(titleFontSize * 0.34); // ~14 at 42pt
     doc.setTextColor(...T.white);
-    const titleLines = doc.splitTextToSize(projectName, CW - 20);
-    const titleLineH = 14;
     titleLines.forEach((line: string, i: number) => {
         doc.text(line, PAGE_W / 2, y + i * titleLineH, { align: "center" });
     });
@@ -644,6 +662,70 @@ async function buildProposalPDF({ estimates, project, profile, pricingMode, vali
                 doc.text(stat.label, bx + boxW / 2, y + 17, { align: 'center' });
             });
             y += 28;
+        }
+
+        // If there's no MD message and the page still has meaningful empty space
+        // below the content, fill it with a "Our Commitment" 2x2 value-prop block.
+        // Without this, the About Us page shows a large blank strip at the bottom.
+        if (!profile.md_message && y < CONTENT_BOTTOM - 70) {
+            y += 8;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor(...T.primary);
+            doc.text('OUR COMMITMENT TO YOU', ML, y);
+            doc.setDrawColor(...T.primary);
+            doc.setLineWidth(0.5);
+            doc.line(ML, y + 1.5, ML + 50, y + 1.5);
+            y += 10;
+
+            const commitments = [
+                {
+                    title: 'Transparent Pricing',
+                    body: 'Every line item justified, no hidden costs, and margins explained on request.',
+                },
+                {
+                    title: 'Clear Communication',
+                    body: 'A single point of contact, weekly written updates, and prompt response to queries.',
+                },
+                {
+                    title: 'Programme Certainty',
+                    body: 'Detailed resource-loaded programme with early warning of any changes to your finish date.',
+                },
+                {
+                    title: 'Quality Without Compromise',
+                    body: 'Fully insured, accredited trades, and snag-free handover with comprehensive O&M package.',
+                },
+            ];
+            const ccGap = 5;
+            const ccW = (CW - ccGap) / 2;
+            const ccH = 28;
+            commitments.forEach((c, i) => {
+                const col = i % 2;
+                const row = Math.floor(i / 2);
+                const cx = ML + col * (ccW + ccGap);
+                const cy = y + row * (ccH + ccGap);
+                // Card background
+                doc.setFillColor(...T.surface);
+                doc.roundedRect(cx, cy, ccW, ccH, 2, 2, 'F');
+                doc.setDrawColor(...T.borderLight);
+                doc.setLineWidth(0.3);
+                doc.roundedRect(cx, cy, ccW, ccH, 2, 2, 'S');
+                // Left accent bar
+                doc.setFillColor(...T.primary);
+                doc.rect(cx, cy, 1.8, ccH, 'F');
+                // Title
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(10);
+                doc.setTextColor(...T.textDark);
+                doc.text(c.title, cx + 6, cy + 8);
+                // Body
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8.5);
+                doc.setTextColor(...T.textMid);
+                const bodyLines = doc.splitTextToSize(c.body, ccW - 10);
+                doc.text(bodyLines, cx + 6, cy + 14);
+            });
+            y += ccH * 2 + ccGap + 4;
         }
     }
 

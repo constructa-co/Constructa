@@ -167,7 +167,9 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
         p.proposal_accepted_at && (Date.now() - new Date(p.proposal_accepted_at).getTime()) < 7 * 86400000
     );
     const recentlyViewed = projects.filter(p =>
-        p.proposal_status === "viewed" && (Date.now() - new Date(p.updated_at).getTime()) < 48 * 3600000
+        // Note: projects table has no updated_at column — fall back to proposal_sent_at / created_at
+        // so "recently viewed" means "sent in the last 48h" (best available proxy).
+        p.proposal_status === "viewed" && (Date.now() - new Date(p.proposal_sent_at ?? p.created_at).getTime()) < 48 * 3600000
     );
     const expiringSoon = projects.filter(p => {
         if (!p.proposal_sent_at || p.proposal_accepted_at || p.proposal_status === "declined") return false;
@@ -416,7 +418,7 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
                                             className="flex items-center justify-between px-5 py-3 hover:bg-slate-700/10 transition-colors group">
                                             <div>
                                                 <p className="text-sm font-medium text-slate-200 group-hover:text-white">{p.name}</p>
-                                                <p className="text-xs text-slate-500">{p.client_name} · {timeAgo(p.updated_at)}</p>
+                                                <p className="text-xs text-slate-500">{p.client_name} · {timeAgo(p.proposal_sent_at ?? p.created_at)}</p>
                                             </div>
                                             <div className="text-right">
                                                 {p.potential_value > 0 && <p className="text-sm font-semibold text-blue-400">{fmt(p.potential_value)}</p>}

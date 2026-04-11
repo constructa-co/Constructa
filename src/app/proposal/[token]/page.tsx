@@ -12,7 +12,7 @@ export default async function ProposalAcceptancePage({ params }: { params: { tok
     // Fetch project by proposal_token — no auth required (public route)
     const { data: project } = await supabase
         .from("projects")
-        .select("id, name, client_name, potential_value, proposal_status, proposal_sent_at, proposal_accepted_at, proposal_accepted_by, user_id, scope_text, exclusions_text, payment_schedule, gantt_phases, programme_phases, timeline_phases, project_type, start_date, site_address, client_address")
+        .select("id, name, client_name, potential_value, proposal_status, proposal_sent_at, proposal_accepted_at, proposal_accepted_by, user_id, scope_text, exclusions_text, payment_schedule, gantt_phases, programme_phases, project_type, start_date, site_address, client_address")
         .eq("proposal_token", token)
         .single();
 
@@ -74,7 +74,7 @@ export default async function ProposalAcceptancePage({ params }: { params: { tok
 
     // Calculate total project duration — try all phase sources in priority order
     let totalWeeks: number | null = null;
-    const programmePhasesRaw = project.programme_phases || project.timeline_phases || project.gantt_phases || [];
+    const programmePhasesRaw = project.programme_phases || project.gantt_phases || [];
     const allPhaseSources = Array.isArray(programmePhasesRaw) ? programmePhasesRaw : [];
     if (allPhaseSources.length > 0) {
         // programme_phases use calculatedDays/manualDays; gantt_phases use duration_days

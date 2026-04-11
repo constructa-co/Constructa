@@ -42,8 +42,9 @@ export async function updatePhasesAction(
     startDate?: string   // ISO YYYY-MM-DD — if provided, saves to projects.start_date
 ): Promise<void> {
     const supabase = createClient();
+    // Note: projects has no `timeline_phases` column — writing it used to cause the
+    // whole UPDATE to fail silently, meaning programme edits weren't saved.
     const payload: Record<string, unknown> = {
-        timeline_phases: phases,
         programme_phases: phases,
     };
     if (startDate) payload.start_date = startDate;

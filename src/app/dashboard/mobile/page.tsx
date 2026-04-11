@@ -15,7 +15,7 @@ export default async function MobileHubPage() {
     .select("id, name, client_name")
     .eq("user_id", user.id)
     .eq("status", "active")
-    .order("updated_at", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(10);
 
   // Recent cost logs

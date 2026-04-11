@@ -93,9 +93,9 @@ export default async function LiveProjectsPage({ searchParams }: { searchParams:
     // ── Portfolio overview ────────────────────────────────────────────────────
     const { data: projects } = await supabase
         .from("projects")
-        .select("id, name, client_name, project_type, site_address, proposal_status, potential_value, start_date, updated_at")
+        .select("id, name, client_name, project_type, site_address, proposal_status, potential_value, start_date, created_at")
         .eq("user_id", user.id)
-        .order("updated_at", { ascending: false });
+        .order("created_at", { ascending: false });
 
     if (!projects || projects.length === 0) {
         return (
@@ -171,7 +171,7 @@ export default async function LiveProjectsPage({ searchParams }: { searchParams:
             site_address: proj.site_address,
             proposal_status: proj.proposal_status,
             start_date: proj.start_date,
-            updated_at: proj.updated_at,
+            updated_at: proj.created_at,
             contractValue,
             budgetCost,
             revisedValue,

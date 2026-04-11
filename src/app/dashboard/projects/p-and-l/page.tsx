@@ -37,9 +37,9 @@ export default async function PLPage({ searchParams }: { searchParams: { project
         const [{ data: projects }, { data: profile }] = await Promise.all([
             supabase
                 .from("projects")
-                .select("id, name, client_name, project_type, proposal_status, potential_value, updated_at")
+                .select("id, name, client_name, project_type, proposal_status, potential_value, created_at")
                 .eq("user_id", user.id)
-                .order("updated_at", { ascending: false }),
+                .order("created_at", { ascending: false }),
             supabase
                 .from("profiles")
                 .select("financial_year_start_month, company_name")

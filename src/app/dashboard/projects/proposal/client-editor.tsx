@@ -810,6 +810,51 @@ export default function ClientEditor({
                     </div>
                 </div>
 
+                {/* SECTION 2b: Case Studies Selection — case studies appear on PDF page 3, so sit with the company-level block */}
+                {allCaseStudies.length > 0 && (
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-slate-400" />
+                            <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Case Studies for Proposal</span>
+                            <span className="text-xs text-slate-600 ml-1">({selectedCaseStudyIds.length || 'All'} selected)</span>
+                        </div>
+                        <div className="p-6 space-y-3">
+                            <p className="text-xs text-slate-500 mb-2">Choose which case studies appear in this proposal. When none are selected, all are included.</p>
+                            {allCaseStudies.map((cs, idx) => {
+                                const isSelected = selectedCaseStudyIds.includes(idx);
+                                const recommended = isCaseStudyRecommended(cs);
+                                return (
+                                    <label
+                                        key={cs.id || idx}
+                                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                                            isSelected ? "border-blue-600 bg-blue-950/30" : "border-slate-700 bg-slate-800 hover:border-slate-600"
+                                        }`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={isSelected}
+                                            onChange={() => toggleCaseStudy(idx)}
+                                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-600"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-semibold text-slate-100 truncate">{cs.projectName || `Case Study ${idx + 1}`}</span>
+                                                {recommended && (
+                                                    <span className="text-[10px] font-bold px-1.5 py-0.5 bg-green-900/40 text-green-400 rounded">Recommended</span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
+                                                {cs.projectType && <span>{cs.projectType}</span>}
+                                                {cs.contractValue && <span>£{Number(cs.contractValue).toLocaleString("en-GB")}</span>}
+                                            </div>
+                                        </div>
+                                    </label>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
                 {/* SECTION 3: Client Introduction */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
                     <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
@@ -832,11 +877,6 @@ export default function ClientEditor({
                         )}
                     </div>
                     <div className="p-6">
-                        {!project?.proposal_introduction && initialBriefScope && (
-                            <div className="text-xs text-blue-400 bg-blue-500/10 border border-blue-500/30 px-3 py-1.5 rounded mb-2">
-                                Pre-filled from Brief — edit as needed
-                            </div>
-                        )}
                         <p className="text-xs text-slate-500 mb-3">Opening paragraph — personalised for this client. Appears first in the proposal PDF.</p>
                         {introPreFilled && (
                             <div className="text-xs text-blue-400 bg-blue-900/20 border border-blue-800/30 px-3 py-1.5 rounded mb-2">
@@ -889,6 +929,61 @@ export default function ClientEditor({
                             className="w-full border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-600 focus-visible:ring-blue-600 min-h-[200px] text-sm leading-relaxed"
                             placeholder="Describe the physical works to be carried out. Use AI to draft from your bill of quantities..."
                         />
+                    </div>
+                </div>
+
+                {/* SECTION 4b: Site Photos — sits with Scope because they share a page in the PDF */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center gap-2">
+                        {checks.photos ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4 text-slate-600" />}
+                        <Camera className="w-4 h-4 text-slate-400" />
+                        <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Site Photos</span>
+                        <span className="text-xs text-slate-600 ml-1">(optional — max 6)</span>
+                    </div>
+                    <div className="p-6">
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            {sitePhotos.map((photo, i) => (
+                                <div key={i} className="space-y-2">
+                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Photo {i + 1}</p>
+                                    {/* Drop zone */}
+                                    <label className={`block relative rounded-lg border-2 border-dashed transition-colors cursor-pointer ${photo.url ? "border-slate-700 bg-slate-800" : "border-slate-700 bg-slate-800/50 hover:border-blue-600 hover:bg-slate-800"}`}>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="sr-only"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) handlePhotoUpload(i, file);
+                                            }}
+                                        />
+                                        {photo.url ? (
+                                            <div className="relative">
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img src={photo.url} alt={`Site photo ${i + 1}`} className="w-full h-36 object-cover rounded-lg" />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 rounded-lg flex items-center justify-center transition-opacity">
+                                                    <span className="text-white text-xs font-semibold">Click to replace</span>
+                                                </div>
+                                            </div>
+                                        ) : uploadingPhoto === i ? (
+                                            <div className="h-36 flex items-center justify-center">
+                                                <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                                            </div>
+                                        ) : (
+                                            <div className="h-36 flex flex-col items-center justify-center gap-2 text-slate-500">
+                                                <Camera className="w-8 h-8" />
+                                                <span className="text-xs font-medium">Drop image here or click to upload</span>
+                                            </div>
+                                        )}
+                                    </label>
+                                    <input
+                                        value={photo.caption}
+                                        onChange={(e) => updatePhoto(i, "caption", e.target.value)}
+                                        className="w-full h-8 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                        placeholder="Caption (optional)"
+                                    />
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
@@ -957,41 +1052,6 @@ export default function ClientEditor({
                                 placeholder={"e.g. Works based on drawings ref. A100\nNo asbestos assumed\nExisting drainage is serviceable"}
                             />
                         </div>
-                    </div>
-                </div>
-
-                {/* Closing Statement */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <CheckCircle className={`w-4 h-4 ${closingStatement ? 'text-green-500' : 'text-slate-600'}`} />
-                            <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Closing Statement</span>
-                            <span className="text-xs text-slate-500">(appears before signatures in PDF)</span>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={handleGenerateClosing}
-                            disabled={isGeneratingClosing}
-                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50"
-                        >
-                            <Sparkles className="w-4 h-4" />
-                            {isGeneratingClosing ? 'Generating...' : closingStatement ? 'Regenerate with AI' : 'Generate with AI'}
-                        </button>
-                    </div>
-                    <div className="px-6 py-4">
-                        {closingStatement ? (
-                            <Textarea
-                                value={closingStatement}
-                                onChange={(e) => setClosingStatement(e.target.value)}
-                                onBlur={() => saveClosingStatementAction(projectId, closingStatement)}
-                                className="w-full border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-600 focus-visible:ring-blue-600 min-h-[80px] text-sm"
-                                placeholder="We look forward to working with you on this project and delivering exceptional results..."
-                            />
-                        ) : (
-                            <div className="h-20 flex items-center justify-center text-slate-500 text-sm border-2 border-dashed border-slate-700 rounded-lg">
-                                Click &ldquo;Generate with AI&rdquo; to create a personalised closing statement
-                            </div>
-                        )}
                     </div>
                 </div>
 
@@ -1242,106 +1302,6 @@ export default function ClientEditor({
                     </div>
                 </div>
 
-                {/* SECTION 8: Site Photos */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center gap-2">
-                        {checks.photos ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4 text-slate-600" />}
-                        <Camera className="w-4 h-4 text-slate-400" />
-                        <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Site Photos</span>
-                        <span className="text-xs text-slate-600 ml-1">(optional — max 6)</span>
-                    </div>
-                    <div className="p-6">
-                        <div className="grid sm:grid-cols-2 gap-4">
-                            {sitePhotos.map((photo, i) => (
-                                <div key={i} className="space-y-2">
-                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Photo {i + 1}</p>
-                                    {/* Drop zone */}
-                                    <label className={`block relative rounded-lg border-2 border-dashed transition-colors cursor-pointer ${photo.url ? "border-slate-700 bg-slate-800" : "border-slate-700 bg-slate-800/50 hover:border-blue-600 hover:bg-slate-800"}`}>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            className="sr-only"
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) handlePhotoUpload(i, file);
-                                            }}
-                                        />
-                                        {photo.url ? (
-                                            <div className="relative">
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img src={photo.url} alt={`Site photo ${i + 1}`} className="w-full h-36 object-cover rounded-lg" />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 rounded-lg flex items-center justify-center transition-opacity">
-                                                    <span className="text-white text-xs font-semibold">Click to replace</span>
-                                                </div>
-                                            </div>
-                                        ) : uploadingPhoto === i ? (
-                                            <div className="h-36 flex items-center justify-center">
-                                                <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
-                                            </div>
-                                        ) : (
-                                            <div className="h-36 flex flex-col items-center justify-center gap-2 text-slate-500">
-                                                <Camera className="w-8 h-8" />
-                                                <span className="text-xs font-medium">Drop image here or click to upload</span>
-                                            </div>
-                                        )}
-                                    </label>
-                                    <input
-                                        value={photo.caption}
-                                        onChange={(e) => updatePhoto(i, "caption", e.target.value)}
-                                        className="w-full h-8 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                                        placeholder="Caption (optional)"
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* SECTION 8b: Case Studies Selection */}
-                {allCaseStudies.length > 0 && (
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                        <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-slate-400" />
-                            <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Case Studies for Proposal</span>
-                            <span className="text-xs text-slate-600 ml-1">({selectedCaseStudyIds.length || 'All'} selected)</span>
-                        </div>
-                        <div className="p-6 space-y-3">
-                            <p className="text-xs text-slate-500 mb-2">Choose which case studies appear in this proposal. When none are selected, all are included.</p>
-                            {allCaseStudies.map((cs, idx) => {
-                                const isSelected = selectedCaseStudyIds.includes(idx);
-                                const recommended = isCaseStudyRecommended(cs);
-                                return (
-                                    <label
-                                        key={cs.id || idx}
-                                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                                            isSelected ? "border-blue-600 bg-blue-950/30" : "border-slate-700 bg-slate-800 hover:border-slate-600"
-                                        }`}
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={isSelected}
-                                            onChange={() => toggleCaseStudy(idx)}
-                                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-600"
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-sm font-semibold text-slate-100 truncate">{cs.projectName || `Case Study ${idx + 1}`}</span>
-                                                {recommended && (
-                                                    <span className="text-[10px] font-bold px-1.5 py-0.5 bg-green-900/40 text-green-400 rounded">Recommended</span>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
-                                                {cs.projectType && <span>{cs.projectType}</span>}
-                                                {cs.contractValue && <span>£{Number(cs.contractValue).toLocaleString("en-GB")}</span>}
-                                            </div>
-                                        </div>
-                                    </label>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
-
                 {/* T&C summary — read only, managed in Contracts tab */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
                     <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
@@ -1364,6 +1324,41 @@ export default function ClientEditor({
                                 <Link href={`/dashboard/projects/contracts?projectId=${projectId}`} className="text-blue-400 hover:text-blue-300 ml-1">Select T&Cs &rarr;</Link>
                             )}
                         </p>
+                    </div>
+                </div>
+
+                {/* Closing Statement — last content page in the PDF, so sits last here too */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <CheckCircle className={`w-4 h-4 ${closingStatement ? 'text-green-500' : 'text-slate-600'}`} />
+                            <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Closing Statement</span>
+                            <span className="text-xs text-slate-500">(appears before signatures in PDF)</span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleGenerateClosing}
+                            disabled={isGeneratingClosing}
+                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                        >
+                            <Sparkles className="w-4 h-4" />
+                            {isGeneratingClosing ? 'Generating...' : closingStatement ? 'Regenerate with AI' : 'Generate with AI'}
+                        </button>
+                    </div>
+                    <div className="px-6 py-4">
+                        {closingStatement ? (
+                            <Textarea
+                                value={closingStatement}
+                                onChange={(e) => setClosingStatement(e.target.value)}
+                                onBlur={() => saveClosingStatementAction(projectId, closingStatement)}
+                                className="w-full border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-600 focus-visible:ring-blue-600 min-h-[80px] text-sm"
+                                placeholder="We look forward to working with you on this project and delivering exceptional results..."
+                            />
+                        ) : (
+                            <div className="h-20 flex items-center justify-center text-slate-500 text-sm border-2 border-dashed border-slate-700 rounded-lg">
+                                Click &ldquo;Generate with AI&rdquo; to create a personalised closing statement
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

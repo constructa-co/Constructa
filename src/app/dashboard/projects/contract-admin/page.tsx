@@ -17,11 +17,13 @@ export default async function ContractAdminPage({
 
   const { projectId } = searchParams;
 
+  // projects table has no updated_at or end_date columns — ordering/selecting either
+  // silently nulls the whole query. Use created_at and omit end_date.
   const { data: projects } = await supabase
     .from("projects")
-    .select("id, name, client_name, project_type, start_date, end_date, potential_value")
+    .select("id, name, client_name, project_type, start_date, potential_value")
     .eq("user_id", user.id)
-    .order("updated_at", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(50);
 
   if (!projectId) {
@@ -78,7 +80,7 @@ export default async function ContractAdminPage({
 
     supabase
       .from("projects")
-      .select("id, name, client_name, project_type, start_date, end_date, potential_value")
+      .select("id, name, client_name, project_type, start_date, potential_value")
       .eq("id", projectId)
       .single(),
 

@@ -245,7 +245,7 @@ export default async function AdminPage() {
         supabase
             .from("projects")
             .select(
-                "id, user_id, created_at, updated_at, proposal_status, proposal_accepted_at, region, lat, lng, brief_completed, contract_review_flags, risk_register, closing_statement"
+                "id, user_id, created_at, proposal_status, proposal_accepted_at, region, lat, lng, brief_completed, contract_review_flags, risk_register, closing_statement"
             ),
         supabase.from("estimates").select("id, project_id, created_at"),
         supabase.from("admin_costs").select("*").order("month", { ascending: false }),

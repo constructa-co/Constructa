@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ClientBilling from "./client-billing";
 import ProjectPicker from "@/components/project-picker";
+import { computeContractSumValue } from "@/lib/financial";
 
 export const dynamic = "force-dynamic";
 
@@ -44,35 +45,15 @@ export default async function BillingPage({ searchParams }: { searchParams: { pr
         supabase.from("payment_schedule_milestones").select("*").eq("project_id", projectId).order("order_index", { ascending: true }),
     ]);
 
-    // Contract value — canonical QS hierarchy that matches the Proposal PDF and
-    // client-editor.tsx computeEstimateContractSum(): direct cost + prelims first,
-    // THEN overhead/risk/profit compounded, THEN discount.
+    // Contract value — delegated to the canonical `computeContractSum` in
+    // src/lib/financial.ts so the billing page CANNOT drift from the
+    // proposal again. Perplexity caught the £1,593 vs £1,753 discrepancy
+    // that was caused by this file inlining its own (wrong) formula.
+    // 35 Vitest tests pin the math — any regression fails CI.
     const activeEstimate = (estimates || []).find((e: any) => e.is_active) || (estimates || [])[0];
-    let originalContractSum = 0;
-    if (activeEstimate) {
-        const lines: any[] = activeEstimate.estimate_lines || [];
-        const directCost = lines
-            .filter((l) => l.trade_section !== "Preliminaries" && (l.line_total || 0) > 0)
-            .reduce((s, l) => s + Number(l.line_total || 0), 0);
-        const explicitPrelims = lines
-            .filter((l) => l.trade_section === "Preliminaries")
-            .reduce((s, l) => s + Number(l.line_total || 0), 0);
-        // Fall back to total_cost if there are no line records at all (legacy estimates).
-        const fallbackBase = directCost > 0 ? directCost : (Number(activeEstimate.total_cost) || 0);
-        const prelimsFromPct = fallbackBase * ((Number(activeEstimate.prelims_pct) || 0) / 100);
-        const prelimsTotal = explicitPrelims > 0 ? explicitPrelims : prelimsFromPct;
-        const totalConstruction = fallbackBase + prelimsTotal;
-        const overhead = totalConstruction * ((Number(activeEstimate.overhead_pct) || 0) / 100);
-        const costPlusOverhead = totalConstruction + overhead;
-        const risk = costPlusOverhead * ((Number(activeEstimate.risk_pct) || 0) / 100);
-        const adjusted = costPlusOverhead + risk;
-        const profit = adjusted * ((Number(activeEstimate.profit_pct) || 0) / 100);
-        const preDiscount = adjusted + profit;
-        const discount = preDiscount * ((Number(activeEstimate.discount_pct) || 0) / 100);
-        originalContractSum = Math.round((preDiscount - discount) * 100) / 100;
-    } else {
-        originalContractSum = (estimates || []).reduce((s: number, e: any) => s + (Number(e.total_cost) || 0), 0);
-    }
+    const originalContractSum = activeEstimate
+        ? computeContractSumValue(activeEstimate, activeEstimate.estimate_lines || [])
+        : (estimates || []).reduce((s: number, e: any) => s + (Number(e.total_cost) || 0), 0);
 
     const approvedVariationsTotal = (variations || []).reduce((s: number, v: any) => s + Number(v.amount), 0);
 

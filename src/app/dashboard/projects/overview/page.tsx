@@ -2,35 +2,27 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProjectNavBar from "@/components/project-navbar";
 import OverviewClient from "./overview-client";
+import {
+    computeContractSum,
+    computeBudgetCost as computeBudgetCostLib,
+    computeForecastFinal,
+    computeForecastMargin,
+} from "@/lib/financial";
 
 export const dynamic = "force-dynamic";
 
-// ── Compute full contract value from estimate + lines ────────────────────────
+// Sprint 58 P1.8: these wrappers used to duplicate the QS hierarchy inline.
+// Now they call through to src/lib/financial.ts which has 35 Vitest tests
+// asserting on the same math the proposal editor, PDF, billing page, and
+// P&L dashboard use. Any future divergence gets caught by the tests.
 function computeContractValue(est: any, lines: any[]): number {
     if (!est) return 0;
-    const nonPrelims   = lines.filter((l: any) => l.trade_section !== "Preliminaries");
-    const prelimsLines = lines.filter((l: any) => l.trade_section === "Preliminaries");
-    const directCost   = nonPrelims.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0);
-    const prelims      = prelimsLines.length > 0
-        ? prelimsLines.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0)
-        : directCost * ((Number(est.prelims_pct) || 0) / 100);
-    const totalBudget  = directCost + prelims;
-    const oh           = totalBudget * ((Number(est.overhead_pct) || 0) / 100);
-    const risk         = (totalBudget + oh) * ((Number(est.risk_pct) || 0) / 100);
-    const profit       = (totalBudget + oh + risk) * ((Number(est.profit_pct) || 0) / 100);
-    const preDiscount  = totalBudget + oh + risk + profit;
-    return preDiscount - preDiscount * ((Number(est.discount_pct) || 0) / 100);
+    return computeContractSum(est, lines).contractSum;
 }
 
 function computeBudgetCost(est: any, lines: any[]): number {
     if (!est) return 0;
-    const nonPrelims   = lines.filter((l: any) => l.trade_section !== "Preliminaries");
-    const prelimsLines = lines.filter((l: any) => l.trade_section === "Preliminaries");
-    const directCost   = nonPrelims.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0);
-    const prelims      = prelimsLines.length > 0
-        ? prelimsLines.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0)
-        : directCost * ((Number(est.prelims_pct) || 0) / 100);
-    return directCost + prelims;
+    return computeBudgetCostLib(est, lines);
 }
 
 export default async function OverviewPage({ searchParams }: { searchParams: { projectId?: string } }) {
@@ -138,26 +130,18 @@ export default async function OverviewPage({ searchParams }: { searchParams: { p
         if (f.forecast_cost != null) forecastOverrides[f.trade_section] = Number(f.forecast_cost);
     });
 
-    const allSections = new Set<string>([
-        ...Object.keys(budgetBySection),
-        ...Object.keys(actualBySection),
-        ...Object.keys(committedBySection),
-    ]);
-    let forecastFinal = 0;
-    allSections.forEach((sec) => {
-        if (forecastOverrides[sec] != null) {
-            forecastFinal += forecastOverrides[sec];
-            return;
-        }
-        const budget = budgetBySection[sec] || 0;
-        const actual = actualBySection[sec] || 0;
-        const committed = committedBySection[sec] || 0;
-        // Remaining budget = what we haven't yet spent or committed.
-        const remaining = Math.max(0, budget - actual - committed);
-        forecastFinal += actual + committed + remaining;
+    // Delegated to src/lib/financial.ts so the logic is pinned by the
+    // Vitest suite. Includes the "orphan section" edge case from 22
+    // Birchwood Avenue — Masonry had actual spend but no budget row,
+    // and the old inline math silently dropped it.
+    const forecastFinal = computeForecastFinal({
+        budgetBySection,
+        actualBySection,
+        committedBySection,
+        overrides: forecastOverrides,
     });
-    const forecastMargin = contractValue - forecastFinal;
-    const forecastMarginPct = contractValue > 0 ? (forecastMargin / contractValue) * 100 : 0;
+    const { margin: forecastMargin, marginPct: forecastMarginPct } =
+        computeForecastMargin(contractValue, forecastFinal);
 
     // ── Programme % ─────────────────────────────────────────────────────────────
     const phases: any[] = project.programme_phases ?? [];

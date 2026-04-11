@@ -1,14 +1,10 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 export async function createTemplateAction(formData: FormData) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-
-    if (!user) throw new Error("Unauthorized");
+    const { user, supabase } = await requireAuth();
 
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
@@ -26,11 +22,7 @@ export async function createTemplateAction(formData: FormData) {
 }
 
 export async function deleteTemplateAction(templateId: string) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-
-    if (!user) throw new Error("Unauthorized");
+    const { user, supabase } = await requireAuth();
 
     const { error } = await supabase.from("templates").delete().eq("id", templateId).eq("user_id", user.id);
 
@@ -40,11 +32,7 @@ export async function deleteTemplateAction(templateId: string) {
 }
 
 export async function addItemsToTemplateAction(templateId: string, items: { category: string; description: string; unit: string; unit_cost: number; quantity: number }[]) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-
-    if (!user) throw new Error("Unauthorized");
+    const { user, supabase } = await requireAuth();
 
     // Verify ownership
     const { data: template } = await supabase.from("templates").select("id").eq("id", templateId).eq("user_id", user.id).single();
@@ -63,11 +51,7 @@ export async function addItemsToTemplateAction(templateId: string, items: { cate
 }
 
 export async function removeTemplateItemAction(itemId: string, templateId: string) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-
-    if (!user) throw new Error("Unauthorized");
+    const { user, supabase } = await requireAuth();
 
     const { error } = await supabase.from("template_items").delete().eq("id", itemId);
 
@@ -77,11 +61,7 @@ export async function removeTemplateItemAction(itemId: string, templateId: strin
 }
 
 export async function applyTemplateAction(templateId: string, projectId: string) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-
-    if (!user) throw new Error("Unauthorized");
+    const { user, supabase } = await requireAuth();
 
     // 1. Fetch template items
     const { data: items, error: fetchError } = await supabase

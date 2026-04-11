@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 import { generateText } from "@/lib/ai";
 
@@ -18,14 +18,11 @@ export async function upsertLessonsLearnedAction(projectId: string, data: {
     summary?:             string;
     ai_narrative?:        string;
 }) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const userId = authData?.user?.id;
-    if (!userId) throw new Error("Not authenticated");
+    const { user, supabase } = await requireAuth();
 
     const { error } = await supabase
         .from("lessons_learned")
-        .upsert([{ project_id: projectId, user_id: userId, ...data, updated_at: new Date().toISOString() }], { onConflict: "project_id" });
+        .upsert([{ project_id: projectId, user_id: user.id, ...data, updated_at: new Date().toISOString() }], { onConflict: "project_id" });
     if (error) throw new Error(error.message);
     revalidate(projectId);
 }
@@ -43,12 +40,9 @@ export async function createLessonItemAction(data: {
     action_owner?:   string;
     order_index:     number;
 }) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const userId = authData?.user?.id;
-    if (!userId) throw new Error("Not authenticated");
+    const { user, supabase } = await requireAuth();
 
-    const { error } = await supabase.from("lesson_items").insert([{ ...data, user_id: userId }]);
+    const { error } = await supabase.from("lesson_items").insert([{ ...data, user_id: user.id }]);
     if (error) throw new Error(error.message);
     revalidate(data.project_id);
 }
@@ -62,14 +56,14 @@ export async function updateLessonItemAction(id: string, projectId: string, data
     action_required?: boolean;
     action_owner?:    string;
 }) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase.from("lesson_items").update(data).eq("id", id);
     if (error) throw new Error(error.message);
     revalidate(projectId);
 }
 
 export async function deleteLessonItemAction(id: string, projectId: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase.from("lesson_items").delete().eq("id", id);
     if (error) throw new Error(error.message);
     revalidate(projectId);
@@ -78,7 +72,7 @@ export async function deleteLessonItemAction(id: string, projectId: string) {
 // ── AI narrative ──────────────────────────────────────────────────────────────
 
 export async function generateLessonsNarrativeAction(projectId: string): Promise<string> {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
 
     const [{ data: project }, { data: review }, { data: items }] = await Promise.all([
         supabase.from("projects").select("name, client_name").eq("id", projectId).single(),

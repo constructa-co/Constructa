@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 function revalidateBilling(projectId: string) {
@@ -21,7 +21,7 @@ export async function createAfpAction(data: {
     retention_pct: number;
     due_date?: string;
 }) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const gross_this_cert = data.gross_valuation - data.previous_cert;
     const retention_held = data.gross_valuation * (data.retention_pct / 100);
     const net_due = gross_this_cert - retention_held;
@@ -51,7 +51,7 @@ export async function releaseRetentionAction(data: {
     amount: number;
     due_date?: string;
 }) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase.from("invoices").insert([{
         project_id:           data.project_id,
         invoice_number:       data.invoice_number,
@@ -71,7 +71,7 @@ export async function releaseRetentionAction(data: {
 }
 
 export async function updateInvoiceStatusAction(invoiceId: string, status: string, projectId: string, paidDate?: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const update: any = { status };
     if (status === "Paid" && paidDate) update.paid_date = paidDate;
     if (status === "Paid" && !paidDate) update.paid_date = new Date().toISOString().split("T")[0];
@@ -81,7 +81,7 @@ export async function updateInvoiceStatusAction(invoiceId: string, status: strin
 }
 
 export async function deleteInvoiceAction(invoiceId: string, projectId: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase.from("invoices").delete().eq("id", invoiceId);
     if (error) throw new Error(error.message);
     revalidateBilling(projectId);
@@ -97,7 +97,7 @@ export async function createMilestoneAction(data: {
     due_date?: string;
     order_index: number;
 }) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase.from("payment_schedule_milestones").insert([data]);
     if (error) throw new Error(error.message);
     revalidateBilling(data.project_id);
@@ -109,14 +109,14 @@ export async function updateMilestoneAction(id: string, projectId: string, data:
     amount?: number;
     due_date?: string;
 }) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase.from("payment_schedule_milestones").update(data).eq("id", id);
     if (error) throw new Error(error.message);
     revalidateBilling(projectId);
 }
 
 export async function deleteMilestoneAction(id: string, projectId: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase.from("payment_schedule_milestones").delete().eq("id", id);
     if (error) throw new Error(error.message);
     revalidateBilling(projectId);
@@ -130,7 +130,7 @@ export async function createInvoiceAction(data: {
     amount: number;
 }) {
     // Kept for any legacy callers — wraps createAfpAction with defaults
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase.from("invoices").insert([{
         project_id:     data.project_id,
         invoice_number: data.invoice_number,

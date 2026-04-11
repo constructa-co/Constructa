@@ -1,5 +1,5 @@
 "use server";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 const VALID_STATUSES = ["Lead", "Estimating", "Proposal Sent", "Active", "Won", "Completed", "Lost"];
@@ -8,16 +8,20 @@ export async function updateStatusAction(projectId: string, newStatus: string) {
     if (!VALID_STATUSES.includes(newStatus)) {
         return { success: false, error: "Invalid status" };
     }
-    const supabase = createClient();
-    await supabase.from("projects").update({ status: newStatus }).eq("id", projectId);
+    const { user, supabase } = await requireAuth();
+    // Scope to user so one user can't move another user's projects even if they
+    // guess the id (RLS already blocks this but defence-in-depth).
+    await supabase
+        .from("projects")
+        .update({ status: newStatus })
+        .eq("id", projectId)
+        .eq("user_id", user.id);
     revalidatePath("/dashboard");
     return { success: true };
 }
 
 export async function markAsWonAction(projectId: string) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    if (!authData?.user) return { success: false, error: "Not authenticated" };
+    const { user, supabase } = await requireAuth();
 
     await supabase
         .from("projects")
@@ -27,7 +31,7 @@ export async function markAsWonAction(projectId: string) {
             proposal_accepted_at: new Date().toISOString(),
         })
         .eq("id", projectId)
-        .eq("user_id", authData.user.id);
+        .eq("user_id", user.id);
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/live");
@@ -36,10 +40,14 @@ export async function markAsWonAction(projectId: string) {
 }
 
 export async function updateTypeAction(formData: FormData) {
-    const supabase = createClient();
+    const { user, supabase } = await requireAuth();
     const id = formData.get("id") as string;
     const newType = formData.get("type") as string;
 
-    await supabase.from("projects").update({ project_type: newType }).eq("id", id);
+    await supabase
+        .from("projects")
+        .update({ project_type: newType })
+        .eq("id", id)
+        .eq("user_id", user.id);
     revalidatePath("/dashboard");
 }

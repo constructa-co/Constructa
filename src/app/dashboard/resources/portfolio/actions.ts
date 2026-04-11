@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 // ── Allocations ───────────────────────────────────────────────────────────────
@@ -19,9 +19,7 @@ export async function upsertAllocationAction(data: {
   is_confirmed?: boolean;
   notes?: string;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const payload = {
     user_id:           user.id,
@@ -58,9 +56,7 @@ export async function upsertAllocationAction(data: {
 }
 
 export async function deleteAllocationAction(id: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
     .from("resource_allocations")
@@ -83,9 +79,7 @@ export async function upsertAbsenceAction(data: {
   end_date: string;
   notes?: string;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const payload = {
     user_id:           user.id,
@@ -115,9 +109,7 @@ export async function upsertAbsenceAction(data: {
 }
 
 export async function deleteAbsenceAction(id: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
     .from("staff_absence")
@@ -133,9 +125,7 @@ export async function deleteAbsenceAction(id: string) {
 // ── Update staff_type ─────────────────────────────────────────────────────────
 
 export async function updateStaffTypeAction(staffId: string, staffType: "direct_labour" | "overhead") {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
     .from("staff_resources")

@@ -1,13 +1,10 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 export async function updateProjectAction(formData: FormData) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) return { success: false };
+    const { user, supabase } = await requireAuth();
 
     const projectId = formData.get("projectId") as string;
 

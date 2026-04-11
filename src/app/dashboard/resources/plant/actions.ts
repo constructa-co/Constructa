@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 export interface PlantResourceInput {
@@ -29,10 +29,7 @@ export interface PlantResourceInput {
 export async function upsertPlantResourceAction(
   data: PlantResourceInput
 ): Promise<{ error?: string }> {
-  const supabase = createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  const user = authData?.user;
-  if (!user) return { error: "Not authenticated" };
+  const { user, supabase } = await requireAuth();
 
   const payload = {
     user_id: user.id,
@@ -76,10 +73,7 @@ export async function upsertPlantResourceAction(
 }
 
 export async function deletePlantResourceAction(id: string): Promise<void> {
-  const supabase = createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  const user = authData?.user;
-  if (!user) return;
+  const { user, supabase } = await requireAuth();
 
   await supabase
     .from("plant_resources")

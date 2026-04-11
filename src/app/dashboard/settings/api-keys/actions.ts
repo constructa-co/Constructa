@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { createHash, randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 
@@ -15,9 +15,7 @@ function hashKey(key: string): string {
 export async function createApiKeyAction(
   name: string
 ): Promise<{ key?: string; prefix?: string; error?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const { user, supabase } = await requireAuth();
 
   // Limit to 5 active keys per user
   const { count } = await supabase
@@ -51,9 +49,7 @@ export async function createApiKeyAction(
 }
 
 export async function revokeApiKeyAction(id: string): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
     .from("api_keys")

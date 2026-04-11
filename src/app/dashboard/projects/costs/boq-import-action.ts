@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { generateJSON } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
 import OpenAI from "openai";
@@ -151,9 +151,7 @@ export async function createBoQEstimateAction(
     projectId: string,
     boq: ParsedClientBoQ
 ): Promise<{ success: boolean; estimateId?: string; error?: string }> {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    if (!authData?.user) return { success: false, error: "Not authenticated" };
+    const { supabase } = await requireAuth();
 
     // Create the estimate flagged as client BoQ
     const { data: estimate, error: estErr } = await supabase

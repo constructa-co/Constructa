@@ -1,12 +1,11 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { getActiveOrganizationId } from "@/lib/supabase/auth-utils";
+import { requireAuth, getActiveOrganizationId } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 export async function addResourceAction(formData: FormData) {
     try {
-        const supabase = createClient();
+        const { supabase } = await requireAuth();
         const orgId = await getActiveOrganizationId();
 
         const type = formData.get("type") as string; // 'Labour' or 'Plant'
@@ -49,7 +48,7 @@ export async function addResourceAction(formData: FormData) {
 export async function deleteResourceAction(formData: FormData) {
     try {
         const id = formData.get("id") as string;
-        const supabase = createClient();
+        const { supabase } = await requireAuth();
         const orgId = await getActiveOrganizationId();
 
         const { error } = await supabase

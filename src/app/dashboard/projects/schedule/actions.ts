@@ -1,11 +1,11 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 import { generateText } from "@/lib/ai";
 
 export async function updateDependencyAction(formData: FormData) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const predecessor = formData.get("predecessor") as string;
     const successor = formData.get("successor") as string;
     const duration = formData.get("duration") as string;
@@ -41,7 +41,7 @@ export async function updatePhasesAction(
     }[],
     startDate?: string   // ISO YYYY-MM-DD — if provided, saves to projects.start_date
 ): Promise<void> {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     // Note: projects has no `timeline_phases` column — writing it used to cause the
     // whole UPDATE to fail silently, meaning programme edits weren't saved.
     const payload: Record<string, unknown> = {
@@ -63,7 +63,7 @@ export async function updatePhasesAction(
 export async function getEstimatePhasesAction(
     projectId: string
 ): Promise<{ name: string; calculatedDays: number; manualDays: number | null; manhours: number; startOffset: number }[]> {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
 
     const { data: estimates } = await supabase
         .from("estimates")
@@ -135,7 +135,7 @@ export async function saveProgrammePhasesAction(
     projectId: string,
     phases: any[]
 ): Promise<void> {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase
         .from("projects")
         .update({ programme_phases: phases })
@@ -148,7 +148,7 @@ export async function saveProgrammePhasesAction(
 // ── Sprint 31: Live Programme Tracking ───────────────────────────────────────
 
 export async function generateWeeklyUpdateAction(projectId: string): Promise<string> {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
 
     const { data: project } = await supabase
         .from("projects")
@@ -204,7 +204,7 @@ Keep it factual, concise and suitable to send directly to the client. Do not use
 }
 
 export async function getProgrammeUpdatesAction(projectId: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { data } = await supabase
         .from("programme_updates")
         .select("id, narrative, created_at")

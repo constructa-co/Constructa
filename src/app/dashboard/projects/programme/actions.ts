@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 function revalidate(projectId: string) {
@@ -10,7 +10,7 @@ function revalidate(projectId: string) {
 }
 
 export async function saveAsBuiltPhasesAction(projectId: string, phases: any[]) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase
         .from("projects")
         .update({ programme_phases: phases })

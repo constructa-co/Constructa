@@ -1,10 +1,10 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 export async function createEstimateAction(projectId: string, name: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { data, error } = await supabase
         .from("estimates")
         .insert({
@@ -45,7 +45,7 @@ export async function updateEstimateMarginsAction(
     risk: number,
     prelims: number = 0
 ) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase
         .from("estimates")
         .update({
@@ -60,7 +60,7 @@ export async function updateEstimateMarginsAction(
 }
 
 export async function updateEstimateNameAction(estimateId: string, name: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase
         .from("estimates")
         .update({ version_name: name })
@@ -83,7 +83,7 @@ export async function addLineItemAction(
         notes?: string | null;
     }
 ) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const line_total = data.quantity * data.unit_rate;
 
     const { data: result, error } = await supabase
@@ -124,7 +124,7 @@ export async function updateLineItemAction(
         notes?: string | null;
     }
 ) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
 
     const updateData: Record<string, unknown> = { ...data };
     if (data.quantity !== undefined && data.unit_rate !== undefined) {
@@ -146,7 +146,7 @@ export async function updateLineItemAction(
 }
 
 export async function deleteLineItemAction(lineId: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
 
     // Get estimate_id before deleting
     const { data: line } = await supabase
@@ -168,7 +168,7 @@ export async function deleteLineItemAction(lineId: string) {
 }
 
 export async function setActiveEstimateAction(estimateId: string, projectId: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
 
     // Unmark all other estimates for this project
     await supabase
@@ -186,7 +186,7 @@ export async function setActiveEstimateAction(estimateId: string, projectId: str
 }
 
 export async function deleteEstimateAction(estimateId: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
 
     // Lines cascade-delete if FK is set, but let's be safe
     await supabase
@@ -216,7 +216,7 @@ export async function addComponentAction(
         sort_order: number;
     }
 ): Promise<{ id: string; line_total: number; total_manhours: number } | null> {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
 
     // Verify the line exists and is accessible before inserting
     const { data: lineCheck, error: lineError } = await supabase
@@ -249,17 +249,17 @@ export async function updateComponentAction(
         manhours_per_unit: number;
     }>
 ): Promise<void> {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     await supabase.from("estimate_line_components").update(data).eq("id", componentId);
 }
 
 export async function deleteComponentAction(componentId: string): Promise<void> {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     await supabase.from("estimate_line_components").delete().eq("id", componentId);
 }
 
 export async function setPricingModeAction(lineId: string, mode: "simple" | "buildup"): Promise<void> {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     await supabase.from("estimate_lines").update({ pricing_mode: mode }).eq("id", lineId);
 }
 
@@ -272,7 +272,7 @@ export async function saveRateBuildupAction(
     builtUpRate: number,
     totalManhoursPerUnit: number
 ): Promise<void> {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     await supabase.from("rate_buildups").insert({
         organization_id: orgId,
         name,
@@ -286,7 +286,7 @@ export async function saveRateBuildupAction(
 }
 
 export async function updateLineBuiltUpRateAction(lineId: string, builtUpRate: number): Promise<void> {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { data: line } = await supabase
         .from("estimate_lines")
         .select("quantity, estimate_id")
@@ -307,7 +307,7 @@ export async function saveDiscountAction(
     discountPct: number,
     discountReason: string
 ): Promise<void> {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase
         .from("estimates")
         .update({ discount_pct: discountPct, discount_reason: discountReason })
@@ -316,7 +316,7 @@ export async function saveDiscountAction(
 }
 
 async function recalcEstimateTotal(estimateId: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { data: lines } = await supabase
         .from("estimate_lines")
         .select("line_total")

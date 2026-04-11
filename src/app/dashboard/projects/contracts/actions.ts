@@ -1,13 +1,13 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { generateJSON, generateText } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
 
 // ── PDF / DOCX server-side text extraction ──────────────
 export async function extractContractTextAction(storagePath: string): Promise<{ text: string; error?: string }> {
     try {
-        const supabase = createClient();
+        const { supabase } = await requireAuth();
 
         // Download file bytes from Supabase storage
         const { data, error } = await supabase.storage.from("contracts").download(storagePath);
@@ -43,7 +43,7 @@ export async function extractContractTextAction(storagePath: string): Promise<{ 
 
 // ── T&C Tier Management ─────────────────────────────────
 export async function saveTcTierAction(projectId: string, tier: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase.from("projects").update({ tc_tier: tier }).eq("id", projectId);
     if (error) console.error("Save TC tier error:", error);
     revalidatePath("/dashboard/projects/contracts");
@@ -84,7 +84,7 @@ export async function analyseContractAction(
     contractText: string
 ): Promise<{ flags: Array<{ type: string; clause: string; description: string; severity: string; recommendation: string }>; error?: string }> {
     try {
-        const supabase = createClient();
+        const { supabase } = await requireAuth();
 
         // Save the raw uploaded text
         await supabase.from("projects").update({ uploaded_contract_text: contractText }).eq("id", projectId);
@@ -152,7 +152,7 @@ export async function dismissContractFlagAction(
     flagIndex: number,
     status: "accepted" | "disputed"
 ) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { data } = await supabase.from("projects").select("contract_review_flags").eq("id", projectId).single();
     if (!data?.contract_review_flags) return;
 
@@ -171,7 +171,7 @@ export async function saveRiskRegisterAction(
     projectId: string,
     riskRegister: Array<{ id: string; type: string; description: string; likelihood: string; impact: string; mitigation: string }>
 ) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase.from("projects").update({ risk_register: riskRegister }).eq("id", projectId);
     if (error) console.error("Save risk register error:", error);
     revalidatePath("/dashboard/projects/contracts");
@@ -192,7 +192,7 @@ export async function generateRiskRegisterAction(projectId: string, scope: strin
 
 // ── Exclusions & Clarifications ─────────────────────────
 export async function saveContractExclusionsAction(projectId: string, exclusions: string, clarifications: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase.from("projects").update({
         contract_exclusions: exclusions,
         contract_clarifications: clarifications,
@@ -352,7 +352,7 @@ export async function saveClientContractClausesAction(
     clauses: Array<{ id: string; clauseRef: string; title: string; original: string; proposed: string; status: string; reason: string; flagged: boolean }>
 ) {
     try {
-        const supabase = createClient();
+        const { supabase } = await requireAuth();
         const { error } = await supabase.from("projects").update({ client_contract_clauses: clauses }).eq("id", projectId);
         if (error) console.error("Save client contract clauses error:", error);
         revalidatePath("/dashboard/projects/contracts");

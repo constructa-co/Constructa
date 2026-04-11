@@ -1,7 +1,7 @@
 "use server";
 
 import OpenAI from "openai";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { generateJSON } from "@/lib/ai";
 
 interface ExtractedRawItem {
@@ -75,7 +75,7 @@ DO NOT include any text outside the JSON array.`;
         const extractedItems: ExtractedRawItem[] = Array.isArray(parsed) ? parsed : (parsed.items || []);
 
         // Step 2: Match each item to the cost library
-        const supabase = createClient();
+        const { supabase } = await requireAuth();
 
         const { data: library } = await supabase
             .from("cost_library_items")

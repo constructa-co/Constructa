@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 const XERO_TOKEN_URL     = "https://identity.xero.com/connect/token";
@@ -84,9 +85,7 @@ async function xeroFetch(
 // ── Connect / Disconnect ──────────────────────────────────────────────────────
 
 export async function getXeroAuthUrlAction(): Promise<{ url?: string; error?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const { user, supabase } = await requireAuth();
 
   const clientId    = process.env.XERO_CLIENT_ID;
   const redirectUri = process.env.XERO_REDIRECT_URI
@@ -106,9 +105,7 @@ export async function getXeroAuthUrlAction(): Promise<{ url?: string; error?: st
 }
 
 export async function disconnectXeroAction(): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
     .from("xero_connections")
@@ -123,9 +120,7 @@ export async function disconnectXeroAction(): Promise<{ error?: string }> {
 // ── Push invoices to Xero ─────────────────────────────────────────────────────
 
 export async function pushInvoicesAction(): Promise<{ synced: number; failed: number; error?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { synced: 0, failed: 0, error: "Not authenticated" };
+  const { user, supabase } = await requireAuth();
 
   const auth = await getValidToken(user.id);
   if (!auth) return { synced: 0, failed: 0, error: "Xero not connected or token expired" };
@@ -219,9 +214,7 @@ export async function pushInvoicesAction(): Promise<{ synced: number; failed: nu
 // ── Pull payment status from Xero ─────────────────────────────────────────────
 
 export async function pullPaymentsAction(): Promise<{ updated: number; error?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { updated: 0, error: "Not authenticated" };
+  const { user, supabase } = await requireAuth();
 
   const auth = await getValidToken(user.id);
   if (!auth) return { updated: 0, error: "Xero not connected or token expired" };

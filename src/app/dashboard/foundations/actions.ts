@@ -1,7 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { getActiveOrganizationId } from "@/lib/supabase/auth-utils";
+import { requireAuth, getActiveOrganizationId } from "@/lib/supabase/auth-utils";
 import { Parser } from "expr-eval";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -9,7 +8,7 @@ import { revalidatePath } from "next/cache";
 // --- SERVER ACTION: CALCULATE (Generates the DRAFT) ---
 export async function calculateAction(formData: FormData) {
     const assemblyId = formData.get("assemblyId") as string;
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const orgId = await getActiveOrganizationId();
 
     // 1. Fetch Data (scoped to org)
@@ -85,7 +84,7 @@ export async function calculateAction(formData: FormData) {
 
 // --- SERVER ACTION: SAVE (Saves the EDITED Table) ---
 export async function saveToProjectAction(formData: FormData) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const orgId = await getActiveOrganizationId();
 
     // Parse fields
@@ -166,7 +165,7 @@ export async function saveToProjectAction(formData: FormData) {
 
 // --- SERVER ACTION: ADD LINE FROM LIBRARY (Sprint 2) ---
 export async function addLineFromLibraryAction(estimateId: string, itemId: string, orgId: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
 
     // Fetch item details
     const { data: item, error: itemError } = await supabase
@@ -245,7 +244,7 @@ export async function addLineFromLibraryAction(estimateId: string, itemId: strin
 
 // --- SERVER ACTION: SEARCH LIBRARY ITEMS (Sprint 2) ---
 export async function searchLibraryItemsAction(query: string, categoryId: string | null, orgId: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
 
     let q = supabase
         .from("mom_items")

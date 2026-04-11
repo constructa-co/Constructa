@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 function revalidate(projectId: string) {
@@ -28,10 +28,7 @@ const STANDARD_ITEMS = [
 ];
 
 export async function seedHandoverItemsAction(projectId: string) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const userId = authData?.user?.id;
-    if (!userId) throw new Error("Not authenticated");
+    const { user, supabase } = await requireAuth();
 
     // Only seed if table is empty for this project
     const { count } = await supabase
@@ -43,7 +40,7 @@ export async function seedHandoverItemsAction(projectId: string) {
     const rows = STANDARD_ITEMS.map((item, i) => ({
         ...item,
         project_id: projectId,
-        user_id: userId,
+        user_id: user.id,
         status: "Pending",
         order_index: i,
     }));
@@ -61,14 +58,11 @@ export async function createHandoverItemAction(data: {
     required: boolean;
     order_index: number;
 }) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const userId = authData?.user?.id;
-    if (!userId) throw new Error("Not authenticated");
+    const { user, supabase } = await requireAuth();
 
     const { error } = await supabase.from("handover_items").insert([{
         ...data,
-        user_id: userId,
+        user_id: user.id,
         status: "Pending",
     }]);
     if (error) throw new Error(error.message);
@@ -89,7 +83,7 @@ export async function updateHandoverItemAction(
         notes?: string;
     }
 ) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase
         .from("handover_items")
         .update({ ...data, updated_at: new Date().toISOString() })
@@ -99,7 +93,7 @@ export async function updateHandoverItemAction(
 }
 
 export async function deleteHandoverItemAction(id: string, projectId: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase.from("handover_items").delete().eq("id", id);
     if (error) throw new Error(error.message);
     revalidate(projectId);

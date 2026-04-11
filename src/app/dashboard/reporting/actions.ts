@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 // ─── Site Photos ──────────────────────────────────────────────────────────────
@@ -12,9 +12,7 @@ export async function uploadSitePhotoAction(data: {
   takenAt?: string;
   weekEnding?: string;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase.from("site_photos").insert({
     user_id:      user.id,
@@ -31,9 +29,7 @@ export async function uploadSitePhotoAction(data: {
 }
 
 export async function deleteSitePhotoAction(id: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const { data: photo } = await supabase
     .from("site_photos")
@@ -73,9 +69,7 @@ export async function upsertProgressReportAction(data: {
   weatherDaysLost?: number;
   labourHeadcount?: number;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const row = {
     user_id:               user.id,
@@ -115,9 +109,7 @@ export async function upsertProgressReportAction(data: {
 }
 
 export async function deleteProgressReportAction(id: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
     .from("progress_reports")

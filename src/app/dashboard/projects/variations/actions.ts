@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 function revalidateVariations(projectId: string) {
@@ -20,7 +20,7 @@ export async function createVariationAction(data: {
     instructed_by?: string;
     date_instructed?: string;
 }) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
 
     // Auto-generate variation number
     const { count } = await supabase
@@ -52,7 +52,7 @@ export async function updateVariationStatusAction(
     projectId: string,
     meta?: { approval_reference?: string; approval_date?: string; rejection_reason?: string }
 ) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const update: any = { status };
     if (status === "Approved") {
         update.approval_reference = meta?.approval_reference || null;
@@ -67,7 +67,7 @@ export async function updateVariationStatusAction(
 }
 
 export async function deleteVariationAction(variationId: string, projectId: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase.from("variations").delete().eq("id", variationId);
     if (error) throw new Error(error.message);
     revalidateVariations(projectId);

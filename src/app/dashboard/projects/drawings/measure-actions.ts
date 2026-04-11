@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 export async function saveMeasurementsAction(data: {
@@ -16,9 +16,7 @@ export async function saveMeasurementsAction(data: {
     points: { x: number; y: number }[];
   }[];
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const rows = data.measurements.map(m => ({
     user_id:          user.id,
@@ -49,9 +47,7 @@ export async function addMeasurementsToEstimateAction(
     tradeSection: string;
   }[]
 ) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised", added: 0 };
+  const { user, supabase } = await requireAuth();
 
   // Get active estimate for project
   const { data: estimates } = await supabase
@@ -100,9 +96,7 @@ export async function addMeasurementsToEstimateAction(
 }
 
 export async function getDrawingMeasurementsAction(projectId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised", measurements: [] };
+  const { user, supabase } = await requireAuth();
 
   const { data, error } = await supabase
     .from("drawing_measurements")
@@ -116,9 +110,7 @@ export async function getDrawingMeasurementsAction(projectId: string) {
 }
 
 export async function deleteMeasurementAction(id: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
     .from("drawing_measurements")

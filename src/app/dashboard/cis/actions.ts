@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 function getTaxMonthStart(dateStr: string): string {
@@ -24,9 +24,7 @@ export async function addSubcontractorAction(data: {
   last_verified_at: string;
   notes: string;
 }): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase.from("cis_subcontractors").insert({
     user_id: user.id,
@@ -59,9 +57,7 @@ export async function updateSubcontractorAction(
     is_active: boolean;
   }
 ): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
     .from("cis_subcontractors")
@@ -95,9 +91,7 @@ export async function recordPaymentAction(data: {
   deduction_rate: number;
   description: string;
 }): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase.from("cis_payments").insert({
     user_id: user.id,
@@ -117,9 +111,7 @@ export async function recordPaymentAction(data: {
 }
 
 export async function deletePaymentAction(id: string): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
     .from("cis_payments")
@@ -135,9 +127,7 @@ export async function deletePaymentAction(id: string): Promise<{ error?: string 
 export async function markStatementSentAction(
   paymentIds: string[]
 ): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
     .from("cis_payments")
@@ -158,9 +148,7 @@ export async function saveCisSettingsAction(data: {
   cis_paye_reference: string;
   cis_accounts_office_ref: string;
 }): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
     .from("profiles")

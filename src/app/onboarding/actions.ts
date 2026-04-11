@@ -1,15 +1,12 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { redirect } from "next/navigation";
 import { generateText, generateJSON } from "@/lib/ai";
 import { sendWelcomeEmail } from "@/lib/email";
 
 export async function saveOnboardingAction(formData: FormData) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) return { error: "Not authenticated" };
+    const { user, supabase } = await requireAuth();
 
     // Parse insurance schedule from JSON string
     let insurance_schedule = null;

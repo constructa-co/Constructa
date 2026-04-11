@@ -1,11 +1,10 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { getActiveOrganizationId } from "@/lib/supabase/auth-utils";
+import { requireAuth, getActiveOrganizationId } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 export async function addLibraryItemAction(formData: FormData) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const orgId = await getActiveOrganizationId();
 
     const name = formData.get("name") as string;
@@ -41,7 +40,7 @@ export async function addLibraryItemAction(formData: FormData) {
 }
 
 export async function deleteLibraryItemAction(formData: FormData) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const orgId = await getActiveOrganizationId();
     const id = formData.get("id") as string;
 

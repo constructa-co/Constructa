@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 export interface StaffResourceInput {
@@ -39,10 +39,7 @@ export interface StaffResourceInput {
 export async function upsertStaffResourceAction(
   data: StaffResourceInput
 ): Promise<{ error?: string }> {
-  const supabase = createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  const user = authData?.user;
-  if (!user) return { error: "Not authenticated" };
+  const { user, supabase } = await requireAuth();
 
   const payload = {
     user_id: user.id,
@@ -95,10 +92,7 @@ export async function upsertStaffResourceAction(
 }
 
 export async function deleteStaffResourceAction(id: string): Promise<void> {
-  const supabase = createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  const user = authData?.user;
-  if (!user) return;
+  const { user, supabase } = await requireAuth();
 
   await supabase
     .from("staff_resources")

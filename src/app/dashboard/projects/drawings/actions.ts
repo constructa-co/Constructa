@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { generateJSON } from "@/lib/ai";
 import OpenAI from "openai";
 import { revalidatePath } from "next/cache";
@@ -42,10 +42,7 @@ export async function analyzeDrawingPagesAction(
     pageCount: number,
     base64Pages: string[]
 ): Promise<{ success: boolean; extraction?: DrawingExtraction; error?: string }> {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) return { success: false, error: "Not authenticated" };
+    const { user, supabase } = await requireAuth();
 
     const apiKey = process.env.OPENAI_API_KEY?.trim();
     if (!apiKey) return { success: false, error: "AI not configured" };
@@ -241,9 +238,7 @@ If no good match exists use unit from extracted item and rate 0.`;
 export async function getDrawingExtractionsAction(
     projectId: string
 ): Promise<DrawingExtraction[]> {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    if (!authData?.user) return [];
+    const { supabase } = await requireAuth();
 
     const { data } = await supabase
         .from("drawing_extractions")
@@ -260,10 +255,7 @@ export async function addItemsToEstimateAction(
     projectId: string,
     items: DrawingResultItem[]
 ): Promise<{ success: boolean; added: number; error?: string }> {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) return { success: false, added: 0, error: "Not authenticated" };
+    const { user, supabase } = await requireAuth();
 
     // Find the active estimate for this project
     const { data: estimate } = await supabase

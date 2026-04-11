@@ -1,15 +1,13 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 export async function archiveProjectAction(
   projectId: string,
   reason: string
 ): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const { user, supabase } = await requireAuth();
 
   // Gather snapshot data in parallel
   const [
@@ -170,9 +168,7 @@ export async function archiveProjectAction(
 export async function restoreProjectAction(
   projectId: string
 ): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
     .from("projects")
@@ -194,9 +190,7 @@ export async function restoreProjectAction(
 }
 
 export async function getArchivedProjectsAction() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  const { user, supabase } = await requireAuth();
 
   const { data } = await supabase
     .from("projects")

@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 import { generateJSON, generateText } from "@/lib/ai";
 import { sendProposalEmail } from "@/lib/email";
@@ -41,10 +41,7 @@ export async function generateFullProposalAction(
     answers: ProposalAnswers,
     projectId: string
 ): Promise<{ success: false; error: string } | { success: true; data: GeneratedProposal }> {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) return { success: false, error: "Not authenticated" };
+    const { user, supabase } = await requireAuth();
 
     const { data: project } = await supabase
         .from("projects")
@@ -143,10 +140,7 @@ Rules:
 }
 
 export async function saveProposalAction(formData: FormData) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) return { success: false };
+    const { user, supabase } = await requireAuth();
 
     const id = formData.get("projectId") as string;
 
@@ -208,10 +202,7 @@ export async function saveProposalAction(formData: FormData) {
 }
 
 export async function getProposalLinkAction(projectId: string) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) return { success: false, url: null };
+    const { user, supabase } = await requireAuth();
 
     const { data: project } = await supabase
         .from("projects")
@@ -234,10 +225,7 @@ export async function getProposalLinkAction(projectId: string) {
 }
 
 export async function sendProposalAction(projectId: string) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) return { success: false };
+    const { user, supabase } = await requireAuth();
 
     // Get or generate token — also fetch fields needed for email
     const { data: project } = await supabase
@@ -299,10 +287,7 @@ export async function sendProposalAction(projectId: string) {
 }
 
 export async function generateAiScopeAction(projectId: string) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) return { scope_narrative: "Error: Not authenticated.", suggested_exclusions: "", suggested_clarifications: "" };
+    const { user, supabase } = await requireAuth();
 
     const { data: project } = await supabase
         .from("projects")
@@ -391,10 +376,7 @@ export async function generateAiScopeAction(projectId: string) {
 }
 
 export async function rewriteIntroductionAction(projectId: string, currentText: string) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) return { error: "Not authenticated" };
+    const { user, supabase } = await requireAuth();
 
     // AI via OpenAI utility
 
@@ -434,10 +416,7 @@ export async function saveWizardResultsAction(projectId: string, data: {
     gantt_phases?: any[];
     payment_schedule?: any[];
 }) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) return { success: false, error: "Not authenticated" };
+    const { user, supabase } = await requireAuth();
 
     const { error } = await supabase
         .from("projects")
@@ -488,10 +467,7 @@ export async function generateExclusionsAction(
 }
 
 export async function updatePaymentScheduleTypeAction(projectId: string, type: string) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) return { success: false, error: "Not authenticated" };
+    const { user, supabase } = await requireAuth();
 
     const { error } = await supabase
         .from("projects")
@@ -505,10 +481,7 @@ export async function updatePaymentScheduleTypeAction(projectId: string, type: s
 }
 
 export async function updateCaseStudySelectionAction(projectId: string, selectedIds: (number | string)[]) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) return { success: false, error: "Not authenticated" };
+    const { user, supabase } = await requireAuth();
 
     const { error } = await supabase
         .from("projects")
@@ -522,10 +495,7 @@ export async function updateCaseStudySelectionAction(projectId: string, selected
 }
 
 export async function uploadPhotoAction(formData: FormData) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) return { error: "Not authenticated" };
+    const { user, supabase } = await requireAuth();
 
     const file = formData.get("file") as File;
     const projectId = formData.get("projectId") as string;
@@ -576,14 +546,14 @@ export async function generateClosingStatementAction(
     Tone: warm, professional, confident. Avoid cliches. Max 150 words.`
     );
 
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     await supabase.from('projects').update({ closing_statement: text }).eq('id', projectId);
 
     return { text };
 }
 
 export async function saveClosingStatementAction(projectId: string, text: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     await supabase.from('projects').update({ closing_statement: text }).eq('id', projectId);
 }
 
@@ -591,7 +561,7 @@ export async function saveProposalOverridesAction(
     projectId: string,
     overrides: { proposal_capability?: string; proposal_company_name?: string }
 ) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     await supabase.from('projects').update(overrides).eq('id', projectId);
 }
 
@@ -611,10 +581,7 @@ export async function createProposalVersionAction(
     projectId: string,
     notes: string
 ): Promise<{ success: boolean; error?: string; version_number?: number }> {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) return { success: false, error: "Not authenticated" };
+    const { user, supabase } = await requireAuth();
 
     // Fetch current project (scoped to user)
     // Cast to any to work around stale Supabase generated types (current_version_number added in Sprint 22)
@@ -683,10 +650,7 @@ export async function createProposalVersionAction(
 export async function getProposalVersionsAction(
     projectId: string
 ): Promise<{ success: boolean; versions?: ProposalVersionRow[]; error?: string }> {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) return { success: false, error: "Not authenticated" };
+    const { user, supabase } = await requireAuth();
 
     // Verify project belongs to user
     const { data: project } = await supabase
@@ -713,10 +677,7 @@ export async function restoreProposalVersionAction(
     projectId: string,
     versionId: string
 ): Promise<{ success: boolean; error?: string }> {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) return { success: false, error: "Not authenticated" };
+    const { user, supabase } = await requireAuth();
 
     // Verify ownership (select * to avoid stale-type issues with new columns)
     const { data: project } = await supabase

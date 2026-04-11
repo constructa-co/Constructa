@@ -1,14 +1,13 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { getActiveOrganizationId } from "@/lib/supabase/auth-utils";
+import { requireAuth, getActiveOrganizationId } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 /**
  * Fetches all items from the MoM library for the current organization.
  */
 export async function getCostLibraryAction() {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const orgId = await getActiveOrganizationId();
 
     const { data, error } = await supabase
@@ -48,7 +47,7 @@ export async function getCostLibraryAction() {
  * Deletes an item from the MoM library.
  */
 export async function deleteCostLibraryItemAction(id: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const orgId = await getActiveOrganizationId();
 
     const { error } = await supabase
@@ -68,7 +67,7 @@ export async function deleteCostLibraryItemAction(id: string) {
  * Bulk imports items into the Nested MoM structure.
  */
 export async function bulkAddMoMItemsAction(items: any[]) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const orgId = await getActiveOrganizationId();
     
     let count = 0;
@@ -123,7 +122,7 @@ export async function bulkAddMoMItemsAction(items: any[]) {
 
 export async function upsertRateOverrideAction(formData: FormData) {
     "use server";
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const orgId = await getActiveOrganizationId();
 
     const momItemId = formData.get("mom_item_id") as string;
@@ -152,7 +151,7 @@ export async function upsertRateOverrideAction(formData: FormData) {
 
 export async function deleteRateOverrideAction(formData: FormData) {
     "use server";
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const orgId = await getActiveOrganizationId();
 
     const momItemId = formData.get("mom_item_id") as string;

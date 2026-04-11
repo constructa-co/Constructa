@@ -1,14 +1,11 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 import { generateText } from "@/lib/ai";
 
 export async function updateProfileAction(formData: FormData) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) return { success: false, error: "Not authenticated" };
+    const { user, supabase } = await requireAuth();
 
     const profileData: Record<string, any> = {
         id: user.id,

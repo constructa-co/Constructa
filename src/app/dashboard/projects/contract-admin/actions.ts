@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 import { CONTRACTS_CONFIG, ContractType, addDays } from "@/lib/contracts-config";
 import OpenAI from "openai";
@@ -21,9 +21,7 @@ export async function setupContractAction(data: {
   parties: Record<string, string>;
   notes?: string;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const config = CONTRACTS_CONFIG[data.contractType];
 
@@ -108,9 +106,7 @@ export async function raiseEventAction(data: {
   description?: string;
   reference?: string;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const config = CONTRACTS_CONFIG[data.contractType];
   const eventConfig = config.events[data.eventType];
@@ -180,9 +176,7 @@ export async function raiseEventAction(data: {
 // ─── Update Obligation Status ─────────────────────────────────────────────────
 
 export async function updateObligationAction(id: string, status: string, notes?: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
     .from("contract_obligations")
@@ -208,9 +202,7 @@ export async function updateEventAction(id: string, data: {
   assessedTime?: number;
   assessedCost?: number;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
     .from("contract_events")
@@ -243,9 +235,7 @@ export async function logCommunicationAction(data: {
   fromParty?: string;
   toParty?: string;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase.from("contract_communications").insert({
     user_id:    user.id,
@@ -266,9 +256,7 @@ export async function logCommunicationAction(data: {
 }
 
 export async function deleteCommunicationAction(id: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
   await supabase.from("contract_communications").delete().eq("id", id).eq("user_id", user.id);
   REVALIDATE();
   return { success: true };
@@ -297,9 +285,7 @@ export async function draftNoticeAction(data: {
   programmeDates?: { task: string; planned: string; actual?: string }[];
   recentCosts?: { category: string; amount: number }[];
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const config = CONTRACTS_CONFIG[data.contractType];
   const eventConfig = config.events[data.eventType];
@@ -376,9 +362,7 @@ export async function raiseClaimAction(data: {
   costClaimed?: number;
   notes?: string;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   // Auto-reference
   const { count } = await supabase
@@ -422,9 +406,7 @@ export async function updateClaimAction(id: string, data: {
   costAgreed?: number;
   notes?: string;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
     .from("claims")
@@ -467,9 +449,7 @@ export async function draftClaimAction(data: {
   costs?: { category: string; amount: number }[];
   communications?: { date: string; subject: string; direction: string }[];
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const config = CONTRACTS_CONFIG[data.contractType];
   const term = config.terminology;

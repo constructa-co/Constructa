@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 // ── Log a new actual cost ──────────────────────────────────────────────────────
@@ -17,7 +17,7 @@ export async function logCostAction(data: {
     cost_status?: "actual" | "committed";
 }): Promise<{ error?: string }> {
     try {
-        const supabase = createClient();
+        const { supabase } = await requireAuth();
         const { error } = await supabase.from("project_expenses").insert({
             project_id: data.projectId,
             description: data.description,
@@ -45,7 +45,7 @@ export async function upsertSectionForecastAction(
     forecastCost: number | null
 ): Promise<{ error?: string }> {
     try {
-        const supabase = createClient();
+        const { supabase } = await requireAuth();
         const { error } = await supabase
             .from("project_section_forecasts")
             .upsert(
@@ -62,7 +62,7 @@ export async function upsertSectionForecastAction(
 
 // ── Delete an actual cost entry ────────────────────────────────────────────────
 export async function deleteCostAction(id: string): Promise<void> {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     await supabase.from("project_expenses").delete().eq("id", id);
     revalidatePath("/dashboard/projects/p-and-l");
 }
@@ -72,7 +72,7 @@ export async function updateInvoiceStatusAction(
     id: string,
     status: "Draft" | "Sent" | "Paid"
 ): Promise<void> {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     await supabase.from("invoices").update({ status }).eq("id", id);
     revalidatePath("/dashboard/projects/p-and-l");
 }

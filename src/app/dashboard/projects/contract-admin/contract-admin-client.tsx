@@ -764,8 +764,12 @@ export default function ContractAdminClient({ projectId, project, projects, cont
                       <td className="px-4 py-3 text-xs text-slate-400">{c.to_party ?? "—"}</td>
                       <td className="px-4 py-3">
                         <button onClick={async () => {
-                          const res = await deleteCommunicationAction(c.id);
-                          if (res.error) toast.error(res.error); else toast.success("Deleted");
+                          try {
+                            await deleteCommunicationAction(c.id);
+                            toast.success("Deleted");
+                          } catch (err) {
+                            toast.error(err instanceof Error ? err.message : "Delete failed");
+                          }
                         }} className="text-slate-600 hover:text-red-400 transition-colors">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

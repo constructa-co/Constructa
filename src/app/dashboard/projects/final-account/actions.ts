@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 function revalidate(projectId: string) {
@@ -19,7 +19,7 @@ export async function upsertFinalAccountAction(projectId: string, data: {
     agreement_reference?: string;
     notes?: string;
 }) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase
         .from("final_accounts")
         .upsert([{ project_id: projectId, ...data, updated_at: new Date().toISOString() }], { onConflict: "project_id" });
@@ -37,14 +37,14 @@ export async function createAdjustmentAction(data: {
     notes?: string;
     order_index: number;
 }) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase.from("final_account_adjustments").insert([data]);
     if (error) throw new Error(error.message);
     revalidate(data.project_id);
 }
 
 export async function deleteAdjustmentAction(id: string, projectId: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase.from("final_account_adjustments").delete().eq("id", id);
     if (error) throw new Error(error.message);
     revalidate(projectId);

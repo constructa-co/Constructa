@@ -335,12 +335,13 @@ export default function AccountingClient({
   async function runAutoMatch() {
     setAutoMatchRunning(true);
     setAutoMatchResult(null);
-    const result = await autoMatchTransactionsAction();
-    setAutoMatchRunning(false);
-    if (result.error) {
-      setAutoMatchResult(`Error: ${result.error}`);
-    } else {
+    try {
+      const result = await autoMatchTransactionsAction();
       setAutoMatchResult(`Matched ${result.matched} transaction${result.matched !== 1 ? "s" : ""}`);
+    } catch (err) {
+      setAutoMatchResult(`Error: ${err instanceof Error ? err.message : "Auto-match failed"}`);
+    } finally {
+      setAutoMatchRunning(false);
     }
   }
 

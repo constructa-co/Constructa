@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 
@@ -15,9 +15,7 @@ export async function importBankTransactionsAction(rows: {
   amount: number;
   balance?: number;
 }[], sourceFile: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const batchId = randomUUID();
   const payload = rows.map(r => ({
@@ -39,9 +37,7 @@ export async function importBankTransactionsAction(rows: {
 }
 
 export async function deleteBankTransactionAction(id: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   await supabase.from("bank_reconciliation").delete()
     .eq("bank_transaction_id", id).eq("user_id", user.id);
@@ -55,9 +51,7 @@ export async function deleteBankTransactionAction(id: string) {
 }
 
 export async function deleteImportBatchAction(batchId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   // Get all transaction ids in batch
   const { data: txns } = await supabase.from("bank_transactions")
@@ -85,9 +79,7 @@ export async function reconcileTransactionAction(data: {
   project_id?: string | null;
   notes?: string;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   // Remove existing match for this transaction first
   await supabase.from("bank_reconciliation")
@@ -111,9 +103,7 @@ export async function reconcileTransactionAction(data: {
 }
 
 export async function unreconcileTransactionAction(bankTransactionId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase.from("bank_reconciliation")
     .delete()
@@ -129,9 +119,7 @@ export async function unreconcileTransactionAction(bankTransactionId: string) {
 // Runs client-side matching logic and persists results for confirmed matches
 
 export async function autoMatchTransactionsAction() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   // Get unreconciled transactions (credits only — likely invoice payments)
   const { data: txns } = await supabase
@@ -232,9 +220,7 @@ export async function upsertVatPeriodAction(data: {
   status?: string;
   notes?: string;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const payload = {
     user_id:      user.id,
@@ -262,9 +248,7 @@ export async function upsertVatPeriodAction(data: {
 }
 
 export async function deleteVatPeriodAction(id: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase.from("vat_periods")
     .delete().eq("id", id).eq("user_id", user.id);
@@ -287,9 +271,7 @@ export async function upsertOverheadCostAction(data: {
   reference?: string;
   notes?: string;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const payload = {
     user_id:     user.id,
@@ -317,9 +299,7 @@ export async function upsertOverheadCostAction(data: {
 }
 
 export async function deleteOverheadCostAction(id: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorised" };
+  const { user, supabase } = await requireAuth();
 
   const { error } = await supabase.from("overhead_costs")
     .delete().eq("id", id).eq("user_id", user.id);

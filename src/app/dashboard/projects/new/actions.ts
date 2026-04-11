@@ -1,13 +1,11 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { PROJECT_TEMPLATES } from "@/lib/templates";
 
 // Return type for the client
 export async function createProjectFromTemplateAction(formData: FormData) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
+    const { user, supabase } = await requireAuth();
 
     try {
         const name = formData.get("name") as string;
@@ -32,8 +30,8 @@ export async function createProjectFromTemplateAction(formData: FormData) {
         const initialStatus = (template && template.items.length > 0) ? 'Estimating' : 'Lead';
 
         const { data: project, error: projError } = await supabase.from("projects").insert({
-            user_id: user?.id,
-            tenant_id: user?.id,
+            user_id: user.id,
+            tenant_id: user.id,
             name,
             client_name: client,
             client_email: clientEmail,
@@ -55,7 +53,7 @@ export async function createProjectFromTemplateAction(formData: FormData) {
             for (const item of template.items) {
                 const { data: estimate, error: estError } = await supabase.from("estimates").insert({
                     project_id: project.id,
-                    tenant_id: user?.id,
+                    tenant_id: user.id,
                     version_name: item.name,
                     status: 'Draft',
                     total_cost: item.cost,

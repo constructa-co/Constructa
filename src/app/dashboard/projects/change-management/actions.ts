@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 function revalidate(projectId: string) {
@@ -20,10 +20,7 @@ export async function createChangeEventAction(data: {
     date_notified?: string;
     notes?: string;
 }) {
-    const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const userId = authData?.user?.id;
-    if (!userId) throw new Error("Not authenticated");
+    const { user, supabase } = await requireAuth();
 
     // Auto-number: CE-001, CE-002 …
     const { count } = await supabase
@@ -35,7 +32,7 @@ export async function createChangeEventAction(data: {
 
     const { error } = await supabase.from("change_events").insert([{
         ...data,
-        user_id: userId,
+        user_id: user.id,
         reference,
         status: "Draft",
         value_claimed: data.value_claimed ?? 0,
@@ -66,7 +63,7 @@ export async function updateChangeEventAction(
         notes?: string;
     }
 ) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase
         .from("change_events")
         .update({ ...data, updated_at: new Date().toISOString() })
@@ -76,7 +73,7 @@ export async function updateChangeEventAction(
 }
 
 export async function deleteChangeEventAction(id: string, projectId: string) {
-    const supabase = createClient();
+    const { supabase } = await requireAuth();
     const { error } = await supabase.from("change_events").delete().eq("id", id);
     if (error) throw new Error(error.message);
     revalidate(projectId);

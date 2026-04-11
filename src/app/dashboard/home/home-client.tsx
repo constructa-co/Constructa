@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
     TrendingUp, HardHat, Plus, ArrowRight, Clock, CheckCircle2, AlertCircle,
     AlertTriangle, FileText, CreditCard, GitBranch, RefreshCw, MessageSquare,
-    Banknote, ShieldAlert, CalendarDays, Activity,
+    Banknote, ShieldAlert, CalendarDays, Activity, Zap,
 } from "lucide-react";
 import { isActiveProject, isPipelineProject, isClosedProject } from "@/lib/project-helpers";
 
@@ -224,11 +224,20 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
                             {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
                         </p>
                     </div>
-                    <Link href="/dashboard/projects/new"
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors">
-                        <Plus className="w-4 h-4" />
-                        New Project
-                    </Link>
+                    <div className="flex items-center gap-2">
+                        {/* Sprint 58 P2.10 — Quick Quote entry point. Primary CTA for
+                            smaller domestic jobs where the full 5-step wizard is overkill. */}
+                        <Link href="/dashboard/projects/quick-quote"
+                            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors">
+                            <span aria-hidden>⚡</span>
+                            Quick Quote
+                        </Link>
+                        <Link href="/dashboard/projects/new"
+                            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors">
+                            <Plus className="w-4 h-4" />
+                            New Project
+                        </Link>
+                    </div>
                 </div>
 
                 {/* ── Alert banners ── */}
@@ -467,6 +476,7 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
                             <h3 className="text-sm font-semibold text-white mb-3">Quick Actions</h3>
                             <div className="space-y-1.5">
                                 {[
+                                    { label: "Quick Quote",        href: "/dashboard/projects/quick-quote", icon: Zap,       colour: "text-purple-400" },
                                     { label: "New Project",        href: "/dashboard/projects/new",      icon: Plus,         colour: "text-blue-400" },
                                     { label: "View Pipeline",      href: "/dashboard",                    icon: TrendingUp,   colour: "text-blue-400" },
                                     { label: "Billing & Invoices", href: "/dashboard/projects/billing",  icon: CreditCard,   colour: "text-amber-400" },

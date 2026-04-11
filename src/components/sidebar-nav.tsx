@@ -44,6 +44,7 @@ import {
     Lightbulb,
     Smartphone,
     Package,
+    Zap,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 
@@ -374,6 +375,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                     {/* Work Winning */}
                     <SidebarSection label="Work Winning" sectionKey="work-winning" collapsed={collapsed["work-winning"] ?? true} onToggle={toggleSection}>
                         <NavItem href="/dashboard" icon={Kanban} label="Pipeline" active={pathname === "/dashboard"} />
+                        <NavItem href="/dashboard/projects/quick-quote" icon={Zap} label="Quick Quote" active={pathname?.includes("/projects/quick-quote") ?? false} />
                         <NavItem href="/dashboard/projects/new" icon={FilePlus} label="New Project" active={pathname?.includes("/projects/new") ?? false} />
                     </SidebarSection>
 

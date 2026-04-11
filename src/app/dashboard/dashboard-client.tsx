@@ -242,16 +242,27 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     </h1>
                     <p className={`text-sm mt-0.5 ${isDark ? "text-[#a0a0a0]" : "text-gray-500"}`}>Here&apos;s your pipeline overview for today</p>
                 </div>
-                <Link
-                    href="/dashboard/projects/new"
-                    className={`inline-flex items-center gap-2 font-semibold text-sm px-5 py-2.5 rounded-xl shadow-sm transition-colors ${
-                        isDark
-                            ? "bg-white text-[#0d0d0d] hover:bg-gray-200"
-                            : "bg-blue-600 hover:bg-blue-700 text-white"
-                    }`}
-                >
-                    + New Project
-                </Link>
+                <div className="flex items-center gap-2">
+                    {/* Sprint 58 P2.10 — Quick Quote CTA on the pipeline header.
+                        Primary path for smaller domestic jobs. */}
+                    <Link
+                        href="/dashboard/projects/quick-quote"
+                        className="inline-flex items-center gap-2 font-semibold text-sm px-4 py-2.5 rounded-xl shadow-sm transition-colors bg-purple-600 hover:bg-purple-500 text-white"
+                    >
+                        <span aria-hidden>⚡</span>
+                        Quick Quote
+                    </Link>
+                    <Link
+                        href="/dashboard/projects/new"
+                        className={`inline-flex items-center gap-2 font-semibold text-sm px-5 py-2.5 rounded-xl shadow-sm transition-colors ${
+                            isDark
+                                ? "bg-white text-[#0d0d0d] hover:bg-gray-200"
+                                : "bg-blue-600 hover:bg-blue-700 text-white"
+                        }`}
+                    >
+                        + New Project
+                    </Link>
+                </div>
             </div>
 
             {/* SECTION A2 — Getting Started card (shown only when no projects yet) */}

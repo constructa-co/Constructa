@@ -22,8 +22,14 @@
       "destination": "/landing"
     }
   ],
+  "crons": [
+    {
+      "path": "/api/cron/contract-alerts",
+      "schedule": "0 7 * * *"
+    }
+  ],
   "github": {
     "enabled": true,
     "silent": true
   }
-} 
+}

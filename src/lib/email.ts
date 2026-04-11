@@ -309,6 +309,173 @@ export async function sendWelcomeEmail({
     });
 }
 
+// ─── Email: Contract alert digest (Sprint 59) ─────────────────────────────────
+//
+// Daily digest of imminent contract time bars and overdue / due-soon
+// obligations across all of the contractor's projects. Sent by the
+// /api/cron/contract-alerts endpoint when the contractor has at least
+// one item in the warning window. Idempotent — see
+// `contract_alert_notifications` table for the cadence rules.
+
+export interface ContractAlertDigestItem {
+    type: "time_bar_warning" | "obligation_overdue" | "obligation_due_soon";
+    /** "CE-004" / "Programme submission" */
+    title: string;
+    /** Short description shown under the title */
+    detail?: string;
+    /** Project name for context — e.g. "22 Birchwood Avenue" */
+    projectName: string;
+    /** Project id used to deep-link */
+    projectId: string;
+    /** Days remaining (negative = overdue) */
+    daysRemaining: number;
+    /** Optional clause reference — e.g. "61.3" */
+    clauseRef?: string;
+}
+
+interface ContractAlertEmailArgs {
+    contractorEmail: string;
+    contractorName?: string;
+    companyName: string;
+    items: ContractAlertDigestItem[];
+    dashboardUrl: string;
+}
+
+function urgencyPhrase(days: number): { label: string; tone: "red" | "amber" } {
+    if (days < 0)   return { label: `${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} OVERDUE`, tone: "red" };
+    if (days === 0) return { label: "EXPIRES TODAY", tone: "red" };
+    if (days === 1) return { label: "1 day left", tone: "red" };
+    if (days <= 3)  return { label: `${days} days left`, tone: "red" };
+    return { label: `${days} days`, tone: "amber" };
+}
+
+function alertTypeLabel(type: ContractAlertDigestItem["type"]): string {
+    switch (type) {
+        case "time_bar_warning":    return "Contract Time Bar";
+        case "obligation_overdue":  return "Overdue Obligation";
+        case "obligation_due_soon": return "Obligation Due";
+    }
+}
+
+export async function sendContractAlertEmail({
+    contractorEmail,
+    contractorName,
+    companyName,
+    items,
+    dashboardUrl,
+}: ContractAlertEmailArgs) {
+    if (items.length === 0) return null;
+
+    const greeting = contractorName ? `Hi ${contractorName.split(" ")[0]},` : "Good morning,";
+
+    // Sort: red urgency first, then ascending daysRemaining (most urgent at top).
+    const sorted = [...items].sort((a, b) => {
+        const ua = urgencyPhrase(a.daysRemaining).tone === "red" ? 0 : 1;
+        const ub = urgencyPhrase(b.daysRemaining).tone === "red" ? 0 : 1;
+        if (ua !== ub) return ua - ub;
+        return a.daysRemaining - b.daysRemaining;
+    });
+
+    const timeBarCount = sorted.filter(i => i.type === "time_bar_warning").length;
+    const overdueCount = sorted.filter(i => i.type === "obligation_overdue").length;
+    const dueSoonCount = sorted.filter(i => i.type === "obligation_due_soon").length;
+
+    const subjectParts: string[] = [];
+    if (timeBarCount > 0) subjectParts.push(`${timeBarCount} time bar${timeBarCount > 1 ? "s" : ""}`);
+    if (overdueCount > 0) subjectParts.push(`${overdueCount} overdue`);
+    if (dueSoonCount > 0) subjectParts.push(`${dueSoonCount} due soon`);
+    const subject = `⚠ Contract alerts — ${subjectParts.join(", ")}`;
+
+    const baseUrl = dashboardUrl.replace(/\/+$/, "");
+
+    const itemsHtml = sorted.map(item => {
+        const urg = urgencyPhrase(item.daysRemaining);
+        const badgeBg = urg.tone === "red" ? "#fee2e2" : "#fef3c7";
+        const badgeFg = urg.tone === "red" ? "#b91c1c" : "#92400e";
+        const borderColour = urg.tone === "red" ? "#dc2626" : "#f59e0b";
+        return `
+        <tr>
+          <td style="padding:14px 16px; border-left:3px solid ${borderColour}; background:#ffffff; border-bottom:1px solid #f3f4f6;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td>
+                  <span style="color:#9ca3af; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">
+                    ${alertTypeLabel(item.type)}${item.clauseRef ? ` · cl. ${item.clauseRef}` : ""}
+                  </span>
+                </td>
+                <td align="right">
+                  <span style="background:${badgeBg}; color:${badgeFg}; font-size:11px; font-weight:700; padding:3px 8px; border-radius:10px; white-space:nowrap;">
+                    ${urg.label}
+                  </span>
+                </td>
+              </tr>
+            </table>
+            <p style="color:#111827; font-size:14px; font-weight:600; margin:6px 0 2px;">${item.title}</p>
+            <p style="color:#6b7280; font-size:12px; margin:0 0 6px;">${item.projectName}</p>
+            ${item.detail ? `<p style="color:#374151; font-size:12px; margin:4px 0 0; line-height:1.5;">${item.detail}</p>` : ""}
+            <a href="${baseUrl}/dashboard/projects/contract-admin?projectId=${item.projectId}"
+               style="display:inline-block; color:#2563eb; font-size:12px; font-weight:600; text-decoration:none; margin-top:8px;">
+              Open in Contract Admin →
+            </a>
+          </td>
+        </tr>`;
+    }).join("");
+
+    return resend.emails.send({
+        from: FROM,
+        to: contractorEmail,
+        subject,
+        html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f9f9f9; margin:0; padding:24px;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px; margin:0 auto; background:#ffffff; border-radius:12px; border:1px solid #e5e7eb; overflow:hidden;">
+    <tr>
+      <td style="background:#0d0d0d; padding:24px 28px; border-bottom:3px solid #dc2626;">
+        <p style="color:#ffffff; font-size:20px; font-weight:700; margin:0;">⚠ Contract Alerts</p>
+        <p style="color:#9ca3af; font-size:13px; margin:4px 0 0;">${companyName} · ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:24px 28px 8px;">
+        <p style="color:#111827; font-size:15px; margin:0 0 8px;">${greeting}</p>
+        <p style="color:#374151; font-size:14px; line-height:1.6; margin:0;">
+          You have <strong>${items.length} contract item${items.length > 1 ? "s" : ""}</strong> needing attention.
+          ${timeBarCount > 0 ? `<strong style="color:#dc2626;">Missing a time bar can mean losing entitlement entirely</strong> — please review the items below today.` : "Please review the items below."}
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:8px 16px 16px;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden;">
+          ${itemsHtml}
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:8px 28px 24px;">
+        <a href="${baseUrl}/dashboard/home"
+           style="display:inline-block; background:#0d0d0d; color:#ffffff; font-size:14px; font-weight:600; text-decoration:none; padding:12px 24px; border-radius:8px;">
+          Open Dashboard →
+        </a>
+      </td>
+    </tr>
+    <tr>
+      <td style="background:#f9fafb; padding:18px 28px; border-top:1px solid #e5e7eb;">
+        <p style="color:#9ca3af; font-size:11px; margin:0; line-height:1.6;">
+          You're receiving this digest because you have at least one open contract event or obligation in Constructa.
+          Time bars and obligations are tracked from the contract type you selected on the project's Contract Admin tab.
+          To stop these emails, mark the relevant items as complete or close the project.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+    });
+}
+
 // ─── Email: Contractor notified when client accepts ───────────────────────────
 
 export async function sendContractorAcceptanceNotification({

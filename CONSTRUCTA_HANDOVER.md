@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 11 April 2026 — evening session (Sprint 57 polish + schema sweep + independent reviews)
+**Last updated:** 11 April 2026 — late evening session (Sprint 58 Phases 1 + 2 complete)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -16,7 +16,7 @@
 
 ## Current State at a Glance (11 April 2026 — evening)
 
-**Last sprint completed:** Sprint 57 polish follow-up + schema sweep (commit `2b2b5c8`, deployed to Vercel)
+**Last sprint completed:** Sprint 58 Phases 1 + 2 — Hardening & Quick Quote (commits `4480ad7` through `9cafdba`, 12 commits, all deployed to Vercel)
 **App status:** Live and functional at https://constructa-nu.vercel.app — all modules operational
 **Git:** All code on `main`, clean working tree, Vercel auto-deploys on push
 **Test project in DB:** "22 Birchwood Avenue — Kitchen Extension & Loft Conversion" (`projectId: 7b08021a-9ca2-4262-836b-970891608cbe`)
@@ -39,9 +39,12 @@ the right posture; their raw reports are archived at
 `docs/reviews/2026-04-11/` for future context.
 
 **Immediately next:**
-1. Sprint 58 — Hardening & Robustness (full scope below; P1 items before launch)
-2. Sprint 59 — Contract Administration Suite polish (scaffolded, not production-ready)
-3. Launch readiness pass with 3-5 real beta contractors
+1. Sprint 58 Phase 3 (optional polish — shared PDF service, core domain type interfaces, reporting project selector fix, Final Account formatting, light mode verification). None are launch blockers.
+2. End-to-end QA walkthrough on the hardened + streamlined build (Vercel has all commits through `9cafdba`).
+3. Sprint 59 — Contract Administration Suite polish (scaffolded, not production-ready).
+4. Launch readiness pass with 3-5 real beta contractors.
+
+**Sprint 58 outcome in one line:** the product moved from "very impressive AI-built prototype" to "robust enough to show real contractors" — error boundaries, defence-in-depth auth on every mutating action, Zod validation on the 8 highest-risk actions, a canonical financial library with 35 Vitest tests pinning the math, honest RAG status, unified KPI definitions, sidebar context sync, test data cleaned, observability seam, AND the Quick Quote path + proposal autosave + forgot-password flow on top.
 
 **Do NOT touch:** `src/app/(marketing)/` — that's constructa.co landing page, entirely separate project
 
@@ -1076,7 +1079,51 @@ The `projects` table has no `updated_at`, `end_date`, `timeline_phases`, or `val
 
 ---
 
-### Sprint 58 — Hardening & Robustness (IN PROGRESS — 11 April 2026 evening)
+### ✅ Sprint 58 — Hardening & Robustness (PHASES 1 + 2 COMPLETE — 11 April 2026)
+
+**Status:** 12 commits, all passing, all deployed to Vercel. Phase 3 items remain optional polish with no launch dependency.
+
+**Commits in order:**
+- `4480ad7` feat: error + loading boundaries on /dashboard and /dashboard/projects route groups
+- `f99ba89` feat: requireAuth() defence-in-depth across all 33 mutating server actions (42 files, net -154 lines)
+- `12c8fe2` feat: Zod validation on 8 highest-risk server actions + new `src/lib/validation/schemas.ts`
+- `6256270` feat: RAG status now factors forecast margin (three-dimensional RAG; honest loss reporting)
+- `edc8479` feat: unify Active Projects KPI across home/pipeline/management-accounts via `src/lib/project-helpers.ts`
+- `58ca003` feat: sidebar active-project sync with URL params + reporting page project default
+- `5a4fdaf` feat: Vitest harness + 35 tests on canonical financial functions in `src/lib/financial.ts`; test data cleanup (10 stale rows archived); Mr Bob Jovi rates set
+- `d30be6b` feat: observability wrapper + global-error boundary for root layout
+- `c7db31c` feat: Quick Quote path with 6 seed templates, new `project_templates` table, `proposal_complexity` column, server action, UI, and 3 entry points
+- `c964eed` fix: hide optional @sentry/nextjs require from Webpack via eval("require")
+- `71bf4f2` feat: proposal editor autosave with status indicator
+- `9cafdba` feat: forgot-password flow (link on login + `/auth/forgot-password` page)
+
+**Financial library (`src/lib/financial.ts`):**
+The previously inline-duplicated QS math has been extracted into one module with 35 passing Vitest tests. Callers: `overview/page.tsx`, `billing/page.tsx` (both now delegate through it). The proposal editor and PDF builder still have local helpers — migration is a Phase 3 item, but the tests already pin the canonical math so any future drift gets caught.
+
+**New library modules:**
+- `src/lib/supabase/auth-utils.ts` — `requireAuth()` helper
+- `src/lib/validation/schemas.ts` — 8 Zod schemas + shared primitives + `parseInput()` throw-on-fail helper
+- `src/lib/financial.ts` — canonical contract sum, budget cost, AfP netting, forecast final, forecast margin, CIS deduction, pctProgress
+- `src/lib/financial.test.ts` — 35 tests, 11 describe blocks
+- `src/lib/project-helpers.ts` — `isActiveProject` / `isPipelineProject` / `isClosedProject` predicates
+- `src/lib/observability.ts` — `reportError()` wrapper with eval-gated optional Sentry
+
+**New routes:**
+- `/dashboard/projects/quick-quote` — template picker + details form (Sprint 58 P2.10)
+- `/auth/forgot-password` — password-reset email request (Sprint 58 P2.12)
+- `/dashboard/error.tsx`, `/dashboard/loading.tsx`, `/dashboard/projects/error.tsx`, `/dashboard/projects/loading.tsx`, `/src/app/global-error.tsx` — error/loading boundaries
+
+**New DB migration** `20260411180000_sprint58_quick_quote_templates.sql`:
+- `project_templates` table with 6 seeded system templates (Kitchen Extension, Loft Conversion, Bathroom Refurbishment, Driveway, Garden Room, Custom Quote) including 39 placeholder line items across them
+- `projects.proposal_complexity` text column (`'quick' | 'full'`, default `'full'`)
+- `projects.template_id` uuid FK
+- RLS on `project_templates` — SELECT on system + own; INSERT/UPDATE/DELETE on own only
+
+**Process improvement applied mid-sprint:** one build broke on Vercel (`d30be6b`) because a dynamic `import("@sentry/nextjs")` inside try/catch was resolved statically by Webpack. `tsc --noEmit` passed, Vitest passed, but the full `next build` would have caught it. Fix was `c964eed` — replaced with `eval("require")` to hide the optional dep from the bundler. All subsequent commits in the sprint were gated on a full `next build` run locally before pushing. Production was never affected because Vercel only promotes successful builds.
+
+---
+
+### Sprint 58 — Original plan (now all COMPLETE or recorded)
 
 **Triggered by:** Independent reviews from Perplexity Computer (full technical audit, archived at `docs/reviews/2026-04-11/perplexity-*.{md,pdf}`) and Grok red-team commentary (`docs/reviews/2026-04-11/grok-red-team-notes.md`). Claude's response and synthesis at `docs/reviews/2026-04-11/claude-response.md`.
 

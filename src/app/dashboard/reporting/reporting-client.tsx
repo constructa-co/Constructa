@@ -528,7 +528,19 @@ export default function ReportingClient({
           <label className="text-xs text-slate-400">Project:</label>
           <select
             value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
+            onChange={(e) => {
+              const id = e.target.value;
+              setSelectedProjectId(id);
+              // Sprint 58 P3.1 — persist the reporting-page project
+              // selection to the same localStorage key the sidebar
+              // reads, so switching to Reporting and picking a project
+              // updates the app-wide active-project context.
+              const project = projects.find((p) => p.id === id);
+              if (typeof window !== "undefined" && project) {
+                window.localStorage.setItem("constructa_selected_project_id", id);
+                window.localStorage.setItem("constructa_selected_project_name", project.name);
+              }
+            }}
             className="bg-white/5 border border-white/15 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 max-w-[220px]"
           >
             {projects.map((p) => (

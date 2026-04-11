@@ -12,7 +12,13 @@ import { Plus, Trash2, Loader2, CheckCircle2, AlertTriangle, FileSignature, PenL
 import { upsertFinalAccountAction, createAdjustmentAction, deleteAdjustmentAction } from "./actions";
 import FinalAccountPdfButton from "./final-account-pdf-button";
 
-const gbp = (n: number) => `£${Number(n).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+// Sprint 58 P3.1 — normalise `-0` to `0` before formatting so the
+// Final Account display never shows "£–0.00" / "£-0.00" for a row
+// that is mathematically zero. Perplexity live-app walkthrough issue #16.
+const gbp = (n: number) => {
+    const v = Object.is(n, -0) || n === 0 ? 0 : Number(n);
+    return `£${v.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 
 const STATUS_STYLES: Record<string, string> = {
     Draft:    "border-slate-600 bg-slate-700/30 text-slate-300",
@@ -127,7 +133,7 @@ export default function FinalAccountClient({
     };
 
     // ── Summary rows ──────────────────────────────────────────────────────
-    const rows: { label: string; value: number; indent?: boolean; bold?: boolean; separator?: boolean; colour?: string }[] = [
+    const rows: { label: string; value: number; indent?: boolean; bold?: boolean; separator?: boolean; colour?: string; deduction?: boolean }[] = [
         { label: "Original Contract Sum",    value: originalContractSum,  bold: true },
         { label: "Approved Variations",      value: variationsTotal,      indent: true, colour: variationsTotal >= 0 ? "text-emerald-400" : "text-red-400" },
         ...adjustments.map(a => ({
@@ -137,7 +143,11 @@ export default function FinalAccountClient({
             colour: a.type === "Addition" ? "text-emerald-400" : "text-red-400",
         })),
         { label: "Adjusted Contract Sum",    value: adjustedContractSum,  bold: true, separator: true },
-        { label: "Less: Total Certified",    value: -totalCertified,      indent: true },
+        // Pass the positive magnitude here and let the renderer decide
+        // how to display it — a zero row shows "£0.00" (not "£–0.00"),
+        // a non-zero row shows "(£1,250.00)" with parentheses to
+        // indicate a deduction, per UK accounting convention.
+        { label: "Less: Total Certified",    value: totalCertified,       indent: true, deduction: true },
         { label: "Add: Retention Outstanding", value: retOutstanding,     indent: true, colour: retOutstanding > 0 ? "text-amber-400" : "text-slate-400" },
         { label: "Balance of Account",       value: balanceDue,           bold: true, separator: true, colour: balanceDue > 0 ? "text-white" : "text-slate-400" },
     ];
@@ -249,7 +259,13 @@ export default function FinalAccountClient({
                                 {row.label}
                             </span>
                             <span className={`font-mono text-sm font-semibold ${row.colour ?? (row.bold ? "text-slate-100" : "text-slate-300")}`}>
-                                {row.value < 0 ? `(${gbp(Math.abs(row.value))})` : gbp(row.value)}
+                                {row.deduction
+                                    ? (row.value > 0
+                                        ? `(${gbp(row.value)})`
+                                        : gbp(0))
+                                    : (row.value < 0
+                                        ? `(${gbp(Math.abs(row.value))})`
+                                        : gbp(row.value))}
                             </span>
                         </div>
                     ))}

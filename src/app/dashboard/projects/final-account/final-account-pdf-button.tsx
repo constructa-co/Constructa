@@ -2,8 +2,11 @@
 
 import { FileDown } from "lucide-react";
 
-const gbp = (n: number) =>
-    `£${Number(n).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+// Sprint 58 P3.1 — normalise -0 so the PDF never prints "£-0.00".
+const gbp = (n: number) => {
+    const v = Object.is(n, -0) || n === 0 ? 0 : Number(n);
+    return `£${v.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 
 const fmtDate = (d?: string | null) =>
     d ? new Date(d + "T00:00:00").toLocaleDateString("en-GB") : "—";
@@ -110,15 +113,20 @@ export default function FinalAccountPdfButton({
                 (a.type === "Addition" ? "+" : "-") + gbp(a.amount),
             ] as [string, string, string]),
         ];
+        // Sprint 58 P3.1 — deductions only get parentheses when non-zero.
+        // A zero row renders as a plain "£0.00" so we don't advertise
+        // "(£0.00)" which reads as a loss to anyone skimming the PDF.
+        const fmtDeduction = (n: number) => (n > 0 ? `(${gbp(n)})` : gbp(0));
+
         stmtRows.push(["Adjusted Contract Sum", "", gbp(adjustedContractSum)]);
-        stmtRows.push(["Less: Total Certified to Date", "", `(${gbp(totalCertified)})`]);
+        stmtRows.push(["Less: Total Certified to Date", "", fmtDeduction(totalCertified)]);
         stmtRows.push(["Add: Retention Outstanding", "", gbp(retOutstanding)]);
         stmtRows.push(["Balance of Account", "", gbp(balanceDue)]);
 
         if (finalAccount?.agreed_amount != null) {
             stmtRows.push(["", "", ""]);
             stmtRows.push(["Agreed Final Sum", "", gbp(finalAccount.agreed_amount)]);
-            stmtRows.push(["Less: Total Paid to Date", "", `(${gbp(totalPaid)})`]);
+            stmtRows.push(["Less: Total Paid to Date", "", fmtDeduction(totalPaid)]);
             stmtRows.push(["Final Balance Due", "", gbp(finalAccount.agreed_amount - totalPaid)]);
         }
 

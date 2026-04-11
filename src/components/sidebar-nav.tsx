@@ -441,13 +441,25 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                 </div>
             )}
 
-            {/* Theme Toggle */}
+            {/* Theme Toggle
+                Sprint 58 P3.1 — the app has two themes: `system-c` (default:
+                dark sidebar + white-ish content) and `dark` (full dark). There
+                is no true light theme. Previously the toggle advertised
+                "Light Mode" which misled the user into expecting a full white
+                UI; Perplexity flagged this on the live review. The honest
+                labels are "Default" ↔ "Dark" with a brief hint so users know
+                what they're switching to. */}
             <div className="px-4 pb-3">
                 <button
                     onClick={() => setTheme(isDark ? "system-c" : "dark")}
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all text-xs font-medium"
+                    title={isDark ? "Switch to the default theme (dark sidebar, lighter content)" : "Switch to the full-dark theme"}
                 >
-                    {isDark ? <><Sun className="w-3.5 h-3.5" /><span>Light Mode</span></> : <><Moon className="w-3.5 h-3.5" /><span>Dark Mode</span></>}
+                    {isDark ? (
+                        <><Sun className="w-3.5 h-3.5" /><span>Default Theme</span></>
+                    ) : (
+                        <><Moon className="w-3.5 h-3.5" /><span>Full Dark Theme</span></>
+                    )}
                 </button>
             </div>
 

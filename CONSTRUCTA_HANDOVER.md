@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 10 April 2026 (Sprint 57 QA complete — 8 bugs fixed across 5 files)
+**Last updated:** 11 April 2026 — evening session (Sprint 57 polish + schema sweep + independent reviews)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -14,9 +14,9 @@
 
 ---
 
-## Current State at a Glance (11 April 2026)
+## Current State at a Glance (11 April 2026 — evening)
 
-**Last sprint completed:** Sprint 57 QA Audit (8 bugs fixed, Chrome walkthrough of all modules)
+**Last sprint completed:** Sprint 57 polish follow-up + schema sweep (commit `2b2b5c8`, deployed to Vercel)
 **App status:** Live and functional at https://constructa-nu.vercel.app — all modules operational
 **Git:** All code on `main`, clean working tree, Vercel auto-deploys on push
 **Test project in DB:** "22 Birchwood Avenue — Kitchen Extension & Loft Conversion" (`projectId: 7b08021a-9ca2-4262-836b-970891608cbe`)
@@ -31,11 +31,17 @@
 - Resource catalogues: Staff, Plant, Materials (with live pricing)
 - Admin dashboard: 9-tab BI with subscriber management
 
+**STRATEGIC DIRECTION (locked 11 April 2026):** No new functional features.
+The owner's instruction is: **test → break → strengthen → streamline**. Feature
+breadth is complete. Sprint 58 is a pure hardening sprint (see below).
+Independent reviews from Perplexity Computer and Grok both confirmed this is
+the right posture; their raw reports are archived at
+`docs/reviews/2026-04-11/` for future context.
+
 **Immediately next:**
-1. Complete Sprint 57 QA — remaining passes by Perplexity, ChatGPT, Antigravity, and Robert manual walkthrough
-2. Fix remaining known bugs (see Known Bugs section)
-3. Proposal output refinement — flow and PDF quality pass
-4. Sprint 59 Contract Administration Suite — CEMAR-equivalent for NEC/JCT/FIDIC + Claims Module
+1. Sprint 58 — Hardening & Robustness (full scope below; P1 items before launch)
+2. Sprint 59 — Contract Administration Suite polish (scaffolded, not production-ready)
+3. Launch readiness pass with 3-5 real beta contractors
 
 **Do NOT touch:** `src/app/(marketing)/` — that's constructa.co landing page, entirely separate project
 
@@ -1036,10 +1042,103 @@ Commits `5752d6d` and `c759374`. Full live Chrome walkthrough of all modules. 8 
 
 ---
 
-### Sprint 57 *(original scope)* — Polish, Testing & Pre-Launch QA *(in progress)*
-Full end-to-end workflow test: Brief → Estimate → Programme → Proposal → Win → Live → Billing → P&L → Final Account → Handover → Lessons Learned — run with real numbers. Fix any financial logic discrepancies. Full mobile responsive pass. Fix all known bugs. Improve proposal output quality and report outputs.
+### ✅ Sprint 57 polish follow-up (COMPLETE — 11 April 2026 evening)
+Commit `2b2b5c8`. Triggered by Perplexity + Grok independent reviews and Robert's manual QA notes from the proposal flow. All reports archived at `docs/reviews/2026-04-11/`.
 
-**Scope for this sprint is deliberately broad** — by this point all features are in place and the focus shifts entirely to quality: speed, UX clarity, output quality (proposals, reports), edge case handling, and ensuring the full workflow flows without friction.
+**Proposal PDF refinements (`proposal-pdf-button.tsx`):**
+1. Cover title no longer orphans em-dash at line start. `splitTextToSize` was breaking `"22 Birchwood Avenue — Kitchen Extension"` on whitespace and starting line 2 with the dash. Now splits on em/en dash first, then auto-fits font size down from 42pt → 24pt until the widest segment fits `CW - 20`.
+2. About Us page no longer shows a large blank strip when `md_message` is absent. When there's no MD message and the column content ends above `CONTENT_BOTTOM - 70`, we now render an "Our Commitment" 2×2 value-prop block (Transparent Pricing / Clear Communication / Programme Certainty / Quality Without Compromise) filling the remaining height.
+3. `splitAddress` now inserts a space (not a newline) at camelCase joins so `"18 Jackdaw DriveColchester, Essex, CO3 8WD"` renders as `["18 Jackdaw Drive Colchester", "Essex", "CO3 8WD"]` instead of splitting the street from the town.
+
+**Billing revised contract sum now matches proposal/estimate (`billing/page.tsx`):**
+- `/dashboard/projects/billing` was showing `£1,593.90` where the proposal showed `£1,753.29` on the same project. Root cause: `page.tsx` computed `originalContractSum` from `estimates.total_cost + overhead/risk/profit` but forgot the 10% prelims uplift that `computeContractSum()` applies first.
+- Rewrote the formula to the canonical QS hierarchy used in `proposal-pdf-button.tsx` and `client-editor.tsx`: `direct → + prelims → + overhead → + risk → + profit → − discount`.
+- Now pulls `estimate_lines` so explicit `Preliminaries` lines override the percentage fallback, matching the proposal exactly.
+
+**Silent schema-mismatch sweep (THE MOST SERIOUS BUG IN THE REPO):**
+The `projects` table has no `updated_at`, `end_date`, `timeline_phases`, or `validity_days` columns. Supabase returns `{data: null}` silently on any SELECT that includes an unknown column — which is why project pickers, home dashboard, admin page, and the public proposal portal have been showing empty or degraded data in production for weeks. Fixed in:
+- 12 project-picker fallbacks (billing, proposal, p-and-l, programme, variations, change-management, communications, final-account, handover-documents, lessons-learned, contracts, contract-admin)
+- `dashboard/home/page.tsx` (+ `home-client.tsx` usages fall back to `proposal_sent_at ?? created_at`)
+- `dashboard/live/page.tsx` (portfolio list + per-row mapping)
+- `dashboard/mobile/page.tsx` (quick-select ordering)
+- `admin/page.tsx` (platform subscriber fetch)
+- `proposal/[token]/page.tsx` (public client portal select + phases fallback)
+- **`schedule/actions.ts updatePhasesAction` — MOST SERIOUS.** Was writing both `timeline_phases` and `programme_phases`. The `timeline_phases` write was causing the whole UPDATE to fail silently, so **users' programme edits were never persisting**. This bug had been live since Sprint 19. Now writes `programme_phases` only.
+- `contract-admin/page.tsx` also dropped `end_date` from the two projects selects.
+
+**Proposal editor section flow now mirrors PDF output (`client-editor.tsx`):**
+- Removed duplicate "Pre-filled from Brief" banner in Client Introduction.
+- Closing Statement moved to the bottom of the main column (matches PDF page 9, just before signature sheet).
+- Site Photos moved up to sit directly after Scope of Works (mirrors PDF page 4 where they share a page).
+- Case Studies selection moved up to sit after About Us override (reflects PDF page 3, right after About Us).
+
+**Test data cleanup:** Updated 22 Birchwood Avenue `proposal_introduction` in Supabase so it is a genuine opening letter rather than a duplicate of `scope_text` (the legacy of pre-Sprint 57 code that was saving both fields identical).
+
+---
+
+### Sprint 58 — Hardening & Robustness (IN PROGRESS — 11 April 2026 evening)
+
+**Triggered by:** Independent reviews from Perplexity Computer (full technical audit, archived at `docs/reviews/2026-04-11/perplexity-*.{md,pdf}`) and Grok red-team commentary (`docs/reviews/2026-04-11/grok-red-team-notes.md`). Claude's response and synthesis at `docs/reviews/2026-04-11/claude-response.md`.
+
+**Owner direction (locked):**
+> "No new functionality in my mind to be incorporated — that is built now. Now I want to be able to test it, break it and see what needs to be strengthened so that it is robust, and then streamline it to keep it simple (i.e. Quick Quote) while retaining stronger functionality for the larger projects."
+
+**Scope:** Zero new features. Test → break → strengthen → streamline.
+
+#### Phase 1 — Safety net before launch (P1, must-have)
+
+1. **Error + loading boundaries.** Add `error.tsx` + `loading.tsx` to `/dashboard` and `/dashboard/projects` route groups. Stops white-screen failures. Perplexity gap #2.
+2. **`requireAuth()` helper.** New helper in `src/lib/auth-utils.ts` that wraps `supabase.auth.getUser()` and throws on null. Apply to every mutating server action in `costs/`, `billing/`, `proposal/`, `variations/`, `schedule/`, `programme/`, `final-account/`. Defence-in-depth against RLS bugs (which have happened — see migration `20260324000006`). Perplexity gap #3.
+3. **Zod validation on the 8 highest-risk server actions.** Add `zod` dependency. Schemas for: `logCostAction`, `upsertInvoiceAction`, `saveProposalAction`, `createVariationAction`, `updatePhasesAction`, `bulkAddMoMItemsAction`, `saveAsBuiltPhasesAction`, `createProjectFromTemplateAction`. Perplexity gap #4.
+4. **Fix RAG status logic.** `overview/page.tsx` must factor forecast-to-complete vs contract sum. Currently shows "On Track" green when a project is forecast to lose money (verified on 22 Birchwood: costs £1,899 vs contract £1,753, but status = On Track). Perplexity live-app issue #2.
+5. **Unify "Active Projects" KPI definition.** Three different counts today: home shows 0, pipeline shows 1, management accounts shows 0. Create `isActiveProject(project)` helper in `src/lib/project-helpers.ts` and use it across all three pages. Perplexity live-app issue #9.
+6. **Sidebar active-project context sync.** Read `projectId` from URL params as the primary source for the sidebar active-project widget. Today it goes stale on Variations, Reporting, and others. Perplexity live-app issue #6.
+7. **Clean test data from production.** Remove or hide the "TEST SCROLL..." / "Mr Test" project from the Estimating column of the live pipeline. Confirm no other test records leak into user-visible views.
+8. **Vitest test harness + 20 tests on financial calcs.** Stand up `vitest` + `@testing-library/react`. First tests on pure functions: `computeContractSum()`, `computeEstimateContractSum()`, P&L variance, retention math, CIS deductions, AfP netting. Start with server actions — easiest to test, highest ROI.
+9. **Sentry error tracking.** Add `@sentry/nextjs`, wire up `SENTRY_DSN` env var, 10% trace sample rate. Production errors are invisible today.
+
+#### Phase 2 — Streamline for speed (Quick Quote path)
+
+10. **Quick Quote path** — Robert has explicitly requested this based on Grok's red-team analysis. The existing 5-step wizard is excellent for £100k+ jobs but too heavy for the £5k–£50k domestic jobs that make up the majority of SME contractor work.
+    - New "Quick Quote" button on `/dashboard/home` and pipeline Kanban header.
+    - Template picker: Kitchen Extension / Loft Conversion / Bathroom Refit / Driveway / Garden Room / Custom (6 seed templates for Tripod's preferred trades).
+    - Each template seeds: brief scope text, preferred trade sections, default margin setup, placeholder estimate lines drawn from the cost library.
+    - One-page view: Project name + client + postcode + scope textarea + estimate table → PDF.
+    - Saves everything to the same `projects` + `estimates` + `estimate_lines` + `programme_phases` tables, so large projects can "graduate" to the full 5-step wizard by clicking any pre-construction tab.
+    - New `proposal_complexity` column on `projects` (`'quick' | 'full'`, default `'full'`) drives which entry flow loads by default.
+    - New seed migration: `project_templates` table (`id, name, description, default_scope, default_trade_sections, default_line_items JSONB, is_system`) with 6 system templates.
+    - New server action `createQuickQuoteFromTemplateAction(templateId, projectFields)` — creates project, estimate, lines atomically and returns the new project id.
+    - **Keep the existing 5-step wizard for "Full Control" mode.** Quick Quote is additive, not replacement. The Golden Thread stays intact under both flows.
+
+11. **Autosave everywhere in proposal editor.** Debounced (1.5s) save on all textareas in `client-editor.tsx`. No more "did that save?" anxiety.
+
+12. **Forgot-password flow.** Supabase's password reset API is already available. Add UI entry point on `/login` + handler route. Perplexity gap #16.
+
+#### Phase 3 — Break-proofing follow-up (nice-to-have)
+
+13. **Extract shared PDF service** from the 7 generators (single theme / header / footer / table config module in `src/lib/pdf/`). Proposal PDF builder must shrink below 1,000 lines. Only attempt after Phase 1 tests land.
+14. **Core domain type interfaces** (`Project`, `Estimate`, `EstimateLine`, `Proposal`, `Profile`) replacing the worst `any` usage — starting with `proposal-pdf-button.tsx` (39 `any`s), `p-and-l/page.tsx` (26), and `contracts/client-contract-editor.tsx` (21). Perplexity gap #5.
+15. **Fix reporting project selector** to honour the current active project instead of always defaulting to "14 Maple Close".
+16. **Final Account "£–0.00" formatting** — trivial display fix.
+17. **Light mode** — verify it actually switches themes, not just a subtle tint. Fix if broken.
+
+#### What Sprint 58 explicitly does NOT cover
+
+- Bulk refactoring the 13 files >1,000 lines (unsafe without tests first; partially addressed by extracting the PDF service).
+- Multi-user / team accounts.
+- LemonSqueezy billing (still blocked on UAE company setup).
+- QuickBooks / Sage integrations.
+- Full Contract Admin Suite polish (Sprint 59 remains scaffolded; evaluate after Sprint 58 completes).
+
+#### Success criteria for Sprint 58
+
+- Zero white-screen failures on any dashboard route.
+- Every mutating server action rejects unauthenticated calls at the application layer.
+- 20+ passing Vitest tests covering all financial calculation functions.
+- "On Track" RAG status honestly reflects forecast margin.
+- "Active Projects" count is identical across home, pipeline, and management accounts.
+- Quick Quote path: new user can go from "Quick Quote" click to branded PDF in under 5 minutes.
+- All previously-hidden bugs from Perplexity's live-app review (items 1-20) are either fixed or consciously deferred with a reason.
 
 ---
 
@@ -1090,11 +1189,29 @@ UK SME contractors £500k–£3m. Every workflow faster and better than their cu
 
 ## Known Bugs
 
-- [ ] Address concatenation showing "18 Jackdaw DriveColchester," in About Us PDF (missing space/comma)
-- [ ] PDF About Us page has large blank space at bottom when company bio is short (content doesn't fill page — design/data issue, not a code bug)
-- [ ] Plant resource `calcPlantDailyChargeout` in log-cost-sheet doesn't yet branch on `rate_mode === "simple"` — simple-mode plant always shows £0 in the owned plant tab (`PlantResource` interface missing `rate_mode` + `daily_chargeout_rate` fields)
-- [ ] Billing: Revised Contract Sum shows £1,593.90 vs £1,753.29 shown elsewhere — likely ex-VAT vs inc-VAT or different multiplier basis; needs investigation
-- [ ] Test project "22 Birchwood Avenue": `proposal_introduction` and `scope_text` DB columns contain identical text (code bug #2 fixed, but existing DB data not auto-corrected — use AI Rewrite on Client Introduction)
+**Fixed in commit `2b2b5c8` (11 April 2026 evening):**
+- [x] PDF cover title: em-dash orphaned at line start when project title wraps
+- [x] PDF About Us: large blank space at bottom when `md_message` is absent (now fills with "Our Commitment" 2×2 value-prop block)
+- [x] PDF address: "18 Jackdaw DriveColchester" missing space (`splitAddress` camelCase fix)
+- [x] Billing: Revised Contract Sum showed `£1,593.90` vs `£1,753.29` shown elsewhere (formula was missing 10% prelims uplift)
+- [x] Test project "22 Birchwood Avenue": `proposal_introduction` was a duplicate of `scope_text` (rewritten via Supabase MCP to a proper opening letter)
+- [x] Proposal editor section flow reordered to match PDF output (Case Studies after About Us, Site Photos after Scope, Closing Statement at the end)
+- [x] Duplicate "Pre-filled from Brief" banner in Client Introduction
+- [x] `schedule/actions.ts updatePhasesAction` was silently failing all programme edits (`timeline_phases` unknown column)
+- [x] 14 project-picker queries selecting non-existent `updated_at`/`end_date`/`timeline_phases` columns (home, admin, live, mobile, 12 project sub-pages)
+
+**Pre-existing, verified still present (deferred from immediate QA — to be fixed in Sprint 58):**
+- [ ] **`Plant resource calcPlantDailyChargeout` in `log-cost-sheet.tsx`** — Handover claim was it needed a `rate_mode` branch, but on inspection the `PlantResource` interface at `log-cost-sheet.tsx:55-73` already has `rate_mode` + `daily_chargeout_rate` and `calcPlantDailyChargeout()` at line 124 already branches `if (p.rate_mode === "simple") return p.daily_chargeout_rate;`. This was fixed in Sprint 16 (commit `5d66a40`) and the old handover entry was stale. **No action needed.** Added here so future sessions don't chase a ghost.
+- [ ] **"On Track" RAG status ignores forecast loss** — verified on 22 Birchwood (costs £1,899 forecast vs £1,753 contract, still shows green "On Track"). Sprint 58 Phase 1 item #4.
+- [ ] **"Active Projects" KPI mismatch** — home shows 0, pipeline shows 1, management accounts shows 0. Sprint 58 Phase 1 item #5.
+- [ ] **Sidebar active-project widget** goes stale on Variations and Reporting pages (shows "Select a project..." despite URL having `projectId`). Sprint 58 Phase 1 item #6.
+- [ ] **Test data in production pipeline** — "TEST SCROLL..." / "Mr Test" card visible in Estimating column. Sprint 58 Phase 1 item #7.
+- [ ] **Reporting page loads wrong project** — opens with "14 Maple Close" instead of the current active project. Sprint 58 Phase 3 item #15.
+- [ ] **Final Account shows "£–0.00"** for negative zero. Trivial display fix. Sprint 58 Phase 3 item #16.
+- [ ] **Light mode toggle may not fully switch theme** — needs verification. Sprint 58 Phase 3 item #17.
+- [ ] **No Forgot Password link on `/login`.** Sprint 58 Phase 2 item #12.
+- [ ] **`Mr Bob Jovi` staff record has all-zero rates.** Test data — either populate or remove.
+- [ ] **Masonry estimate line** on 22 Birchwood has `£0.00` rate producing no budget, but `£699.24` in actual costs logged against it. Legitimate data inconsistency in test project only; not a product bug.
 
 ---
 

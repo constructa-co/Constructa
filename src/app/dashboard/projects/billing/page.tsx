@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import ClientBilling from "./client-billing";
 import ProjectPicker from "@/components/project-picker";
 import { computeContractSumValue } from "@/lib/financial";
+import type { Estimate, Variation } from "@/types/domain";
 
 export const dynamic = "force-dynamic";
 
@@ -50,12 +51,24 @@ export default async function BillingPage({ searchParams }: { searchParams: { pr
     // proposal again. Perplexity caught the £1,593 vs £1,753 discrepancy
     // that was caused by this file inlining its own (wrong) formula.
     // 35 Vitest tests pin the math — any regression fails CI.
-    const activeEstimate = (estimates || []).find((e: any) => e.is_active) || (estimates || [])[0];
+    //
+    // Sprint 58 P3.2 — typed via the canonical domain interfaces so
+    // callers and the query shape can never silently drift.
+    const typedEstimates = (estimates ?? []) as unknown as Estimate[];
+    const activeEstimate =
+        typedEstimates.find((e) => e.is_active === true) ?? typedEstimates[0];
     const originalContractSum = activeEstimate
-        ? computeContractSumValue(activeEstimate, activeEstimate.estimate_lines || [])
-        : (estimates || []).reduce((s: number, e: any) => s + (Number(e.total_cost) || 0), 0);
+        ? computeContractSumValue(activeEstimate, activeEstimate.estimate_lines ?? [])
+        : typedEstimates.reduce(
+              (s: number, e) => s + (Number(e.total_cost) || 0),
+              0,
+          );
 
-    const approvedVariationsTotal = (variations || []).reduce((s: number, v: any) => s + Number(v.amount), 0);
+    const typedVariations = (variations ?? []) as unknown as Variation[];
+    const approvedVariationsTotal = typedVariations.reduce(
+        (s, v) => s + Number(v.amount),
+        0,
+    );
 
     return (
         <div className="max-w-6xl mx-auto p-8 space-y-6">

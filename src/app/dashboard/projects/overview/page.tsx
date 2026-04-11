@@ -8,6 +8,13 @@ import {
     computeForecastFinal,
     computeForecastMargin,
 } from "@/lib/financial";
+import type {
+    Estimate,
+    EstimateLine,
+    Invoice,
+    ProjectExpense,
+    Variation,
+} from "@/types/domain";
 
 export const dynamic = "force-dynamic";
 
@@ -15,12 +22,15 @@ export const dynamic = "force-dynamic";
 // Now they call through to src/lib/financial.ts which has 35 Vitest tests
 // asserting on the same math the proposal editor, PDF, billing page, and
 // P&L dashboard use. Any future divergence gets caught by the tests.
-function computeContractValue(est: any, lines: any[]): number {
+//
+// Sprint 58 P3.2 — typed via @/types/domain so future callers can't
+// pass a rogue shape through.
+function computeContractValue(est: Estimate | null, lines: EstimateLine[]): number {
     if (!est) return 0;
     return computeContractSum(est, lines).contractSum;
 }
 
-function computeBudgetCost(est: any, lines: any[]): number {
+function computeBudgetCost(est: Estimate | null, lines: EstimateLine[]): number {
     if (!est) return 0;
     return computeBudgetCostLib(est, lines);
 }
@@ -81,23 +91,30 @@ export default async function OverviewPage({ searchParams }: { searchParams: { p
     }
 
     // ── Financials ──────────────────────────────────────────────────────────────
-    const activeEstimate = (estimates ?? []).find((e: any) => e.is_active) ?? (estimates ?? [])[0] ?? null;
-    const lines: any[]   = activeEstimate?.estimate_lines ?? [];
+    // Sprint 58 P3.2 — typed via @/types/domain.
+    const typedEstimates = (estimates ?? []) as unknown as Estimate[];
+    const typedExpenses  = (expenses  ?? []) as unknown as ProjectExpense[];
+    const typedInvoices  = (invoices  ?? []) as unknown as Invoice[];
+    const typedVariations = (variations ?? []) as unknown as Variation[];
 
-    const contractValue  = computeContractValue(activeEstimate, lines);
-    const budgetCost     = computeBudgetCost(activeEstimate, lines);
+    const activeEstimate: Estimate | null =
+        typedEstimates.find((e) => e.is_active === true) ?? typedEstimates[0] ?? null;
+    const lines: EstimateLine[] = activeEstimate?.estimate_lines ?? [];
+
+    const contractValue = computeContractValue(activeEstimate, lines);
+    const budgetCost    = computeBudgetCost(activeEstimate, lines);
 
     // Split expenses into actual vs committed so forecast math works correctly.
-    const actualExpenses    = (expenses ?? []).filter((e: any) => (e.cost_status ?? "actual") === "actual");
-    const committedExpenses = (expenses ?? []).filter((e: any) => e.cost_status === "committed");
-    const costsPosted    = actualExpenses.reduce((s: number, e: any) => s + Number(e.amount), 0);
-    const committedTotal = committedExpenses.reduce((s: number, e: any) => s + Number(e.amount), 0);
+    const actualExpenses    = typedExpenses.filter((e) => (e.cost_status ?? "actual") === "actual");
+    const committedExpenses = typedExpenses.filter((e) => e.cost_status === "committed");
+    const costsPosted    = actualExpenses.reduce((s, e) => s + Number(e.amount), 0);
+    const committedTotal = committedExpenses.reduce((s, e) => s + Number(e.amount), 0);
 
-    const invoicedTotal  = (invoices ?? []).reduce((s: number, i: any) => s + Number(i.amount), 0);
-    const receivedTotal  = (invoices ?? []).filter((i: any) => i.status === "Paid").reduce((s: number, i: any) => s + Number(i.amount), 0);
-    const approvedVars   = (variations ?? []).filter((v: any) => v.status === "Approved").reduce((s: number, v: any) => s + Number(v.amount), 0);
+    const invoicedTotal  = typedInvoices.reduce((s, i) => s + Number(i.amount), 0);
+    const receivedTotal  = typedInvoices.filter((i) => i.status === "Paid").reduce((s, i) => s + Number(i.amount), 0);
+    const approvedVars   = typedVariations.filter((v) => v.status === "Approved").reduce((s, v) => s + Number(v.amount), 0);
     const outstandingAmt = invoicedTotal - receivedTotal;
-    const outstandingInvoices = (invoices ?? []).filter((i: any) => i.status !== "Paid");
+    const outstandingInvoices = typedInvoices.filter((i) => i.status !== "Paid");
 
     // ── Forecast at completion ─────────────────────────────────────────────────
     // Mirror the logic the P&L dashboard uses so the RAG light is honest about
@@ -116,17 +133,21 @@ export default async function OverviewPage({ searchParams }: { searchParams: { p
             budgetBySection[sec] = (budgetBySection[sec] || 0) + Number(l.line_total || 0);
         });
     const actualBySection: Record<string, number> = {};
-    actualExpenses.forEach((e: any) => {
+    actualExpenses.forEach((e) => {
         const sec = e.trade_section || "General";
         actualBySection[sec] = (actualBySection[sec] || 0) + Number(e.amount || 0);
     });
     const committedBySection: Record<string, number> = {};
-    committedExpenses.forEach((e: any) => {
+    committedExpenses.forEach((e) => {
         const sec = e.trade_section || "General";
         committedBySection[sec] = (committedBySection[sec] || 0) + Number(e.amount || 0);
     });
     const forecastOverrides: Record<string, number> = {};
-    (sectionForecasts ?? []).forEach((f: any) => {
+    const typedSectionForecasts = (sectionForecasts ?? []) as unknown as {
+        trade_section: string;
+        forecast_cost: number | null;
+    }[];
+    typedSectionForecasts.forEach((f) => {
         if (f.forecast_cost != null) forecastOverrides[f.trade_section] = Number(f.forecast_cost);
     });
 

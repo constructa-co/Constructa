@@ -20,13 +20,17 @@ interface Phase {
     color?: string;
 }
 
+// Sprint 58 P3.2 — loosened to accept the canonical `Invoice` domain
+// type from @/types/domain, which uses `T | null` for optional columns
+// rather than `T | undefined`. We keep the local alias minimal so this
+// client component doesn't need to import every domain field.
 interface Invoice {
     id: string;
     amount: number;
     status: string;
-    type?: string;
-    created_at: string;
-    description?: string;
+    type?: string | null;
+    created_at?: string;
+    description?: string | null;
 }
 
 interface Props {
@@ -368,7 +372,7 @@ export default function OverviewClient({
                                     <div className="text-sm text-slate-200 font-medium">
                                         {inv.description || inv.type || "Invoice"}
                                     </div>
-                                    <div className="text-xs text-slate-500">{formatDate(inv.created_at)}</div>
+                                    <div className="text-xs text-slate-500">{inv.created_at ? formatDate(inv.created_at) : "—"}</div>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${

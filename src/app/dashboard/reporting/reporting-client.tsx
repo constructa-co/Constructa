@@ -254,9 +254,19 @@ export default function ReportingClient({
   expenses,
 }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("photos");
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(
-    initialProjectId ?? projects[0]?.id ?? ""
-  );
+  // Sprint 58 P1.6: prefer the URL param, then the sidebar's last-selected
+  // project (localStorage), then the first project in the list. This
+  // fixes the Perplexity-reported bug where /dashboard/reporting always
+  // opened on "14 Maple Close" regardless of which project the user had
+  // just been looking at.
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(() => {
+    if (initialProjectId) return initialProjectId;
+    if (typeof window !== "undefined") {
+      const stored = window.localStorage.getItem("constructa_selected_project_id");
+      if (stored && projects.some((p) => p.id === stored)) return stored;
+    }
+    return projects[0]?.id ?? "";
+  });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);

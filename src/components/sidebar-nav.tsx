@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import {
     LayoutDashboard,
@@ -137,6 +137,7 @@ const SECTION_KEYS = ["company-profile", "work-winning", "pre-construction", "li
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function SidebarNav({ user, projects, isAdmin = false }: SidebarNavProps) {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { theme, setTheme } = useTheme();
     const isDark = theme === "dark";
 
@@ -173,6 +174,32 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
             try { setCollapsed(JSON.parse(savedCollapsed)); } catch { /* ignore */ }
         }
     }, [projects]);
+
+    // Sprint 58 P1.6: sync active project from URL params.
+    //
+    // Perplexity live-app walkthrough caught that if a user navigated
+    // straight to a project sub-page (e.g. /dashboard/projects/variations
+    // ?projectId=XXX) the sidebar widget would still show "Select a
+    // project…" because it only read from localStorage at mount. This
+    // made the active-project indicator unreliable on deep links,
+    // bookmarks, and any internal navigation that pre-filled projectId.
+    //
+    // Treat the URL `projectId` param as the source of truth whenever
+    // it exists. Fall back to localStorage for non-project pages.
+    useEffect(() => {
+        const urlProjectId = searchParams?.get("projectId");
+        if (!urlProjectId) return;
+        // Only update if the URL param differs from current state AND
+        // the project exists in the sidebar's known list (guards against
+        // stale IDs that no longer map to a visible project).
+        const match = projects.find((p) => p.id === urlProjectId);
+        if (!match) return;
+        if (urlProjectId === selectedProjectId) return;
+        setSelectedProjectId(match.id);
+        setSelectedProjectName(match.name);
+        localStorage.setItem("constructa_selected_project_id", match.id);
+        localStorage.setItem("constructa_selected_project_name", match.name);
+    }, [searchParams, projects, selectedProjectId]);
 
     // Auto-expand Pre-Construction only when project is selected (accordion — closes all others)
     useEffect(() => {

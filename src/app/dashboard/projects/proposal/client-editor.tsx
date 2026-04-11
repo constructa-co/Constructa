@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2, RefreshCw, FileDown, Send, History } from "lucide-react";
@@ -231,6 +231,16 @@ export default function ClientEditor({
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [rewritingIntro, setRewritingIntro] = useState(false);
+
+    // Sprint 58 P2.11 — autosave. Debounced 1.5s after the user stops
+    // typing. The proposal editor is the highest-stakes form in the app
+    // (client-facing text, pricing, payment schedule, site photos) so
+    // unsaved-work anxiety is a real friction point. With this, there's
+    // no "did that save?" question.
+    const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+    const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const initialMountRef = useRef(true);
+    const savedClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const [ganttPhases, setGanttPhases] = useState<GanttPhase[]>(
         project?.gantt_phases?.length
@@ -558,8 +568,10 @@ export default function ClientEditor({
         }
     };
 
-    const handleSave = async () => {
-        setSaving(true);
+    // Build the FormData payload — shared by the explicit Save button
+    // and the debounced autosave effect so the two paths can never
+    // drift on which fields they persist.
+    const buildProposalFormData = (): FormData => {
         const fd = new FormData();
         fd.set("projectId", projectId);
         fd.set("scope", scope);
@@ -571,11 +583,80 @@ export default function ClientEditor({
         fd.set("site_photos", JSON.stringify(sitePhotos.filter(p => p.url)));
         fd.set("payment_schedule", JSON.stringify(paymentSchedule));
         fd.set("closing_statement", closingStatement);
-        await saveProposalAction(fd);
+        return fd;
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        await saveProposalAction(buildProposalFormData());
         setSaved(true);
         setSaving(false);
-        setTimeout(() => setSaved(false), 3000);
+        // Autosave indicator shares the same "saved" moment so the two
+        // UIs stay consistent.
+        setAutosaveStatus("saved");
+        if (savedClearTimerRef.current) clearTimeout(savedClearTimerRef.current);
+        savedClearTimerRef.current = setTimeout(() => {
+            setSaved(false);
+            setAutosaveStatus("idle");
+        }, 3000);
     };
+
+    // ── Debounced autosave ─────────────────────────────────────────────
+    // Any change to an editable field schedules a save 1.5 s later.
+    // Subsequent edits reset the timer so we batch rapid typing.
+    // Skipped on initial mount so loading the page doesn't fire a save.
+    // Skipped while a manual save is in flight (`saving`) so we don't
+    // step on the button handler.
+    useEffect(() => {
+        if (initialMountRef.current) {
+            initialMountRef.current = false;
+            return;
+        }
+        if (saving) return;
+
+        if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+        setAutosaveStatus("saving");
+        autosaveTimer.current = setTimeout(async () => {
+            try {
+                await saveProposalAction(buildProposalFormData());
+                setAutosaveStatus("saved");
+                if (savedClearTimerRef.current) clearTimeout(savedClearTimerRef.current);
+                savedClearTimerRef.current = setTimeout(
+                    () => setAutosaveStatus("idle"),
+                    2500,
+                );
+            } catch (err) {
+                console.error("autosave failed:", err);
+                setAutosaveStatus("error");
+            }
+        }, 1500);
+
+        return () => {
+            if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        introduction,
+        scope,
+        exclusions,
+        clarifications,
+        closingStatement,
+        ganttPhases,
+        sequentialMode,
+        tcOverrides,
+        useCustomTc,
+        sitePhotos,
+        paymentSchedule,
+    ]);
+
+    // Cleanup any pending timers on unmount so we don't fire a save
+    // after the component has been torn down.
+    useEffect(() => {
+        return () => {
+            if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+            if (savedClearTimerRef.current) clearTimeout(savedClearTimerRef.current);
+        };
+    }, []);
 
     // Phase management
     const addPhase = () => {
@@ -1411,6 +1492,34 @@ export default function ClientEditor({
                                 </div>
                             ))}
                         </div>
+                    </div>
+
+                    {/* Sprint 58 P2.11 — Autosave status row. Sits just
+                        above the manual Save button so the contractor can
+                        see at a glance that their edits are being persisted
+                        without having to click anything. */}
+                    <div className="flex items-center justify-center gap-1.5 h-5 text-[11px]">
+                        {autosaveStatus === "saving" && (
+                            <>
+                                <Loader2 className="w-3 h-3 animate-spin text-slate-500" />
+                                <span className="text-slate-500">Autosaving…</span>
+                            </>
+                        )}
+                        {autosaveStatus === "saved" && (
+                            <>
+                                <Check className="w-3 h-3 text-emerald-500" />
+                                <span className="text-emerald-500">Saved</span>
+                            </>
+                        )}
+                        {autosaveStatus === "error" && (
+                            <>
+                                <AlertCircle className="w-3 h-3 text-red-500" />
+                                <span className="text-red-500">Autosave failed — click Save to retry</span>
+                            </>
+                        )}
+                        {autosaveStatus === "idle" && !saved && (
+                            <span className="text-slate-600">Autosave on — changes save every 1.5 s</span>
+                        )}
                     </div>
 
                     {/* Save Button */}

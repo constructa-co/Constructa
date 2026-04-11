@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { AlertTriangle, RefreshCw, Home, LayoutDashboard } from "lucide-react";
+import { reportError } from "@/lib/observability";
 
 /**
  * Projects sub-route error boundary.
@@ -23,7 +24,11 @@ export default function ProjectsError({
     reset: () => void;
 }) {
     useEffect(() => {
-        console.error("[ProjectsError]", error);
+        // Sprint 58 P1.9 — forward to observability wrapper.
+        reportError(error, {
+            source: "projects-error-boundary",
+            digest: error.digest,
+        });
     }, [error]);
 
     return (

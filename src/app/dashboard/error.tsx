@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import { reportError } from "@/lib/observability";
 
 /**
  * Dashboard route-group error boundary.
@@ -22,9 +23,13 @@ export default function DashboardError({
     reset: () => void;
 }) {
     useEffect(() => {
-        // Log to console so it surfaces in Vercel logs until Sentry is wired up
-        // (Sprint 58 Phase 1 item #9).
-        console.error("[DashboardError]", error);
+        // Sprint 58 P1.9 — forward to observability wrapper. Logs to console
+        // locally (Vercel logs pick it up) and forwards to Sentry if
+        // SENTRY_DSN is configured.
+        reportError(error, {
+            source: "dashboard-error-boundary",
+            digest: error.digest,
+        });
     }, [error]);
 
     return (

@@ -18,6 +18,7 @@ import {
 import ProjectBoard from "./project-board";
 import ProjectList from "./project-list";
 import { useTheme } from "@/lib/theme-context";
+import { isActiveProject } from "@/lib/project-helpers";
 
 type Period = "week" | "month" | "quarter" | "year";
 
@@ -110,7 +111,7 @@ function calculateMetrics(projects: any[], financials: Record<string, number>, p
     const wonInPeriod = projects.filter(p => inPeriod(p.proposal_accepted_at));
     const wonThisMonth = wonInPeriod.length;
 
-    const activeJobs = projects.filter(p => p.status === "Active" || p.status === "Won").length;
+    const activeJobs = projects.filter(isActiveProject).length;
 
     const accepted = projects.filter(p => p.proposal_accepted_at != null).length;
     const allProposalsSent = projects.filter(p => p.proposal_sent_at != null).length;

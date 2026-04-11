@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { BarChart2, TrendingUp, TrendingDown, Minus, Download, FileText } from "lucide-react";
+import { isActiveProject } from "@/lib/project-helpers";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -189,8 +190,8 @@ export default function ManagementAccountsClient({ profile, projects, estimates,
   const totalOutflows90 = cashOutflows.reduce((s, x) => s + x.amount, 0);
   const netCash90 = totalInflows90 - totalOutflows90;
 
-  // WIP — active projects only
-  const wipProjects = projectData.filter(p => p.status === "active" && !p.is_archived);
+  // WIP — active projects only. Sprint 58 P1.5: use shared helper.
+  const wipProjects = projectData.filter(isActiveProject);
   const totalWIP = wipProjects.reduce((s, p) => s + Math.max(0, p.contractValue - p.totalInvoiced), 0);
 
   // Project name lookup
@@ -300,7 +301,7 @@ export default function ManagementAccountsClient({ profile, projects, estimates,
             {/* Second row KPIs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: "Active Projects", value: String(projects.filter(p => p.status === "active").length), sub: "Currently live" },
+                { label: "Active Projects", value: String(projects.filter(isActiveProject).length), sub: "Currently live" },
                 { label: "Total WIP", value: gbp(totalWIP), sub: "Uninvoiced contract value" },
                 { label: "Retention Held", value: gbp(totalRetention), sub: "By clients" },
                 { label: "Total Projects", value: String(projects.length), sub: "All time" },
@@ -585,11 +586,11 @@ export default function ManagementAccountsClient({ profile, projects, estimates,
           const overheadCosts = expenses.filter(e => e.cost_type === "overhead").reduce((s, e) => s + e.amount, 0);
           const directCosts = expenses.filter(e => e.cost_type !== "overhead").reduce((s, e) => s + e.amount, 0);
           const subcontractCosts = expenses.filter(e => e.cost_type === "subcontract").reduce((s, e) => s + e.amount, 0);
-          const wipBalance = projectData.filter(p => p.status === "active").reduce((s, p) => s + Math.max(0, p.contractValue - p.totalInvoiced), 0);
+          const wipBalance = projectData.filter(isActiveProject).reduce((s, p) => s + Math.max(0, p.contractValue - p.totalInvoiced), 0);
 
-          // Win rate from Kanban pipeline
-          const wonProjects = projects.filter(p => ["active", "completed"].includes(p.status ?? "") || p.is_archived).length;
-          const lostProjects = projects.filter(p => p.status === "lost").length;
+          // Win rate from Kanban pipeline. Sprint 58 P1.5: match capitalised DB values.
+          const wonProjects = projects.filter(p => isActiveProject(p) || p.status === "Completed" || p.is_archived).length;
+          const lostProjects = projects.filter(p => p.status === "Lost").length;
           const winRateDenom = wonProjects + lostProjects;
           const winRate = winRateDenom > 0 ? (wonProjects / winRateDenom) * 100 : null;
 

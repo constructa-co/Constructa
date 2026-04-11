@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import DashboardClient from "./dashboard-client";
+import { isActiveProject } from "@/lib/project-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,7 @@ export default async function Dashboard() {
         return acceptedDate >= startOfMonth && acceptedDate <= endOfMonth;
     }).length;
 
-    const activeJobs = safeProjects.filter(p => p.status === "Active" || p.status === "Won").length;
+    const activeJobs = safeProjects.filter(isActiveProject).length;
 
     const accepted = safeProjects.filter(p => p.proposal_accepted_at !== null && p.proposal_accepted_at !== undefined).length;
     const winRate = proposalsSent > 0 ? Math.round((accepted / proposalsSent) * 100) : 0;

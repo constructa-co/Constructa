@@ -6,6 +6,7 @@ import {
     AlertTriangle, FileText, CreditCard, GitBranch, RefreshCw, MessageSquare,
     Banknote, ShieldAlert, CalendarDays, Activity,
 } from "lucide-react";
+import { isActiveProject, isPipelineProject, isClosedProject } from "@/lib/project-helpers";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmt = (n: number) => {
@@ -122,10 +123,15 @@ function getProjectProgrammeDelay(project: any): number {
 export default function HomeClient({ projects, profile, estimates, invoices, variations, changeEvents, rfis, ewns }: Props) {
 
     // ── Project categories ────────────────────────────────────────────────────
-    const activeProjects  = projects.filter(p => p.status === "active");
-    const pipelineProjects = projects.filter(p => ["lead","estimating","proposal_sent"].includes(p.status));
-    const closedProjects  = projects.filter(p => ["completed","lost"].includes(p.status));
-    const pipelineValue   = pipelineProjects.reduce((s, p) => s + (p.potential_value || 0), 0);
+    // Sprint 58 P1.5: unified via isActiveProject/isPipelineProject/isClosedProject
+    // so this page matches the Pipeline Kanban and Management Accounts counts.
+    // Previously used lowercase strings ("active", "lead", …) which never
+    // matched the capitalised values ("Active", "Estimating", …) in the DB,
+    // so every row-based KPI on Home was silently returning 0.
+    const activeProjects   = projects.filter(isActiveProject);
+    const pipelineProjects = projects.filter(isPipelineProject);
+    const closedProjects   = projects.filter(isClosedProject);
+    const pipelineValue    = pipelineProjects.reduce((s, p) => s + (p.potential_value || 0), 0);
 
     // ── Win rate (90d) ────────────────────────────────────────────────────────
     const cutoff = new Date(Date.now() - 90 * 86400000);

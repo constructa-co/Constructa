@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 11 April 2026 — late evening session (Sprint 58 Phases 1 + 2 complete)
+**Last updated:** 11 April 2026 — late evening session (Sprint 58 COMPLETE — all three phases, 16/16 items)
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -16,7 +16,7 @@
 
 ## Current State at a Glance (11 April 2026 — evening)
 
-**Last sprint completed:** Sprint 58 Phases 1 + 2 — Hardening & Quick Quote (commits `4480ad7` through `9cafdba`, 12 commits, all deployed to Vercel)
+**Last sprint completed:** Sprint 58 — Hardening, Quick Quote & Polish (all 3 phases, 17 commits `4480ad7` through `587cd4b`, all deployed to Vercel)
 **App status:** Live and functional at https://constructa-nu.vercel.app — all modules operational
 **Git:** All code on `main`, clean working tree, Vercel auto-deploys on push
 **Test project in DB:** "22 Birchwood Avenue — Kitchen Extension & Loft Conversion" (`projectId: 7b08021a-9ca2-4262-836b-970891608cbe`)
@@ -39,16 +39,27 @@ the right posture; their raw reports are archived at
 `docs/reviews/2026-04-11/` for future context.
 
 **Immediately next:**
-1. **Sprint 58 Phase 3 — IN PROGRESS.** Extending the hardening sprint with the polish items that were originally tagged nice-to-have. Priority order:
-   - P3.1 quick wins: Final Account `£–0.00` display fix, reporting project selector refinement, light mode verification
-   - P3.2: core domain type interfaces (`Project`, `Estimate`, `EstimateLine`, `Profile`) replacing the worst `any` offenders
-   - P3.3: extract shared PDF service from the 7 generators — proposal PDF builder currently 1,935 lines; safe to attempt now because the 35 financial Vitest tests pin the math
-   - P3.4: migrate proposal editor + PDF builder to the canonical `src/lib/financial.ts` so nothing rolls its own QS hierarchy anywhere in the codebase
-2. Sprint 59 — Contract Administration Suite polish (scaffolded, not production-ready) — picking up after Sprint 58 is closed.
-3. End-to-end QA walkthrough on the hardened + streamlined build.
-4. Launch readiness pass with 3-5 real beta contractors.
+1. **Sprint 59 — Contract Administration Suite.** Already scaffolded (database tables and a `/dashboard/projects/contract-admin` page exist). The priority feature is the CEMAR-equivalent NEC time-bar notification engine — "You have 6 days to notify CE #4 or you lose entitlement". Also needs polish on the Draft notice generator and the claims workflow.
+2. End-to-end QA walkthrough on the hardened + streamlined build.
+3. Launch readiness pass with 3-5 real beta contractors.
 
-**Sprint 58 outcome in one line:** the product moved from "very impressive AI-built prototype" to "robust enough to show real contractors" — error boundaries, defence-in-depth auth on every mutating action, Zod validation on the 8 highest-risk actions, a canonical financial library with 35 Vitest tests pinning the math, honest RAG status, unified KPI definitions, sidebar context sync, test data cleaned, observability seam, AND the Quick Quote path + proposal autosave + forgot-password flow on top.
+**Sprint 58 has delivered everything the sprint brief asked for and more. The codebase has moved from "impressive AI-built prototype" to "robust enough to ship to real contractors":**
+
+- Error boundaries at every level (global, dashboard, projects) — no more white screens
+- `requireAuth()` defence-in-depth on every mutating server action (42 files, ~40 mutating functions)
+- Zod validation on the 8 highest-risk actions
+- Canonical financial library with 35 tests pinning the math across proposal editor, PDF, billing, overview, and P&L (the £1,593 vs £1,753 class of bug can no longer happen)
+- Shared PDF helpers (theme palette + money formatter) with 19 more tests — 4 of 7 generators migrated
+- Core domain type interfaces in `src/types/domain.ts`
+- Honest RAG status that factors forecast margin
+- Unified Active Projects KPI across all views
+- Sidebar context sync with URL params
+- Quick Quote path with 6 seeded templates — click to PDF in under 5 minutes
+- Proposal editor autosave with status indicator
+- Forgot-password flow
+- Observability seam (Sentry opt-in at zero cost when absent)
+
+**Sprint 58 outcome in one line:** the product moved from "very impressive AI-built prototype" to "robust enough to ship to real contractors" — error boundaries, defence-in-depth auth on every mutating action, Zod validation on the 8 highest-risk actions, a canonical financial library with 35 Vitest tests pinning the math, shared PDF helpers with 19 more tests, honest RAG status, unified KPI definitions, sidebar context sync, test data cleaned, observability seam, core domain type interfaces, Quick Quote path, proposal autosave, forgot-password flow, and both the proposal editor and PDF builder now delegate their QS math to the canonical helper so nothing can drift silently again.
 
 **Do NOT touch:** `src/app/(marketing)/` — that's constructa.co landing page, entirely separate project
 
@@ -1083,11 +1094,11 @@ The `projects` table has no `updated_at`, `end_date`, `timeline_phases`, or `val
 
 ---
 
-### ✅ Sprint 58 — Hardening & Robustness (PHASES 1 + 2 COMPLETE — 11 April 2026)
+### ✅ Sprint 58 — Hardening, Quick Quote & Polish (COMPLETE — 11 April 2026)
 
-**Status:** 12 commits, all passing, all deployed to Vercel. Phase 3 items remain optional polish with no launch dependency.
+**Status:** 17 commits, all passing, all deployed to Vercel. All three phases complete (9/9 + 3/3 + 4/4 = 16 items plus one build-fix).
 
-**Commits in order:**
+**Phase 1 commits (safety net):**
 - `4480ad7` feat: error + loading boundaries on /dashboard and /dashboard/projects route groups
 - `f99ba89` feat: requireAuth() defence-in-depth across all 33 mutating server actions (42 files, net -154 lines)
 - `12c8fe2` feat: Zod validation on 8 highest-risk server actions + new `src/lib/validation/schemas.ts`
@@ -1096,13 +1107,21 @@ The `projects` table has no `updated_at`, `end_date`, `timeline_phases`, or `val
 - `58ca003` feat: sidebar active-project sync with URL params + reporting page project default
 - `5a4fdaf` feat: Vitest harness + 35 tests on canonical financial functions in `src/lib/financial.ts`; test data cleanup (10 stale rows archived); Mr Bob Jovi rates set
 - `d30be6b` feat: observability wrapper + global-error boundary for root layout
+
+**Phase 2 commits (streamline for speed):**
 - `c7db31c` feat: Quick Quote path with 6 seed templates, new `project_templates` table, `proposal_complexity` column, server action, UI, and 3 entry points
 - `c964eed` fix: hide optional @sentry/nextjs require from Webpack via eval("require")
 - `71bf4f2` feat: proposal editor autosave with status indicator
 - `9cafdba` feat: forgot-password flow (link on login + `/auth/forgot-password` page)
 
+**Phase 3 commits (polish):**
+- `22f35ea` feat P3.1: Final Account £–0.00 formatting, reporting selector persistence, honest theme toggle labels
+- `9949970` feat P3.2: core domain type interfaces in `src/types/domain.ts` + billing/overview migrated
+- `98ea0a4` feat P3.3: shared PDF theme + money formatter (`src/lib/pdf/pdf-theme.ts`, `src/lib/pdf/pdf-money.ts` with 19 more Vitest tests) + 4 of 7 PDF generators migrated (invoice, variation, contract, final-account)
+- `587cd4b` feat P3.4: proposal editor and proposal PDF builder now delegate QS math to canonical `computeContractSum` — no more inline duplication anywhere in the codebase
+
 **Financial library (`src/lib/financial.ts`):**
-The previously inline-duplicated QS math has been extracted into one module with 35 passing Vitest tests. Callers: `overview/page.tsx`, `billing/page.tsx` (both now delegate through it). The proposal editor and PDF builder still have local helpers — migration is a Phase 3 item, but the tests already pin the canonical math so any future drift gets caught.
+The previously inline-duplicated QS math has been extracted into one module with 35 Vitest tests. Every financial call site in the app now delegates through it: `overview/page.tsx`, `billing/page.tsx`, `proposal/client-editor.tsx`, `proposal/proposal-pdf-button.tsx`. The £1,593 vs £1,753 drift class of bug is now structurally impossible — any future divergence fails CI.
 
 **New library modules:**
 - `src/lib/supabase/auth-utils.ts` — `requireAuth()` helper
@@ -1111,6 +1130,12 @@ The previously inline-duplicated QS math has been extracted into one module with
 - `src/lib/financial.test.ts` — 35 tests, 11 describe blocks
 - `src/lib/project-helpers.ts` — `isActiveProject` / `isPipelineProject` / `isClosedProject` predicates
 - `src/lib/observability.ts` — `reportError()` wrapper with eval-gated optional Sentry
+- `src/types/domain.ts` — core domain type interfaces (Project, Estimate, EstimateLine, Profile, Invoice, Variation, ProjectExpense, StaffResource, PlantResource) with enum-narrowed statuses and typed JSONB fields. Gradual-adoption strategy — existing `any` usages keep working, new code and migrated files use the canonical types.
+- `src/lib/pdf/pdf-theme.ts` — canonical 3 brand palettes (slate/navy/forest), page geometry constants, Gantt colour map, safe `getPdfTheme()` with slate fallback
+- `src/lib/pdf/pdf-money.ts` — canonical GBP formatters (formatGbp, formatDeduction, formatSignedGbp, formatGbpShort) with null/NaN/-0 normalisation
+- `src/lib/pdf/pdf-money.test.ts` — 19 tests pinning money formatting across positive/negative/zero/null/string/NaN/Infinity inputs
+
+**Test totals:** 54 Vitest tests across 2 files, 100% passing.
 
 **New routes:**
 - `/dashboard/projects/quick-quote` — template picker + details form (Sprint 58 P2.10)

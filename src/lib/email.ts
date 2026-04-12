@@ -537,3 +537,59 @@ export async function sendContractorAcceptanceNotification({
 </html>`,
     });
 }
+
+// ── Supervisor Portal Invite ──────────────────────────────────────────────
+
+export async function sendSupervisorInviteEmail(args: {
+    supervisorEmail: string;
+    supervisorName: string;
+    projectName: string;
+    companyName: string;
+    portalUrl: string;
+}) {
+    if (!process.env.RESEND_API_KEY) return;
+
+    await resend.emails.send({
+        from: "Constructa <noreply@constructa.co>",
+        to: [args.supervisorEmail],
+        subject: `${args.companyName} — Supervisor Portal for ${args.projectName}`,
+        html: `<!DOCTYPE html>
+<html>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; margin:0; padding:0; background:#f8fafc;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; margin:0 auto;">
+    <tr>
+      <td style="background:#0f172a; padding:24px 32px;">
+        <h1 style="color:#fff; font-size:18px; margin:0;">${args.companyName}</h1>
+        <p style="color:#94a3b8; font-size:13px; margin:4px 0 0;">Supervisor Portal Invitation</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="background:#fff; padding:32px;">
+        <p style="color:#1e293b; font-size:15px; line-height:1.6; margin:0 0 16px;">
+          Dear ${args.supervisorName},
+        </p>
+        <p style="color:#475569; font-size:14px; line-height:1.6; margin:0 0 16px;">
+          You have been invited to view and acknowledge contract obligations on
+          <strong>${args.projectName}</strong>.
+        </p>
+        <p style="color:#475569; font-size:14px; line-height:1.6; margin:0 0 24px;">
+          Click the button below to access your supervisor portal. No account or login is required.
+        </p>
+        <a href="${args.portalUrl}" style="display:inline-block; background:#2563eb; color:#fff; text-decoration:none; padding:12px 28px; border-radius:8px; font-weight:600; font-size:14px;">
+          Open Supervisor Portal
+        </a>
+        <p style="color:#94a3b8; font-size:12px; margin:24px 0 0;">
+          If the button doesn't work, copy this link: ${args.portalUrl}
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td style="background:#f9fafb; padding:20px 32px; border-top:1px solid #e5e7eb;">
+        <p style="color:#9ca3af; font-size:12px; margin:0;">Sent via Constructa on behalf of ${args.companyName}.</p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+    });
+}

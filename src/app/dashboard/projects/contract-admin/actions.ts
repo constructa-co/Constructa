@@ -540,3 +540,68 @@ Format as plain text with numbered sections.`;
     return { error: err.message ?? "AI draft failed" };
   }
 }
+
+// ── Supervisor Portal ─────────────────────────────────────────────────────
+
+export async function createSupervisorTokenAction(data: {
+  projectId: string;
+  name: string;
+  email?: string;
+  role?: string;
+}): Promise<{ success: boolean; token?: string; error?: string }> {
+  const { user, supabase } = await requireAuth();
+
+  const { data: row, error } = await supabase
+    .from("supervisor_tokens")
+    .insert({
+      user_id: user.id,
+      project_id: data.projectId,
+      name: data.name.trim(),
+      email: data.email?.trim() || null,
+      role: data.role || "supervisor",
+    })
+    .select("token")
+    .single();
+
+  if (error) return { success: false, error: error.message };
+
+  // Optionally send invite email
+  if (data.email?.trim()) {
+    try {
+      const { sendSupervisorInviteEmail } = await import("@/lib/email");
+      const { data: project } = await supabase
+        .from("projects").select("name").eq("id", data.projectId).single();
+      const { data: profile } = await supabase
+        .from("profiles").select("company_name").eq("id", user.id).single();
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://constructa-nu.vercel.app";
+      await sendSupervisorInviteEmail({
+        supervisorEmail: data.email.trim(),
+        supervisorName: data.name.trim(),
+        projectName: project?.name ?? "Project",
+        companyName: profile?.company_name ?? "The Contractor",
+        portalUrl: `${baseUrl}/supervisor/${row.token}`,
+      });
+    } catch {
+      // Email send is best-effort — token was created successfully
+    }
+  }
+
+  REVALIDATE();
+  return { success: true, token: row.token };
+}
+
+export async function revokeSupervisorTokenAction(
+  tokenId: string,
+): Promise<{ success: boolean; error?: string }> {
+  const { user, supabase } = await requireAuth();
+
+  const { error } = await supabase
+    .from("supervisor_tokens")
+    .delete()
+    .eq("id", tokenId)
+    .eq("user_id", user.id);
+
+  if (error) return { success: false, error: error.message };
+  REVALIDATE();
+  return { success: true };
+}

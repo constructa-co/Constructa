@@ -605,3 +605,168 @@ export async function revokeSupervisorTokenAction(
   REVALIDATE();
   return { success: true };
 }
+
+// ── Delay Analysis ────────────────────────────────────────────────────────
+
+import {
+  analyseAsPlannedVsAsBuilt,
+  analyseTimeImpact,
+  analyseCollapsedAsBuilt,
+  analyseWindows,
+  type DelayPhase,
+  type DelayEvent,
+} from "@/lib/delay-analysis";
+
+export type DelayMethodology = "as_planned_vs_as_built" | "time_impact" | "collapsed_as_built" | "windows";
+
+export async function runDelayAnalysisAction(data: {
+  projectId: string;
+  methodology: DelayMethodology;
+  title: string;
+  windowSizeDays?: number;
+  claimId?: string;
+}): Promise<{ success: boolean; analysisId?: string; results?: any; error?: string }> {
+  const { user, supabase } = await requireAuth();
+
+  // Fetch programme phases
+  const { data: project } = await supabase
+    .from("projects")
+    .select("programme_phases, start_date, name")
+    .eq("id", data.projectId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!project?.programme_phases) {
+    return { success: false, error: "No programme phases found for this project" };
+  }
+
+  const phases: DelayPhase[] = (project.programme_phases as any[]).map(p => ({
+    name: p.name ?? "Phase",
+    calculatedDays: p.calculatedDays ?? 7,
+    manualDays: p.manualDays ?? null,
+    startOffset: p.startOffset ?? 0,
+    actual_start_date: p.actual_start_date ?? null,
+    actual_finish_date: p.actual_finish_date ?? null,
+    revised_planned_finish: p.revised_planned_finish ?? null,
+    delay_reason: p.delay_reason ?? null,
+    delay_category: p.delay_category ?? null,
+    pct_complete: p.pct_complete ?? null,
+  }));
+
+  // Fetch contract events with time impacts
+  const { data: events } = await supabase
+    .from("contract_events")
+    .select("id, title, reference, date_raised, event_type, status, assessed_time, agreed_time")
+    .eq("project_id", data.projectId)
+    .eq("user_id", user.id);
+
+  const delayEvents: DelayEvent[] = (events ?? []).map(e => ({
+    id: e.id,
+    title: e.title ?? "",
+    reference: e.reference ?? null,
+    date_raised: e.date_raised ?? new Date().toISOString().slice(0, 10),
+    event_type: e.event_type ?? "",
+    status: e.status ?? "",
+    assessed_time: e.assessed_time ?? null,
+    agreed_time: e.agreed_time ?? null,
+  }));
+
+  const projectStart = project.start_date ?? new Date().toISOString().slice(0, 10);
+
+  // Run the selected methodology
+  let results: any;
+  switch (data.methodology) {
+    case "as_planned_vs_as_built":
+      results = analyseAsPlannedVsAsBuilt(phases, projectStart);
+      break;
+    case "time_impact":
+      results = analyseTimeImpact(phases, delayEvents, projectStart);
+      break;
+    case "collapsed_as_built":
+      results = analyseCollapsedAsBuilt(phases, delayEvents, projectStart);
+      break;
+    case "windows":
+      results = analyseWindows(phases, delayEvents, projectStart, data.windowSizeDays ?? 28);
+      break;
+  }
+
+  // Store the analysis
+  const { data: row, error } = await supabase
+    .from("delay_analyses")
+    .insert({
+      user_id: user.id,
+      project_id: data.projectId,
+      claim_id: data.claimId ?? null,
+      methodology: data.methodology,
+      title: data.title,
+      results,
+      input_snapshot: { phases, events: delayEvents, projectStart },
+    })
+    .select("id")
+    .single();
+
+  if (error) return { success: false, error: error.message };
+  REVALIDATE();
+  return { success: true, analysisId: row.id, results };
+}
+
+export async function draftDelayNarrativeAction(data: {
+  analysisId: string;
+  projectId: string;
+  contractType?: string;
+  methodology: string;
+  results: any;
+  projectName: string;
+}): Promise<{ success: boolean; narrative?: string; error?: string }> {
+  const { user, supabase } = await requireAuth();
+
+  const methodologyNames: Record<string, string> = {
+    as_planned_vs_as_built: "As-Planned vs As-Built",
+    time_impact: "Time Impact Analysis",
+    collapsed_as_built: "Collapsed As-Built",
+    windows: "Windows Analysis",
+  };
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.3,
+      messages: [
+        {
+          role: "system",
+          content: `You are a UK construction claims consultant drafting a formal delay analysis report following the Society of Construction Law (SCL) Delay and Disruption Protocol (2nd Edition, February 2017).
+
+Methodology used: ${methodologyNames[data.methodology] ?? data.methodology}
+${data.contractType ? `Contract form: ${data.contractType.replace(/_/g, " ")}` : ""}
+Project: ${data.projectName}
+
+Write a formal delay analysis narrative suitable for inclusion in a claim submission or adjudication bundle. Structure:
+1. Introduction and methodology justification
+2. Baseline programme summary
+3. As-built programme summary
+4. Delay analysis findings (reference the specific data provided)
+5. Conclusions and entitlement summary
+
+Use professional UK construction legal language. Reference the SCL Protocol where appropriate. Do not fabricate data — only reference what is provided in the analysis results.`,
+        },
+        {
+          role: "user",
+          content: `Analysis results:\n${JSON.stringify(data.results, null, 2)}`,
+        },
+      ],
+    });
+
+    const narrative = completion.choices[0]?.message?.content ?? "";
+
+    await supabase
+      .from("delay_analyses")
+      .update({ ai_narrative: narrative, updated_at: new Date().toISOString() })
+      .eq("id", data.analysisId)
+      .eq("user_id", user.id);
+
+    REVALIDATE();
+    return { success: true, narrative };
+  } catch (err: any) {
+    return { success: false, error: err.message ?? "AI narrative failed" };
+  }
+}

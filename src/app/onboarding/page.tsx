@@ -24,7 +24,7 @@ export default async function OnboardingPage({
     // Only redirect if company_name is set AND force param is not present
     const forceParam = searchParams?.force;
     if (profile?.company_name && !forceParam) {
-        redirect("/dashboard");
+        redirect("/dashboard/home");
     }
 
     return <OnboardingClient initialFullName={profile?.full_name || ""} />;

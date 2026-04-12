@@ -652,6 +652,25 @@ Use FIDIC terminology only: "Contractor", "Engineer", "Employer", "Time for Comp
       shortLabel: "EI",
       contractorTimeBarDays: null,
       timeBarClause: null,
+      aiGuidance: `FIDIC 1999 Sub-Clause 13.1 — Right to Vary. The Engineer may at any time issue an instruction which may include a Variation to the Works. The Contractor shall comply unless the Contractor cannot readily obtain the Goods required for the Variation, or unless the instruction would adversely affect the safety or suitability of the Works.
+
+Under Sub-Clause 13.3 (Variation Procedure), if the Engineer requests a proposal, the Contractor must respond as soon as practicable with:
+1. A description of the proposed work and a programme for its execution
+2. Any necessary modifications to the programme under Sub-Clause 8.3
+3. A proposal for adjustment to the Contract Price
+
+CRITICAL: If the Engineer's instruction constitutes a Variation that causes additional Cost or delay to the Time for Completion, the Contractor MUST give notice under Sub-Clause 20.1 within TWENTY-EIGHT (28) DAYS of becoming aware of the event or circumstance. Failure to notify within 28 days is a hard time bar — the Contractor loses entitlement to any additional payment or extension of time.
+
+The notice must:
+- Be in writing, addressed to the Engineer
+- Reference the Engineer's instruction number and date of issue
+- State that the instruction constitutes or gives rise to a claim under Sub-Clause 20.1
+- Describe the anticipated effect on the Time for Completion and/or Cost
+- Reserve the Contractor's right to submit a fully detailed claim within 42 days per Sub-Clause 20.1
+
+Subsequent to the notice, the Contractor shall submit full particulars within 42 days including: the contractual basis of the claim (identifying the specific Sub-Clause), detailed time impact on the programme, and a breakdown of additional Cost incurred or to be incurred.
+
+Use FIDIC terminology: "Contractor", "Engineer", "Employer", "Variation", "Time for Completion", "Cost", "Sub-Clause". Do not use NEC or JCT terminology.`,
       chain: [
         {
           step: "engineer_issues_instruction",
@@ -720,6 +739,19 @@ const FIDIC_RED_2017: ContractConfig = {
       chain: FIDIC_RED_1999.events.claim.chain.map(s =>
         s.step === "engineer_responds" ? { ...s, daysFromPrevious: 84 } : s // 2017: 84 days to agree/determine
       ),
+    },
+    engineer_instruction: {
+      ...FIDIC_RED_1999.events.engineer_instruction,
+      aiGuidance: (FIDIC_RED_1999.events.engineer_instruction.aiGuidance ?? "")
+        .replace(/Sub-Clause 20\.1/g, "Sub-Clause 20.2.1")
+        .replace(/under Sub-Clause 20\.1/g, "under Sub-Clause 20.2.1")
+        .replace(/per Sub-Clause 20\.1/g, "per Sub-Clause 20.2.1")
+        .replace(/FIDIC 1999/g, "FIDIC 2017"),
+      chain: [
+        ...FIDIC_RED_1999.events.engineer_instruction.chain.map(s =>
+          s.clauseRef === "20.1" ? { ...s, clauseRef: "20.2.1" } : s,
+        ),
+      ],
     },
   },
 };

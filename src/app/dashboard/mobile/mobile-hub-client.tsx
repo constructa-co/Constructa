@@ -12,8 +12,14 @@ import {
   CheckCircle,
   AlertCircle,
   Circle,
+  Plus,
+  X,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import InstallBanner from "@/components/install-banner";
+import { logCostAction } from "@/app/dashboard/projects/p-and-l/actions";
+import { COST_TYPES } from "@/app/dashboard/projects/p-and-l/constants";
 
 interface Project {
   id: string;
@@ -107,8 +113,40 @@ export default function MobileHubClient({ projects, recentCosts, recentVars }: P
   const [selectedId, setSelectedId] = useState<string | null>(
     projects[0]?.id ?? null
   );
+  const [fabOpen, setFabOpen] = useState(false);
+  const [fabSaving, setFabSaving] = useState(false);
+  const [fabAmount, setFabAmount] = useState("");
+  const [fabDesc, setFabDesc] = useState("");
+  const [fabType, setFabType] = useState<string>("materials");
 
   const selectedProject = projects.find(p => p.id === selectedId) ?? null;
+
+  const handleQuickLog = async () => {
+    if (!selectedId) { toast.error("Select a project first"); return; }
+    const amt = parseFloat(fabAmount);
+    if (isNaN(amt) || amt <= 0) { toast.error("Enter a valid amount"); return; }
+    if (!fabDesc.trim()) { toast.error("Enter a description"); return; }
+    setFabSaving(true);
+    try {
+      const result = await logCostAction({
+        projectId: selectedId,
+        description: fabDesc.trim(),
+        amount: amt,
+        cost_type: fabType,
+        trade_section: "General",
+        expense_date: new Date().toISOString().slice(0, 10),
+      });
+      if (result?.error) { toast.error(result.error); }
+      else {
+        toast.success(`£${amt.toFixed(2)} logged to ${selectedProject?.name ?? "project"}`);
+        setFabAmount(""); setFabDesc(""); setFabOpen(false);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to log cost");
+    } finally {
+      setFabSaving(false);
+    }
+  };
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-24 space-y-6">
@@ -239,6 +277,87 @@ export default function MobileHubClient({ projects, recentCosts, recentVars }: P
       </Link>
 
       <InstallBanner />
+
+      {/* ── Quick-log FAB + slide-up form ──────────────────────────── */}
+      {fabOpen && (
+        <div className="fixed inset-0 bg-black/60 z-40" onClick={() => setFabOpen(false)} />
+      )}
+      {fabOpen && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900 border-t border-slate-700 rounded-t-2xl px-5 pb-8 pt-4 space-y-4 max-w-lg mx-auto animate-in slide-in-from-bottom duration-200">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white">Quick Cost Log</h3>
+            <button onClick={() => setFabOpen(false)} className="text-slate-500 hover:text-slate-300">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          {selectedProject && (
+            <p className="text-[11px] text-slate-500">Logging to: <span className="text-slate-400">{selectedProject.name}</span></p>
+          )}
+          <div className="space-y-3">
+            <div>
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1 block">Amount (£)</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                value={fabAmount}
+                onChange={e => setFabAmount(e.target.value)}
+                placeholder="0.00"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-lg font-semibold placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1 block">Description</label>
+              <input
+                type="text"
+                value={fabDesc}
+                onChange={e => setFabDesc(e.target.value)}
+                placeholder="e.g. Timber delivery, Skip hire"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1 block">Type</label>
+              <div className="flex gap-2 flex-wrap">
+                {COST_TYPES.map(ct => (
+                  <button
+                    key={ct}
+                    type="button"
+                    onClick={() => setFabType(ct)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${
+                      fabType === ct
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-800 text-slate-400 border border-slate-700 hover:border-slate-600"
+                    }`}
+                  >
+                    {ct}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={handleQuickLog}
+              disabled={fabSaving || !selectedId}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {fabSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <PoundSterling className="w-4 h-4" />}
+              {fabSaving ? "Saving…" : "Log Cost"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* FAB button */}
+      {!fabOpen && (
+        <button
+          onClick={() => setFabOpen(true)}
+          className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg shadow-blue-900/40 flex items-center justify-center transition-all active:scale-90"
+          aria-label="Quick log cost"
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+      )}
     </div>
   );
 }

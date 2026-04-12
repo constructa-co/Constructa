@@ -5,6 +5,7 @@ import "jspdf-autotable";
 import { Download } from "lucide-react";
 // Sprint 58 P3.3 — migrated to the shared pdf-money helper.
 import { formatGbp as gbp } from "@/lib/pdf/pdf-money";
+import { BRAND } from "@/lib/pdf/pdf-utils";
 
 // Subset prop shapes — covers both the local Variation interface in
 // variations-client.tsx and the canonical @/types/domain one.

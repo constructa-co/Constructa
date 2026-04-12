@@ -4,6 +4,7 @@ import { FileDown } from "lucide-react";
 // Sprint 58 P3.3 — use the canonical formatter from @/lib/pdf/pdf-money
 // so every document in the app shares one implementation.
 import { formatGbp as gbp } from "@/lib/pdf/pdf-money";
+import { BRAND } from "@/lib/pdf/pdf-utils";
 
 const fmtDate = (d?: string | null) =>
     d ? new Date(d + "T00:00:00").toLocaleDateString("en-GB") : "—";

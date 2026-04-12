@@ -55,7 +55,7 @@ export default function PdfDownloadButton({ estimates, project, profile, depende
 
         // Grand total highlight box
         y += 8;
-        doc.setFillColor(15, 23, 42);
+        doc.setFillColor(...BRAND.navy);
         doc.roundedRect(BRAND.marginL, y, BRAND.contentW, 22, 3, 3, "F");
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
@@ -143,7 +143,7 @@ export default function PdfDownloadButton({ estimates, project, profile, depende
             didParseCell: (data: any) => {
                 if (data.row.index === financialData.length - 1) {
                     data.cell.styles.fontStyle = "bold";
-                    data.cell.styles.fillColor = [241, 245, 249];
+                    data.cell.styles.fillColor = [241, 245, 249] as any; // slate-100 — intentionally lighter than BRAND.light (slate-200)
                 }
             },
         });

@@ -5,6 +5,7 @@ import "jspdf-autotable";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { formatGbp } from "@/lib/pdf/pdf-money";
+import { BRAND } from "@/lib/pdf/pdf-utils";
 
 // Sprint 58 P3.3 — the PDF button only needs a small subset of the
 // canonical Invoice/Project/Variation shapes, and the parent component

@@ -43,12 +43,12 @@ export default function VariationPdfButton({ variation, project }: Props) {
         let y = 20;
 
         // ── HEADER ──
-        doc.setFillColor(15, 23, 42);
+        doc.setFillColor(...BRAND.navy);
         doc.rect(0, 0, pageW, 38, "F");
 
         doc.setFontSize(18);
         doc.setFont("helvetica", "bold");
-        doc.setTextColor(255, 255, 255);
+        doc.setTextColor(...BRAND.white);
         doc.text("VARIATION INSTRUCTION", margin, 16);
 
         doc.setFontSize(9);
@@ -70,7 +70,7 @@ export default function VariationPdfButton({ variation, project }: Props) {
         doc.roundedRect(pageW - margin - 36, 12, 36, 10, 2, 2, "F");
         doc.setFontSize(8);
         doc.setFont("helvetica", "bold");
-        doc.setTextColor(255, 255, 255);
+        doc.setTextColor(...BRAND.white);
         doc.text(status.toUpperCase(), pageW - margin - 18, 19, { align: "center" });
 
         y = 50;
@@ -84,20 +84,20 @@ export default function VariationPdfButton({ variation, project }: Props) {
         doc.text("CLIENT", 110, y);
         y += 5;
         doc.setFont("helvetica", "normal");
-        doc.setTextColor(15, 23, 42);
+        doc.setTextColor(...BRAND.navy);
         doc.setFontSize(10);
         doc.text(project?.name ?? "—", margin, y);
         doc.text(project?.client_name ?? "—", 110, y);
         y += 6;
         if (project?.site_address) {
             doc.setFontSize(8);
-            doc.setTextColor(100, 116, 139);
+            doc.setTextColor(...BRAND.mid);
             doc.text(project.site_address, margin, y);
             y += 5;
         }
 
         y += 8;
-        doc.setDrawColor(226, 232, 240);
+        doc.setDrawColor(...BRAND.light);
         doc.line(margin, y, pageW - margin, y);
         y += 10;
 
@@ -123,14 +123,14 @@ export default function VariationPdfButton({ variation, project }: Props) {
             doc.setFontSize(8);
             doc.text(label + ":", margin, y);
             doc.setFont("helvetica", "normal");
-            doc.setTextColor(15, 23, 42);
+            doc.setTextColor(...BRAND.navy);
             doc.setFontSize(9);
             doc.text(value, margin + 42, y);
             y += 6;
         });
 
         y += 4;
-        doc.setDrawColor(226, 232, 240);
+        doc.setDrawColor(...BRAND.light);
         doc.line(margin, y, pageW - margin, y);
         y += 10;
 
@@ -142,12 +142,12 @@ export default function VariationPdfButton({ variation, project }: Props) {
             doc.text("DESCRIPTION OF WORKS", margin, y);
             y += 6;
             doc.setFont("helvetica", "normal");
-            doc.setTextColor(15, 23, 42);
+            doc.setTextColor(...BRAND.navy);
             doc.setFontSize(9);
             const lines = doc.splitTextToSize(variation.description, pageW - margin * 2);
             doc.text(lines, margin, y);
             y += lines.length * 5 + 8;
-            doc.setDrawColor(226, 232, 240);
+            doc.setDrawColor(...BRAND.light);
             doc.line(margin, y, pageW - margin, y);
             y += 10;
         }
@@ -167,7 +167,7 @@ export default function VariationPdfButton({ variation, project }: Props) {
                 ["Variation to Original Contract Sum", gbp(Number(variation.amount))],
             ],
             theme: "striped",
-            headStyles: { fillColor: [15, 23, 42], textColor: 255, fontSize: 8 },
+            headStyles: { fillColor: BRAND.navy as any, textColor: 255, fontSize: 8 },
             bodyStyles: { fontSize: 9 },
             columnStyles: { 1: { halign: "right", fontStyle: "bold" } },
         });
@@ -183,7 +183,7 @@ export default function VariationPdfButton({ variation, project }: Props) {
         doc.setTextColor(71, 85, 105);
         doc.text("NET VARIATION VALUE", pageW - margin - 35, y + 6, { align: "center" });
         doc.setFontSize(13);
-        doc.setTextColor(37, 99, 235);
+        doc.setTextColor(...BRAND.blue);
         doc.text(gbp(Number(variation.amount)), pageW - margin - 35, y + 14, { align: "center" });
         y += 28;
 
@@ -197,7 +197,7 @@ export default function VariationPdfButton({ variation, project }: Props) {
             doc.setTextColor(5, 150, 105);
             doc.text("APPROVED", margin + 5, y + 8);
             doc.setFont("helvetica", "normal");
-            doc.setTextColor(15, 23, 42);
+            doc.setTextColor(...BRAND.navy);
             if (variation.approval_reference) doc.text(`Ref: ${variation.approval_reference}`, margin + 5, y + 14);
             if (variation.approval_date) doc.text(`Date: ${new Date(variation.approval_date).toLocaleDateString("en-GB")}`, 120, y + 14);
             y += 28;
@@ -212,7 +212,7 @@ export default function VariationPdfButton({ variation, project }: Props) {
             doc.setTextColor(185, 28, 28);
             doc.text("REJECTED", margin + 5, y + 8);
             doc.setFont("helvetica", "normal");
-            doc.setTextColor(15, 23, 42);
+            doc.setTextColor(...BRAND.navy);
             const rLines = doc.splitTextToSize(`Reason: ${variation.rejection_reason}`, pageW - margin * 2 - 10);
             doc.text(rLines, margin + 5, y + 14);
             y += 28;
@@ -220,11 +220,11 @@ export default function VariationPdfButton({ variation, project }: Props) {
 
         // ── SIGNATURE BLOCK ──
         y = Math.max(y + 10, 240);
-        doc.setDrawColor(226, 232, 240);
+        doc.setDrawColor(...BRAND.light);
         doc.line(margin, y, margin + 60, y);
         doc.line(110, y, 110 + 60, y);
         doc.setFontSize(8);
-        doc.setTextColor(100, 116, 139);
+        doc.setTextColor(...BRAND.mid);
         doc.text("Contractor Signature / Date", margin, y + 5);
         doc.text("Client Acknowledgement / Date", 110, y + 5);
 

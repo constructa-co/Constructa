@@ -38,12 +38,12 @@ export default function FinalAccountPdfButton({
         let y = 0;
 
         // ── Header band ──────────────────────────────────────────────────────
-        doc.setFillColor(15, 23, 42); // slate-900
+        doc.setFillColor(...BRAND.navy); // slate-900
         doc.rect(0, 0, W, 42, "F");
 
         doc.setFont("helvetica", "bold");
         doc.setFontSize(18);
-        doc.setTextColor(255, 255, 255);
+        doc.setTextColor(...BRAND.white);
         doc.text("FINAL ACCOUNT STATEMENT", margin, 16);
 
         doc.setFontSize(9);
@@ -67,22 +67,22 @@ export default function FinalAccountPdfButton({
         doc.setFont("helvetica", "bold");
         const badgeW = doc.getTextWidth(badgeLabel) + 8;
         doc.roundedRect(W - margin - badgeW, 9, badgeW, 7, 2, 2, "F");
-        doc.setTextColor(255, 255, 255);
+        doc.setTextColor(...BRAND.white);
         doc.text(badgeLabel, W - margin - badgeW / 2, 14.2, { align: "center" });
 
         y = 50;
 
         // ── Project details block ─────────────────────────────────────────────
-        doc.setFillColor(30, 41, 59); // slate-800
+        doc.setFillColor(...BRAND.slate); // slate-800
         doc.roundedRect(margin, y, W - margin * 2, 34, 3, 3, "F");
 
         const col1 = margin + 6;
         const col2 = margin + 6 + (W - margin * 2) / 2;
 
         const detailRow = (label: string, value: string, x: number, yy: number) => {
-            doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(100, 116, 139);
+            doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(...BRAND.mid);
             doc.text(label.toUpperCase(), x, yy);
-            doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(226, 232, 240);
+            doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...BRAND.light);
             doc.text(value || "—", x, yy + 5);
         };
 
@@ -94,7 +94,7 @@ export default function FinalAccountPdfButton({
         y += 42;
 
         // ── Financial Statement table ─────────────────────────────────────────
-        doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(226, 232, 240);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...BRAND.light);
         doc.text("Financial Statement", margin, y);
         y += 5;
 
@@ -141,12 +141,12 @@ export default function FinalAccountPdfButton({
                 fontSize: 9,
                 cellPadding: 3,
                 textColor: [203, 213, 225],
-                fillColor: [30, 41, 59],
+                fillColor: BRAND.slate as any,
                 lineColor: [51, 65, 85],
                 lineWidth: 0.3,
             },
             headStyles: {
-                fillColor: [15, 23, 42],
+                fillColor: BRAND.navy as any,
                 textColor: [148, 163, 184],
                 fontSize: 8,
                 fontStyle: "bold",
@@ -162,8 +162,8 @@ export default function FinalAccountPdfButton({
                     const label = String(raw?.[0] ?? "");
                     if (boldRowLabels.has(label)) {
                         data.cell.styles.fontStyle = "bold";
-                        data.cell.styles.textColor = [255, 255, 255] as any;
-                        data.cell.styles.fillColor = [15, 23, 42] as any;
+                        data.cell.styles.textColor = BRAND.white as any;
+                        data.cell.styles.fillColor = BRAND.navy as any;
                     }
                 }
             },
@@ -175,7 +175,7 @@ export default function FinalAccountPdfButton({
         // ── Certification history ─────────────────────────────────────────────
         const normalInvoices = invoices.filter(i => !i.is_retention_release);
         if (normalInvoices.length > 0) {
-            doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(226, 232, 240);
+            doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...BRAND.light);
             doc.text("Certification History", margin, y);
             y += 4;
 
@@ -191,8 +191,8 @@ export default function FinalAccountPdfButton({
                     inv.status ?? "—",
                 ]),
                 margin: { left: margin, right: margin },
-                styles: { fontSize: 8, cellPadding: 2.5, textColor: [203, 213, 225], fillColor: [30, 41, 59], lineColor: [51, 65, 85], lineWidth: 0.3 },
-                headStyles: { fillColor: [15, 23, 42], textColor: [148, 163, 184], fontSize: 7.5, fontStyle: "bold" },
+                styles: { fontSize: 8, cellPadding: 2.5, textColor: [203, 213, 225], fillColor: BRAND.slate as any, lineColor: [51, 65, 85], lineWidth: 0.3 },
+                headStyles: { fillColor: BRAND.navy as any, textColor: [148, 163, 184], fontSize: 7.5, fontStyle: "bold" },
                 theme: "grid",
             });
 
@@ -201,7 +201,7 @@ export default function FinalAccountPdfButton({
 
         // ── Notes ─────────────────────────────────────────────────────────────
         if (finalAccount?.notes) {
-            doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(226, 232, 240);
+            doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...BRAND.light);
             doc.text("Notes", margin, y);
             y += 5;
             doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(148, 163, 184);
@@ -229,7 +229,7 @@ export default function FinalAccountPdfButton({
             y = 20;
         }
 
-        doc.setFillColor(15, 23, 42);
+        doc.setFillColor(...BRAND.navy);
         doc.roundedRect(margin, y, W - margin * 2, 52, 3, 3, "F");
 
         doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(148, 163, 184);
@@ -238,7 +238,7 @@ export default function FinalAccountPdfButton({
         const halfW = (W - margin * 2 - 12) / 2;
 
         const sigBlock = (label: string, name: string, x: number, yy: number) => {
-            doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(100, 116, 139);
+            doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...BRAND.mid);
             doc.text(label, x, yy);
             doc.setDrawColor(51, 65, 85);
             doc.line(x, yy + 12, x + halfW, yy + 12);

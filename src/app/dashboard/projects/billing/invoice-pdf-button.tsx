@@ -118,7 +118,7 @@ export default function InvoicePdfButton({ invoice, project, originalContractSum
             head: [["Description", "Amount"]],
             body: tableRows,
             theme: "striped",
-            headStyles: { fillStyle: [15, 23, 42], textColor: 255 },
+            headStyles: { fillStyle: BRAND.navy as any, textColor: 255 },
             styles: { fontSize: 9 },
         });
 
@@ -130,7 +130,7 @@ export default function InvoicePdfButton({ invoice, project, originalContractSum
         doc.text("CURRENT AMOUNT DUE FOR THIS VALUATION:", margin, currentY);
 
         doc.setFontSize(18);
-        doc.setTextColor(37, 99, 235); // Blue-600
+        doc.setTextColor(...BRAND.blue);
         doc.text(formatGbp(invoice.amount), margin, currentY + 10);
 
         // --- FOOTER ---

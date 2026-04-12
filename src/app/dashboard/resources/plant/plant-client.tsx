@@ -153,12 +153,12 @@ const BLANK: PlantResourceInput = {
 };
 
 // ---------------------------------------------------------------------------
-// Mini UI primitives (dark slate theme)
+// Mini UI primitives (theme-aware via CSS variables)
 // ---------------------------------------------------------------------------
 
 function Label({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
   return (
-    <label htmlFor={htmlFor} className="block text-xs font-medium text-slate-400 mb-1">
+    <label htmlFor={htmlFor} className="block text-xs font-medium text-muted-foreground mb-1">
       {children}
     </label>
   );
@@ -173,8 +173,8 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
         props.onFocus?.(e);
       }}
       className={
-        "w-full h-10 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 " +
-        "placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600 " +
+        "w-full h-10 rounded-lg border border-border bg-input px-3 text-sm text-foreground " +
+        "placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-600 " +
         "disabled:opacity-50 " +
         (props.className ?? "")
       }
@@ -188,8 +188,8 @@ function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
       rows={2}
       {...props}
       className={
-        "w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 " +
-        "placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none " +
+        "w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground " +
+        "placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none " +
         (props.className ?? "")
       }
     />
@@ -204,7 +204,7 @@ function Select({
     <select
       {...props}
       className={
-        "w-full h-10 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 " +
+        "w-full h-10 rounded-lg border border-border bg-input px-3 text-sm text-foreground " +
         "focus:outline-none focus:ring-2 focus:ring-blue-600 " +
         (props.className ?? "")
       }
@@ -216,7 +216,7 @@ function Select({
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-3 mt-5 first:mt-0">
+    <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3 mt-5 first:mt-0">
       {children}
     </h4>
   );
@@ -241,14 +241,14 @@ function RatePreview({ form }: { form: PlantResourceInput }) {
     separator?: boolean;
   }) => (
     <>
-      {separator && <div className="border-t border-slate-700/60 my-1.5" />}
+      {separator && <div className="border-t border-border/60 my-1.5" />}
       <div
         className={`flex justify-between items-center text-xs py-0.5 ${
-          highlight ? "font-semibold text-blue-300" : "text-slate-400"
+          highlight ? "font-semibold text-blue-300" : "text-muted-foreground"
         }`}
       >
         <span>{label}</span>
-        <span className={highlight ? "text-blue-300" : "text-slate-300"}>{value}</span>
+        <span className={highlight ? "text-blue-300" : "text-foreground/80"}>{value}</span>
       </div>
     </>
   );
@@ -256,8 +256,8 @@ function RatePreview({ form }: { form: PlantResourceInput }) {
   if (isSimple) {
     const daily = form.daily_chargeout_rate;
     return (
-      <div className="bg-slate-900 border border-slate-700/60 rounded-xl p-4 space-y-0.5">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-3">
+      <div className="bg-card border border-border/60 rounded-xl p-4 space-y-0.5">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
           Rate Summary
         </p>
         <Row label="Half day" value={gbp(daily / 2)} />
@@ -280,8 +280,8 @@ function RatePreview({ form }: { form: PlantResourceInput }) {
   const dailyChargeout = dailyCost + profitAmount;
 
   return (
-    <div className="bg-slate-900 border border-slate-700/60 rounded-xl p-4 space-y-0.5">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-3">
+    <div className="bg-card border border-border/60 rounded-xl p-4 space-y-0.5">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
         Live Rate Preview
       </p>
       <Row label="Purchase price" value={gbp0(form.purchase_price)} />
@@ -365,15 +365,15 @@ function PlantDialog({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl">
+      <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-card border border-border shadow-2xl">
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-700 bg-slate-900 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-100">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card px-6 py-4">
+          <h2 className="text-base font-semibold text-foreground">
             {form.id ? "Edit Plant Item" : "Add Plant Item"}
           </h2>
           <button
             onClick={onClose}
-            className="text-slate-500 hover:text-slate-300 text-xl leading-none"
+            className="text-muted-foreground hover:text-foreground/80 text-xl leading-none"
           >
             ×
           </button>
@@ -382,7 +382,7 @@ function PlantDialog({
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-0">
             {/* Left: form fields */}
-            <div className="p-6 space-y-1 border-r border-slate-700/50">
+            <div className="p-6 space-y-1 border-r border-border/50">
               {/* Basic Info */}
               <SectionHeading>Basic Info</SectionHeading>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -435,13 +435,13 @@ function PlantDialog({
                     "rounded-lg border-2 p-3 text-left transition-colors",
                     form.rate_mode === "simple"
                       ? "border-blue-500 bg-blue-950/40"
-                      : "border-slate-700 bg-slate-800/40 hover:border-slate-600",
+                      : "border-border bg-input/40 hover:border-border",
                   ].join(" ")}
                 >
-                  <p className={["font-semibold text-sm", form.rate_mode === "simple" ? "text-blue-300" : "text-slate-300"].join(" ")}>
+                  <p className={["font-semibold text-sm", form.rate_mode === "simple" ? "text-blue-300" : "text-foreground/80"].join(" ")}>
                     Simple Rate
                   </p>
-                  <p className="text-xs text-slate-500 mt-0.5">Enter daily chargeout directly</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Enter daily chargeout directly</p>
                 </button>
                 <button
                   type="button"
@@ -450,13 +450,13 @@ function PlantDialog({
                     "rounded-lg border-2 p-3 text-left transition-colors",
                     form.rate_mode === "full"
                       ? "border-blue-500 bg-blue-950/40"
-                      : "border-slate-700 bg-slate-800/40 hover:border-slate-600",
+                      : "border-border bg-input/40 hover:border-border",
                   ].join(" ")}
                 >
-                  <p className={["font-semibold text-sm", form.rate_mode === "full" ? "text-blue-300" : "text-slate-300"].join(" ")}>
+                  <p className={["font-semibold text-sm", form.rate_mode === "full" ? "text-blue-300" : "text-foreground/80"].join(" ")}>
                     Full Buildup
                   </p>
-                  <p className="text-xs text-slate-500 mt-0.5">Build from depreciation + costs</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Build from depreciation + costs</p>
                 </button>
               </div>
 
@@ -473,11 +473,11 @@ function PlantDialog({
                     onChange={(e) => set("daily_chargeout_rate", parseFloat(e.target.value) || 0)}
                     placeholder="e.g. 450.00"
                   />
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Half-day:{" "}
-                    <span className="text-slate-300">{gbp(form.daily_chargeout_rate / 2)}</span>
+                    <span className="text-foreground/80">{gbp(form.daily_chargeout_rate / 2)}</span>
                     {" "}· Weekly:{" "}
-                    <span className="text-slate-300">{gbp(form.daily_chargeout_rate * 5)}</span>
+                    <span className="text-foreground/80">{gbp(form.daily_chargeout_rate * 5)}</span>
                   </p>
                 </div>
               )}
@@ -521,9 +521,9 @@ function PlantDialog({
                 </div>
               </div>
               {form.depreciation_years > 0 && (
-                <p className="text-xs text-slate-500 mt-1.5">
+                <p className="text-xs text-muted-foreground mt-1.5">
                   Annual depreciation:{" "}
-                  <span className="text-slate-300 font-medium">{gbp0(annualDepreciation)}</span>
+                  <span className="text-foreground/80 font-medium">{gbp0(annualDepreciation)}</span>
                 </p>
               )}
 
@@ -590,7 +590,7 @@ function PlantDialog({
                     value={form.utilisation_months}
                     onChange={(e) => set("utilisation_months", Math.min(12, Math.max(1, int(e.target.value))))}
                   />
-                  <p className="text-xs text-slate-600 mt-1">
+                  <p className="text-xs text-muted-foreground/60 mt-1">
                     10 months accounts for periods of low utilisation / maintenance
                   </p>
                 </div>
@@ -606,9 +606,9 @@ function PlantDialog({
                   />
                 </div>
               </div>
-              <p className="text-xs text-slate-500 mt-1.5">
+              <p className="text-xs text-muted-foreground mt-1.5">
                 Chargeable days:{" "}
-                <span className="text-slate-300 font-medium">{chargeableDays} per year</span>
+                <span className="text-foreground/80 font-medium">{chargeableDays} per year</span>
               </p>
 
               {/* Profit Uplift */}
@@ -642,11 +642,11 @@ function PlantDialog({
           </div>
 
           {/* Footer */}
-          <div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-slate-700 bg-slate-900 px-6 py-4">
+          <div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-border bg-card px-6 py-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+              className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-input transition-colors"
             >
               Cancel
             </button>
@@ -717,7 +717,7 @@ export default function PlantResourcesClient({ plant }: { plant: PlantRow[] }) {
     <div className="space-y-6">
       {/* Toolbar */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted-foreground">
           {plant.length === 0
             ? "No assets registered yet"
             : `${plant.length} asset${plant.length !== 1 ? "s" : ""} registered`}
@@ -733,10 +733,10 @@ export default function PlantResourcesClient({ plant }: { plant: PlantRow[] }) {
 
       {/* Empty state */}
       {plant.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 rounded-2xl border-2 border-dashed border-slate-700 text-center">
-          <PackageOpen className="w-12 h-12 text-slate-600 mb-4" />
-          <p className="text-slate-400 font-medium mb-1">No plant registered yet</p>
-          <p className="text-sm text-slate-600 mb-6 max-w-xs">
+        <div className="flex flex-col items-center justify-center py-20 rounded-2xl border-2 border-dashed border-border text-center">
+          <PackageOpen className="w-12 h-12 text-muted-foreground/60 mb-4" />
+          <p className="text-muted-foreground font-medium mb-1">No plant registered yet</p>
+          <p className="text-sm text-muted-foreground/60 mb-6 max-w-xs">
             Add your owned assets to track depreciation, running costs and generate daily
             chargeout rates.
           </p>
@@ -752,34 +752,34 @@ export default function PlantResourcesClient({ plant }: { plant: PlantRow[] }) {
 
       {/* Table */}
       {plant.length > 0 && (
-        <div className="overflow-x-auto rounded-xl border border-slate-700">
+        <div className="overflow-x-auto rounded-xl border border-border">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-700 bg-slate-800/60">
-                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <tr className="border-b border-border bg-input/60">
+                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Name
                 </th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Category
                 </th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Mode
                 </th>
-                <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Half Day
                 </th>
-                <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Daily Chargeout
                 </th>
-                <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Weekly
                 </th>
-                <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700/50">
+            <tbody className="divide-y divide-border/50">
               {plant.map((row) => {
                 const isSimple = (row.rate_mode || "full") === "simple";
                 const dailyChargeout = calcPlantDailyChargeout(row);
@@ -790,43 +790,43 @@ export default function PlantResourcesClient({ plant }: { plant: PlantRow[] }) {
                 return (
                   <tr
                     key={row.id}
-                    className="bg-slate-900 hover:bg-slate-800/50 transition-colors"
+                    className="bg-card hover:bg-input/50 transition-colors"
                   >
-                    <td className="px-4 py-3 font-medium text-slate-100">
+                    <td className="px-4 py-3 font-medium text-foreground">
                       {row.name}
                       {row.description && (
-                        <p className="text-xs text-slate-500 font-normal mt-0.5">
+                        <p className="text-xs text-muted-foreground font-normal mt-0.5">
                           {row.description}
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-slate-300 whitespace-nowrap text-sm">
+                    <td className="px-4 py-3 text-foreground/80 whitespace-nowrap text-sm">
                       {categoryLabel(row.category)}
                     </td>
                     <td className="px-4 py-3">
                       <span className={[
                         "text-xs px-2 py-0.5 rounded-full border",
                         isSimple
-                          ? "border-slate-600 text-slate-400"
+                          ? "border-border text-muted-foreground"
                           : "border-blue-700/50 bg-blue-900/50 text-blue-300",
                       ].join(" ")}>
                         {isSimple ? "Simple" : "Buildup"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right text-slate-300 tabular-nums font-mono text-sm">
+                    <td className="px-4 py-3 text-right text-foreground/80 tabular-nums font-mono text-sm">
                       {gbp(halfDay)}
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-blue-300 tabular-nums font-mono text-sm">
                       {gbp(dailyChargeout)}
                     </td>
-                    <td className="px-4 py-3 text-right text-slate-300 tabular-nums font-mono text-sm">
+                    <td className="px-4 py-3 text-right text-foreground/80 tabular-nums font-mono text-sm">
                       {gbp(weekly)}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => openEdit(row)}
-                          className="p-1.5 rounded-md text-slate-500 hover:text-slate-200 hover:bg-slate-700 transition-colors"
+                          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                           title="Edit"
                         >
                           <Pencil className="w-3.5 h-3.5" />
@@ -834,7 +834,7 @@ export default function PlantResourcesClient({ plant }: { plant: PlantRow[] }) {
                         <button
                           onClick={() => handleDelete(row.id)}
                           disabled={isDeleting}
-                          className="p-1.5 rounded-md text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40"
+                          className="p-1.5 rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40"
                           title="Delete"
                         >
                           {isDeleting ? (

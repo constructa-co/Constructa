@@ -266,7 +266,7 @@ const JOB_TITLE_SUGGESTIONS = [
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-xs uppercase tracking-wider text-slate-500 font-semibold pb-1 border-b border-slate-700/50 mb-3">
+    <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold pb-1 border-b border-border/50 mb-3">
       {children}
     </h3>
   );
@@ -283,9 +283,9 @@ function FieldGroup({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-slate-300 text-sm">{label}</Label>
+      <Label className="text-foreground/80 text-sm">{label}</Label>
       {children}
-      {hint && <p className="text-xs text-slate-500 leading-snug">{hint}</p>}
+      {hint && <p className="text-xs text-muted-foreground leading-snug">{hint}</p>}
     </div>
   );
 }
@@ -310,7 +310,7 @@ function NumericInput({
   return (
     <div className="relative flex items-center">
       {prefix && (
-        <span className="absolute left-3 text-slate-400 text-sm pointer-events-none select-none">
+        <span className="absolute left-3 text-muted-foreground text-sm pointer-events-none select-none">
           {prefix}
         </span>
       )}
@@ -323,7 +323,7 @@ function NumericInput({
         onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
         onFocus={(e) => e.target.select()}
         className={[
-          "bg-slate-800 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-blue-500",
+          "bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-blue-500",
           prefix ? "pl-7" : "",
           suffix ? "pr-8" : "",
         ]
@@ -331,7 +331,7 @@ function NumericInput({
           .join(" ")}
       />
       {suffix && (
-        <span className="absolute right-3 text-slate-400 text-sm pointer-events-none select-none">
+        <span className="absolute right-3 text-muted-foreground text-sm pointer-events-none select-none">
           {suffix}
         </span>
       )}
@@ -386,8 +386,8 @@ function RatePreviewPanel({ form }: { form: FormState }) {
         key={label}
         className={[
           "flex justify-between gap-2",
-          separator ? "border-t border-slate-700 pt-1 mt-1" : "",
-          separator ? "text-slate-200 font-semibold" : isZero ? "text-slate-600" : "text-slate-400",
+          separator ? "border-t border-border pt-1 mt-1" : "",
+          separator ? "text-foreground font-semibold" : isZero ? "text-muted-foreground/60" : "text-muted-foreground",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -401,8 +401,8 @@ function RatePreviewPanel({ form }: { form: FormState }) {
   }
 
   return (
-    <div className="bg-slate-900/60 border border-slate-700 rounded-xl p-4 font-mono text-sm space-y-0.5">
-      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 font-sans">
+    <div className="bg-card/60 border border-border rounded-xl p-4 font-mono text-sm space-y-0.5">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 font-sans">
         Live Rate Preview
       </p>
       {previewLine("Annual salary:", salary)}
@@ -415,7 +415,7 @@ function RatePreviewPanel({ form }: { form: FormState }) {
       {previewLine("+ Life insurance:", lifeCost)}
       {previewLine("+ Other benefits:", otherCost)}
       {previewLine("= Total annual cost:", totalAnnual, true)}
-      <div className="text-slate-500 font-mono text-xs py-0.5">
+      <div className="text-muted-foreground font-mono text-xs py-0.5">
         {`÷ Chargeable days (${chargeableDays}):`}
       </div>
       {previewLine("= Daily base cost:", dailyBase, true)}
@@ -480,9 +480,9 @@ function StaffFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-900 border-slate-700 text-slate-100 max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-card border-border text-foreground max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-slate-100 text-lg">
+          <DialogTitle className="text-foreground text-lg">
             {isEdit ? "Edit Staff Member" : "Add Staff Member"}
           </DialogTitle>
         </DialogHeader>
@@ -496,15 +496,15 @@ function StaffFormDialog({
               <div className="grid grid-cols-[auto_1fr_1fr] gap-3 items-end">
                 <FieldGroup label="Title">
                   <Select value={form.title} onValueChange={(v) => set("title", v)}>
-                    <SelectTrigger className="bg-slate-800 border-slate-600 text-slate-100 w-24 focus:ring-blue-500">
+                    <SelectTrigger className="bg-input border-border text-foreground w-24 focus:ring-blue-500">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
+                    <SelectContent className="bg-input border-border text-foreground">
                       {["Mr", "Mrs", "Ms", "Dr", "Mx", "Prof"].map((t) => (
                         <SelectItem
                           key={t}
                           value={t}
-                          className="focus:bg-slate-700 focus:text-slate-100"
+                          className="focus:bg-muted focus:text-foreground"
                         >
                           {t}
                         </SelectItem>
@@ -518,7 +518,7 @@ function StaffFormDialog({
                     value={form.first_name}
                     onChange={(e) => set("first_name", e.target.value)}
                     placeholder="e.g. Sarah"
-                    className="bg-slate-800 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-blue-500"
+                    className="bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-blue-500"
                   />
                 </FieldGroup>
 
@@ -527,7 +527,7 @@ function StaffFormDialog({
                     value={form.last_name}
                     onChange={(e) => set("last_name", e.target.value)}
                     placeholder="e.g. Johnson"
-                    className="bg-slate-800 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-blue-500"
+                    className="bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-blue-500"
                   />
                 </FieldGroup>
               </div>
@@ -539,7 +539,7 @@ function StaffFormDialog({
                   value={form.job_title}
                   onChange={(e) => set("job_title", e.target.value)}
                   placeholder="e.g. Site Manager, Electrician, Director"
-                  className="bg-slate-800 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-blue-500"
+                  className="bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-blue-500"
                 />
                 <datalist id="job-title-suggestions">
                   {JOB_TITLE_SUGGESTIONS.map((t) => <option key={t} value={t} />)}
@@ -559,18 +559,18 @@ function StaffFormDialog({
                   "rounded-lg border-2 p-4 text-left transition-colors",
                   form.rate_mode === "simple"
                     ? "border-blue-500 bg-blue-950/40"
-                    : "border-slate-700 bg-slate-800/40 hover:border-slate-600",
+                    : "border-border bg-input/40 hover:border-border",
                 ].join(" ")}
               >
                 <p
                   className={[
                     "font-semibold text-sm",
-                    form.rate_mode === "simple" ? "text-blue-300" : "text-slate-300",
+                    form.rate_mode === "simple" ? "text-blue-300" : "text-foreground/80",
                   ].join(" ")}
                 >
                   Simple Rate
                 </p>
-                <p className="text-xs text-slate-500 mt-1">Enter chargeout rate directly</p>
+                <p className="text-xs text-muted-foreground mt-1">Enter chargeout rate directly</p>
               </button>
 
               <button
@@ -580,18 +580,18 @@ function StaffFormDialog({
                   "rounded-lg border-2 p-4 text-left transition-colors",
                   form.rate_mode === "full"
                     ? "border-blue-500 bg-blue-950/40"
-                    : "border-slate-700 bg-slate-800/40 hover:border-slate-600",
+                    : "border-border bg-input/40 hover:border-border",
                 ].join(" ")}
               >
                 <p
                   className={[
                     "font-semibold text-sm",
-                    form.rate_mode === "full" ? "text-blue-300" : "text-slate-300",
+                    form.rate_mode === "full" ? "text-blue-300" : "text-foreground/80",
                   ].join(" ")}
                 >
                   Full Cost Buildup
                 </p>
-                <p className="text-xs text-slate-500 mt-1">Build from salary + on-costs</p>
+                <p className="text-xs text-muted-foreground mt-1">Build from salary + on-costs</p>
               </button>
             </div>
           </section>
@@ -620,12 +620,12 @@ function StaffFormDialog({
                   </FieldGroup>
                 </div>
 
-                <div className="bg-slate-800/60 border border-slate-700 rounded-lg p-3 text-sm">
-                  <span className="text-slate-400">Day rate: </span>
-                  <span className="text-slate-100 font-semibold font-mono">
+                <div className="bg-input/60 border border-border rounded-lg p-3 text-sm">
+                  <span className="text-muted-foreground">Day rate: </span>
+                  <span className="text-foreground font-semibold font-mono">
                     {gbp(simpleDayRate)}
                   </span>
-                  <span className="text-slate-500 ml-1">(8 hrs)</span>
+                  <span className="text-muted-foreground ml-1">(8 hrs)</span>
                 </div>
               </div>
             </section>
@@ -650,7 +650,7 @@ function StaffFormDialog({
               {/* Employer On-Costs */}
               <div>
                 <SectionHeading>Employer On-Costs</SectionHeading>
-                <p className="text-xs text-slate-500 mb-3">
+                <p className="text-xs text-muted-foreground mb-3">
                   UK statutory minimums shown as defaults
                 </p>
                 <div className="grid grid-cols-2 gap-4">
@@ -767,10 +767,10 @@ function StaffFormDialog({
                     />
                   </FieldGroup>
                 </div>
-                <div className="bg-slate-800/60 border border-slate-700 rounded-lg p-3 text-sm">
-                  <span className="text-slate-400">Chargeable days: </span>
-                  <span className="text-slate-100 font-semibold">{chargeableDays}</span>
-                  <span className="text-slate-500"> per year</span>
+                <div className="bg-input/60 border border-border rounded-lg p-3 text-sm">
+                  <span className="text-muted-foreground">Chargeable days: </span>
+                  <span className="text-foreground font-semibold">{chargeableDays}</span>
+                  <span className="text-muted-foreground"> per year</span>
                 </div>
               </div>
 
@@ -813,7 +813,7 @@ function StaffFormDialog({
               onChange={(e) => set("notes", e.target.value)}
               placeholder="Any additional notes about this team member…"
               rows={3}
-              className="bg-slate-800 border-slate-600 text-slate-100 placeholder:text-slate-500 focus:border-blue-500 resize-none"
+              className="bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-blue-500 resize-none"
             />
           </section>
 
@@ -823,7 +823,7 @@ function StaffFormDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isPending}
-              className="border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-slate-100"
+              className="border-border text-foreground/80 hover:bg-input hover:text-foreground"
             >
               Cancel
             </Button>
@@ -878,8 +878,8 @@ export default function StaffResourcesClient({ staff }: { staff: StaffRow[] }) {
       {/* Toolbar */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-100">Staff &amp; Contractors</h2>
-          <p className="text-sm text-slate-500">Build accurate labour cost profiles for your team</p>
+          <h2 className="text-lg font-semibold text-foreground">Staff &amp; Contractors</h2>
+          <p className="text-sm text-muted-foreground">Build accurate labour cost profiles for your team</p>
         </div>
         <Button onClick={openAdd} className="bg-blue-600 hover:bg-blue-700 text-white">
           + Add Staff Member
@@ -888,10 +888,10 @@ export default function StaffResourcesClient({ staff }: { staff: StaffRow[] }) {
 
       {/* Empty State */}
       {staff.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-700 py-24 text-center">
-          <Users className="w-10 h-10 text-slate-600 mb-4" />
-          <p className="text-slate-300 text-base font-semibold mb-1">Add your first team member</p>
-          <p className="text-slate-500 text-sm mb-6 max-w-xs">
+        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-24 text-center">
+          <Users className="w-10 h-10 text-muted-foreground/60 mb-4" />
+          <p className="text-foreground/80 text-base font-semibold mb-1">Add your first team member</p>
+          <p className="text-muted-foreground text-sm mb-6 max-w-xs">
             Create cost profiles for employees and contractors to use in project estimates
           </p>
           <Button onClick={openAdd} className="bg-blue-600 hover:bg-blue-700 text-white">
@@ -902,21 +902,21 @@ export default function StaffResourcesClient({ staff }: { staff: StaffRow[] }) {
 
       {/* Staff Table */}
       {staff.length > 0 && (
-        <div className="rounded-xl border border-slate-700 overflow-hidden">
+        <div className="rounded-xl border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-slate-800/60 border-b border-slate-700">
-                <th className="text-left text-slate-400 font-medium px-4 py-3">
+              <tr className="bg-input/60 border-b border-border">
+                <th className="text-left text-muted-foreground font-medium px-4 py-3">
                   Name &amp; Job Title
                 </th>
-                <th className="text-left text-slate-400 font-medium px-4 py-3">Mode</th>
-                <th className="text-right text-slate-400 font-medium px-4 py-3">Hourly</th>
-                <th className="text-right text-slate-400 font-medium px-4 py-3">Daily</th>
-                <th className="text-right text-slate-400 font-medium px-4 py-3">Annual</th>
-                <th className="text-right text-slate-400 font-medium px-4 py-3">Actions</th>
+                <th className="text-left text-muted-foreground font-medium px-4 py-3">Mode</th>
+                <th className="text-right text-muted-foreground font-medium px-4 py-3">Hourly</th>
+                <th className="text-right text-muted-foreground font-medium px-4 py-3">Daily</th>
+                <th className="text-right text-muted-foreground font-medium px-4 py-3">Annual</th>
+                <th className="text-right text-muted-foreground font-medium px-4 py-3">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700/60">
+            <tbody className="divide-y divide-border/60">
               {staff.map((row) => {
                 const isSimple = row.rate_mode === "simple";
                 const dailyChargeout = calcStaffDailyChargeout(row);
@@ -946,17 +946,17 @@ export default function StaffResourcesClient({ staff }: { staff: StaffRow[] }) {
                 return (
                   <tr
                     key={row.id}
-                    className="bg-slate-800/20 hover:bg-slate-800/50 transition-colors"
+                    className="bg-input/20 hover:bg-input/50 transition-colors"
                   >
                     {/* Name & Job Title */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div>
-                          <p className="text-slate-100 font-medium leading-tight">
+                          <p className="text-foreground font-medium leading-tight">
                             {displayName(row)}
                           </p>
                           {row.job_title && (
-                            <p className="text-slate-500 text-xs mt-0.5 leading-tight">
+                            <p className="text-muted-foreground text-xs mt-0.5 leading-tight">
                               {row.job_title}
                             </p>
                           )}
@@ -964,7 +964,7 @@ export default function StaffResourcesClient({ staff }: { staff: StaffRow[] }) {
                         {!row.is_active && (
                           <Badge
                             variant="outline"
-                            className="text-xs border-slate-600 text-slate-500 ml-1 shrink-0"
+                            className="text-xs border-border text-muted-foreground ml-1 shrink-0"
                           >
                             Inactive
                           </Badge>
@@ -977,7 +977,7 @@ export default function StaffResourcesClient({ staff }: { staff: StaffRow[] }) {
                       {isSimple ? (
                         <Badge
                           variant="outline"
-                          className="border-slate-600 text-slate-400 text-xs"
+                          className="border-border text-muted-foreground text-xs"
                         >
                           Simple
                         </Badge>
@@ -990,24 +990,24 @@ export default function StaffResourcesClient({ staff }: { staff: StaffRow[] }) {
 
                     {/* Hourly */}
                     <td className="px-4 py-3 text-right tabular-nums font-mono text-sm">
-                      <span className="text-slate-200">{gbp(hourlyChargeout)}</span>
-                      <span className="text-slate-600 text-xs">/hr</span>
+                      <span className="text-foreground">{gbp(hourlyChargeout)}</span>
+                      <span className="text-muted-foreground/60 text-xs">/hr</span>
                     </td>
 
                     {/* Daily */}
                     <td className="px-4 py-3 text-right tabular-nums font-mono text-sm">
                       <span className="text-blue-300 font-semibold">{gbp(dailyChargeout)}</span>
-                      <span className="text-slate-600 text-xs">/day</span>
+                      <span className="text-muted-foreground/60 text-xs">/day</span>
                     </td>
 
                     {/* Annual */}
                     <td className="px-4 py-3 text-right">
                       <div className="tabular-nums font-mono text-sm">
-                        <span className="text-slate-200">{gbp(annualChargeout)}</span>
-                        <span className="text-slate-600 text-xs">/yr</span>
+                        <span className="text-foreground">{gbp(annualChargeout)}</span>
+                        <span className="text-muted-foreground/60 text-xs">/yr</span>
                       </div>
                       {annualEmployerCost !== null && (
-                        <p className="text-slate-600 text-xs font-sans mt-0.5">
+                        <p className="text-muted-foreground/60 text-xs font-sans mt-0.5">
                           cost: {gbp(annualEmployerCost)}
                         </p>
                       )}
@@ -1020,7 +1020,7 @@ export default function StaffResourcesClient({ staff }: { staff: StaffRow[] }) {
                           variant="ghost"
                           size="icon"
                           onClick={() => openEdit(row)}
-                          className="h-8 w-8 text-slate-400 hover:text-slate-100 hover:bg-slate-700"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
                           title="Edit"
                         >
                           <Pencil className="w-3.5 h-3.5" />
@@ -1029,7 +1029,7 @@ export default function StaffResourcesClient({ staff }: { staff: StaffRow[] }) {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDelete(row)}
-                          className="h-8 w-8 text-slate-500 hover:text-red-400 hover:bg-red-950/30"
+                          className="h-8 w-8 text-muted-foreground hover:text-red-400 hover:bg-red-950/30"
                           title="Delete"
                         >
                           <Trash2 className="w-3.5 h-3.5" />

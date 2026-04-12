@@ -30,7 +30,7 @@ export default async function HomePage() {
 
         supabase
             .from("profiles")
-            .select("company_name, logo_url, capability_statement, md_name, md_message, phone, accreditations, years_trading")
+            .select("company_name, logo_url, capability_statement, md_name, md_message, phone, accreditations, years_trading, onboarding_seen_at")
             .eq("id", user.id)
             .single(),
 

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProjectPicker from "@/components/project-picker";
 import FinalAccountClient from "./final-account-client";
+import { computeContractSum } from "@/lib/financial";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export default async function FinalAccountPage({ searchParams }: { searchParams:
         { data: profile },
     ] = await Promise.all([
         supabase.from("projects").select("*").eq("id", projectId).single(),
-        supabase.from("estimates").select("id, total_cost, is_active, overhead_pct, risk_pct, profit_pct, discount_pct").eq("project_id", projectId),
+        supabase.from("estimates").select("id, total_cost, is_active, overhead_pct, risk_pct, profit_pct, discount_pct, prelims_pct, estimate_lines(trade_section, line_total)").eq("project_id", projectId),
         supabase.from("variations").select("*").eq("project_id", projectId).order("created_at", { ascending: true }),
         supabase.from("invoices").select("*").eq("project_id", projectId).order("created_at", { ascending: true }),
         supabase.from("final_accounts").select("*").eq("project_id", projectId).maybeSingle(),
@@ -48,19 +49,12 @@ export default async function FinalAccountPage({ searchParams }: { searchParams:
         supabase.from("profiles").select("company_name, address, phone, email").eq("id", user.id).single(),
     ]);
 
-    // Original contract sum from active estimate with uplifts
+    // Original contract sum from active estimate — delegated to canonical
+    // computeContractSum() so this page can never drift from billing/proposal.
     const activeEstimate = (estimates || []).find((e: any) => e.is_active) || (estimates || [])[0];
-    let originalContractSum = 0;
-    if (activeEstimate) {
-        const base     = activeEstimate.total_cost || 0;
-        const overhead = base * ((activeEstimate.overhead_pct || 0) / 100);
-        const risk     = (base + overhead) * ((activeEstimate.risk_pct || 0) / 100);
-        const profit   = (base + overhead + risk) * ((activeEstimate.profit_pct || 0) / 100);
-        const gross    = base + overhead + risk + profit;
-        originalContractSum = Math.round((gross - gross * ((activeEstimate.discount_pct || 0) / 100)) * 100) / 100;
-    } else {
-        originalContractSum = (estimates || []).reduce((s: number, e: any) => s + e.total_cost, 0);
-    }
+    const originalContractSum = activeEstimate
+        ? computeContractSum(activeEstimate, activeEstimate.estimate_lines ?? []).contractSum
+        : (estimates || []).reduce((s: number, e: any) => s + e.total_cost, 0);
 
     return (
         <div className="max-w-5xl mx-auto p-8 space-y-6">

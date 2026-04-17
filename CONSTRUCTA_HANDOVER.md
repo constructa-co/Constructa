@@ -165,6 +165,18 @@ Verification at end of Phase 3:
 
 **Phase 1 + 1.5 + 2 + 3 total:** 27 commits across 27 verified items. Every finding from the 5 AI Council reviewers (ChatGPT/Atlas, Gemini, Antigravity, Grok, Perplexity) that was accepted has now been shipped. The product is ready for real beta contractors — structurally safe, financially correct, UX-polished, canonical math everywhere, observable errors on every mutating action, no Radix violations, 142-test safety net on the core helpers.
 
+### Sprint 59 — Contract Administration Suite (CLOSED — 17 April 2026)
+
+Reconciliation note: a stale plan file (`~/.claude/plans/partitioned-knitting-pizza.md`) listed three items as outstanding. On audit, all three had already been shipped in earlier Sprint 59 commits before the AI Council hardening phases began:
+
+| Item | Commit | Status |
+|------|--------|--------|
+| FIDIC engineer_instruction aiGuidance (cl. 13.1 / 13.3 / 20.1 / 20.2.1) | `e2ce91d` | Shipped — FIDIC_RED_1999 + FIDIC_RED_2017 override, 2017 editions inherit |
+| Supervisor / sub-contractor read-only portal (token-based) | `2bca4d2` | Shipped — `src/app/supervisor/[token]/` route, `supervisor_tokens` table, acknowledge action, invite UI card in Dashboard tab |
+| SCL Delay Analysis Protocol (4 methodologies + AI narrative) | `d167cb7` | Shipped — `src/lib/delay-analysis.ts` with 12 tests, `delay_analyses` table, `runDelayAnalysisAction` + `draftDelayNarrativeAction`, tab UI in contract-admin |
+
+Sprint 59 is fully complete. Total commits: 6 (`e149cfa` cross-project home alerts → `0593fc9` email cron → `bde2fce` per-event guidance → `e2ce91d` FIDIC EI guidance → `2bca4d2` Supervisor portal → `d167cb7` Delay Analysis).
+
 ---
 
 ## Project Overview
@@ -179,7 +191,7 @@ Verification at end of Phase 3:
 
 ## Current State at a Glance (11 April 2026 — evening)
 
-**Last sprint completed:** Sprint 58 — Hardening, Quick Quote & Polish (all 3 phases, 17 commits `4480ad7` → `587cd4b`). **Sprint 59 — Contract Administration Suite IN PROGRESS** (3 commits shipped: `e149cfa` cross-project home alerts, `0593fc9` daily email cron + idempotency table, `bde2fce` per-event clause-specific AI guidance).
+**Last sprint completed:** Sprint 59 — Contract Administration Suite (CLOSED 17 Apr 2026, 6 commits). AI Council pre-beta hardening (Phases 1 / 1.5 / 2 / 3) also fully shipped on top — 27 verified findings across 27 commits.
 **App status:** Live and functional at https://constructa-nu.vercel.app — all modules operational
 **Git:** All code on `main`, clean working tree, Vercel auto-deploys on push
 **Test project in DB:** "22 Birchwood Avenue — Kitchen Extension & Loft Conversion" (`projectId: 7b08021a-9ca2-4262-836b-970891608cbe`)

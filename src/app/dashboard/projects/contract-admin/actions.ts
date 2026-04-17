@@ -147,7 +147,12 @@ export async function raiseEventAction(data: {
       prevDate = data.dateRaised;
       continue; // first step is the raise itself
     }
-    const dueDate = addDays(prevDate, step.daysFromPrevious);
+    // P1-2 — FIDIC cl. 20.1 measures certain deadlines (e.g. 42-day
+    // detailed claim) from the date the contractor became aware, not
+    // from the previous step. A step can set fromAware: true to route
+    // its daysFromPrevious through dateAware instead of prevDate.
+    const baseline = step.fromAware && data.dateAware ? data.dateAware : prevDate;
+    const dueDate = addDays(baseline, step.daysFromPrevious);
     obligations.push({
       user_id:          user.id,
       project_id:       data.projectId,
@@ -159,6 +164,9 @@ export async function raiseEventAction(data: {
       due_date:         dueDate,
       status:           "pending",
     });
+    // If this step anchored off dateAware, the next step in the chain
+    // still chains off THIS step's due date so engineer-response etc.
+    // work relative to the submission, not double-counted from aware.
     prevDate = dueDate;
   }
 

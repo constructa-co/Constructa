@@ -40,6 +40,13 @@ export interface EventStep {
   actionType: "notify" | "respond" | "submit" | "assess" | "certify" | "pay";
   // if true, no response = deemed acceptance by other party
   deemedAcceptance?: boolean;
+  // P1-2 — under FIDIC cl. 20.1, the 42-day detailed-claim deadline
+  // is measured from dateAware (the date the contractor became aware)
+  // NOT from the previous step's due date. Setting this flag makes
+  // raiseEventAction compute the obligation's due_date as
+  // dateAware + daysFromPrevious instead of prevDate + daysFromPrevious.
+  // Leave unset for steps that chain from the previous step's deadline.
+  fromAware?: boolean;
 }
 
 export interface EventConfig {
@@ -630,12 +637,17 @@ Use FIDIC terminology only: "Contractor", "Engineer", "Employer", "Time for Comp
           actionType: "notify",
         },
         {
+          // P1-2 — FIDIC cl. 20.1 measures the detailed-claim deadline
+          // from the date the contractor became aware (dateAware), NOT
+          // from the notice submission. fromAware: true routes this
+          // through dateAware + 42 in raiseEventAction.
           step: "contractor_submits_detailed_claim",
           label: "Contractor submits fully detailed claim",
           party: "contractor",
           daysFromPrevious: 42,
           clauseRef: "20.1",
           actionType: "submit",
+          fromAware: true,
         },
         {
           step: "engineer_responds",

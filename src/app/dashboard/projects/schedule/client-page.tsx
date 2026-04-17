@@ -201,8 +201,23 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     };
 
     // ── Phases ────────────────────────────────────────────────────────────
-    const existingPhases = (project.programme_phases as Phase[] | undefined)
-                        || (project.timeline_phases  as Phase[] | undefined);
+    // E2E-P0-3 — defensive shape-guard. programme_phases is JSONB so it
+    // could be null, an empty array, a proper Phase[], or (from legacy
+    // migration data or a hand-edited row) malformed. Filter to only
+    // objects that at minimum have a `name` field. Everything downstream
+    // assumes Phase shape so a malformed entry previously crashed the
+    // entire Gantt render. (timeline_phases is a ghost column — no such
+    // column exists on projects. Kept in the fallback chain so legacy
+    // selects elsewhere don't regress silently.)
+    const rawPhases = (project.programme_phases ?? project.timeline_phases) as unknown;
+    const existingPhases: Phase[] = Array.isArray(rawPhases)
+        ? rawPhases.filter(
+              (p): p is Phase =>
+                  p !== null &&
+                  typeof p === "object" &&
+                  typeof (p as { name?: unknown }).name === "string",
+          )
+        : [];
 
     const initialPhases = useMemo(
         () => buildPhasesFromEstimate(estimate, existingPhases, daysPerWeek),

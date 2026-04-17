@@ -3,6 +3,54 @@
 import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
+// P1-3 — Estimate immutability after project goes live.
+//
+// Once a project moves past proposal acceptance, the estimate that
+// backs the signed contract sum is the "original contract sum" and
+// must not mutate. Any scope change goes through Variations. This
+// helper is the single source of truth for the lock check — every
+// mutating action in this file calls it before touching the DB.
+
+const LOCKED_STATUSES = new Set(["active", "completed", "lost", "archived"]);
+
+type SupabaseServer = Awaited<ReturnType<typeof requireAuth>>["supabase"];
+
+async function assertEstimateEditable(
+    supabase: SupabaseServer,
+    estimateId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+    // Walk estimate → project to read the project's status.
+    const { data, error } = await supabase
+        .from("estimates")
+        .select("id, project_id, projects!inner(status, is_archived)")
+        .eq("id", estimateId)
+        .single();
+
+    if (error || !data) {
+        return { ok: false, error: "Estimate not found" };
+    }
+
+    const projectRow = (data as { projects: { status?: string | null; is_archived?: boolean | null } | null }).projects;
+    const status = String(projectRow?.status ?? "").toLowerCase();
+    const isArchived = Boolean(projectRow?.is_archived);
+
+    if (isArchived) {
+        return {
+            ok: false,
+            error: "This project is archived. Restore the project to edit the estimate.",
+        };
+    }
+
+    if (LOCKED_STATUSES.has(status)) {
+        return {
+            ok: false,
+            error: `Estimate is locked because the project is ${status}. Use the Variations module to record scope changes.`,
+        };
+    }
+
+    return { ok: true };
+}
+
 export async function createEstimateAction(projectId: string, name: string) {
     const { supabase } = await requireAuth();
     const { data, error } = await supabase
@@ -44,8 +92,13 @@ export async function updateEstimateMarginsAction(
     profit: number,
     risk: number,
     prelims: number = 0
-) {
+): Promise<{ success: boolean; error?: string }> {
     const { supabase } = await requireAuth();
+
+    // P1-3 — refuse to mutate margins on a locked (active/closed) project.
+    const lock = await assertEstimateEditable(supabase, estimateId);
+    if (!lock.ok) return { success: false, error: lock.error };
+
     const { error } = await supabase
         .from("estimates")
         .update({
@@ -56,7 +109,11 @@ export async function updateEstimateMarginsAction(
         })
         .eq("id", estimateId);
 
-    if (error) console.error("Update margins error:", error);
+    if (error) {
+        console.error("[updateEstimateMarginsAction] failed", error);
+        return { success: false, error: error.message };
+    }
+    return { success: true };
 }
 
 export async function updateEstimateNameAction(estimateId: string, name: string) {
@@ -91,6 +148,10 @@ export async function addLineItemAction(
     // returns a structured error for the client to surface.
     try {
         const { supabase } = await requireAuth();
+
+        // P1-3 — lock check before mutation.
+        const lock = await assertEstimateEditable(supabase, estimateId);
+        if (!lock.ok) return { error: lock.error };
 
         // Defensive numeric coercion in case a stringy NaN made it past
         // the client (React uncontrolled inputs + locale parsing).
@@ -161,48 +222,77 @@ export async function updateLineItemAction(
         mom_item_code?: string | null;
         notes?: string | null;
     }
-) {
+): Promise<{ success: boolean; error?: string }> {
     const { supabase } = await requireAuth();
+
+    // P1-3 — look up estimate_id first so we can check the lock.
+    const { data: existing, error: lookupErr } = await supabase
+        .from("estimate_lines")
+        .select("estimate_id")
+        .eq("id", lineId)
+        .single();
+    if (lookupErr || !existing?.estimate_id) {
+        return { success: false, error: "Line not found" };
+    }
+
+    const lock = await assertEstimateEditable(supabase, existing.estimate_id);
+    if (!lock.ok) return { success: false, error: lock.error };
 
     const updateData: Record<string, unknown> = { ...data };
     if (data.quantity !== undefined && data.unit_rate !== undefined) {
         updateData.line_total = data.quantity * data.unit_rate;
     }
 
-    const { data: line, error } = await supabase
+    const { error } = await supabase
         .from("estimate_lines")
         .update(updateData)
-        .eq("id", lineId)
-        .select("estimate_id")
-        .single();
+        .eq("id", lineId);
 
-    if (error) console.error("Update line error:", error);
-
-    if (line?.estimate_id) {
-        await recalcEstimateTotal(line.estimate_id);
+    if (error) {
+        console.error("[updateLineItemAction] failed", error);
+        return { success: false, error: error.message };
     }
+
+    await recalcEstimateTotal(existing.estimate_id).catch((e) =>
+        console.error("[updateLineItemAction] recalc failed", e),
+    );
+    return { success: true };
 }
 
-export async function deleteLineItemAction(lineId: string) {
+export async function deleteLineItemAction(
+    lineId: string,
+): Promise<{ success: boolean; error?: string }> {
     const { supabase } = await requireAuth();
 
-    // Get estimate_id before deleting
-    const { data: line } = await supabase
+    // Get estimate_id before deleting — used both for the lock check
+    // and to trigger recalc afterward.
+    const { data: line, error: lookupErr } = await supabase
         .from("estimate_lines")
         .select("estimate_id")
         .eq("id", lineId)
         .single();
+    if (lookupErr || !line?.estimate_id) {
+        return { success: false, error: "Line not found" };
+    }
+
+    // P1-3 — can't delete from a locked estimate.
+    const lock = await assertEstimateEditable(supabase, line.estimate_id);
+    if (!lock.ok) return { success: false, error: lock.error };
 
     const { error } = await supabase
         .from("estimate_lines")
         .delete()
         .eq("id", lineId);
 
-    if (error) console.error("Delete line error:", error);
-
-    if (line?.estimate_id) {
-        await recalcEstimateTotal(line.estimate_id);
+    if (error) {
+        console.error("[deleteLineItemAction] failed", error);
+        return { success: false, error: error.message };
     }
+
+    await recalcEstimateTotal(line.estimate_id).catch((e) =>
+        console.error("[deleteLineItemAction] recalc failed", e),
+    );
+    return { success: true };
 }
 
 export async function setActiveEstimateAction(estimateId: string, projectId: string) {
@@ -344,13 +434,23 @@ export async function saveDiscountAction(
     estimateId: string,
     discountPct: number,
     discountReason: string
-): Promise<void> {
+): Promise<{ success: boolean; error?: string }> {
     const { supabase } = await requireAuth();
+
+    // P1-3 — discount changes the contract sum, so must be locked after
+    // acceptance.
+    const lock = await assertEstimateEditable(supabase, estimateId);
+    if (!lock.ok) return { success: false, error: lock.error };
+
     const { error } = await supabase
         .from("estimates")
         .update({ discount_pct: discountPct, discount_reason: discountReason })
         .eq("id", estimateId);
-    if (error) console.error("Save discount error:", error);
+    if (error) {
+        console.error("[saveDiscountAction] failed", error);
+        return { success: false, error: error.message };
+    }
+    return { success: true };
 }
 
 async function recalcEstimateTotal(estimateId: string) {

@@ -279,7 +279,7 @@ export default function ClientEditor({
     );
 
     const [pricingMode, setPricingMode] = useState<"full" | "summary">("full");
-    const [validityDays, setValidityDays] = useState(30);
+    const [validityDays, setValidityDays] = useState<number>(project?.validity_days ?? 30);
     const [linkCopied, setLinkCopied] = useState(false);
     const [sending, setSending] = useState(false);
     const [emailSent, setEmailSent] = useState(false);
@@ -592,6 +592,7 @@ export default function ClientEditor({
         fd.set("site_photos", JSON.stringify(sitePhotos.filter(p => p.url)));
         fd.set("payment_schedule", JSON.stringify(paymentSchedule));
         fd.set("closing_statement", closingStatement);
+        fd.set("validity_days", String(validityDays));
         return fd;
     };
 
@@ -656,6 +657,7 @@ export default function ClientEditor({
         useCustomTc,
         sitePhotos,
         paymentSchedule,
+        validityDays,
     ]);
 
     // Cleanup any pending timers on unmount so we don't fire a save

@@ -31,7 +31,7 @@ export default async function HomePage() {
     ] = await Promise.all([
         supabase
             .from("projects")
-            .select("id, name, client_name, status, potential_value, proposal_status, proposal_sent_at, proposal_accepted_at, proposal_accepted_by, created_at, start_date, programme_phases")
+            .select("id, name, client_name, status, potential_value, proposal_status, proposal_sent_at, proposal_accepted_at, proposal_accepted_by, created_at, start_date, programme_phases, validity_days")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false }),
 

@@ -196,6 +196,15 @@ export async function saveProposalAction(formData: FormData) {
         updateData.closing_statement = closingStatement || null;
     }
 
+    // P0-3 — Proposal validity in days (clamped 1..365 in the UI already)
+    const validityRaw = formData.get("validity_days");
+    if (validityRaw !== null) {
+        const n = parseInt(String(validityRaw), 10);
+        if (Number.isFinite(n) && n >= 1 && n <= 365) {
+            updateData.validity_days = n;
+        }
+    }
+
     // Generate proposal_token if it doesn't exist yet
     const { data: existing } = await supabase
         .from("projects")

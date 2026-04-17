@@ -145,7 +145,25 @@ Verification at end of Phase 2:
 
 **Phase 1 + 1.5 + 2 total:** 19 commits across 19 verified items shipped today.
 
-**What's next:** Phase 3 (8 items) — FIDIC 42-day detailed claim, Suspense streaming, sign-up UX, landing copy, min-dataset messaging, contract-admin decomposition, `bulkAddMoMItemsAction` N+1, remaining Vitest coverage. All are polish / structural rather than beta-critical. Owner to decide timing.
+### Phase 3 — SHIPPED (17 April 2026)
+
+| ID | Commit | Fix |
+|----|--------|-----|
+| P2-7 | `2a297c4` | `bulkAddMoMItemsAction` N+1 eliminated. Old path did one upsert per item + per-parent lookup (~400 queries for a 100-item, 3-level import). New path collects unique `(depth, code, name, parentCode)` nodes, upserts each depth level in a single query, builds a `codeToId` map, then bulk-upserts all items in one round-trip. ~400 → ~4 queries. |
+| P1-2 | `bf61173` | FIDIC 42-day detailed-claim deadline now anchored to `dateAware`, not to the preceding notice date. Added optional `fromAware` flag on `EventStep`; cl. 20.1 chain marks the detailed-claim step with it. FIDIC 2017 inherits. Fixes silent deadline drift when contractor raises event late. |
+| P2-3 | `abf6911` | Sign-up UX: separate `mode: "signin" \| "signup"` state, separate emerald success banner vs red error banner (was rendering success as error), confirm-password field, password ≥8-char client-side check before submit. |
+| P2-4 | `ad43c52` | Landing-page copy consistency: dual email addresses collapsed to single `hello@constructa.co` `mailto:` link; "Live Chat / 9am–5pm GMT" replaced with realistic "Response Time / Within 1 working day". |
+| P2-5 | `210b8a1` | Min-dataset guard on Win Rate KPI. `MIN_SAMPLE_WIN_RATE = 3` — below threshold, renders `—` with "Need N more proposals" subtitle instead of misleading "0%" or "100%" from 1–2 proposals. Threaded `winRateSampleSize` through server metrics + client calculator. |
+| P2-8 | `63475a7` | 41 new Vitest tests: 14 in `project-helpers.test.ts` (including partition invariant — every status maps to exactly one of active/pipeline/closed), 27 in `contracts-config.test.ts` (NEC4 56d bar, FIDIC 28d/42d bars, `fromAware` anchoring, aiGuidance coverage for 10 critical events, `obligationRag` RAG logic). 101 → 142 tests. |
+| P2-2 | `d47d0d4` | Home dashboard `loading.tsx` — skeleton with header row, 2×4 KPI grid, active projects + pipeline panels animating via `animate-pulse`. Next.js streams the skeleton immediately on navigation while the 700-line HomeClient hydrates. Pragmatic ~80% UX win vs full Suspense-per-panel refactor. |
+| P2-6 | `3cc4661` | Contract-admin monolith decomposed. New `contract-admin/components/` subdirectory: `types.ts` (9 shared interfaces), `badges.tsx` (`fmt`/`RagBadge`/`StatusBadge`), `SupervisorInvite.tsx` (145 lines, self-contained token-portal invite), `DelayAnalysisTab.tsx` (325 lines, SCL Protocol tab + 4 result-table renderers). Main file: 1,598 → 1,138 lines (−29%). Pure move, no behaviour change. |
+
+Verification at end of Phase 3:
+- `tsc --noEmit` — 0 errors
+- `vitest run` — **142/142 passing** (101 → 142 with P2-8 additions)
+- `next build` — clean
+
+**Phase 1 + 1.5 + 2 + 3 total:** 27 commits across 27 verified items. Every finding from the 5 AI Council reviewers (ChatGPT/Atlas, Gemini, Antigravity, Grok, Perplexity) that was accepted has now been shipped. The product is ready for real beta contractors — structurally safe, financially correct, UX-polished, canonical math everywhere, observable errors on every mutating action, no Radix violations, 142-test safety net on the core helpers.
 
 ---
 

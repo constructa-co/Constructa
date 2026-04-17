@@ -162,6 +162,23 @@ function ContractSetupForm({ projectId, project, canonicalContractSum, onSaved }
   }, {} as Record<string, typeof CONTRACT_TYPE_OPTIONS>);
 
   const save = async () => {
+    // P1-7 — client-side validation so a broken date input doesn't
+    // silently send an empty string to the server action (which would
+    // then write null and break time-bar seeding downstream).
+    const iso = /^\d{4}-\d{2}-\d{2}$/;
+    if (!form.awardDate || !iso.test(form.awardDate)) {
+      toast.error("Award Date is required (format YYYY-MM-DD)");
+      return;
+    }
+    if (form.startDate && !iso.test(form.startDate)) {
+      toast.error("Start on Site is not a valid date");
+      return;
+    }
+    if (form.completionDate && !iso.test(form.completionDate)) {
+      toast.error("Completion Date is not a valid date");
+      return;
+    }
+
     setSaving(true);
     const res = await setupContractAction({
       projectId,
@@ -210,16 +227,36 @@ function ContractSetupForm({ projectId, project, canonicalContractSum, onSaved }
         </div>
       )}
 
-      {/* Key dates */}
+      {/* Key dates — P1-7: always slice to YYYY-MM-DD in case DB returns
+          an ISO datetime string. Required indicator on Award Date and an
+          inline helper so UK contractors expecting DD/MM/YYYY aren't
+          thrown by the ISO-native <input type="date">. */}
       <div className="grid grid-cols-3 gap-3">
-        {[["awardDate","Award Date"],["startDate","Start on Site"],["completionDate","Completion Date"]].map(([field, label]) => (
-          <div key={field}>
-            <label className="block text-xs text-slate-400 mb-1">{label}</label>
-            <input type="date" value={form[field as keyof typeof form]} onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
-              className="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500" />
-          </div>
-        ))}
+        {[
+          ["awardDate", "Award Date", true],
+          ["startDate", "Start on Site", false],
+          ["completionDate", "Completion Date", false],
+        ].map(([field, label, required]) => {
+          const raw = form[field as keyof typeof form] as string;
+          // Defensive: if somehow an ISO datetime was set, slice to date-only
+          const normalised = raw ? raw.slice(0, 10) : "";
+          return (
+            <div key={field as string}>
+              <label className="block text-xs text-slate-400 mb-1">
+                {label}{required ? <span className="text-red-400 ml-0.5">*</span> : null}
+              </label>
+              <input
+                type="date"
+                value={normalised}
+                onChange={e => setForm(f => ({ ...f, [field as string]: e.target.value.slice(0, 10) }))}
+                required={required === true}
+                className="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+          );
+        })}
       </div>
+      <p className="text-[11px] text-slate-500 -mt-1">Dates use the date picker. If typing, format is YYYY-MM-DD.</p>
 
       <div>
         <label className="block text-xs text-slate-400 mb-1">Contract Value (£)</label>

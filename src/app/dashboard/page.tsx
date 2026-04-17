@@ -80,12 +80,18 @@ export default async function Dashboard() {
         .filter(p => p.proposal_accepted_at !== null && p.proposal_accepted_at !== undefined)
         .reduce((sum, p) => sum + projectValue(p), 0);
 
+    // P2-5 — sample size threads through to the client so the KPI card
+    // can suppress the win-rate % until there's enough data to report
+    // meaningfully. See MIN_SAMPLE_WIN_RATE in dashboard-client.tsx.
+    const winRateSampleSize = proposalsSent;
+
     const metrics = {
         totalPipelineValue,
         proposalsSent,
         wonThisMonth,
         activeJobs,
         winRate,
+        winRateSampleSize,
         totalRevenueSigned,
     };
 

@@ -22,12 +22,18 @@ import { isActiveProject } from "@/lib/project-helpers";
 
 type Period = "week" | "month" | "quarter" | "year";
 
+// P2-5 — thresholds for "collect more data" KPIs. Below these, showing
+// a percentage or trend is misleading (a single won proposal out of one
+// sent shows "100% win rate"). Above them, the number is meaningful.
+const MIN_SAMPLE_WIN_RATE = 3;
+
 interface Metrics {
     totalPipelineValue: number;
     proposalsSent: number;
     wonThisMonth: number;
     activeJobs: number;
     winRate: number;
+    winRateSampleSize: number;
     totalRevenueSigned: number;
 }
 
@@ -126,6 +132,7 @@ function calculateMetrics(projects: any[], financials: Record<string, number>, p
         wonThisMonth,
         activeJobs,
         winRate,
+        winRateSampleSize: allProposalsSent,
         totalRevenueSigned,
     };
 }
@@ -214,8 +221,17 @@ export default function DashboardClient({ projects, financials, metrics: serverM
         {
             icon: TrendingUp,
             label: "Win Rate",
-            value: `${metrics.winRate}%`,
-            subtitle: "Proposals accepted",
+            // P2-5 — with fewer than MIN_SAMPLE_WIN_RATE proposals the
+            // percentage is unreliable (1/1 = 100%, 0/1 = 0%). Show an
+            // en-dash and an honest subtitle instead of a misleading
+            // number. Above the threshold, show both the % and the
+            // sample size so the user can calibrate.
+            value: metrics.winRateSampleSize >= MIN_SAMPLE_WIN_RATE
+                ? `${metrics.winRate}%`
+                : "—",
+            subtitle: metrics.winRateSampleSize >= MIN_SAMPLE_WIN_RATE
+                ? `${metrics.winRateSampleSize} proposals sent`
+                : `Need ${MIN_SAMPLE_WIN_RATE - metrics.winRateSampleSize} more proposal${MIN_SAMPLE_WIN_RATE - metrics.winRateSampleSize === 1 ? "" : "s"}`,
             color: "text-teal-600",
             bgColor: isDark ? "bg-teal-500/10" : "bg-teal-50",
             borderColor: isDark ? "border-teal-500/20" : "border-teal-100",

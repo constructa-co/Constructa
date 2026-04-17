@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import {
     LayoutDashboard,
@@ -139,6 +139,7 @@ const SECTION_KEYS = ["company-profile", "work-winning", "pre-construction", "li
 export default function SidebarNav({ user, projects, isAdmin = false }: SidebarNavProps) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const router = useRouter();
     const { theme, setTheme } = useTheme();
     const isDark = theme === "dark";
 
@@ -250,6 +251,21 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
         localStorage.setItem("constructa_selected_project_name", name);
         setPickerOpen(false);
         setSearchQuery("");
+
+        // P2-1 — Atlas flagged that changing the sidebar dropdown on a
+        // project sub-page didn't update the horizontal project-navbar
+        // tabs because they read from the URL's ?projectId= param. Push
+        // the new projectId into the URL so both surfaces stay in sync.
+        // Only push when we're actually on a project sub-page — pushing
+        // from the home/pipeline dashboard would navigate the user away.
+        if (pathname?.startsWith("/dashboard/projects/")) {
+            const current = new URLSearchParams(searchParams?.toString() ?? "");
+            const existing = current.get("projectId");
+            if (existing !== id) {
+                current.set("projectId", id);
+                router.push(`${pathname}?${current.toString()}`);
+            }
+        }
     };
 
     const clearProject = (e: React.MouseEvent) => {
@@ -258,6 +274,12 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
         setSelectedProjectName(null);
         localStorage.removeItem("constructa_selected_project_id");
         localStorage.removeItem("constructa_selected_project_name");
+        // P2-1 — if the current page is scoped to a project, deselecting
+        // would strand the user on a broken page. Send them to the pipeline
+        // where they can pick a different project.
+        if (pathname?.startsWith("/dashboard/projects/") && searchParams?.get("projectId")) {
+            router.push("/dashboard");
+        }
     };
 
     const pLink = (base: string) =>

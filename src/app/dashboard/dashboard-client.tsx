@@ -104,7 +104,7 @@ function calculateMetrics(projects: any[], financials: Record<string, number>, p
     const totalPipelineValue = projects
         .filter(p => p.status !== "Lost" && p.status !== "Completed")
         .filter(p => inPeriod(p.created_at))
-        .reduce((sum, p) => sum + (p.potential_value || financials[p.id] || 0), 0);
+        .reduce((sum, p) => sum + (financials[p.id] > 0 ? financials[p.id] : (p.potential_value || 0)), 0);
 
     const proposalsSent = projects.filter(p => inPeriod(p.proposal_sent_at)).length;
 
@@ -118,7 +118,7 @@ function calculateMetrics(projects: any[], financials: Record<string, number>, p
     const winRate = allProposalsSent > 0 ? Math.round((accepted / allProposalsSent) * 100) : 0;
 
     const totalRevenueSigned = wonInPeriod
-        .reduce((sum, p) => sum + (p.potential_value || financials[p.id] || 0), 0);
+        .reduce((sum, p) => sum + (financials[p.id] > 0 ? financials[p.id] : (p.potential_value || 0)), 0);
 
     return {
         totalPipelineValue,

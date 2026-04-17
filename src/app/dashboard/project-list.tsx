@@ -107,7 +107,8 @@ export default function ProjectList({ projects, financials }: { projects: any[],
         }
     };
 
-    const getValue = (p: any): number => p.potential_value || financials[p.id] || 0;
+    // P1-4 — canonical contract sum when priced, else lead-stage budget.
+    const getValue = (p: any): number => (financials[p.id] > 0 ? financials[p.id] : (p.potential_value || 0));
 
     const sorted = [...projects].sort((a, b) => {
         let aVal: string | number = "";

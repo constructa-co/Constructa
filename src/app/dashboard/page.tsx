@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import DashboardClient from "./dashboard-client";
 import { isActiveProject } from "@/lib/project-helpers";
+import { computeContractSum } from "@/lib/financial";
 
 export const dynamic = "force-dynamic";
 
@@ -18,20 +19,24 @@ export default async function Dashboard() {
 
     const safeProjects = projects || [];
 
-    // 2. Fetch Financials (estimates-based value)
-    const { data: allEstimates } = await supabase
+    // 2. Fetch active estimates with their lines so we can compute the
+    // canonical contract sum per project (not the old inline markup math
+    // which skipped prelims and discount).
+    // P1-4 — previously this used a hand-rolled formula that produced
+    // different numbers to every other view. Now uses computeContractSum.
+    const { data: activeEstimates } = await supabase
         .from("estimates")
-        .select("project_id, total_cost, profit_pct, overhead_pct, risk_pct")
-        .in("project_id", safeProjects.map(p => p.id));
+        .select("id, project_id, total_cost, prelims_pct, overhead_pct, profit_pct, risk_pct, discount_pct, is_active, estimate_lines(trade_section, line_total)")
+        .in("project_id", safeProjects.map(p => p.id))
+        .eq("is_active", true);
 
     const financialMap: Record<string, number> = {};
     safeProjects.forEach(p => {
-        const projEsts = allEstimates?.filter(e => e.project_id === p.id) || [];
-        const total = projEsts.reduce((sum, e) => {
-            const markup = 1 + ((e.profit_pct || 0) + (e.overhead_pct || 0) + (e.risk_pct || 0)) / 100;
-            return sum + (e.total_cost * markup);
-        }, 0);
-        financialMap[p.id] = total;
+        const est = activeEstimates?.find(e => e.project_id === p.id);
+        if (est) {
+            const { contractSum } = computeContractSum(est, (est as any).estimate_lines ?? []);
+            financialMap[p.id] = contractSum;
+        }
     });
 
     // 3. Fetch company name from profile
@@ -48,9 +53,15 @@ export default async function Dashboard() {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
+    // P1-4 — pipeline value uses canonical contract sum when an active
+    // estimate exists, falls back to potential_value for Lead/Estimating
+    // stages where only a gut-feel budget is available.
+    const projectValue = (p: { id: string; potential_value?: number | null }) =>
+        financialMap[p.id] > 0 ? financialMap[p.id] : (p.potential_value ?? 0);
+
     const totalPipelineValue = safeProjects
         .filter(p => p.status !== "Lost" && p.status !== "Completed")
-        .reduce((sum, p) => sum + (p.potential_value || 0), 0);
+        .reduce((sum, p) => sum + projectValue(p), 0);
 
     const proposalsSent = safeProjects.filter(p => p.proposal_sent_at !== null && p.proposal_sent_at !== undefined).length;
 
@@ -67,7 +78,7 @@ export default async function Dashboard() {
 
     const totalRevenueSigned = safeProjects
         .filter(p => p.proposal_accepted_at !== null && p.proposal_accepted_at !== undefined)
-        .reduce((sum, p) => sum + (p.potential_value || 0), 0);
+        .reduce((sum, p) => sum + projectValue(p), 0);
 
     const metrics = {
         totalPipelineValue,

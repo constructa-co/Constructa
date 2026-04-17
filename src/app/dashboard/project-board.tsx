@@ -109,7 +109,13 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 h-full items-start min-w-[900px]">
             {COLUMNS.map(col => {
                 const items = projects.filter(p => getStatus(p) === col.id);
-                const colTotal = items.reduce((sum, p) => sum + (p.potential_value || financials[p.id] || 0), 0);
+                // P1-4 — prefer the canonical contract sum from the active
+                // estimate; fall back to potential_value only for projects
+                // that haven't been priced yet (Lead / early Estimating).
+                const colTotal = items.reduce(
+                    (sum, p) => sum + (financials[p.id] > 0 ? financials[p.id] : (p.potential_value || 0)),
+                    0,
+                );
 
                 return (
                     <div key={col.id} className="flex flex-col h-[calc(100vh-280px)] gap-3">
@@ -152,7 +158,9 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                         }`}>
                             {items.map(p => {
                                 const days = getDaysInStage(p.created_at);
-                                const value = p.potential_value || financials[p.id] || 0;
+                                // P1-4 — canonical contract sum wins; fall back to the
+                                // lead-stage rough estimate only if nothing priced yet.
+                                const value = financials[p.id] > 0 ? financials[p.id] : (p.potential_value || 0);
                                 const status = getStatus(p);
                                 const prevStage = PREV_STAGE[status];
                                 const showLost = ["Lead", "Estimating", "Proposal Sent"].includes(status);

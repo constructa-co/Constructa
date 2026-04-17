@@ -43,12 +43,55 @@ On audit, the three items listed as "pending" in `~/.claude/plans/partitioned-kn
 
 **Sprint 59 is fully CLOSED.** 6 commits total: `e149cfa` → `0593fc9` → `bde2fce` → `e2ce91d` → `2bca4d2` → `d167cb7`.
 
-### Next candidate
+### Sprint 51 reconciliation (second stale-plan catch)
 
-Sprint 51 — Resource Planning & Staff Allocation. Marked "START HERE" in the sprint table of the handover doc. Greenfield: schema + allocation engine + calendar UI + conflict detection. Owner to confirm direction.
+Before starting "Sprint 51", audited first. Already shipped 10 Apr 2026 — 1,423 LoC across `src/app/dashboard/resources/portfolio/`, migration `20260410000000_sprint51_resource_planning.sql` applied, all 3 tabs live (Portfolio Timeline CSS Gantt, Manage Allocations CRUD, Demand vs Supply). Sprint plan table at bottom of handover was dated 10 Apr 2026 and missed Sprints 51 / 58 / 59 / AI Council entirely.
+
+Reconciled in commit `56a30d1` — table now shows all four as complete and flags Sprint 57 (structured pre-launch QA) as the real next branch.
+
+### Sprint 57 — Polish, Testing & Pre-Launch QA (deferred to next working day)
+
+Owner's call: this sprint requires a guided manual walkthrough of the full site. Can't be run autonomously. Deferred to the next working session. Owner will lead step-by-step; assistant will fix on findings.
+
+Scope anchors (from handover Strategic Decisions Log, lines 1874–1880):
+1. Full workflow test: new project → estimate → programme → proposal → live project → billing → P&L → final account → handover → lessons learned, with real numbers that can be manually verified
+2. Financial logic deep-check: contract value, invoice netting, retention, P&L margin
+3. Known bugs resolved before any contractor is given access
+
+### What's left of the original backlog
+
+| Sprint | Status |
+|--------|--------|
+| 52 LemonSqueezy Billing | Deferred — UAE freezone company + bank account + merchant account required first |
+| 53 Xero Activation | Code already shipped in Sprint 44; waiting on env vars only |
+| 54 QuickBooks / Sage | Deferred — external dependency |
+| 55 CAD / BIM / Drawing Viewer | Strategic moat, long horizon |
+| 56 Bank Reconciliation | Deferred until post-billing launch |
+| 57 Polish, Testing & Pre-Launch QA | **NEXT — owner-guided manual session** |
+
+### Today's commits (9)
+
+```
+56a30d1 docs(sprint-plan): reconcile table — 51/58/59/AI-Council all shipped, 57 is next
+6ff2743 docs(sprint59): reconcile — confirm all 3 'pending' items already shipped
+e86ed0c docs(handover): Phase 3 complete — 8 items, 142/142 tests passing
+3cc4661 refactor(contract-admin): P2-6 decompose 1,598-line monolith
+d47d0d4 perf(home): P2-2 loading.tsx skeleton streams immediately on navigation
+63475a7 test(core): P2-8 — 41 tests for project-helpers + contracts-config
+210b8a1 fix(kpi): P2-5 min-dataset guard on Win Rate KPI
+ad43c52 fix(landing): P2-4 copy consistency — single email address, realistic response
+abf6911 fix(auth): P2-3 sign-up UX — separate success vs error, confirm password
+bf61173 feat(fidic): P1-2 detailed-claim deadline anchored to dateAware
+2a297c4 perf(library): P2-7 bulkAddMoMItemsAction — batch by depth, not per-item
+```
+
+(11 actually — Phase 3's 8 items + 2 reconciliation + this log commit.)
 
 ### Repo state at sign-off
 
-- Branch: `main` (clean, synced with `origin/main`)
-- Head: `e86ed0c docs(handover): Phase 3 complete — 8 items, 142/142 tests passing`
-- Untracked: dated log files in `docs/`, `docs/reviews/.../Archive.zip`, stray `page 2.tsx` dupe in final-account (pre-existing, not introduced today)
+- Branch: `main` — clean working tree (excluding untracked user log files in `docs/`)
+- HEAD: `56a30d1 docs(sprint-plan): reconcile table — 51/58/59/AI-Council all shipped, 57 is next`
+- Synced: `origin/main` is level with HEAD
+- Vercel: auto-deployed on each push
+- Verification: `tsc --noEmit` clean · `vitest run` 142/142 · `next build` clean
+- Untracked: user-owned dated log `.docx`/`.pdf` files, review archive zip, stray `page 2.tsx` in final-account (pre-existing — unrelated to today's work)

@@ -68,6 +68,46 @@ Run through the 12-item checklist in the implementation brief (Quick Quote progr
 dashboard error bubbling, VAT DRC toggle, pipeline kanban £1,753.29, Contract Admin pre-fill,
 sign-up green banner, tsc + vitest clean).
 
+### Phase 1 — SHIPPED (17 April 2026)
+
+All 8 items landed and pushed to `main`:
+
+| # | Commit | ID | Notes |
+|---|--------|----|-------|
+| 1 | `f4cf19f` | P0-1 | Cron reserve-first idempotency with `status` column + partial unique indexes |
+| 2 | `a7e3f95` | P0-2 | Home page surfaces Supabase query errors; secondary failures show an amber banner |
+| 3 | `54d9bc5` | P0-3 | `projects.validity_days` column live, autosave-persisted via proposal editor |
+| 4 | `2a2e5e6` | P0-4 | Quick Quote seeds `programme_phases` from template trade sections |
+| 5 | `670149e` | P1-1 | VAT Domestic Reverse Charge — flag + proposal PDF + invoice PDF + project settings toggle |
+| 6 | `4e25a45` | P1-4 | Pipeline kanban uses canonical `computeContractSum` when priced, falls back to `potential_value` otherwise |
+| 7 | `f47b92a` | P1-5 | Contract Admin setup pre-fills `contract_value` from canonical contract sum |
+| 8 | `77bac15` | P1-7 | Contract Admin date inputs normalised (slice to 10 chars), required asterisk on Award Date, client-side YYYY-MM-DD validation with toast on save |
+
+Verification at end of Phase 1:
+- `tsc --noEmit` — 0 errors
+- `vitest run` — 66/66 passing
+- `next build` — clean, all routes built
+
+### Phase 1.5 — NEW P0s from Antigravity/ChatGPT deep E2E walkthrough (17 April 2026)
+
+A second deep agentic walkthrough using real data-entry (not just read-only viewing)
+surfaced 4 new P0 bugs and 1 P1 that weren't in the original consolidated brief. These
+go between Phase 1 and Phase 2 because they block beta contractors from actually using
+the system to log variations, change events, programme phases, or estimate costs.
+
+| ID | Item | Symptom |
+|----|------|---------|
+| **E2E-P0-1** | Variations creation 500 / timeout | Filling the "Log New Variation" modal (title, type, trade, amount) and clicking Save hangs then 500s. Nothing persists. Likely Zod validation reject or missing required column on `variations` insert. |
+| **E2E-P0-2** | Change Management modal Radix Select crash | Opening "New Change Event" throws `A <Select.Item /> must have a value prop that is not an empty string`. One of the Radix dropdowns (Type, Issued By, or Trade) is receiving `""` where it needs a non-empty value. |
+| **E2E-P0-3** | Programme page interactive crash | Navigating to Programme and attempting to add/interact with a phase crashes to the Next.js error boundary. Fatal client-side render when `programme_phases` is malformed. Needs defensive shape-guard + empty-state UI rather than crash. |
+| **E2E-P0-4** | Estimating: add-line 500 error | Adding a new cost line to an existing estimate throws a 500 server-side. `createEstimateLineAction` (or equivalent) likely hitting a missing NOT-NULL column or RLS denial. |
+| **E2E-P1-1** | Job P&L renders zeros | For 22 Birchwood (which has a £1,753.29 canonical contract sum), the P&L KPI strip and trade-section breakdown render £0.00 across the board. Data aggregation pipeline silently failing — probably the same silent-schema-mismatch class we've seen before. |
+
+Fix order: E2E-P0-3 first (Programme crash — blocks live-project management entirely),
+then E2E-P0-2 (Change Mgmt Radix — React tree crash, no way to log CEs), then E2E-P0-1
+(Variations save — silent 500), then E2E-P0-4 (Estimate line save — silent 500), then
+E2E-P1-1 (P&L zeros). All are investigate-verify-fix-test-ship.
+
 ---
 
 ## Project Overview

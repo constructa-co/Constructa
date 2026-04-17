@@ -9,6 +9,7 @@ import {
     BarChart3, FileDown, Shield,
 } from "lucide-react";
 import { isActiveProject, isPipelineProject, isClosedProject } from "@/lib/project-helpers";
+import { calendarDayDiff } from "@/lib/dates";
 import { dismissOnboardingAction } from "./actions";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -220,11 +221,12 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
     // "career-saving" feature Robert called out: small contractors lose tens
     // of thousands of pounds when nobody on site remembers a clause 61.3
     // deadline.
+    // P1-8 — use the shared calendarDayDiff helper so the banner's
+    // "X days remaining" agrees with the cron's email cadence
+    // calculation on DST changeover days.
     const timeBarsAtRisk = (contractEvents ?? [])
         .map(e => {
-            const d = e.time_bar_date
-                ? Math.round((new Date(e.time_bar_date + "T00:00:00").getTime() - today.getTime()) / 86400000)
-                : null;
+            const d = e.time_bar_date ? calendarDayDiff(e.time_bar_date, today) : null;
             return { event: e, daysRemaining: d };
         })
         .filter(x => x.daysRemaining !== null && x.daysRemaining >= -7 && x.daysRemaining <= 14)
@@ -235,9 +237,7 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
     // CONTRACTS_CONFIG engine seeded on award).
     const overdueObligations = (contractObligations ?? [])
         .map(o => {
-            const d = o.due_date
-                ? Math.round((new Date(o.due_date + "T00:00:00").getTime() - today.getTime()) / 86400000)
-                : null;
+            const d = o.due_date ? calendarDayDiff(o.due_date, today) : null;
             return { obligation: o, daysRemaining: d };
         })
         .filter(x => x.daysRemaining !== null && x.daysRemaining < 0)
@@ -245,9 +245,7 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
 
     const dueSoonObligations = (contractObligations ?? [])
         .map(o => {
-            const d = o.due_date
-                ? Math.round((new Date(o.due_date + "T00:00:00").getTime() - today.getTime()) / 86400000)
-                : null;
+            const d = o.due_date ? calendarDayDiff(o.due_date, today) : null;
             return { obligation: o, daysRemaining: d };
         })
         .filter(x => x.daysRemaining !== null && x.daysRemaining >= 0 && x.daysRemaining <= 7)

@@ -31,6 +31,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendContractAlertEmail, type ContractAlertDigestItem } from "@/lib/email";
+import { calendarDayDiff } from "@/lib/dates";
 
 // Vercel cron expects this route to be a Node runtime, not edge — Resend
 // SDK pulls in node:crypto.
@@ -51,15 +52,12 @@ function isAuthorisedCron(req: NextRequest): boolean {
 
 // ── Cadence helpers ─────────────────────────────────────────────────────────
 
-const today = () => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-};
-
+// P1-8 — All day-diff math goes through calendarDayDiff so DST
+// transitions (BST ↔ GMT on the last Sunday of March/October) can
+// never cause a time-bar alert to fire a day early or miss the
+// final-stretch warning entirely.
 function daysBetween(fromIso: string, toMs: number): number {
-    const from = new Date(fromIso + "T00:00:00").getTime();
-    return Math.round((from - toMs) / 86_400_000);
+    return calendarDayDiff(fromIso, new Date(toMs));
 }
 
 /**
@@ -71,8 +69,6 @@ function decideStage(
     daysRemaining: number,
     priorStages: { stage: number; sent_at: string }[],
 ): number | null {
-    const now = today().getTime();
-
     // Stop entirely if the time bar is more than 7 days past — the boat
     // has sailed and the contractor knows it.
     if (daysRemaining < -7) return null;
@@ -81,8 +77,7 @@ function decideStage(
     if (priorStages.length === 0) return 1;
 
     const last = priorStages[0]; // assumed sorted desc by sent_at
-    const lastSentMs = new Date(last.sent_at).getTime();
-    const daysSinceLast = Math.round((now - lastSentMs) / 86_400_000);
+    const daysSinceLast = calendarDayDiff(new Date(), last.sent_at);
 
     // Final stretch — daily alerts for time bars in the last 3 days.
     if (daysRemaining >= 0 && daysRemaining <= 3) {
@@ -192,7 +187,10 @@ export async function GET(request: NextRequest) {
         return b;
     };
 
-    const todayMs = today().getTime();
+    // UTC midnight — matches calendarDayDiff's normalisation so the
+    // daysBetween() call below is DST-safe.
+    const now = new Date();
+    const todayMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
 
     // ── Time bars ──────────────────────────────────────────────────────────
     (events ?? []).forEach(e => {

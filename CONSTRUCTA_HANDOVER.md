@@ -1884,9 +1884,9 @@ Priority is completing the full remaining sprint backlog at pace. Some rework is
 
 ---
 
-## Sprint Plan — Full Status (10 April 2026)
+## Sprint Plan — Full Status (17 April 2026)
 
-Current status: **Sprint 50 complete.** Core product is functionally complete. Remaining sprints are enhancements, integrations, and the strategic moat.
+Current status: **Sprint 59 complete.** Core product is functionally complete. Every feature-bearing sprint on the backlog has shipped. Remaining items are either owner-deferred (billing, external accounting integrations) or the final pre-launch QA pass.
 
 | Sprint | Module | Status |
 |--------|--------|--------|
@@ -1899,13 +1899,16 @@ Current status: **Sprint 50 complete.** Core product is functionally complete. R
 | ✅ **48** | **Market Intelligence / API** | COMPLETE — 9 Apr 2026 |
 | ✅ **49** | **PWA** | COMPLETE — 9 Apr 2026 |
 | ✅ **50** | **Material Rates & Procurement** | COMPLETE — 9 Apr 2026 |
-| 🔜 **51** | **Resource Planning & Staff Allocation** | **START HERE** |
+| ✅ **51** | **Resource Planning & Staff Allocation** | COMPLETE — 10 Apr 2026 (3-tab portfolio Gantt, 1,423 LoC, conflict detection, demand vs supply) |
 | ⏳ **52** | **LemonSqueezy Billing** | Deferred — UAE company setup |
 | ⏳ **53** | **Xero Activation** | No code needed — just env vars |
 | ⏳ **54** | **QuickBooks / Sage** | Deferred — external dependency |
 | ⏳ **55** | **CAD / BIM / Drawing Viewer** | Strategic moat — longer horizon |
 | ⏳ **56** | **Bank Reconciliation** | Deferred — post billing launch |
-| ⏳ **57** | **Polish, Testing & Pre-Launch QA** | Final sprint before go-live |
+| ✅ **58** | **Hardening, Quick Quote & Polish** | COMPLETE — 11 Apr 2026 (3 phases, 17 commits) |
+| ✅ **59** | **Contract Administration Suite** | COMPLETE — 17 Apr 2026 (6 commits) |
+| ✅ **AI Council Hardening** | **Phases 1 / 1.5 / 2 / 3** | COMPLETE — 17 Apr 2026 (27 commits across 27 verified findings from 5 reviewers) |
+| 🔜 **57** | **Polish, Testing & Pre-Launch QA** | **NEXT — structured end-to-end workflow test per owner testing strategy** |
 
 ### What "done" looks like
 Full product is complete when a UK SME contractor can:

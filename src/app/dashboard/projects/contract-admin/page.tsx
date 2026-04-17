@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProjectPicker from "@/components/project-picker";
 import ContractAdminClient from "./contract-admin-client";
+import { computeContractSum } from "@/lib/financial";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -103,6 +104,24 @@ export default async function ContractAdminPage({
       .eq("status", "actual"),
   ]);
 
+  // P1-5 — canonical contract sum for Contract Admin pre-fill.
+  // Previously the setup form pre-filled contract_value from
+  // project.potential_value (the lead-stage rough number) which for
+  // 22 Birchwood was £85,000 even though the priced estimate was
+  // £1,753.29. Contract Admin seeds time-bar math and obligation
+  // schedules from this value — getting it wrong silently corrupts
+  // everything downstream.
+  const { data: activeEstimate } = await supabase
+    .from("estimates")
+    .select("id, total_cost, prelims_pct, overhead_pct, profit_pct, risk_pct, discount_pct, estimate_lines(trade_section, line_total)")
+    .eq("project_id", projectId)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  const canonicalContractSum = activeEstimate
+    ? computeContractSum(activeEstimate, (activeEstimate as any).estimate_lines ?? []).contractSum
+    : 0;
+
   return (
     <ContractAdminClient
       projectId={projectId}
@@ -116,6 +135,7 @@ export default async function ContractAdminPage({
       variations={variations ?? []}
       scheduleItems={scheduleItems ?? []}
       expenses={expenses ?? []}
+      canonicalContractSum={canonicalContractSum}
     />
   );
 }

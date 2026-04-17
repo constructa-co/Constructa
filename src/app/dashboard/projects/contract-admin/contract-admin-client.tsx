@@ -71,6 +71,9 @@ interface Props {
   variations: Variation[];
   scheduleItems: ScheduleItem[];
   expenses: Expense[];
+  // P1-5 — canonical computeContractSum result from the active estimate,
+  // used to pre-fill the setup form. 0 if no active estimate exists.
+  canonicalContractSum: number;
 }
 
 const TABS = [
@@ -127,14 +130,27 @@ function StatusBadge({ status }: { status: string }) {
 
 // ─── Setup Form ───────────────────────────────────────────────────────────────
 
-function ContractSetupForm({ projectId, project, onSaved }: { projectId: string; project: Project | null; onSaved: () => void }) {
+function ContractSetupForm({ projectId, project, canonicalContractSum, onSaved }: {
+  projectId: string;
+  project: Project | null;
+  canonicalContractSum: number;
+  onSaved: () => void;
+}) {
+  // P1-5 — pre-fill contract_value from the canonical contractSum if the
+  // project has been priced, otherwise fall back to the lead-stage
+  // potential_value. This keeps Contract Admin aligned with Billing,
+  // Overview, Final Account, and everywhere else.
+  const prefillContractValue = canonicalContractSum > 0
+    ? canonicalContractSum.toString()
+    : (project?.potential_value?.toString() ?? "");
+
   const [form, setForm] = useState({
     contractType: "NEC4_ECC" as ContractType,
     contractOption: "A",
     awardDate: new Date().toISOString().split("T")[0],
     startDate: project?.start_date?.split("T")[0] ?? "",
     completionDate: project?.end_date?.split("T")[0] ?? "",
-    contractValue: project?.potential_value?.toString() ?? "",
+    contractValue: prefillContractValue,
     pm: "", pmOrg: "", employer: project?.client_name ?? "", employerOrg: "",
     notes: "",
   });
@@ -246,7 +262,7 @@ function ContractSetupForm({ projectId, project, onSaved }: { projectId: string;
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function ContractAdminClient({ projectId, project, projects, contractSettings, obligations, events, communications, claims, variations, scheduleItems, expenses }: Props) {
+export default function ContractAdminClient({ projectId, project, projects, contractSettings, obligations, events, communications, claims, variations, scheduleItems, expenses, canonicalContractSum }: Props) {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = () => setRefreshKey(k => k + 1);
@@ -448,7 +464,7 @@ export default function ContractAdminClient({ projectId, project, projects, cont
           <p className="text-sm text-slate-400 mt-0.5">{project?.name}</p>
         </div>
         <div className="flex-1 overflow-y-auto p-6">
-          <ContractSetupForm projectId={projectId} project={project} onSaved={() => setShowSetup(false)} />
+          <ContractSetupForm projectId={projectId} project={project} canonicalContractSum={canonicalContractSum} onSaved={() => setShowSetup(false)} />
         </div>
       </div>
     );

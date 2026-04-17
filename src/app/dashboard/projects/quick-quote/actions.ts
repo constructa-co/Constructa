@@ -103,6 +103,42 @@ export async function createQuickQuoteFromTemplateAction(input: {
             return { success: false, error: "Template not found" };
         }
 
+        // P0-4 — Seed programme_phases from the template's trade sections so
+        // the Programme tab has something to render immediately. Without this
+        // seed, opening the Programme tab on a newly-created Quick Quote
+        // project shows an empty Gantt and the "graduate to full wizard"
+        // path feels broken. Each trade section becomes a 2-week placeholder
+        // phase stacked sequentially, which the user can refine later.
+        const seededPhases = ((template.default_trade_sections ?? []) as string[]).map(
+            (trade, i) => ({
+                name:            trade,
+                calculatedDays:  10, // 2 working weeks at 5d/wk
+                manualDays:      null,
+                manhours:        0,
+                startOffset:     i * 14, // 2 calendar weeks per phase
+                color:           ["blue", "emerald", "orange", "purple", "teal", "pink"][i % 6],
+                pct_complete:    0,
+                actual_start_date:  null,
+                actual_finish_date: null,
+            }),
+        );
+
+        // If the template has no trade sections, fall back to a single
+        // "Works" placeholder so the Gantt never renders empty.
+        if (seededPhases.length === 0) {
+            seededPhases.push({
+                name:           "Works",
+                calculatedDays: 20,
+                manualDays:     null,
+                manhours:       0,
+                startOffset:    0,
+                color:          "blue",
+                pct_complete:   0,
+                actual_start_date:  null,
+                actual_finish_date: null,
+            });
+        }
+
         // 2. Create the project row. Status starts as "Estimating" because
         //    Quick Quote always seeds an estimate immediately.
         const { data: project, error: projectErr } = await supabase
@@ -128,6 +164,7 @@ export async function createQuickQuoteFromTemplateAction(input: {
                 brief_completed:       true,
                 proposal_introduction: template.default_scope ?? null,
                 scope_text:            template.default_scope ?? null,
+                programme_phases:      seededPhases,
             })
             .select("id")
             .single();

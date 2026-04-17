@@ -1,6 +1,72 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 11 April 2026 — end-of-day close-out (Sprint 58 COMPLETE + Sprint 59 P1+P2+P3 shipped + full Perplexity/Grok tracker + tomorrow's gap-fillers)
+**Last updated:** 17 April 2026 — 5-reviewer AI Council complete, 3-phase pre-beta implementation plan locked
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
+
+---
+
+## Pre-Beta Implementation Plan — AI Council Findings (17 April 2026)
+
+Five independent AI reviewers audited the live app and codebase between 13–17 April 2026
+(ChatGPT via Atlas, Gemini, Antigravity, Grok, Perplexity). Their consolidated brief lives at
+`docs/reviews/2026-04-13-external-review/constructa-claude-implementation-prompt.md`. Every
+claim was independently verified against the repo at commit `4eb38ab` before inclusion. Grok's
+fabricated line-number specifics and Antigravity's misdiagnosed kanban fix were discarded.
+
+**Reviewer grades:** Perplexity A+ · Gemini A · ChatGPT A− · Atlas A− · Antigravity B+ · Grok C+.
+
+The 22 verified items are scheduled in three phases below. Execute in order.
+
+### Phase 1 — Ship BEFORE first beta user (1 day, 8 items)
+*Anything that silently loses data, embarrasses the product on first screen, or produces
+non-compliant UK paperwork.*
+
+| # | ID | Item |
+|---|----|------|
+| 1 | P0-1 | Cron idempotency — reservation-row-first pattern in `/api/cron/contract-alerts/route.ts` |
+| 2 | P0-2 | Home dashboard surfaces Supabase query errors (don't swallow in Promise.all) |
+| 3 | P0-3 | Add `validity_days` column on `projects`, expose in Proposal settings |
+| 4 | P0-4 | Quick Quote seeds `programme_phases` (prevents Programme tab crash) |
+| 5 | P1-1 | **VAT Domestic Reverse Charge** — `is_vat_reverse_charge` flag + proposal/invoice conditional rendering (HMRC VAT Notice 735 — first-invoice compliance) |
+| 6 | P1-4 | Pipeline kanban stage-aware value (active estimate → canonical contract sum; else `potential_value`) |
+| 7 | P1-5 | Contract Admin setup pre-fills from `computeContractSum(activeEstimate)` not `potential_value` |
+| 8 | P1-7 | Contract Admin date input values normalised to `YYYY-MM-DD` for `<input type="date">` |
+
+### Phase 2 — Ship within first beta week (1 day, 6 items)
+
+| # | ID | Item |
+|---|----|------|
+| 9 | P1-3 | Estimate immutability — lock margins once project status = "active" |
+| 10 | P1-6 | `generateJSON<T>` hardening — Zod + retry + structured logging |
+| 11 | P1-8 | UTC-safe `calendarDayDiff` utility shared by cron + banners |
+| 12 | P1-9 | DB indexes on `contract_events.time_bar_date` + `contract_obligations.due_date` |
+| 13 | P1-10 | CIS plant-with-operator verification + Vitest tests on `calculateCisDeduction` |
+| 14 | P2-1 | Active project sync — sidebar dropdown change routes through `router.push()` so horizontal navbar updates |
+
+### Phase 3 — Post-beta hardening (1 day, 8 items)
+
+| # | ID | Item |
+|---|----|------|
+| 15 | P1-2 | FIDIC 42-day detailed-claim secondary obligation auto-seeded on initial notice |
+| 16 | P2-2 | React Suspense streaming on home dashboard (non-critical panels) |
+| 17 | P2-3 | Sign-up success vs error state separation + confirm-password + strength hint |
+| 18 | P2-4 | Landing page copy consistency sweep (email addresses, Live Chat placeholder) |
+| 19 | P2-5 | Management Accounts / BI minimum-dataset messaging (threshold charts) |
+| 20 | P2-6 | Decompose `contract-admin-client.tsx` (1,545 lines, 29 useState) + split `contracts-config.ts` per suite |
+| 21 | P2-7 | `bulkAddMoMItemsAction` batch upsert (N+1 fix) |
+| 22 | P2-8 | 15 new Vitest tests: `getTimeBarDate`, `isActiveProject`, `calculateCisDeduction`, `computePlantFullRate`, `calendarDayDiff` |
+
+### Items explicitly out of scope for this plan
+- LemonSqueezy billing (UAE entity pending)
+- Xero live activation (env vars pending)
+- Playwright E2E suite (deferred until feature-complete)
+- Marketing site rewrite (separate project)
+- React Native mobile app
+- Any new feature sprints — this is hardening only
+
+### Verification before marking Phase 1 complete
+Run through the 12-item checklist in the implementation brief (Quick Quote programme render,
+dashboard error bubbling, VAT DRC toggle, pipeline kanban £1,753.29, Contract Admin pre-fill,
+sign-up green banner, tsc + vitest clean).
 
 ---
 

@@ -471,14 +471,15 @@ export default function ProgrammeClient({ projectId, projectName, startDate, ini
                         <div className="space-y-1.5">
                             <Label>Delay Reason</Label>
                             <Select
-                                value={editForm.delay_reason ?? ""}
-                                onValueChange={v => setEditForm((f: any) => ({ ...f, delay_reason: v }))}
+                                value={editForm.delay_reason ? editForm.delay_reason : "__none__"}
+                                onValueChange={v => setEditForm((f: any) => ({ ...f, delay_reason: v === "__none__" ? null : v }))}
                             >
                                 <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                                     <SelectValue placeholder="Select reason…" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">— None —</SelectItem>
+                                    {/* E2E-P0-2 — Radix forbids SelectItem value="". Use a sentinel */}
+                                    <SelectItem value="__none__">— None —</SelectItem>
                                     {DELAY_REASONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                                 </SelectContent>
                             </Select>

@@ -256,12 +256,17 @@ function WBSPicker({
       {/* Line item picker — only in "line" mode when a real section is selected */}
       {mode === "line" && tradeSection && tradeSection !== "__other" && linesInSection.length > 0 && (
         <FieldRow label="Specific Activity (optional)">
-          <Select value={lineId} onValueChange={(v) => onChange(tradeSection, v)}>
+          {/* E2E-P0-2 — Radix Select forbids SelectItem value="". Use a
+              sentinel and translate back to empty string on change. */}
+          <Select
+            value={lineId ? lineId : "__section_only__"}
+            onValueChange={(v) => onChange(tradeSection, v === "__section_only__" ? "" : v)}
+          >
             <SelectTrigger className={inputCls}>
               <SelectValue placeholder="Select activity or leave blank for section only" />
             </SelectTrigger>
             <SelectContent className={selectContentCls}>
-              <SelectItem value="" className="text-slate-500 focus:bg-slate-700 italic">
+              <SelectItem value="__section_only__" className="text-slate-500 focus:bg-slate-700 italic">
                 — Section only —
               </SelectItem>
               {linesInSection.map((l) => (

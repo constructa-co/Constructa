@@ -46,6 +46,8 @@ interface Props {
     contractEvents:      ContractEventLike[];
     contractObligations: ContractObligationLike[];
     userId:       string;
+    // P0-2 — surface query errors rather than pretending the dashboard is healthy.
+    dataWarnings?: string[];
 }
 
 interface ContractEventLike {
@@ -146,7 +148,7 @@ function getProjectProgrammeDelay(project: any): number {
     return maxDelay;
 }
 
-export default function HomeClient({ projects, profile, estimates, invoices, variations, changeEvents, rfis, ewns, contractEvents, contractObligations }: Props) {
+export default function HomeClient({ projects, profile, estimates, invoices, variations, changeEvents, rfis, ewns, contractEvents, contractObligations, dataWarnings }: Props) {
 
     // ── Project categories ────────────────────────────────────────────────────
     // Sprint 58 P1.5: unified via isActiveProject/isPipelineProject/isClosedProject
@@ -310,6 +312,19 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
 
                 {/* ── Onboarding welcome tour ── */}
                 <WelcomeTour profile={profile} projectCount={projects.length} />
+
+                {/* P0-2 — if any secondary queries failed, tell the user rather than lie */}
+                {dataWarnings && dataWarnings.length > 0 && (
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3 flex items-start gap-3">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                        <div className="flex-1">
+                            <p className="text-sm font-medium text-amber-300">Some dashboard data couldn&apos;t be loaded</p>
+                            <p className="text-xs text-amber-400/80 mt-0.5">
+                                Affected: {dataWarnings.join(", ")}. Refresh to retry, or contact support if this persists.
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 {/* ── Alert banners ── */}
                 {/*

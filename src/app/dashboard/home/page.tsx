@@ -10,17 +10,24 @@ export default async function HomePage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect("/login");
 
+    // P0-2 — capture both data AND error for every query. Swallowing errors
+    // was silently rendering a "healthy" dashboard when RLS policies or
+    // schema changes were actually breaking queries under the hood.
+    // Critical queries (projects, estimates) throw and trigger the error
+    // boundary. Secondary queries (variations, rfis, etc.) log and fall
+    // back to empty arrays but pass a warning flag to the client so the
+    // user knows some data failed to load.
     const [
-        { data: projects },
-        { data: profile },
-        { data: estimates },
-        { data: invoices },
-        { data: variations },
-        { data: changeEvents },
-        { data: rfis },
-        { data: ewns },
-        { data: contractEvents },
-        { data: contractObligations },
+        { data: projects,            error: projectsErr },
+        { data: profile,             error: profileErr },
+        { data: estimates,           error: estimatesErr },
+        { data: invoices,            error: invoicesErr },
+        { data: variations,          error: variationsErr },
+        { data: changeEvents,        error: changeEventsErr },
+        { data: rfis,                error: rfisErr },
+        { data: ewns,                error: ewnsErr },
+        { data: contractEvents,      error: contractEventsErr },
+        { data: contractObligations, error: contractObligationsErr },
     ] = await Promise.all([
         supabase
             .from("projects")
@@ -61,8 +68,6 @@ export default async function HomePage() {
             .select("id, project_id, reference, title, status, potential_cost_impact, potential_time_impact_days"),
 
         // Sprint 59 — cross-project contract events with a live time bar.
-        // Filtered to status 'open' so closed/agreed CE notices don't sit in the
-        // alert banner forever. RLS handles the user_id scoping.
         supabase
             .from("contract_events")
             .select("id, project_id, reference, title, status, time_bar_date, date_aware, event_type")
@@ -71,8 +76,6 @@ export default async function HomePage() {
             .not("time_bar_date", "is", null),
 
         // Sprint 59 — cross-project obligations that are open or pending.
-        // Anything with a due_date in the past or within the next 7 days
-        // surfaces on the home dashboard so the contractor can't miss it.
         supabase
             .from("contract_obligations")
             .select("id, project_id, label, clause_ref, due_date, status")
@@ -80,6 +83,29 @@ export default async function HomePage() {
             .neq("status", "complete")
             .not("due_date", "is", null),
     ]);
+
+    // Critical queries — if these fail, the dashboard would be lying to the
+    // contractor. Throw to trigger the route's error boundary.
+    if (projectsErr) {
+        console.error("[home] projects query failed", projectsErr);
+        throw new Error(`Projects failed to load: ${projectsErr.message}`);
+    }
+    if (estimatesErr) {
+        console.error("[home] estimates query failed", estimatesErr);
+        throw new Error(`Estimates failed to load: ${estimatesErr.message}`);
+    }
+
+    // Secondary queries — log and degrade. The client gets a warning flag
+    // so the user knows some panels may be incomplete.
+    const secondaryErrors: string[] = [];
+    if (profileErr) { console.error("[home] profile query failed", profileErr); secondaryErrors.push("profile"); }
+    if (invoicesErr) { console.error("[home] invoices query failed", invoicesErr); secondaryErrors.push("invoices"); }
+    if (variationsErr) { console.error("[home] variations query failed", variationsErr); secondaryErrors.push("variations"); }
+    if (changeEventsErr) { console.error("[home] change_events query failed", changeEventsErr); secondaryErrors.push("change events"); }
+    if (rfisErr) { console.error("[home] rfis query failed", rfisErr); secondaryErrors.push("RFIs"); }
+    if (ewnsErr) { console.error("[home] ewns query failed", ewnsErr); secondaryErrors.push("early warning notices"); }
+    if (contractEventsErr) { console.error("[home] contract_events query failed", contractEventsErr); secondaryErrors.push("contract events"); }
+    if (contractObligationsErr) { console.error("[home] contract_obligations query failed", contractObligationsErr); secondaryErrors.push("obligations"); }
 
     return (
         <HomeClient
@@ -94,6 +120,7 @@ export default async function HomePage() {
             contractEvents={contractEvents ?? []}
             contractObligations={contractObligations ?? []}
             userId={user.id}
+            dataWarnings={secondaryErrors}
         />
     );
 }

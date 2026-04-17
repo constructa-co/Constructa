@@ -12,7 +12,7 @@ import {
 } from "./helpers";
 
 export function renderCoverPage(ctx: ProposalContext): void {
-    const { doc, T, companyName, clientName, projectName, clientAddress, displayTotal, refCode, today, validUntil, profile } = ctx;
+    const { doc, T, companyName, clientName, projectName, clientAddress, displayTotal, refCode, today, validUntil, profile, project } = ctx;
 
     doc.setFillColor(...T.primary);
     doc.rect(0, 0, PAGE_W, PAGE_H, "F");
@@ -109,11 +109,20 @@ export function renderCoverPage(ctx: ProposalContext): void {
     doc.setLineWidth(0.3);
     doc.line(ML, infoY, MR, infoY);
 
+    // P1-1 — if the project is flagged for Domestic Reverse Charge, the
+    // "inc. VAT" label is inaccurate — no VAT is charged. Show the
+    // net sum with a "VAT REVERSE CHARGE" label instead.
+    const isReverseCharge = project?.is_vat_reverse_charge === true;
     const statCols = [
         { label: "DATE ISSUED", value: formatDate(today) },
         { label: "VALID UNTIL", value: formatDate(validUntil) },
         { label: "REFERENCE", value: refCode },
-        ...(displayTotal > 0 ? [{ label: "CONTRACT VALUE (inc. VAT)", value: formatGbp(displayTotal * 1.2) }] : []),
+        ...(displayTotal > 0
+            ? [{
+                label: isReverseCharge ? "CONTRACT VALUE (VAT REVERSE-CHARGED)" : "CONTRACT VALUE (inc. VAT)",
+                value: isReverseCharge ? formatGbp(displayTotal) : formatGbp(displayTotal * 1.2),
+            }]
+            : []),
     ];
     const colW = CW / statCols.length;
     statCols.forEach((stat, i) => {

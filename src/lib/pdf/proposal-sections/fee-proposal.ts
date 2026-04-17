@@ -221,8 +221,10 @@ function renderSummaryMode(ctx: ProposalContext, startY: number): number {
 // ── Grand total box ────────────────────────────────────────────────────────
 
 function renderGrandTotal(ctx: ProposalContext, startY: number): number {
-    const { doc, T, companyName, docTitle, displayTotal, totalPagesRef } = ctx;
-    let y = ensureSpace(doc, startY, 50, companyName, docTitle, totalPagesRef, T);
+    const { doc, T, companyName, docTitle, displayTotal, totalPagesRef, project } = ctx;
+    const isReverseCharge = project?.is_vat_reverse_charge === true;
+
+    let y = ensureSpace(doc, startY, isReverseCharge ? 80 : 50, companyName, docTitle, totalPagesRef, T);
     y += 4;
 
     // CONTRACT SUM (exc. VAT)
@@ -238,7 +240,48 @@ function renderGrandTotal(ctx: ProposalContext, startY: number): number {
     doc.text(formatGbp(displayTotal), MR - 4, y + 6.5, { align: "right" });
     y += 12;
 
-    // VAT line
+    if (isReverseCharge) {
+        // P1-1 — Domestic Reverse Charge (HMRC VAT Notice 735). No VAT on
+        // the invoice; customer self-accounts.
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(...T.textMid);
+        doc.text("Domestic Reverse Charge applies (VAT Act 1994, s.55A)", ML + 4, y);
+        doc.text("Customer to account for VAT", MR - 4, y, { align: "right" });
+        y += 6;
+
+        // Separator
+        doc.setDrawColor(...T.primary);
+        doc.setLineWidth(0.8);
+        doc.line(ML, y, MR, y);
+        y += 4;
+
+        // TOTAL PAYABLE (no VAT added)
+        doc.setFillColor(...T.primary);
+        doc.rect(ML, y, MR - ML, 18, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(...T.muted);
+        doc.text("TOTAL PAYABLE (VAT REVERSE-CHARGED)", ML + 4, y + 7);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(16);
+        doc.setTextColor(...T.accent);
+        doc.text(formatGbp(displayTotal), MR - 4, y + 13, { align: "right" });
+        y += 22;
+
+        // Footer note (required by HMRC VAT Notice 735)
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(7.5);
+        doc.setTextColor(...T.textMid);
+        const note = "As a VAT-registered subcontractor, this supply is subject to the domestic reverse charge. The customer must account for the VAT due on this supply under the domestic reverse charge rules.";
+        const noteLines = doc.splitTextToSize(note, MR - ML);
+        doc.text(noteLines, ML, y);
+        y += noteLines.length * 4 + 2;
+
+        return y;
+    }
+
+    // Standard 20% VAT path
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(...T.textMid);

@@ -129,6 +129,28 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                                 </Select>
                             </div>
                         </div>
+
+                        {/* P1-1 — VAT Domestic Reverse Charge toggle (HMRC VAT Notice 735). */}
+                        <div className="mt-5 p-4 rounded-lg border border-slate-700/40 bg-slate-900/30">
+                            <label className="flex items-start gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    name="is_vat_reverse_charge"
+                                    defaultChecked={project.is_vat_reverse_charge === true}
+                                    className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-2 focus:ring-blue-600"
+                                />
+                                <div className="flex-1">
+                                    <div className="text-sm font-medium text-slate-200">
+                                        VAT Domestic Reverse Charge applies
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                        Turn this on if both you and your client are CIS-registered and these services are within the scope of CIS.
+                                        Under HMRC VAT Notice 735 (effective 1 March 2021), VAT is not charged on the invoice — your customer
+                                        accounts for it on their own return. Leave off for domestic end-user clients.
+                                    </p>
+                                </div>
+                            </label>
+                        </div>
                     </CardContent>
                 </Card>
 

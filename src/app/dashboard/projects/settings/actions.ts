@@ -31,6 +31,10 @@ export async function updateProjectAction(formData: FormData) {
 
         // Scope description
         scope_description: formData.get("scope") as string || null,
+
+        // P1-1 — VAT Domestic Reverse Charge toggle (HMRC VAT Notice 735).
+        // When true, proposal and invoice PDFs suppress the 20% VAT line.
+        is_vat_reverse_charge: formData.get("is_vat_reverse_charge") === "on",
     };
 
     // Remove empty strings to avoid overwriting with blank

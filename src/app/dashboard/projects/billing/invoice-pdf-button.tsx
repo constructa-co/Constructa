@@ -22,6 +22,7 @@ interface InvoiceLike {
 interface ProjectLike {
     name: string;
     client_name?: string | null;
+    is_vat_reverse_charge?: boolean | null;
 }
 
 interface VariationLike {
@@ -125,16 +126,34 @@ export default function InvoicePdfButton({ invoice, project, originalContractSum
         currentY = doc.lastAutoTable.finalY + 20;
 
         // --- TOTAL DUE ---
+        const isReverseCharge = project.is_vat_reverse_charge === true;
         doc.setFontSize(12);
         doc.setFont("helvetica", "bold");
-        doc.text("CURRENT AMOUNT DUE FOR THIS VALUATION:", margin, currentY);
+        doc.setTextColor(0, 0, 0);
+        doc.text(
+            isReverseCharge ? "CURRENT AMOUNT DUE (VAT REVERSE-CHARGED):" : "CURRENT AMOUNT DUE FOR THIS VALUATION:",
+            margin,
+            currentY,
+        );
 
         doc.setFontSize(18);
         doc.setTextColor(...BRAND.blue);
         doc.text(formatGbp(invoice.amount), margin, currentY + 10);
 
+        // --- P1-1 VAT Domestic Reverse Charge notice (HMRC VAT Notice 735) ---
+        if (isReverseCharge) {
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "italic");
+            doc.setTextColor(100);
+            const noteY = currentY + 22;
+            doc.text("VAT: Domestic Reverse Charge applies (VAT Act 1994, s.55A — VAT Notice 735).", margin, noteY);
+            doc.text("As a VAT-registered subcontractor, this supply is subject to the domestic reverse charge.", margin, noteY + 5);
+            doc.text("The customer must account for the VAT due under the domestic reverse charge rules.", margin, noteY + 10);
+        }
+
         // --- FOOTER ---
         doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
         doc.setTextColor(150);
         doc.text(
             "All variations have been formally checked and approved. Please remit payment within 14 days.",

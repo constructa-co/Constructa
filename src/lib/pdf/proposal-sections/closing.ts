@@ -141,17 +141,23 @@ export function renderClosing(ctx: ProposalContext): void {
         const sumCol2 = ML + CW / 3;
         const sumCol3 = ML + (CW * 2) / 3;
 
+        // P1-1 — Domestic Reverse Charge swaps "TOTAL INC. VAT" for the
+        // net amount with a reverse-charge label.
+        const isReverseCharge = project?.is_vat_reverse_charge === true;
         doc.setFont("helvetica", "bold");
         doc.setFontSize(8);
         doc.setTextColor(...T.textMid);
-        doc.text("TOTAL INC. VAT", ML + 6, y + 8);
+        doc.text(isReverseCharge ? "TOTAL (VAT REVERSE-CHARGED)" : "TOTAL INC. VAT", ML + 6, y + 8);
         doc.text("PROPOSED START", sumCol2 + 3, y + 8);
         doc.text("VALID UNTIL", sumCol3 + 3, y + 8);
 
         doc.setFont("helvetica", "bold");
         doc.setFontSize(13);
         doc.setTextColor(...T.textDark);
-        doc.text(displayTotal > 0 ? formatGbp(displayTotal * 1.2) : "TBC", ML + 6, y + 21);
+        const totalValue = displayTotal > 0
+            ? (isReverseCharge ? formatGbp(displayTotal) : formatGbp(displayTotal * 1.2))
+            : "TBC";
+        doc.text(totalValue, ML + 6, y + 21);
 
         doc.setFontSize(11);
         doc.text(

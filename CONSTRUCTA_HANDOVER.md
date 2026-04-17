@@ -127,7 +127,25 @@ Verification at end of Phase 1.5:
 
 **Phase 1 + Phase 1.5 total:** 13 commits across 13 verified items. The product is now structurally safe for closed beta data-entry. Every mutating server action in the codebase returns structured errors and logs server-side. No Radix Select violations remain. Every view delegates QS math to the canonical financial library.
 
-**What's next:** Phase 2 (6 items) per the original brief — estimate immutability, generateJSON hardening, UTC date math, DB indexes, CIS test, active-project sync. All are beta-week items rather than launch blockers.
+### Phase 2 — SHIPPED (17 April 2026)
+
+| ID | Commit | Fix |
+|----|--------|-----|
+| P1-9 | `3bf380a` | Partial indexes on `contract_events.time_bar_date` (where not null) and `contract_obligations.due_date` (where not null AND status != complete). Cheap now, expensive to add later under pressure. |
+| P1-8 | `6ff311a` | New `src/lib/dates.ts` — `calendarDayDiff` normalises both dates to UTC midnight before differencing, DST-safe. 16 tests including spring-forward and fall-back days, NEC4 56d, FIDIC 28d, FIDIC 42d time bars. Wired into cron + home-client banners so the two agree on DST changeover. |
+| P1-6 | `d2329b2` | `generateJSON<T>` hardened: optional Zod schema, one automatic retry on malformed output, structured logging by `feature` tag, specific Error with feature name on exhaustion. Backward-compatible — 14 existing callers get the retry + better messages without changing. |
+| P1-3 | `5d1e213` | Estimate immutability. New `assertEstimateEditable()` helper walks estimate → project status. Mutating actions (`updateEstimateMarginsAction`, `addLineItemAction`, `updateLineItemAction`, `deleteLineItemAction`, `saveDiscountAction`) reject with "Use the Variations module" message when project is active/completed/lost/archived. Client rolls optimistic updates back on rejection. |
+| P1-10 | `6ca51d0` | New `src/lib/cis.ts` — canonical `calculateCisDeduction` / `deductionRate` / `getTaxMonthStart`. Found + fixed a bug in the old inline version: unverified subcontractors were getting 20% deduction instead of HMRC-required 30%. UTC-safe tax-month boundaries. Materials input now has plant-with/without-operator helper text (HMRC ESM5525). 19 new Vitest tests. |
+| P2-1 | `69409c4` | Sidebar dropdown now pushes `?projectId=` into the URL via `router.push` when on a project sub-page, so the horizontal project-navbar tabs stay in sync. Deselecting on a project sub-page redirects to the pipeline to avoid stranding the user. |
+
+Verification at end of Phase 2:
+- `tsc --noEmit` — 0 errors
+- `vitest run` — **101/101 passing** (66 → 82 → 101 with P1-8 + P1-10 additions)
+- `next build` — clean
+
+**Phase 1 + 1.5 + 2 total:** 19 commits across 19 verified items shipped today.
+
+**What's next:** Phase 3 (8 items) — FIDIC 42-day detailed claim, Suspense streaming, sign-up UX, landing copy, min-dataset messaging, contract-admin decomposition, `bulkAddMoMItemsAction` N+1, remaining Vitest coverage. All are polish / structural rather than beta-critical. Owner to decide timing.
 
 ---
 

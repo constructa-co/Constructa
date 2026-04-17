@@ -2,25 +2,18 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ClientPLDashboard from "./client-pl-dashboard";
 import GlobalPLDashboard from "./global-pl-client";
+import { computeContractSum } from "@/lib/financial";
 
 export const dynamic = "force-dynamic";
 
-// ── Helper: compute full contract value from estimate record ─────────────────
+// E2E-P1-1 — this page had its own local computeContractValue function
+// AND an inline QS ladder further down the file. Both are now replaced
+// by the canonical computeContractSum in src/lib/financial.ts so the
+// P&L numbers can never drift from the proposal, billing, or overview.
+// Thin wrapper preserves the old signature the global P&L uses.
 function computeContractValue(est: any, lines: any[]): number {
     if (!est) return 0;
-    const nonPrelims   = lines.filter((l: any) => l.trade_section !== "Preliminaries");
-    const prelimsLines = lines.filter((l: any) => l.trade_section === "Preliminaries");
-    const directCost   = nonPrelims.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0);
-    const prelims      = prelimsLines.length > 0
-        ? prelimsLines.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0)
-        : directCost * ((Number(est.prelims_pct) || 0) / 100);
-    const totalBudget  = directCost + prelims;
-    const oh  = totalBudget * ((Number(est.overhead_pct) || 0) / 100);
-    const risk = (totalBudget + oh) * ((Number(est.risk_pct) || 0) / 100);
-    const profit = (totalBudget + oh + risk) * ((Number(est.profit_pct) || 0) / 100);
-    const preDiscount = totalBudget + oh + risk + profit;
-    const discount = preDiscount * ((Number(est.discount_pct) || 0) / 100);
-    return preDiscount - discount;
+    return computeContractSum(est, lines ?? []).contractSum;
 }
 
 export default async function PLPage({ searchParams }: { searchParams: { projectId?: string } }) {
@@ -174,25 +167,36 @@ export default async function PLPage({ searchParams }: { searchParams: { project
     const activeEstimate = estimates?.find((e: any) => e.is_active) ?? estimates?.[0] ?? null;
     const lines: any[] = activeEstimate?.estimate_lines ?? [];
 
-    const nonPrelimsLines = lines.filter((l: any) => l.trade_section !== "Preliminaries");
-    const prelimsLines    = lines.filter((l: any) => l.trade_section === "Preliminaries");
-    const directCost      = nonPrelimsLines.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0);
-    const prelimsExplicit = prelimsLines.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0);
-    const prelimsPct      = Number(activeEstimate?.prelims_pct) || 0;
-    const prelimsTotal    = prelimsLines.length > 0 ? prelimsExplicit : directCost * (prelimsPct / 100);
-    const totalBudgetCost = directCost + prelimsTotal;
-
-    const overheadPct  = Number(activeEstimate?.overhead_pct) || 0;
-    const riskPct      = Number(activeEstimate?.risk_pct)     || 0;
-    const profitPct    = Number(activeEstimate?.profit_pct)   || 0;
-    const discountPct  = Number(activeEstimate?.discount_pct) || 0;
-    const oh           = totalBudgetCost * (overheadPct / 100);
-    const costPlusOH   = totalBudgetCost + oh;
-    const riskAmt      = costPlusOH * (riskPct / 100);
-    const adjusted     = costPlusOH + riskAmt;
-    const profitAmt    = adjusted * (profitPct / 100);
-    const preDiscount  = adjusted + profitAmt;
-    const contractValue = preDiscount - preDiscount * (discountPct / 100);
+    // E2E-P1-1 — delegate to canonical computeContractSum instead of
+    // duplicating the QS ladder here. Previously this page had its own
+    // inline calculation which was at risk of silently drifting (and
+    // Antigravity reported P&L showing £0 for 22 Birchwood in their
+    // walkthrough — most likely a render-time hydration issue but we
+    // also remove any possibility of numeric drift as part of the fix).
+    const breakdown = activeEstimate
+        ? computeContractSum(activeEstimate, lines)
+        : {
+            directCost:            0,
+            prelimsTotal:          0,
+            totalConstructionCost: 0,
+            overheadAmount:        0,
+            riskAmount:            0,
+            profitAmount:          0,
+            discountAmount:        0,
+            contractSum:           0,
+            ohRiskProfitMultiplier: 1,
+        };
+    const directCost      = breakdown.directCost;
+    const prelimsTotal    = breakdown.prelimsTotal;
+    const totalBudgetCost = breakdown.totalConstructionCost;
+    const overheadPct     = Number(activeEstimate?.overhead_pct) || 0;
+    const riskPct         = Number(activeEstimate?.risk_pct)     || 0;
+    const profitPct       = Number(activeEstimate?.profit_pct)   || 0;
+    const discountPct     = Number(activeEstimate?.discount_pct) || 0;
+    const oh              = breakdown.overheadAmount;
+    const riskAmt         = breakdown.riskAmount;
+    const profitAmt       = breakdown.profitAmount;
+    const contractValue   = breakdown.contractSum;
 
     const sectionMap = new Map<string, number>();
     for (const l of lines) {

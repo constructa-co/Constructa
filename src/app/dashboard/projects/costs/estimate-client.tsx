@@ -3,6 +3,7 @@
 
 import { useState, useTransition, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
     createEstimateAction,
     updateEstimateMarginsAction,
@@ -225,6 +226,11 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                 description: item.description, quantity: item.quantity, unit: item.unit, unit_rate: item.unit_rate,
                 line_type: "general",
             });
+            if (result?.error) {
+                toast.error(result.error);
+                showSaved();
+                return;
+            }
             if (result?.id) {
                 setEstimates((prev) => prev.map((e) =>
                     e.id !== currentEstimate.id ? e : {
@@ -238,6 +244,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
             showSaved();
         } catch (err) {
             console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to add line");
         }
     };
 
@@ -295,6 +302,11 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                 description: "", quantity: 1, unit: "nr", unit_rate: 0,
                 line_type: "general",
             });
+            if (result?.error) {
+                toast.error(result.error);
+                showSaved();
+                return;
+            }
             if (result?.id) {
                 setEstimates((prev) => prev.map((e) =>
                     e.id !== currentEstimate.id ? e : {
@@ -308,6 +320,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
             showSaved();
         } catch (err) {
             console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to add line");
         }
     };
 

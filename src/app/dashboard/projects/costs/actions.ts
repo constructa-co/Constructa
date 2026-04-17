@@ -82,33 +82,71 @@ export async function addLineItemAction(
         mom_item_code?: string | null;
         notes?: string | null;
     }
-) {
-    const { supabase } = await requireAuth();
-    const line_total = data.quantity * data.unit_rate;
+): Promise<{ id: string; error?: undefined } | { id?: undefined; error: string }> {
+    // E2E-P0-4 — previously this action silently swallowed errors and
+    // returned undefined, so a user with a misconfigured estimate or an
+    // RLS denial saw a soft failure with no indication. Antigravity
+    // reported a 500 in the field; without server-side logging we could
+    // never have reproduced it. Now every failure logs with context and
+    // returns a structured error for the client to surface.
+    try {
+        const { supabase } = await requireAuth();
 
-    const { data: result, error } = await supabase
-        .from("estimate_lines")
-        .insert({
-            estimate_id: estimateId,
-            trade_section: tradeSection,
-            description: data.description,
-            quantity: data.quantity,
-            unit: data.unit,
-            unit_rate: data.unit_rate,
-            line_total,
-            line_type: data.line_type || "general",
-            cost_library_item_id: data.cost_library_item_id || null,
-            mom_item_code: data.mom_item_code || null,
-            notes: data.notes || null,
-        })
-        .select()
-        .single();
+        // Defensive numeric coercion in case a stringy NaN made it past
+        // the client (React uncontrolled inputs + locale parsing).
+        const qty = Number(data.quantity);
+        const rate = Number(data.unit_rate);
+        if (!Number.isFinite(qty) || !Number.isFinite(rate)) {
+            return { error: "Quantity and rate must be numbers" };
+        }
+        const line_total = qty * rate;
 
-    if (error) console.error("Add line error:", error);
+        const { data: result, error } = await supabase
+            .from("estimate_lines")
+            .insert({
+                estimate_id: estimateId,
+                trade_section: tradeSection,
+                description: data.description,
+                quantity: qty,
+                unit: data.unit,
+                unit_rate: rate,
+                line_total,
+                line_type: data.line_type || "general",
+                cost_library_item_id: data.cost_library_item_id || null,
+                mom_item_code: data.mom_item_code || null,
+                notes: data.notes || null,
+            })
+            .select("id")
+            .single();
 
-    // Update estimate total_cost
-    await recalcEstimateTotal(estimateId);
-    return result;
+        if (error) {
+            console.error("[addLineItemAction] insert failed", {
+                estimateId,
+                tradeSection,
+                description: data.description,
+                error: error.message,
+                code: error.code,
+                details: error.details,
+            });
+            return { error: error.message };
+        }
+
+        // Recalc total — if this fails it's not fatal; the line is saved.
+        try {
+            await recalcEstimateTotal(estimateId);
+        } catch (recalcErr) {
+            console.error("[addLineItemAction] recalc failed (line still saved)", recalcErr);
+        }
+
+        if (!result?.id) {
+            return { error: "Insert succeeded but no id was returned" };
+        }
+        return { id: result.id };
+    } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to add line";
+        console.error("[addLineItemAction] unexpected failure", err);
+        return { error: message };
+    }
 }
 
 export async function updateLineItemAction(

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { HardHat, Plus, ChevronDown, ChevronUp, Trash2, CheckCircle, AlertCircle, Clock, X } from "lucide-react";
+import { deductionRate, type CisStatus } from "@/lib/cis";
 import {
   addSubcontractorAction,
   updateSubcontractorAction,
@@ -95,12 +96,9 @@ function statusBadge(status: Subcontractor["cis_status"]) {
   return <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cls}`}>{label}</span>;
 }
 
-function deductionRate(status: Subcontractor["cis_status"]): number {
-  if (status === "gross") return 0;
-  if (status === "higher") return 30;
-  if (status === "standard") return 20;
-  return 20;
-}
+// P1-10 — deductionRate extracted to src/lib/cis.ts with 20+ tests covering
+// standard/higher/gross rates, plant-with/without-operator scenarios, HMRC
+// tax month boundaries, and edge cases (materials > gross, stringy NaN).
 
 // ── Subcontractor form ─────────────────────────────────────────────────────────
 
@@ -279,6 +277,11 @@ function PaymentForm({
           <label className={labelCls}>Materials Element (£)</label>
           <input type="number" className={inputCls} value={materialsAmount} onChange={e => setMaterialsAmount(e.target.value)} placeholder="0.00" min="0" step="0.01" />
           <p className="text-xs text-slate-500 mt-1">CIS deduction only applies to the labour element</p>
+          {/* P1-10 — plant-with-operator guidance per HMRC ESM5525 */}
+          <p className="text-[11px] text-slate-600 mt-1 leading-snug">
+            Plant hired <em>with</em> an operator → labour. Plant hired <em>without</em> an operator
+            (self-drive) → materials.
+          </p>
         </div>
         <div>
           <label className={labelCls}>Description</label>

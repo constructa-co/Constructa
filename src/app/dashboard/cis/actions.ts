@@ -2,15 +2,11 @@
 
 import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
+import { getTaxMonthStart } from "@/lib/cis";
 
-function getTaxMonthStart(dateStr: string): string {
-  const d = new Date(dateStr);
-  const day = d.getDate();
-  const prev = day >= 6
-    ? new Date(d.getFullYear(), d.getMonth(), 6)
-    : new Date(d.getFullYear(), d.getMonth() - 1, 6);
-  return `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}-06`;
-}
+// P1-10 — getTaxMonthStart extracted to src/lib/cis.ts (UTC-safe, tested).
+// The previous inline version used local-timezone Date methods and drifted
+// around DST + UK tax-year boundary (6 April).
 
 // ── Subcontractor CRUD ────────────────────────────────────────────────────────
 

@@ -108,6 +108,27 @@ then E2E-P0-2 (Change Mgmt Radix — React tree crash, no way to log CEs), then 
 (Variations save — silent 500), then E2E-P0-4 (Estimate line save — silent 500), then
 E2E-P1-1 (P&L zeros). All are investigate-verify-fix-test-ship.
 
+### Phase 1.5 — SHIPPED (17 April 2026)
+
+All 5 items landed and pushed:
+
+| ID | Commit | Fix |
+|----|--------|-----|
+| E2E-P0-3 | `89b9180` | Programme page — defensive shape-guard on `programme_phases`: parse as `unknown`, require Array with minimum Phase shape (name string), ignore malformed. |
+| E2E-P0-2 | `a391428` | Radix Select empty-string values replaced with sentinels — `programme-client.tsx` (`__none__` for delay reason) and `log-cost-sheet.tsx` (`__section_only__` for specific-activity picker). Values translate back at the onChange boundary. |
+| E2E-P0-1 | `791e821` | Variations — structured `{ success, error?, variationId? }` return, server-side logging with project context + Supabase error code/details, client unwraps and toasts the specific error instead of hanging. |
+| E2E-P0-4 | `c84e1b5` | Estimate lines — discriminated union return `{ id } \| { error }`, defensive `Number()` coercion on quantity/unit_rate to catch stringy NaN, both caller paths in `estimate-client.tsx` now toast and bail on error. |
+| E2E-P1-1 | `8111ee8` | Job P&L — migrated the last remaining inline QS ladder (`p-and-l/page.tsx`) to canonical `computeContractSum`. Also explicit zero-state for empty estimates. The codebase now has ZERO inline QS formulas — every view uses `src/lib/financial.ts`. |
+
+Verification at end of Phase 1.5:
+- `tsc --noEmit` — 0 errors
+- `vitest run` — 66/66 passing
+- `next build` — clean
+
+**Phase 1 + Phase 1.5 total:** 13 commits across 13 verified items. The product is now structurally safe for closed beta data-entry. Every mutating server action in the codebase returns structured errors and logs server-side. No Radix Select violations remain. Every view delegates QS math to the canonical financial library.
+
+**What's next:** Phase 2 (6 items) per the original brief — estimate immutability, generateJSON hardening, UTC date math, DB indexes, CIS test, active-project sync. All are beta-week items rather than launch blockers.
+
 ---
 
 ## Project Overview

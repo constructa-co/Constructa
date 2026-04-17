@@ -103,7 +103,7 @@ export default function ClientVariations({ projectId, project, initialVariations
         e.preventDefault();
         startTransition(async () => {
             try {
-                await createVariationAction({
+                const result = await createVariationAction({
                     project_id:     projectId,
                     title,
                     description,
@@ -113,13 +113,19 @@ export default function ClientVariations({ projectId, project, initialVariations
                     instructed_by:  instructedBy || undefined,
                     date_instructed: dateInstructed || undefined,
                 });
+                if (!result.success) {
+                    toast.error(result.error ?? "Failed to save variation");
+                    return;
+                }
                 toast.success("Variation logged");
                 setShowCreate(false);
                 setTitle(""); setDescription(""); setAmount("");
                 setInstrType("Client Instruction"); setTradeSection("");
                 setInstructedBy(""); setDateInstructed("");
                 router.refresh();
-            } catch (err: any) { toast.error(err.message); }
+            } catch (err: any) {
+                toast.error(err?.message ?? "Network error — please retry");
+            }
         });
     };
 

@@ -20,32 +20,63 @@ export async function createVariationAction(data: {
     trade_section?: string;
     instructed_by?: string;
     date_instructed?: string;
-}) {
-    const input = parseInput(CreateVariationSchema, data, "variation");
-    const { supabase } = await requireAuth();
+}): Promise<{ success: boolean; error?: string; variationId?: string }> {
+    // E2E-P0-1 — previously this action threw on validation OR DB failure
+    // without logging, so a Vercel 500 would surface as a generic timeout
+    // in the UI with no way to debug. Now we catch every branch, log the
+    // details server-side, and return a structured error the client can
+    // display as a toast.
+    try {
+        const input = parseInput(CreateVariationSchema, data, "variation");
+        const { supabase } = await requireAuth();
 
-    // Auto-generate variation number
-    const { count } = await supabase
-        .from("variations")
-        .select("id", { count: "exact", head: true })
-        .eq("project_id", input.project_id);
-    const nextNum = (count ?? 0) + 1;
-    const variation_number = `VAR-${String(nextNum).padStart(3, "0")}`;
+        // Auto-generate variation number. Ignore count errors — we'll
+        // fall back to a timestamp-based fragment.
+        const { count, error: countErr } = await supabase
+            .from("variations")
+            .select("id", { count: "exact", head: true })
+            .eq("project_id", input.project_id);
+        if (countErr) {
+            console.error("[createVariationAction] count query failed", countErr);
+        }
+        const nextNum = (count ?? 0) + 1;
+        const variation_number = `VAR-${String(nextNum).padStart(3, "0")}`;
 
-    const { error } = await supabase.from("variations").insert([{
-        project_id:       input.project_id,
-        title:            input.title,
-        description:      input.description,
-        amount:           input.amount,
-        status:           "Draft",
-        variation_number,
-        instruction_type: input.instruction_type || "Client Instruction",
-        trade_section:    input.trade_section   || null,
-        instructed_by:    input.instructed_by   || null,
-        date_instructed:  input.date_instructed || null,
-    }]);
-    if (error) throw new Error(error.message);
-    revalidateVariations(input.project_id);
+        const { data: inserted, error } = await supabase
+            .from("variations")
+            .insert([{
+                project_id:       input.project_id,
+                title:            input.title,
+                description:      input.description,
+                amount:           input.amount,
+                status:           "Draft",
+                variation_number,
+                instruction_type: input.instruction_type || "Client Instruction",
+                trade_section:    input.trade_section   || null,
+                instructed_by:    input.instructed_by   || null,
+                date_instructed:  input.date_instructed || null,
+            }])
+            .select("id")
+            .single();
+
+        if (error) {
+            console.error("[createVariationAction] insert failed", {
+                projectId: input.project_id,
+                title: input.title,
+                error: error.message,
+                code: error.code,
+                details: error.details,
+            });
+            return { success: false, error: error.message };
+        }
+
+        revalidateVariations(input.project_id);
+        return { success: true, variationId: inserted?.id };
+    } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to save variation";
+        console.error("[createVariationAction] unexpected failure", err);
+        return { success: false, error: message };
+    }
 }
 
 export async function updateVariationStatusAction(

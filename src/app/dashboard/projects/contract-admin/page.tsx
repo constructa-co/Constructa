@@ -46,7 +46,6 @@ export default async function ContractAdminPage({
     { data: claimsList },
     { data: project },
     { data: variations },
-    { data: scheduleItems },
     { data: expenses },
   ] = await Promise.all([
     supabase
@@ -79,9 +78,12 @@ export default async function ContractAdminPage({
       .eq("project_id", projectId)
       .order("created_at", { ascending: false }),
 
+    // Stage 2 hardening (19 Apr 2026): added programme_phases to the project
+    // select so the AI drafting context can read it directly instead of going
+    // to a schedule_items table that does not exist in any migration.
     supabase
       .from("projects")
-      .select("id, name, client_name, project_type, start_date, potential_value")
+      .select("id, name, client_name, project_type, start_date, potential_value, programme_phases")
       .eq("id", projectId)
       .single(),
 
@@ -90,18 +92,16 @@ export default async function ContractAdminPage({
       .select("id, description, status, amount, created_at")
       .eq("project_id", projectId),
 
-    supabase
-      .from("schedule_items")
-      .select("id, name, start_date, end_date, progress")
-      .eq("project_id", projectId)
-      .order("start_date", { ascending: true })
-      .limit(30),
-
+    // Stage 2 hardening (19 Apr 2026): removed schedule_items query — that
+    // table does not exist in any migration. Expense column names aligned to
+    // the live project_expenses schema (category → cost_type, date →
+    // expense_date, status → cost_status). Filter stays "actual" so only
+    // incurred costs feed the AI drafting context.
     supabase
       .from("project_expenses")
-      .select("id, category, amount, date")
+      .select("id, cost_type, trade_section, amount, expense_date")
       .eq("project_id", projectId)
-      .eq("status", "actual"),
+      .eq("cost_status", "actual"),
   ]);
 
   // P1-5 — canonical contract sum for Contract Admin pre-fill.
@@ -122,6 +122,36 @@ export default async function ContractAdminPage({
     ? computeContractSum(activeEstimate, (activeEstimate as any).estimate_lines ?? []).contractSum
     : 0;
 
+  // Stage 2 hardening (19 Apr 2026): derive programme dates for the AI
+  // drafting context from the project's live programme_phases JSON instead of
+  // the dead schedule_items table. programme_phases carries
+  // {name, duration, unit, startOffset, manhours}. We translate startOffset
+  // into a real planned calendar date using project.start_date — this is
+  // genuine derived data, not a placeholder. "actual" completion dates are
+  // left undefined because the platform does not record them at phase level.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const phases = (project as any)?.programme_phases ?? [];
+  const startIso = (project as any)?.start_date as string | null | undefined;
+  const programmeDates: { id: string; task: string; planned: string; actual?: string }[] =
+    Array.isArray(phases)
+      ? phases.map((p: any, idx: number) => {
+          const offsetDays =
+            p?.unit === "weeks" ? (p?.startOffset ?? 0) * 7 : (p?.startOffset ?? 0);
+          const planned =
+            startIso
+              ? new Date(new Date(startIso).getTime() + offsetDays * 86_400_000)
+                  .toISOString()
+                  .slice(0, 10)
+              : "";
+          return {
+            id: `phase-${idx}`,
+            task: String(p?.name ?? `Phase ${idx + 1}`),
+            planned,
+            actual: undefined,
+          };
+        })
+      : [];
+
   return (
     <ContractAdminClient
       projectId={projectId}
@@ -133,7 +163,7 @@ export default async function ContractAdminPage({
       communications={communications ?? []}
       claims={claimsList ?? []}
       variations={variations ?? []}
-      scheduleItems={scheduleItems ?? []}
+      programmeDates={programmeDates}
       expenses={expenses ?? []}
       canonicalContractSum={canonicalContractSum}
     />

@@ -72,14 +72,25 @@ interface SitePhoto {
   uploaded_at: string;
 }
 
+// Stage 2 hardening (19 Apr 2026): column names aligned to the live invoices
+// schema. Was amount_due / date_issued / date_paid — none of those exist.
+// - amount        : gross invoice value (Sprint 14 column)
+// - net_due       : value after retention (Sprint 14 billing extension)
+//                   Where both are present, render net_due. Fall back to
+//                   amount for pre-retention / release-retention invoices.
+// - created_at    : row creation timestamp, used as issued date
+// - due_date      : payment due date (live column, not in migration files)
+// - paid_date     : payment received date (live column)
 interface Invoice {
   id: string;
   project_id: string;
   invoice_number?: string | null;
   status: string;
-  amount_due: number;
-  date_issued?: string | null;
-  date_paid?: string | null;
+  amount: number;
+  net_due?: number | null;
+  due_date?: string | null;
+  paid_date?: string | null;
+  created_at: string;
 }
 
 interface Variation {
@@ -112,13 +123,18 @@ interface StaffResource {
   staff_type?: string | null;
 }
 
+// Stage 2 hardening (19 Apr 2026): column names aligned to live project_expenses.
+// Was category / date / status — none of those exist on that table. The live
+// columns are cost_type / expense_date / cost_status, and the server now
+// filters .eq("cost_status","actual") so only incurred costs arrive here.
 interface Expense {
   id: string;
   project_id: string;
-  category?: string | null;
+  cost_type?: string | null;
+  trade_section?: string | null;
   amount: number;
-  date?: string | null;
-  status: string;
+  expense_date?: string | null;
+  cost_status?: string | null;
 }
 
 interface Props {
@@ -155,16 +171,24 @@ function contractValue(project: Project, estimates: Estimate[]): number {
   return base * oh * risk * profit * disc;
 }
 
+// Stage 2 hardening (19 Apr 2026): use net_due when available (Sprint 14
+// billing populates it after retention), otherwise fall back to amount.
+// Status comparisons now use the canonical uppercase "Paid" matching the
+// invoices check constraint.
+function invoiceValue(i: Invoice): number {
+  return (i.net_due ?? i.amount) ?? 0;
+}
+
 function invoicedTotal(projectId: string, invoices: Invoice[]) {
   return invoices
     .filter((i) => i.project_id === projectId)
-    .reduce((s, i) => s + (i.amount_due ?? 0), 0);
+    .reduce((s, i) => s + invoiceValue(i), 0);
 }
 
 function paidTotal(projectId: string, invoices: Invoice[]) {
   return invoices
-    .filter((i) => i.project_id === projectId && i.status === "paid")
-    .reduce((s, i) => s + (i.amount_due ?? 0), 0);
+    .filter((i) => i.project_id === projectId && i.status === "Paid")
+    .reduce((s, i) => s + invoiceValue(i), 0);
 }
 
 function variationTotal(projectId: string, variations: Variation[]) {
@@ -971,31 +995,31 @@ export default function ReportingClient({
                           {inv.invoice_number ?? "—"}
                         </td>
                         <td className="px-5 py-3 text-slate-400 text-xs">
-                          {inv.date_issued
-                            ? new Date(inv.date_issued).toLocaleDateString(
+                          {inv.created_at
+                            ? new Date(inv.created_at).toLocaleDateString(
                                 "en-GB"
                               )
                             : "—"}
                         </td>
                         <td className="px-5 py-3 text-slate-200 text-xs font-mono">
-                          {fmt(inv.amount_due)}
+                          {fmt(invoiceValue(inv))}
                         </td>
                         <td className="px-5 py-3">
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                              inv.status === "paid"
+                              inv.status === "Paid"
                                 ? "bg-green-600/20 text-green-400"
-                                : inv.status === "overdue"
-                                ? "bg-red-600/20 text-red-400"
-                                : "bg-amber-600/20 text-amber-400"
+                                : inv.status === "Sent"
+                                ? "bg-amber-600/20 text-amber-400"
+                                : "bg-slate-700 text-slate-400"
                             }`}
                           >
                             {inv.status}
                           </span>
                         </td>
                         <td className="px-5 py-3 text-slate-400 text-xs">
-                          {inv.date_paid
-                            ? new Date(inv.date_paid).toLocaleDateString(
+                          {inv.paid_date
+                            ? new Date(inv.paid_date).toLocaleDateString(
                                 "en-GB"
                               )
                             : "—"}
@@ -1392,13 +1416,13 @@ async function generateProjectControlPDF(data: {
       head: [["Invoice #", "Issued", "Amount", "Status", "Paid"]],
       body: data.invoices.map((i) => [
         i.invoice_number ?? "—",
-        i.date_issued
-          ? new Date(i.date_issued).toLocaleDateString("en-GB")
+        i.created_at
+          ? new Date(i.created_at).toLocaleDateString("en-GB")
           : "—",
-        fmt(i.amount_due),
+        fmt((i.net_due ?? i.amount) ?? 0),
         i.status,
-        i.date_paid
-          ? new Date(i.date_paid).toLocaleDateString("en-GB")
+        i.paid_date
+          ? new Date(i.paid_date).toLocaleDateString("en-GB")
           : "—",
       ]),
       theme: "striped",
@@ -1470,10 +1494,10 @@ async function generatePortfolioPDF(data: {
     const cv = contractValue(p);
     const inv = data.invoices
       .filter((i) => i.project_id === p.id)
-      .reduce((s, i) => s + i.amount_due, 0);
+      .reduce((s, i) => s + ((i.net_due ?? i.amount) ?? 0), 0);
     const paid = data.invoices
-      .filter((i) => i.project_id === p.id && i.status === "paid")
-      .reduce((s, i) => s + i.amount_due, 0);
+      .filter((i) => i.project_id === p.id && i.status === "Paid")
+      .reduce((s, i) => s + ((i.net_due ?? i.amount) ?? 0), 0);
     const varT = data.variations
       .filter((v) => v.project_id === p.id && v.status === "Approved")
       .reduce((s, v) => s + (v.amount ?? 0), 0);
@@ -1496,10 +1520,10 @@ async function generatePortfolioPDF(data: {
       acc.cv += contractValue(p);
       acc.inv += data.invoices
         .filter((i) => i.project_id === p.id)
-        .reduce((s, i) => s + i.amount_due, 0);
+        .reduce((s, i) => s + ((i.net_due ?? i.amount) ?? 0), 0);
       acc.paid += data.invoices
-        .filter((i) => i.project_id === p.id && i.status === "paid")
-        .reduce((s, i) => s + i.amount_due, 0);
+        .filter((i) => i.project_id === p.id && i.status === "Paid")
+        .reduce((s, i) => s + ((i.net_due ?? i.amount) ?? 0), 0);
       acc.varT += data.variations
         .filter((v) => v.project_id === p.id && v.status === "Approved")
         .reduce((s, v) => s + (v.amount ?? 0), 0);

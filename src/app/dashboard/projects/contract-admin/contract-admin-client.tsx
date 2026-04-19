@@ -59,8 +59,14 @@ interface ContractEvent { id: string; event_type: string; reference?: string | n
 interface Communication { id: string; event_id?: string | null; direction: string; comm_date: string; reference?: string | null; subject: string; body?: string | null; from_party?: string | null; to_party?: string | null; }
 interface Claim { id: string; event_id?: string | null; claim_type: string; reference?: string | null; title: string; status: string; time_claimed?: number | null; cost_claimed?: number | null; time_agreed?: number | null; cost_agreed?: number | null; ai_narrative?: string | null; notes?: string | null; created_at: string; }
 interface Variation { id: string; description: string; status: string; amount?: number | null; created_at: string; }
-interface ScheduleItem { id: string; name: string; start_date?: string | null; end_date?: string | null; progress?: number | null; }
-interface Expense { id: string; category?: string | null; amount: number; date?: string | null; }
+// Stage 2 hardening (19 Apr 2026): programmeDates replaces the old
+// scheduleItems shape. Server derives these from the project's live
+// programme_phases JSON + project.start_date so we're no longer querying a
+// nonexistent schedule_items table.
+interface ProgrammePhaseDate { id: string; task: string; planned: string; actual?: string }
+// Stage 2 hardening (19 Apr 2026): cost_type replaces the dead `category`
+// column. `amount` and `expense_date` remain as live fields.
+interface Expense { id: string; cost_type?: string | null; trade_section?: string | null; amount: number; expense_date?: string | null; }
 
 interface Props {
   projectId: string;
@@ -72,7 +78,7 @@ interface Props {
   communications: Communication[];
   claims: Claim[];
   variations: Variation[];
-  scheduleItems: ScheduleItem[];
+  programmeDates: ProgrammePhaseDate[];
   expenses: Expense[];
   // P1-5 — canonical computeContractSum result from the active estimate,
   // used to pre-fill the setup form. 0 if no active estimate exists.
@@ -271,7 +277,7 @@ function ContractSetupForm({ projectId, project, canonicalContractSum, onSaved }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function ContractAdminClient({ projectId, project, projects, contractSettings, obligations, events, communications, claims, variations, scheduleItems, expenses, canonicalContractSum }: Props) {
+export default function ContractAdminClient({ projectId, project, projects, contractSettings, obligations, events, communications, claims, variations, programmeDates, expenses, canonicalContractSum }: Props) {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = () => setRefreshKey(k => k + 1);
@@ -425,8 +431,8 @@ export default function ContractAdminClient({ projectId, project, projects, cont
       contractValue: contractSettings.contract_value ?? undefined,
       parties: contractSettings.parties,
       relevantVariations: variations.map(v => ({ description: v.description, amount: v.amount ?? undefined })),
-      programmeDates: scheduleItems.map(s => ({ task: s.name, planned: s.start_date ?? "", actual: s.progress === 100 ? s.end_date ?? undefined : undefined })),
-      recentCosts: expenses.map(e => ({ category: e.category ?? "Cost", amount: e.amount })),
+      programmeDates: programmeDates.map(p => ({ task: p.task, planned: p.planned, actual: p.actual })),
+      recentCosts: expenses.map(e => ({ category: e.cost_type ?? e.trade_section ?? "Cost", amount: e.amount })),
     });
     setDraftingEventId(null);
     if (res.error) toast.error(res.error);
@@ -453,8 +459,8 @@ export default function ContractAdminClient({ projectId, project, projects, cont
       timeClaimed: claim.time_claimed ?? undefined,
       costClaimed: claim.cost_claimed ?? undefined,
       variations: variations.map(v => ({ description: v.description, status: v.status, amount: v.amount ?? undefined })),
-      programmeDates: scheduleItems.map(s => ({ task: s.name, planned: s.start_date ?? "", actual: s.progress === 100 ? s.end_date ?? undefined : undefined })),
-      costs: expenses.map(e => ({ category: e.category ?? "Cost", amount: e.amount })),
+      programmeDates: programmeDates.map(p => ({ task: p.task, planned: p.planned, actual: p.actual })),
+      costs: expenses.map(e => ({ category: e.cost_type ?? e.trade_section ?? "Cost", amount: e.amount })),
       communications: communications.map(c => ({ date: c.comm_date, subject: c.subject, direction: c.direction })),
     });
     setDraftingClaimId(null);

@@ -308,9 +308,11 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
             <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-0.5">
 
                 {/* Overview — always visible */}
+                {/* On-site Hub (Smartphone icon) gated for beta on 19 Apr 2026 —
+                    route now redirects to /dashboard/home. Restore this entry
+                    once the mobile data sources are rewired. */}
                 <div className="pb-2">
                     <NavItem href="/dashboard/home" icon={LayoutDashboard} label="Overview" active={is("/dashboard/home")} />
-                    <NavItem href="/dashboard/mobile" icon={Smartphone} label="On-site Hub" active={is("/dashboard/mobile")} />
                 </div>
 
                 {/* ── Active Project Selector — always visible, at top ─── */}
@@ -443,7 +445,10 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                         <NavItem href="/dashboard/reporting" icon={FileText} label="Reports & Photos" active={is("/dashboard/reporting")} />
                         <NavItem href="/dashboard/management-accounts" icon={BarChart2} label="Management Accounts" active={is("/dashboard/management-accounts")} />
                         <NavItem href="/dashboard/cis" icon={HardHat} label="CIS Compliance" active={is("/dashboard/cis")} />
-                        <NavItem href="/dashboard/intelligence" icon={Lightbulb} label="Business Intelligence" active={is("/dashboard/intelligence")} />
+                        {/* Business Intelligence (Lightbulb icon) gated for beta on
+                            19 Apr 2026 — the route now redirects to /dashboard/home.
+                            Restore once the backing tables (project_pl_snapshots,
+                            project_schedules) exist. */}
                         <NavItem href="/dashboard/materials" icon={Package} label="Material Rates" active={is("/dashboard/materials")} />
                     </div>
 

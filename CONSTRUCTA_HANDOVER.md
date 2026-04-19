@@ -234,6 +234,17 @@ Report in this shape so I can fix without guessing:
 
 I'll patch, re-run the three automated checks, and stage a fix commit under the same stage-report discipline used above.
 
+### Reviewer sign-off (19 April 2026)
+
+`36dc117` is confirmed by the reviewer (Codex) as the **clean baseline for the manual walkthrough**. Status per that sign-off:
+
+- Code hardening: complete and pushed
+- Durable handover / dated log: updated
+- Verification status: accurately recorded (tsc / vitest / next build green)
+- Manual walkthrough: the only remaining gate
+
+No further implementation work is in flight. The three previously-carried review findings (schedule predecessor ownership, archive contract value, management accounts prelims drift) are all resolved and should **not** be re-flagged in future review notes — they were closed during Stages 4 and 5.
+
 ---
 
 ## Project Overview

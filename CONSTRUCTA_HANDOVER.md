@@ -1,5 +1,5 @@
 # Constructa — Full Project Handover Document
-**Last updated:** 17 April 2026 — 5-reviewer AI Council complete, 3-phase pre-beta implementation plan locked
+**Last updated:** 19 April 2026 — Pre-beta hardening pass (Codex brief) code-side complete, owner manual walkthrough pending
 **For:** Any AI coding assistant (Claude Code, ChatGPT Codex, Cursor, etc.) picking up this project
 
 ---
@@ -176,6 +176,63 @@ Reconciliation note: a stale plan file (`~/.claude/plans/partitioned-knitting-pi
 | SCL Delay Analysis Protocol (4 methodologies + AI narrative) | `d167cb7` | Shipped — `src/lib/delay-analysis.ts` with 12 tests, `delay_analyses` table, `runDelayAnalysisAction` + `draftDelayNarrativeAction`, tab UI in contract-admin |
 
 Sprint 59 is fully complete. Total commits: 6 (`e149cfa` cross-project home alerts → `0593fc9` email cron → `bde2fce` per-event guidance → `e2ce91d` FIDIC EI guidance → `2bca4d2` Supervisor portal → `d167cb7` Delay Analysis).
+
+---
+
+## Pre-Beta Hardening Pass — 19 April 2026
+
+**Status:** Code-side hardening **complete**. Automated verification (tsc / vitest / next build) **green**. Owner-led manual end-to-end walkthrough **still outstanding** — the pass is not fully closed until that passes.
+
+**Scope:** Stabilisation only. No new features added. No UI redesigns. Every change is either a schema-alignment repair, a beta-gating of a module that was producing silent wrongness, an ownership-check tightening on a mutating server action, or a canonical-math adoption so every surface agrees on one number.
+
+**Driver:** `docs/2026-04-19-claude-hardening-brief.md` — synthesis of the Codex review pass into seven stages. Executed stage-by-stage with explicit review/approval before each commit.
+
+### Commits (in order)
+
+| Stage | Commit | Summary |
+|-------|--------|---------|
+| 2 | `5d1a7fd` | Gate Intelligence + Mobile Hub (redirect + nav removed); repair Reporting schema (invoice/expense/staff columns aligned, lowercase "paid" → "Paid"); repair Contract Admin AI context inputs (remove dead `schedule_items` query, derive `programmeDates` from live `programme_phases`, fix expense fields) |
+| 3 | `9c14b0b` | Public proposal acceptance flow — `acceptProposalAction` now uses `createAdminClient()` (service-role) for the contractor-auth email lookup instead of the cookie-based anon client. Matches the already-correct pattern in the viewed flow (`page.tsx:50-67`). Wrapped in try/catch so a lookup failure cannot break acceptance |
+| 4 | `ca89ece` | New `requireProjectAccess(projectId)` helper in `src/lib/supabase/auth-utils.ts`. Applied across 7 action files (communications / contracts / final-account / billing / programme / schedule / p-and-l) plus the public proposal token-write. Project-scoped mutations now verify ownership explicitly and anchor row-level UPDATE/DELETE by both `id` and `project_id`. Runs alongside RLS as defence-in-depth. Also hardened `updateDependencyAction` to verify both sides of an `estimate_dependencies` row belong to the same owned project (the table has no RLS) |
+| 5 | `79da034` | Canonical status + financial truth pass. `isActiveProject` replaces a lowercase-only status filter in Management Accounts. `computeContractSumValue` replaces five hand-rolled contract-value functions across Home, Reporting (×2 renderers), Archive, and Management Accounts. Fixed two real silent-wrongness bugs: Home was hard-coding a 5% risk rate ignoring the estimate's actual `risk_pct`, and Reporting was omitting the Preliminaries summand |
+| 6 | `cdfdd3b` | Beta gating — deleted 7 dead / unreachable files (−1,906 LoC): `billing/valuation-form.tsx` + `billing/pdf-application.tsx` (dead), plus the entire unreachable `foundations/pdf-generator.tsx` additive-markup surface and its orphaned imports (`client-page.tsx`, `editable-table.tsx`, `library-drawer.tsx`, `actions.ts`). `foundations/page.tsx` already redirects, so the route was already gated; the deletion removes the buggy code from the repo entirely. `vision-takeoff.tsx` + `vision-actions.ts` kept because they are live in the Estimating flow |
+| 5-followup | `5a5d111` | `/dashboard/live/page.tsx` — inline `computeContractValue` swapped for `computeContractSumValue`. The old math was logically correct but still a duplicate; now every beta-path surface shares one function |
+
+### Key decisions captured during the pass
+
+- **Intelligence** and **Mobile Hub** gated rather than repaired. Intelligence queried two backing tables that don't exist in any migration (`project_pl_snapshots`, `project_schedules`) plus `projects.contract_value` (also missing). Mobile Hub filtered by a `user_id` column that does not exist on `project_expenses` or `variations`, so lists were silently empty. Both routes now `redirect("/dashboard/home")` and have their sidebar entries removed. Client files retained for future restoration.
+- **Reporting** repaired in place rather than gated. Schema swaps: invoices → `amount / net_due / due_date / paid_date / created_at` (dropped `amount_due / date_issued / date_paid`); expenses → `cost_type / trade_section / expense_date / cost_status` (dropped `category / date / status`); staff query repointed from the invalid `staff_resources.project_id` to `resource_allocations` (Sprint 51) with the staff record embedded server-side and flattened.
+- **Contract Admin** context repaired in place. Removed the dead `schedule_items` query and instead derive `programmeDates` server-side from `project.programme_phases` + `project.start_date`. Real derived data, not invented.
+- **Public proposal acceptance** now defends against both anon-client-calling-admin-method misuse (Stage 3) and unchecked update results (Stage 4 sub-item). The DB write is now `.eq("id", project.id).eq("proposal_token", token).select(...).single()`, aborts with a user-facing error if the row did not in fact flip to accepted, and only fires emails on confirmed success.
+- **`requireProjectAccess`** runs alongside RLS, not in place of it. Every project-scoped mutation has one server-side call, and every row-level UPDATE/DELETE has `.eq("project_id", projectId)` or `.eq("user_id", user.id)` as a row-match anchor so a spoofed `projectId` cannot reach a foreign row even if RLS regresses. Three actions without a `projectId` in their signature (`deleteCostAction`, p-and-l `updateInvoiceStatusAction`, `updateDependencyAction`) use a fetch-and-check pattern rather than changing caller signatures.
+- **Contract-value math is now canonical everywhere** on the beta path. Home, Reporting (two renderers), Archive, Management Accounts, `/dashboard/live`, and the existing Proposal / Billing / Final Account / Estimating surfaces all call `computeContractSumValue(estimate, estimate_lines)`. Projects that use explicit `trade_section = "Preliminaries"` lines no longer get prelims double-counted, and projects with a non-default `risk_pct` no longer show the old hard-coded 5% on Home.
+
+### Verification status (as of `main @ 5a5d111`)
+
+- `npx tsc --noEmit` — **pass** (0 errors)
+- `npx vitest run` — **pass** (142/142 across 7 test files)
+- `npx next build` — **pass** (clean production build; gated routes compile to 192 B redirect stubs)
+- Owner-led manual end-to-end walkthrough — **pending**. Checklist covers: New project → Brief → Estimating (with explicit Preliminaries lines + non-default `risk_pct`) → Programme → Proposal send → Client view (incognito) → Client acceptance → Billing → P&L, plus cross-cutting checks that contract values match across Home / Billing / Proposal / Management Accounts / Reporting, Management Accounts status pills colour correctly, and gated routes redirect.
+
+### Deferred items (explicitly not done in this pass)
+
+- **Out-of-band schema reconciliation.** Multiple live columns (`invoices.net_due / due_date / paid_date / gross_valuation / previous_cert / retention_pct / retention_held / is_retention_release / period_number`, `project_expenses.cost_status`, `staff_resources` base `CREATE TABLE`) are referenced in code and exist in the running Supabase project but are not in any committed migration. A fresh Supabase restored from migrations alone would not match the live app. Recommended next step: a single audit migration that dumps the live schema and commits any missing `CREATE TABLE IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS` statements. Does not block beta.
+- **`estimate_dependencies` RLS.** Table has no RLS policy (`supabase/migrations/20260117000008_estimate_dependencies.sql`). Stage 4's server-side cross-project predecessor check is currently the first line of defence; an RLS policy would restore it to second-line. Slot with the reconciliation migration above.
+- **`/dashboard/data/{labor,plant,materials}`.** Three nav-less page routes that look superseded by `/dashboard/resources/*` and `/dashboard/library`. Owner to triage — gate, delete, or leave — in a later housekeeping pass.
+- **`src/app/dashboard/projects/final-account/page 2.tsx`.** Stray pre-existing duplicate file (the space in the filename prevents Next.js routing). Not imported anywhere. Delete in a later repo-hygiene pass.
+- **Playwright / formal E2E automation.** Explicitly deferred to post feature-completion per owner testing strategy (handover Strategic Decisions Log, 8 April 2026).
+- **Release note copy.** Draft line for when the walkthrough passes: *"Contract values on Home, Reporting, Management Accounts, Proposal, Billing, and Archive are now aligned using one canonical calculation. Projects that use explicit Preliminaries lines or a non-default risk percentage may show slightly different (correct) numbers than before."*
+
+### If the walkthrough finds a problem
+
+Report in this shape so I can fix without guessing:
+
+1. Step (e.g. "Step 7 — Client acceptance")
+2. Expected
+3. Actual
+4. Screenshot / copied error message if available
+
+I'll patch, re-run the three automated checks, and stage a fix commit under the same stage-report discipline used above.
 
 ---
 

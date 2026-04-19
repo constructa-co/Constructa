@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
     sendAcceptanceConfirmationEmail,
     sendContractorAcceptanceNotification,
@@ -44,9 +45,28 @@ export async function acceptProposalAction(
         .eq("id", project.user_id)
         .single();
 
-    // Fetch contractor auth email for notification
-    const { data: contractorAuth } = await supabase.auth.admin.getUserById(project.user_id);
-    const contractorEmail = contractorAuth?.user?.email;
+    // Stage 3 hardening (19 Apr 2026): the contractor auth email lookup must
+    // use the service-role admin client, not the cookie-based public client
+    // above. Previously `supabase.auth.admin.getUserById(...)` was called on
+    // the anon-key client which is not authorised for admin auth methods —
+    // the notification path either silently failed or returned an empty user.
+    //
+    // Mirrors the pattern already used in the /proposal/[token]/page.tsx
+    // viewed-notification flow (page.tsx lines 50–67) so both public-proposal
+    // notification paths share one consistent, safe shape: admin client only
+    // where admin privilege is needed, wrapped in try/catch so a contractor-
+    // auth-lookup failure never breaks acceptance itself (the DB write above
+    // is already committed). The client-confirmation email is independent
+    // and still fires.
+    let contractorEmail: string | undefined;
+    try {
+        const adminSupabase = createAdminClient();
+        const { data: contractorAuth } =
+            await adminSupabase.auth.admin.getUserById(project.user_id);
+        contractorEmail = contractorAuth?.user?.email;
+    } catch (e) {
+        console.error("Contractor auth lookup failed:", e);
+    }
 
     const companyName = profile?.company_name || "The Contractor";
 

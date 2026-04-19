@@ -9,6 +9,11 @@ import {
     BarChart3, FileDown, Shield,
 } from "lucide-react";
 import { isActiveProject, isPipelineProject, isClosedProject } from "@/lib/project-helpers";
+// Stage 5 hardening (19 Apr 2026): canonical contract sum replaces an inline
+// compound calculation that hard-coded a 5% risk rate and ignored the
+// estimate's risk_pct. Pulled from the shared financial library so Home's
+// "contract value" agrees with every other surface.
+import { computeContractSumValue } from "@/lib/financial";
 import { calendarDayDiff } from "@/lib/dates";
 import { dismissOnboardingAction } from "./actions";
 
@@ -263,17 +268,14 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
         const projOpenCEs     = changeEvents.filter(c => c.project_id === p.id && !["Agreed","Rejected","Withdrawn"].includes(c.status)).length;
         const progDelay       = getProjectProgrammeDelay(p);
 
-        // Contract value from active estimate
+        // Stage 5 hardening (19 Apr 2026): canonical contract sum. Previously
+        // inlined the compound math with a hard-coded 5% risk. Now uses
+        // computeContractSumValue so Home aligns with billing / reporting /
+        // proposal / final-account / management-accounts.
         const est = estimates.find(e => e.project_id === p.id);
-        let contractValue = p.potential_value ?? 0;
-        if (est) {
-            const base = est.total_cost || 0;
-            const overhead = base * ((est.overhead_pct || 0) / 100);
-            const risk     = (base + overhead) * 0.05;
-            const profit   = (base + overhead + risk) * ((est.profit_pct || 0) / 100);
-            const gross    = base + overhead + risk + profit;
-            contractValue  = Math.round((gross - gross * ((est.discount_pct || 0) / 100)) * 100) / 100 || contractValue;
-        }
+        const lines = Array.isArray(est?.estimate_lines) ? est.estimate_lines : [];
+        const canonical = est ? computeContractSumValue(est, lines) : 0;
+        const contractValue = canonical > 0 ? canonical : (p.potential_value ?? 0);
 
         return { ...p, projOutstanding, projOverdue, projPendingVars, projOpenRfis, projOpenCEs, progDelay, contractValue };
     });

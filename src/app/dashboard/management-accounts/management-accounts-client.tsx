@@ -3,12 +3,28 @@
 import { useState, useMemo } from "react";
 import { BarChart2, TrendingUp, TrendingDown, Minus, Download, FileText } from "lucide-react";
 import { isActiveProject } from "@/lib/project-helpers";
+// Stage 5 hardening (19 Apr 2026): canonical contract sum. Management
+// Accounts previously hand-rolled the compound OH/Risk/Profit/Discount math
+// in calcContractValue(); swapped to computeContractSumValue so figures
+// cannot drift from billing, reporting, proposal, or final-account outputs.
+import { computeContractSumValue } from "@/lib/financial";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface Profile { financial_year_start_month: number; company_name: string | null; }
 interface Project { id: string; name: string; client_name: string | null; project_type: string | null; status: string | null; start_date: string | null; is_archived: boolean; archived_at: string | null; }
-interface Estimate { project_id: string; total_cost: number; overhead_pct: number; profit_pct: number; risk_pct: number; prelims_pct: number; discount_pct: number; }
+// Stage 5 review patch (19 Apr 2026): carries estimate_lines so the canonical
+// helper can split direct cost from Preliminaries instead of double-counting.
+interface Estimate {
+  project_id: string;
+  total_cost: number;
+  overhead_pct: number;
+  profit_pct: number;
+  risk_pct: number;
+  prelims_pct: number;
+  discount_pct: number;
+  estimate_lines?: Array<{ trade_section?: string | null; line_total?: number | null }> | null;
+}
 interface Invoice { project_id: string; amount: number; status: string; created_at: string; due_date: string | null; paid_date: string | null; net_due: number | null; retention_held: number | null; }
 interface Expense { project_id: string; amount: number; expense_date: string; cost_type: string; cost_status: string; }
 interface Variation { project_id: string; amount: number; status: string; date_instructed: string | null; }
@@ -56,16 +72,15 @@ function getRangeBounds(range: DateRange, fyStartMonth: number): { start: Date; 
   return { start: new Date(2020, 0, 1), end: now };
 }
 
+// Stage 5 hardening + review patch (19 Apr 2026): delegates to
+// computeContractSumValue and passes real estimate_lines. Passing [] would
+// double-count Preliminaries because estimates.total_cost already includes
+// Preliminaries line totals, and the helper's empty-lines fallback re-applies
+// prelims via prelims_pct.
 function calcContractValue(est: Estimate | undefined): number {
   if (!est) return 0;
-  const base = est.total_cost ?? 0;
-  const prelims = base * ((est.prelims_pct ?? 0) / 100);
-  const budget = base + prelims;
-  const overhead = budget * ((est.overhead_pct ?? 0) / 100);
-  const risk = (budget + overhead) * ((est.risk_pct ?? 0) / 100);
-  const profit = (budget + overhead + risk) * ((est.profit_pct ?? 0) / 100);
-  const discount = (budget + overhead + risk + profit) * ((est.discount_pct ?? 0) / 100);
-  return budget + overhead + risk + profit - discount;
+  const lines = Array.isArray(est.estimate_lines) ? est.estimate_lines : [];
+  return computeContractSumValue(est, lines);
 }
 
 function marginColour(m: number): string {
@@ -381,8 +396,11 @@ export default function ManagementAccountsClient({ profile, projects, estimates,
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full border ${
                           p.is_archived ? "bg-slate-700/40 text-slate-400 border-slate-600"
-                          : p.status === "active" ? "bg-blue-500/15 text-blue-400 border-blue-500/30"
-                          : p.status === "completed" ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                          // Stage 5 hardening (19 Apr 2026): use isActiveProject
+                          // so Active/Won/active all colour blue consistently.
+                          // The old lowercase-only check missed canonical "Active".
+                          : isActiveProject(p) ? "bg-blue-500/15 text-blue-400 border-blue-500/30"
+                          : p.status === "Completed" ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
                           : "bg-slate-700/40 text-slate-400 border-slate-600"
                         }`}>
                           {p.is_archived ? "Archived" : (p.status ?? "—")}

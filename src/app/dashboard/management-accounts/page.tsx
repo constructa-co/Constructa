@@ -26,9 +26,16 @@ export default async function ManagementAccountsPage() {
       .select("id, name, client_name, project_type, status, start_date, is_archived, archived_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
+    // Stage 5 review patch (19 Apr 2026): added estimate_lines so the client
+    // can pass real line data into computeContractSumValue. Because
+    // estimates.total_cost already includes Preliminaries line totals, the
+    // empty-lines fallback would double-count prelims when a project uses
+    // explicit Preliminaries rows — inflating Management Accounts vs. the
+    // rest of the app. Passing lines makes the helper's directCost /
+    // prelims split work correctly.
     supabase
       .from("estimates")
-      .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, is_active")
+      .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, is_active, estimate_lines(trade_section, line_total)")
       .eq("user_id", user.id)
       .eq("is_active", true),
     supabase

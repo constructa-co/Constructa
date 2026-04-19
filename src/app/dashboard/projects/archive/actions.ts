@@ -1,6 +1,10 @@
 "use server";
 
 import { requireAuth } from "@/lib/supabase/auth-utils";
+// Stage 5 hardening (19 Apr 2026): canonical contract sum so the archive
+// snapshot's contract_value lines up with what billing, final-account,
+// proposal, reporting, and management-accounts compute.
+import { computeContractSumValue } from "@/lib/financial";
 import { revalidatePath } from "next/cache";
 
 export async function archiveProjectAction(
@@ -41,9 +45,14 @@ export async function archiveProjectAction(
       .select("agreed_amount, status")
       .eq("project_id", projectId)
       .maybeSingle(),
+    // Stage 5 review patch (19 Apr 2026): pull estimate_lines so the canonical
+    // helper can split direct cost from Preliminaries. estimates.total_cost
+    // already sums all line totals including Prelims, so the empty-lines
+    // fallback path double-counts prelims and writes an inflated
+    // contract_value into archive_snapshots.
     supabase
       .from("estimates")
-      .select("total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct")
+      .select("total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, estimate_lines(trade_section, line_total)")
       .eq("project_id", projectId)
       .eq("is_active", true)
       .maybeSingle(),
@@ -66,18 +75,15 @@ export async function archiveProjectAction(
     .reduce((s, v) => s + (v.amount ?? 0), 0);
   const varCount = (variations ?? []).length;
 
-  // Contract value from active estimate
-  let contractValue = 0;
-  if (estimate) {
-    const base = estimate.total_cost ?? 0;
-    const prelims = base * ((estimate.prelims_pct ?? 0) / 100);
-    const budget = base + prelims;
-    const overhead = budget * ((estimate.overhead_pct ?? 0) / 100);
-    const risk = (budget + overhead) * ((estimate.risk_pct ?? 0) / 100);
-    const profit = (budget + overhead + risk) * ((estimate.profit_pct ?? 0) / 100);
-    const discount = (budget + overhead + risk + profit) * ((estimate.discount_pct ?? 0) / 100);
-    contractValue = budget + overhead + risk + profit - discount;
-  }
+  // Stage 5 hardening + review patch (19 Apr 2026): canonical contract sum
+  // fed with real estimate_lines. archive_snapshots.contract_value is the
+  // permanent record of a project's close-out value, so drift from the live
+  // billing/proposal/final-account figure would be especially bad — the
+  // snapshot would carry an inflated number forever.
+  const lines = Array.isArray((estimate as any)?.estimate_lines)
+    ? (estimate as any).estimate_lines
+    : [];
+  const contractValue = estimate ? computeContractSumValue(estimate, lines) : 0;
 
   const grossMarginPct =
     contractValue > 0 ? ((contractValue - totalCosts) / contractValue) * 100 : 0;

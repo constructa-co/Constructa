@@ -33,6 +33,11 @@ import {
   upsertProgressReportAction,
   deleteProgressReportAction,
 } from "./actions";
+// Stage 5 hardening (19 Apr 2026): canonical contract sum. Replaces two
+// inline contractValue() functions in this file that duplicated the compound
+// OH/Risk/Profit/Discount math and omitted the prelims summand, so figures
+// were quietly lower than billing / proposal / final-account.
+import { computeContractSumValue } from "@/lib/financial";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -107,10 +112,14 @@ interface Estimate {
   project_id: string;
   total_cost: number;
   is_active?: boolean;
+  prelims_pct?: number | null;
   overhead_pct?: number | null;
   risk_pct?: number | null;
   profit_pct?: number | null;
   discount_pct?: number | null;
+  // Stage 5: lines are pulled via the Supabase embed so canonical
+  // computeContractSum can use real direct-cost totals when they exist.
+  estimate_lines?: Array<{ trade_section?: string | null; line_total?: number | null }> | null;
 }
 
 interface StaffResource {
@@ -159,16 +168,17 @@ function fmt(n: number) {
   }).format(n);
 }
 
+// Stage 5 hardening (19 Apr 2026): delegates to computeContractSumValue.
+// The previous inline math omitted the prelims summand, so reporting
+// figures were quietly lower than the billing / proposal / final-account
+// numbers for any project that had a prelims_pct > 0.
 function contractValue(project: Project, estimates: Estimate[]): number {
   const proj = estimates.filter((e) => e.project_id === project.id);
   const active = proj.find((e) => e.is_active) ?? proj[0];
   if (!active) return project.potential_value ?? 0;
-  const base = active.total_cost ?? 0;
-  const oh = 1 + (active.overhead_pct ?? 0) / 100;
-  const risk = 1 + (active.risk_pct ?? 0) / 100;
-  const profit = 1 + (active.profit_pct ?? 0) / 100;
-  const disc = 1 - (active.discount_pct ?? 0) / 100;
-  return base * oh * risk * profit * disc;
+  const lines = Array.isArray(active.estimate_lines) ? active.estimate_lines : [];
+  const canonical = computeContractSumValue(active, lines);
+  return canonical > 0 ? canonical : (project.potential_value ?? 0);
 }
 
 // Stage 2 hardening (19 Apr 2026): use net_due when available (Sprint 14
@@ -1477,17 +1487,16 @@ async function generatePortfolioPDF(data: {
     { align: "right" }
   );
 
-  // Portfolio totals
+  // Stage 5 hardening (19 Apr 2026): delegates to computeContractSumValue so
+  // the Portfolio PDF's per-project contract value matches every other
+  // surface (billing / proposal / final-account / management-accounts).
   const contractValue = (p: Project) => {
     const proj = data.estimates.filter((e) => e.project_id === p.id);
     const active = proj.find((e) => e.is_active) ?? proj[0];
     if (!active) return p.potential_value ?? 0;
-    const base = active.total_cost ?? 0;
-    const oh = 1 + (active.overhead_pct ?? 0) / 100;
-    const risk = 1 + (active.risk_pct ?? 0) / 100;
-    const profit = 1 + (active.profit_pct ?? 0) / 100;
-    const disc = 1 - (active.discount_pct ?? 0) / 100;
-    return base * oh * risk * profit * disc;
+    const lines = Array.isArray(active.estimate_lines) ? active.estimate_lines : [];
+    const canonical = computeContractSumValue(active, lines);
+    return canonical > 0 ? canonical : (p.potential_value ?? 0);
   };
 
   const rows = data.projects.map((p) => {

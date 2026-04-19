@@ -41,9 +41,13 @@ export default async function HomePage() {
             .eq("id", user.id)
             .single(),
 
+        // Stage 5 hardening (19 Apr 2026): added prelims_pct + estimate_lines
+        // so home-client can use computeContractSumValue (canonical) instead
+        // of the hand-rolled compound math it had before — which hard-coded
+        // a 5% risk rate and ignored the estimate's actual risk_pct.
         supabase
             .from("estimates")
-            .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, discount_pct, is_active")
+            .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, is_active, estimate_lines(trade_section, line_total)")
             .eq("is_active", true),
 
         supabase

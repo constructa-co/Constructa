@@ -67,10 +67,15 @@ export default async function ReportingPage({
           .in("project_id", projectIds)
       : { data: [] },
 
+    // Stage 5 hardening (19 Apr 2026): added prelims_pct + estimate_lines so
+    // reporting-client can use the canonical computeContractSumValue helper
+    // instead of two hand-rolled compound functions that were missing the
+    // prelims summand. Figures now align with billing / proposal /
+    // final-account / management-accounts.
     projectIds.length > 0
       ? supabase
           .from("estimates")
-          .select("id, project_id, total_cost, is_active, overhead_pct, risk_pct, profit_pct, discount_pct")
+          .select("id, project_id, total_cost, is_active, prelims_pct, overhead_pct, risk_pct, profit_pct, discount_pct, estimate_lines(trade_section, line_total)")
           .in("project_id", projectIds)
       : { data: [] },
 

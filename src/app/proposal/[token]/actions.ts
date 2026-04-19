@@ -27,8 +27,14 @@ export async function acceptProposalAction(
     const acceptedAt = new Date().toISOString();
     const refCode = project.id.substring(0, 8).toUpperCase();
 
-    // Write acceptance to DB
-    await supabase
+    // Stage 4 hardening sub-item (19 Apr 2026): public token-based write to
+    // projects. Previously the update result was ignored — a silent failure
+    // (RLS regression, schema drift on any of these columns) would have left
+    // the project un-accepted while still firing "acceptance" confirmation
+    // emails to the client. Anchor the update by BOTH proposal_token and
+    // project.id (belt + braces), require the update to return the row, and
+    // abort if the row did not in fact flip to accepted.
+    const { data: updated, error: updateError } = await supabase
         .from("projects")
         .update({
             proposal_accepted_at: acceptedAt,
@@ -36,7 +42,21 @@ export async function acceptProposalAction(
             client_email: clientEmail || null,
             proposal_status: "accepted",
         })
-        .eq("id", project.id);
+        .eq("id", project.id)
+        .eq("proposal_token", token)
+        .select("id, proposal_accepted_at")
+        .single();
+
+    if (updateError || !updated?.proposal_accepted_at) {
+        console.error(
+            "Proposal acceptance write failed:",
+            updateError?.message ?? "no row returned"
+        );
+        return {
+            success: false,
+            error: "Could not record acceptance. Please try again, or contact the contractor.",
+        };
+    }
 
     // Fetch contractor profile for company name + email
     const { data: profile } = await supabase

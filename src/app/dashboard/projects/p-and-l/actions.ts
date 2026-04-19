@@ -1,6 +1,14 @@
 "use server";
 
-import { requireAuth } from "@/lib/supabase/auth-utils";
+// Stage 4 hardening (19 Apr 2026): every project-scoped mutation runs through
+// requireProjectAccess. deleteCostAction and updateInvoiceStatusAction receive
+// only a row id (no projectId on the signature), so we look up the row's
+// project_id server-side first, ownership-check it, then anchor the DELETE/
+// UPDATE by both id and project_id. Callers are not changed.
+import {
+    requireAuth,
+    requireProjectAccess,
+} from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 import {
     LogCostSchema,
@@ -23,7 +31,7 @@ export async function logCostAction(data: {
 }): Promise<{ error?: string }> {
     try {
         const input = parseInput(LogCostSchema, data, "cost entry");
-        const { supabase } = await requireAuth();
+        const { supabase } = await requireProjectAccess(input.projectId);
         const { error } = await supabase.from("project_expenses").insert({
             project_id: input.projectId,
             description: input.description,
@@ -56,7 +64,7 @@ export async function upsertSectionForecastAction(
             { projectId, tradeSection, forecastCost },
             "forecast override"
         );
-        const { supabase } = await requireAuth();
+        const { supabase } = await requireProjectAccess(input.projectId);
         const { error } = await supabase
             .from("project_section_forecasts")
             .upsert(
@@ -72,18 +80,45 @@ export async function upsertSectionForecastAction(
 }
 
 // ── Delete an actual cost entry ────────────────────────────────────────────────
+// Signature kept (only id in) so no caller ripple. We look up the owning
+// project first and ownership-check that before deleting; the DELETE is then
+// anchored by (id, project_id) so a spoofed cost id whose project is owned
+// by another user cannot match.
 export async function deleteCostAction(id: string): Promise<void> {
-    const { supabase } = await requireAuth();
-    await supabase.from("project_expenses").delete().eq("id", id);
+    const { supabase: rawSb } = await requireAuth();
+    const { data: row } = await rawSb
+        .from("project_expenses")
+        .select("project_id")
+        .eq("id", id)
+        .single();
+    if (!row?.project_id) return;
+    const { supabase } = await requireProjectAccess(row.project_id);
+    await supabase
+        .from("project_expenses")
+        .delete()
+        .eq("id", id)
+        .eq("project_id", row.project_id);
     revalidatePath("/dashboard/projects/p-and-l");
 }
 
 // ── Update invoice status ──────────────────────────────────────────────────────
+// Signature kept. Same fetch-and-check pattern as deleteCostAction.
 export async function updateInvoiceStatusAction(
     id: string,
     status: "Draft" | "Sent" | "Paid"
 ): Promise<void> {
-    const { supabase } = await requireAuth();
-    await supabase.from("invoices").update({ status }).eq("id", id);
+    const { supabase: rawSb } = await requireAuth();
+    const { data: row } = await rawSb
+        .from("invoices")
+        .select("project_id")
+        .eq("id", id)
+        .single();
+    if (!row?.project_id) return;
+    const { supabase } = await requireProjectAccess(row.project_id);
+    await supabase
+        .from("invoices")
+        .update({ status })
+        .eq("id", id)
+        .eq("project_id", row.project_id);
     revalidatePath("/dashboard/projects/p-and-l");
 }

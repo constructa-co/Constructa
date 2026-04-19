@@ -1,6 +1,10 @@
 "use server";
 
-import { requireAuth } from "@/lib/supabase/auth-utils";
+// Stage 4 hardening (19 Apr 2026): every project-scoped mutation runs
+// through requireProjectAccess(projectId). deleteAdjustmentAction takes only
+// an adjustment id plus projectId so we ownership-check the projectId and
+// then anchor the DELETE by both id AND project_id.
+import { requireProjectAccess } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 function revalidate(projectId: string) {
@@ -19,7 +23,7 @@ export async function upsertFinalAccountAction(projectId: string, data: {
     agreement_reference?: string;
     notes?: string;
 }) {
-    const { supabase } = await requireAuth();
+    const { supabase } = await requireProjectAccess(projectId);
     const { error } = await supabase
         .from("final_accounts")
         .upsert([{ project_id: projectId, ...data, updated_at: new Date().toISOString() }], { onConflict: "project_id" });
@@ -37,15 +41,19 @@ export async function createAdjustmentAction(data: {
     notes?: string;
     order_index: number;
 }) {
-    const { supabase } = await requireAuth();
+    const { supabase } = await requireProjectAccess(data.project_id);
     const { error } = await supabase.from("final_account_adjustments").insert([data]);
     if (error) throw new Error(error.message);
     revalidate(data.project_id);
 }
 
 export async function deleteAdjustmentAction(id: string, projectId: string) {
-    const { supabase } = await requireAuth();
-    const { error } = await supabase.from("final_account_adjustments").delete().eq("id", id);
+    const { supabase } = await requireProjectAccess(projectId);
+    const { error } = await supabase
+        .from("final_account_adjustments")
+        .delete()
+        .eq("id", id)
+        .eq("project_id", projectId);
     if (error) throw new Error(error.message);
     revalidate(projectId);
 }

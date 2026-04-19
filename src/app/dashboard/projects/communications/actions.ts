@@ -1,6 +1,13 @@
 "use server";
 
-import { requireAuth } from "@/lib/supabase/auth-utils";
+// Stage 4 hardening (19 Apr 2026): every project-scoped mutation now runs
+// through requireProjectAccess(projectId) for defence-in-depth. RLS still
+// governs at the database level, but the server action also verifies that
+// auth.uid() owns the project before any INSERT/UPDATE/DELETE, and every
+// row-level mutation is anchored by both .eq("id", rowId) AND
+// .eq("project_id", projectId) so a spoofed projectId cannot reach a row
+// that belongs to a different project.
+import { requireProjectAccess } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 
 function revalidateComms(projectId: string) {
@@ -16,7 +23,7 @@ export async function createSiteInstructionAction(data: {
     date_issued: string;
     description: string;
 }) {
-    const { supabase } = await requireAuth();
+    const { supabase } = await requireProjectAccess(data.project_id);
     const { count } = await supabase
         .from("site_instructions")
         .select("id", { count: "exact", head: true })
@@ -28,15 +35,23 @@ export async function createSiteInstructionAction(data: {
 }
 
 export async function updateSIStatusAction(id: string, status: string, projectId: string) {
-    const { supabase } = await requireAuth();
-    const { error } = await supabase.from("site_instructions").update({ status }).eq("id", id);
+    const { supabase } = await requireProjectAccess(projectId);
+    const { error } = await supabase
+        .from("site_instructions")
+        .update({ status })
+        .eq("id", id)
+        .eq("project_id", projectId);
     if (error) throw new Error(error.message);
     revalidateComms(projectId);
 }
 
 export async function deleteSiteInstructionAction(id: string, projectId: string) {
-    const { supabase } = await requireAuth();
-    const { error } = await supabase.from("site_instructions").delete().eq("id", id);
+    const { supabase } = await requireProjectAccess(projectId);
+    const { error } = await supabase
+        .from("site_instructions")
+        .delete()
+        .eq("id", id)
+        .eq("project_id", projectId);
     if (error) throw new Error(error.message);
     revalidateComms(projectId);
 }
@@ -50,7 +65,7 @@ export async function createRfiAction(data: {
     date_sent: string;
     date_response_due: string;
 }) {
-    const { supabase } = await requireAuth();
+    const { supabase } = await requireProjectAccess(data.project_id);
     const { count } = await supabase
         .from("rfis")
         .select("id", { count: "exact", head: true })
@@ -65,24 +80,34 @@ export async function respondToRfiAction(id: string, projectId: string, data: {
     response_summary: string;
     date_responded: string;
 }) {
-    const { supabase } = await requireAuth();
-    const { error } = await supabase.from("rfis")
+    const { supabase } = await requireProjectAccess(projectId);
+    const { error } = await supabase
+        .from("rfis")
         .update({ ...data, status: "Responded" })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("project_id", projectId);
     if (error) throw new Error(error.message);
     revalidateComms(projectId);
 }
 
 export async function updateRfiStatusAction(id: string, status: string, projectId: string) {
-    const { supabase } = await requireAuth();
-    const { error } = await supabase.from("rfis").update({ status }).eq("id", id);
+    const { supabase } = await requireProjectAccess(projectId);
+    const { error } = await supabase
+        .from("rfis")
+        .update({ status })
+        .eq("id", id)
+        .eq("project_id", projectId);
     if (error) throw new Error(error.message);
     revalidateComms(projectId);
 }
 
 export async function deleteRfiAction(id: string, projectId: string) {
-    const { supabase } = await requireAuth();
-    const { error } = await supabase.from("rfis").delete().eq("id", id);
+    const { supabase } = await requireProjectAccess(projectId);
+    const { error } = await supabase
+        .from("rfis")
+        .delete()
+        .eq("id", id)
+        .eq("project_id", projectId);
     if (error) throw new Error(error.message);
     revalidateComms(projectId);
 }
@@ -97,7 +122,7 @@ export async function createEwnAction(data: {
     potential_cost_impact: number;
     potential_time_impact_days: number;
 }) {
-    const { supabase } = await requireAuth();
+    const { supabase } = await requireProjectAccess(data.project_id);
     const { count } = await supabase
         .from("early_warning_notices")
         .select("id", { count: "exact", head: true })
@@ -109,15 +134,23 @@ export async function createEwnAction(data: {
 }
 
 export async function updateEwnStatusAction(id: string, status: string, projectId: string) {
-    const { supabase } = await requireAuth();
-    const { error } = await supabase.from("early_warning_notices").update({ status }).eq("id", id);
+    const { supabase } = await requireProjectAccess(projectId);
+    const { error } = await supabase
+        .from("early_warning_notices")
+        .update({ status })
+        .eq("id", id)
+        .eq("project_id", projectId);
     if (error) throw new Error(error.message);
     revalidateComms(projectId);
 }
 
 export async function deleteEwnAction(id: string, projectId: string) {
-    const { supabase } = await requireAuth();
-    const { error } = await supabase.from("early_warning_notices").delete().eq("id", id);
+    const { supabase } = await requireProjectAccess(projectId);
+    const { error } = await supabase
+        .from("early_warning_notices")
+        .delete()
+        .eq("id", id)
+        .eq("project_id", projectId);
     if (error) throw new Error(error.message);
     revalidateComms(projectId);
 }
@@ -134,7 +167,7 @@ export async function createDocumentAction(data: {
     file_ref?: string;
     notes?: string;
 }) {
-    const { supabase } = await requireAuth();
+    const { supabase } = await requireProjectAccess(data.project_id);
     const { count } = await supabase
         .from("document_register")
         .select("id", { count: "exact", head: true })
@@ -146,8 +179,12 @@ export async function createDocumentAction(data: {
 }
 
 export async function deleteDocumentAction(id: string, projectId: string) {
-    const { supabase } = await requireAuth();
-    const { error } = await supabase.from("document_register").delete().eq("id", id);
+    const { supabase } = await requireProjectAccess(projectId);
+    const { error } = await supabase
+        .from("document_register")
+        .delete()
+        .eq("id", id)
+        .eq("project_id", projectId);
     if (error) throw new Error(error.message);
     revalidateComms(projectId);
 }

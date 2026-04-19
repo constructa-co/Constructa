@@ -43,6 +43,51 @@ export async function requireAuth() {
 }
 
 /**
+ * Defence-in-depth project-ownership check for server actions.
+ *
+ * Stage 4 of the 2026-04-19 hardening brief. Many mutating actions take a
+ * `projectId` from the client and then issue an UPDATE/INSERT/DELETE scoped
+ * only by row id — trusting Supabase RLS alone to reject cross-project
+ * writes. RLS is correct today, but a future policy regression would widen
+ * write scope silently. This helper adds the explicit second layer:
+ *
+ *   ```ts
+ *   import { requireProjectAccess } from "@/lib/supabase/auth-utils";
+ *
+ *   export async function myProjectScopedAction(projectId: string, ...) {
+ *     const { supabase } = await requireProjectAccess(projectId);
+ *     // From here we have verified that auth.uid() = projects.user_id for
+ *     // this projectId. Continue with the mutation, preferably also adding
+ *     // .eq("project_id", projectId) as a row-level anchor.
+ *     ...
+ *   }
+ *   ```
+ *
+ * Throws `"Unauthorized project access."` on any failure (no session,
+ * project not found, project owned by another user). The message is
+ * intentionally generic so we do not leak project-existence signals to an
+ * unauthenticated caller.
+ *
+ * Does NOT replace RLS — it runs alongside it.
+ */
+export async function requireProjectAccess(projectId: string) {
+    const { user, supabase } = await requireAuth();
+
+    const { data: project, error } = await supabase
+        .from("projects")
+        .select("id, user_id")
+        .eq("id", projectId)
+        .eq("user_id", user.id)
+        .single();
+
+    if (error || !project) {
+        throw new Error("Unauthorized project access.");
+    }
+
+    return { user, supabase, project };
+}
+
+/**
  * Fetches the current user's active organization ID.
  * This is the source of truth for all organization-level data filtering.
  */

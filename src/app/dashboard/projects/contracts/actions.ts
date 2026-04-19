@@ -1,6 +1,12 @@
 "use server";
 
-import { requireAuth } from "@/lib/supabase/auth-utils";
+// Stage 4 hardening (19 Apr 2026): project-scoped mutations on the projects
+// row (tc_tier, uploaded_contract_text, contract_review_flags, risk_register,
+// contract_exclusions, contract_clarifications, client_contract_clauses) now
+// run through requireProjectAccess(projectId) for defence-in-depth. RLS
+// still governs at the DB level. Actions that only read storage buckets or
+// only call the AI provider (no DB mutation) stay on requireAuth().
+import { requireAuth, requireProjectAccess } from "@/lib/supabase/auth-utils";
 import { generateJSON, generateText } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
 
@@ -43,8 +49,12 @@ export async function extractContractTextAction(storagePath: string): Promise<{ 
 
 // ── T&C Tier Management ─────────────────────────────────
 export async function saveTcTierAction(projectId: string, tier: string) {
-    const { supabase } = await requireAuth();
-    const { error } = await supabase.from("projects").update({ tc_tier: tier }).eq("id", projectId);
+    const { user, supabase } = await requireProjectAccess(projectId);
+    const { error } = await supabase
+        .from("projects")
+        .update({ tc_tier: tier })
+        .eq("id", projectId)
+        .eq("user_id", user.id);
     if (error) console.error("Save TC tier error:", error);
     revalidatePath("/dashboard/projects/contracts");
 }
@@ -84,10 +94,14 @@ export async function analyseContractAction(
     contractText: string
 ): Promise<{ flags: Array<{ type: string; clause: string; description: string; severity: string; recommendation: string }>; error?: string }> {
     try {
-        const { supabase } = await requireAuth();
+        const { user, supabase } = await requireProjectAccess(projectId);
 
         // Save the raw uploaded text
-        await supabase.from("projects").update({ uploaded_contract_text: contractText }).eq("id", projectId);
+        await supabase
+            .from("projects")
+            .update({ uploaded_contract_text: contractText })
+            .eq("id", projectId)
+            .eq("user_id", user.id);
 
         // Sanitise: strip control chars but preserve newlines (clause structure depends on them)
         const cleanText = contractText
@@ -136,7 +150,11 @@ export async function analyseContractAction(
         const severityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
         deduped.sort((a, b) => (severityOrder[a.severity] ?? 3) - (severityOrder[b.severity] ?? 3));
 
-        await supabase.from("projects").update({ contract_review_flags: deduped }).eq("id", projectId);
+        await supabase
+            .from("projects")
+            .update({ contract_review_flags: deduped })
+            .eq("id", projectId)
+            .eq("user_id", user.id);
         revalidatePath("/dashboard/projects/contracts");
         return { flags: deduped };
     } catch (e: unknown) {
@@ -152,8 +170,13 @@ export async function dismissContractFlagAction(
     flagIndex: number,
     status: "accepted" | "disputed"
 ) {
-    const { supabase } = await requireAuth();
-    const { data } = await supabase.from("projects").select("contract_review_flags").eq("id", projectId).single();
+    const { user, supabase } = await requireProjectAccess(projectId);
+    const { data } = await supabase
+        .from("projects")
+        .select("contract_review_flags")
+        .eq("id", projectId)
+        .eq("user_id", user.id)
+        .single();
     if (!data?.contract_review_flags) return;
 
     const flags = [...data.contract_review_flags];
@@ -161,7 +184,11 @@ export async function dismissContractFlagAction(
         flags[flagIndex] = { ...flags[flagIndex], dismissed: true, dismiss_status: status };
     }
 
-    await supabase.from("projects").update({ contract_review_flags: flags }).eq("id", projectId);
+    await supabase
+        .from("projects")
+        .update({ contract_review_flags: flags })
+        .eq("id", projectId)
+        .eq("user_id", user.id);
     revalidatePath("/dashboard/projects/contracts");
     return flags;
 }
@@ -171,8 +198,12 @@ export async function saveRiskRegisterAction(
     projectId: string,
     riskRegister: Array<{ id: string; type: string; description: string; likelihood: string; impact: string; mitigation: string }>
 ) {
-    const { supabase } = await requireAuth();
-    const { error } = await supabase.from("projects").update({ risk_register: riskRegister }).eq("id", projectId);
+    const { user, supabase } = await requireProjectAccess(projectId);
+    const { error } = await supabase
+        .from("projects")
+        .update({ risk_register: riskRegister })
+        .eq("id", projectId)
+        .eq("user_id", user.id);
     if (error) console.error("Save risk register error:", error);
     revalidatePath("/dashboard/projects/contracts");
 }
@@ -192,11 +223,15 @@ export async function generateRiskRegisterAction(projectId: string, scope: strin
 
 // ── Exclusions & Clarifications ─────────────────────────
 export async function saveContractExclusionsAction(projectId: string, exclusions: string, clarifications: string) {
-    const { supabase } = await requireAuth();
-    const { error } = await supabase.from("projects").update({
-        contract_exclusions: exclusions,
-        contract_clarifications: clarifications,
-    }).eq("id", projectId);
+    const { user, supabase } = await requireProjectAccess(projectId);
+    const { error } = await supabase
+        .from("projects")
+        .update({
+            contract_exclusions: exclusions,
+            contract_clarifications: clarifications,
+        })
+        .eq("id", projectId)
+        .eq("user_id", user.id);
     if (error) console.error("Save contract exclusions error:", error);
     revalidatePath("/dashboard/projects/contracts");
 }
@@ -352,8 +387,12 @@ export async function saveClientContractClausesAction(
     clauses: Array<{ id: string; clauseRef: string; title: string; original: string; proposed: string; status: string; reason: string; flagged: boolean }>
 ) {
     try {
-        const { supabase } = await requireAuth();
-        const { error } = await supabase.from("projects").update({ client_contract_clauses: clauses }).eq("id", projectId);
+        const { user, supabase } = await requireProjectAccess(projectId);
+        const { error } = await supabase
+            .from("projects")
+            .update({ client_contract_clauses: clauses })
+            .eq("id", projectId)
+            .eq("user_id", user.id);
         if (error) console.error("Save client contract clauses error:", error);
         revalidatePath("/dashboard/projects/contracts");
     } catch (e) {

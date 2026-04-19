@@ -1,21 +1,65 @@
 "use server";
 
-import { requireAuth } from "@/lib/supabase/auth-utils";
+// Stage 4 hardening (19 Apr 2026): project-scoped mutations now run through
+// requireProjectAccess. updateDependencyAction only receives an estimate id
+// (no projectId on the wire), so we resolve its owning project first and
+// then ownership-check that, logging and bailing if the estimate is missing.
+// updatePhasesAction previously already filtered by user_id; this stage
+// brings it onto the shared helper so the pattern is consistent.
+import { requireAuth, requireProjectAccess } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 import { generateText } from "@/lib/ai";
 import { UpdatePhasesSchema, parseInput } from "@/lib/validation/schemas";
 
 export async function updateDependencyAction(formData: FormData) {
-    const { supabase } = await requireAuth();
-    const predecessor = formData.get("predecessor") as string;
+    // The form only carries estimate ids; resolve the owning project first,
+    // then defence-in-depth ownership-check it before mutating.
     const successor = formData.get("successor") as string;
+    const predecessor = formData.get("predecessor") as string;
     const duration = formData.get("duration") as string;
+    if (!successor) return;
+
+    const { supabase: rawSb } = await requireAuth();
+    const { data: est } = await rawSb
+        .from("estimates")
+        .select("project_id")
+        .eq("id", successor)
+        .single();
+    if (!est?.project_id) {
+        console.error("updateDependencyAction: estimate not found for id", successor);
+        return;
+    }
+    const { supabase } = await requireProjectAccess(est.project_id);
 
     if (duration) {
-        await supabase.from("estimates").update({ manual_duration_days: parseInt(duration) }).eq("id", successor);
+        await supabase
+            .from("estimates")
+            .update({ manual_duration_days: parseInt(duration) })
+            .eq("id", successor)
+            .eq("project_id", est.project_id);
     }
 
     if (predecessor && predecessor !== "none") {
+        // Stage 4 review fix (19 Apr 2026): estimate_dependencies has no RLS
+        // (see 20260117000008_estimate_dependencies.sql), so a submitted
+        // predecessor id could point at an estimate owned by a different
+        // project. Resolve the predecessor and require its project_id to
+        // match the already-ownership-checked successor. Bail silently (no
+        // mutation, no thrown error) on any cross-project or missing match
+        // so a malicious form submission cannot create a cross-project link.
+        const { data: pre } = await supabase
+            .from("estimates")
+            .select("project_id")
+            .eq("id", predecessor)
+            .single();
+        if (!pre?.project_id || pre.project_id !== est.project_id) {
+            console.error(
+                "updateDependencyAction: predecessor estimate rejected — project mismatch",
+                { predecessor, successor, successorProject: est.project_id, predecessorProject: pre?.project_id ?? null }
+            );
+            return;
+        }
+
         await supabase.from("estimate_dependencies").delete().eq("successor_id", successor);
         await supabase.from("estimate_dependencies").insert({
             predecessor_id: predecessor,
@@ -43,7 +87,7 @@ export async function updatePhasesAction(
     startDate?: string   // ISO YYYY-MM-DD — if provided, saves to projects.start_date
 ): Promise<void> {
     const input = parseInput(UpdatePhasesSchema, { projectId, phases, startDate }, "programme phases");
-    const { user, supabase } = await requireAuth();
+    const { user, supabase } = await requireProjectAccess(input.projectId);
     // Note: projects has no `timeline_phases` column — writing it used to cause the
     // whole UPDATE to fail silently, meaning programme edits weren't saved.
     const payload: Record<string, unknown> = {
@@ -138,11 +182,12 @@ export async function saveProgrammePhasesAction(
     projectId: string,
     phases: any[]
 ): Promise<void> {
-    const { supabase } = await requireAuth();
+    const { user, supabase } = await requireProjectAccess(projectId);
     const { error } = await supabase
         .from("projects")
         .update({ programme_phases: phases })
-        .eq("id", projectId);
+        .eq("id", projectId)
+        .eq("user_id", user.id);
 
     if (error) console.error("Save programme phases error:", error);
     revalidatePath("/dashboard/projects/schedule");
@@ -151,7 +196,7 @@ export async function saveProgrammePhasesAction(
 // ── Sprint 31: Live Programme Tracking ───────────────────────────────────────
 
 export async function generateWeeklyUpdateAction(projectId: string): Promise<string> {
-    const { supabase } = await requireAuth();
+    const { supabase } = await requireProjectAccess(projectId);
 
     const { data: project } = await supabase
         .from("projects")

@@ -2,25 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import LiveProjectsClient from "./live-client";
 import ProjectLiveClient from "./project-live-client";
-
-export const dynamic = "force-dynamic";
-
-// Compute contract value from estimate + lines
-function computeContractValue(est: any, lines: any[]): number {
-    if (!est) return 0;
-    const nonPrelims   = lines.filter((l: any) => l.trade_section !== "Preliminaries");
-    const prelimsLines = lines.filter((l: any) => l.trade_section === "Preliminaries");
-    const directCost   = nonPrelims.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0);
-    const prelims      = prelimsLines.length > 0
-        ? prelimsLines.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0)
-        : directCost * ((Number(est.prelims_pct) || 0) / 100);
-    const budget = directCost + prelims;
-    const oh     = budget * ((Number(est.overhead_pct) || 0) / 100);
-    const risk   = (budget + oh) * ((Number(est.risk_pct) || 0) / 100);
-    const profit = (budget + oh + risk) * ((Number(est.profit_pct) || 0) / 100);
-    const pre    = budget + oh + risk + profit;
-    return pre - pre * ((Number(est.discount_pct) || 0) / 100);
-}
+// Stage 5 follow-up (19 Apr 2026): /dashboard/live previously had its own
+// inline computeContractValue. The math was logically correct (filters
+// Preliminaries from directCost, prefers explicit prelims lines, falls
+// back to prelims_pct) but it duplicated the canonical helper. Swapped
+// so any future change to contract-sum semantics lands in one place.
+import { computeContractSumValue } from "@/lib/financial";
 
 export default async function LiveProjectsPage({ searchParams }: { searchParams: { projectId?: string } }) {
     const supabase = createClient();
@@ -57,7 +44,7 @@ export default async function LiveProjectsPage({ searchParams }: { searchParams:
             ? prelimsLines.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0)
             : directCost * ((Number(activeEstimate?.prelims_pct) || 0) / 100);
         const budgetCost = directCost + prelimsTotal;
-        const contractValue = activeEstimate ? computeContractValue(activeEstimate, lines) : 0;
+        const contractValue = activeEstimate ? computeContractSumValue(activeEstimate, lines) : 0;
 
         const costsPosted      = (expenses ?? []).reduce((s: number, e: any) => s + Number(e.amount), 0);
         const invoicedTotal    = (invoices ?? []).reduce((s: number, i: any) => s + Number(i.amount), 0);
@@ -137,7 +124,7 @@ export default async function LiveProjectsPage({ searchParams }: { searchParams:
         let budgetCost = 0;
 
         if (activeEst) {
-            contractValue = computeContractValue(activeEst, activeEst.estimate_lines ?? []);
+            contractValue = computeContractSumValue(activeEst, activeEst.estimate_lines ?? []);
             const lines = activeEst.estimate_lines ?? [];
             const np = lines.filter((l: any) => l.trade_section !== "Preliminaries");
             const pl = lines.filter((l: any) => l.trade_section === "Preliminaries");

@@ -21,9 +21,12 @@
 --     is project_id -> projects(id) -> projects.user_id. Both predecessor
 --     and successor must belong to projects owned by auth.uid().
 --   * Benchmarks are intentionally anonymised aggregates (no user_id, value
---     bands not exact figures). Authenticated users may read; only the
---     SECURITY DEFINER trigger fn_benchmark_on_archive writes them, so we
---     do NOT grant INSERT/UPDATE/DELETE to client roles.
+--     bands not exact figures). Per the original 20260409100000_sprint42_benchmarks
+--     design they are service-role only — the only runtime readers are the
+--     admin client at src/app/api/v1/benchmarks/route.ts and
+--     src/app/admin/page.tsx. We therefore keep RLS on with no permissive
+--     policy and REVOKE Data API access from anon + authenticated. Writes
+--     happen via the SECURITY DEFINER trigger fn_benchmark_on_archive.
 --   * api_usage_log carries per-key request metadata and is written/read
 --     exclusively via the admin (service_role) client at
 --     src/app/api/v1/benchmarks/route.ts and src/app/admin/page.tsx. We keep
@@ -140,44 +143,35 @@ REVOKE ALL ON public.api_usage_log FROM authenticated;
 GRANT ALL ON public.api_usage_log TO service_role;
 
 
--- ── 3. Benchmark tables (anonymised reference data — read-only to clients) ──
+-- ── 3. Benchmark tables (service-role only, per original Sprint 42 design) ──
 -- Writes happen via SECURITY DEFINER trigger fn_benchmark_on_archive only.
+-- Reads happen via the admin (service_role) client only — see
+-- src/app/api/v1/benchmarks/route.ts and src/app/admin/page.tsx.
 
 ALTER TABLE public.project_benchmarks    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.programme_benchmarks  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rate_benchmarks       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.variation_benchmarks  ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS read_project_benchmarks ON public.project_benchmarks;
-CREATE POLICY read_project_benchmarks
-  ON public.project_benchmarks FOR SELECT TO authenticated USING (true);
+-- Drop any permissive SELECT policies left over from an earlier partial apply
+-- of this migration (kept for re-runnability — there are no CREATE POLICY
+-- statements for these tables anymore).
+DROP POLICY IF EXISTS read_project_benchmarks    ON public.project_benchmarks;
+DROP POLICY IF EXISTS read_programme_benchmarks  ON public.programme_benchmarks;
+DROP POLICY IF EXISTS read_rate_benchmarks       ON public.rate_benchmarks;
+DROP POLICY IF EXISTS read_variation_benchmarks  ON public.variation_benchmarks;
 
-DROP POLICY IF EXISTS read_programme_benchmarks ON public.programme_benchmarks;
-CREATE POLICY read_programme_benchmarks
-  ON public.programme_benchmarks FOR SELECT TO authenticated USING (true);
+-- No permissive policy: RLS on with no policy denies all non-service_role.
+-- service_role bypasses RLS, which is what the admin client uses.
 
-DROP POLICY IF EXISTS read_rate_benchmarks ON public.rate_benchmarks;
-CREATE POLICY read_rate_benchmarks
-  ON public.rate_benchmarks FOR SELECT TO authenticated USING (true);
-
-DROP POLICY IF EXISTS read_variation_benchmarks ON public.variation_benchmarks;
-CREATE POLICY read_variation_benchmarks
-  ON public.variation_benchmarks FOR SELECT TO authenticated USING (true);
-
--- Data API grants — authenticated may SELECT only; service_role full access.
-GRANT SELECT ON public.project_benchmarks    TO authenticated;
-GRANT SELECT ON public.programme_benchmarks  TO authenticated;
-GRANT SELECT ON public.rate_benchmarks       TO authenticated;
-GRANT SELECT ON public.variation_benchmarks  TO authenticated;
+REVOKE ALL ON public.project_benchmarks    FROM anon, authenticated;
+REVOKE ALL ON public.programme_benchmarks  FROM anon, authenticated;
+REVOKE ALL ON public.rate_benchmarks       FROM anon, authenticated;
+REVOKE ALL ON public.variation_benchmarks  FROM anon, authenticated;
 
 GRANT ALL ON public.project_benchmarks    TO service_role;
 GRANT ALL ON public.programme_benchmarks  TO service_role;
 GRANT ALL ON public.rate_benchmarks       TO service_role;
 GRANT ALL ON public.variation_benchmarks  TO service_role;
-
-REVOKE ALL ON public.project_benchmarks    FROM anon;
-REVOKE ALL ON public.programme_benchmarks  FROM anon;
-REVOKE ALL ON public.rate_benchmarks       FROM anon;
-REVOKE ALL ON public.variation_benchmarks  FROM anon;
 
 COMMIT;

@@ -6,8 +6,9 @@ import { seedHandoverItemsAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function HandoverDocumentsPage({ searchParams }: { searchParams: { projectId: string } }) {
-    const supabase = createClient();
+export default async function HandoverDocumentsPage(props: { searchParams: Promise<{ projectId: string }> }) {
+    const searchParams = await props.searchParams;
+    const supabase = await createClient();
     const { projectId } = searchParams;
 
     const { data: authData } = await supabase.auth.getUser();

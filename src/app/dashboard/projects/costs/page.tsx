@@ -7,8 +7,9 @@ import EstimateClient from "./estimate-client";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // BoQ import (GPT-4o Vision PDF / Excel AI parse) can take 20-40s
 
-export default async function EstimatingPage({ searchParams }: { searchParams: { projectId?: string; tab?: string } }) {
-    const supabase = createClient();
+export default async function EstimatingPage(props: { searchParams: Promise<{ projectId?: string; tab?: string }> }) {
+    const searchParams = await props.searchParams;
+    const supabase = await createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
 

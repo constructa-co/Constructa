@@ -28,6 +28,7 @@ jobs:
       - name: Report dependency vulnerabilities
         continue-on-error: true
         run: npm audit --audit-level=critical
+      - run: npm run lint
       - run: npm run typecheck
       - run: npm test
       - run: npm run build

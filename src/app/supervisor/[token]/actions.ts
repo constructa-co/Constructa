@@ -15,7 +15,7 @@ export async function acknowledgeObligationAction(
         return { success: false, error: "Missing required fields" };
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Validate token exists and get the project_id
     const { data: invite } = await supabase

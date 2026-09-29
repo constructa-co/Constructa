@@ -5,7 +5,7 @@ import PlantResourcesClient from "./plant-client";
 export const dynamic = "force-dynamic";
 
 export default async function PlantResourcesPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

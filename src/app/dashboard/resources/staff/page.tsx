@@ -5,7 +5,7 @@ import StaffResourcesClient from "./staff-client";
 export const dynamic = "force-dynamic";
 
 export default async function StaffResourcesPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: authData } = await supabase.auth.getUser();
   const user = authData?.user;
   if (!user) redirect("/login");

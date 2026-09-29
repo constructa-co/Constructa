@@ -7,8 +7,9 @@ import ProjectPicker from "@/components/project-picker";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // extend Vercel function timeout for AI calls (Pro plan: up to 60s)
 
-export default async function ContractsPage({ searchParams }: { searchParams: { projectId: string } }) {
-    const supabase = createClient();
+export default async function ContractsPage(props: { searchParams: Promise<{ projectId: string }> }) {
+    const searchParams = await props.searchParams;
+    const supabase = await createClient();
     const { projectId } = searchParams;
 
     const { data: authData } = await supabase.auth.getUser();

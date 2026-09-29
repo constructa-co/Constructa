@@ -12,7 +12,7 @@ export async function acceptProposalAction(
     clientName: string,
     clientEmail: string
 ): Promise<{ success: boolean; error?: string }> {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     const { data: project } = await supabase
         .from("projects")

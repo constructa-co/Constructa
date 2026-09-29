@@ -6,7 +6,7 @@ import { computeContractSum } from "@/lib/financial";
 export const dynamic = "force-dynamic";
 
 export default async function Dashboard() {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
 

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Send, Loader2, Sparkles, ArrowRight, Save, MapPin, ClipboardList, Building2, User, Calendar, PoundSterling, AlignLeft, Layers, ScanLine } from "lucide-react";
+import { Send, Loader2, Sparkles, ArrowRight, Save, MapPin, ClipboardList, Building2, AlignLeft, Layers, ScanLine } from "lucide-react";
 import { processBriefChatAction, saveBriefAction, suggestEstimateLineItemsAction, type VideoAnalysisResult } from "./actions";
 import VideoWalkthrough from "./video-walkthrough";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
@@ -59,7 +59,6 @@ interface ChatMessage {
 
 interface Props {
     project: Project;
-    activeEstimateId: string | null;
     projectId: string;
 }
 
@@ -68,17 +67,101 @@ const readonlyCls = "w-full h-11 rounded-lg border border-slate-700/50 bg-slate-
 
 function SectionCard({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
     return (
-        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 space-y-4">
+        <section className="space-y-4 rounded-xl border border-slate-700/50 bg-slate-800/50 p-4 sm:p-5">
             <div className="flex items-center gap-2">
                 <Icon className="h-4 w-4 text-slate-500" />
                 <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{title}</h2>
             </div>
             {children}
+        </section>
+    );
+}
+
+function BriefAssistant({
+    messages,
+    input,
+    loading,
+    onInputChange,
+    onSend,
+}: {
+    messages: ChatMessage[];
+    input: string;
+    loading: boolean;
+    onInputChange: (value: string) => void;
+    onSend: () => void;
+}) {
+    return (
+        <div className="min-w-0 lg:order-2 lg:col-span-2">
+            <div className="flex h-[min(32rem,65dvh)] flex-col overflow-hidden rounded-xl border border-slate-700/50 bg-slate-800/50 lg:sticky lg:top-24 lg:h-[calc(100dvh-14rem)]">
+                <div className="flex flex-shrink-0 items-center gap-3 border-b border-slate-700/50 bg-slate-900/50 px-4 py-3">
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
+                        <Sparkles className="h-4 w-4 text-blue-400" />
+                    </div>
+                    <div className="min-w-0">
+                        <h3 className="text-sm font-semibold text-white">AI Brief Assistant</h3>
+                        <p className="text-xs leading-relaxed text-slate-500">Describe your project and I&apos;ll help build the brief</p>
+                    </div>
+                </div>
+
+                <div className="flex-1 space-y-3 overflow-y-auto p-4">
+                    {messages.length === 0 && (
+                        <div className="px-4 py-8 text-center">
+                            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-500/10">
+                                <Sparkles className="h-7 w-7 text-blue-400" />
+                            </div>
+                            <p className="text-sm font-medium text-slate-300">Tell me about your project</p>
+                            <p className="mt-1 text-xs text-slate-500">I&apos;ll extract the scope, trades and estimated value automatically</p>
+                            <div className="mt-4 break-words rounded-lg border border-slate-700/50 bg-slate-700/30 px-3 py-2.5 text-left text-xs italic text-slate-500">
+                                &ldquo;Two-storey rear extension, brick and block, bifold doors, start April, about £60k&rdquo;
+                            </div>
+                        </div>
+                    )}
+                    {messages.map((message, index) => (
+                        <div key={index} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                            <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
+                                message.role === "user"
+                                    ? "bg-blue-600 text-white"
+                                    : "border border-slate-600/50 bg-slate-700/60 text-slate-200"
+                            }`}>
+                                {message.content}
+                            </div>
+                        </div>
+                    ))}
+                    {loading && (
+                        <div className="flex justify-start">
+                            <div className="flex items-center gap-2 rounded-xl border border-slate-600/50 bg-slate-700/60 px-3 py-2.5">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />
+                                <span className="text-xs text-slate-500">Thinking…</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex-shrink-0 border-t border-slate-700/50 p-3">
+                    <div className="flex gap-2">
+                        <input
+                            className="h-11 min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900/50 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                            value={input}
+                            onChange={event => onInputChange(event.target.value)}
+                            onKeyDown={event => { if (event.key === "Enter") onSend(); }}
+                            placeholder="Describe your project..."
+                        />
+                        <button
+                            onClick={onSend}
+                            disabled={loading || !input.trim()}
+                            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white transition-colors hover:bg-blue-500 disabled:opacity-40"
+                            aria-label="Send brief description"
+                        >
+                            <Send className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }
 
-export default function BriefClient({ project, activeEstimateId, projectId }: Props) {
+export default function BriefClient({ project, projectId }: Props) {
     const [isPending, startTransition] = useTransition();
     const showVideoWalkthrough = isCapabilityEnabled("video-walkthrough");
 
@@ -202,8 +285,11 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
             } else {
                 setSuggestResult({ success: false, message: `Failed to create estimate lines: ${result.error || 'Unknown error'}` });
             }
-        } catch (err: any) {
-            setSuggestResult({ success: false, message: err.message });
+        } catch (error: unknown) {
+            setSuggestResult({
+                success: false,
+                message: error instanceof Error ? error.message : "Unable to suggest estimate lines.",
+            });
         } finally {
             setSuggesting(false);
         }
@@ -212,14 +298,14 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
     return (
         <div className="space-y-6">
             {/* Hero */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-500/10 sm:h-12 sm:w-12">
                         <ClipboardList className="h-6 w-6 text-blue-400" />
                     </div>
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <h1 className="text-2xl font-bold text-white">Project Brief</h1>
+                    <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <h1 className="text-xl font-bold text-white sm:text-2xl">Project Brief</h1>
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium">
                                 <Sparkles className="h-3 w-3" />
                                 AI-Powered
@@ -243,10 +329,17 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
             {showVideoWalkthrough && <VideoWalkthrough onApply={handleVideoApply} />}
 
             {/* Two-column layout */}
-            <div className="grid lg:grid-cols-5 gap-6">
+            <div className="grid min-w-0 gap-6 lg:grid-cols-5">
+                <BriefAssistant
+                    messages={chatMessages}
+                    input={chatInput}
+                    loading={chatLoading}
+                    onInputChange={setChatInput}
+                    onSend={handleChatSend}
+                />
 
                 {/* LEFT — Brief Form (3 cols) */}
-                <div className="lg:col-span-3 space-y-4">
+                <div className="min-w-0 space-y-4 lg:order-1 lg:col-span-3">
 
                     {/* Project Info */}
                     <SectionCard icon={Building2} title="Project Details">
@@ -264,13 +357,13 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
                         {/* Client Type */}
                         <div className="space-y-1.5">
                             <label className="text-xs font-medium text-slate-400">Client Type</label>
-                            <div className="flex gap-2">
+                            <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-3">
                                 {(["domestic", "commercial", "public"] as const).map(t => (
                                     <button
                                         key={t}
                                         type="button"
                                         onClick={() => setClientType(t)}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors capitalize ${
+                                        className={`min-h-11 rounded-lg border px-4 py-2 text-sm font-medium capitalize transition-colors ${
                                             clientType === t
                                                 ? "bg-blue-600 text-white border-blue-600"
                                                 : "bg-slate-900/50 text-slate-400 border-slate-700 hover:border-slate-500 hover:text-slate-200"
@@ -344,12 +437,12 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
                     {/* Drawing Upload callout */}
                     <Link
                         href={`/dashboard/projects/costs?projectId=${project.id}`}
-                        className="flex items-center gap-4 px-5 py-4 bg-purple-500/5 border-2 border-dashed border-purple-500/30 rounded-xl hover:bg-purple-500/10 hover:border-purple-500/50 transition-colors group"
+                        className="group flex min-h-11 items-center gap-3 rounded-xl border-2 border-dashed border-purple-500/30 bg-purple-500/5 px-4 py-4 transition-colors hover:border-purple-500/50 hover:bg-purple-500/10 sm:gap-4 sm:px-5"
                     >
                         <div className="h-10 w-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
                             <ScanLine className="h-5 w-5 text-purple-400" />
                         </div>
-                        <div className="flex-1">
+                        <div className="min-w-0 flex-1">
                             <p className="text-sm font-semibold text-slate-200 group-hover:text-white">Got a drawing or floor plan?</p>
                             <p className="text-xs text-slate-500 mt-0.5">Upload it in Estimating → AI extracts quantities automatically</p>
                         </div>
@@ -362,7 +455,7 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
                         {selectedTrades.length > 0 && (
                             <p className="text-xs text-blue-400 font-medium">{selectedTrades.length} trade{selectedTrades.length !== 1 ? 's' : ''} selected</p>
                         )}
-                        <div className="grid grid-cols-3 gap-1.5 max-h-56 overflow-y-auto pr-1">
+                        <div className="grid max-h-80 grid-cols-1 gap-2 overflow-y-auto pr-1 min-[440px]:grid-cols-2 sm:max-h-64 sm:grid-cols-3">
                             {ALL_TRADES.map(trade => {
                                 const isSelected = selectedTrades.includes(trade);
                                 return (
@@ -374,7 +467,7 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
                                                 isSelected ? prev.filter(t => t !== trade) : [...prev, trade]
                                             );
                                         }}
-                                        className={`text-xs px-2 py-1.5 rounded-md border text-left transition-colors leading-tight ${
+                                        className={`min-h-11 rounded-md border px-3 py-2 text-left text-xs leading-tight transition-colors ${
                                             isSelected
                                                 ? "bg-blue-600/20 text-blue-300 border-blue-500/40"
                                                 : "bg-slate-900/50 text-slate-400 border-slate-700 hover:border-slate-500 hover:text-slate-200"
@@ -388,11 +481,11 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
                     </SectionCard>
 
                     {/* Actions */}
-                    <div className="flex flex-wrap items-center gap-3 pt-1">
+                    <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:flex-wrap sm:items-center">
                         <button
                             onClick={handleSave}
                             disabled={isPending}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-500 disabled:opacity-50 transition-colors"
+                            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:opacity-50 sm:w-auto"
                         >
                             {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                             {isPending ? "Saving..." : "Save Brief"}
@@ -401,7 +494,7 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
                         <button
                             onClick={handleSuggestEstimateLines}
                             disabled={suggesting}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-lg font-semibold text-sm hover:bg-emerald-600/30 disabled:opacity-40 transition-colors"
+                            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-600/20 px-5 py-2.5 text-sm font-semibold text-emerald-400 transition-colors hover:bg-emerald-600/30 disabled:opacity-40 sm:w-auto"
                         >
                             {suggesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                             {suggesting ? "Generating..." : "Suggest Estimate Lines"}
@@ -409,7 +502,7 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
 
                         <Link
                             href={`/dashboard/projects/costs?projectId=${projectId}`}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-slate-700/50 text-slate-300 border border-slate-600/50 rounded-lg font-semibold text-sm hover:bg-slate-700 transition-colors"
+                            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-600/50 bg-slate-700/50 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:bg-slate-700 sm:w-auto"
                         >
                             Go to Estimating
                             <ArrowRight className="w-4 h-4" />
@@ -427,77 +520,6 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
                     )}
                 </div>
 
-                {/* RIGHT — AI Chat Assistant (2 cols) */}
-                <div className="lg:col-span-2">
-                    <div className="sticky top-24 bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden flex flex-col" style={{ height: "calc(100vh - 14rem)" }}>
-
-                        {/* Chat header */}
-                        <div className="px-4 py-3 bg-slate-900/50 border-b border-slate-700/50 flex items-center gap-3 flex-shrink-0">
-                            <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                                <Sparkles className="h-4 w-4 text-blue-400" />
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-semibold text-white">AI Brief Assistant</h3>
-                                <p className="text-xs text-slate-500">Describe your project and I'll help build the brief</p>
-                            </div>
-                        </div>
-
-                        {/* Chat messages */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                            {chatMessages.length === 0 && (
-                                <div className="text-center py-8 px-4">
-                                    <div className="h-14 w-14 mx-auto mb-4 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                                        <Sparkles className="h-7 w-7 text-blue-400" />
-                                    </div>
-                                    <p className="text-sm font-medium text-slate-300">Tell me about your project</p>
-                                    <p className="text-xs text-slate-500 mt-1">I'll extract the scope, trades and estimated value automatically</p>
-                                    <div className="mt-4 bg-slate-700/30 border border-slate-700/50 rounded-lg px-3 py-2.5 text-xs text-slate-500 italic text-left">
-                                        "Two-storey rear extension, brick and block, bifold doors, start April, about £60k"
-                                    </div>
-                                </div>
-                            )}
-                            {chatMessages.map((msg, i) => (
-                                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                                    <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
-                                        msg.role === "user"
-                                            ? "bg-blue-600 text-white"
-                                            : "bg-slate-700/60 text-slate-200 border border-slate-600/50"
-                                    }`}>
-                                        {msg.content}
-                                    </div>
-                                </div>
-                            ))}
-                            {chatLoading && (
-                                <div className="flex justify-start">
-                                    <div className="bg-slate-700/60 border border-slate-600/50 rounded-xl px-3 py-2.5 flex items-center gap-2">
-                                        <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />
-                                        <span className="text-xs text-slate-500">Thinking…</span>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Chat input */}
-                        <div className="border-t border-slate-700/50 p-3 flex-shrink-0">
-                            <div className="flex gap-2">
-                                <input
-                                    className="flex-1 h-10 rounded-lg border border-slate-700 bg-slate-900/50 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 transition-colors"
-                                    value={chatInput}
-                                    onChange={e => setChatInput(e.target.value)}
-                                    onKeyDown={e => { if (e.key === "Enter") handleChatSend(); }}
-                                    placeholder="Describe your project..."
-                                />
-                                <button
-                                    onClick={handleChatSend}
-                                    disabled={chatLoading || !chatInput.trim()}
-                                    className="h-10 w-10 flex items-center justify-center rounded-lg bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-40 transition-colors flex-shrink-0"
-                                >
-                                    <Send className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     );

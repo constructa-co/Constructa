@@ -21,13 +21,13 @@ const TABS = [
 
 export default function ProjectNavBar({ projectId, activeTab }: Props) {
   return (
-    <div className="border-b border-slate-700/50 mb-6">
-      <nav className="flex gap-0 -mb-px overflow-x-auto">
+    <div className="mb-6 min-w-0 border-b border-slate-700/50">
+      <nav aria-label="Project workflow" className="-mb-px flex max-w-full snap-x snap-mandatory gap-0 overflow-x-auto overscroll-x-contain">
         {TABS.filter(({ capability }) => isCapabilityEnabled(capability as LaunchCapability)).map(({ key, label, icon: Icon, href }) => {
           const isActive = activeTab === key;
           return (
             <Link key={key} href={href(projectId)}
-              className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
+              className={`flex min-h-11 snap-start items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors sm:px-5 ${
                 isActive
                   ? "border-blue-500 text-white"
                   : "border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600"

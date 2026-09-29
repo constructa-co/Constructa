@@ -8,6 +8,7 @@ const auth = vi.hoisted(() => ({
 vi.mock("./auth-utils", () => auth);
 
 import {
+  requireEditableAccessForVerifiedProject,
   requireEditableProjectAccess,
   requireEstimateAccess,
   requireEstimateComponentAccess,
@@ -67,6 +68,27 @@ describe("project resource access", () => {
     });
 
     await expect(requireEditableProjectAccess("project-1")).rejects.toThrow("accepted");
+  });
+
+  it("reuses already-verified access when checking editability", async () => {
+    const verifiedClient = clientFor({
+      projects: {
+        status: "Estimating",
+        is_archived: false,
+        proposal_status: "draft",
+        proposal_accepted_at: null,
+      },
+    });
+    const access = {
+      user: { id: "user-1" },
+      supabase: verifiedClient,
+      project: { id: "project-1" },
+    };
+
+    await expect(
+      requireEditableAccessForVerifiedProject(access as never, "project-1"),
+    ).resolves.toBe(access);
+    expect(auth.requireProjectAccess).not.toHaveBeenCalled();
   });
 
   it("resolves a line through its estimate before verifying ownership", async () => {

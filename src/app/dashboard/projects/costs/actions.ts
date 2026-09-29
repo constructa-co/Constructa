@@ -5,6 +5,7 @@ import {
     requireAuth,
 } from "@/lib/supabase/auth-utils";
 import {
+    requireEditableAccessForVerifiedProject,
     requireEditableProjectAccess,
     requireEstimateAccess,
     requireEstimateComponentAccess,
@@ -22,19 +23,20 @@ import { revalidatePath } from "next/cache";
 
 async function assertEstimateEditable(
     estimateId: string,
+    verifiedAccess?: Awaited<ReturnType<typeof requireEstimateAccess>>,
 ): Promise<
     | ({ ok: true } & Awaited<ReturnType<typeof requireEstimateAccess>>)
     | { ok: false; error: string }
 > {
     let access: Awaited<ReturnType<typeof requireEstimateAccess>>;
     try {
-        access = await requireEstimateAccess(estimateId);
+        access = verifiedAccess ?? await requireEstimateAccess(estimateId);
     } catch {
         return { ok: false, error: "Estimate not found or unauthorized" };
     }
 
     try {
-        const editableAccess = await requireEditableProjectAccess(access.projectId);
+        const editableAccess = await requireEditableAccessForVerifiedProject(access, access.projectId);
         return { ok: true, ...access, ...editableAccess };
     } catch (error) {
         return { ok: false, error: error instanceof Error ? error.message : "Estimate is locked" };
@@ -216,7 +218,7 @@ export async function updateLineItemAction(
     } catch {
         return { success: false, error: "Line not found or unauthorized" };
     }
-    const lock = await assertEstimateEditable(lineAccess.estimateId);
+    const lock = await assertEstimateEditable(lineAccess.estimateId, lineAccess);
     if (!lock.ok) return { success: false, error: lock.error };
 
     const updateData: Record<string, unknown> = { ...data };
@@ -250,7 +252,7 @@ export async function deleteLineItemAction(
     } catch {
         return { success: false, error: "Line not found or unauthorized" };
     }
-    const lock = await assertEstimateEditable(lineAccess.estimateId);
+    const lock = await assertEstimateEditable(lineAccess.estimateId, lineAccess);
     if (!lock.ok) return { success: false, error: lock.error };
 
     const { error } = await lock.supabase
@@ -333,7 +335,7 @@ export async function addComponentAction(
         console.error("addComponentAction: cannot access estimate line", lineId, error);
         return null;
     }
-    const lock = await assertEstimateEditable(lineAccess.estimateId);
+    const lock = await assertEstimateEditable(lineAccess.estimateId, lineAccess);
     if (!lock.ok) return null;
 
     const { data: result, error } = await lock.supabase
@@ -356,7 +358,7 @@ export async function updateComponentAction(
     }>
 ): Promise<void> {
     const access = await requireEstimateComponentAccess(componentId);
-    const lock = await assertEstimateEditable(access.estimateId);
+    const lock = await assertEstimateEditable(access.estimateId, access);
     if (!lock.ok) throw new Error(lock.error);
     const { error } = await lock.supabase
         .from("estimate_line_components")
@@ -368,7 +370,7 @@ export async function updateComponentAction(
 
 export async function deleteComponentAction(componentId: string): Promise<void> {
     const access = await requireEstimateComponentAccess(componentId);
-    const lock = await assertEstimateEditable(access.estimateId);
+    const lock = await assertEstimateEditable(access.estimateId, access);
     if (!lock.ok) throw new Error(lock.error);
     const { error } = await lock.supabase
         .from("estimate_line_components")
@@ -380,7 +382,7 @@ export async function deleteComponentAction(componentId: string): Promise<void> 
 
 export async function setPricingModeAction(lineId: string, mode: "simple" | "buildup"): Promise<void> {
     const access = await requireEstimateLineAccess(lineId);
-    const lock = await assertEstimateEditable(access.estimateId);
+    const lock = await assertEstimateEditable(access.estimateId, access);
     if (!lock.ok) throw new Error(lock.error);
     const { error } = await lock.supabase
         .from("estimate_lines")
@@ -419,7 +421,7 @@ export async function saveRateBuildupAction(
 
 export async function updateLineBuiltUpRateAction(lineId: string, builtUpRate: number): Promise<void> {
     const access = await requireEstimateLineAccess(lineId);
-    const lock = await assertEstimateEditable(access.estimateId);
+    const lock = await assertEstimateEditable(access.estimateId, access);
     if (!lock.ok) throw new Error(lock.error);
     const { data: line } = await lock.supabase
         .from("estimate_lines")

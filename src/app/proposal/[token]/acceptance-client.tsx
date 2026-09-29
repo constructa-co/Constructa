@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { acceptProposalAction } from "./actions";
 
 interface Props {
@@ -41,7 +41,8 @@ export default function AcceptanceClient({
     const [acceptedAt, setAcceptedAt] = useState<string | null>(project?.proposal_accepted_at || null);
     const [acceptError, setAcceptError] = useState("");
 
-    const handleAccept = async () => {
+    const handleAccept = async (event?: FormEvent<HTMLFormElement>) => {
+        event?.preventDefault();
         if (!clientName.trim()) {
             setAcceptError("Please enter your full name to confirm acceptance.");
             return;
@@ -56,6 +57,8 @@ export default function AcceptanceClient({
             } else {
                 setAcceptError(result?.error || "Something went wrong. Please try again.");
             }
+        } catch {
+            setAcceptError("We could not record your response. Please try again or contact the contractor.");
         } finally {
             setAccepting(false);
         }
@@ -73,29 +76,29 @@ export default function AcceptanceClient({
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100">
             {/* ── HEADER ── */}
-            <header className="bg-slate-900 border-b border-slate-800">
-                <div className="max-w-4xl mx-auto px-6 py-6">
-                    <div className="flex items-center gap-4">
+            <header className="border-b border-slate-800 bg-slate-900">
+                <div className="mx-auto max-w-4xl px-4 py-4 sm:px-6 sm:py-6">
+                    <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
                         {profile?.logo_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={profile.logo_url} alt={companyName} className="h-10 object-contain" />
+                            <img src={profile.logo_url} alt={companyName} className="h-9 max-w-[9rem] object-contain sm:h-10 sm:max-w-xs" />
                         ) : (
-                            <div className="text-xl font-bold text-white tracking-tight">{companyName}</div>
+                            <div className="min-w-0 break-words text-lg font-bold tracking-tight text-white sm:text-xl">{companyName}</div>
                         )}
-                        <div className="h-6 w-px bg-slate-700" />
-                        <div className="text-sm text-slate-400 font-medium tracking-widest uppercase">
+                        <div className="hidden h-7 w-px flex-none bg-slate-700 sm:block" />
+                        <div className="min-w-0 text-[10px] font-medium uppercase leading-4 tracking-[0.16em] text-slate-400 sm:text-sm sm:leading-normal sm:tracking-widest">
                             Proposal &amp; Fee Proposal
                         </div>
                     </div>
                 </div>
             </header>
 
-            <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
+            <main className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:space-y-8 sm:px-6 sm:py-10">
 
                 {/* ── HERO ── */}
                 <div className="space-y-4">
-                    <h1 className="text-4xl font-bold text-white leading-tight">{project.name}</h1>
-                    <p className="text-lg text-slate-400">
+                    <h1 className="break-words text-3xl font-bold leading-tight text-white sm:text-4xl">{project.name}</h1>
+                    <p className="text-base text-slate-400 sm:text-lg">
                         Prepared exclusively for{" "}
                         <span className="text-white font-semibold">{project.client_name || "You"}</span>
                     </p>
@@ -114,11 +117,18 @@ export default function AcceptanceClient({
                             Ref: {refCode}
                         </span>
                     </div>
+                    <a
+                        href="#proposal-response"
+                        className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-blue-500/40 bg-blue-500/10 px-4 py-3 text-sm font-semibold text-blue-100 sm:hidden"
+                    >
+                        <span>{accepted ? "View acceptance" : isExpired ? "View proposal status" : "Review and respond"}</span>
+                        <span aria-hidden="true">↓</span>
+                    </a>
                 </div>
 
                 {/* ── KEY NUMBERS BAR ── */}
-                <div className="grid sm:grid-cols-3 gap-4">
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 text-center">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+                    <div className="col-span-2 rounded-xl border border-slate-800 bg-slate-900 p-4 text-center sm:col-span-1 sm:p-5">
                         <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Contract Value</p>
                         {contractValue ? (
                             <p className="text-2xl font-bold text-white">{formatGBP(contractValue)}</p>
@@ -127,7 +137,7 @@ export default function AcceptanceClient({
                         )}
                         <p className="text-xs text-slate-600 mt-1">exc. VAT</p>
                     </div>
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 text-center">
+                    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 text-center sm:p-5">
                         <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Estimated Start</p>
                         {project.start_date ? (
                             <p className="text-base font-bold text-white">
@@ -137,7 +147,7 @@ export default function AcceptanceClient({
                             <p className="text-lg font-semibold text-slate-500">To be agreed</p>
                         )}
                     </div>
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 text-center">
+                    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 text-center sm:p-5">
                         <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Project Duration</p>
                         {totalWeeks ? (
                             <p className="text-2xl font-bold text-white">{totalWeeks} weeks</p>
@@ -149,7 +159,7 @@ export default function AcceptanceClient({
 
                 {/* ── SCOPE PREVIEW ── */}
                 {scopePreview && (
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                    <div className="rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
                         <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-3">Scope of Works</h2>
                         <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">{scopePreview}</p>
                     </div>
@@ -158,15 +168,34 @@ export default function AcceptanceClient({
                 {/* ── PAYMENT SCHEDULE ── */}
                 {paymentSchedule.length > 0 && contractValue && (
                     <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                        <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700">
+                        <div className="border-b border-slate-700 bg-slate-800/60 px-5 py-4 sm:px-6">
                             <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400">Payment Schedule</h2>
                         </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
+                        <div className="divide-y divide-slate-800 sm:hidden">
+                            {paymentSchedule.map((row: any, i: number) => {
+                                const amount = contractValue * row.percentage / 100;
+                                return (
+                                    <div key={i} className="space-y-3 p-5">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <p className="min-w-0 break-words font-semibold text-slate-100">{row.stage}</p>
+                                            <p className="flex-none font-bold tabular-nums text-white">{formatGBP(amount)}</p>
+                                        </div>
+                                        {row.description ? (
+                                            <p className="break-words text-sm leading-relaxed text-slate-400">{row.description}</p>
+                                        ) : null}
+                                        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                            {row.percentage}% of contract value
+                                        </p>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className="hidden overflow-x-auto sm:block">
+                            <table className="w-full min-w-[36rem] text-sm">
                                 <thead>
                                     <tr className="border-b border-slate-800">
                                         <th className="text-left px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Stage</th>
-                                        <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 hidden sm:table-cell">When</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">When</th>
                                         <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">%</th>
                                         <th className="text-right px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Amount</th>
                                     </tr>
@@ -177,7 +206,7 @@ export default function AcceptanceClient({
                                         return (
                                             <tr key={i} className="border-b border-slate-800/50 hover:bg-slate-800/30">
                                                 <td className="px-6 py-3.5 font-semibold text-slate-200">{row.stage}</td>
-                                                <td className="px-4 py-3.5 text-slate-400 hidden sm:table-cell">{row.description}</td>
+                                                <td className="px-4 py-3.5 text-slate-400">{row.description}</td>
                                                 <td className="px-4 py-3.5 text-right text-slate-400">{row.percentage}%</td>
                                                 <td className="px-6 py-3.5 text-right font-bold text-white tabular-nums">{formatGBP(amount)}</td>
                                             </tr>
@@ -192,10 +221,10 @@ export default function AcceptanceClient({
                 {/* ── TIMELINE ── */}
                 {ganttPhases.length > 0 && (
                     <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                        <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700">
+                        <div className="border-b border-slate-700 bg-slate-800/60 px-5 py-4 sm:px-6">
                             <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400">Project Timeline</h2>
                         </div>
-                        <div className="p-6 space-y-3">
+                        <div className="space-y-3 p-5 sm:p-6">
                             {ganttPhases.map((phase: any, i: number) => {
                                 const weeks = Math.round((phase.duration_days || 7) / 7);
                                 const colorMap: Record<string, string> = {
@@ -208,9 +237,9 @@ export default function AcceptanceClient({
                                 };
                                 const dotColor = colorMap[phase.color] || "bg-blue-500";
                                 return (
-                                    <div key={i} className="flex items-center gap-4">
+                                    <div key={i} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 sm:gap-4">
                                         <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${dotColor}`} />
-                                        <span className="text-sm font-semibold text-slate-200 flex-1">{phase.name || `Phase ${i + 1}`}</span>
+                                        <span className="min-w-0 break-words text-sm font-semibold text-slate-200">{phase.name || `Phase ${i + 1}`}</span>
                                         <span className="text-sm text-slate-400 tabular-nums">{weeks} week{weeks !== 1 ? "s" : ""}</span>
                                     </div>
                                 );
@@ -249,7 +278,7 @@ export default function AcceptanceClient({
 
                 {/* ── COMPANY CREDENTIALS ── */}
                 {(profile?.capability_statement || profile?.accreditations) && (
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                    <div className="rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
                         <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4">About {companyName}</h2>
                         <div className="grid sm:grid-cols-2 gap-6">
                             <div>
@@ -279,7 +308,7 @@ export default function AcceptanceClient({
                                     <div>
                                         <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Contact</p>
                                         <p className="text-sm text-slate-300">{profile.phone}</p>
-                                        {profile.website && <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:text-blue-300">{profile.website}</a>}
+                                        {profile.website && <a href={profile.website} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 max-w-full items-center break-all text-sm text-blue-400 hover:text-blue-300">{profile.website}</a>}
                                     </div>
                                 )}
                             </div>
@@ -288,7 +317,7 @@ export default function AcceptanceClient({
                 )}
 
                 {/* ── ACCEPTANCE SECTION ── */}
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
+                <section id="proposal-response" className="scroll-mt-4 rounded-2xl border border-slate-800 bg-slate-900 p-5 sm:p-8">
                     {accepted || project.proposal_accepted_at ? (
                         <div className="text-center space-y-3">
                             <div className="w-16 h-16 bg-green-900/30 rounded-full flex items-center justify-center mx-auto">
@@ -322,7 +351,7 @@ export default function AcceptanceClient({
                             </p>
                         </div>
                     ) : (
-                        <div className="space-y-5">
+                        <form className="space-y-5" onSubmit={handleAccept}>
                             <div className="text-center">
                                 <h2 className="text-xl font-bold text-white mb-2">Accept This Proposal</h2>
                                 <p className="text-sm text-slate-400 max-w-md mx-auto">
@@ -332,36 +361,44 @@ export default function AcceptanceClient({
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1">Your full name</label>
+                                <label htmlFor="proposal-client-name" className="mb-1 block text-sm font-medium text-slate-300">Your full name</label>
                                 <input
+                                    id="proposal-client-name"
+                                    name="clientName"
                                     type="text"
                                     value={clientName}
                                     onChange={e => setClientName(e.target.value)}
                                     placeholder="e.g. John Smith"
-                                    className="w-full border border-slate-700 bg-slate-800 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    autoComplete="name"
+                                    className="min-h-11 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm"
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1">Your email address</label>
+                                <label htmlFor="proposal-client-email" className="mb-1 block text-sm font-medium text-slate-300">Your email address</label>
                                 <input
+                                    id="proposal-client-email"
+                                    name="clientEmail"
                                     type="email"
                                     value={clientEmail}
                                     onChange={e => setClientEmail(e.target.value)}
                                     placeholder="e.g. john@example.com"
-                                    className="w-full border border-slate-700 bg-slate-800 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    autoComplete="email"
+                                    inputMode="email"
+                                    className="min-h-11 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm"
                                 />
                                 <p className="text-xs text-slate-600 mt-1">A confirmation will be recorded for both parties.</p>
                             </div>
 
                             {acceptError && (
-                                <p className="text-sm text-red-400 text-center">{acceptError}</p>
+                                <p role="alert" aria-live="polite" className="text-center text-sm text-red-400">{acceptError}</p>
                             )}
 
                             <button
-                                onClick={handleAccept}
+                                type="submit"
                                 disabled={accepting || !clientName.trim()}
+                                aria-busy={accepting}
                                 className="w-full h-14 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-base transition-all active:scale-[0.98] shadow-lg shadow-blue-900/30"
                             >
                                 {accepting
@@ -373,9 +410,9 @@ export default function AcceptanceClient({
                             <p className="text-xs text-slate-600 text-center">
                                 This constitutes a binding agreement. You will receive confirmation shortly.
                             </p>
-                        </div>
+                        </form>
                     )}
-                </div>
+                </section>
 
                 {/* Footer */}
                 <div className="text-center pb-8">
@@ -383,7 +420,7 @@ export default function AcceptanceClient({
                         This proposal was prepared by {companyName} using Constructa · Ref: {refCode}
                     </p>
                 </div>
-            </div>
+            </main>
         </div>
     );
 }

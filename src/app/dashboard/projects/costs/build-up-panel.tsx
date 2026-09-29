@@ -248,11 +248,11 @@ export default function BuildUpPanel({
     };
 
     return (
-        <div className="ml-10 mr-5 mb-3 border border-blue-200 rounded-lg bg-blue-50/30">
+        <div className="mx-3 mb-3 rounded-lg border border-blue-200 bg-blue-50/30 md:ml-10 md:mr-5">
             {/* Header */}
-            <div className="flex items-center justify-between px-3 py-2 bg-blue-50 border-b border-blue-200">
+            <div className="flex flex-col gap-2 border-b border-blue-200 bg-blue-50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:py-2">
                 <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Rate Build-Up</span>
-                <div className="flex items-center gap-3 text-xs text-blue-600">
+                <div className="grid grid-cols-1 gap-1 text-xs text-blue-600 sm:flex sm:items-center sm:gap-3">
                     <span>Components total: <strong>{formatGBP(componentTotal)}</strong></span>
                     <span>Built-up rate: <strong>{formatGBP(ratePerUnit)}/unit</strong></span>
                     {totalManhours > 0 && <span>Total manhours: <strong>{totalManhours.toFixed(1)}h</strong></span>}
@@ -266,7 +266,7 @@ export default function BuildUpPanel({
             {rateBuildups.length > 0 && components.length === 0 && (
                 <div className="px-3 py-2 border-b border-blue-100">
                     <select
-                        className="text-xs border border-blue-200 rounded px-2 py-1 bg-white text-blue-700 w-80"
+                        className="h-11 w-full rounded border border-blue-200 bg-white px-2 text-xs text-blue-700 sm:h-8 sm:w-80"
                         onChange={(e) => {
                             if (e.target.value) handleLoadLibrary(e.target.value);
                         }}
@@ -286,10 +286,10 @@ export default function BuildUpPanel({
             {components.length > 0 && (
                 <div className="divide-y divide-blue-100">
                     {components.map((comp) => (
-                        <div key={comp.id} className="flex items-center gap-2 px-3 py-1.5 text-xs">
+                        <div key={comp.id} className="flex flex-col gap-3 px-3 py-3 text-xs md:flex-row md:items-center md:gap-2 md:py-1.5">
                             {/* Type badge */}
                             <span
-                                className={`px-1.5 py-0.5 rounded text-xs font-medium capitalize flex-shrink-0 w-20 text-center ${
+                                className={`w-fit flex-shrink-0 rounded px-2 py-1 text-center text-xs font-medium capitalize md:w-20 md:px-1.5 md:py-0.5 ${
                                     TYPE_COLORS[comp.component_type] || "bg-gray-100 text-gray-700"
                                 }`}
                             >
@@ -298,10 +298,10 @@ export default function BuildUpPanel({
 
                             {/* Description — type-specific picker */}
                             {comp.component_type === "labour" ? (
-                                <div className="flex-1 flex flex-col gap-1">
+                                <div className="flex w-full flex-1 flex-col gap-2 md:gap-1">
                                     {/* Trade filter */}
                                     <select
-                                        className="w-full border border-gray-200 rounded px-1 py-0.5 bg-white text-xs text-gray-600"
+                                        className="h-11 w-full rounded border border-gray-200 bg-white px-2 text-xs text-gray-600 md:h-8 md:px-1"
                                         value={labourTradeFilter[comp.id] || ''}
                                         onChange={e => setLabourTradeFilter(prev => ({ ...prev, [comp.id]: e.target.value }))}
                                     >
@@ -324,7 +324,7 @@ export default function BuildUpPanel({
                                     </select>
                                     {/* Role picker — filtered by selected trade */}
                                     <select
-                                        className="w-full border border-gray-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
+                                        className="h-11 w-full rounded border border-gray-200 bg-white px-2 text-xs text-gray-900 md:h-8 md:px-1"
                                         value={comp.description || ''}
                                         onChange={e => {
                                             if (e.target.value === '__custom__') {
@@ -352,7 +352,7 @@ export default function BuildUpPanel({
                                     {(comp.description === '__custom__' ||
                                         (!labourRates.some(lr => lr.role === comp.description) && comp.description && comp.description !== '__custom__')) && (
                                         <input
-                                            className="w-full border border-blue-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
+                                            className="h-11 w-full rounded border border-blue-200 bg-white px-2 text-xs text-gray-900 md:h-8 md:px-1"
                                             value={comp.description === '__custom__' ? '' : comp.description}
                                             onChange={e => handleUpdate(comp.id, { description: e.target.value })}
                                             placeholder="Type role or description..."
@@ -361,9 +361,9 @@ export default function BuildUpPanel({
                                     )}
                                 </div>
                             ) : comp.component_type === "plant" ? (
-                                <div className="flex-1 flex items-center gap-1">
+                                <div className="flex w-full flex-1 flex-col gap-2 sm:flex-row sm:items-center md:gap-1">
                                     <select
-                                        className="flex-1 border border-gray-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
+                                        className="h-11 flex-1 rounded border border-gray-200 bg-white px-2 text-xs text-gray-900 md:h-8 md:px-1"
                                         value={comp.description || ""}
                                         onChange={(e) => {
                                             if (e.target.value === "__custom__") {
@@ -393,7 +393,7 @@ export default function BuildUpPanel({
                                     {(comp.description === "__custom__" ||
                                         (!allPlantItems.some((p) => p.name === comp.description) && comp.description)) && (
                                         <input
-                                            className="w-32 border border-blue-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
+                                            className="h-11 w-full rounded border border-blue-200 bg-white px-2 text-xs text-gray-900 sm:w-40 md:h-8 md:w-32 md:px-1"
                                             value={comp.description === "__custom__" ? "" : comp.description}
                                             onChange={(e) => handleUpdate(comp.id, { description: e.target.value })}
                                             placeholder="Type description..."
@@ -402,10 +402,10 @@ export default function BuildUpPanel({
                                     )}
                                 </div>
                             ) : comp.component_type === "material" ? (
-                                <div className="flex-1 flex flex-col gap-1">
+                                <div className="flex w-full flex-1 flex-col gap-2 md:gap-1">
                                     {/* Category filter */}
                                     <select
-                                        className="w-full border border-gray-200 rounded px-1 py-0.5 bg-white text-xs text-gray-600"
+                                        className="h-11 w-full rounded border border-gray-200 bg-white px-2 text-xs text-gray-600 md:h-8 md:px-1"
                                         value={materialCategoryFilter[comp.id] || ''}
                                         onChange={e => setMaterialCategoryFilter(prev => ({ ...prev, [comp.id]: e.target.value }))}
                                     >
@@ -429,7 +429,7 @@ export default function BuildUpPanel({
                                     {/* Material input with datalist */}
                                     <input
                                         list={`mat-${comp.id}`}
-                                        className="w-full border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900 text-xs"
+                                        className="h-11 w-full rounded border border-gray-200 bg-white px-2 text-xs text-gray-900 md:h-8 md:px-1"
                                         value={descInputs[comp.id] ?? comp.description}
                                         onChange={(e) => {
                                             setDescInputs(prev => ({ ...prev, [comp.id]: e.target.value }));
@@ -466,10 +466,10 @@ export default function BuildUpPanel({
                                     </datalist>
                                 </div>
                             ) : comp.component_type === "consumable" ? (
-                                <div className="flex-1 flex flex-col gap-1">
+                                <div className="flex w-full flex-1 flex-col gap-2 md:gap-1">
                                     <input
                                         list={`cons-${comp.id}`}
-                                        className="flex-1 border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900 text-xs"
+                                        className="h-11 flex-1 rounded border border-gray-200 bg-white px-2 text-xs text-gray-900 md:h-8 md:px-1"
                                         value={descInputs[comp.id] ?? comp.description}
                                         onChange={e => {
                                             setDescInputs(prev => ({ ...prev, [comp.id]: e.target.value }));
@@ -489,9 +489,9 @@ export default function BuildUpPanel({
                                     </datalist>
                                 </div>
                             ) : comp.component_type === "subcontract" ? (
-                                <div className="flex-1 flex flex-col gap-1">
+                                <div className="flex w-full flex-1 flex-col gap-2 md:gap-1">
                                     <input
-                                        className="flex-1 border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900 text-xs"
+                                        className="h-11 flex-1 rounded border border-gray-200 bg-white px-2 text-xs text-gray-900 md:h-8 md:px-1"
                                         value={descInputs[comp.id] ?? comp.description}
                                         onChange={e => {
                                             setDescInputs(prev => ({ ...prev, [comp.id]: e.target.value }));
@@ -503,7 +503,7 @@ export default function BuildUpPanel({
                                 </div>
                             ) : (
                                 <input
-                                    className="flex-1 border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900 text-xs"
+                                    className="h-11 w-full flex-1 rounded border border-gray-200 bg-white px-2 text-xs text-gray-900 md:h-8 md:px-1"
                                     defaultValue={comp.description}
                                     onBlur={(e) => handleUpdate(comp.id, { description: e.target.value })}
                                     placeholder="Description..."
@@ -511,18 +511,23 @@ export default function BuildUpPanel({
                             )}
 
                             {/* Qty */}
-                            <input
-                                type="number"
-                                className="w-14 text-right text-xs border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900"
-                                value={comp.quantity}
-                                onChange={(e) => handleUpdate(comp.id, { quantity: Number(e.target.value) || 0 })}
-                            />
+                            <label className="w-full md:w-auto">
+                                <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-blue-600 md:hidden">Quantity</span>
+                                <input
+                                    type="number"
+                                    className="h-11 w-full rounded border border-gray-200 bg-white px-2 text-right text-xs text-gray-900 md:h-8 md:w-14 md:px-1"
+                                    value={comp.quantity}
+                                    onChange={(e) => handleUpdate(comp.id, { quantity: Number(e.target.value) || 0 })}
+                                />
+                            </label>
 
                             {/* Unit */}
-                            <select
-                                className="w-14 text-xs border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900"
-                                value={comp.unit}
-                                onChange={(e) => {
+                            <label className="w-full md:w-auto">
+                                <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-blue-600 md:hidden">Unit</span>
+                                <select
+                                    className="h-11 w-full rounded border border-gray-200 bg-white px-2 text-xs text-gray-900 md:h-8 md:w-14 md:px-1"
+                                    value={comp.unit}
+                                    onChange={(e) => {
                                     const newUnit = e.target.value;
                                     // Auto-convert rate between hr/day/week for labour and plant
                                     if ((comp.component_type === "labour" || comp.component_type === "plant") && comp.unit_rate > 0) {
@@ -542,29 +547,33 @@ export default function BuildUpPanel({
                                         }
                                     }
                                     handleUpdate(comp.id, { unit: newUnit });
-                                }}
-                            >
-                                {COMP_UNITS.map((u) => (
-                                    <option key={u}>{u}</option>
-                                ))}
-                            </select>
+                                    }}
+                                >
+                                    {COMP_UNITS.map((u) => (
+                                        <option key={u}>{u}</option>
+                                    ))}
+                                </select>
+                            </label>
 
                             {/* Rate — controlled input */}
-                            <input
-                                type="number"
-                                className="w-20 text-right text-xs border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900"
-                                value={comp.unit_rate === 0 ? '' : comp.unit_rate}
-                                onChange={(e) => handleUpdate(comp.id, { unit_rate: Number(e.target.value) || 0 })}
-                            />
+                            <label className="w-full md:w-auto">
+                                <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-blue-600 md:hidden">Rate</span>
+                                <input
+                                    type="number"
+                                    className="h-11 w-full rounded border border-gray-200 bg-white px-2 text-right text-xs text-gray-900 md:h-8 md:w-20 md:px-1"
+                                    value={comp.unit_rate === 0 ? '' : comp.unit_rate}
+                                    onChange={(e) => handleUpdate(comp.id, { unit_rate: Number(e.target.value) || 0 })}
+                                />
+                            </label>
 
                             {/* Manhours (labour only) */}
                             {comp.component_type === "labour" && (
-                                <div className="flex flex-col items-end">
+                                <div className="flex w-full flex-col items-start md:w-auto md:items-end">
                                     <span className="text-[9px] text-blue-500 font-medium mb-0.5">hrs/unit</span>
                                     <input
                                         type="number"
                                         title="Manhours per unit of the parent line item (e.g. 0.4 hrs per m³ of concrete placed)"
-                                        className="w-16 text-right text-xs border border-blue-300 rounded px-1 py-0.5 bg-blue-100 text-gray-900"
+                                        className="h-11 w-full rounded border border-blue-300 bg-blue-100 px-2 text-right text-xs text-gray-900 md:h-8 md:w-16 md:px-1"
                                         value={comp.manhours_per_unit}
                                         onChange={(e) => handleUpdate(comp.id, { manhours_per_unit: Number(e.target.value) || 0 })}
                                     />
@@ -572,15 +581,17 @@ export default function BuildUpPanel({
                             )}
 
                             {/* Total */}
-                            <span className="w-20 text-right text-xs font-medium text-gray-700">
-                                {formatGBP(comp.quantity * comp.unit_rate)}
-                            </span>
+                            <div className="w-full text-right md:w-20">
+                                <span className="mb-1 block text-left text-[10px] font-semibold uppercase tracking-wide text-blue-600 md:hidden">Total</span>
+                                <span className="text-xs font-medium text-gray-700">{formatGBP(comp.quantity * comp.unit_rate)}</span>
+                            </div>
 
                             {/* Delete */}
                             <button
                                 type="button"
                                 onClick={() => handleDelete(comp.id)}
-                                className="text-red-400 hover:text-red-600 text-sm flex-shrink-0"
+                                aria-label={`Delete ${comp.description || comp.component_type} component`}
+                                className="min-h-11 w-full flex-shrink-0 rounded border border-red-200 text-sm text-red-500 hover:bg-red-50 hover:text-red-600 md:min-h-8 md:w-8 md:border-0"
                             >
                                 ×
                             </button>
@@ -590,7 +601,7 @@ export default function BuildUpPanel({
             )}
 
             {/* Add buttons — these use LOCAL state, not parent's isPending */}
-            <div className="flex items-center gap-1 px-3 py-2 flex-wrap">
+            <div className="flex flex-wrap items-center gap-2 px-3 py-3 md:gap-1 md:py-2">
                 <span className="text-xs text-gray-500 mr-1">Add:</span>
                 {["material", "labour", "plant", "consumable", "temp_works", "subcontract"].map((type) => (
                     <button
@@ -598,7 +609,7 @@ export default function BuildUpPanel({
                         type="button"
                         onClick={() => handleAdd(type)}
                         disabled={isPending}
-                        className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 capitalize transition-colors disabled:opacity-50"
+                        className="min-h-11 rounded border border-gray-200 px-3 py-2 text-xs capitalize text-gray-700 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-50 md:min-h-0 md:px-2 md:py-1"
                     >
                         + {type.replace("_", " ")}
                     </button>
@@ -607,18 +618,18 @@ export default function BuildUpPanel({
 
             {/* Footer */}
             {components.length > 0 && (
-                <div className="flex items-center justify-between px-3 py-2 bg-blue-50 border-t border-blue-200">
+                <div className="flex flex-col gap-2 border-t border-blue-200 bg-blue-50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:py-2">
                     <button
                         type="button"
                         onClick={handleSaveToLibrary}
-                        className="text-xs text-blue-600 hover:text-blue-800 underline"
+                        className="min-h-11 rounded px-3 text-xs text-blue-600 underline hover:bg-blue-100 hover:text-blue-800 sm:min-h-0 sm:px-0"
                     >
                         Save to rate library
                     </button>
                     <button
                         type="button"
                         onClick={handleApplyRate}
-                        className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded hover:bg-blue-700 font-medium"
+                        className="min-h-11 rounded bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700 sm:min-h-0 sm:py-1.5"
                     >
                         Apply rate ({formatGBP(ratePerUnit)}/unit) →
                     </button>

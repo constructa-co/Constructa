@@ -27,6 +27,7 @@ import {
     RotateCcw,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
+import { isCapabilityEnabled } from "@/lib/launch-profile";
 
 const COLUMNS = [
     { id: "Lead",          label: "Leads",         icon: Users,        color: "bg-slate-50",      darkColor: "bg-white/5",        text: "text-slate-600",  darkText: "text-slate-300",  border: "border-slate-200",  darkBorder: "border-[#2a2a2a]" },
@@ -87,6 +88,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
     const isDark = theme === "dark";
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
+    const showExtendedModules = isCapabilityEnabled("extended-modules");
 
     // Optimistic status: cards move instantly without waiting for server
     const [optimisticStatus, setOptimisticStatus] = useState<Record<string, string>>({});
@@ -315,7 +317,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 <Link href={`/dashboard/projects/costs?projectId=${p.id}`} className="text-[9px] font-black uppercase text-green-600 hover:underline tracking-widest">
                                                     Costs
                                                 </Link>
-                                                {status === "Active" && (
+                                                {status === "Active" && showExtendedModules && (
                                                     <Link href={`/dashboard/projects/p-and-l?projectId=${p.id}`} className="text-[9px] font-black uppercase text-blue-500 hover:underline tracking-widest ml-auto">
                                                         P&amp;L →
                                                     </Link>

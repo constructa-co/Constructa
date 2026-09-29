@@ -59,6 +59,8 @@ interface SidebarNavProps {
     user: { email?: string };
     projects: Project[];
     isAdmin?: boolean;
+    mode?: "desktop" | "mobile";
+    onNavigate?: () => void;
 }
 
 // ── NavItem ───────────────────────────────────────────────────────────────────
@@ -137,7 +139,13 @@ function SidebarSection({
 const SECTION_KEYS = ["company-profile", "work-winning", "pre-construction", "live-projects", "closed-projects"];
 
 // ── Main Component ────────────────────────────────────────────────────────────
-export default function SidebarNav({ user, projects, isAdmin = false }: SidebarNavProps) {
+export default function SidebarNav({
+    user,
+    projects,
+    isAdmin = false,
+    mode = "desktop",
+    onNavigate,
+}: SidebarNavProps) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -152,6 +160,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
     const [pickerOpen, setPickerOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const pickerRef = useRef<HTMLDivElement>(null);
+    const restoredProjectIdRef = useRef<string | null>(null);
 
     // Accordion: all sections collapsed by default
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
@@ -167,6 +176,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
         const savedId   = localStorage.getItem("constructa_selected_project_id");
         const savedName = localStorage.getItem("constructa_selected_project_name");
         if (savedId && savedName && projects.some(p => p.id === savedId)) {
+            restoredProjectIdRef.current = savedId;
             setSelectedProjectId(savedId);
             setSelectedProjectName(savedName);
         } else {
@@ -209,12 +219,14 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
     // Auto-expand Pre-Construction only when project is selected (accordion — closes all others)
     useEffect(() => {
         if (selectedProjectId) {
-            setCollapsed(prev => {
-                const next: Record<string, boolean> = {};
-                SECTION_KEYS.forEach(k => { next[k] = k !== "pre-construction"; });
-                localStorage.setItem("constructa_sidebar_collapsed", JSON.stringify(next));
-                return next;
-            });
+            const restoredProjectId = restoredProjectIdRef.current;
+            restoredProjectIdRef.current = null;
+            if (restoredProjectId === selectedProjectId) return;
+
+            const next: Record<string, boolean> = {};
+            SECTION_KEYS.forEach(k => { next[k] = k !== "pre-construction"; });
+            localStorage.setItem("constructa_sidebar_collapsed", JSON.stringify(next));
+            setCollapsed(next);
         }
     }, [selectedProjectId]);
 
@@ -267,6 +279,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
             if (existing !== id) {
                 current.set("projectId", id);
                 router.push(`${pathname}?${current.toString()}`);
+                onNavigate?.();
             }
         }
     };
@@ -282,6 +295,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
         // where they can pick a different project.
         if (pathname?.startsWith("/dashboard/projects/") && searchParams?.get("projectId")) {
             router.push("/dashboard");
+            onNavigate?.();
         }
     };
 
@@ -298,7 +312,16 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
     );
 
     return (
-        <aside className="w-64 bg-[#0d0d0d] hidden md:flex flex-col h-screen fixed z-30">
+        <aside
+            aria-label={mode === "mobile" ? "Mobile navigation" : "Primary navigation"}
+            onClick={(event) => {
+                if ((event.target as HTMLElement).closest("a[href]")) onNavigate?.();
+            }}
+            className={mode === "mobile"
+                ? "flex h-full w-full flex-col bg-[#0d0d0d]"
+                : "fixed z-30 hidden h-screen w-64 flex-col bg-[#0d0d0d] md:flex"
+            }
+        >
             {/* Logo */}
             <div className="p-5 pb-3">
                 <Link href="/dashboard" className="flex items-center gap-2.5 group">

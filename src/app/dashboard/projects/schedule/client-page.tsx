@@ -166,6 +166,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
     const [isDragging, setIsDragging] = useState(false);
     const [showLiveTracking, setShowLiveTracking] = useState(false);
+    const [startWeekDrafts, setStartWeekDrafts] = useState<Record<number, string>>({});
 
     const ganttRef           = useRef<HTMLDivElement>(null);
     const dragStateRef       = useRef<DragState | null>(null);
@@ -393,13 +394,38 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
         setPhases((prev) => { const u = [...prev]; u[idx] = { ...u[idx], name }; return u; });
 
     const handleManualDuration = (idx: number, val: string) => {
-        const days = val === "" ? null : parseInt(val, 10);
+        const days = val === "" ? null : Math.min(parseInt(val, 10), 3650);
         if (days !== null && (isNaN(days) || days < 1)) return;
         setPhases((prev) => { const u = [...prev]; u[idx] = { ...u[idx], manualDays: days }; return u; });
     };
 
+    const handleStartWeek = (idx: number, val: string) => {
+        setStartWeekDrafts((prev) => ({ ...prev, [idx]: val }));
+        if (val === "") return;
+
+        const parsedWeek = parseInt(val, 10);
+        if (isNaN(parsedWeek)) return;
+
+        const week = Math.min(Math.max(parsedWeek, 1), 522);
+        setStartWeekDrafts((prev) => ({ ...prev, [idx]: String(week) }));
+        setPhases((prev) => {
+            const u = [...prev];
+            u[idx] = { ...u[idx], startOffset: (week - 1) * 7, dependsOn: [] };
+            return u;
+        });
+    };
+
+    const finishStartWeekEdit = (idx: number) => {
+        setStartWeekDrafts((prev) => {
+            const next = { ...prev };
+            delete next[idx];
+            return next;
+        });
+    };
+
     const handleSetDependency = (idx: number, val: string) => {
         const depIdx = val === "" ? -1 : parseInt(val, 10);
+        finishStartWeekEdit(idx);
         setPhases((prev) => {
             const u = [...prev];
             u[idx] = { ...u[idx], dependsOn: depIdx >= 0 ? [depIdx] : [] };
@@ -413,7 +439,8 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
         });
     };
 
-    const deletePhase = (idx: number) =>
+    const deletePhase = (idx: number) => {
+        setStartWeekDrafts({});
         setPhases((prev) =>
             prev
                 .filter((_, i) => i !== idx)
@@ -424,6 +451,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         .map((d) => (d > idx ? d - 1 : d)),
                 }))
         );
+    };
 
     const addPhase = () => {
         const maxEnd = phases.reduce(
@@ -436,6 +464,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     };
 
     const sequencePhases = () => {
+        setStartWeekDrafts({});
         setPhases((prev) => {
             let offset = 0;
             return prev.map((p) => {
@@ -463,6 +492,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
     const handleRegenerate = () => {
         startTransition(async () => {
+            setStartWeekDrafts({});
             const serverPhases = await getEstimatePhasesAction(projectId);
             if (serverPhases.length > 0) {
                 // Re-sequence using current daysPerWeek
@@ -492,7 +522,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
         <div className="space-y-6">
 
             {/* ── Header ── */}
-            <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
                         <svg className="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -506,35 +536,35 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="grid min-w-0 grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
                     {saveStatus === "saving" && <span className="text-xs text-slate-400 animate-pulse">Saving…</span>}
                     {saveStatus === "saved"  && <span className="text-xs text-emerald-400">✓ Auto-saved</span>}
                     {phases.length > 1 && (
                         <button type="button" onClick={sequencePhases}
-                            className="px-3 py-2 rounded-lg text-xs font-medium bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">
+                            className="min-h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-medium text-slate-300 transition-colors hover:bg-slate-700 hover:text-white">
                             Auto-sequence
                         </button>
                     )}
                     <button type="button" onClick={handleRegenerate} disabled={isPending}
-                        className="px-3 py-2 rounded-lg text-xs font-medium bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50">
+                        className="min-h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-medium text-slate-300 transition-colors hover:bg-slate-700 hover:text-white disabled:opacity-50">
                         Regenerate from estimate
                     </button>
                     <button type="button" onClick={handleSave} disabled={isPending}
-                        className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 transition-colors">
+                        className="min-h-11 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:opacity-50">
                         Save to Proposal
                     </button>
                 </div>
             </div>
 
             {/* ── Programme settings (start date + working week) ── */}
-            <div className="flex items-center gap-4 flex-wrap bg-slate-800/40 border border-slate-700/50 rounded-xl px-4 py-3">
+            <div className="flex flex-col gap-4 rounded-xl border border-slate-700/50 bg-slate-800/40 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:py-3">
                 {/* Start date */}
-                <div className="flex items-center gap-2.5">
+                <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2.5">
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Start date</span>
-                    <div className="relative">
+                    <div className="relative min-w-0">
                         <input
                             type="date"
-                            className="h-8 pl-3 pr-2 text-xs border border-slate-700 rounded-lg bg-slate-900/60 text-slate-200 focus:outline-none focus:border-blue-500/60 cursor-pointer"
+                            className="h-11 w-full min-w-0 rounded-lg border border-slate-700 bg-slate-900/60 pl-3 pr-2 text-sm text-slate-200 focus:border-blue-500/60 focus:outline-none sm:h-8 sm:w-auto sm:text-xs"
                             value={toInputDate(programmeStart)}
                             onChange={(e) => handleStartDateChange(e.target.value)}
                         />
@@ -547,16 +577,16 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 <div className="h-4 border-l border-slate-700/60 hidden sm:block" />
 
                 {/* Working week */}
-                <div className="flex items-center gap-2.5">
+                <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2.5">
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Working week</span>
-                    <div className="flex rounded-lg overflow-hidden border border-slate-700">
+                    <div className="grid min-w-0 grid-cols-4 overflow-hidden rounded-lg border border-slate-700">
                         {[4, 5, 6, 7].map((n) => (
                             <button
                                 key={n}
                                 type="button"
                                 onClick={() => handleSetDaysPerWeek(n)}
                                 className={[
-                                    "px-3 py-1.5 text-xs font-semibold border-r border-slate-700 last:border-0 transition-colors",
+                                    "min-h-11 min-w-0 px-2 py-1.5 text-xs font-semibold border-r border-slate-700 last:border-0 transition-colors sm:min-h-0 sm:px-3",
                                     daysPerWeek === n
                                         ? "bg-blue-600 text-white"
                                         : "bg-slate-800/60 text-slate-400 hover:bg-slate-700 hover:text-slate-200",
@@ -574,7 +604,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
             {/* ── Summary strip ── */}
             {phases.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
                     {[
                         { label: "Duration",    value: `${totalDays}d`, sub: `${totalWeeks} calendar weeks` },
                         { label: "Start",       value: fmtDateFull(programmeStart), sub: `Monday WC` },
@@ -596,8 +626,9 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
             {/* ── Drag hint ── */}
             {phases.length > 0 && (
-                <div className="flex items-center gap-4 text-[11px] text-slate-500 flex-wrap">
-                    <span>Drag bar to move · Drag right edge to resize · Snaps to week</span>
+                <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-500">
+                    <span className="hidden lg:inline">Drag bar to move · Drag right edge to resize · Snaps to week</span>
+                    <span className="lg:hidden">Edit each phase below. Start week overrides its dependency.</span>
                     {criticalSet.size > 0 && <span className="text-yellow-500/80">★ Critical path</span>}
                     {phases.some((p) => (p.dependsOn || []).length > 0) && (
                         <span className="text-amber-500/70">⟶ Dependencies shown</span>
@@ -621,16 +652,105 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                 : "Set an estimate as active to auto-generate the programme."}
                         </p>
                         <button type="button" onClick={addPhase}
-                            className="mt-2 px-4 py-2 rounded-lg text-sm font-medium bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:bg-blue-600/30 transition-colors">
+                            className="mt-2 min-h-11 rounded-lg border border-blue-500/30 bg-blue-600/20 px-4 py-2 text-sm font-medium text-blue-400 transition-colors hover:bg-blue-600/30">
                             + Add phase manually
                         </button>
                     </div>
                 </div>
             )}
 
-            {/* ── Gantt ── */}
+            {/* ── Mobile phase editor ── */}
             {phases.length > 0 && (
-                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
+                <div className="space-y-3 lg:hidden">
+                    {phases.map((phase, idx) => {
+                        const workingDur = phase.manualDays ?? phase.calculatedDays;
+                        const calDur = toCalendarDays(workingDur, daysPerWeek);
+                        const phaseStart = addDays(programmeStart, phase.startOffset);
+                        const phaseEnd = addDays(programmeStart, phase.startOffset + calDur);
+                        const isCritical = criticalSet.has(idx);
+                        const colorDef = PHASE_COLORS[idx % PHASE_COLORS.length];
+                        const predIdx = phase.dependsOn?.[0];
+
+                        return (
+                            <section key={idx} className="min-w-0 rounded-xl border border-slate-700/50 bg-slate-800/50 p-4">
+                                <div className="mb-4 flex items-start gap-3">
+                                    <div className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${colorDef.bg}${isCritical ? " ring-2 ring-yellow-400 ring-offset-2 ring-offset-slate-900" : ""}`} />
+                                    <div className="min-w-0 flex-1">
+                                        <label htmlFor={`phase-name-${idx}`} className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                                            Phase {idx + 1}{isCritical ? " · Critical path" : ""}
+                                        </label>
+                                        <input
+                                            id={`phase-name-${idx}`}
+                                            className="min-h-11 w-full rounded-lg border border-slate-700 bg-slate-900/50 px-3 text-sm font-semibold text-slate-100 focus:border-blue-500/60 focus:outline-none"
+                                            value={phase.name}
+                                            onChange={(e) => updatePhaseName(idx, e.target.value)}
+                                        />
+                                        <p className="mt-1.5 text-xs text-slate-500">
+                                            {fmtDate(phaseStart)} - {fmtDate(phaseEnd)}{phase.manhours > 0 ? ` · ${Math.round(phase.manhours)}h` : ""}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => deletePhase(idx)}
+                                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-700 text-xl text-slate-500 transition-colors hover:border-red-500/40 hover:text-red-400"
+                                        aria-label={`Remove ${phase.name}`}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+
+                                <div className="grid min-w-0 grid-cols-2 gap-3">
+                                    <label className="text-xs font-medium text-slate-400">
+                                        Working days
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={3650}
+                                            className="mt-1.5 min-h-11 w-full rounded-lg border border-slate-700 bg-slate-900/50 px-3 text-sm text-slate-100 focus:border-blue-500/60 focus:outline-none"
+                                            value={phase.manualDays ?? ""}
+                                            onChange={(e) => handleManualDuration(idx, e.target.value)}
+                                            placeholder={String(phase.calculatedDays)}
+                                        />
+                                    </label>
+                                    <label className="text-xs font-medium text-slate-400">
+                                        Start week
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={522}
+                                            className="mt-1.5 min-h-11 w-full rounded-lg border border-slate-700 bg-slate-900/50 px-3 text-sm text-slate-100 focus:border-blue-500/60 focus:outline-none"
+                                            value={startWeekDrafts[idx] ?? Math.floor(phase.startOffset / 7) + 1}
+                                            onChange={(e) => handleStartWeek(idx, e.target.value)}
+                                            onBlur={() => finishStartWeekEdit(idx)}
+                                        />
+                                    </label>
+                                    <label className="col-span-2 text-xs font-medium text-slate-400">
+                                        Starts after
+                                        <select
+                                            className="mt-1.5 min-h-11 w-full rounded-lg border border-slate-700 bg-slate-900/50 px-3 text-sm text-slate-200 focus:border-blue-500/60 focus:outline-none"
+                                            value={predIdx !== undefined && predIdx >= 0 ? predIdx : ""}
+                                            onChange={(e) => handleSetDependency(idx, e.target.value)}
+                                        >
+                                            <option value="">No dependency</option>
+                                            {phases.map((candidate, candidateIdx) =>
+                                                candidateIdx !== idx ? (
+                                                    <option key={candidateIdx} value={candidateIdx}>
+                                                        {candidateIdx + 1}. {candidate.name}
+                                                    </option>
+                                                ) : null
+                                            )}
+                                        </select>
+                                    </label>
+                                </div>
+                            </section>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* ── Desktop Gantt ── */}
+            {phases.length > 0 && (
+                <div className="hidden overflow-hidden rounded-xl border border-slate-700/50 bg-slate-800/50 lg:block">
 
                     {/* Column headers */}
                     <div className="flex border-b border-slate-700/50 bg-slate-900/40">
@@ -850,19 +970,19 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
             {/* ── Add Phase / Note ── */}
             {phases.length > 0 && (
-                <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                     <button type="button" onClick={addPhase}
-                        className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-800/50 border border-dashed border-slate-600 text-slate-400 hover:border-slate-500 hover:text-slate-200 hover:bg-slate-700/50 transition-colors">
+                        className="min-h-11 w-full rounded-lg border border-dashed border-slate-600 bg-slate-800/50 px-4 py-2 text-sm font-medium text-slate-400 transition-colors hover:border-slate-500 hover:bg-slate-700/50 hover:text-slate-200 sm:w-auto">
                         + Add Phase
                     </button>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                         <p className="text-[11px] text-slate-500">
                             Days = working days ({daysPerWeek}d/wk). Bar width = calendar span. ★ = critical path.
                         </p>
                         <button
                             type="button"
                             onClick={() => setShowLiveTracking(v => !v)}
-                            className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${showLiveTracking ? "bg-emerald-600/20 border-emerald-500/40 text-emerald-400" : "bg-slate-800/50 border-slate-600 text-slate-400 hover:text-slate-200 hover:border-slate-500"}`}
+                            className={`min-h-11 w-full rounded-lg border px-4 py-2 text-sm font-semibold transition-colors sm:w-auto ${showLiveTracking ? "bg-emerald-600/20 border-emerald-500/40 text-emerald-400" : "bg-slate-800/50 border-slate-600 text-slate-400 hover:text-slate-200 hover:border-slate-500"}`}
                         >
                             {showLiveTracking ? "▲ Hide Live Tracking" : "▼ Live Tracking"}
                         </button>

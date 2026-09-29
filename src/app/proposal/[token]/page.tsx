@@ -19,8 +19,8 @@ export default async function ProposalAcceptancePage(props: { params: Promise<{ 
 
     if (!project) {
         return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center p-8">
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-10 max-w-md w-full text-center">
+            <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4 sm:p-8">
+                <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 text-center sm:p-10">
                     <h1 className="text-2xl font-bold text-slate-100 mb-3">Proposal Not Found</h1>
                     <p className="text-slate-400">
                         This proposal link is invalid or has expired. Please contact the contractor for a new link.

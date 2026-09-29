@@ -556,7 +556,7 @@ export async function sendSupervisorInviteEmail(args: {
     if (!process.env.RESEND_API_KEY) return;
 
     await getResend().emails.send({
-        from: "Constructa <noreply@constructa.co>",
+        from: FROM,
         to: [args.supervisorEmail],
         subject: `${args.companyName} — Supervisor Portal for ${args.projectName}`,
         html: `<!DOCTYPE html>

@@ -55,7 +55,7 @@ export default function VersionHistoryPanel({ projectId, versions, currentVersio
             {/* Header / toggle */}
             <button
                 onClick={() => setOpen((p) => !p)}
-                className="w-full flex items-center justify-between px-4 py-3 text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-800/50 transition-colors"
+                className="flex min-h-11 w-full items-center justify-between px-4 py-3 text-sm text-slate-300 transition-colors hover:bg-slate-800/50 hover:text-slate-100"
             >
                 <span className="flex items-center gap-2 font-medium">
                     <History className="w-4 h-4 text-amber-400" />
@@ -78,7 +78,7 @@ export default function VersionHistoryPanel({ projectId, versions, currentVersio
                             <div
                                 key={v.id}
                                 className={[
-                                    "flex items-start justify-between gap-3 px-4 py-3",
+                                    "flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-start sm:justify-between",
                                     isCurrent ? "bg-amber-950/20" : "hover:bg-slate-800/30",
                                 ].join(" ")}
                             >
@@ -108,23 +108,23 @@ export default function VersionHistoryPanel({ projectId, versions, currentVersio
 
                                 {/* Right: restore button (only for non-current) */}
                                 {!isCurrent && (
-                                    <div className="flex-shrink-0">
+                                    <div className="w-full flex-shrink-0 sm:w-auto">
                                         {isRestoring ? (
                                             <span className="flex items-center gap-1 text-xs text-slate-400">
                                                 <Loader2 className="w-3.5 h-3.5 animate-spin" /> Restoring…
                                             </span>
                                         ) : isConfirming ? (
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center justify-end gap-2">
                                                 <span className="text-xs text-amber-400">Confirm?</span>
                                                 <button
                                                     onClick={() => handleRestore(v.id, v.version_number)}
-                                                    className="rounded px-2 py-0.5 text-xs font-medium bg-amber-500 text-black hover:bg-amber-400 transition-colors"
+                                                    className="min-h-11 rounded bg-amber-500 px-3 text-xs font-medium text-black transition-colors hover:bg-amber-400"
                                                 >
                                                     Yes
                                                 </button>
                                                 <button
                                                     onClick={() => setConfirmId(null)}
-                                                    className="rounded px-2 py-0.5 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
+                                                    className="min-h-11 rounded px-3 text-xs font-medium text-slate-400 transition-colors hover:text-slate-200"
                                                 >
                                                     Cancel
                                                 </button>
@@ -132,7 +132,7 @@ export default function VersionHistoryPanel({ projectId, versions, currentVersio
                                         ) : (
                                             <button
                                                 onClick={() => handleRestore(v.id, v.version_number)}
-                                                className="flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors"
+                                                className="flex min-h-11 w-full items-center justify-center gap-1 rounded px-3 text-xs text-slate-400 transition-colors hover:bg-slate-700 hover:text-slate-200 sm:w-auto"
                                                 title={`Restore v${v.version_number}`}
                                             >
                                                 <RotateCcw className="w-3.5 h-3.5" />

@@ -83,18 +83,6 @@ export default function AiWizard({ projectId, project, onComplete, onClose }: Ai
         { field: "extras", question: "Anything specific to highlight or exclude? (Optional — press Enter to skip)" },
     ];
 
-    function getDisplayValue(): string {
-        switch (step) {
-            case 0: return answers.description || inputValue;
-            case 1: return `${answers.client || inputValue}${answers.siteAddress ? ` — ${answers.siteAddress}` : ""}`;
-            case 2: return answers.value ? `£${answers.value}` : inputValue;
-            case 3: return answers.startDate || inputValue;
-            case 4: return answers.duration || `${durationNumber} ${durationUnit}`;
-            case 5: return answers.extras || inputValue || "(none)";
-            default: return "";
-        }
-    }
-
     function advanceStep(userText: string, updatedAnswers: ProposalAnswers) {
         const newMessages: Message[] = [
             ...messages,
@@ -124,7 +112,19 @@ export default function AiWizard({ projectId, project, onComplete, onClose }: Ai
 
         setMessages(newMessages);
         setStep(nextStep);
-        setInputValue("");
+        setInputValue(
+            nextStep === 1
+                ? updatedAnswers.client || updatedAnswers.siteAddress
+                    ? `${updatedAnswers.client} — ${updatedAnswers.siteAddress}`
+                    : ""
+                : nextStep === 2
+                  ? updatedAnswers.value
+                  : nextStep === 3
+                    ? updatedAnswers.startDate
+                    : nextStep === 5
+                      ? updatedAnswers.extras
+                      : "",
+        );
         setDurationNumber("");
     }
 
@@ -211,7 +211,6 @@ export default function AiWizard({ projectId, project, onComplete, onClose }: Ai
         }
     }
 
-    const isLastStep = step === 5;
     const afterLastStep = (step as number) > 5;
 
     // Determine current input type for step
@@ -295,18 +294,11 @@ export default function AiWizard({ projectId, project, onComplete, onClose }: Ai
         }
 
         // Default: single line input with pre-fills
-        const defaultVals: Record<number, string> = {
-            1: answers.client && answers.siteAddress ? `${answers.client} — ${answers.siteAddress}` : answers.client || answers.siteAddress || "",
-            2: answers.value || "",
-            3: answers.startDate || "",
-        };
-
         return (
             <div className="flex gap-2">
                 <input
                     type={step === 2 ? "number" : step === 3 ? "date" : "text"}
                     value={inputValue || ""}
-                    defaultValue={defaultVals[step] || ""}
                     onChange={e => setInputValue(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder={
@@ -331,10 +323,10 @@ export default function AiWizard({ projectId, project, onComplete, onClose }: Ai
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-            <div className="relative bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+            <div className="relative flex max-h-[94dvh] w-full max-w-2xl flex-col rounded-t-2xl border border-slate-700 bg-slate-900 shadow-2xl sm:max-h-[90vh] sm:rounded-2xl">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+                <div className="flex items-center justify-between border-b border-slate-800 px-4 py-4 sm:px-6">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-blue-600/20 rounded-lg">
                             <Sparkles className="w-5 h-5 text-blue-400" />
@@ -346,7 +338,8 @@ export default function AiWizard({ projectId, project, onComplete, onClose }: Ai
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-slate-500 hover:text-slate-300 transition-colors p-1 rounded"
+                        className="flex h-11 w-11 items-center justify-center rounded text-slate-500 transition-colors hover:text-slate-300"
+                        aria-label="Close proposal wizard"
                     >
                         <X className="w-5 h-5" />
                     </button>
@@ -361,7 +354,7 @@ export default function AiWizard({ projectId, project, onComplete, onClose }: Ai
                 </div>
 
                 {/* Chat messages */}
-                <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-[200px]">
+                <div className="min-h-[180px] flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:min-h-[200px] sm:px-6">
                     {messages.map((msg, i) => (
                         <div
                             key={i}
@@ -373,7 +366,7 @@ export default function AiWizard({ projectId, project, onComplete, onClose }: Ai
                                 </div>
                             )}
                             <div
-                                className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
+                                className={`max-w-[86%] rounded-2xl px-4 py-2.5 text-sm sm:max-w-[80%] ${
                                     msg.role === "assistant"
                                         ? "bg-slate-800 text-slate-200 rounded-tl-sm"
                                         : "bg-blue-600 text-white rounded-tr-sm"
@@ -399,7 +392,7 @@ export default function AiWizard({ projectId, project, onComplete, onClose }: Ai
 
                 {/* Input area */}
                 {!generating && (
-                    <div className="px-6 pb-5 pt-3 border-t border-slate-800">
+                    <div className="border-t border-slate-800 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 sm:px-6">
                         {renderInput()}
                         {(step === 1 || step === 2 || step === 3) && (
                             <p className="text-xs text-slate-500 mt-2">

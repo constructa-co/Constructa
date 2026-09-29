@@ -1,7 +1,13 @@
 import { Resend } from "resend";
 
-// Initialise once — safe to call at module level (server only)
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResend(): Resend {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+        throw new Error("RESEND_API_KEY is required to send email.");
+    }
+
+    return new Resend(apiKey);
+}
 
 // Sender address — switch to a verified domain address once constructa.co
 // is verified in the Resend dashboard (Domains → Add Domain).
@@ -51,7 +57,7 @@ export async function sendProposalEmail({
     companyName,
     siteAddress,
 }: SendProposalEmailArgs) {
-    return resend.emails.send({
+    return getResend().emails.send({
         from: FROM,
         to: clientEmail,
         subject: `Your Proposal — ${projectName}`,
@@ -109,7 +115,7 @@ export async function sendAcceptanceConfirmationEmail({
     siteAddress,
 }: AcceptanceConfirmationArgs) {
     const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-    return resend.emails.send({
+    return getResend().emails.send({
         from: FROM,
         to: clientEmail,
         subject: `Acceptance Confirmed — ${projectName}`,
@@ -189,7 +195,7 @@ export async function sendContractorViewedNotification({
 }: ContractorViewedArgs) {
     const time = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
     const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-    return resend.emails.send({
+    return getResend().emails.send({
         from: FROM,
         to: contractorEmail,
         subject: `👀 ${clientName} just opened your proposal — ${projectName}`,
@@ -243,7 +249,7 @@ export async function sendWelcomeEmail({
     dashboardUrl,
 }: WelcomeEmailArgs) {
     const greeting = fullName ? `Hi ${fullName.split(" ")[0]},` : "Welcome,";
-    return resend.emails.send({
+    return getResend().emails.send({
         from: FROM,
         to: contractorEmail,
         subject: `Welcome to Constructa, ${companyName} 🎉`,
@@ -421,7 +427,7 @@ export async function sendContractAlertEmail({
         </tr>`;
     }).join("");
 
-    return resend.emails.send({
+    return getResend().emails.send({
         from: FROM,
         to: contractorEmail,
         subject,
@@ -486,7 +492,7 @@ export async function sendContractorAcceptanceNotification({
     refCode,
 }: ContractorNotificationArgs) {
     const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-    return resend.emails.send({
+    return getResend().emails.send({
         from: FROM,
         to: contractorEmail,
         subject: `🎉 Accepted — ${clientName} has signed off on ${projectName}`,
@@ -549,8 +555,8 @@ export async function sendSupervisorInviteEmail(args: {
 }) {
     if (!process.env.RESEND_API_KEY) return;
 
-    await resend.emails.send({
-        from: "Constructa <noreply@constructa.co>",
+    await getResend().emails.send({
+        from: FROM,
         to: [args.supervisorEmail],
         subject: `${args.companyName} — Supervisor Portal for ${args.projectName}`,
         html: `<!DOCTYPE html>

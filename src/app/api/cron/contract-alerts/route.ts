@@ -364,6 +364,13 @@ export async function GET(request: NextRequest) {
                 dashboardUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://constructa-nu.vercel.app",
             });
 
+            if (!result) {
+                throw new Error("Resend returned no result for contract alert.");
+            }
+            if (result.error) {
+                throw new Error(`Resend rejected contract alert: ${result.error.message}`);
+            }
+
             // Send succeeded — flip reservation rows from 'pending' → 'sent'
             // and record the Resend message id for delivery correlation.
             if (reservedIds.length > 0) {

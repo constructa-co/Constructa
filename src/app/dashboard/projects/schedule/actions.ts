@@ -7,6 +7,7 @@
 // updatePhasesAction previously already filtered by user_id; this stage
 // brings it onto the shared helper so the pattern is consistent.
 import { requireAuth, requireProjectAccess } from "@/lib/supabase/auth-utils";
+import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-access";
 import { revalidatePath } from "next/cache";
 import { generateText } from "@/lib/ai";
 import { UpdatePhasesSchema, parseInput } from "@/lib/validation/schemas";
@@ -29,7 +30,7 @@ export async function updateDependencyAction(formData: FormData) {
         console.error("updateDependencyAction: estimate not found for id", successor);
         return;
     }
-    const { supabase } = await requireProjectAccess(est.project_id);
+    const { supabase } = await requireEditableProjectAccess(est.project_id);
 
     if (duration) {
         await supabase
@@ -87,6 +88,11 @@ export async function updatePhasesAction(
     startDate?: string   // ISO YYYY-MM-DD — if provided, saves to projects.start_date
 ): Promise<void> {
     const input = parseInput(UpdatePhasesSchema, { projectId, phases, startDate }, "programme phases");
+    // This shared autosave also carries post-award live tracking fields
+    // (`pct_complete` and actual dates). Keep ownership enforcement here, but
+    // do not apply the pre-contract lock to the whole payload or accepted jobs
+    // would stop recording operational progress. Immutable sent-programme
+    // planning is handled by the proposal snapshot work in issue #36.
     const { user, supabase } = await requireProjectAccess(input.projectId);
     // Note: projects has no `timeline_phases` column — writing it used to cause the
     // whole UPDATE to fail silently, meaning programme edits weren't saved.
@@ -110,7 +116,7 @@ export async function updatePhasesAction(
 export async function getEstimatePhasesAction(
     projectId: string
 ): Promise<{ name: string; calculatedDays: number; manualDays: number | null; manhours: number; startOffset: number }[]> {
-    const { supabase } = await requireAuth();
+    const { supabase } = await requireProjectAccess(projectId);
 
     const { data: estimates } = await supabase
         .from("estimates")
@@ -182,7 +188,7 @@ export async function saveProgrammePhasesAction(
     projectId: string,
     phases: any[]
 ): Promise<void> {
-    const { user, supabase } = await requireProjectAccess(projectId);
+    const { user, supabase } = await requireEditableProjectAccess(projectId);
     const { error } = await supabase
         .from("projects")
         .update({ programme_phases: phases })

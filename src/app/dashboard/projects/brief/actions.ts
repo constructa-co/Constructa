@@ -1,6 +1,6 @@
 "use server";
 import { generateJSON } from "@/lib/ai";
-import { requireAuth } from "@/lib/supabase/auth-utils";
+import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-access";
 import { revalidatePath } from "next/cache";
 import OpenAI from "openai";
 import { requireLaunchCapability } from "@/lib/launch-profile";
@@ -71,7 +71,7 @@ export async function saveBriefAction(projectId: string, data: {
   potential_value?: number;
   start_date?: string;
 }) {
-  const { supabase } = await requireAuth();
+  const { supabase } = await requireEditableProjectAccess(projectId);
 
   // Fetch existing proposal fields so we don't overwrite them
   const { data: existing } = await supabase
@@ -133,7 +133,7 @@ export async function suggestEstimateLineItemsAction(
   tradeSections: string[]
 ): Promise<{ success: boolean; sectionsCreated: number; linesCreated: number; error?: string }> {
   try {
-    const { supabase } = await requireAuth();
+    const { supabase } = await requireEditableProjectAccess(projectId);
 
     // Step 1: Find or create estimate
     const { data: existingEstimate } = await supabase

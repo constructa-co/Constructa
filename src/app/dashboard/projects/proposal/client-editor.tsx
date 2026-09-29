@@ -776,7 +776,7 @@ export default function ClientEditor({
     const proposalStatus = project?.proposal_accepted_at ? "Accepted" : project?.proposal_sent_at ? "Sent" : "Draft";
 
     return (
-        <div className="grid lg:grid-cols-3 gap-8 items-start pb-20">
+        <div className="grid items-start gap-6 pb-20 lg:grid-cols-3 lg:gap-8">
             {/* ── AI Wizard Modal ── */}
             {showWizard && (
                 <AiWizard
@@ -788,18 +788,48 @@ export default function ClientEditor({
             )}
 
             {/* ── MAIN CONTENT COL ── */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="min-w-0 space-y-6 lg:col-span-2">
+
+                {/* Keep the two key mobile actions visible before the long editor. */}
+                <div className="rounded-xl border border-slate-700 bg-slate-900 p-4 lg:hidden">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Proposal status</p>
+                            <p className="mt-1 text-sm font-semibold text-slate-100">{proposalStatus}</p>
+                        </div>
+                        <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-300">
+                            {completedCount} of 7 complete
+                        </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <button
+                            type="button"
+                            onClick={handleSave}
+                            disabled={saving || saved}
+                            className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:opacity-60"
+                        >
+                            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+                            {saving ? "Saving..." : saved ? "Saved" : "Save"}
+                        </button>
+                        <a
+                            href="#proposal-actions"
+                            className="flex min-h-11 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm font-semibold text-slate-200"
+                        >
+                            Review &amp; send
+                        </a>
+                    </div>
+                </div>
 
                 {/* Sync from Brief & Contracts banner */}
                 {(initialBriefScope || initialContractExclusions || initialContractClarifications) && (
-                    <div className="flex items-center justify-between bg-blue-900/20 border border-blue-800/40 rounded-xl px-4 py-3">
+                    <div className="flex flex-col gap-3 rounded-xl border border-blue-800/40 bg-blue-900/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-2">
                             <Info className="w-4 h-4 text-blue-400 flex-shrink-0" />
                             <span className="text-sm text-blue-300 font-medium">Project data is available to sync into this proposal</span>
                         </div>
                         <button
                             onClick={handleSyncFromBriefContracts}
-                            className="text-xs font-bold text-blue-400 hover:text-blue-300 bg-blue-900/40 px-3 py-1.5 rounded-lg border border-blue-700/40 transition-colors"
+                            className="min-h-11 w-full rounded-lg border border-blue-700/40 bg-blue-900/40 px-3 text-xs font-bold text-blue-400 transition-colors hover:text-blue-300 sm:w-auto"
                         >
                             Sync project data
                         </button>
@@ -808,7 +838,7 @@ export default function ClientEditor({
 
                 {/* T&C Tier reference */}
                 {project?.tc_tier && (
-                    <div className="p-3 bg-slate-800/40 rounded-lg border border-slate-700 text-sm flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/40 p-3 text-sm">
                         <Scale className="w-4 h-4 text-slate-400" />
                         <span className="text-slate-300">
                             <span className="font-medium">T&C Tier:</span> {project.tc_tier.charAt(0).toUpperCase() + project.tc_tier.slice(1)}
@@ -816,7 +846,7 @@ export default function ClientEditor({
                         {isCapabilityEnabled("extended-modules") && (
                             <>
                                 <span className="text-slate-500">—</span>
-                                <Link href={`/dashboard/projects/contracts?projectId=${projectId}`} className="text-blue-400 hover:text-blue-300 text-xs">
+                                <Link href={`/dashboard/projects/contracts?projectId=${projectId}`} className="inline-flex min-h-11 items-center text-xs text-blue-400 hover:text-blue-300">
                                     Edit in Contracts tab
                                 </Link>
                             </>
@@ -826,16 +856,16 @@ export default function ClientEditor({
 
                 {/* SECTION 1: Project Summary */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-3 border-b border-slate-700 bg-slate-800/60 px-4 py-4 sm:px-6">
                         <div className="flex items-center gap-2">
                             <FileText className="w-4 h-4 text-slate-400" />
                             <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Project Summary</span>
                         </div>
-                        <Link href={`/dashboard/projects/settings?projectId=${projectId}`} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                        <Link href={`/dashboard/projects/settings?projectId=${projectId}`} className="flex min-h-11 items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
                             Edit Details <ExternalLink className="w-3 h-3" />
                         </Link>
                     </div>
-                    <div className="p-6 grid sm:grid-cols-2 gap-4">
+                    <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-6">
                         {[
                             { label: "Client", value: project?.client_name },
                             { label: "Site Address", value: project?.site_address || project?.client_address },
@@ -859,13 +889,13 @@ export default function ClientEditor({
                             <span className="text-sm text-green-400 font-medium">Company profile complete — {profile.company_name}</span>
                         </div>
                     ) : (
-                        <div className="flex items-center gap-3 px-4 py-3 bg-amber-950/40 border border-amber-700 rounded-xl">
+                        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-700 bg-amber-950/40 px-4 py-3">
                             <AlertCircle className="w-5 h-5 text-amber-300 flex-shrink-0" />
                             <div className="flex-1">
                                 <p className="text-sm font-semibold text-amber-200">Company profile incomplete</p>
                                 <p className="text-xs text-amber-300 mt-0.5">Your proposal PDF will show &ldquo;The Contractor&rdquo; instead of your company name.</p>
                             </div>
-                            <Link href="/dashboard/settings/profile" className="text-xs font-bold text-amber-300 hover:text-amber-200 whitespace-nowrap flex items-center gap-1">
+                            <Link href="/dashboard/settings/profile" className="flex min-h-11 items-center gap-1 whitespace-nowrap text-xs font-bold text-amber-300 hover:text-amber-200">
                                 Complete Profile <ExternalLink className="w-3 h-3" />
                             </Link>
                         </div>
@@ -874,7 +904,7 @@ export default function ClientEditor({
 
                 {/* About Us — This Proposal override */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
+                    <div className="flex flex-col gap-3 border-b border-slate-700 bg-slate-800/60 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-6">
                         <div>
                             <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">About Us — This Proposal</span>
                             <p className="text-xs text-slate-500 mt-0.5">
@@ -883,12 +913,12 @@ export default function ClientEditor({
                         </div>
                         {proposalCapability && (
                             <button type="button" onClick={() => { setProposalCapability(''); saveProposalOverridesAction(projectId, { proposal_capability: '' }); }}
-                                className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                                className="min-h-11 text-left text-xs text-slate-500 transition-colors hover:text-slate-300 sm:text-right">
                                 Reset to profile default
                             </button>
                         )}
                     </div>
-                    <div className="p-6 space-y-3">
+                    <div className="space-y-3 p-4 sm:p-6">
                         <textarea
                             className="w-full h-24 text-sm border border-slate-700 bg-slate-800 rounded-lg p-3 text-slate-100 placeholder:text-slate-600 resize-none focus:outline-none focus:ring-2 focus:ring-blue-600"
                             placeholder={profile?.capability_statement || "Leave blank to use your Company Profile description..."}
@@ -898,7 +928,7 @@ export default function ClientEditor({
                         />
                         <input
                             type="text"
-                            className="w-full text-sm border border-slate-700 bg-slate-800 rounded-lg px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className="min-h-11 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-600"
                             placeholder="Override company name for this proposal (optional)"
                             value={proposalCompanyName}
                             onChange={e => setProposalCompanyName(e.target.value)}
@@ -910,12 +940,12 @@ export default function ClientEditor({
                 {/* SECTION 2b: Case Studies Selection — case studies appear on PDF page 3, so sit with the company-level block */}
                 {allCaseStudies.length > 0 && (
                     <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                        <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2 border-b border-slate-700 bg-slate-800/60 px-4 py-4 sm:px-6">
                             <FileText className="w-4 h-4 text-slate-400" />
                             <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Case Studies for Proposal</span>
                             <span className="text-xs text-slate-600 ml-1">({selectedCaseStudyIds.length || 'All'} selected)</span>
                         </div>
-                        <div className="p-6 space-y-3">
+                        <div className="space-y-3 p-4 sm:p-6">
                             <p className="text-xs text-slate-500 mb-2">Choose which case studies appear in this proposal. When none are selected, all are included.</p>
                             {allCaseStudies.map((cs, idx) => {
                                 const isSelected = selectedCaseStudyIds.includes(idx);
@@ -954,7 +984,7 @@ export default function ClientEditor({
 
                 {/* SECTION 3: Client Introduction */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
+                    <div className="flex flex-col gap-3 border-b border-slate-700 bg-slate-800/60 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                         <div className="flex items-center gap-2">
                             {checks.introduction ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4 text-slate-600" />}
                             <MessageSquare className="w-4 h-4 text-slate-400" />
@@ -966,14 +996,14 @@ export default function ClientEditor({
                                 variant="outline"
                                 onClick={handleRewriteIntro}
                                 disabled={rewritingIntro}
-                                className="h-8 px-3 border-purple-700 bg-purple-900/30 text-purple-300 hover:bg-purple-800/40 text-xs font-bold gap-1.5"
+                                className="min-h-11 w-full gap-1.5 border-purple-700 bg-purple-900/30 px-3 text-xs font-bold text-purple-300 hover:bg-purple-800/40 sm:w-auto"
                             >
                                 {rewritingIntro ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                                 {rewritingIntro ? "Rewriting..." : "✨ Rewrite with AI"}
                             </Button>
                         )}
                     </div>
-                    <div className="p-6">
+                    <div className="p-4 sm:p-6">
                         <p className="text-xs text-slate-500 mb-3">Opening paragraph — personalised for this client. Appears first in the proposal PDF.</p>
                         {introPreFilled && (
                             <div className="text-xs text-blue-400 bg-blue-900/20 border border-blue-800/30 px-3 py-1.5 rounded mb-2">
@@ -991,7 +1021,7 @@ export default function ClientEditor({
 
                 {/* SECTION 4: Scope of Works */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
+                    <div className="flex flex-col gap-3 border-b border-slate-700 bg-slate-800/60 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                         <div className="flex items-center gap-2">
                             {checks.scope ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4 text-slate-600" />}
                             <FileText className="w-4 h-4 text-slate-400" />
@@ -1002,13 +1032,13 @@ export default function ClientEditor({
                             variant="outline"
                             onClick={handleAutoWrite}
                             disabled={generating}
-                            className="h-8 px-3 border-purple-700 bg-purple-900/30 text-purple-300 hover:bg-purple-800/40 text-xs font-bold gap-1.5"
+                            className="min-h-11 w-full gap-1.5 border-purple-700 bg-purple-900/30 px-3 text-xs font-bold text-purple-300 hover:bg-purple-800/40 sm:w-auto"
                         >
                             <Sparkles className={`w-3.5 h-3.5 ${generating ? "animate-spin" : ""}`} />
                             {generating ? "Writing..." : "✨ Draft with AI"}
                         </Button>
                     </div>
-                    <div className="p-6">
+                    <div className="p-4 sm:p-6">
                         <p className="text-xs text-slate-500 mb-3">Full scope narrative describing all works to be carried out.</p>
                         {scopePreFilled && (
                             <div className="text-xs text-blue-400 bg-blue-500/10 border border-blue-500/30 px-3 py-1.5 rounded mb-2">
@@ -1031,13 +1061,13 @@ export default function ClientEditor({
 
                 {/* SECTION 4b: Site Photos — sits with Scope because they share a page in the PDF */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 border-b border-slate-700 bg-slate-800/60 px-4 py-4 sm:px-6">
                         {checks.photos ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4 text-slate-600" />}
                         <Camera className="w-4 h-4 text-slate-400" />
                         <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Site Photos</span>
                         <span className="text-xs text-slate-600 ml-1">(optional — max 6)</span>
                     </div>
-                    <div className="p-6">
+                    <div className="p-4 sm:p-6">
                         <div className="grid sm:grid-cols-2 gap-4">
                             {sitePhotos.map((photo, i) => (
                                 <div key={i} className="space-y-2">
@@ -1075,7 +1105,7 @@ export default function ClientEditor({
                                     <input
                                         value={photo.caption}
                                         onChange={(e) => updatePhoto(i, "caption", e.target.value)}
-                                        className="w-full h-8 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                        className="min-h-11 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
                                         placeholder="Caption (optional)"
                                     />
                                 </div>
@@ -1086,12 +1116,12 @@ export default function ClientEditor({
 
                 {/* SECTION 5: Exclusions & Clarifications */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 border-b border-slate-700 bg-slate-800/60 px-4 py-4 sm:px-6">
                         {checks.exclusions ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4 text-slate-600" />}
                         <AlertCircle className="w-4 h-4 text-slate-400" />
                         <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Exclusions & Clarifications</span>
                     </div>
-                    <div className="p-6 grid sm:grid-cols-2 gap-5">
+                    <div className="grid gap-5 p-4 sm:grid-cols-2 sm:p-6">
                         {(exclusionsPreFilled || clarificationsPreFilled) && (
                             <div className="col-span-full text-xs text-blue-400 bg-blue-500/10 border border-blue-500/30 px-3 py-1.5 rounded">
                                 Pre-filled from Contracts tab — edit as needed
@@ -1104,7 +1134,7 @@ export default function ClientEditor({
                                     type="button"
                                     onClick={handleSuggestExclusions}
                                     disabled={generatingExclusions}
-                                    className="flex items-center gap-1 h-6 px-2 rounded border border-purple-700 bg-purple-900/30 text-purple-300 hover:bg-purple-800/40 text-[10px] font-bold transition-colors disabled:opacity-60"
+                                    className="flex min-h-11 items-center gap-1 rounded border border-purple-700 bg-purple-900/30 px-3 text-[10px] font-bold text-purple-300 transition-colors hover:bg-purple-800/40 disabled:opacity-60"
                                 >
                                     {generatingExclusions ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
                                     {generatingExclusions ? "Generating..." : "Suggest with AI"}
@@ -1130,7 +1160,7 @@ export default function ClientEditor({
                                     type="button"
                                     onClick={handleSuggestClarifications}
                                     disabled={generatingClarifications}
-                                    className="flex items-center gap-1 h-6 px-2 rounded border border-purple-700 bg-purple-900/30 text-purple-300 hover:bg-purple-800/40 text-[10px] font-bold transition-colors disabled:opacity-60"
+                                    className="flex min-h-11 items-center gap-1 rounded border border-purple-700 bg-purple-900/30 px-3 text-[10px] font-bold text-purple-300 transition-colors hover:bg-purple-800/40 disabled:opacity-60"
                                 >
                                     {generatingClarifications ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
                                     {generatingClarifications ? "Generating..." : "Suggest with AI"}
@@ -1154,18 +1184,18 @@ export default function ClientEditor({
 
                 {/* Programme summary — read only, managed in Programme tab */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
+                    <div className="flex flex-col gap-3 border-b border-slate-700 bg-slate-800/60 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                         <div className="flex items-center gap-2">
                             <CheckCircle className={`w-4 h-4 ${project?.programme_phases?.length > 0 ? 'text-green-500' : 'text-slate-600'}`} />
                             <CalendarDays className="w-4 h-4 text-slate-400" />
                             <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Programme</span>
                         </div>
                         <Link href={`/dashboard/projects/schedule?projectId=${projectId}`}
-                            className="text-xs text-blue-400 hover:text-blue-300">
+                            className="inline-flex min-h-11 items-center text-xs text-blue-400 hover:text-blue-300">
                             Edit in Programme tab &rarr;
                         </Link>
                     </div>
-                    <div className="px-6 py-4">
+                    <div className="px-4 py-4 sm:px-6">
                         {project?.programme_phases?.length > 0 ? (
                             <div className="text-sm text-slate-400">
                                 {project.programme_phases.length} phases &middot; {project.programme_phases.reduce((s: number, p: any) => s + (p.manualDays ?? p.calculatedDays ?? p.duration_days ?? 0), 0)} days total
@@ -1179,17 +1209,17 @@ export default function ClientEditor({
 
                 {/* SECTION 7: Payment Schedule */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 border-b border-slate-700 bg-slate-800/60 px-4 py-4 sm:px-6">
                         {checks.payment ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4 text-slate-600" />}
                         <CreditCard className="w-4 h-4 text-slate-400" />
                         <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Payment Schedule</span>
                         {contractValue > 0 && (
-                            <span className="ml-auto text-xs text-slate-500">
+                            <span className="w-full text-xs text-slate-500 sm:ml-auto sm:w-auto">
                                 Based on £{Number(contractValue).toLocaleString("en-GB")} contract value
                             </span>
                         )}
                     </div>
-                    <div className="p-6 space-y-3">
+                    <div className="space-y-3 p-4 sm:p-6">
                         {/* Active estimate context banner */}
                         {activeEstimate && (
                             <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm">
@@ -1200,7 +1230,7 @@ export default function ClientEditor({
                             </div>
                         )}
                         {/* Payment type toggle */}
-                        <div className="flex items-center gap-4 pb-3 border-b border-slate-800">
+                        <div className="flex flex-col gap-3 border-b border-slate-800 pb-3 sm:flex-row sm:items-center sm:gap-4">
                             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Payment Type:</span>
                             <button
                                 type="button"
@@ -1208,7 +1238,7 @@ export default function ClientEditor({
                                     setPaymentScheduleType("percentage");
                                     updatePaymentScheduleTypeAction(projectId, "percentage");
                                 }}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                                className={`flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-left text-xs font-semibold transition-colors ${
                                     paymentScheduleType === "percentage"
                                         ? "bg-blue-600 text-white"
                                         : "bg-slate-800 text-slate-400 border border-slate-700 hover:border-slate-500"
@@ -1223,7 +1253,7 @@ export default function ClientEditor({
                                     setPaymentScheduleType("milestone");
                                     updatePaymentScheduleTypeAction(projectId, "milestone");
                                 }}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                                className={`flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-left text-xs font-semibold transition-colors ${
                                     paymentScheduleType === "milestone"
                                         ? "bg-blue-600 text-white"
                                         : "bg-slate-800 text-slate-400 border border-slate-700 hover:border-slate-500"
@@ -1237,7 +1267,7 @@ export default function ClientEditor({
                         {paymentScheduleType === "percentage" ? (
                             <>
                                 {/* Column headers */}
-                                <div className="grid gap-3 text-xs font-bold uppercase tracking-wider text-slate-500 pb-1 border-b border-slate-800" style={{ gridTemplateColumns: "1fr 2fr 80px 100px 40px" }}>
+                                <div className="hidden gap-3 border-b border-slate-800 pb-1 text-xs font-bold uppercase tracking-wider text-slate-500 sm:grid sm:grid-cols-[1fr_2fr_80px_100px_44px]">
                                     <span>Stage</span>
                                     <span>Description</span>
                                     <span className="text-right">%</span>
@@ -1247,17 +1277,17 @@ export default function ClientEditor({
                                 {paymentSchedule.map((row) => {
                                     const amount = contractValue ? (contractValue * row.percentage) / 100 : null;
                                     return (
-                                        <div key={row.id} className="grid gap-3 items-center" style={{ gridTemplateColumns: "1fr 2fr 80px 100px 40px" }}>
+                                        <div key={row.id} className="grid grid-cols-[1fr_1fr_44px] items-center gap-3 rounded-xl border border-slate-700 bg-slate-800/40 p-3 sm:grid-cols-[1fr_2fr_80px_100px_44px] sm:border-0 sm:bg-transparent sm:p-0">
                                             <input
                                                 value={row.stage}
                                                 onChange={(e) => updatePaymentRow(row.id, "stage", e.target.value)}
-                                                className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                                className="col-span-3 min-h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600 sm:col-span-1"
                                                 placeholder="Stage name"
                                             />
                                             <input
                                                 value={row.description}
                                                 onChange={(e) => updatePaymentRow(row.id, "description", e.target.value)}
-                                                className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                                className="col-span-3 min-h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600 sm:col-span-1"
                                                 placeholder="When this stage is due..."
                                             />
                                             <div className="flex items-center gap-1">
@@ -1267,11 +1297,12 @@ export default function ClientEditor({
                                                     max={100}
                                                     value={row.percentage}
                                                     onChange={(e) => updatePaymentRow(row.id, "percentage", parseFloat(e.target.value) || 0)}
-                                                    className="h-9 w-full rounded-lg border border-slate-700 bg-slate-800 px-2 text-sm text-slate-100 text-right focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                                    aria-label={`${row.stage || "Payment stage"} percentage`}
+                                                    className="min-h-11 w-full rounded-lg border border-slate-700 bg-slate-800 px-2 text-right text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
                                                 />
                                                 <span className="text-xs text-slate-500">%</span>
                                             </div>
-                                            <div className="text-right text-sm font-semibold text-slate-300 tabular-nums">
+                                            <div className="text-right text-sm font-semibold tabular-nums text-slate-300">
                                                 {amount !== null
                                                     ? `£${amount.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
                                                     : <span className="text-slate-600">—</span>
@@ -1280,18 +1311,19 @@ export default function ClientEditor({
                                             <button
                                                 type="button"
                                                 onClick={() => removePaymentRow(row.id)}
-                                                className="h-9 w-9 rounded-lg bg-red-900/20 text-red-400 hover:bg-red-900/40 flex items-center justify-center transition-colors text-lg font-bold"
+                                                aria-label={`Remove ${row.stage || "payment stage"}`}
+                                                className="flex h-11 w-11 items-center justify-center rounded-lg bg-red-900/20 text-lg font-bold text-red-400 transition-colors hover:bg-red-900/40"
                                             >
                                                 ×
                                             </button>
                                         </div>
                                     );
                                 })}
-                                <div className="flex items-center justify-between pt-2">
+                                <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
                                     <button
                                         type="button"
                                         onClick={addPaymentRow}
-                                        className="h-9 px-4 rounded-lg border border-dashed border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors text-sm font-semibold"
+                                        className="min-h-11 rounded-lg border border-dashed border-slate-700 px-4 text-sm font-semibold text-slate-400 transition-colors hover:border-slate-500 hover:text-slate-200"
                                     >
                                         + Add Stage
                                     </button>
@@ -1308,13 +1340,13 @@ export default function ClientEditor({
                                     <button
                                         type="button"
                                         onClick={populateFromEstimate}
-                                        className="mb-3 h-9 px-4 rounded-lg border border-blue-600 bg-blue-900/30 text-blue-300 hover:bg-blue-800/40 text-xs font-bold transition-colors flex items-center gap-2"
+                                        className="mb-3 flex min-h-11 items-center gap-2 rounded-lg border border-blue-600 bg-blue-900/30 px-4 text-xs font-bold text-blue-300 transition-colors hover:bg-blue-800/40"
                                     >
                                         <Plus className="w-3.5 h-3.5" />
                                         Populate from estimate sections
                                     </button>
                                 )}
-                                <div className="grid gap-3 text-xs font-bold uppercase tracking-wider text-slate-500 pb-1 border-b border-slate-800" style={{ gridTemplateColumns: "1fr 2fr 100px 40px" }}>
+                                <div className="hidden gap-3 border-b border-slate-800 pb-1 text-xs font-bold uppercase tracking-wider text-slate-500 sm:grid sm:grid-cols-[1fr_2fr_100px_44px]">
                                     <span>Stage</span>
                                     <span>Trigger</span>
                                     <span className="text-right">£ Amount</span>
@@ -1325,11 +1357,11 @@ export default function ClientEditor({
                                     const selectValue = isCustomTrigger ? 'Custom...' : (row.description || '');
                                     return (
                                         <div key={row.id} className="space-y-1">
-                                            <div className="grid gap-3 items-center" style={{ gridTemplateColumns: "1fr 2fr 100px 40px" }}>
+                                            <div className="grid grid-cols-[1fr_44px] items-center gap-3 rounded-xl border border-slate-700 bg-slate-800/40 p-3 sm:grid-cols-[1fr_2fr_100px_44px] sm:border-0 sm:bg-transparent sm:p-0">
                                                 <input
                                                     value={row.stage}
                                                     onChange={(e) => updatePaymentRow(row.id, "stage", e.target.value)}
-                                                    className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                                    className="col-span-2 min-h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600 sm:col-span-1"
                                                     placeholder="Stage name"
                                                 />
                                                 <select
@@ -1342,7 +1374,7 @@ export default function ClientEditor({
                                                             updatePaymentRow(row.id, "description", v);
                                                         }
                                                     }}
-                                                    className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                                    className="col-span-2 min-h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600 sm:col-span-1"
                                                 >
                                                     <option value="">Select trigger...</option>
                                                     {MILESTONE_TRIGGERS.map((t) => (
@@ -1357,13 +1389,15 @@ export default function ClientEditor({
                                                         step="0.01"
                                                         value={row.amount || 0}
                                                         onChange={(e) => updatePaymentRow(row.id, "amount" as keyof PaymentRow, parseFloat(e.target.value) || 0)}
-                                                        className="h-9 w-full rounded-lg border border-slate-700 bg-slate-800 px-2 text-sm text-slate-100 text-right focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                                        aria-label={`${row.stage || "Payment stage"} amount`}
+                                                        className="min-h-11 w-full rounded-lg border border-slate-700 bg-slate-800 px-2 text-right text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
                                                     />
                                                 </div>
                                                 <button
                                                     type="button"
                                                     onClick={() => removePaymentRow(row.id)}
-                                                    className="h-9 w-9 rounded-lg bg-red-900/20 text-red-400 hover:bg-red-900/40 flex items-center justify-center transition-colors text-lg font-bold"
+                                                    aria-label={`Remove ${row.stage || "payment stage"}`}
+                                                    className="flex h-11 w-11 items-center justify-center rounded-lg bg-red-900/20 text-lg font-bold text-red-400 transition-colors hover:bg-red-900/40"
                                                 >
                                                     ×
                                                 </button>
@@ -1373,7 +1407,7 @@ export default function ClientEditor({
                                                     <input
                                                         value={row.description}
                                                         onChange={(e) => updatePaymentRow(row.id, "description", e.target.value)}
-                                                        className="h-8 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                                        className="min-h-11 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
                                                         placeholder="Enter custom trigger description..."
                                                     />
                                                 </div>
@@ -1381,11 +1415,11 @@ export default function ClientEditor({
                                         </div>
                                     );
                                 })}
-                                <div className="flex items-center justify-between pt-2">
+                                <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
                                     <button
                                         type="button"
                                         onClick={addPaymentRow}
-                                        className="h-9 px-4 rounded-lg border border-dashed border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors text-sm font-semibold"
+                                        className="min-h-11 rounded-lg border border-dashed border-slate-700 px-4 text-sm font-semibold text-slate-400 transition-colors hover:border-slate-500 hover:text-slate-200"
                                     >
                                         + Add Stage
                                     </button>
@@ -1401,7 +1435,7 @@ export default function ClientEditor({
 
                 {/* T&C summary — read only, managed in Contracts tab */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
+                    <div className="flex flex-col gap-3 border-b border-slate-700 bg-slate-800/60 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                         <div className="flex items-center gap-2">
                             <CheckCircle className={`w-4 h-4 ${project?.tc_tier ? 'text-green-500' : 'text-slate-600'}`} />
                             <Scale className="w-4 h-4 text-slate-400" />
@@ -1409,12 +1443,12 @@ export default function ClientEditor({
                         </div>
                         {isCapabilityEnabled("extended-modules") && (
                             <Link href={`/dashboard/projects/contracts?projectId=${projectId}`}
-                                className="text-xs text-blue-400 hover:text-blue-300">
+                                className="inline-flex min-h-11 items-center text-xs text-blue-400 hover:text-blue-300">
                                 Edit in Contracts tab &rarr;
                             </Link>
                         )}
                     </div>
-                    <div className="px-6 py-4">
+                    <div className="px-4 py-4 sm:px-6">
                         <p className="text-sm text-slate-400">
                             {project?.tc_tier
                                 ? `${project.tc_tier.charAt(0).toUpperCase() + project.tc_tier.slice(1)} terms selected`
@@ -1428,8 +1462,8 @@ export default function ClientEditor({
 
                 {/* Closing Statement — last content page in the PDF, so sits last here too */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-3 border-b border-slate-700 bg-slate-800/60 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                        <div className="flex flex-wrap items-center gap-2">
                             <CheckCircle className={`w-4 h-4 ${closingStatement ? 'text-green-500' : 'text-slate-600'}`} />
                             <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Closing Statement</span>
                             <span className="text-xs text-slate-500">(appears before signatures in PDF)</span>
@@ -1438,13 +1472,13 @@ export default function ClientEditor({
                             type="button"
                             onClick={handleGenerateClosing}
                             disabled={isGeneratingClosing}
-                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50 sm:w-auto"
                         >
                             <Sparkles className="w-4 h-4" />
                             {isGeneratingClosing ? 'Generating...' : closingStatement ? 'Regenerate with AI' : 'Generate with AI'}
                         </button>
                     </div>
-                    <div className="px-6 py-4">
+                    <div className="px-4 py-4 sm:px-6">
                         {closingStatement ? (
                             <Textarea
                                 value={closingStatement}
@@ -1454,7 +1488,7 @@ export default function ClientEditor({
                                 placeholder="We look forward to working with you on this project and delivering exceptional results..."
                             />
                         ) : (
-                            <div className="h-20 flex items-center justify-center text-slate-500 text-sm border-2 border-dashed border-slate-700 rounded-lg">
+                            <div className="flex min-h-20 items-center justify-center rounded-lg border-2 border-dashed border-slate-700 p-4 text-center text-sm text-slate-500">
                                 Click &ldquo;Generate with AI&rdquo; to create a personalised closing statement
                             </div>
                         )}
@@ -1463,10 +1497,10 @@ export default function ClientEditor({
             </div>
 
             {/* ── STICKY SIDEBAR ── */}
-            <div className="lg:col-span-1">
-                <div className="sticky top-6 space-y-4">
+            <div id="proposal-actions" className="scroll-mt-24 lg:col-span-1">
+                <div className="space-y-4 lg:sticky lg:top-6">
                     {/* Status + Version Badge */}
-                    <div className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-xl px-4 py-3">
+                    <div className="hidden items-center justify-between rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 lg:flex">
                         <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status</span>
                             <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-400">
@@ -1483,7 +1517,7 @@ export default function ClientEditor({
                     </div>
 
                     {/* Completion Checklist */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                    <div className="hidden rounded-xl border border-slate-800 bg-slate-900 p-4 lg:block">
                         <div className="flex items-center justify-between mb-3">
                             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Completion</span>
                             <span className="text-xs text-slate-500">{completedCount}/{Object.keys(checks).length}</span>
@@ -1560,7 +1594,7 @@ export default function ClientEditor({
                     <button
                         type="button"
                         onClick={() => setShowVersionDialog(true)}
-                        className="w-full h-10 bg-amber-950/30 hover:bg-amber-950/50 border border-amber-700/40 text-amber-400 hover:text-amber-300 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 text-sm"
+                        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-amber-700/40 bg-amber-950/30 text-sm font-semibold text-amber-400 transition-all hover:bg-amber-950/50 hover:text-amber-300"
                     >
                         <History className="w-4 h-4" />
                         Save Version (v{localCurrentVersion + 1})
@@ -1568,8 +1602,8 @@ export default function ClientEditor({
 
                     {/* Version dialog */}
                     {showVersionDialog && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                            <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+                        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+                            <div className="w-full max-w-sm rounded-t-2xl border border-slate-700 bg-slate-900 p-5 shadow-2xl sm:rounded-2xl sm:p-6">
                                 <h3 className="text-base font-bold text-slate-100 mb-1">Save Version v{localCurrentVersion + 1}</h3>
                                 <p className="text-xs text-slate-400 mb-4">
                                     Creates a snapshot of the current proposal so you can restore it later.
@@ -1584,14 +1618,14 @@ export default function ClientEditor({
                                 <div className="flex gap-3">
                                     <button
                                         onClick={() => { setShowVersionDialog(false); setVersionNotes(""); }}
-                                        className="flex-1 h-10 rounded-xl border border-slate-700 text-slate-400 hover:text-slate-200 text-sm font-medium transition-colors"
+                                        className="min-h-11 flex-1 rounded-xl border border-slate-700 text-sm font-medium text-slate-400 transition-colors hover:text-slate-200"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={handleSaveVersion}
                                         disabled={savingVersion}
-                                        className="flex-1 h-10 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-black font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                                        className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-amber-500 text-sm font-bold text-black transition-colors hover:bg-amber-400 disabled:opacity-60"
                                     >
                                         {savingVersion ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : "Save Version"}
                                     </button>
@@ -1644,9 +1678,9 @@ export default function ClientEditor({
 
                     {/* Profile warning */}
                     {profileIncomplete && (
-                        <div className="p-3 bg-amber-950/40 border border-amber-700/50 rounded-lg text-xs text-amber-300 flex items-center justify-between">
+                        <div className="flex flex-col gap-3 rounded-lg border border-amber-700/50 bg-amber-950/40 p-3 text-xs text-amber-300 sm:flex-row sm:items-center sm:justify-between">
                             <span>Your company profile looks incomplete — this may affect the quality of your proposal.</span>
-                            <Link href="/dashboard/settings/profile" className="underline font-medium ml-2 whitespace-nowrap">Update profile</Link>
+                            <Link href="/dashboard/settings/profile" className="inline-flex min-h-11 items-center font-medium underline sm:ml-2">Update profile</Link>
                         </div>
                     )}
 
@@ -1692,7 +1726,7 @@ export default function ClientEditor({
                                 max={365}
                                 value={validityDays}
                                 onChange={(e) => setValidityDays(parseInt(e.target.value) || 30)}
-                                className="w-20 h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 text-center focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                className="h-11 w-20 rounded-lg border border-slate-700 bg-slate-800 px-3 text-center text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
                             />
                             <span className="text-sm text-slate-400">days</span>
                         </div>

@@ -69,11 +69,11 @@ export default async function ProposalPage(props: { searchParams: Promise<{ proj
         .order("version_number", { ascending: false });
 
     return (
-        <div className="max-w-7xl mx-auto px-6 py-8 min-h-screen">
-            <div className="flex flex-col gap-4 mb-6">
-                <div className="flex justify-between items-center">
+        <div className="mx-auto min-h-screen max-w-7xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+            <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-100">Proposal Editor</h1>
+                        <h1 className="text-2xl font-bold text-slate-100 sm:text-3xl">Proposal Editor</h1>
                         <p className="text-slate-500 text-sm mt-0.5">
                             Drafting for: <span className="font-semibold text-slate-300">{project?.name}</span>
                         </p>

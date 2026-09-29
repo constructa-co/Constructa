@@ -2,22 +2,15 @@
 
 import { useRef, useState, useCallback } from "react";
 import { Upload, FileSpreadsheet, FileText, Loader2, AlertTriangle, X, CheckCircle, ChevronDown, ChevronRight, ClipboardList } from "lucide-react";
+import { loadClientPdfJs } from "@/lib/pdfjs-client";
 import { parseBoQFromPdfAction, parseBoQFromExcelDataAction, createBoQEstimateAction, type ParsedClientBoQ } from "./boq-import-action";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const MAX_SIZE_BYTES = 25 * 1024 * 1024; // 25MB
 
-// ─── Load pdfjs dynamically (same pattern as drawings) ───────────────────────
-
-async function loadPdfJs() {
-    const pdfjs = await import("pdfjs-dist");
-    pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-    return pdfjs;
-}
-
 async function renderPdfToBase64Pages(file: File): Promise<string[]> {
-    const pdfjs = await loadPdfJs();
+    const pdfjs = await loadClientPdfJs();
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
     const pagesToRender = Math.min(pdf.numPages, 10);

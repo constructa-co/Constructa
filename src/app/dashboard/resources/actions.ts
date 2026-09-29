@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAuth, getActiveOrganizationId } from "@/lib/supabase/auth-utils";
+import { requireAuth, getActiveOrganizationId } from "@/lib/supabase/extended-module-auth-utils";
 import { revalidatePath } from "next/cache";
 
 export async function addResourceAction(formData: FormData) {

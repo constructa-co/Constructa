@@ -5,6 +5,7 @@ import { generateJSON } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
 import OpenAI from "openai";
 import { CreateBoQEstimateSchema, parseInput } from "@/lib/validation/schemas";
+import { requireLaunchCapability } from "@/lib/launch-profile";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ export async function parseBoQFromPdfAction(
     base64Pages: string[],
     filename: string
 ): Promise<{ success: boolean; boq?: ParsedClientBoQ; error?: string }> {
+    requireLaunchCapability("client-boq-import");
     const apiKey = process.env.OPENAI_API_KEY?.trim();
     if (!apiKey) return { success: false, error: "AI not configured" };
 
@@ -114,6 +116,7 @@ export async function parseBoQFromExcelDataAction(
     rows: string[][],   // first 200 rows as string arrays from SheetJS
     filename: string
 ): Promise<{ success: boolean; boq?: ParsedClientBoQ; error?: string }> {
+    requireLaunchCapability("client-boq-import");
     try {
         // Convert rows to a readable text table for GPT
         const tableText = rows
@@ -152,6 +155,7 @@ export async function createBoQEstimateAction(
     projectId: string,
     boq: ParsedClientBoQ
 ): Promise<{ success: boolean; estimateId?: string; error?: string }> {
+    requireLaunchCapability("client-boq-import");
     try {
         parseInput(CreateBoQEstimateSchema, { projectId, boq }, "client BoQ import");
     } catch (err) {

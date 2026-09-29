@@ -7,7 +7,7 @@
 // row-level mutation is anchored by both .eq("id", rowId) AND
 // .eq("project_id", projectId) so a spoofed projectId cannot reach a row
 // that belongs to a different project.
-import { requireProjectAccess } from "@/lib/supabase/auth-utils";
+import { requireProjectAccess } from "@/lib/supabase/extended-module-auth-utils";
 import { revalidatePath } from "next/cache";
 
 function revalidateComms(projectId: string) {

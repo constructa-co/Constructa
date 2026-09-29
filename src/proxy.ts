@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { getLaunchProfile, getLaunchRedirectPath, isDashboardPathAllowed } from '@/lib/launch-profile'
 
 export async function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
@@ -71,6 +72,14 @@ export async function proxy(request: NextRequest) {
     // Protect /dashboard routes
     if (pathname.startsWith('/dashboard') && !user) {
       return NextResponse.redirect(new URL('/login', request.url))
+    }
+
+    // Cohort launches expose only the work-winning journey. This server-side
+    // gate prevents copied URLs from bypassing the same profile used by nav.
+    if (user && pathname.startsWith('/dashboard') && !isDashboardPathAllowed(pathname, getLaunchProfile())) {
+      const redirectUrl = new URL(getLaunchRedirectPath(), request.url)
+      redirectUrl.searchParams.set('notice', 'module-unavailable')
+      return NextResponse.redirect(redirectUrl)
     }
 
     // Protect /admin routes — must be authenticated (email check happens in layout)

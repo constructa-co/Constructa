@@ -3,6 +3,7 @@
 import OpenAI from "openai";
 import { requireAuth } from "@/lib/supabase/auth-utils";
 import { generateJSON } from "@/lib/ai";
+import { requireLaunchCapability } from "@/lib/launch-profile";
 
 interface ExtractedRawItem {
     item_name: string;
@@ -28,6 +29,7 @@ export async function analyzeDrawingAction(
     base64Image: string,
     orgId?: string
 ): Promise<VisionResultItem[]> {
+    requireLaunchCapability("drawing-takeoff");
     const apiKey = process.env.OPENAI_API_KEY?.trim();
     if (!apiKey) throw new Error("OPENAI_API_KEY is missing from environment.");
 

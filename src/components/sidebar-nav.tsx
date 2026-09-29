@@ -47,6 +47,7 @@ import {
     Zap,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
+import { isCapabilityEnabled } from "@/lib/launch-profile";
 
 interface Project {
     id: string;
@@ -142,6 +143,8 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
     const router = useRouter();
     const { theme, setTheme } = useTheme();
     const isDark = theme === "dark";
+    const showHome = isCapabilityEnabled("home");
+    const showExtendedModules = isCapabilityEnabled("extended-modules");
 
     // Project selector state
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -307,13 +310,13 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
             {/* Scrollable nav */}
             <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-0.5">
 
-                {/* Overview — always visible */}
+                {/* Overview — full profile only; Pipeline remains in Work Winning. */}
                 {/* On-site Hub (Smartphone icon) gated for beta on 19 Apr 2026 —
-                    route now redirects to /dashboard/home. Restore this entry
+                    route now redirects to /dashboard. Restore this entry
                     once the mobile data sources are rewired. */}
-                <div className="pb-2">
+                {showHome && <div className="pb-2">
                     <NavItem href="/dashboard/home" icon={LayoutDashboard} label="Overview" active={is("/dashboard/home")} />
-                </div>
+                </div>}
 
                 {/* ── Active Project Selector — always visible, at top ─── */}
                 <div className="pb-3">
@@ -388,11 +391,11 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                     <SidebarSection label="Company Profile" sectionKey="company-profile" collapsed={collapsed["company-profile"] ?? true} onToggle={toggleSection}>
                         <NavItem href="/dashboard/settings/profile" icon={Building2} label="Profile" active={is("/dashboard/settings/profile")} />
                         <NavItem href="/dashboard/settings/case-studies" icon={Images} label="Case Studies" active={is("/dashboard/settings/case-studies")} />
-                        <NavItem href="/dashboard/settings/integrations" icon={RefreshCw} label="Integrations" active={is("/dashboard/settings/integrations")} />
-                        <NavItem href="/dashboard/settings/api-keys" icon={Key} label="API Keys" active={is("/dashboard/settings/api-keys")} />
-                        <NavItem href="/dashboard/resources/staff" icon={Users} label="Labour Rates" active={is("/dashboard/resources/staff")} />
-                        <NavItem href="/dashboard/resources/plant" icon={Truck} label="Plant Rates" active={is("/dashboard/resources/plant")} />
-                        <NavItem href="/dashboard/library" icon={BookOpen} label="Cost Library" active={is("/dashboard/library")} />
+                        {showExtendedModules && <NavItem href="/dashboard/settings/integrations" icon={RefreshCw} label="Integrations" active={is("/dashboard/settings/integrations")} />}
+                        {showExtendedModules && <NavItem href="/dashboard/settings/api-keys" icon={Key} label="API Keys" active={is("/dashboard/settings/api-keys")} />}
+                        {showExtendedModules && <NavItem href="/dashboard/resources/staff" icon={Users} label="Labour Rates" active={is("/dashboard/resources/staff")} />}
+                        {showExtendedModules && <NavItem href="/dashboard/resources/plant" icon={Truck} label="Plant Rates" active={is("/dashboard/resources/plant")} />}
+                        {showExtendedModules && <NavItem href="/dashboard/library" icon={BookOpen} label="Cost Library" active={is("/dashboard/library")} />}
                         <NavItem href="/onboarding?force=true" icon={Wand2} label="Setup Wizard" active={false} />
                     </SidebarSection>
 
@@ -408,10 +411,11 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                         <NavItem href={pLink("/dashboard/projects/brief")} icon={ClipboardList} label="Briefs" active={is("/dashboard/projects/brief")} />
                         <NavItem href={pLink("/dashboard/projects/costs")} icon={Calculator} label="Estimates" active={is("/dashboard/projects/costs")} />
                         <NavItem href={pLink("/dashboard/projects/schedule")} icon={CalendarDays} label="Programmes" active={is("/dashboard/projects/schedule")} />
-                        <NavItem href={pLink("/dashboard/projects/contracts")} icon={Scale} label="Contracts" active={is("/dashboard/projects/contracts")} />
+                        {showExtendedModules && <NavItem href={pLink("/dashboard/projects/contracts")} icon={Scale} label="Contracts" active={is("/dashboard/projects/contracts")} />}
                         <NavItem href={pLink("/dashboard/projects/proposal")} icon={FileText} label="Proposals" active={is("/dashboard/projects/proposal")} />
                     </SidebarSection>
 
+                    {showExtendedModules && <>
                     {/* Live Projects */}
                     <SidebarSection label="Live Projects" sectionKey="live-projects" collapsed={collapsed["live-projects"] ?? true} onToggle={toggleSection}>
                         <NavItem href={pLink("/dashboard/projects/overview")} icon={Activity} label="Project Overview" active={is("/dashboard/projects/overview")} />
@@ -446,11 +450,12 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                         <NavItem href="/dashboard/management-accounts" icon={BarChart2} label="Management Accounts" active={is("/dashboard/management-accounts")} />
                         <NavItem href="/dashboard/cis" icon={HardHat} label="CIS Compliance" active={is("/dashboard/cis")} />
                         {/* Business Intelligence (Lightbulb icon) gated for beta on
-                            19 Apr 2026 — the route now redirects to /dashboard/home.
+                            19 Apr 2026 — the route now redirects to /dashboard.
                             Restore once the backing tables (project_pl_snapshots,
                             project_schedules) exist. */}
                         <NavItem href="/dashboard/materials" icon={Package} label="Material Rates" active={is("/dashboard/materials")} />
                     </div>
+                    </>}
 
                 </div>
             </div>

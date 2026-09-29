@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Send, Loader2, Sparkles, ArrowRight, Save, MapPin, ClipboardList, Building2, User, Calendar, PoundSterling, AlignLeft, Layers, ScanLine } from "lucide-react";
 import { processBriefChatAction, saveBriefAction, suggestEstimateLineItemsAction, type VideoAnalysisResult } from "./actions";
 import VideoWalkthrough from "./video-walkthrough";
+import { isCapabilityEnabled } from "@/lib/launch-profile";
 
 const ALL_TRADES = [
     'Site Setup & Preliminaries', 'Demolition & Strip Out', 'Asbestos Removal',
@@ -79,6 +80,7 @@ function SectionCard({ icon: Icon, title, children }: { icon: React.ElementType;
 
 export default function BriefClient({ project, activeEstimateId, projectId }: Props) {
     const [isPending, startTransition] = useTransition();
+    const showVideoWalkthrough = isCapabilityEnabled("video-walkthrough");
 
     // Brief form state
     const [scope, setScope] = useState(project.brief_scope);
@@ -238,7 +240,7 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
             </div>
 
             {/* Video Site Survey — Sprint 26 */}
-            <VideoWalkthrough onApply={handleVideoApply} />
+            {showVideoWalkthrough && <VideoWalkthrough onApply={handleVideoApply} />}
 
             {/* Two-column layout */}
             <div className="grid lg:grid-cols-5 gap-6">

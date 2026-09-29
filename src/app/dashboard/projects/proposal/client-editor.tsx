@@ -10,6 +10,7 @@ import { saveProposalAction, generateAiScopeAction, sendProposalAction, getPropo
 // or P&L dashboard. All 35 Vitest tests in src/lib/financial.test.ts
 // pin the math and any regression here fails CI.
 import { computeContractSum } from "@/lib/financial";
+import { isCapabilityEnabled } from "@/lib/launch-profile";
 import VersionHistoryPanel from "./version-history-panel";
 import ProposalPdfButton from "./proposal-pdf-button";
 import AiWizard from "./ai-wizard";
@@ -794,13 +795,13 @@ export default function ClientEditor({
                     <div className="flex items-center justify-between bg-blue-900/20 border border-blue-800/40 rounded-xl px-4 py-3">
                         <div className="flex items-center gap-2">
                             <Info className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                            <span className="text-sm text-blue-300 font-medium">Data available from Brief & Contracts tabs</span>
+                            <span className="text-sm text-blue-300 font-medium">Project data is available to sync into this proposal</span>
                         </div>
                         <button
                             onClick={handleSyncFromBriefContracts}
                             className="text-xs font-bold text-blue-400 hover:text-blue-300 bg-blue-900/40 px-3 py-1.5 rounded-lg border border-blue-700/40 transition-colors"
                         >
-                            Sync from Brief & Contracts
+                            Sync project data
                         </button>
                     </div>
                 )}
@@ -812,10 +813,14 @@ export default function ClientEditor({
                         <span className="text-slate-300">
                             <span className="font-medium">T&C Tier:</span> {project.tc_tier.charAt(0).toUpperCase() + project.tc_tier.slice(1)}
                         </span>
-                        <span className="text-slate-500">—</span>
-                        <Link href={`/dashboard/projects/contracts?projectId=${projectId}`} className="text-blue-400 hover:text-blue-300 text-xs">
-                            Edit in Contracts tab
-                        </Link>
+                        {isCapabilityEnabled("extended-modules") && (
+                            <>
+                                <span className="text-slate-500">—</span>
+                                <Link href={`/dashboard/projects/contracts?projectId=${projectId}`} className="text-blue-400 hover:text-blue-300 text-xs">
+                                    Edit in Contracts tab
+                                </Link>
+                            </>
+                        )}
                     </div>
                 )}
 
@@ -1402,17 +1407,19 @@ export default function ClientEditor({
                             <Scale className="w-4 h-4 text-slate-400" />
                             <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Terms & Conditions</span>
                         </div>
-                        <Link href={`/dashboard/projects/contracts?projectId=${projectId}`}
-                            className="text-xs text-blue-400 hover:text-blue-300">
-                            Edit in Contracts tab &rarr;
-                        </Link>
+                        {isCapabilityEnabled("extended-modules") && (
+                            <Link href={`/dashboard/projects/contracts?projectId=${projectId}`}
+                                className="text-xs text-blue-400 hover:text-blue-300">
+                                Edit in Contracts tab &rarr;
+                            </Link>
+                        )}
                     </div>
                     <div className="px-6 py-4">
                         <p className="text-sm text-slate-400">
                             {project?.tc_tier
                                 ? `${project.tc_tier.charAt(0).toUpperCase() + project.tc_tier.slice(1)} terms selected`
                                 : 'No T&C tier selected yet.'}
-                            {!project?.tc_tier && (
+                            {!project?.tc_tier && isCapabilityEnabled("extended-modules") && (
                                 <Link href={`/dashboard/projects/contracts?projectId=${projectId}`} className="text-blue-400 hover:text-blue-300 ml-1">Select T&Cs &rarr;</Link>
                             )}
                         </p>

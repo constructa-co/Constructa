@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createHash } from "crypto";
+import { isCapabilityEnabled } from "@/lib/launch-profile";
 
 // ── Rate limiting ─────────────────────────────────────────────────────────────
 
@@ -31,6 +32,10 @@ function extractBearerToken(req: NextRequest): string | null {
 // Auth: Authorization: Bearer ck_live_xxxxx
 
 export async function GET(request: NextRequest) {
+  if (!isCapabilityEnabled("benchmark-api")) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const supabase = createAdminClient();
 
   // ── 1. Authenticate ────────────────────────────────────────────────────────

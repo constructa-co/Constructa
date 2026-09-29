@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getLaunchLandingPath } from "@/lib/launch-profile";
 
 /**
  * Business Intelligence module — GATED FOR BETA (19 April 2026).
@@ -18,5 +19,5 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 export default async function IntelligencePage() {
-    redirect("/dashboard/home");
+    redirect(getLaunchLandingPath());
 }

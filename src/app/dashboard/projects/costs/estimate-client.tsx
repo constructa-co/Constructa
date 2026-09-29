@@ -22,6 +22,7 @@ import BuildUpPanel from "./build-up-panel";
 import VisionTakeoff from "@/app/dashboard/foundations/vision-takeoff";
 import BoQImport from "./boq-import";
 import { exportBoQToExcel } from "./boq-excel-export";
+import { isCapabilityEnabled } from "@/lib/launch-profile";
 import type { EstimateLineComponent, EstimateLine, Estimate, CostLibraryItem, LabourRate, RateBuildup } from "./types";
 
 interface Props {
@@ -72,6 +73,8 @@ function formatGBP(n: number): string {
 
 export default function EstimateClient({ estimates: initialEstimates, costLibrary, projectId, orgId, rateBuildups, labourRates, preferredTrades, defaultTabId }: Props) {
     const router = useRouter();
+    const showClientBoQImport = isCapabilityEnabled("client-boq-import");
+    const showDrawingTakeoff = isCapabilityEnabled("drawing-takeoff");
     const [estimates, setEstimates] = useState<Estimate[]>(() => initialEstimates);
 
     // Project-scoped sessionStorage key so tab selection survives navigation within the same project
@@ -566,13 +569,15 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                 >
                     <Plus className="w-4 h-4" /> New Estimate
                 </button>
-                <button
-                    type="button"
-                    onClick={() => setShowBoQImport(true)}
-                    className="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-700 hover:bg-emerald-600 text-white transition-colors flex items-center gap-1.5"
-                >
-                    <ClipboardList className="w-4 h-4" /> Import Client BoQ
-                </button>
+                {showClientBoQImport && (
+                    <button
+                        type="button"
+                        onClick={() => setShowBoQImport(true)}
+                        className="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-700 hover:bg-emerald-600 text-white transition-colors flex items-center gap-1.5"
+                    >
+                        <ClipboardList className="w-4 h-4" /> Import Client BoQ
+                    </button>
+                )}
 
                 {/* Save indicator */}
                 <div className="ml-auto text-xs text-slate-500 flex items-center gap-1.5">
@@ -629,14 +634,16 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                         Set as Active
                                     </button>
                                 )}
-                                <button
-                                    type="button"
-                                    onClick={() => exportBoQToExcel(currentEstimate)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
-                                >
-                                    <FileDown className="w-4 h-4" />
-                                    Export to Excel
-                                </button>
+                                {showClientBoQImport && (
+                                    <button
+                                        type="button"
+                                        onClick={() => exportBoQToExcel(currentEstimate)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
+                                    >
+                                        <FileDown className="w-4 h-4" />
+                                        Export to Excel
+                                    </button>
+                                )}
                             </div>
                         </div>
                     )}
@@ -775,7 +782,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     </div>
 
                     {/* Vision Takeoff prompt — shown when estimate is empty */}
-                    {displayLines.length === 0 && (
+                    {showDrawingTakeoff && displayLines.length === 0 && (
                         <div className="mb-4 p-4 border-2 border-dashed border-purple-500/30 rounded-xl bg-purple-500/5 flex items-center justify-between">
                             <div>
                                 <p className="font-medium text-slate-200">Got a drawing?</p>
@@ -957,7 +964,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
         </div>
 
         {/* BoQ Import Modal */}
-        {showBoQImport && (
+        {showClientBoQImport && showBoQImport && (
             <BoQImport
                 projectId={projectId}
                 onImported={handleBoQImported}

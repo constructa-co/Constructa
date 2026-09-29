@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import { reportError } from "@/lib/observability";
+import { getLaunchLandingPath } from "@/lib/launch-profile";
 
 /**
  * Dashboard route-group error boundary.
@@ -66,7 +67,7 @@ export default function DashboardError({
                         Try again
                     </button>
                     <Link
-                        href="/dashboard/home"
+                        href={getLaunchLandingPath()}
                         className="flex-1 inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold transition-colors"
                     >
                         <Home className="w-4 h-4" />

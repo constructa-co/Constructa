@@ -48,7 +48,21 @@ GitHub issue `#34`: three encode an inclusive convention that conflicts with
 the implemented exclusive-end convention, and one has inconsistent date
 arithmetic. The other delay-analysis tests remain active.
 
-The delay/claims UI and server action are currently reachable. Release 1
-excludes them, so issue `#17` must gate both surfaces before cohort access. They
-must not be re-enabled until `#34` defines the convention and replaces every
-skipped assertion.
+The delay/claims UI, Contract Admin actions and alert cron are disabled in the
+default cohort launch profile. They must not be re-enabled until `#34` defines
+the date convention and replaces every skipped assertion.
+
+## Launch Profiles
+
+`NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE` controls the retained product surface:
+
+- `cohort` is the default and fails closed. It exposes the pipeline, company
+  setup, project setup, brief, estimating, programme and proposal journey.
+- `full` is for internal testing only. It restores the command-centre landing
+  page and retained delivery, finance, reporting and integration modules.
+
+The route proxy, navigation, embedded advanced controls, APIs, cron jobs and
+Server Actions all enforce the same profile. Deferred action modules authenticate
+through `src/lib/supabase/extended-module-auth-utils.ts`; do not replace that
+adapter with the base auth helper unless the module is deliberately promoted
+into the cohort journey.

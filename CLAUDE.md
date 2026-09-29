@@ -80,6 +80,12 @@ src/lib/
 
 ## Sidebar Navigation Structure
 
+The structure below describes the retained `full` profile. The default
+`cohort` profile lands on `/dashboard` and exposes only company setup plus the
+project → brief → estimating → programme → proposal journey. See
+`DEVELOPMENT.md` and `src/lib/launch-profile.ts` before changing navigation or
+Server Actions.
+
 ```
 COMPANY PROFILE
   Profile         /dashboard/settings/profile

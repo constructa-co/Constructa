@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireAuth } from "@/lib/supabase/auth-utils";
+import { requireAuth } from "@/lib/supabase/extended-module-auth-utils";
 import { revalidatePath } from "next/cache";
 
 const XERO_TOKEN_URL     = "https://identity.xero.com/connect/token";

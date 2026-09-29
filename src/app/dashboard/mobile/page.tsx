@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getLaunchLandingPath } from "@/lib/launch-profile";
 
 /**
  * On-site mobile hub — GATED FOR BETA (19 April 2026).
@@ -21,5 +22,5 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 export default async function MobileHubPage() {
-    redirect("/dashboard/home");
+    redirect(getLaunchLandingPath());
 }

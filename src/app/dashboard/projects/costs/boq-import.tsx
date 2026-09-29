@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
-import { Upload, FileSpreadsheet, FileText, Loader2, AlertTriangle, X, CheckCircle, ChevronDown, ChevronRight, ClipboardList } from "lucide-react";
+import { useRef, useState } from "react";
+import { FileSpreadsheet, FileText, Loader2, AlertTriangle, X, CheckCircle, ChevronDown, ChevronRight, ClipboardList } from "lucide-react";
 import { parseBoQFromPdfAction, parseBoQFromExcelDataAction, createBoQEstimateAction, type ParsedClientBoQ } from "./boq-import-action";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -108,8 +108,8 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
             // Expand first 3 sections by default
             setExpandedSections(new Set(result.boq.sections.slice(0, 3)));
             setState("preview");
-        } catch (err: any) {
-            setError(err.message || "An unexpected error occurred.");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "An unexpected error occurred.");
             setState("error");
         }
     }
@@ -126,8 +126,8 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
             }
             setState("done");
             onImported(result.estimateId, boq.filename);
-        } catch (err: any) {
-            setError(err.message || "Import failed.");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Import failed.");
             setState("error");
         }
     }
@@ -137,11 +137,11 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
         processFile(files[0]);
     }
 
-    const handleDrop = useCallback((e: React.DragEvent) => {
+    const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(false);
         handleFileSelect(e.dataTransfer.files);
-    }, []);
+    };
 
     // Group lines by section for preview
     const groupedLines = boq?.lines.reduce<Record<string, typeof boq.lines>>((acc, line) => {
@@ -155,25 +155,25 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
     const linesBlank = boq?.lines.filter((l) => l.quantity == null && l.description?.trim()).length ?? 0;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center sm:p-4">
+            <div className="flex max-h-[95dvh] w-full max-w-3xl flex-col rounded-t-2xl border border-slate-700 bg-slate-900 shadow-2xl sm:max-h-[90vh] sm:rounded-2xl">
 
                 {/* Header */}
-                <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-700 flex-shrink-0">
+                <div className="flex flex-shrink-0 items-start gap-3 border-b border-slate-700 px-4 py-4 sm:items-center sm:px-6">
                     <div className="h-9 w-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                         <ClipboardList className="w-4 h-4 text-emerald-400" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                         <h2 className="text-white font-semibold text-sm">Import Client BoQ</h2>
                         <p className="text-slate-500 text-xs">Upload a client Bill of Quantities — preserves their sections and references</p>
                     </div>
-                    <button onClick={onClose} className="ml-auto text-slate-500 hover:text-slate-300 transition-colors">
+                    <button onClick={onClose} aria-label="Close BoQ import" className="ml-auto flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-300">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
 
                     {/* Upload zone */}
                     {(state === "idle" || state === "error") && (
@@ -183,7 +183,7 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
                                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                                 onDragLeave={() => setIsDragging(false)}
                                 onClick={() => fileInputRef.current?.click()}
-                                className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all ${
+                                className={`cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-all sm:p-10 ${
                                     isDragging
                                         ? "border-emerald-500 bg-emerald-500/10"
                                         : "border-slate-600 hover:border-slate-500 bg-slate-800/40"
@@ -227,7 +227,7 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
                     {state === "preview" && boq && (
                         <>
                             {/* Summary strip */}
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3">
                                 <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-center">
                                     <p className="text-2xl font-bold text-white">{boq.lines.filter(l => l.description?.trim()).length}</p>
                                     <p className="text-slate-500 text-xs mt-0.5">Line items</p>
@@ -257,10 +257,11 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
                                             <button
                                                 onClick={() => setExpandedSections(prev => {
                                                     const next = new Set(prev);
-                                                    next.has(section) ? next.delete(section) : next.add(section);
+                                                    if (next.has(section)) next.delete(section);
+                                                    else next.add(section);
                                                     return next;
                                                 })}
-                                                className="w-full flex items-center gap-2 px-4 py-2 bg-slate-800/60 hover:bg-slate-700/40 transition-colors text-left"
+                                                className="flex min-h-11 w-full items-center gap-2 bg-slate-800/60 px-4 py-2 text-left transition-colors hover:bg-slate-700/40"
                                             >
                                                 {expandedSections.has(section)
                                                     ? <ChevronDown className="w-3 h-3 text-slate-500" />
@@ -314,18 +315,18 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
 
                 {/* Footer */}
                 {(state === "preview" || state === "done") && (
-                    <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-slate-700 flex-shrink-0">
+                    <div className="flex flex-shrink-0 flex-col-reverse gap-3 border-t border-slate-700 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                         {state === "preview" ? (
                             <>
                                 <button
                                     onClick={() => { setState("idle"); setBoq(null); setError(null); }}
-                                    className="text-sm text-slate-500 hover:text-slate-400 transition-colors"
+                                    className="min-h-11 rounded-lg px-4 text-sm text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-400"
                                 >
                                     Upload different file
                                 </button>
                                 <button
                                     onClick={handleImport}
-                                    className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
+                                    className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
                                 >
                                     <ClipboardList className="w-4 h-4" />
                                     Import {boq?.lines.filter(l => l.description?.trim()).length} items
@@ -334,7 +335,7 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
                         ) : (
                             <button
                                 onClick={onClose}
-                                className="ml-auto px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-colors"
+                                className="min-h-11 rounded-lg bg-slate-700 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-600 sm:ml-auto"
                             >
                                 Go to Estimate
                             </button>

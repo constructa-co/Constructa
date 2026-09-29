@@ -102,11 +102,12 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
         if (typeof window !== "undefined") sessionStorage.setItem(TAB_KEY, id);
     };
 
-    const [_isPending, startTransition] = useTransition();
+    const [, startTransition] = useTransition();
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [openBuildUpPanels, setOpenBuildUpPanels] = useState<Set<string>>(new Set());
     const [showBoQImport, setShowBoQImport] = useState(false);
+    const [mobileSection, setMobileSection] = useState("");
 
     const currentEstimate = estimates.find((e) => e.id === activeTab);
 
@@ -263,7 +264,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
     };
 
     // ─── BoQ Import handler ──────────────────────────────
-    const handleBoQImported = (estimateId: string, _filename: string) => {
+    const handleBoQImported = (estimateId: string) => {
         // Store the new estimate ID in a ref — the modal hasn't closed yet so we can't navigate yet
         importedEstimateIdRef.current = estimateId;
     };
@@ -407,7 +408,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
             });
     };
 
-    const handleLibrarySelect = (lineId: string, itemId: string, section: string) => {
+    const handleLibrarySelect = (lineId: string, itemId: string) => {
         const item = costLibrary.find((c) => c.id === itemId);
         if (!item) return;
         handleUpdateLine(lineId, {
@@ -526,19 +527,19 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
         <>
         <div className="space-y-6">
             {/* HEADER WITH CTA */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <h1 className="text-2xl font-bold text-white">Estimating</h1>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     {contractSum > 0 && (
                         <span className="text-sm text-slate-400">Contract Sum: <strong className="text-slate-200">{formatGBP(contractSum)}</strong></span>
                     )}
                     <Link href={`/dashboard/projects/schedule?projectId=${projectId}`}
-                        className="bg-slate-800 border border-slate-700 text-slate-300 px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-2">
+                        className="hidden min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:bg-slate-700 hover:text-white sm:flex">
                         <CalendarDays className="w-4 h-4" />
                         View Programme
                     </Link>
                     <Link href={`/dashboard/projects/schedule?projectId=${projectId}`}
-                        className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-blue-500 transition-colors flex items-center gap-2">
+                        className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500">
                         <CalendarDays className="w-4 h-4" />
                         Next: Programme →
                     </Link>
@@ -546,13 +547,13 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
             </div>
 
             {/* TABS */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="-mx-4 flex snap-x snap-mandatory items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
                 {estimates.map((est) => (
                     <button
                         type="button"
                         key={est.id}
                         onClick={() => setActiveTab(est.id)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                        className={`flex min-h-11 flex-none snap-start items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
                             activeTab === est.id
                                 ? "bg-slate-700 text-white border border-slate-600"
                                 : "bg-slate-800/50 text-slate-400 border border-slate-700 hover:bg-slate-700/50 hover:text-slate-200"
@@ -565,7 +566,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                 <button
                     type="button"
                     onClick={handleCreateEstimate}
-                    className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-500 transition-colors flex items-center gap-1.5"
+                    className="flex min-h-11 flex-none snap-start items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500"
                 >
                     <Plus className="w-4 h-4" /> New Estimate
                 </button>
@@ -573,14 +574,14 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     <button
                         type="button"
                         onClick={() => setShowBoQImport(true)}
-                        className="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-700 hover:bg-emerald-600 text-white transition-colors flex items-center gap-1.5"
+                        className="flex min-h-11 flex-none snap-start items-center gap-1.5 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600"
                     >
                         <ClipboardList className="w-4 h-4" /> Import Client BoQ
                     </button>
                 )}
 
                 {/* Save indicator */}
-                <div className="ml-auto text-xs text-slate-500 flex items-center gap-1.5">
+                <div className="ml-auto flex min-h-11 flex-none items-center gap-1.5 text-xs text-slate-500">
                     {saveStatus === "saving" && (
                         <>
                             <Loader2 className="w-3 h-3 animate-spin" /> Saving...
@@ -608,13 +609,13 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                 <>
                     {/* CLIENT BOQ BANNER */}
                     {currentEstimate.is_client_boq && (
-                        <div className="flex items-center justify-between bg-emerald-900/20 border border-emerald-700/40 rounded-xl px-5 py-3">
-                            <div className="flex items-center gap-2.5">
+                        <div className="flex flex-col gap-3 rounded-xl border border-emerald-700/40 bg-emerald-900/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                            <div className="flex min-w-0 items-start gap-2.5">
                                 <ClipboardList className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                                 <div>
                                     <span className="text-emerald-300 text-sm font-medium">Client BoQ</span>
                                     {currentEstimate.client_boq_filename && (
-                                        <span className="text-emerald-600 text-xs ml-2">{currentEstimate.client_boq_filename}</span>
+                                        <span className="ml-2 break-all text-xs text-emerald-600">{currentEstimate.client_boq_filename}</span>
                                     )}
                                     <p className="text-emerald-600/80 text-xs mt-0.5">
                                         {currentEstimate.is_active
@@ -623,12 +624,12 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                                 {!currentEstimate.is_active && (
                                     <button
                                         type="button"
                                         onClick={() => handleSetActive(currentEstimate.id)}
-                                        className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium rounded-lg transition-colors"
+                                        className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-500"
                                     >
                                         <Star className="w-4 h-4" />
                                         Set as Active
@@ -638,7 +639,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                     <button
                                         type="button"
                                         onClick={() => exportBoQToExcel(currentEstimate)}
-                                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
+                                        className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
                                     >
                                         <FileDown className="w-4 h-4" />
                                         Export to Excel
@@ -649,18 +650,18 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     )}
 
                     {/* ESTIMATE HEADER */}
-                    <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 space-y-4">
-                        <div className="flex flex-wrap items-end gap-4">
-                            <div className="flex-1 min-w-[200px]">
+                    <div className="space-y-4 rounded-xl border border-slate-700/50 bg-slate-800/50 p-4 sm:p-5">
+                        <div className="grid grid-cols-2 items-end gap-4 sm:grid-cols-3 lg:grid-cols-[minmax(200px,1fr)_repeat(5,6rem)_auto]">
+                            <div className="col-span-2 sm:col-span-3 lg:col-span-1">
                                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Estimate Name</label>
                                 <input
                                     type="text"
                                     defaultValue={currentEstimate.version_name}
                                     onBlur={(e) => handleNameBlur(e.target.value)}
-                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                                    className="h-11 w-full rounded-lg border border-slate-700 bg-slate-900/50 px-3 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500/50 lg:h-10"
                                 />
                             </div>
-                            <div className="w-24">
+                            <div>
                                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Prelims %</label>
                                 <input
                                     type="number"
@@ -668,10 +669,10 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                     value={currentEstimate.prelims_pct}
                                     onChange={(e) => handleMarginChange("prelims_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("prelims_pct", parseFloat(e.target.value) || 0)}
-                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                                    className="h-11 w-full rounded-lg border border-slate-700 bg-slate-900/50 px-3 text-center text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500/50 lg:h-10"
                                 />
                             </div>
-                            <div className="w-24">
+                            <div>
                                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Overhead %</label>
                                 <input
                                     type="number"
@@ -679,10 +680,10 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                     value={currentEstimate.overhead_pct}
                                     onChange={(e) => handleMarginChange("overhead_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("overhead_pct", parseFloat(e.target.value) || 0)}
-                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                                    className="h-11 w-full rounded-lg border border-slate-700 bg-slate-900/50 px-3 text-center text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500/50 lg:h-10"
                                 />
                             </div>
-                            <div className="w-24">
+                            <div>
                                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Risk %</label>
                                 <input
                                     type="number"
@@ -690,10 +691,10 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                     value={currentEstimate.risk_pct}
                                     onChange={(e) => handleMarginChange("risk_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("risk_pct", parseFloat(e.target.value) || 0)}
-                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                                    className="h-11 w-full rounded-lg border border-slate-700 bg-slate-900/50 px-3 text-center text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500/50 lg:h-10"
                                 />
                             </div>
-                            <div className="w-24">
+                            <div>
                                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Profit %</label>
                                 <input
                                     type="number"
@@ -701,10 +702,10 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                     value={currentEstimate.profit_pct}
                                     onChange={(e) => handleMarginChange("profit_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("profit_pct", parseFloat(e.target.value) || 0)}
-                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                                    className="h-11 w-full rounded-lg border border-slate-700 bg-slate-900/50 px-3 text-center text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500/50 lg:h-10"
                                 />
                             </div>
-                            <div className="w-24">
+                            <div>
                                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Discount %</label>
                                 <input
                                     type="number"
@@ -729,14 +730,14 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                             })
                                             .catch((err) => { console.error(err); showSaved(); });
                                     }}
-                                    className="w-full h-10 px-3 border border-emerald-700/50 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                                    className="h-11 w-full rounded-lg border border-emerald-700/50 bg-emerald-500/10 px-3 text-center text-sm text-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 lg:h-10"
                                 />
                             </div>
-                            <div className="flex gap-2">
+                            <div className="col-span-2 flex gap-2 sm:col-span-1">
                                 <button
                                     type="button"
                                     onClick={() => handleSetActive(currentEstimate.id)}
-                                    className={`h-10 px-4 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
+                                    className={`flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-medium transition-colors lg:min-h-10 ${
                                         currentEstimate.is_active
                                             ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
                                             : "bg-slate-700/50 text-slate-400 hover:bg-amber-500/10 hover:text-amber-400 border border-slate-600"
@@ -748,14 +749,15 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                 <button
                                     type="button"
                                     onClick={() => handleDeleteEstimate(currentEstimate.id)}
-                                    className="h-10 px-3 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 border border-slate-700 transition-colors"
+                                    aria-label="Delete estimate"
+                                    className="flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-slate-700 px-3 text-slate-500 transition-colors hover:bg-red-500/10 hover:text-red-400 lg:min-h-10"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
                         {currentEstimate.discount_pct > 0 && (
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">Discount Reason</label>
                                 <input
                                     type="text"
@@ -774,7 +776,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                             })
                                             .catch((err) => { console.error(err); showSaved(); });
                                     }}
-                                    className="flex-1 h-10 px-3 border border-emerald-700/50 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                                    className="h-11 flex-1 rounded-lg border border-emerald-700/50 bg-emerald-500/10 px-3 text-sm text-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 lg:h-10"
                                     placeholder="e.g. Returning client, early payment, etc."
                                 />
                             </div>
@@ -783,7 +785,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
 
                     {/* Vision Takeoff prompt — shown when estimate is empty */}
                     {showDrawingTakeoff && displayLines.length === 0 && (
-                        <div className="mb-4 p-4 border-2 border-dashed border-purple-500/30 rounded-xl bg-purple-500/5 flex items-center justify-between">
+                        <div className="mb-4 flex flex-col gap-4 rounded-xl border-2 border-dashed border-purple-500/30 bg-purple-500/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <p className="font-medium text-slate-200">Got a drawing?</p>
                                 <p className="text-sm text-slate-400">Upload a floor plan or sketch and AI extracts quantities automatically.</p>
@@ -793,7 +795,36 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     )}
 
                     {/* ADD SECTION */}
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-end gap-2 sm:hidden">
+                        <label className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Add section
+                            <select
+                                value={mobileSection}
+                                onChange={(event) => setMobileSection(event.target.value)}
+                                className="mt-1 h-11 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm font-normal normal-case tracking-normal text-slate-200"
+                            >
+                                <option value="">Choose a trade section</option>
+                                {TRADE_SECTIONS.map((section) => (
+                                    <option key={section} value={section} disabled={!!sectionGroups[section]?.length}>
+                                        {sectionGroups[section]?.length ? `${section} (added)` : section}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        <button
+                            type="button"
+                            disabled={!mobileSection}
+                            onClick={() => {
+                                if (!mobileSection) return;
+                                handleAddLine(mobileSection);
+                                setMobileSection("");
+                            }}
+                            className="min-h-11 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                            Add
+                        </button>
+                    </div>
+                    <div className="hidden items-center gap-2 sm:flex sm:flex-wrap">
                         <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Add Section:</span>
                         {TRADE_SECTIONS.map((section) => {
                             const isActive = !!sectionGroups[section]?.length;
@@ -819,21 +850,17 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     {activeSections.map((section) => {
                         const sectionLines = sectionGroups[section] || [];
                         const sectionTotal = sectionLines.reduce((s, l) => s + (l.line_total || 0), 0);
-                        const sectionLibrary = costLibrary.filter(
-                            (c) => c.category === section || section === "General"
-                        );
-
                         return (
-                            <div key={section} className="bg-slate-800/50 border border-slate-700/50 rounded-xl" style={{ overflow: "visible" }}>
+                            <div key={section} className="rounded-xl border border-slate-700/50 bg-slate-800/50" style={{ overflow: "visible" }}>
                                 {/* Section header */}
-                                <div className="flex items-center justify-between px-5 py-3 bg-slate-900/50 border-b border-slate-700/50 rounded-t-xl">
+                                <div className="flex items-center justify-between rounded-t-xl border-b border-slate-700/50 bg-slate-900/50 px-4 py-3 sm:px-5">
                                     <h3 className="font-bold text-sm uppercase tracking-wide text-slate-200">{section}</h3>
                                     <span className="font-bold text-sm text-slate-100">{formatGBP(sectionTotal)}</span>
                                 </div>
 
                                 {/* Table header */}
                                 {currentEstimate.is_client_boq ? (
-                                    <div className="grid grid-cols-[50px_1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 bg-slate-900/30 border-b border-slate-700/50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                                    <div className="hidden grid-cols-[50px_1fr_80px_80px_100px_100px_40px] gap-2 border-b border-slate-700/50 bg-slate-900/30 px-5 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500 md:grid">
                                         <div>Ref</div>
                                         <div>Description</div>
                                         <div className="text-center">Qty</div>
@@ -843,7 +870,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                         <div></div>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-[70px_1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 bg-slate-900/30 border-b border-slate-700/50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                                    <div className="hidden grid-cols-[70px_1fr_80px_80px_100px_100px_40px] gap-2 border-b border-slate-700/50 bg-slate-900/30 px-5 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500 md:grid">
                                         <div>Type</div>
                                         <div>Description</div>
                                         <div className="text-center">Qty</div>
@@ -857,15 +884,15 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                 {/* Line items */}
                                 {sectionLines.map((line) => (
                                     <div key={line.id}>
-                                        <div className="flex items-stretch">
+                                        <div className="flex flex-col border-b border-slate-700/30 md:flex-row md:items-stretch md:border-b-0">
                                             {/* Mode toggle button — hidden for client BoQ lines */}
                                             {!currentEstimate.is_client_boq && (
-                                                <div className="flex items-center px-2 border-b border-slate-700/30">
+                                                <div className="flex items-center justify-end px-3 pt-3 md:justify-center md:border-b md:border-slate-700/30 md:px-2 md:pt-0">
                                                     <button
                                                         type="button"
                                                         onClick={() => handleTogglePricingMode(line.id, line.pricing_mode)}
                                                         title={line.pricing_mode === "buildup" ? "Switch to simple rate" : "Build up from first principles"}
-                                                        className={`flex-shrink-0 w-5 h-5 rounded text-xs font-bold border transition-colors ${
+                                                        className={`min-h-11 min-w-11 flex-shrink-0 rounded border text-xs font-bold transition-colors md:min-h-5 md:min-w-5 ${
                                                             line.pricing_mode === "buildup"
                                                                 ? "bg-blue-600 text-white border-blue-600"
                                                                 : "bg-slate-700 text-slate-400 border-slate-600 hover:border-blue-500 hover:text-slate-200"
@@ -878,7 +905,6 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                             <div className="flex-1">
                                                 <LineItemRow
                                                     line={line}
-                                                    library={sectionLibrary}
                                                     allLibrary={costLibrary}
                                                     section={section}
                                                     isClientBoQ={!!currentEstimate.is_client_boq}
@@ -907,7 +933,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                 <button
                                     type="button"
                                     onClick={() => handleAddLine(section)}
-                                    className="w-full px-5 py-2.5 text-left text-sm text-blue-400 hover:bg-blue-500/10 flex items-center gap-1.5 transition-colors"
+                                    className="flex min-h-11 w-full items-center gap-1.5 px-5 py-2.5 text-left text-sm text-blue-400 transition-colors hover:bg-blue-500/10"
                                 >
                                     <Plus className="w-4 h-4" /> Add line item
                                 </button>
@@ -916,7 +942,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     })}
 
                     {/* SUMMARY STRIP */}
-                    <div className="bg-slate-900 border border-slate-700/50 rounded-xl p-5 sticky bottom-0 z-20 shadow-xl mt-4">
+                    <div className="mt-4 rounded-xl border border-slate-700/50 bg-slate-900 p-4 shadow-xl sm:p-5 md:sticky md:bottom-0 md:z-20">
                         <h3 className="font-semibold text-[11px] uppercase tracking-wider text-slate-500 mb-4">Cost Summary</h3>
                         <div className="space-y-2">
                             <SummaryRow label="Direct Construction Cost" value={directCost} />
@@ -954,7 +980,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     {/* Bottom CTA */}
                     <div className="mt-8 flex justify-end">
                         <Link href={`/dashboard/projects/schedule?projectId=${projectId}`}
-                            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold text-sm hover:bg-blue-500 transition-colors flex items-center gap-2">
+                            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-500 sm:w-auto">
                             <CalendarDays className="w-4 h-4" />
                             Next: Programme →
                         </Link>
@@ -978,7 +1004,6 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
 // ─── Line Item Row ───────────────────────────────────────
 function LineItemRow({
     line,
-    library,
     allLibrary,
     section,
     isClientBoQ,
@@ -987,13 +1012,12 @@ function LineItemRow({
     onLibrarySelect,
 }: {
     line: EstimateLine;
-    library: CostLibraryItem[];
     allLibrary: CostLibraryItem[];
     section: string;
     isClientBoQ?: boolean;
     onUpdate: (id: string, updates: Partial<EstimateLine>) => void;
     onDelete: (id: string) => void;
-    onLibrarySelect: (lineId: string, itemId: string, section: string) => void;
+    onLibrarySelect: (lineId: string, itemId: string) => void;
 }) {
     const [search, setSearch] = useState(line.description || "");
     const [showDropdown, setShowDropdown] = useState(false);
@@ -1019,62 +1043,58 @@ function LineItemRow({
             .slice(0, 15)
         : [];
 
-    return (
-        <div className={`grid gap-2 px-5 py-2 border-b border-slate-700/30 items-center hover:bg-slate-700/20 transition-colors ${
-            isClientBoQ
-                ? "grid-cols-[50px_1fr_80px_80px_100px_100px_40px]"
-                : "grid-cols-[70px_1fr_80px_80px_100px_100px_40px]"
-        }`}>
-            {/* Client ref (BoQ) or line type badge (standard) */}
-            {isClientBoQ ? (
-                <span className="text-slate-500 text-xs font-mono truncate" title={line.client_ref || ""}>
-                    {line.client_ref || ""}
-                </span>
-            ) : (
-                <select
-                    value={line.line_type || "general"}
-                    onChange={(e) => onUpdate(line.id, { line_type: e.target.value })}
-                    className="h-8 px-1 border border-slate-700 rounded text-xs text-slate-400 bg-slate-900/50 truncate focus:outline-none"
-                >
-                    {LINE_TYPES.map((t) => (
-                        <option key={t} value={t}>
-                            {t.charAt(0).toUpperCase() + t.slice(1)}
-                        </option>
-                    ))}
-                </select>
-            )}
+    const fieldLabel = "mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-500 md:hidden";
 
-            {/* Description with library search — free-text supported */}
-            <div className="relative" ref={dropdownRef} style={{ overflow: "visible" }}>
+    return (
+        <div className={`grid grid-cols-2 items-end gap-3 px-3 pb-4 pt-2 transition-colors hover:bg-slate-700/20 sm:px-5 md:gap-2 md:border-b md:border-slate-700/30 md:py-2 ${
+            isClientBoQ
+                ? "md:grid-cols-[50px_1fr_80px_80px_100px_100px_40px]"
+                : "md:grid-cols-[70px_1fr_80px_80px_100px_100px_40px]"
+        }`}>
+            <label className="min-w-0">
+                <span className={fieldLabel}>{isClientBoQ ? "Reference" : "Type"}</span>
+                {isClientBoQ ? (
+                    <span className="flex min-h-11 items-center truncate rounded border border-slate-700 bg-slate-900/30 px-2 font-mono text-xs text-slate-500 md:min-h-0 md:border-0 md:bg-transparent md:px-0" title={line.client_ref || ""}>
+                        {line.client_ref || "No ref"}
+                    </span>
+                ) : (
+                    <select
+                        value={line.line_type || "general"}
+                        onChange={(e) => onUpdate(line.id, { line_type: e.target.value })}
+                        className="h-11 w-full truncate rounded border border-slate-700 bg-slate-900/50 px-2 text-xs text-slate-400 focus:outline-none md:h-8 md:px-1"
+                    >
+                        {LINE_TYPES.map((t) => (
+                            <option key={t} value={t}>
+                                {t.charAt(0).toUpperCase() + t.slice(1)}
+                            </option>
+                        ))}
+                    </select>
+                )}
+            </label>
+
+            <div className="relative col-span-2 min-w-0 md:col-span-1" ref={dropdownRef} style={{ overflow: "visible" }}>
+                <span className={fieldLabel}>Description</span>
                 <input
                     type="text"
                     value={search}
                     onChange={(e) => {
                         setSearch(e.target.value);
-                        if (e.target.value.length > 0) {
-                            setShowDropdown(true);
-                        } else {
-                            setShowDropdown(false);
-                        }
+                        setShowDropdown(e.target.value.length > 0);
                     }}
                     onFocus={() => {
                         if (search.length > 0) setShowDropdown(true);
                     }}
                     onBlur={() => {
-                        // Delay so click on dropdown registers
                         setTimeout(() => {
                             setShowDropdown(false);
-                            // Free-text mode: keep whatever was typed
-                            if (search !== line.description) {
-                                onUpdate(line.id, { description: search });
-                            }
+                            if (search !== line.description) onUpdate(line.id, { description: search });
                         }, 200);
                     }}
                     placeholder="Search library or type description..."
-                    className="w-full h-8 px-2 border border-slate-700 rounded text-sm text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50 placeholder:text-slate-600"
+                    className="h-11 w-full rounded border border-slate-700 bg-slate-900/50 px-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500/50 md:h-8"
                 />
                 {showDropdown && filtered.length > 0 && (
-                    <div className="absolute z-50 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
+                    <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-slate-700 bg-slate-800 shadow-xl">
                         {filtered.map((item) => (
                             <button
                                 type="button"
@@ -1083,75 +1103,78 @@ function LineItemRow({
                                     e.preventDefault();
                                     setSearch(item.description);
                                     setShowDropdown(false);
-                                    onLibrarySelect(line.id, item.id, section);
+                                    onLibrarySelect(line.id, item.id);
                                 }}
-                                className="w-full text-left px-3 py-1.5 hover:bg-slate-700/50 flex items-center justify-between text-sm transition-colors"
+                                className="flex min-h-11 w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors hover:bg-slate-700/50"
                             >
-                                <span className="text-slate-200 truncate">
-                                    <span className="text-slate-500 text-xs mr-1.5">{item.code}</span>
+                                <span className="min-w-0 truncate text-slate-200">
+                                    <span className="mr-1.5 text-xs text-slate-500">{item.code}</span>
                                     {item.description}
                                 </span>
-                                <span className="text-slate-400 text-xs ml-2 whitespace-nowrap">
-                                    {formatGBP(item.base_rate)}/{item.unit}
-                                </span>
+                                <span className="ml-2 whitespace-nowrap text-xs text-slate-400">{formatGBP(item.base_rate)}/{item.unit}</span>
                             </button>
                         ))}
                     </div>
                 )}
             </div>
 
-            {/* Qty */}
-            <input
-                type="number"
-                step="0.01"
-                defaultValue={line.quantity}
-                onBlur={(e) => onUpdate(line.id, { quantity: parseFloat(e.target.value) || 0 })}
-                className="h-8 px-2 border border-slate-700 rounded text-sm text-center text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
-            />
-
-            {/* Unit */}
-            <select
-                key={line.unit}
-                defaultValue={line.unit}
-                onChange={(e) => onUpdate(line.id, { unit: e.target.value })}
-                className="h-8 px-1 border border-slate-700 rounded text-sm text-slate-300 bg-slate-900/50 focus:outline-none"
-            >
-                {UNITS.map((u) => (
-                    <option key={u} value={u}>
-                        {u}
-                    </option>
-                ))}
-            </select>
-
-            {/* Rate */}
-            {line.pricing_mode === "buildup" ? (
-                <div className="h-8 px-2 rounded text-sm text-right font-medium text-blue-400 bg-blue-500/10 flex flex-col items-end justify-center leading-tight">
-                    <span>{formatGBP(line.unit_rate)}</span>
-                    <span className="text-[9px] text-blue-500">built up</span>
-                </div>
-            ) : (
+            <label>
+                <span className={fieldLabel}>Quantity</span>
                 <input
-                    key={line.unit_rate}
                     type="number"
                     step="0.01"
-                    defaultValue={line.unit_rate}
-                    onBlur={(e) => onUpdate(line.id, { unit_rate: parseFloat(e.target.value) || 0 })}
-                    className="h-8 px-2 border border-slate-700 rounded text-sm text-right text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                    defaultValue={line.quantity}
+                    onBlur={(e) => onUpdate(line.id, { quantity: parseFloat(e.target.value) || 0 })}
+                    className="h-11 w-full rounded border border-slate-700 bg-slate-900/50 px-2 text-center text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500/50 md:h-8"
                 />
-            )}
+            </label>
 
-            {/* Total (readonly) */}
-            <div className="text-sm font-medium text-slate-200 text-right pr-2">
-                {formatGBP(line.line_total || 0)}
+            <label>
+                <span className={fieldLabel}>Unit</span>
+                <select
+                    key={line.unit}
+                    defaultValue={line.unit}
+                    onChange={(e) => onUpdate(line.id, { unit: e.target.value })}
+                    className="h-11 w-full rounded border border-slate-700 bg-slate-900/50 px-2 text-sm text-slate-300 focus:outline-none md:h-8 md:px-1"
+                >
+                    {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+                </select>
+            </label>
+
+            <label>
+                <span className={fieldLabel}>Rate</span>
+                {line.pricing_mode === "buildup" ? (
+                    <span className="flex h-11 flex-col items-end justify-center rounded bg-blue-500/10 px-2 text-right text-sm font-medium leading-tight text-blue-400 md:h-8">
+                        <span>{formatGBP(line.unit_rate)}</span>
+                        <span className="text-[9px] text-blue-500">built up</span>
+                    </span>
+                ) : (
+                    <input
+                        key={line.unit_rate}
+                        type="number"
+                        step="0.01"
+                        defaultValue={line.unit_rate}
+                        onBlur={(e) => onUpdate(line.id, { unit_rate: parseFloat(e.target.value) || 0 })}
+                        className="h-11 w-full rounded border border-slate-700 bg-slate-900/50 px-2 text-right text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500/50 md:h-8"
+                    />
+                )}
+            </label>
+
+            <div>
+                <span className={fieldLabel}>Total</span>
+                <div className="flex h-11 items-center justify-end rounded bg-slate-900/30 px-2 text-sm font-medium text-slate-200 md:h-8 md:bg-transparent md:pr-2">
+                    {formatGBP(line.line_total || 0)}
+                </div>
             </div>
 
-            {/* Delete */}
             <button
                 type="button"
                 onClick={() => onDelete(line.id)}
-                className="h-8 w-8 flex items-center justify-center rounded text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                aria-label={`Delete ${line.description || "line item"}`}
+                className="col-span-2 flex min-h-11 items-center justify-center gap-2 rounded border border-slate-700 text-sm text-slate-500 transition-colors hover:bg-red-500/10 hover:text-red-400 md:col-span-1 md:h-8 md:min-h-0 md:w-8 md:border-0"
             >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="h-4 w-4 md:h-3.5 md:w-3.5" />
+                <span className="md:hidden">Delete line</span>
             </button>
         </div>
     );

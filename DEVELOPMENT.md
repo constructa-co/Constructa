@@ -6,9 +6,9 @@
 - npm 11
 - Install from `package-lock.json` with `npm ci`
 
-Node 24 is pinned in `.nvmrc` and `package.json`. Do not use the damaged legacy
-checkout at `/Users/robertsmith/Documents/GitHub/constructa`; create a fresh
-clone or a Git worktree from the canonical GitHub repository.
+Node 24 is pinned in `.nvmrc` and `package.json`. Create a fresh clone or a Git
+worktree from the canonical GitHub repository rather than relying on an old
+local checkout.
 
 ## Local Setup
 
@@ -35,7 +35,12 @@ GitHub Actions runs the same checks for pull requests and `main`.
 
 ## Known Quarantine
 
-Four contradictory inclusive-date assertions in `delay-analysis.test.ts` are
-skipped under GitHub issue `#34`. The other delay-analysis tests remain active.
-The delay/claims module is outside Release 1 and must not be enabled until the
-date convention is agreed and all skipped tests are replaced.
+Four date-semantics assertions in `delay-analysis.test.ts` are skipped under
+GitHub issue `#34`: three encode an inclusive convention that conflicts with
+the implemented exclusive-end convention, and one has inconsistent date
+arithmetic. The other delay-analysis tests remain active.
+
+The delay/claims UI and server action are currently reachable. Release 1
+excludes them, so issue `#17` must gate both surfaces before cohort access. They
+must not be re-enabled until `#34` defines the convention and replaces every
+skipped assertion.

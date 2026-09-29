@@ -21,4 +21,16 @@ describe("email environment boundary", () => {
             companyName: "Test Contractor",
         })).rejects.toThrow("RESEND_API_KEY is required to send email.");
     });
+
+    it("keeps supervisor invites optional when email is not configured", async () => {
+        const email = await import("./email");
+
+        await expect(email.sendSupervisorInviteEmail({
+            supervisorEmail: "supervisor@example.com",
+            supervisorName: "Supervisor",
+            projectName: "Test Project",
+            companyName: "Test Contractor",
+            portalUrl: "https://example.com/supervisor/test",
+        })).resolves.toBeUndefined();
+    });
 });

@@ -11,19 +11,20 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
-  accepted_at timestamptz;
+  project_state record;
 BEGIN
-  SELECT proposal_accepted_at
-    INTO accepted_at
-    FROM public.projects
-   WHERE id = p_project_id
+  SELECT p.proposal_accepted_at,
+         lower(coalesce(to_jsonb(p) ->> 'proposal_status', '')) = 'accepted' AS status_accepted
+    INTO project_state
+    FROM public.projects p
+   WHERE p.id = p_project_id
    FOR UPDATE;
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Project not found.' USING ERRCODE = 'P0002';
   END IF;
 
-  IF accepted_at IS NOT NULL THEN
+  IF project_state.proposal_accepted_at IS NOT NULL OR project_state.status_accepted THEN
     RAISE EXCEPTION 'This proposal has been accepted. Record later scope or price changes as variations.'
       USING ERRCODE = '23514';
   END IF;
@@ -40,17 +41,32 @@ SET search_path = ''
 AS $$
 DECLARE
   protected_fields constant text[] := ARRAY[
+    'name', 'client_name', 'client_email', 'client_phone', 'client_address',
+    'site_address', 'project_type', 'payment_terms',
     'brief_scope', 'brief_trade_sections', 'brief_completed', 'client_type',
     'lat', 'lng', 'region', 'potential_value', 'start_date',
     'proposal_introduction', 'scope_text', 'exclusions_text',
     'clarifications_text', 'gantt_phases', 'site_photos', 'tc_overrides',
-    'payment_schedule_type', 'selected_case_study_ids', 'closing_statement',
+    'payment_schedule', 'payment_schedule_type', 'selected_case_study_ids',
+    'closing_statement', 'discount_pct', 'discount_reason', 'tc_tier',
+    'risk_register',
     'validity_days', 'proposal_capability', 'proposal_company_name',
-    'contract_exclusions', 'contract_clarifications'
+    'contract_exclusions', 'contract_clarifications',
+    'proposal_status', 'proposal_sent_at', 'proposal_accepted_at',
+    'proposal_accepted_by', 'proposal_accepted_ip'
   ];
   old_protected jsonb;
   new_protected jsonb;
 BEGIN
+  IF TG_OP = 'DELETE' THEN
+    IF OLD.proposal_accepted_at IS NOT NULL
+       OR lower(coalesce(to_jsonb(OLD) ->> 'proposal_status', '')) = 'accepted' THEN
+      RAISE EXCEPTION 'Accepted proposals are contractual records and cannot be deleted.'
+        USING ERRCODE = '23514';
+    END IF;
+    RETURN OLD;
+  END IF;
+
   SELECT coalesce(jsonb_object_agg(key, value), '{}'::jsonb)
     INTO old_protected
     FROM jsonb_each(to_jsonb(OLD))
@@ -103,6 +119,9 @@ DECLARE
 BEGIN
   IF TG_OP IN ('UPDATE', 'DELETE') THEN
     SELECT project_id INTO old_project_id FROM public.estimates WHERE id = OLD.estimate_id;
+    -- A missing parent here means an already-verified estimate delete is
+    -- cascading. The estimate trigger owns that lock decision.
+    IF old_project_id IS NULL AND TG_OP = 'DELETE' THEN RETURN OLD; END IF;
     PERFORM public.assert_project_precontract_unlocked(old_project_id);
   END IF;
   IF TG_OP IN ('INSERT', 'UPDATE')
@@ -130,6 +149,9 @@ BEGIN
       FROM public.estimate_lines l
       JOIN public.estimates e ON e.id = l.estimate_id
      WHERE l.id = OLD.estimate_line_id;
+    -- A missing parent here means an already-verified line/estimate delete is
+    -- cascading. The nearest surviving parent trigger owns the lock decision.
+    IF old_project_id IS NULL AND TG_OP = 'DELETE' THEN RETURN OLD; END IF;
     PERFORM public.assert_project_precontract_unlocked(old_project_id);
   END IF;
   IF TG_OP IN ('INSERT', 'UPDATE')
@@ -147,7 +169,7 @@ $$;
 
 DROP TRIGGER IF EXISTS trg_guard_project_precontract_fields ON public.projects;
 CREATE TRIGGER trg_guard_project_precontract_fields
-BEFORE UPDATE ON public.projects
+BEFORE UPDATE OR DELETE ON public.projects
 FOR EACH ROW EXECUTE FUNCTION public.guard_project_precontract_fields();
 
 DROP TRIGGER IF EXISTS trg_guard_estimate_precontract_write ON public.estimates;

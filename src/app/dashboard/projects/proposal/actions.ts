@@ -1,6 +1,7 @@
 "use server";
 
-import { requireAuth, requireProjectAccess } from "@/lib/supabase/auth-utils";
+import { requireProjectAccess } from "@/lib/supabase/auth-utils";
+import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-access";
 import { SaveProposalSchema, parseInput } from "@/lib/validation/schemas";
 import { revalidatePath } from "next/cache";
 import { generateJSON, generateText } from "@/lib/ai";
@@ -42,7 +43,7 @@ export async function generateFullProposalAction(
     answers: ProposalAnswers,
     projectId: string
 ): Promise<{ success: false; error: string } | { success: true; data: GeneratedProposal }> {
-    const { user, supabase } = await requireAuth();
+    const { user, supabase } = await requireEditableProjectAccess(projectId);
 
     const { data: project } = await supabase
         .from("projects")
@@ -141,8 +142,6 @@ Rules:
 }
 
 export async function saveProposalAction(formData: FormData) {
-    const { user, supabase } = await requireAuth();
-
     // Validate the user-editable text fields before touching the DB. We validate
     // only the free-text portions here because the JSONB fields (gantt, photos,
     // T&Cs, payment schedule) are parsed with try/catch below and have their
@@ -156,6 +155,7 @@ export async function saveProposalAction(formData: FormData) {
     };
     const input = parseInput(SaveProposalSchema, rawInput, "proposal save");
     const id = input.projectId;
+    const { user, supabase } = await requireEditableProjectAccess(id);
 
     const updateData: Record<string, any> = {
         scope_text:            input.scope ?? null,
@@ -224,7 +224,7 @@ export async function saveProposalAction(formData: FormData) {
 }
 
 export async function getProposalLinkAction(projectId: string) {
-    const { user, supabase } = await requireAuth();
+    const { user, supabase } = await requireProjectAccess(projectId);
 
     const { data: project } = await supabase
         .from("projects")
@@ -247,7 +247,7 @@ export async function getProposalLinkAction(projectId: string) {
 }
 
 export async function sendProposalAction(projectId: string) {
-    const { user, supabase } = await requireAuth();
+    const { user, supabase } = await requireEditableProjectAccess(projectId);
 
     // Get or generate token — also fetch fields needed for email
     const { data: project } = await supabase
@@ -309,7 +309,7 @@ export async function sendProposalAction(projectId: string) {
 }
 
 export async function generateAiScopeAction(projectId: string) {
-    const { user, supabase } = await requireAuth();
+    const { user, supabase } = await requireEditableProjectAccess(projectId);
 
     const { data: project } = await supabase
         .from("projects")
@@ -398,7 +398,7 @@ export async function generateAiScopeAction(projectId: string) {
 }
 
 export async function rewriteIntroductionAction(projectId: string, currentText: string) {
-    await requireProjectAccess(projectId);
+    await requireEditableProjectAccess(projectId);
 
     // AI via OpenAI utility
 
@@ -438,7 +438,7 @@ export async function saveWizardResultsAction(projectId: string, data: {
     gantt_phases?: any[];
     payment_schedule?: any[];
 }) {
-    const { user, supabase } = await requireAuth();
+    const { user, supabase } = await requireEditableProjectAccess(projectId);
 
     const { error } = await supabase
         .from("projects")
@@ -489,7 +489,7 @@ export async function generateExclusionsAction(
 }
 
 export async function updatePaymentScheduleTypeAction(projectId: string, type: string) {
-    const { user, supabase } = await requireAuth();
+    const { user, supabase } = await requireEditableProjectAccess(projectId);
 
     const { error } = await supabase
         .from("projects")
@@ -503,7 +503,7 @@ export async function updatePaymentScheduleTypeAction(projectId: string, type: s
 }
 
 export async function updateCaseStudySelectionAction(projectId: string, selectedIds: (number | string)[]) {
-    const { user, supabase } = await requireAuth();
+    const { user, supabase } = await requireEditableProjectAccess(projectId);
 
     const { error } = await supabase
         .from("projects")
@@ -517,12 +517,11 @@ export async function updateCaseStudySelectionAction(projectId: string, selected
 }
 
 export async function uploadPhotoAction(formData: FormData) {
-    const { user, supabase } = await requireAuth();
-
     const file = formData.get("file") as File;
     const projectId = formData.get("projectId") as string;
 
     if (!file) return { error: "No file provided" };
+    const { user, supabase } = await requireEditableProjectAccess(projectId);
 
     const ext = file.name.split(".").pop() || "jpg";
     const path = `${user.id}/${projectId}/${Date.now()}.${ext}`;
@@ -550,7 +549,7 @@ export async function generateClosingStatementAction(
         mdName: string;
     }
 ): Promise<{ text: string }> {
-    const { supabase } = await requireProjectAccess(projectId);
+    const { supabase } = await requireEditableProjectAccess(projectId);
     const discount = context.discountPct > 0
         ? `We are also pleased to offer a ${context.discountPct}% ${context.discountReason || 'discount'} on this proposal.`
         : '';
@@ -579,7 +578,7 @@ export async function generateClosingStatementAction(
 }
 
 export async function saveClosingStatementAction(projectId: string, text: string) {
-    const { supabase } = await requireProjectAccess(projectId);
+    const { supabase } = await requireEditableProjectAccess(projectId);
     const { error } = await supabase
         .from("projects")
         .update({ closing_statement: text })
@@ -591,7 +590,7 @@ export async function saveProposalOverridesAction(
     projectId: string,
     overrides: { proposal_capability?: string; proposal_company_name?: string }
 ) {
-    const { supabase } = await requireProjectAccess(projectId);
+    const { supabase } = await requireEditableProjectAccess(projectId);
     const { error } = await supabase
         .from("projects")
         .update(overrides)
@@ -615,7 +614,7 @@ export async function createProposalVersionAction(
     projectId: string,
     notes: string
 ): Promise<{ success: boolean; error?: string; version_number?: number }> {
-    const { user, supabase } = await requireAuth();
+    const { user, supabase } = await requireEditableProjectAccess(projectId);
 
     // Fetch current project (scoped to user)
     // Cast to any to work around stale Supabase generated types (current_version_number added in Sprint 22)
@@ -684,7 +683,7 @@ export async function createProposalVersionAction(
 export async function getProposalVersionsAction(
     projectId: string
 ): Promise<{ success: boolean; versions?: ProposalVersionRow[]; error?: string }> {
-    const { user, supabase } = await requireAuth();
+    const { user, supabase } = await requireProjectAccess(projectId);
 
     // Verify project belongs to user
     const { data: project } = await supabase
@@ -711,7 +710,7 @@ export async function restoreProposalVersionAction(
     projectId: string,
     versionId: string
 ): Promise<{ success: boolean; error?: string }> {
-    const { user, supabase } = await requireAuth();
+    const { user, supabase } = await requireEditableProjectAccess(projectId);
 
     // Verify ownership (select * to avoid stale-type issues with new columns)
     const { data: project } = await supabase

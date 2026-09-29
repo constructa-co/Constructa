@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAuth } from "@/lib/supabase/auth-utils";
+import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-access";
 import { generateJSON } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
 import OpenAI from "openai";
@@ -161,7 +161,7 @@ export async function createBoQEstimateAction(
     } catch (err) {
         return { success: false, error: err instanceof Error ? err.message : "Invalid BoQ payload" };
     }
-    const { supabase } = await requireAuth();
+    const { supabase } = await requireEditableProjectAccess(projectId);
 
     // Create the estimate flagged as client BoQ
     const { data: estimate, error: estErr } = await supabase

@@ -1,6 +1,27 @@
 import { requireAuth, requireProjectAccess } from "./auth-utils";
+import { getPrecontractEditLockReason } from "../project-editability";
 
 type ProjectAccess = Awaited<ReturnType<typeof requireProjectAccess>>;
+
+export async function requireEditableProjectAccess(
+  projectId: string,
+): Promise<ProjectAccess> {
+  const access = await requireProjectAccess(projectId);
+  const { data, error } = await access.supabase
+    .from("projects")
+    .select("status, is_archived, proposal_status, proposal_accepted_at")
+    .eq("id", projectId)
+    .eq("user_id", access.user.id)
+    .single();
+
+  if (error || !data) {
+    throw new Error("Unauthorized project access.");
+  }
+
+  const lockReason = getPrecontractEditLockReason(data);
+  if (lockReason) throw new Error(lockReason);
+  return access;
+}
 
 async function resolveEstimateProjectId(estimateId: string): Promise<string> {
   const { supabase } = await requireAuth();

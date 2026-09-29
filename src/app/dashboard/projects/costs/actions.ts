@@ -1,7 +1,11 @@
 "use server";
 
-import { requireAuth, requireProjectAccess } from "@/lib/supabase/auth-utils";
 import {
+    getActiveOrganizationId,
+    requireAuth,
+} from "@/lib/supabase/auth-utils";
+import {
+    requireEditableProjectAccess,
     requireEstimateAccess,
     requireEstimateComponentAccess,
     requireEstimateLineAccess,
@@ -16,8 +20,6 @@ import { revalidatePath } from "next/cache";
 // helper is the single source of truth for the lock check — every
 // mutating action in this file calls it before touching the DB.
 
-const LOCKED_STATUSES = new Set(["active", "completed", "lost", "archived"]);
-
 async function assertEstimateEditable(
     estimateId: string,
 ): Promise<
@@ -31,38 +33,16 @@ async function assertEstimateEditable(
         return { ok: false, error: "Estimate not found or unauthorized" };
     }
 
-    const { data, error } = await access.supabase
-        .from("projects")
-        .select("status, is_archived")
-        .eq("id", access.projectId)
-        .single();
-
-    if (error || !data) {
-        return { ok: false, error: "Estimate not found" };
+    try {
+        const editableAccess = await requireEditableProjectAccess(access.projectId);
+        return { ok: true, ...access, ...editableAccess };
+    } catch (error) {
+        return { ok: false, error: error instanceof Error ? error.message : "Estimate is locked" };
     }
-
-    const status = String(data.status ?? "").toLowerCase();
-    const isArchived = Boolean(data.is_archived);
-
-    if (isArchived) {
-        return {
-            ok: false,
-            error: "This project is archived. Restore the project to edit the estimate.",
-        };
-    }
-
-    if (LOCKED_STATUSES.has(status)) {
-        return {
-            ok: false,
-            error: `Estimate is locked because the project is ${status}. Use the Variations module to record scope changes.`,
-        };
-    }
-
-    return { ok: true, ...access };
 }
 
 export async function createEstimateAction(projectId: string, name: string) {
-    const { supabase } = await requireProjectAccess(projectId);
+    const { supabase } = await requireEditableProjectAccess(projectId);
     const { data, error } = await supabase
         .from("estimates")
         .insert({
@@ -419,8 +399,12 @@ export async function saveRateBuildupAction(
     builtUpRate: number,
     totalManhoursPerUnit: number
 ): Promise<void> {
+    const activeOrgId = await getActiveOrganizationId();
+    if (activeOrgId !== orgId) {
+        throw new Error("Unauthorized organization access.");
+    }
     const { supabase } = await requireAuth();
-    await supabase.from("rate_buildups").insert({
+    const { error } = await supabase.from("rate_buildups").insert({
         organization_id: orgId,
         name,
         unit,
@@ -430,6 +414,7 @@ export async function saveRateBuildupAction(
         total_manhours_per_unit: totalManhoursPerUnit,
         is_system_default: false,
     });
+    if (error) throw new Error(error.message);
 }
 
 export async function updateLineBuiltUpRateAction(lineId: string, builtUpRate: number): Promise<void> {

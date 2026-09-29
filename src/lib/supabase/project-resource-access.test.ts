@@ -8,6 +8,7 @@ const auth = vi.hoisted(() => ({
 vi.mock("./auth-utils", () => auth);
 
 import {
+  requireEditableProjectAccess,
   requireEstimateAccess,
   requireEstimateComponentAccess,
   requireEstimateLineAccess,
@@ -15,16 +16,17 @@ import {
 
 function clientFor(tableRows: Record<string, unknown>) {
   return {
-    from: vi.fn((table: string) => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          single: vi.fn().mockResolvedValue({
+    from: vi.fn((table: string) => {
+      const query = {
+        eq: vi.fn(),
+        single: vi.fn().mockResolvedValue({
             data: tableRows[table] ?? null,
             error: tableRows[table] ? null : { message: "not found" },
-          }),
-        })),
-      })),
-    })),
+        }),
+      };
+      query.eq.mockReturnValue(query);
+      return { select: vi.fn(() => query) };
+    }),
   };
 }
 
@@ -47,6 +49,24 @@ describe("project resource access", () => {
       supabase: { verified: true },
     });
     expect(auth.requireProjectAccess).toHaveBeenCalledWith("project-1");
+  });
+
+  it("rejects edits after proposal acceptance", async () => {
+    const verifiedClient = clientFor({
+      projects: {
+        status: "Proposal Sent",
+        is_archived: false,
+        proposal_status: "accepted",
+        proposal_accepted_at: "2026-09-30T00:00:00Z",
+      },
+    });
+    auth.requireProjectAccess.mockResolvedValue({
+      user: { id: "user-1" },
+      supabase: verifiedClient,
+      project: { id: "project-1" },
+    });
+
+    await expect(requireEditableProjectAccess("project-1")).rejects.toThrow("accepted");
   });
 
   it("resolves a line through its estimate before verifying ownership", async () => {

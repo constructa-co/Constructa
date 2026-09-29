@@ -48,7 +48,7 @@ export default async function SchedulePage(props: { searchParams: Promise<{ proj
         null;
 
     return (
-        <div className="max-w-7xl mx-auto p-8 pt-24 space-y-8">
+        <div className="mx-auto max-w-7xl space-y-6 px-4 pb-10 pt-20 sm:px-6 sm:pt-24 lg:space-y-8 lg:px-8">
             <ProjectNavBar projectId={activeProjectId} activeTab="programme" />
 
             <ClientSchedulePage

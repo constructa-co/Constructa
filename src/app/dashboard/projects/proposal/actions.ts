@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAuth } from "@/lib/supabase/auth-utils";
+import { requireAuth, requireProjectAccess } from "@/lib/supabase/auth-utils";
 import { SaveProposalSchema, parseInput } from "@/lib/validation/schemas";
 import { revalidatePath } from "next/cache";
 import { generateJSON, generateText } from "@/lib/ai";
@@ -398,7 +398,7 @@ export async function generateAiScopeAction(projectId: string) {
 }
 
 export async function rewriteIntroductionAction(projectId: string, currentText: string) {
-    const { user, supabase } = await requireAuth();
+    await requireProjectAccess(projectId);
 
     // AI via OpenAI utility
 
@@ -550,6 +550,7 @@ export async function generateClosingStatementAction(
         mdName: string;
     }
 ): Promise<{ text: string }> {
+    const { supabase } = await requireProjectAccess(projectId);
     const discount = context.discountPct > 0
         ? `We are also pleased to offer a ${context.discountPct}% ${context.discountReason || 'discount'} on this proposal.`
         : '';
@@ -568,23 +569,34 @@ export async function generateClosingStatementAction(
     Tone: warm, professional, confident. Avoid cliches. Max 150 words.`
     );
 
-    const { supabase } = await requireAuth();
-    await supabase.from('projects').update({ closing_statement: text }).eq('id', projectId);
+    const { error } = await supabase
+        .from("projects")
+        .update({ closing_statement: text })
+        .eq("id", projectId);
+    if (error) throw new Error(error.message);
 
     return { text };
 }
 
 export async function saveClosingStatementAction(projectId: string, text: string) {
-    const { supabase } = await requireAuth();
-    await supabase.from('projects').update({ closing_statement: text }).eq('id', projectId);
+    const { supabase } = await requireProjectAccess(projectId);
+    const { error } = await supabase
+        .from("projects")
+        .update({ closing_statement: text })
+        .eq("id", projectId);
+    if (error) throw new Error(error.message);
 }
 
 export async function saveProposalOverridesAction(
     projectId: string,
     overrides: { proposal_capability?: string; proposal_company_name?: string }
 ) {
-    const { supabase } = await requireAuth();
-    await supabase.from('projects').update(overrides).eq('id', projectId);
+    const { supabase } = await requireProjectAccess(projectId);
+    const { error } = await supabase
+        .from("projects")
+        .update(overrides)
+        .eq("id", projectId);
+    if (error) throw new Error(error.message);
 }
 
 // ─── Sprint 22: Proposal Versioning ──────────────────────────────────────────

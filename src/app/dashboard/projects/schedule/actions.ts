@@ -88,7 +88,12 @@ export async function updatePhasesAction(
     startDate?: string   // ISO YYYY-MM-DD — if provided, saves to projects.start_date
 ): Promise<void> {
     const input = parseInput(UpdatePhasesSchema, { projectId, phases, startDate }, "programme phases");
-    const { user, supabase } = await requireEditableProjectAccess(input.projectId);
+    // This shared autosave also carries post-award live tracking fields
+    // (`pct_complete` and actual dates). Keep ownership enforcement here, but
+    // do not apply the pre-contract lock to the whole payload or accepted jobs
+    // would stop recording operational progress. Immutable sent-programme
+    // planning is handled by the proposal snapshot work in issue #36.
+    const { user, supabase } = await requireProjectAccess(input.projectId);
     // Note: projects has no `timeline_phases` column — writing it used to cause the
     // whole UPDATE to fail silently, meaning programme edits weren't saved.
     const payload: Record<string, unknown> = {

@@ -7,8 +7,9 @@ import { getDrawingExtractionsAction } from "./actions";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // GPT-4o Vision + library matching can take 20-40s
 
-export default async function DrawingsPage({ searchParams }: { searchParams: { projectId?: string } }) {
-    const supabase = createClient();
+export default async function DrawingsPage(props: { searchParams: Promise<{ projectId?: string }> }) {
+    const searchParams = await props.searchParams;
+    const supabase = await createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
 

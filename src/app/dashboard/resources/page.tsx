@@ -5,7 +5,7 @@ import ClientResources from "./client-page";
 export const dynamic = "force-dynamic";
 
 export default async function ResourcesPage() {
-    const supabase = createClient();
+    const supabase = await createClient();
     const orgId = await getActiveOrganizationId();
 
     // Fetch Organization's Resources from MoM

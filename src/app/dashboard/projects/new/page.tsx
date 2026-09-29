@@ -5,7 +5,7 @@ import NewProjectWizard from "./new-project-wizard";
 export const dynamic = "force-dynamic";
 
 export default async function NewProjectPage() {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
     if (!user) redirect("/login");

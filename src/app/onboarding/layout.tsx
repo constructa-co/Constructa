@@ -5,7 +5,7 @@ import DashboardShell from '@/components/dashboard-shell';
 import { Toaster } from 'sonner';
 
 export default async function OnboardingLayout({ children }: { children: React.ReactNode }) {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
     if (!user) redirect('/login');

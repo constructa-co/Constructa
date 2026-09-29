@@ -9,8 +9,9 @@ import ProjectLiveClient from "./project-live-client";
 // so any future change to contract-sum semantics lands in one place.
 import { computeContractSumValue } from "@/lib/financial";
 
-export default async function LiveProjectsPage({ searchParams }: { searchParams: { projectId?: string } }) {
-    const supabase = createClient();
+export default async function LiveProjectsPage(props: { searchParams: Promise<{ projectId?: string }> }) {
+    const searchParams = await props.searchParams;
+    const supabase = await createClient();
     const { projectId } = searchParams;
 
     const { data: authData } = await supabase.auth.getUser();

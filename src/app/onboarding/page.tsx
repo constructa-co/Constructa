@@ -4,12 +4,13 @@ import OnboardingClient from "./onboarding-client";
 
 export const dynamic = "force-dynamic";
 
-export default async function OnboardingPage({
-    searchParams,
-}: {
-    searchParams?: { force?: string };
-}) {
-    const supabase = createClient();
+export default async function OnboardingPage(
+    props: {
+        searchParams?: Promise<{ force?: string }>;
+    }
+) {
+    const searchParams = await props.searchParams;
+    const supabase = await createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
 

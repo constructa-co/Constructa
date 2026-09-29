@@ -6,7 +6,7 @@ import Link from "next/link";
 import { createTemplateAction } from "../templates-actions";
 
 export default async function TemplatesPage() {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: templates } = await supabase.from("templates").select("*").order("created_at", { ascending: false });
 
     return (

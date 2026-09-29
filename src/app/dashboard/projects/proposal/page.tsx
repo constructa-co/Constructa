@@ -7,8 +7,9 @@ import type { ProposalVersionRow } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProposalPage({ searchParams }: { searchParams: { projectId: string } }) {
-    const supabase = createClient();
+export default async function ProposalPage(props: { searchParams: Promise<{ projectId: string }> }) {
+    const searchParams = await props.searchParams;
+    const supabase = await createClient();
 
     // Auth check
     const { data: authData } = await supabase.auth.getUser();

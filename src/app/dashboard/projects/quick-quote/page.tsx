@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
  * /dashboard/projects/new so large / bespoke jobs keep the existing path.
  */
 export default async function QuickQuotePage() {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: authData } = await supabase.auth.getUser();
     if (!authData?.user) redirect("/login");
 

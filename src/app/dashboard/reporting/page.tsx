@@ -5,11 +5,12 @@ import ReportingClient from "./reporting-client";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-export default async function ReportingPage({
-  searchParams,
-}: {
-  searchParams: { projectId?: string };
-}) {
+export default async function ReportingPage(
+  props: {
+    searchParams: Promise<{ projectId?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");

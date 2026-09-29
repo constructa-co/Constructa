@@ -35,8 +35,9 @@ function computeBudgetCost(est: Estimate | null, lines: EstimateLine[]): number 
     return computeBudgetCostLib(est, lines);
 }
 
-export default async function OverviewPage({ searchParams }: { searchParams: { projectId?: string } }) {
-    const supabase = createClient();
+export default async function OverviewPage(props: { searchParams: Promise<{ projectId?: string }> }) {
+    const searchParams = await props.searchParams;
+    const supabase = await createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
     if (!user) redirect("/login");

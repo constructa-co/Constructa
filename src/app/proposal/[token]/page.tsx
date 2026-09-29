@@ -5,8 +5,9 @@ import { sendContractorViewedNotification } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProposalAcceptancePage({ params }: { params: { token: string } }) {
-    const supabase = createClient();
+export default async function ProposalAcceptancePage(props: { params: Promise<{ token: string }> }) {
+    const params = await props.params;
+    const supabase = await createClient();
     const { token } = params;
 
     // Fetch project by proposal_token — no auth required (public route)

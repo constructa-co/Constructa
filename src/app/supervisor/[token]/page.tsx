@@ -3,8 +3,9 @@ import SupervisorPortalClient from "./supervisor-portal-client";
 
 export const dynamic = "force-dynamic";
 
-export default async function SupervisorPortalPage({ params }: { params: { token: string } }) {
-    const supabase = createClient();
+export default async function SupervisorPortalPage(props: { params: Promise<{ token: string }> }) {
+    const params = await props.params;
+    const supabase = await createClient();
     const { token } = params;
 
     // Fetch the supervisor token — no auth required (public route)

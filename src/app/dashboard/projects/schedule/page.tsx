@@ -5,8 +5,9 @@ import ClientSchedulePage from "./client-page";
 
 export const dynamic = "force-dynamic";
 
-export default async function SchedulePage({ searchParams }: { searchParams: { projectId?: string } }) {
-    const supabase = createClient();
+export default async function SchedulePage(props: { searchParams: Promise<{ projectId?: string }> }) {
+    const searchParams = await props.searchParams;
+    const supabase = await createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
 

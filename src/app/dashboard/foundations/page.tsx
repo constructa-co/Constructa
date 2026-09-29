@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
-export default function FoundationsPage({ searchParams }: { searchParams: { projectId?: string } }) {
+export default async function FoundationsPage(props: { searchParams: Promise<{ projectId?: string }> }) {
+    const searchParams = await props.searchParams;
     if (searchParams.projectId) {
         redirect(`/dashboard/projects/brief?projectId=${searchParams.projectId}`);
     }

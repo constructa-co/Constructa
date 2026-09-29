@@ -5,7 +5,7 @@ import LibraryPageClient from "./library-page-client";
 export const dynamic = "force-dynamic";
 
 export default async function LibraryPage() {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     let orgId: string | null = null;
     try { orgId = await getActiveOrganizationId(); } catch {}

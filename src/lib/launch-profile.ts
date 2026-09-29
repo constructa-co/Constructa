@@ -11,6 +11,11 @@ export type LaunchCapability =
   | "estimating"
   | "programme"
   | "proposal"
+  | "client-boq-import"
+  | "drawing-takeoff"
+  | "video-walkthrough"
+  | "contract-shield"
+  | "benchmark-api"
   | "extended-modules";
 
 const COHORT_CAPABILITIES = new Set<LaunchCapability>([
@@ -53,6 +58,15 @@ export function isCapabilityEnabled(
   return profile === "full" || COHORT_CAPABILITIES.has(capability);
 }
 
+export function requireLaunchCapability(
+  capability: LaunchCapability,
+  profile = getLaunchProfile(),
+): void {
+  if (!isCapabilityEnabled(capability, profile)) {
+    throw new Error("This feature is not available in the current launch profile.");
+  }
+}
+
 export function isDashboardPathAllowed(
   pathname: string,
   profile = getLaunchProfile(),
@@ -68,4 +82,10 @@ export function isDashboardPathAllowed(
 
 export function getLaunchRedirectPath(): string {
   return "/dashboard";
+}
+
+export function getLaunchLandingPath(
+  profile = getLaunchProfile(),
+): "/dashboard" | "/dashboard/home" {
+  return profile === "full" ? "/dashboard/home" : "/dashboard";
 }

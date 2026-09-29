@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getLaunchLandingPath } from '@/lib/launch-profile';
 
 // P2-3 — sign-up UX overhaul.
 // Previously "Sign up" was a button below the sign-in form that
@@ -52,7 +53,7 @@ export default function LoginPage() {
             return;
         }
 
-        router.push('/dashboard/home');
+        router.push(getLaunchLandingPath());
         router.refresh();
         setLoading(false);
     };

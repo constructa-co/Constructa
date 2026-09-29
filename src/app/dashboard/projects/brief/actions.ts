@@ -3,6 +3,7 @@ import { generateJSON } from "@/lib/ai";
 import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 import OpenAI from "openai";
+import { requireLaunchCapability } from "@/lib/launch-profile";
 
 export async function processBriefChatAction(
   message: string,
@@ -241,6 +242,7 @@ export interface VideoAnalysisResult {
 }
 
 export async function transcribeAudioAction(base64Wav: string): Promise<string> {
+  requireLaunchCapability("video-walkthrough");
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) return "";
   try {
@@ -263,6 +265,7 @@ export async function analyzeVideoAction(
   base64Frames: string[],
   audioTranscript?: string
 ): Promise<{ success: boolean; result?: VideoAnalysisResult; error?: string }> {
+  requireLaunchCapability("video-walkthrough");
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) return { success: false, error: "AI not configured" };
 

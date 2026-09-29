@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/supabase/auth-utils";
 import { generateJSON } from "@/lib/ai";
 import OpenAI from "openai";
 import { revalidatePath } from "next/cache";
+import { requireLaunchCapability } from "@/lib/launch-profile";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -42,6 +43,7 @@ export async function analyzeDrawingPagesAction(
     pageCount: number,
     base64Pages: string[]
 ): Promise<{ success: boolean; extraction?: DrawingExtraction; error?: string }> {
+    requireLaunchCapability("drawing-takeoff");
     const { user, supabase } = await requireAuth();
 
     const apiKey = process.env.OPENAI_API_KEY?.trim();
@@ -238,6 +240,7 @@ If no good match exists use unit from extracted item and rate 0.`;
 export async function getDrawingExtractionsAction(
     projectId: string
 ): Promise<DrawingExtraction[]> {
+    requireLaunchCapability("drawing-takeoff");
     const { supabase } = await requireAuth();
 
     const { data } = await supabase
@@ -255,6 +258,7 @@ export async function addItemsToEstimateAction(
     projectId: string,
     items: DrawingResultItem[]
 ): Promise<{ success: boolean; added: number; error?: string }> {
+    requireLaunchCapability("drawing-takeoff");
     const { user, supabase } = await requireAuth();
 
     // Find the active estimate for this project

@@ -26,6 +26,7 @@ describe("proxy authentication boundary", () => {
   beforeEach(() => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon-key");
+    vi.stubEnv("NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE", "cohort");
     getUser.mockReset();
     profileSingle.mockReset();
     getUser.mockResolvedValue({ data: { user: null } });

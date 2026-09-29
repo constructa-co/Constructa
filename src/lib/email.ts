@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { getLaunchLandingPath } from "@/lib/launch-profile";
 
 function getResend(): Resend {
     const apiKey = process.env.RESEND_API_KEY;
@@ -461,7 +462,7 @@ export async function sendContractAlertEmail({
     </tr>
     <tr>
       <td style="padding:8px 28px 24px;">
-        <a href="${baseUrl}/dashboard/home"
+        <a href="${baseUrl}${getLaunchLandingPath()}"
            style="display:inline-block; background:#0d0d0d; color:#ffffff; font-size:14px; font-weight:600; text-decoration:none; padding:12px 24px; border-radius:8px;">
           Open Dashboard →
         </a>

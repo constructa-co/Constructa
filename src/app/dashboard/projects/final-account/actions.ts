@@ -4,7 +4,7 @@
 // through requireProjectAccess(projectId). deleteAdjustmentAction takes only
 // an adjustment id plus projectId so we ownership-check the projectId and
 // then anchor the DELETE by both id AND project_id.
-import { requireProjectAccess } from "@/lib/supabase/auth-utils";
+import { requireProjectAccess } from "@/lib/supabase/extended-module-auth-utils";
 import { revalidatePath } from "next/cache";
 
 function revalidate(projectId: string) {

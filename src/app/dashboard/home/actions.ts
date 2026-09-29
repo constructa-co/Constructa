@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAuth } from "@/lib/supabase/auth-utils";
+import { requireAuth } from "@/lib/supabase/extended-module-auth-utils";
 
 /** Mark the onboarding tour as seen so it never shows again. */
 export async function dismissOnboardingAction(): Promise<void> {

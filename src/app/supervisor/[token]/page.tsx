@@ -1,9 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import SupervisorPortalClient from "./supervisor-portal-client";
+import { isCapabilityEnabled } from "@/lib/launch-profile";
+import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function SupervisorPortalPage(props: { params: Promise<{ token: string }> }) {
+    if (!isCapabilityEnabled("contract-shield")) notFound();
+
     const params = await props.params;
     const supabase = await createClient();
     const { token } = params;

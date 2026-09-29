@@ -2,12 +2,14 @@
 // Uses SheetJS (xlsx) — dynamically imported to keep bundle lean
 
 import type { Estimate, EstimateLine } from "./types";
+import { requireLaunchCapability } from "@/lib/launch-profile";
 
 function formatGBP(n: number): string {
     return n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export async function exportBoQToExcel(estimate: Estimate): Promise<void> {
+    requireLaunchCapability("client-boq-import");
     const XLSX = await import("xlsx");
 
     const isClientBoQ = !!estimate.is_client_boq;

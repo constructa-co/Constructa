@@ -42,6 +42,7 @@ interface Props {
     financials: Record<string, number>;
     metrics: Metrics;
     companyName: string;
+    launchNotice?: boolean;
 }
 
 function formatCurrency(value: number): string {
@@ -146,7 +147,7 @@ const PERIOD_OPTIONS: { value: Period; label: string }[] = [
     { value: "year", label: "This Year" },
 ];
 
-export default function DashboardClient({ projects, financials, metrics: serverMetrics, companyName }: Props) {
+export default function DashboardClient({ projects, financials, metrics: serverMetrics, companyName, launchNotice = false }: Props) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
 
@@ -249,6 +250,16 @@ export default function DashboardClient({ projects, financials, metrics: serverM
 
     return (
         <div className={`pt-8 px-8 pb-12 space-y-8 ${isDark ? "bg-[#0d0d0d] text-white" : "bg-white text-gray-900"}`}>
+
+            {launchNotice && (
+                <div role="status" className={`rounded-xl border px-4 py-3 text-sm ${
+                    isDark
+                        ? "border-blue-500/30 bg-blue-500/10 text-blue-200"
+                        : "border-blue-200 bg-blue-50 text-blue-900"
+                }`}>
+                    That module is retained for a later Constructa release. This launch is focused on creating projects, estimates, programmes and proposals.
+                </div>
+            )}
 
             {/* SECTION A — Header */}
             <div className="flex items-center justify-between">

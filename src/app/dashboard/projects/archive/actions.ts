@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAuth } from "@/lib/supabase/auth-utils";
+import { requireAuth } from "@/lib/supabase/extended-module-auth-utils";
 // Stage 5 hardening (19 Apr 2026): canonical contract sum so the archive
 // snapshot's contract_value lines up with what billing, final-account,
 // proposal, reporting, and management-accounts compute.

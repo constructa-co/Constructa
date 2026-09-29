@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import OnboardingClient from "./onboarding-client";
+import { getLaunchLandingPath } from "@/lib/launch-profile";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export default async function OnboardingPage(
     // Only redirect if company_name is set AND force param is not present
     const forceParam = searchParams?.force;
     if (profile?.company_name && !forceParam) {
-        redirect("/dashboard/home");
+        redirect(getLaunchLandingPath());
     }
 
     return <OnboardingClient initialFullName={profile?.full_name || ""} />;

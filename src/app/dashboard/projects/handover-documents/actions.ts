@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAuth } from "@/lib/supabase/auth-utils";
+import { requireAuth } from "@/lib/supabase/extended-module-auth-utils";
 import { revalidatePath } from "next/cache";
 
 function revalidate(projectId: string) {

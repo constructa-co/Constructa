@@ -1,14 +1,33 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getLaunchProfile,
+  getLaunchLandingPath,
   isCapabilityEnabled,
   isDashboardPathAllowed,
+  requireLaunchCapability,
 } from "./launch-profile";
 
 describe("launch profile", () => {
-  it("fails closed to the cohort profile", () => {
-    expect(getLaunchProfile(undefined)).toBe("cohort");
+  beforeEach(() => {
+    vi.stubEnv("NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE", "cohort");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("fails closed when an unsupported profile is supplied", () => {
     expect(getLaunchProfile("unexpected")).toBe("cohort");
+  });
+
+  it("reads the supported internal full profile from the environment", () => {
+    vi.stubEnv("NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE", "full");
+    expect(getLaunchProfile()).toBe("full");
+  });
+
+  it("selects the correct landing page for each profile", () => {
+    expect(getLaunchLandingPath("cohort")).toBe("/dashboard");
+    expect(getLaunchLandingPath("full")).toBe("/dashboard/home");
   });
 
   it("allows the Phase 1 cohort journey", () => {
@@ -35,5 +54,17 @@ describe("launch profile", () => {
     expect(isCapabilityEnabled("proposal", "cohort")).toBe(true);
     expect(isCapabilityEnabled("home", "cohort")).toBe(false);
     expect(isCapabilityEnabled("extended-modules", "cohort")).toBe(false);
+    expect(isCapabilityEnabled("client-boq-import", "cohort")).toBe(false);
+    expect(isCapabilityEnabled("drawing-takeoff", "cohort")).toBe(false);
+    expect(isCapabilityEnabled("video-walkthrough", "cohort")).toBe(false);
+    expect(isCapabilityEnabled("contract-shield", "cohort")).toBe(false);
+    expect(isCapabilityEnabled("benchmark-api", "cohort")).toBe(false);
+  });
+
+  it("rejects disabled capabilities before protected work begins", () => {
+    expect(() => requireLaunchCapability("client-boq-import", "cohort")).toThrow(
+      "This feature is not available in the current launch profile.",
+    );
+    expect(() => requireLaunchCapability("contract-shield", "full")).not.toThrow();
   });
 });

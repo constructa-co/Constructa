@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { reportError } from "@/lib/observability";
+import { getLaunchLandingPath } from "@/lib/launch-profile";
 
 /**
  * Root-level global error boundary. Catches errors that occur above the
@@ -109,7 +110,7 @@ export default function GlobalError({
                             Try again
                         </button>
                         <a
-                            href="/dashboard/home"
+                            href={getLaunchLandingPath()}
                             style={{
                                 height: 40,
                                 lineHeight: "40px",

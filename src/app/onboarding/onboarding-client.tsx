@@ -6,6 +6,7 @@ import { saveOnboardingAction, generateCapabilityStatementAction } from "./actio
 import PostcodeLookup from "@/components/postcode-lookup";
 import { Sparkles, Upload, X, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { getLaunchLandingPath, isCapabilityEnabled } from "@/lib/launch-profile";
 
 // Standard 9 T&C clauses
 const STANDARD_CLAUSES = [
@@ -72,6 +73,7 @@ const ic = "w-full h-10 px-3 rounded-lg border border-slate-700 bg-slate-900/50 
 const ta = "w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900/50 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 resize-none";
 
 export default function OnboardingClient({ initialFullName }: { initialFullName: string }) {
+    const showDrawingTakeoff = isCapabilityEnabled("drawing-takeoff");
     const router = useRouter();
     const [step, setStep] = useState(1);
     const [saving, setSaving] = useState(false);
@@ -184,7 +186,7 @@ export default function OnboardingClient({ initialFullName }: { initialFullName:
             setSaving(false);
         } else {
             // Success — navigate client-side
-            router.push("/dashboard");
+            router.push(getLaunchLandingPath());
         }
     };
 
@@ -489,7 +491,7 @@ export default function OnboardingClient({ initialFullName }: { initialFullName:
                         </button>
 
                         {/* Vision Takeoff highlight */}
-                        <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700/50 rounded-2xl p-6 text-white">
+                        {showDrawingTakeoff && <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700/50 rounded-2xl p-6 text-white">
                             <div className="flex items-center gap-3 mb-3">
                                 <div className="w-10 h-10 bg-purple-500/20 border border-purple-500/30 rounded-lg flex items-center justify-center">
                                     <Sparkles className="w-5 h-5 text-purple-400" />
@@ -508,7 +510,7 @@ export default function OnboardingClient({ initialFullName }: { initialFullName:
                                 ))}
                             </div>
                             <p className="text-xs text-slate-500 mt-3">Find it in Estimating → Scan Drawing (AI)</p>
-                        </div>
+                        </div>}
 
                         {saveError && (
                             <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">{saveError}</div>

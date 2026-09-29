@@ -310,13 +310,13 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
             {/* Scrollable nav */}
             <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-0.5">
 
-                {/* Overview — always visible */}
+                {/* Overview — full profile only; Pipeline remains in Work Winning. */}
                 {/* On-site Hub (Smartphone icon) gated for beta on 19 Apr 2026 —
-                    route now redirects to /dashboard/home. Restore this entry
+                    route now redirects to /dashboard. Restore this entry
                     once the mobile data sources are rewired. */}
-                <div className="pb-2">
-                    <NavItem href={showHome ? "/dashboard/home" : "/dashboard"} icon={LayoutDashboard} label={showHome ? "Overview" : "Pipeline"} active={showHome ? is("/dashboard/home") : pathname === "/dashboard"} />
-                </div>
+                {showHome && <div className="pb-2">
+                    <NavItem href="/dashboard/home" icon={LayoutDashboard} label="Overview" active={is("/dashboard/home")} />
+                </div>}
 
                 {/* ── Active Project Selector — always visible, at top ─── */}
                 <div className="pb-3">
@@ -450,7 +450,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                         <NavItem href="/dashboard/management-accounts" icon={BarChart2} label="Management Accounts" active={is("/dashboard/management-accounts")} />
                         <NavItem href="/dashboard/cis" icon={HardHat} label="CIS Compliance" active={is("/dashboard/cis")} />
                         {/* Business Intelligence (Lightbulb icon) gated for beta on
-                            19 Apr 2026 — the route now redirects to /dashboard/home.
+                            19 Apr 2026 — the route now redirects to /dashboard.
                             Restore once the backing tables (project_pl_snapshots,
                             project_schedules) exist. */}
                         <NavItem href="/dashboard/materials" icon={Package} label="Material Rates" active={is("/dashboard/materials")} />

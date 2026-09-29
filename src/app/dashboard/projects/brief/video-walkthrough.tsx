@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState } from "react";
 import { Video, Upload, Loader2, AlertTriangle, X, CheckCircle, Eye, ChevronDown, ChevronRight } from "lucide-react";
 import { analyzeVideoAction, transcribeAudioAction, type VideoAnalysisResult } from "./actions";
 
@@ -211,8 +211,8 @@ export default function VideoWalkthrough({ onApply }: Props) {
                 setError(response.error || "Analysis failed. Please try again.");
                 setState("error");
             }
-        } catch (err: any) {
-            setError(err.message || "An unexpected error occurred.");
+        } catch (error: unknown) {
+            setError(error instanceof Error ? error.message : "An unexpected error occurred.");
             setState("error");
         }
     }
@@ -222,11 +222,11 @@ export default function VideoWalkthrough({ onApply }: Props) {
         processVideo(files[0]);
     }
 
-    const handleDrop = useCallback((e: React.DragEvent) => {
+    function handleDrop(e: React.DragEvent) {
         e.preventDefault();
         setIsDragging(false);
         handleFileSelect(e.dataTransfer.files);
-    }, []);
+    }
 
     function handleApply() {
         if (!result) return;
@@ -248,39 +248,43 @@ export default function VideoWalkthrough({ onApply }: Props) {
     return (
         <div className="bg-slate-800/50 border border-purple-500/20 rounded-xl overflow-hidden">
             {/* Header */}
-            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-700/50">
+            <div className="flex flex-wrap items-center gap-2 border-b border-slate-700/50 px-4 py-3.5 sm:px-5">
                 <Video className="w-4 h-4 text-purple-400" />
                 <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Video Site Survey</h2>
-                <span className="ml-auto text-xs text-slate-500">Upload a walkthrough — AI extracts scope & trades</span>
+                <span className="w-full text-xs text-slate-500 sm:ml-auto sm:w-auto">Upload a walkthrough — AI extracts scope & trades</span>
             </div>
 
-            <div className="p-5">
+            <div className="p-4 sm:p-5">
                 {/* Idle — upload zone */}
                 {state === "idle" && (
-                    <div
+                    <>
+                    <input
+                        ref={fileInputRef}
+                        id="brief-video-upload"
+                        type="file"
+                        accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,.mp4,.mov,.webm,.avi,.m4v"
+                        className="hidden"
+                        onChange={(e) => handleFileSelect(e.target.files)}
+                    />
+                    <button
+                        type="button"
                         onDrop={handleDrop}
                         onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                         onDragLeave={() => setIsDragging(false)}
                         onClick={() => fileInputRef.current?.click()}
-                        className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                        className={`w-full min-h-44 rounded-xl border-2 border-dashed p-6 text-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 sm:p-8 ${
                             isDragging
                                 ? "border-purple-500 bg-purple-500/10"
                                 : "border-slate-600 hover:border-slate-500 bg-slate-800/40 hover:bg-slate-800/60"
                         }`}
                     >
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,.mp4,.mov,.webm,.avi,.m4v"
-                            className="hidden"
-                            onChange={(e) => handleFileSelect(e.target.files)}
-                        />
                         <Upload className="w-8 h-8 text-slate-500 mx-auto mb-2" />
                         <p className="text-slate-200 font-medium text-sm mb-1">
                             {isDragging ? "Drop your video here" : "Upload a site walkthrough video"}
                         </p>
                         <p className="text-slate-500 text-xs">MP4, MOV, WebM · Max 200MB · Max 2 minutes</p>
-                    </div>
+                    </button>
+                    </>
                 )}
 
                 {/* Processing */}
@@ -313,7 +317,7 @@ export default function VideoWalkthrough({ onApply }: Props) {
                         <div className="flex-1">
                             <p className="text-red-300 text-sm">{error}</p>
                         </div>
-                        <button onClick={handleReset} className="text-red-500 hover:text-red-400">
+                        <button onClick={handleReset} className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-red-500 hover:bg-red-500/10 hover:text-red-400" aria-label="Dismiss upload error">
                             <X className="w-4 h-4" />
                         </button>
                     </div>
@@ -354,7 +358,7 @@ export default function VideoWalkthrough({ onApply }: Props) {
                             <div className="bg-slate-900/40 border border-slate-700/40 rounded-lg overflow-hidden">
                                 <button
                                     onClick={() => setShowObservations(!showObservations)}
-                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-left hover:bg-slate-700/20 transition-colors"
+                                    className="flex min-h-11 w-full items-center gap-2 px-4 py-2.5 text-left transition-colors hover:bg-slate-700/20"
                                 >
                                     <Eye className="w-3.5 h-3.5 text-slate-500" />
                                     <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex-1">
@@ -379,10 +383,10 @@ export default function VideoWalkthrough({ onApply }: Props) {
                         )}
 
                         {/* Actions */}
-                        <div className="flex items-center justify-between pt-1">
+                        <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
                             <button
                                 onClick={handleReset}
-                                className="text-xs text-slate-500 hover:text-slate-400 transition-colors"
+                                className="min-h-11 rounded-lg px-3 text-xs text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-400"
                             >
                                 Upload another video
                             </button>
@@ -394,7 +398,7 @@ export default function VideoWalkthrough({ onApply }: Props) {
                             ) : (
                                 <button
                                     onClick={handleApply}
-                                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
+                                    className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500"
                                 >
                                     Apply to Brief
                                 </button>

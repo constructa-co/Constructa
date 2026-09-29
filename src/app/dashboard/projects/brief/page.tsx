@@ -40,20 +40,11 @@ export default async function BriefPage(props: { searchParams: Promise<{ project
         return <div className="p-8 text-slate-400">No projects found. Create one in the dashboard first.</div>;
     }
 
-    // Fetch active estimate (to check if lines exist for "Suggest Estimate Lines")
-    const { data: estimates } = await supabase
-        .from("estimates")
-        .select("id, version_name, is_active")
-        .eq("project_id", project.id)
-        .order("created_at");
-
-    const activeEstimate = (estimates || []).find((e: any) => e.is_active) || (estimates || [])[0] || null;
-
     const siteAddress = project.site_address || project.address || "";
     const postcode = project.postcode || extractPostcode(siteAddress) || "";
 
     return (
-        <div className="max-w-7xl mx-auto p-8 pt-24 space-y-8">
+        <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:space-y-8 lg:p-8 lg:pt-24">
             <ProjectNavBar projectId={activeProjectId} activeTab="brief" />
 
             <BriefClient
@@ -74,7 +65,6 @@ export default async function BriefPage(props: { searchParams: Promise<{ project
                     brief_completed: project.brief_completed || false,
                     project_type: project.project_type || "",
                 }}
-                activeEstimateId={activeEstimate?.id || null}
                 projectId={activeProjectId}
             />
         </div>

@@ -18,6 +18,7 @@ import {
 import type { DrawingExtraction, DrawingResultItem } from "./actions";
 import { analyzeDrawingPagesAction, addItemsToEstimateAction } from "./actions";
 import DrawingViewer from "./drawing-viewer";
+import { loadClientPdfJs } from "@/lib/pdfjs-client";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -40,22 +41,13 @@ function formatBytes(bytes: number): string {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-// ─── Helper: load pdfjs dynamically ──────────────────────────────────────────
-
-async function loadPdfJs() {
-    const pdfjs = await import("pdfjs-dist");
-    // Use unpkg CDN worker — cdnjs lags behind; pdfjs v5+ uses .mjs extension
-    pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-    return pdfjs;
-}
-
 // ─── Helper: render PDF pages to base64 PNG ───────────────────────────────────
 
 async function renderPdfToBase64Pages(
     file: File,
     onProgress?: (current: number, total: number) => void
 ): Promise<{ base64Pages: string[]; pageCount: number }> {
-    const pdfjs = await loadPdfJs();
+    const pdfjs = await loadClientPdfJs();
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
     const pageCount = pdf.numPages;

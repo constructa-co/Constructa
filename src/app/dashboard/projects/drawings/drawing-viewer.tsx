@@ -6,6 +6,7 @@ import {
   Triangle, Hash, Target, ChevronLeft, ChevronRight,
   PlusCircle, Trash2, Download, Type, Square,
 } from "lucide-react";
+import { loadClientPdfJs } from "@/lib/pdfjs-client";
 import { saveMeasurementsAction, addMeasurementsToEstimateAction } from "./measure-actions";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -94,15 +95,6 @@ const TOOL_INFO: Record<Tool, { icon: React.ElementType; label: string; hint: st
 
 const MARKUP_COLOURS = ["#fbbf24", "#ef4444", "#3b82f6", "#10b981", "#8b5cf6", "#f97316"];
 
-// ── PDF loader ────────────────────────────────────────────────────────────────
-
-async function loadPdfJs() {
-  const pdfjs = await import("pdfjs-dist");
-  pdfjs.GlobalWorkerOptions.workerSrc =
-    `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-  return pdfjs;
-}
-
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function DrawingViewer({ projectId, projectName, onClose }: Props) {
@@ -174,7 +166,7 @@ export default function DrawingViewer({ projectId, projectName, onClose }: Props
     setPan({ x: 0, y: 0 });
 
     if (f.type === "application/pdf") {
-      const pdfjs = await loadPdfJs();
+      const pdfjs = await loadClientPdfJs();
       const ab = await f.arrayBuffer();
       const doc = await pdfjs.getDocument({ data: ab }).promise;
       pdfDocRef.current = doc;

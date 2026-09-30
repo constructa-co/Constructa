@@ -151,18 +151,24 @@ export default function BriefClient({ project, activeEstimateId, projectId }: Pr
 
     const handleSave = () => {
         startTransition(async () => {
-            await saveBriefAction(project.id, {
-                brief_scope: scope,
-                brief_trade_sections: selectedTrades,
-                client_type: clientType,
-                lat: lat ?? undefined,
-                lng: lng ?? undefined,
-                region: region || undefined,
-                brief_completed: true,
-                potential_value: estimatedValue,
-                start_date: startDate || undefined,
-            });
-            toast.success("Brief saved");
+            try {
+                const result = await saveBriefAction(project.id, {
+                    brief_scope: scope,
+                    brief_trade_sections: selectedTrades,
+                    client_type: clientType,
+                    lat: lat ?? undefined,
+                    lng: lng ?? undefined,
+                    region: region || undefined,
+                    brief_completed: true,
+                    potential_value: estimatedValue,
+                    start_date: startDate || undefined,
+                });
+                if (result.success) toast.success("Brief saved");
+                else toast.error(result.error);
+            } catch (error) {
+                console.error(error);
+                toast.error("Could not save the brief. Your changes remain on screen.");
+            }
         });
     };
 

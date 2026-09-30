@@ -114,7 +114,7 @@ export async function updateEstimateNameAction(estimateId: string, name: string)
         .update({ version_name: name })
         .eq("id", estimateId);
 
-    if (error) console.error("Update estimate name error:", error);
+    if (error) throw new Error(error.message);
 }
 
 export async function addLineItemAction(
@@ -130,7 +130,10 @@ export async function addLineItemAction(
         mom_item_code?: string | null;
         notes?: string | null;
     }
-): Promise<{ id: string; error?: undefined } | { id?: undefined; error: string }> {
+): Promise<
+    | { id: string; warning?: string; error?: undefined }
+    | { id?: undefined; warning?: undefined; error: string }
+> {
     // E2E-P0-4 — previously this action silently swallowed errors and
     // returned undefined, so a user with a misconfigured estimate or an
     // RLS denial saw a soft failure with no indication. Antigravity
@@ -181,11 +184,18 @@ export async function addLineItemAction(
             return { error: error.message };
         }
 
-        // Recalc total — if this fails it's not fatal; the line is saved.
+        // The line may have committed before the aggregate update. Report that
+        // partial persistence explicitly so the client reloads authoritative
+        // state instead of displaying a false "Saved" confirmation.
         try {
             await recalcEstimateTotal(lock.supabase, estimateId);
         } catch (recalcErr) {
             console.error("[addLineItemAction] recalc failed (line still saved)", recalcErr);
+            if (!result?.id) return { error: "Insert succeeded but no id was returned" };
+            return {
+                id: result.id,
+                warning: "The line was saved, but the stored estimate total could not be refreshed.",
+            };
         }
 
         if (!result?.id) {
@@ -211,7 +221,7 @@ export async function updateLineItemAction(
         mom_item_code?: string | null;
         notes?: string | null;
     }
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; warning?: string }> {
     let lineAccess: Awaited<ReturnType<typeof requireEstimateLineAccess>>;
     try {
         lineAccess = await requireEstimateLineAccess(lineId);
@@ -237,15 +247,18 @@ export async function updateLineItemAction(
         return { success: false, error: error.message };
     }
 
-    await recalcEstimateTotal(lock.supabase, lineAccess.estimateId).catch((e) =>
-        console.error("[updateLineItemAction] recalc failed", e),
-    );
+    try {
+        await recalcEstimateTotal(lock.supabase, lineAccess.estimateId);
+    } catch (error) {
+        console.error("[updateLineItemAction] recalc failed", error);
+        return { success: true, warning: "The line was saved, but the stored estimate total could not be refreshed." };
+    }
     return { success: true };
 }
 
 export async function deleteLineItemAction(
     lineId: string,
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; warning?: string }> {
     let lineAccess: Awaited<ReturnType<typeof requireEstimateLineAccess>>;
     try {
         lineAccess = await requireEstimateLineAccess(lineId);
@@ -266,9 +279,12 @@ export async function deleteLineItemAction(
         return { success: false, error: error.message };
     }
 
-    await recalcEstimateTotal(lock.supabase, lineAccess.estimateId).catch((e) =>
-        console.error("[deleteLineItemAction] recalc failed", e),
-    );
+    try {
+        await recalcEstimateTotal(lock.supabase, lineAccess.estimateId);
+    } catch (error) {
+        console.error("[deleteLineItemAction] recalc failed", error);
+        return { success: true, warning: "The line was deleted, but the stored estimate total could not be refreshed." };
+    }
     return { success: true };
 }
 
@@ -465,15 +481,17 @@ async function recalcEstimateTotal(
     supabase: Awaited<ReturnType<typeof requireAuth>>["supabase"],
     estimateId: string,
 ) {
-    const { data: lines } = await supabase
+    const { data: lines, error: linesError } = await supabase
         .from("estimate_lines")
         .select("line_total")
         .eq("estimate_id", estimateId);
+    if (linesError) throw new Error(linesError.message);
 
     const total = (lines || []).reduce((sum, l) => sum + (l.line_total || 0), 0);
 
-    await supabase
+    const { error: updateError } = await supabase
         .from("estimates")
         .update({ total_cost: total })
         .eq("id", estimateId);
+    if (updateError) throw new Error(updateError.message);
 }

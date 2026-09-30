@@ -206,18 +206,32 @@ export async function saveProposalAction(formData: FormData) {
     }
 
     // Generate proposal_token if it doesn't exist yet
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
         .from("projects")
         .select("proposal_token")
         .eq("id", id)
         .eq("user_id", user.id)
         .single();
+    if (existingError) {
+        console.error("saveProposalAction token lookup failed", { projectId: id, code: existingError.code });
+        return { success: false, error: "Could not load the current proposal before saving." };
+    }
 
     if (!existing?.proposal_token) {
         updateData.proposal_token = crypto.randomUUID();
     }
 
-    await supabase.from("projects").update(updateData).eq("id", id).eq("user_id", user.id);
+    const { data: savedProject, error: saveError } = await supabase
+        .from("projects")
+        .update(updateData)
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .select("id")
+        .single();
+    if (saveError || !savedProject) {
+        console.error("saveProposalAction update failed", { projectId: id, code: saveError?.code });
+        return { success: false, error: "Could not save the proposal. Your draft remains on screen; please retry." };
+    }
 
     revalidatePath(`/dashboard/projects/proposal?projectId=${id}`);
     return { success: true };

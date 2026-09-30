@@ -2,85 +2,88 @@
 
 import { requireAuth } from "@/lib/supabase/auth-utils";
 import { PROJECT_TEMPLATES } from "@/lib/templates";
+import { CreateProjectFromTemplateSchema, parseInput } from "@/lib/validation/schemas";
 
-// Return type for the client
-export async function createProjectFromTemplateAction(formData: FormData) {
-    const { user, supabase } = await requireAuth();
+type CreateProjectResult =
+    | { success: true; projectId: string }
+    | { success: false; error: string };
 
+export async function createProjectFromTemplateAction(
+    formData: FormData,
+): Promise<CreateProjectResult> {
     try {
-        const name = formData.get("name") as string;
-        const client = formData.get("client") as string;
-        const typeId = formData.get("typeId") as string;
+        const potentialValueRaw = String(formData.get("potentialValue") ?? "").trim();
+        const input = parseInput(CreateProjectFromTemplateSchema, {
+            requestId: String(formData.get("requestId") ?? ""),
+            name: String(formData.get("name") ?? ""),
+            client: String(formData.get("client") ?? ""),
+            clientEmail: String(formData.get("clientEmail") ?? ""),
+            clientPhone: String(formData.get("clientPhone") ?? ""),
+            clientAddress: String(formData.get("clientAddress") ?? ""),
+            siteAddress: String(formData.get("siteAddress") ?? ""),
+            projectType: String(formData.get("projectType") ?? "Extension"),
+            startDate: String(formData.get("startDate") ?? ""),
+            potentialValue: potentialValueRaw ? Number(potentialValueRaw) : null,
+            typeId: String(formData.get("typeId") ?? ""),
+        }, "new project");
+        const { supabase } = await requireAuth();
 
-        // New fields
-        const clientEmail = formData.get("clientEmail") as string || null;
-        const clientPhone = formData.get("clientPhone") as string || null;
-        const clientAddressRaw = formData.get("clientAddress") as string || null;
-        const siteAddressRaw = formData.get("siteAddress") as string || null;
-        const siteAddress = siteAddressRaw || clientAddressRaw;
-        const clientAddress = clientAddressRaw || siteAddressRaw;
-        const projectType = formData.get("projectType") as string || "Extension";
-        const startDateRaw = formData.get("startDate") as string;
-        const startDate = startDateRaw || null;
-        const potentialValueRaw = formData.get("potentialValue") as string;
-        const potentialValue = potentialValueRaw ? parseFloat(potentialValueRaw) : null;
+        const template = PROJECT_TEMPLATES.find((candidate) => candidate.id === input.typeId);
+        if (!template) return { success: false, error: "Project template not found" };
 
-        // 1. Create Project — starts as Lead (no estimate yet); advances to Estimating once estimate work begins
-        const template = PROJECT_TEMPLATES.find(t => t.id === typeId);
-        const initialStatus = (template && template.items.length > 0) ? 'Estimating' : 'Lead';
+        const project = {
+            name: input.name,
+            client_name: input.client,
+            client_email: input.clientEmail || null,
+            client_phone: input.clientPhone || null,
+            client_address: input.clientAddress || input.siteAddress || null,
+            site_address: input.siteAddress || input.clientAddress || null,
+            project_type: input.projectType,
+            start_date: input.startDate || null,
+            potential_value: input.potentialValue ?? null,
+            status: template.items.length > 0 ? "Estimating" : "Lead",
+            proposal_complexity: "full",
+        };
+        const estimates = template.items.map((item, index) => ({
+            version_name: item.name,
+            total_cost: item.cost,
+            overhead_pct: 10,
+            profit_pct: 20,
+            risk_pct: 0,
+            prelims_pct: 0,
+            is_active: index === 0,
+            lines: item.lines.map((line) => ({
+                trade_section: item.name,
+                description: line.desc,
+                quantity: line.qty,
+                unit: line.unit,
+                unit_rate: line.rate,
+                line_total: line.qty * line.rate,
+                pricing_mode: "simple",
+                line_type: "general",
+            })),
+        }));
 
-        const { data: project, error: projError } = await supabase.from("projects").insert({
-            user_id: user.id,
-            tenant_id: user.id,
-            name,
-            client_name: client,
-            client_email: clientEmail,
-            client_phone: clientPhone,
-            client_address: clientAddress,
-            site_address: siteAddress,
-            project_type: projectType,
-            start_date: startDate,
-            potential_value: potentialValue,
-            status: initialStatus,
-        }).select().single();
-
-        if (projError) return { success: false, error: "DB Error: " + projError.message };
-        if (!project) return { success: false, error: "Project creation failed (No data returned)" };
-
-        // 2. Unpack Template
-
-        if (template && template.items.length > 0) {
-            for (const item of template.items) {
-                const { data: estimate, error: estError } = await supabase.from("estimates").insert({
-                    project_id: project.id,
-                    tenant_id: user.id,
-                    version_name: item.name,
-                    status: 'Draft',
-                    total_cost: item.cost,
-                    margin_percent: 20
-                }).select().single();
-
-                if (estError) console.error("Estimate Error (Non-fatal):", estError.message);
-
-                if (estimate && item.lines && item.lines.length > 0) {
-                    const linesToInsert = item.lines.map(line => ({
-                        estimate_id: estimate.id,
-                        description: line.desc,
-                        quantity: line.qty,
-                        unit: line.unit,
-                        unit_rate: line.rate,
-                        line_total: line.qty * line.rate,
-                        resource_type: 'Material'
-                    }));
-                    await supabase.from("estimate_lines").insert(linesToInsert);
-                }
-            }
+        const { data, error } = await supabase.rpc("create_phase1_project_graph", {
+            p_request_id: input.requestId,
+            p_project: project,
+            p_estimates: estimates,
+        });
+        const created = Array.isArray(data) ? data[0] : data;
+        if (error || !created?.project_id) {
+            console.error("createProjectFromTemplateAction failed", {
+                requestId: input.requestId,
+                code: error?.code,
+                message: error?.message,
+            });
+            return { success: false, error: "Could not create the project. Your inputs are still available; please retry." };
         }
 
-        // SUCCESS: Return the ID so the client can redirect to proposal
-        return { success: true, projectId: project.id };
-
-    } catch (err: any) {
-        return { success: false, error: "Server Exception: " + err.message };
+        return { success: true, projectId: created.project_id };
+    } catch (error) {
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Could not create the project",
+        };
     }
 }

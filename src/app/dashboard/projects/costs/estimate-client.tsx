@@ -103,7 +103,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
     };
 
     const [_isPending, startTransition] = useTransition();
-    const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+    const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [openBuildUpPanels, setOpenBuildUpPanels] = useState<Set<string>>(new Set());
     const [showBoQImport, setShowBoQImport] = useState(false);
@@ -120,13 +120,22 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
         saveTimeoutRef.current = setTimeout(() => setSaveStatus("idle"), 2000);
     }, []);
 
+    const showSaveError = useCallback((message: string) => {
+        setSaveStatus("error");
+        toast.error(message);
+    }, []);
+
     // ─── Estimate CRUD ──────────────────────────────────
     const handleCreateEstimate = () => {
         const name = `Estimate v${estimates.length + 1}`;
         startTransition(async () => {
             showSaving();
-            const result = await createEstimateAction(projectId, name);
-            if (result) {
+            try {
+                const result = await createEstimateAction(projectId, name);
+                if (!result) {
+                    showSaveError("Failed to create estimate");
+                    return;
+                }
                 const newEst: Estimate = {
                     ...result,
                     estimate_lines: [],
@@ -141,8 +150,11 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                 };
                 setEstimates((prev) => [...prev, newEst]);
                 setActiveTab(result.id);
+                showSaved();
+            } catch (error) {
+                console.error(error);
+                showSaveError("Failed to create estimate");
             }
-            showSaved();
         });
     };
 
@@ -150,24 +162,34 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
         if (!confirm("Delete this estimate and all its line items?")) return;
         startTransition(async () => {
             showSaving();
-            await deleteEstimateAction(estId);
-            setEstimates((prev) => prev.filter((e) => e.id !== estId));
-            if (activeTab === estId) {
-                const remaining = estimates.filter((e) => e.id !== estId);
-                setActiveTab(remaining[0]?.id || "");
+            try {
+                await deleteEstimateAction(estId);
+                setEstimates((prev) => prev.filter((e) => e.id !== estId));
+                if (activeTab === estId) {
+                    const remaining = estimates.filter((e) => e.id !== estId);
+                    setActiveTab(remaining[0]?.id || "");
+                }
+                showSaved();
+            } catch (error) {
+                console.error(error);
+                showSaveError("Failed to delete estimate");
             }
-            showSaved();
         });
     };
 
     const handleSetActive = (estId: string) => {
         startTransition(async () => {
             showSaving();
-            await setActiveEstimateAction(estId, projectId);
-            setEstimates((prev) =>
-                prev.map((e) => ({ ...e, is_active: e.id === estId }))
-            );
-            showSaved();
+            try {
+                await setActiveEstimateAction(estId, projectId);
+                setEstimates((prev) =>
+                    prev.map((e) => ({ ...e, is_active: e.id === estId }))
+                );
+                showSaved();
+            } catch (error) {
+                console.error(error);
+                showSaveError("Failed to change the active estimate");
+            }
         });
     };
 
@@ -185,17 +207,17 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
         updateEstimateMarginsAction(currentEstimate.id, updated.overhead_pct, updated.profit_pct, updated.risk_pct, updated.prelims_pct)
             .then((result) => {
                 if (result && !result.success) {
-                    toast.error(result.error ?? "Failed to save margins");
                     // P1-3 — roll the optimistic update back if the server
                     // rejected the change (most likely the project is locked).
                     setEstimates((prev) => prev.map((e) => (e.id === currentEstimate.id ? currentEstimate : e)));
+                    showSaveError(result.error ?? "Failed to save margins");
+                    return;
                 }
                 showSaved();
             })
             .catch((err) => {
                 console.error(err);
-                toast.error("Failed to save margins");
-                showSaved();
+                showSaveError("Failed to save margins");
             });
     };
 
@@ -208,7 +230,10 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
         showSaving();
         updateEstimateNameAction(currentEstimate.id, name)
             .then(() => showSaved())
-            .catch(console.error);
+            .catch((error) => {
+                console.error(error);
+                showSaveError("Failed to save estimate name");
+            });
     };
 
     // ─── Vision Takeoff handler ───────────────────────────
@@ -241,8 +266,11 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                 line_type: "general",
             });
             if (result?.error) {
-                toast.error(result.error);
-                showSaved();
+                setEstimates((prev) => prev.map((e) => e.id === currentEstimate.id
+                    ? { ...e, estimate_lines: e.estimate_lines.filter((line) => line.id !== tempId) }
+                    : e));
+                router.refresh();
+                showSaveError(result.error);
                 return;
             }
             if (result?.id) {
@@ -255,10 +283,14 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                     }
                 ));
             }
+            if (result?.warning) {
+                showSaveError(result.warning);
+                return;
+            }
             showSaved();
         } catch (err) {
             console.error(err);
-            toast.error(err instanceof Error ? err.message : "Failed to add line");
+            showSaveError(err instanceof Error ? err.message : "Failed to add line");
         }
     };
 
@@ -317,8 +349,10 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                 line_type: "general",
             });
             if (result?.error) {
-                toast.error(result.error);
-                showSaved();
+                setEstimates((prev) => prev.map((e) => e.id === currentEstimate.id
+                    ? { ...e, estimate_lines: e.estimate_lines.filter((line) => line.id !== tempId) }
+                    : e));
+                showSaveError(result.error);
                 return;
             }
             if (result?.id) {
@@ -334,7 +368,7 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
             showSaved();
         } catch (err) {
             console.error(err);
-            toast.error(err instanceof Error ? err.message : "Failed to add line");
+            showSaveError(err instanceof Error ? err.message : "Failed to add line");
         }
     };
 
@@ -366,15 +400,19 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
         updateLineItemAction(lineId, { ...updates, quantity: qty, unit_rate: rate })
             .then((result) => {
                 if (result && !result.success) {
-                    toast.error(result.error ?? "Failed to update line");
                     router.refresh(); // re-pull authoritative state after a rejected update
+                    showSaveError(result.error ?? "Failed to update line");
+                    return;
+                }
+                if (result?.warning) {
+                    showSaveError(result.warning);
+                    return;
                 }
                 showSaved();
             })
             .catch((err) => {
                 console.error(err);
-                toast.error("Failed to update line");
-                showSaved();
+                showSaveError("Failed to update line");
             });
     };
 
@@ -394,16 +432,21 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
         deleteLineItemAction(lineId)
             .then((result) => {
                 if (result && !result.success) {
-                    toast.error(result.error ?? "Failed to delete line");
                     // Roll the optimistic delete back
                     setEstimates((prev) => prev.map((e) => (e.id === prevEstimate.id ? prevEstimate : e)));
+                    router.refresh();
+                    showSaveError(result.error ?? "Failed to delete line");
+                    return;
+                }
+                if (result?.warning) {
+                    showSaveError(result.warning);
+                    return;
                 }
                 showSaved();
             })
             .catch((err) => {
                 console.error(err);
-                toast.error("Failed to delete line");
-                showSaved();
+                showSaveError("Failed to delete line");
             });
     };
 
@@ -591,6 +634,9 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                             <Check className="w-3 h-3 text-emerald-400" /> Saved
                         </>
                     )}
+                    {saveStatus === "error" && (
+                        <span className="text-red-400">Save failed — retry</span>
+                    )}
                 </div>
             </div>
 
@@ -722,12 +768,13 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                         saveDiscountAction(currentEstimate.id, val, currentEstimate.discount_reason || "")
                                             .then((result) => {
                                                 if (result && !result.success) {
-                                                    toast.error(result.error ?? "Failed to save discount");
                                                     setEstimates(prev => prev.map(est => est.id === currentEstimate.id ? { ...est, discount_pct: prevDiscount } : est));
+                                                    showSaveError(result.error ?? "Failed to save discount");
+                                                    return;
                                                 }
                                                 showSaved();
                                             })
-                                            .catch((err) => { console.error(err); showSaved(); });
+                                            .catch((err) => { console.error(err); showSaveError("Failed to save discount"); });
                                     }}
                                     className="w-full h-10 px-3 border border-emerald-700/50 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
                                 />
@@ -768,11 +815,12 @@ export default function EstimateClient({ estimates: initialEstimates, costLibrar
                                         saveDiscountAction(currentEstimate.id, currentEstimate.discount_pct, e.target.value)
                                             .then((result) => {
                                                 if (result && !result.success) {
-                                                    toast.error(result.error ?? "Failed to save discount");
+                                                    showSaveError(result.error ?? "Failed to save discount");
+                                                    return;
                                                 }
                                                 showSaved();
                                             })
-                                            .catch((err) => { console.error(err); showSaved(); });
+                                            .catch((err) => { console.error(err); showSaveError("Failed to save discount"); });
                                     }}
                                     className="flex-1 h-10 px-3 border border-emerald-700/50 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
                                     placeholder="e.g. Returning client, early payment, etc."

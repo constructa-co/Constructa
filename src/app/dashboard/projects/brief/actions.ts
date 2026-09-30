@@ -70,15 +70,19 @@ export async function saveBriefAction(projectId: string, data: {
   brief_completed: boolean;
   potential_value?: number;
   start_date?: string;
-}) {
+}): Promise<{ success: true } | { success: false; error: string }> {
   const { supabase } = await requireEditableProjectAccess(projectId);
 
   // Fetch existing proposal fields so we don't overwrite them
-  const { data: existing } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from("projects")
     .select("proposal_introduction, scope_text")
     .eq("id", projectId)
     .single();
+  if (existingError) {
+    console.error("saveBriefAction read failed", { projectId, code: existingError.code });
+    return { success: false, error: "Could not load the current brief before saving." };
+  }
 
   const updateData: any = { ...data };
 
@@ -93,17 +97,24 @@ export async function saveBriefAction(projectId: string, data: {
   }
 
   const { error } = await supabase.from("projects").update(updateData).eq("id", projectId);
-  if (error) console.error("Save brief error:", error);
+  if (error) {
+    console.error("saveBriefAction update failed", { projectId, code: error.code });
+    return { success: false, error: "Could not save the brief. Your changes remain on screen; please retry." };
+  }
 
   // Auto-scaffold estimate sections from selected trades if an estimate has no lines yet
   if (data.brief_trade_sections?.length) {
-    const { data: activeEst } = await supabase
+    const { data: activeEst, error: estimateError } = await supabase
       .from("estimates")
       .select("id, estimate_lines(id)")
       .eq("project_id", projectId)
       .order("created_at", { ascending: false })
       .limit(1)
       .single();
+    if (estimateError && estimateError.code !== "PGRST116") {
+      console.error("saveBriefAction estimate lookup failed", { projectId, code: estimateError.code });
+      return { success: false, error: "The brief saved, but estimate sections could not be checked. Please retry." };
+    }
 
     if (activeEst && (!activeEst.estimate_lines || activeEst.estimate_lines.length === 0)) {
       // Insert a placeholder line per trade section (no rate — just scaffolds the section)
@@ -117,7 +128,11 @@ export async function saveBriefAction(projectId: string, data: {
         line_total: 0,
         pricing_mode: "simple",
       }));
-      await supabase.from("estimate_lines").insert(placeholders);
+      const { error: lineError } = await supabase.from("estimate_lines").insert(placeholders);
+      if (lineError) {
+        console.error("saveBriefAction scaffold failed", { projectId, code: lineError.code });
+        return { success: false, error: "The brief saved, but estimate sections could not be created. Please retry." };
+      }
     }
   }
 
@@ -125,6 +140,7 @@ export async function saveBriefAction(projectId: string, data: {
   revalidatePath("/dashboard/projects/schedule");
   revalidatePath("/dashboard/projects/proposal");
   revalidatePath("/proposal", "layout");
+  return { success: true };
 }
 
 export async function suggestEstimateLineItemsAction(

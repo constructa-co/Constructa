@@ -39,25 +39,33 @@ FROM PUBLIC, anon, authenticated;
 -- Contractor account and organization bootstrap are trigger-owned. Browser
 -- users can maintain only their own profile under the existing self policies.
 GRANT SELECT, INSERT, UPDATE ON TABLE public.profiles TO authenticated;
-GRANT SELECT ON TABLE public.organizations TO authenticated;
 GRANT SELECT ON TABLE public.organization_members TO authenticated;
 
 -- Phase 1 project, estimate and programme editing. Existing RLS policies and
--- accepted-record guards continue to enforce tenant and lifecycle boundaries.
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.projects TO authenticated;
+-- accepted-record guards enforce tenant and lifecycle boundaries on project
+-- data. Shared rate libraries are narrower because their system rows are
+-- visible across tenants.
+GRANT SELECT, INSERT, UPDATE ON TABLE public.projects TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.estimates TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.estimate_lines TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.estimate_line_components TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.rate_buildups TO authenticated;
+GRANT SELECT ON TABLE public.rate_buildups TO authenticated;
+GRANT INSERT (
+    organization_id,
+    name,
+    unit,
+    trade_section,
+    components,
+    built_up_rate,
+    total_manhours_per_unit
+) ON TABLE public.rate_buildups TO authenticated;
 GRANT SELECT ON TABLE public.cost_library_items TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.labour_rates TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.estimate_dependencies TO authenticated;
+GRANT SELECT ON TABLE public.labour_rates TO authenticated;
+GRANT SELECT, INSERT, DELETE ON TABLE public.estimate_dependencies TO authenticated;
 
--- Published content is written through guarded RPCs. Authenticated owners may
--- read their ledger rows, but cannot mutate the immutable publication record.
+-- Authenticated owners read the immutable publication itself. Its event and
+-- delivery ledgers are server-only and remain accessible to service_role.
 GRANT SELECT ON TABLE public.proposal_publications TO authenticated;
-GRANT SELECT ON TABLE public.proposal_publication_events TO authenticated;
-GRANT SELECT ON TABLE public.proposal_delivery_attempts TO authenticated;
 
 GRANT ALL PRIVILEGES ON TABLE
     public.profiles,
@@ -87,10 +95,11 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
     REVOKE ALL ON TABLES FROM PUBLIC, anon, authenticated;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
     REVOKE ALL ON SEQUENCES FROM PUBLIC, anon, authenticated;
--- PostgreSQL's built-in PUBLIC EXECUTE default is global. A per-schema revoke
--- cannot override it, so remove it at the migration-owner level and require
--- every subsequent function migration to grant execution deliberately.
+-- Supabase also installs a public-schema function default ACL. Revoke both the
+-- global and schema-scoped defaults so neither source can re-grant execution.
 ALTER DEFAULT PRIVILEGES
+    REVOKE ALL ON FUNCTIONS FROM PUBLIC, anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
     REVOKE ALL ON FUNCTIONS FROM PUBLIC, anon, authenticated;
 
 COMMIT;

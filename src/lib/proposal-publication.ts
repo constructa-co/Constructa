@@ -30,6 +30,7 @@ export interface ProposalPublicationProfileInput {
     years_trading?: number | null;
     specialisms?: string | null;
     insurance_details?: string | null;
+    pdf_theme?: string | null;
 }
 
 export interface ProposalPublicationEstimateLineInput {
@@ -101,6 +102,7 @@ export interface ProposalPublicationSnapshot {
         years_trading: number | null;
         specialisms: string | null;
         insurance_details: string | null;
+        pdf_theme: string | null;
     };
     content: {
         introduction: string | null;
@@ -336,6 +338,7 @@ export function buildProposalPublicationSnapshot(
             years_trading: input.profile.years_trading ?? null,
             specialisms: optionalText(input.profile.specialisms, 5000),
             insurance_details: optionalText(input.profile.insurance_details, 5000),
+            pdf_theme: optionalText(input.profile.pdf_theme, 100),
         },
         content: {
             introduction: optionalText(input.project.proposal_introduction, 20000),

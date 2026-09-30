@@ -49,7 +49,12 @@ export function splitAddress(address: string): string[] {
 }
 
 export function formatDate(d: Date): string {
-    return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+    return d.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+    });
 }
 
 export function sanitiseText(text: string): string {

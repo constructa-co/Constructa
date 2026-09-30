@@ -241,6 +241,37 @@ export async function sendProposalAction(projectId: string) {
     return publishProposal(projectId, true);
 }
 
+export async function getCurrentProposalPublicationAction(projectId: string): Promise<
+    { success: true; snapshot: ProposalPublicationSnapshot; snapshotHash: string }
+    | { success: false; error: string }
+> {
+    const { user, supabase } = await requireProjectAccess(projectId);
+    const { data: project, error: projectError } = await supabase
+        .from("projects")
+        .select("current_proposal_publication_id")
+        .eq("id", projectId)
+        .eq("user_id", user.id)
+        .single();
+    if (projectError || !project?.current_proposal_publication_id) {
+        return { success: false, error: "Publish the proposal before downloading its final PDF." };
+    }
+
+    const { data: publication, error: publicationError } = await supabase
+        .from("proposal_publications")
+        .select("snapshot, snapshot_hash")
+        .eq("id", project.current_proposal_publication_id)
+        .eq("project_id", projectId)
+        .single();
+    if (publicationError || !publication?.snapshot) {
+        return { success: false, error: "The published proposal could not be loaded." };
+    }
+    return {
+        success: true,
+        snapshot: publication.snapshot as ProposalPublicationSnapshot,
+        snapshotHash: publication.snapshot_hash,
+    };
+}
+
 function randomProposalToken(): string {
     return Array.from(crypto.getRandomValues(new Uint8Array(32)), (byte) =>
         byte.toString(16).padStart(2, "0"),
@@ -274,7 +305,7 @@ async function publishProposal(projectId: string, deliverByEmail: boolean) {
 
     const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("company_name, logo_url, phone, website, accreditations, capability_statement, years_trading, specialisms, insurance_details")
+        .select("company_name, logo_url, phone, website, accreditations, capability_statement, years_trading, specialisms, insurance_details, pdf_theme")
         .eq("id", user.id)
         .single();
     if (profileError || !profile) {

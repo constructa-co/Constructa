@@ -223,6 +223,7 @@ function renderSummaryMode(ctx: ProposalContext, startY: number): number {
 function renderGrandTotal(ctx: ProposalContext, startY: number): number {
     const { doc, T, companyName, docTitle, displayTotal, totalPagesRef, project } = ctx;
     const isReverseCharge = project?.is_vat_reverse_charge === true;
+    const vatRate = Number(project?.vat_rate ?? 20);
 
     let y = ensureSpace(doc, startY, isReverseCharge ? 80 : 50, companyName, docTitle, totalPagesRef, T);
     y += 4;
@@ -281,12 +282,12 @@ function renderGrandTotal(ctx: ProposalContext, startY: number): number {
         return y;
     }
 
-    // Standard 20% VAT path
+    // Standard VAT path; the rate is frozen in an immutable publication.
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(...T.textMid);
-    doc.text("VAT @ 20%", ML + 4, y);
-    doc.text(formatGbp(displayTotal * 0.2), MR - 4, y, { align: "right" });
+    doc.text(`VAT @ ${vatRate}%`, ML + 4, y);
+    doc.text(formatGbp(displayTotal * (vatRate / 100)), MR - 4, y, { align: "right" });
     y += 4;
 
     // Separator
@@ -305,7 +306,7 @@ function renderGrandTotal(ctx: ProposalContext, startY: number): number {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
     doc.setTextColor(...T.accent);
-    doc.text(formatGbp(displayTotal * 1.2), MR - 4, y + 13, { align: "right" });
+    doc.text(formatGbp(displayTotal * (1 + vatRate / 100)), MR - 4, y + 13, { align: "right" });
     y += 22;
 
     return y;

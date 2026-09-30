@@ -226,4 +226,135 @@ REVOKE ALL ON FUNCTION public.create_phase1_project_graph(uuid, jsonb, jsonb)
 GRANT EXECUTE ON FUNCTION public.create_phase1_project_graph(uuid, jsonb, jsonb)
     TO authenticated;
 
+-- Save the Brief and its optional empty-estimate scaffolding as one unit. A
+-- failed placeholder insert therefore rolls the project update back as well.
+CREATE OR REPLACE FUNCTION public.save_phase1_brief(
+    p_project_id uuid,
+    p_brief jsonb
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+DECLARE
+    v_user_id uuid := auth.uid();
+    v_organization_id uuid;
+    v_estimate_id uuid;
+    v_trade_sections text[];
+BEGIN
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'Authentication required';
+    END IF;
+    IF p_project_id IS NULL OR p_brief IS NULL OR jsonb_typeof(p_brief) <> 'object' THEN
+        RAISE EXCEPTION 'Invalid brief payload';
+    END IF;
+    IF length(COALESCE(p_brief->>'brief_scope', '')) > 20000
+       OR length(COALESCE(p_brief->>'region', '')) > 200 THEN
+        RAISE EXCEPTION 'Brief text exceeds the allowed size';
+    END IF;
+    IF COALESCE(p_brief->>'client_type', 'domestic')
+       NOT IN ('domestic', 'commercial', 'public') THEN
+        RAISE EXCEPTION 'Invalid client type';
+    END IF;
+    IF COALESCE(NULLIF(p_brief->>'potential_value', '')::numeric, 0)
+       NOT BETWEEN 0 AND 100000000 THEN
+        RAISE EXCEPTION 'Potential value is outside the allowed range';
+    END IF;
+    IF p_brief ? 'lat'
+       AND NULLIF(p_brief->>'lat', '')::numeric NOT BETWEEN -90 AND 90 THEN
+        RAISE EXCEPTION 'Latitude is outside the allowed range';
+    END IF;
+    IF p_brief ? 'lng'
+       AND NULLIF(p_brief->>'lng', '')::numeric NOT BETWEEN -180 AND 180 THEN
+        RAISE EXCEPTION 'Longitude is outside the allowed range';
+    END IF;
+    IF jsonb_typeof(COALESCE(p_brief->'brief_trade_sections', '[]'::jsonb)) <> 'array' THEN
+        RAISE EXCEPTION 'Invalid brief trade sections';
+    END IF;
+
+    SELECT ARRAY(
+        SELECT value
+          FROM jsonb_array_elements_text(
+              COALESCE(p_brief->'brief_trade_sections', '[]'::jsonb)
+          ) AS trade(value)
+    ) INTO v_trade_sections;
+
+    IF cardinality(v_trade_sections) > 100
+       OR EXISTS (
+           SELECT 1 FROM unnest(v_trade_sections) AS trade
+            WHERE length(trade) NOT BETWEEN 1 AND 200
+       ) THEN
+        RAISE EXCEPTION 'Brief trade sections exceed the allowed bounds';
+    END IF;
+
+    SELECT p.organization_id
+      INTO v_organization_id
+      FROM public.projects p
+     WHERE p.id = p_project_id
+       AND p.user_id = v_user_id
+     FOR UPDATE;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Project not found or unauthorized';
+    END IF;
+
+    UPDATE public.projects p
+       SET brief_scope = NULLIF(p_brief->>'brief_scope', ''),
+           brief_trade_sections = v_trade_sections,
+           client_type = COALESCE(NULLIF(p_brief->>'client_type', ''), 'domestic'),
+           lat = CASE WHEN p_brief ? 'lat' THEN NULLIF(p_brief->>'lat', '')::numeric ELSE p.lat END,
+           lng = CASE WHEN p_brief ? 'lng' THEN NULLIF(p_brief->>'lng', '')::numeric ELSE p.lng END,
+           region = CASE WHEN p_brief ? 'region' THEN NULLIF(p_brief->>'region', '') ELSE p.region END,
+           brief_completed = COALESCE((p_brief->>'brief_completed')::boolean, false),
+           potential_value = CASE
+               WHEN p_brief ? 'potential_value' THEN NULLIF(p_brief->>'potential_value', '')::numeric
+               ELSE p.potential_value
+           END,
+           start_date = CASE
+               WHEN p_brief ? 'start_date' THEN NULLIF(p_brief->>'start_date', '')::date
+               ELSE p.start_date
+           END,
+           proposal_introduction = CASE
+               WHEN NULLIF(trim(COALESCE(p.proposal_introduction, '')), '') IS NULL
+                 THEN NULLIF(p_brief->>'brief_scope', '')
+               ELSE p.proposal_introduction
+           END,
+           scope_text = CASE
+               WHEN NULLIF(trim(COALESCE(p.scope_text, '')), '') IS NULL
+                 THEN NULLIF(p_brief->>'brief_scope', '')
+               ELSE p.scope_text
+           END
+     WHERE p.id = p_project_id
+       AND p.user_id = v_user_id;
+
+    IF cardinality(v_trade_sections) > 0 THEN
+        SELECT e.id
+          INTO v_estimate_id
+          FROM public.estimates e
+         WHERE e.project_id = p_project_id
+         ORDER BY e.created_at DESC
+         LIMIT 1;
+
+        IF v_estimate_id IS NOT NULL
+           AND NOT EXISTS (
+               SELECT 1 FROM public.estimate_lines l
+                WHERE l.estimate_id = v_estimate_id
+           ) THEN
+            INSERT INTO public.estimate_lines (
+                estimate_id, organization_id, trade_section, description,
+                quantity, unit, unit_rate, line_total, pricing_mode
+            )
+            SELECT v_estimate_id, v_organization_id, trade, '',
+                   1, 'item', 0, 0, 'simple'
+              FROM unnest(v_trade_sections) AS trade;
+        END IF;
+    END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.save_phase1_brief(uuid, jsonb)
+    FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.save_phase1_brief(uuid, jsonb)
+    TO authenticated;
+
 COMMIT;

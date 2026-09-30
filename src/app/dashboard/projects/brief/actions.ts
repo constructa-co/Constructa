@@ -73,67 +73,13 @@ export async function saveBriefAction(projectId: string, data: {
 }): Promise<{ success: true } | { success: false; error: string }> {
   const { supabase } = await requireEditableProjectAccess(projectId);
 
-  // Fetch existing proposal fields so we don't overwrite them
-  const { data: existing, error: existingError } = await supabase
-    .from("projects")
-    .select("proposal_introduction, scope_text")
-    .eq("id", projectId)
-    .single();
-  if (existingError) {
-    console.error("saveBriefAction read failed", { projectId, code: existingError.code });
-    return { success: false, error: "Could not load the current brief before saving." };
-  }
-
-  const updateData: any = { ...data };
-
-  // Pre-fill proposal_introduction if not already written
-  if (!existing?.proposal_introduction && data.brief_scope) {
-    updateData.proposal_introduction = data.brief_scope;
-  }
-
-  // Pre-fill scope_text if not already written
-  if (!existing?.scope_text && data.brief_scope) {
-    updateData.scope_text = data.brief_scope;
-  }
-
-  const { error } = await supabase.from("projects").update(updateData).eq("id", projectId);
+  const { error } = await supabase.rpc("save_phase1_brief", {
+    p_project_id: projectId,
+    p_brief: data,
+  });
   if (error) {
-    console.error("saveBriefAction update failed", { projectId, code: error.code });
+    console.error("saveBriefAction transaction failed", { projectId, code: error.code });
     return { success: false, error: "Could not save the brief. Your changes remain on screen; please retry." };
-  }
-
-  // Auto-scaffold estimate sections from selected trades if an estimate has no lines yet
-  if (data.brief_trade_sections?.length) {
-    const { data: activeEst, error: estimateError } = await supabase
-      .from("estimates")
-      .select("id, estimate_lines(id)")
-      .eq("project_id", projectId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
-    if (estimateError && estimateError.code !== "PGRST116") {
-      console.error("saveBriefAction estimate lookup failed", { projectId, code: estimateError.code });
-      return { success: false, error: "The brief saved, but estimate sections could not be checked. Please retry." };
-    }
-
-    if (activeEst && (!activeEst.estimate_lines || activeEst.estimate_lines.length === 0)) {
-      // Insert a placeholder line per trade section (no rate — just scaffolds the section)
-      const placeholders = data.brief_trade_sections.map((trade: string) => ({
-        estimate_id: activeEst.id,
-        trade_section: trade,
-        description: "",
-        quantity: 1,
-        unit: "item",
-        unit_rate: 0,
-        line_total: 0,
-        pricing_mode: "simple",
-      }));
-      const { error: lineError } = await supabase.from("estimate_lines").insert(placeholders);
-      if (lineError) {
-        console.error("saveBriefAction scaffold failed", { projectId, code: lineError.code });
-        return { success: false, error: "The brief saved, but estimate sections could not be created. Please retry." };
-      }
-    }
   }
 
   revalidatePath("/dashboard/projects/brief");

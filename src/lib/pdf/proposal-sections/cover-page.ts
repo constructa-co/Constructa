@@ -113,6 +113,7 @@ export function renderCoverPage(ctx: ProposalContext): void {
     // "inc. VAT" label is inaccurate — no VAT is charged. Show the
     // net sum with a "VAT REVERSE CHARGE" label instead.
     const isReverseCharge = project?.is_vat_reverse_charge === true;
+    const vatRate = Number(project?.vat_rate ?? 20);
     const statCols = [
         { label: "DATE ISSUED", value: formatDate(today) },
         { label: "VALID UNTIL", value: formatDate(validUntil) },
@@ -120,7 +121,7 @@ export function renderCoverPage(ctx: ProposalContext): void {
         ...(displayTotal > 0
             ? [{
                 label: isReverseCharge ? "CONTRACT VALUE (VAT REVERSE-CHARGED)" : "CONTRACT VALUE (inc. VAT)",
-                value: isReverseCharge ? formatGbp(displayTotal) : formatGbp(displayTotal * 1.2),
+                value: isReverseCharge ? formatGbp(displayTotal) : formatGbp(displayTotal * (1 + vatRate / 100)),
             }]
             : []),
     ];

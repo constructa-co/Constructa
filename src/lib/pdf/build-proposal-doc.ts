@@ -13,7 +13,7 @@
 import jsPDF from "jspdf";
 import { getPdfTheme } from "@/lib/pdf/pdf-theme";
 import { computeContractSum as canonicalComputeContractSum } from "@/lib/financial";
-import { extractScopeBulletsAction } from "@/app/dashboard/projects/proposal/actions";
+import type { ProposalPublicationSnapshot } from "@/lib/proposal-publication";
 
 import {
     type ProposalContext,
@@ -41,6 +41,81 @@ export interface BuildProposalPDFProps {
     validityDays: number;
 }
 
+export function scopeTextToBullets(scopeText: string): string[] {
+    const lines = scopeText
+        .split(/\n+/)
+        .map((line) => line.replace(/^\s*[-*\u2022]\s*/, "").trim())
+        .filter(Boolean);
+    const source = lines.length > 1
+        ? lines
+        : scopeText.split(/(?<=[.!?])\s+/).map((sentence) => sentence.trim()).filter(Boolean);
+    return source.slice(0, 12);
+}
+
+export function proposalSnapshotToPdfProps(
+    snapshot: ProposalPublicationSnapshot,
+    snapshotHash?: string,
+): BuildProposalPDFProps {
+    const estimate = {
+        id: snapshot.commercial.estimate_id,
+        version_name: snapshot.commercial.estimate_version_name,
+        is_active: true,
+        total_cost: snapshot.commercial.contract_sum_ex_vat,
+        prelims_pct: 0,
+        overhead_pct: 0,
+        risk_pct: 0,
+        profit_pct: 0,
+        discount_pct: 0,
+        estimate_lines: snapshot.commercial.fee_items.map((item) => ({
+            id: item.id,
+            trade_section: item.trade_section,
+            description: item.description,
+            quantity: item.quantity,
+            unit: item.unit,
+            unit_rate: item.quantity > 0 ? item.amount_ex_vat / item.quantity : item.amount_ex_vat,
+            line_total: item.amount_ex_vat,
+        })),
+    };
+    const project = {
+        ...snapshot.project,
+        proposal_introduction: snapshot.content.introduction,
+        scope_text: snapshot.content.scope,
+        exclusions_text: snapshot.content.exclusions,
+        clarifications_text: snapshot.content.clarifications,
+        closing_statement: snapshot.content.closing_statement,
+        potential_value: snapshot.commercial.contract_sum_ex_vat,
+        payment_schedule: snapshot.commercial.payment_schedule,
+        payment_schedule_type: snapshot.commercial.payment_schedule.some((row) => row.amount != null)
+            ? "milestone"
+            : "percentage",
+        gantt_phases: snapshot.programme,
+        tc_overrides: snapshot.terms.clauses.map((clause, index) => ({
+            clause_number: index + 1,
+            ...clause,
+        })),
+        proposal_sent_at: snapshot.publication.sent_at,
+        proposal_version_number: snapshot.publication.version_number,
+        proposal_snapshot_hash: snapshotHash ?? null,
+        response_mode: snapshot.publication.response_mode,
+        vat_rate: snapshot.commercial.vat_rate,
+        is_vat_reverse_charge: snapshot.commercial.vat_rate === 0,
+    };
+    return {
+        estimates: [estimate],
+        project,
+        profile: snapshot.contractor,
+        pricingMode: "full",
+        validityDays: snapshot.publication.validity_days,
+    };
+}
+
+export async function buildPublishedProposalPDF(
+    snapshot: ProposalPublicationSnapshot,
+    snapshotHash?: string,
+): Promise<void> {
+    return buildProposalPDF(proposalSnapshotToPdfProps(snapshot, snapshotHash));
+}
+
 // ── Main entry point ───────────────────────────────────────────────────────
 
 export async function buildProposalPDF({ estimates, project, profile, pricingMode, validityDays }: BuildProposalPDFProps): Promise<void> {
@@ -54,9 +129,11 @@ export async function buildProposalPDF({ estimates, project, profile, pricingMod
     const address = normaliseAddress(project?.site_address || project?.client_address || "");
     const clientAddress = normaliseAddress(project?.client_address || project?.site_address || "");
     const projectType = project?.project_type || "Construction Works";
-    const today = new Date();
-    const validUntil = new Date(Date.now() + validityDays * 86400000);
-    const refCode = (project?.id || "00000000").substring(0, 8).toUpperCase();
+    const today = project?.proposal_sent_at ? new Date(project.proposal_sent_at) : new Date();
+    const validUntil = new Date(today.getTime() + validityDays * 86400000);
+    const refCode = `${(project?.id || "00000000").substring(0, 8).toUpperCase()}${
+        project?.proposal_version_number ? `-V${project.proposal_version_number}` : ""
+    }`;
     const docTitle = `Proposal \u2014 ${projectName}`;
     const totalPagesRef = { n: 1 };
 
@@ -76,15 +153,9 @@ export async function buildProposalPDF({ estimates, project, profile, pricingMod
     const displayTotal = grandTotal > 0 ? grandTotal : (project?.potential_value || project?.contract_value || 0);
     const contractValue = project?.potential_value || grandTotal || 0;
 
-    // Extract scope bullets via AI if scope text is substantial
-    let scopeBullets: string[] = [];
-    if (project?.scope_text && project.scope_text.length > 100) {
-        try {
-            scopeBullets = await extractScopeBulletsAction(project.scope_text);
-        } catch {
-            scopeBullets = [];
-        }
-    }
+    // PDF generation must be deterministic: drafting-time AI may populate the
+    // saved scope, but rendering never calls a model or changes wording.
+    const scopeBullets = project?.scope_text ? scopeTextToBullets(project.scope_text) : [];
 
     // Build shared context
     const ctx: ProposalContext = {

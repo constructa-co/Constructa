@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2, RefreshCw, FileDown, Send, History } from "lucide-react";
-import { saveProposalAction, generateAiScopeAction, sendProposalAction, getProposalLinkAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction, updatePaymentScheduleTypeAction, generateClosingStatementAction, saveClosingStatementAction, saveProposalOverridesAction, createProposalVersionAction, type ProposalVersionRow } from "./actions";
+import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2, RefreshCw, FileDown, Send } from "lucide-react";
+import { saveProposalAction, generateAiScopeAction, sendProposalAction, getProposalLinkAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction, updatePaymentScheduleTypeAction, generateClosingStatementAction, saveClosingStatementAction, saveProposalOverridesAction } from "./actions";
 import { createLatestWriteQueue } from "@/lib/latest-write-queue";
 // Sprint 58 P3.4 — delegate the QS math to the canonical helper so the
 // editor can never silently diverge from the proposal PDF, billing page,
@@ -12,25 +12,13 @@ import { createLatestWriteQueue } from "@/lib/latest-write-queue";
 // pin the math and any regression here fails CI.
 import { computeContractSum } from "@/lib/financial";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
-import VersionHistoryPanel from "./version-history-panel";
+import PublicationHistoryPanel, { type ProposalPublicationHistoryRow } from "./publication-history-panel";
 import ProposalPdfButton from "./proposal-pdf-button";
 import AiWizard from "./ai-wizard";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-
-// Standard 9 T&C clauses
-const STANDARD_CLAUSES = [
-    { clause_number: 1, title: "Jurisdiction", body: "The law of Contract is the Law of England and Wales. The Language of this Contract is English." },
-    { clause_number: 2, title: "Responsibilities", body: "The Works are detailed within the Scope of Works attached to this Proposal. All Works are to meet Statutory Requirements, including all applicable British and European Standards, and industry best practices." },
-    { clause_number: 3, title: "Alternative Dispute Resolution", body: "Should any dispute arise which cannot be resolved by negotiation, escalation shall be via Adjudication. The Adjudicating Nominated Body is the Royal Institute of Chartered Surveyors (RICS), under the RICS Homeowner Adjudication Scheme." },
-    { clause_number: 4, title: "Liability", body: "The Defect Liability Period is 12 months from the date of Completion Certificate. Any Defects notified within the Defect Period are to be promptly rectified by the Contractor." },
-    { clause_number: 5, title: "Workmanship", body: "All Works are to be performed using reasonable skill and care to that of a competent Contractor with experience on projects of similar size and scope." },
-    { clause_number: 6, title: "Insurances", body: "The Contractor shall maintain throughout the Works: Public Liability Insurance; Employers Liability Insurance; Contractors All Risk Insurance. Evidence of current policies available on request." },
-    { clause_number: 7, title: "Payments", body: "Payment dates are 21 Calendar days from receipt of Application. Any deductions by the Client must be formally notified as a 'Pay-Less-Notice' no later than 7 days following receipt of Application." },
-    { clause_number: 8, title: "Change Management", body: "Any Variations to the Scope must be issued in writing. The Contractor will respond within 7 Calendar days with any Cost and/or Time implications." },
-    { clause_number: 9, title: "Health, Safety & CDM", body: "The Client is a Domestic Client under the Construction Design Management (CDM) Regulations 2015. The Contractor shall act as Principal Contractor and comply with all CDM requirements." },
-];
+import { STANDARD_PROPOSAL_TERMS } from "@/lib/proposal-terms";
 
 // Auto-assigned phase colours cycling by index
 const AUTO_COLORS = ["blue", "green", "orange", "purple", "slate", "teal"];
@@ -96,8 +84,8 @@ interface Props {
     project: any;
     profile: any;
     estimatedTotal?: number;
-    proposalVersions?: ProposalVersionRow[];
-    currentVersionNumber?: number;
+    publicationHistory?: ProposalPublicationHistoryRow[];
+    currentPublicationVersion?: number | null;
 }
 
 const MILESTONE_TRIGGERS = [
@@ -211,9 +199,13 @@ export default function ClientEditor({
     project,
     profile,
     estimatedTotal = 0,
-    proposalVersions = [],
-    currentVersionNumber = 1,
+    publicationHistory = [],
+    currentPublicationVersion = null,
 }: Props) {
+    const initialProposalStatus = project?.proposal_accepted_at ? "Accepted" : project?.proposal_sent_at ? "Sent" : "Draft";
+    const [proposalStatus, setProposalStatus] = useState(initialProposalStatus);
+    const [publishedVersion, setPublishedVersion] = useState<number | null>(currentPublicationVersion);
+
     // Pre-fill from Brief/Contracts if proposal fields are empty
     const [introduction, setIntroduction] = useState(
         project?.proposal_introduction || initialBriefScope || ""
@@ -266,7 +258,7 @@ export default function ClientEditor({
 
     const [useCustomTc, setUseCustomTc] = useState(!!project?.tc_overrides);
     const [tcOverrides, setTcOverrides] = useState<TcOverride[]>(
-        project?.tc_overrides || STANDARD_CLAUSES.map(c => ({ ...c }))
+        project?.tc_overrides || STANDARD_PROPOSAL_TERMS.map(c => ({ ...c }))
     );
 
     const [sitePhotos, setSitePhotos] = useState<SitePhoto[]>(
@@ -481,40 +473,6 @@ export default function ClientEditor({
         }
     };
 
-    // ── Version state ──────────────────────────────────────────────────────────
-    const [localVersions, setLocalVersions] = useState<ProposalVersionRow[]>(proposalVersions);
-    const [localCurrentVersion, setLocalCurrentVersion] = useState(currentVersionNumber);
-    const [showVersionDialog, setShowVersionDialog] = useState(false);
-    const [versionNotes, setVersionNotes] = useState("");
-    const [savingVersion, setSavingVersion] = useState(false);
-
-    const handleSaveVersion = async () => {
-        setSavingVersion(true);
-        try {
-            const res = await createProposalVersionAction(projectId, versionNotes);
-            if (res.success && res.version_number) {
-                // Optimistically add a placeholder version row so UI updates instantly
-                const newVersion: ProposalVersionRow = {
-                    id: crypto.randomUUID(),
-                    project_id: projectId,
-                    version_number: res.version_number,
-                    notes: versionNotes.trim() || null,
-                    snapshot: {},
-                    created_at: new Date().toISOString(),
-                };
-                setLocalVersions(prev => [newVersion, ...prev]);
-                setLocalCurrentVersion(res.version_number!);
-                setVersionNotes("");
-                setShowVersionDialog(false);
-                toast.success(`Saved as v${res.version_number}`);
-            } else {
-                toast.error(res.error || "Failed to save version");
-            }
-        } finally {
-            setSavingVersion(false);
-        }
-    };
-
     const [generatingClarifications, setGeneratingClarifications] = useState(false);
     const [generatingExclusions, setGeneratingExclusions] = useState(false);
 
@@ -549,24 +507,58 @@ export default function ClientEditor({
 
     const handleCopyLink = async () => {
         setSending(true);
-        const result = await getProposalLinkAction(projectId);
-        if (result?.url) {
+        try {
+            const savedDraft = await persistProposal(buildProposalFormData());
+            if (!savedDraft?.success) {
+                toast.error(savedDraft?.error || "Save failed. The proposal was not published.");
+                return;
+            }
+            const result = await getProposalLinkAction(projectId);
+            if (!result?.success || !result.url) {
+                toast.error(result?.error || "The proposal could not be published.");
+                return;
+            }
             await navigator.clipboard.writeText(result.url);
+            setProposalStatus("Sent");
+            setPublishedVersion(result.versionNumber);
             setLinkCopied(true);
+            toast.success(`Proposal v${result.versionNumber} published and copied`);
             setTimeout(() => setLinkCopied(false), 3000);
+        } catch {
+            toast.error("The proposal could not be published. Please retry.");
+        } finally {
+            setSending(false);
         }
-        setSending(false);
     };
 
     const handleSendEmail = async () => {
         setSending(true);
-        const result = await sendProposalAction(projectId);
-        setSending(false);
-        if (!result?.url) return;
+        let result: Awaited<ReturnType<typeof sendProposalAction>> | undefined;
+        try {
+            const savedDraft = await persistProposal(buildProposalFormData());
+            if (!savedDraft?.success) {
+                toast.error(savedDraft?.error || "Save failed. The proposal was not published.");
+                return;
+            }
+            result = await sendProposalAction(projectId);
+        } catch {
+            toast.error("The proposal could not be published. Please retry.");
+            return;
+        } finally {
+            setSending(false);
+        }
+        if (!result?.success || !result.url) {
+            toast.error(result?.error || "The proposal could not be published.");
+            return;
+        }
+
+        setProposalStatus("Sent");
+        setPublishedVersion(result.versionNumber);
 
         if (result.hasClientEmail) {
             // Resend handled it server-side — show confirmation
             setEmailSent(true);
+            toast.success(`Proposal v${result.versionNumber} published and queued for email`);
             setTimeout(() => setEmailSent(false), 4000);
         } else {
             // No client email on file — fall back to mailto
@@ -574,9 +566,9 @@ export default function ClientEditor({
             const projectName = project?.name || "your project";
             const subject = encodeURIComponent(`Your Proposal — ${projectName}`);
             const body = encodeURIComponent(
-                `Dear ${clientName},\n\nPlease find your proposal for ${projectName} at the link below:\n\n${result.url}\n\nYou can review the full scope, pricing, and programme, and confirm your acceptance directly through the link.\n\nPlease don't hesitate to get in touch if you have any questions.\n\nKind regards`
+                `Dear ${clientName},\n\nPlease find your proposal for ${projectName} at the link below:\n\n${result.url}\n\nYou can review the full scope, pricing, programme, and terms, then acknowledge receipt through the link.\n\nPlease don't hesitate to get in touch if you have any questions.\n\nKind regards`
             );
-            window.location.href = `mailto:?subject=${subject}&body=${body}`;
+            window.location.assign(`mailto:?subject=${subject}&body=${body}`);
         }
     };
 
@@ -706,7 +698,7 @@ export default function ClientEditor({
     const updateTcClause = (n: number, field: "body" | "title", value: string) =>
         setTcOverrides(prev => prev.map(c => c.clause_number === n ? { ...c, [field]: value } : c));
     const resetTcClause = (n: number) => {
-        const std = STANDARD_CLAUSES.find(c => c.clause_number === n);
+        const std = STANDARD_PROPOSAL_TERMS.find(c => c.clause_number === n);
         if (std) setTcOverrides(prev => prev.map(c => c.clause_number === n ? { ...c, body: std.body, title: std.title, hidden: false } : c));
     };
     const hideTcClause = (n: number) =>
@@ -788,8 +780,6 @@ export default function ClientEditor({
 
     const profileComplete = !!(profile?.company_name);
     const profileIncomplete = !profile?.company_name || !profile?.capability_statement || (profile?.capability_statement?.length || 0) < 30;
-    const proposalStatus = project?.proposal_accepted_at ? "Accepted" : project?.proposal_sent_at ? "Sent" : "Draft";
-
     return (
         <div className="grid lg:grid-cols-3 gap-8 items-start pb-20">
             {/* ── AI Wizard Modal ── */}
@@ -1485,7 +1475,7 @@ export default function ClientEditor({
                         <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status</span>
                             <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-400">
-                                v{localCurrentVersion}
+                                {publishedVersion ? `Published v${publishedVersion}` : "Not published"}
                             </span>
                         </div>
                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
@@ -1571,50 +1561,6 @@ export default function ClientEditor({
                         )}
                     </button>
 
-                    {/* Save Version Button */}
-                    <button
-                        type="button"
-                        onClick={() => setShowVersionDialog(true)}
-                        className="w-full h-10 bg-amber-950/30 hover:bg-amber-950/50 border border-amber-700/40 text-amber-400 hover:text-amber-300 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 text-sm"
-                    >
-                        <History className="w-4 h-4" />
-                        Save Version (v{localCurrentVersion + 1})
-                    </button>
-
-                    {/* Version dialog */}
-                    {showVersionDialog && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                            <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-                                <h3 className="text-base font-bold text-slate-100 mb-1">Save Version v{localCurrentVersion + 1}</h3>
-                                <p className="text-xs text-slate-400 mb-4">
-                                    Creates a snapshot of the current proposal so you can restore it later.
-                                </p>
-                                <textarea
-                                    value={versionNotes}
-                                    onChange={(e) => setVersionNotes(e.target.value)}
-                                    placeholder="Version notes (optional) — e.g. 'Revised pricing after client call'"
-                                    rows={3}
-                                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none mb-4"
-                                />
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={() => { setShowVersionDialog(false); setVersionNotes(""); }}
-                                        className="flex-1 h-10 rounded-xl border border-slate-700 text-slate-400 hover:text-slate-200 text-sm font-medium transition-colors"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handleSaveVersion}
-                                        disabled={savingVersion}
-                                        className="flex-1 h-10 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-black font-bold text-sm transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        {savingVersion ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : "Save Version"}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                     {/* Copy Link Button */}
                     <button
                         type="button"
@@ -1623,11 +1569,11 @@ export default function ClientEditor({
                         className="w-full h-12 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 rounded-xl font-bold transition-all flex items-center justify-center gap-2"
                     >
                         {sending ? (
-                            <><Loader2 className="w-4 h-4 animate-spin" /> Getting link...</>
+                            <><Loader2 className="w-4 h-4 animate-spin" /> Publishing...</>
                         ) : linkCopied ? (
                             <><Check className="w-4 h-4 text-green-400" /> Link Copied!</>
                         ) : (
-                            <><Copy className="w-4 h-4" /> Copy Proposal Link</>
+                            <><Copy className="w-4 h-4" /> {proposalStatus === "Sent" ? "Publish New Version & Copy Link" : "Publish & Copy Link"}</>
                         )}
                     </button>
 
@@ -1643,7 +1589,7 @@ export default function ClientEditor({
                         ) : emailSent ? (
                             <><Check className="w-4 h-4 text-green-400" /> Email Sent!</>
                         ) : (
-                            <><Send className="w-4 h-4" /> Send Proposal via Email</>
+                            <><Send className="w-4 h-4" /> {proposalStatus === "Sent" ? "Publish New Version & Email" : "Publish & Send via Email"}</>
                         )}
                     </button>
 
@@ -1713,14 +1659,9 @@ export default function ClientEditor({
                         </div>
                     </div>
 
-                    {/* Version History Panel */}
-                    {localVersions.length > 0 && (
-                        <VersionHistoryPanel
-                            projectId={projectId}
-                            versions={localVersions}
-                            currentVersionNumber={localCurrentVersion}
-                            onRestored={() => window.location.reload()}
-                        />
+                    {/* Sent publications are immutable; draft edits never alter this history. */}
+                    {publicationHistory.length > 0 && (
+                        <PublicationHistoryPanel publications={publicationHistory} />
                     )}
                 </div>
             </div>

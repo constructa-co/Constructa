@@ -5,7 +5,12 @@ import { FileDown, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { buildProposalPDF, type BuildProposalPDFProps } from "@/lib/pdf/build-proposal-doc";
+import {
+    buildProposalPDF,
+    buildPublishedProposalPDF,
+    type BuildProposalPDFProps,
+} from "@/lib/pdf/build-proposal-doc";
+import { getCurrentProposalPublicationAction } from "./actions";
 
 interface Props {
     estimates: any[];
@@ -21,6 +26,13 @@ export default function ProposalPdfButton({ estimates, project, profile, pricing
     const generatePDF = async () => {
         setGenerating(true);
         try {
+            const publication = await getCurrentProposalPublicationAction(project.id);
+            if (publication.success) {
+                await buildPublishedProposalPDF(publication.snapshot, publication.snapshotHash);
+                toast.success("Published proposal PDF generated");
+                return;
+            }
+
             // Fetch fresh profile so pdf_theme reflects current saved value
             const supabase = createClient();
             const { data: freshProfile } = await supabase
@@ -30,7 +42,7 @@ export default function ProposalPdfButton({ estimates, project, profile, pricing
                 .single();
             const effectiveProfile = freshProfile ?? profile;
             await buildProposalPDF({ estimates, project, profile: effectiveProfile, pricingMode, validityDays });
-            toast.success("PDF generated successfully");
+            toast.info("Draft PDF preview generated. Publish before issuing it to a client.");
         } catch (err) {
             console.error("[PDF Generation Error]", err);
             toast.error(
@@ -54,7 +66,7 @@ export default function ProposalPdfButton({ estimates, project, profile, pricing
             ) : (
                 <FileDown className="w-4 h-4" />
             )}
-            {generating ? "Generating PDF..." : "Generate PDF"}
+            {generating ? "Generating PDF..." : project?.proposal_sent_at ? "Download Published PDF" : "Preview Draft PDF"}
         </Button>
     );
 }

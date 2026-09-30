@@ -76,7 +76,8 @@ export function renderScopeAndPhotos(ctx: ProposalContext): void {
     const startDate = project?.start_date ? formatDate(new Date(project.start_date)) : "TBC";
 
     // P1-1 — Domestic Reverse Charge changes the "Total inc. VAT" row.
-    const isReverseCharge = project?.is_vat_reverse_charge === true;
+        const isReverseCharge = project?.is_vat_reverse_charge === true;
+        const vatRate = Number(project?.vat_rate ?? 20);
     const overviewData = [
         ["Project", projectName],
         ["Client", clientName],
@@ -86,7 +87,7 @@ export function renderScopeAndPhotos(ctx: ProposalContext): void {
         ...(displayTotal > 0
             ? (isReverseCharge
                 ? [["Contract Sum (net)", formatGbp(displayTotal)], ["VAT", "Reverse Charge (customer accounts)"]]
-                : [["Contract Sum (exc. VAT)", formatGbp(displayTotal)], ["Total inc. VAT", formatGbp(displayTotal * 1.2)]])
+                : [["Contract Sum (exc. VAT)", formatGbp(displayTotal)], ["Total inc. VAT", formatGbp(displayTotal * (1 + vatRate / 100))]])
             : []),
     ];
 

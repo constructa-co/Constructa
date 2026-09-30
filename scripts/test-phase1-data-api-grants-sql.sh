@@ -114,6 +114,11 @@ INSERT INTO public.organization_members (organization_id, user_id)
 VALUES ('00000000-0000-0000-0000-000000000001',
         '10000000-0000-0000-0000-000000000001');
 
+-- Historical column ACLs must also be removed by the table-level revocation.
+GRANT SELECT (id) ON public.projects TO anon;
+GRANT SELECT (id) ON public.labour_rates TO PUBLIC;
+GRANT UPDATE (is_system_default) ON public.rate_buildups TO authenticated;
+
 -- Prove this migration supplies the current service-role disposition rather
 -- than passing only because the modelled platform defaults already did.
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM service_role;
@@ -136,6 +141,24 @@ AS $$
       COALESCE(c.relacl, acldefault('r', c.relowner))
     ) AS acl
     WHERE c.oid = relation_name::regclass
+      AND acl.grantee = 0
+      AND acl.privilege_type = requested_privilege
+  )
+$$;
+
+CREATE FUNCTION pg_temp.public_has_column_privilege(
+  relation_name text,
+  column_number smallint,
+  requested_privilege text
+) RETURNS boolean
+LANGUAGE sql STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM pg_attribute AS a
+    CROSS JOIN LATERAL aclexplode(a.attacl) AS acl
+    WHERE a.attrelid = relation_name::regclass
+      AND a.attnum = column_number
       AND acl.grantee = 0
       AND acl.privilege_type = requested_privilege
   )
@@ -212,29 +235,79 @@ $$;
 
 DO $$
 DECLARE
+  role_name text;
+  table_name text;
   column_name text;
+  column_number smallint;
+  privilege_name text;
   expected boolean;
   actual boolean;
 BEGIN
-  FOREACH column_name IN ARRAY ARRAY[
-    'id', 'organization_id', 'name', 'unit', 'built_up_rate',
-    'trade_section', 'components', 'total_manhours_per_unit',
-    'usage_count', 'is_system_default', 'created_at'
-  ] LOOP
-    expected := column_name = ANY (ARRAY[
-      'organization_id', 'name', 'unit', 'built_up_rate',
-      'trade_section', 'components', 'total_manhours_per_unit'
-    ]);
-    actual := has_column_privilege(
-      'authenticated',
-      'public.rate_buildups',
-      column_name,
-      'INSERT'
-    );
-    IF actual IS DISTINCT FROM expected THEN
-      RAISE EXCEPTION 'rate_buildups INSERT mismatch: column=%, expected=%, actual=%',
-        column_name, expected, actual;
-    END IF;
+  FOREACH role_name IN ARRAY ARRAY['PUBLIC', 'anon', 'authenticated', 'service_role'] LOOP
+    FOREACH table_name IN ARRAY ARRAY[
+      'profiles', 'organizations', 'organization_members', 'projects',
+      'estimates', 'estimate_lines', 'estimate_line_components',
+      'rate_buildups', 'cost_library_items', 'labour_rates',
+      'estimate_dependencies', 'proposal_publications',
+      'proposal_publication_events', 'proposal_delivery_attempts'
+    ] LOOP
+      FOR column_name, column_number IN
+        SELECT attname, attnum
+        FROM pg_attribute
+        WHERE attrelid = ('public.' || table_name)::regclass
+          AND attnum > 0
+          AND NOT attisdropped
+        ORDER BY attnum
+      LOOP
+        FOREACH privilege_name IN ARRAY ARRAY['SELECT', 'INSERT', 'UPDATE', 'REFERENCES'] LOOP
+          expected := role_name = 'service_role'
+            OR (
+              role_name = 'authenticated' AND CASE table_name
+                WHEN 'profiles' THEN privilege_name = ANY (ARRAY['SELECT', 'INSERT', 'UPDATE'])
+                WHEN 'organization_members' THEN privilege_name = 'SELECT'
+                WHEN 'projects' THEN privilege_name = ANY (ARRAY['SELECT', 'INSERT', 'UPDATE'])
+                WHEN 'estimates' THEN privilege_name = ANY (ARRAY['SELECT', 'INSERT', 'UPDATE'])
+                WHEN 'estimate_lines' THEN privilege_name = ANY (ARRAY['SELECT', 'INSERT', 'UPDATE'])
+                WHEN 'estimate_line_components' THEN privilege_name = ANY (ARRAY['SELECT', 'INSERT', 'UPDATE'])
+                WHEN 'rate_buildups' THEN
+                  privilege_name = 'SELECT'
+                  OR (
+                    privilege_name = 'INSERT'
+                    AND column_name = ANY (ARRAY[
+                      'organization_id', 'name', 'unit', 'built_up_rate',
+                      'trade_section', 'components', 'total_manhours_per_unit'
+                    ])
+                  )
+                WHEN 'cost_library_items' THEN privilege_name = 'SELECT'
+                WHEN 'labour_rates' THEN privilege_name = 'SELECT'
+                WHEN 'estimate_dependencies' THEN privilege_name = ANY (ARRAY['SELECT', 'INSERT'])
+                WHEN 'proposal_publications' THEN privilege_name = 'SELECT'
+                ELSE false
+              END
+            );
+
+          IF role_name = 'PUBLIC' THEN
+            actual := pg_temp.public_has_column_privilege(
+              'public.' || table_name,
+              column_number,
+              privilege_name
+            );
+          ELSE
+            actual := has_column_privilege(
+              role_name,
+              'public.' || table_name,
+              column_name,
+              privilege_name
+            );
+          END IF;
+
+          IF actual IS DISTINCT FROM expected THEN
+            RAISE EXCEPTION 'column privilege mismatch: role=%, table=%, column=%, privilege=%, expected=%, actual=%',
+              role_name, table_name, column_name, privilege_name, expected, actual;
+          END IF;
+        END LOOP;
+      END LOOP;
+    END LOOP;
   END LOOP;
 END;
 $$;
@@ -339,43 +412,49 @@ CREATE TABLE public.future_table_must_be_explicit (
 DO $$
 DECLARE
   role_name text;
+  privilege_name text;
+  actual boolean;
+  expected boolean;
 BEGIN
-  FOREACH role_name IN ARRAY ARRAY['anon', 'authenticated'] LOOP
-    IF has_function_privilege(
+  FOREACH role_name IN ARRAY ARRAY['anon', 'authenticated', 'service_role'] LOOP
+    expected := role_name = 'service_role';
+    actual := has_function_privilege(
       role_name,
       'public.future_object_must_be_explicit()',
       'EXECUTE'
-    ) THEN
-      RAISE EXCEPTION 'future function inherited browser execution privilege: %', role_name;
+    );
+    IF actual IS DISTINCT FROM expected THEN
+      RAISE EXCEPTION 'future function privilege mismatch: role=%, expected=%, actual=%',
+        role_name, expected, actual;
     END IF;
-    IF has_table_privilege(
-      role_name,
-      'public.future_table_must_be_explicit',
-      'SELECT'
-    ) OR has_sequence_privilege(
-      role_name,
-      'public.future_table_must_be_explicit_id_seq',
-      'USAGE'
-    ) THEN
-      RAISE EXCEPTION 'future table or sequence inherited browser privilege: %', role_name;
-    END IF;
-  END LOOP;
 
-  IF NOT has_function_privilege(
-    'service_role',
-    'public.future_object_must_be_explicit()',
-    'EXECUTE'
-  ) OR NOT has_table_privilege(
-    'service_role',
-    'public.future_table_must_be_explicit',
-    'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'
-  ) OR NOT has_sequence_privilege(
-    'service_role',
-    'public.future_table_must_be_explicit_id_seq',
-    'USAGE,SELECT,UPDATE'
-  ) THEN
-    RAISE EXCEPTION 'future service_role privileges are incomplete';
-  END IF;
+    FOREACH privilege_name IN ARRAY ARRAY[
+      'SELECT', 'INSERT', 'UPDATE', 'DELETE',
+      'TRUNCATE', 'REFERENCES', 'TRIGGER'
+    ] LOOP
+      actual := has_table_privilege(
+        role_name,
+        'public.future_table_must_be_explicit',
+        privilege_name
+      );
+      IF actual IS DISTINCT FROM expected THEN
+        RAISE EXCEPTION 'future table privilege mismatch: role=%, privilege=%, expected=%, actual=%',
+          role_name, privilege_name, expected, actual;
+      END IF;
+    END LOOP;
+
+    FOREACH privilege_name IN ARRAY ARRAY['USAGE', 'SELECT', 'UPDATE'] LOOP
+      actual := has_sequence_privilege(
+        role_name,
+        'public.future_table_must_be_explicit_id_seq',
+        privilege_name
+      );
+      IF actual IS DISTINCT FROM expected THEN
+        RAISE EXCEPTION 'future sequence privilege mismatch: role=%, privilege=%, expected=%, actual=%',
+          role_name, privilege_name, expected, actual;
+      END IF;
+    END LOOP;
+  END LOOP;
 END;
 $$;
 SQL

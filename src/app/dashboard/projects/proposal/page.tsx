@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import ProjectNavBar from "@/components/project-navbar";
 import ClientEditor from "./client-editor";
 import ProjectPicker from "@/components/project-picker";
-import type { ProposalVersionRow } from "./actions";
+import type { ProposalPublicationHistoryRow } from "./publication-history-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -61,10 +61,10 @@ export default async function ProposalPage(props: { searchParams: Promise<{ proj
         .eq("id", user.id)
         .single();
 
-    // Fetch proposal version history (newest first)
-    const { data: versions } = await supabase
-        .from("proposal_versions")
-        .select("id, project_id, version_number, notes, snapshot, created_at")
+    // Published history is immutable and distinct from the editable draft.
+    const { data: publications } = await supabase
+        .from("proposal_publications")
+        .select("id, version_number, status, sent_at, expires_at, first_viewed_at, responded_at, responded_by, superseded_by, snapshot_hash")
         .eq("project_id", projectId)
         .order("version_number", { ascending: false });
 
@@ -93,8 +93,8 @@ export default async function ProposalPage(props: { searchParams: Promise<{ proj
                 project={project}
                 profile={profile}
                 estimatedTotal={estimatedTotal}
-                proposalVersions={(versions || []) as ProposalVersionRow[]}
-                currentVersionNumber={project?.current_version_number ?? 1}
+                publicationHistory={(publications || []) as ProposalPublicationHistoryRow[]}
+                currentPublicationVersion={publications?.[0]?.version_number ?? null}
             />
         </div>
     );

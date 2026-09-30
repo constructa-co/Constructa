@@ -13,6 +13,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:proposal-sql": "bash scripts/test-proposal-publication-sql.sh",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },

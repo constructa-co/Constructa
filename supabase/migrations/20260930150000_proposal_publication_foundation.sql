@@ -584,18 +584,12 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
-    v_actor uuid := auth.uid();
     v_delivery public.proposal_delivery_attempts%ROWTYPE;
 BEGIN
-    IF v_actor IS NULL THEN
-        RAISE EXCEPTION 'Authentication required.' USING ERRCODE = '42501';
-    END IF;
-
     SELECT delivery.*
       INTO v_delivery
       FROM public.proposal_delivery_attempts delivery
      WHERE delivery.id = p_delivery_id
-       AND delivery.owner_user_id = v_actor
      FOR UPDATE;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'Delivery record not found.' USING ERRCODE = 'P0002';
@@ -639,9 +633,9 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION public.record_proposal_delivery_attempt(uuid, boolean, text, text)
-    FROM PUBLIC, anon;
+    FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.record_proposal_delivery_attempt(uuid, boolean, text, text)
-    TO authenticated, service_role;
+    TO service_role;
 
 CREATE OR REPLACE FUNCTION public.resolve_proposal_publication(
     p_token_hash text,

@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2, RefreshCw, FileDown, Send, History } from "lucide-react";
-import { saveProposalAction, generateAiScopeAction, sendProposalAction, getProposalLinkAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction, updatePaymentScheduleTypeAction, generateClosingStatementAction, saveClosingStatementAction, saveProposalOverridesAction, createProposalVersionAction, type ProposalVersionRow } from "./actions";
+import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2, RefreshCw, FileDown, Send } from "lucide-react";
+import { saveProposalAction, generateAiScopeAction, sendProposalAction, getProposalLinkAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction, updatePaymentScheduleTypeAction, generateClosingStatementAction, saveClosingStatementAction, saveProposalOverridesAction } from "./actions";
 import { createLatestWriteQueue } from "@/lib/latest-write-queue";
 // Sprint 58 P3.4 — delegate the QS math to the canonical helper so the
 // editor can never silently diverge from the proposal PDF, billing page,
@@ -12,7 +12,7 @@ import { createLatestWriteQueue } from "@/lib/latest-write-queue";
 // pin the math and any regression here fails CI.
 import { computeContractSum } from "@/lib/financial";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
-import VersionHistoryPanel from "./version-history-panel";
+import PublicationHistoryPanel, { type ProposalPublicationHistoryRow } from "./publication-history-panel";
 import ProposalPdfButton from "./proposal-pdf-button";
 import AiWizard from "./ai-wizard";
 import Link from "next/link";
@@ -84,8 +84,8 @@ interface Props {
     project: any;
     profile: any;
     estimatedTotal?: number;
-    proposalVersions?: ProposalVersionRow[];
-    currentVersionNumber?: number;
+    publicationHistory?: ProposalPublicationHistoryRow[];
+    currentPublicationVersion?: number | null;
 }
 
 const MILESTONE_TRIGGERS = [
@@ -199,9 +199,13 @@ export default function ClientEditor({
     project,
     profile,
     estimatedTotal = 0,
-    proposalVersions = [],
-    currentVersionNumber = 1,
+    publicationHistory = [],
+    currentPublicationVersion = null,
 }: Props) {
+    const initialProposalStatus = project?.proposal_accepted_at ? "Accepted" : project?.proposal_sent_at ? "Sent" : "Draft";
+    const [proposalStatus, setProposalStatus] = useState(initialProposalStatus);
+    const [publishedVersion, setPublishedVersion] = useState<number | null>(currentPublicationVersion);
+
     // Pre-fill from Brief/Contracts if proposal fields are empty
     const [introduction, setIntroduction] = useState(
         project?.proposal_introduction || initialBriefScope || ""
@@ -469,40 +473,6 @@ export default function ClientEditor({
         }
     };
 
-    // ── Version state ──────────────────────────────────────────────────────────
-    const [localVersions, setLocalVersions] = useState<ProposalVersionRow[]>(proposalVersions);
-    const [localCurrentVersion, setLocalCurrentVersion] = useState(currentVersionNumber);
-    const [showVersionDialog, setShowVersionDialog] = useState(false);
-    const [versionNotes, setVersionNotes] = useState("");
-    const [savingVersion, setSavingVersion] = useState(false);
-
-    const handleSaveVersion = async () => {
-        setSavingVersion(true);
-        try {
-            const res = await createProposalVersionAction(projectId, versionNotes);
-            if (res.success && res.version_number) {
-                // Optimistically add a placeholder version row so UI updates instantly
-                const newVersion: ProposalVersionRow = {
-                    id: crypto.randomUUID(),
-                    project_id: projectId,
-                    version_number: res.version_number,
-                    notes: versionNotes.trim() || null,
-                    snapshot: {},
-                    created_at: new Date().toISOString(),
-                };
-                setLocalVersions(prev => [newVersion, ...prev]);
-                setLocalCurrentVersion(res.version_number!);
-                setVersionNotes("");
-                setShowVersionDialog(false);
-                toast.success(`Saved as v${res.version_number}`);
-            } else {
-                toast.error(res.error || "Failed to save version");
-            }
-        } finally {
-            setSavingVersion(false);
-        }
-    };
-
     const [generatingClarifications, setGeneratingClarifications] = useState(false);
     const [generatingExclusions, setGeneratingExclusions] = useState(false);
 
@@ -549,6 +519,8 @@ export default function ClientEditor({
                 return;
             }
             await navigator.clipboard.writeText(result.url);
+            setProposalStatus("Sent");
+            setPublishedVersion(result.versionNumber);
             setLinkCopied(true);
             toast.success(`Proposal v${result.versionNumber} published and copied`);
             setTimeout(() => setLinkCopied(false), 3000);
@@ -579,6 +551,9 @@ export default function ClientEditor({
             toast.error(result?.error || "The proposal could not be published.");
             return;
         }
+
+        setProposalStatus("Sent");
+        setPublishedVersion(result.versionNumber);
 
         if (result.hasClientEmail) {
             // Resend handled it server-side — show confirmation
@@ -805,8 +780,6 @@ export default function ClientEditor({
 
     const profileComplete = !!(profile?.company_name);
     const profileIncomplete = !profile?.company_name || !profile?.capability_statement || (profile?.capability_statement?.length || 0) < 30;
-    const proposalStatus = project?.proposal_accepted_at ? "Accepted" : project?.proposal_sent_at ? "Sent" : "Draft";
-
     return (
         <div className="grid lg:grid-cols-3 gap-8 items-start pb-20">
             {/* ── AI Wizard Modal ── */}
@@ -1502,7 +1475,7 @@ export default function ClientEditor({
                         <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status</span>
                             <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-400">
-                                v{localCurrentVersion}
+                                {publishedVersion ? `Published v${publishedVersion}` : "Not published"}
                             </span>
                         </div>
                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
@@ -1587,50 +1560,6 @@ export default function ClientEditor({
                             <><Save className="w-4 h-4" /> Save Proposal</>
                         )}
                     </button>
-
-                    {/* Save Version Button */}
-                    <button
-                        type="button"
-                        onClick={() => setShowVersionDialog(true)}
-                        className="w-full h-10 bg-amber-950/30 hover:bg-amber-950/50 border border-amber-700/40 text-amber-400 hover:text-amber-300 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 text-sm"
-                    >
-                        <History className="w-4 h-4" />
-                        Save Version (v{localCurrentVersion + 1})
-                    </button>
-
-                    {/* Version dialog */}
-                    {showVersionDialog && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                            <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-                                <h3 className="text-base font-bold text-slate-100 mb-1">Save Version v{localCurrentVersion + 1}</h3>
-                                <p className="text-xs text-slate-400 mb-4">
-                                    Creates a snapshot of the current proposal so you can restore it later.
-                                </p>
-                                <textarea
-                                    value={versionNotes}
-                                    onChange={(e) => setVersionNotes(e.target.value)}
-                                    placeholder="Version notes (optional) — e.g. 'Revised pricing after client call'"
-                                    rows={3}
-                                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none mb-4"
-                                />
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={() => { setShowVersionDialog(false); setVersionNotes(""); }}
-                                        className="flex-1 h-10 rounded-xl border border-slate-700 text-slate-400 hover:text-slate-200 text-sm font-medium transition-colors"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handleSaveVersion}
-                                        disabled={savingVersion}
-                                        className="flex-1 h-10 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-black font-bold text-sm transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        {savingVersion ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : "Save Version"}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
                     {/* Copy Link Button */}
                     <button
@@ -1730,14 +1659,9 @@ export default function ClientEditor({
                         </div>
                     </div>
 
-                    {/* Version History Panel */}
-                    {localVersions.length > 0 && (
-                        <VersionHistoryPanel
-                            projectId={projectId}
-                            versions={localVersions}
-                            currentVersionNumber={localCurrentVersion}
-                            onRestored={() => window.location.reload()}
-                        />
+                    {/* Sent publications are immutable; draft edits never alter this history. */}
+                    {publicationHistory.length > 0 && (
+                        <PublicationHistoryPanel publications={publicationHistory} />
                     )}
                 </div>
             </div>

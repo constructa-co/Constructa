@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2, RefreshCw, FileDown, Send } from "lucide-react";
-import { saveProposalAction, generateAiScopeAction, sendProposalAction, getProposalLinkAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction, updatePaymentScheduleTypeAction, generateClosingStatementAction, saveClosingStatementAction, saveProposalOverridesAction } from "./actions";
+import { saveProposalAction, generateAiScopeAction, sendProposalAction, getProposalLinkAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction, updatePaymentScheduleTypeAction, generateClosingStatementAction, saveClosingStatementAction, saveProposalOverridesAction, uploadPhotoAction } from "./actions";
 import { createLatestWriteQueue } from "@/lib/latest-write-queue";
 // Sprint 58 P3.4 — delegate the QS math to the canonical helper so the
 // editor can never silently diverge from the proposal PDF, billing page,
@@ -16,7 +16,6 @@ import PublicationHistoryPanel, { type ProposalPublicationHistoryRow } from "./p
 import ProposalPdfButton from "./proposal-pdf-button";
 import AiWizard from "./ai-wizard";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { STANDARD_PROPOSAL_TERMS } from "@/lib/proposal-terms";
 
@@ -721,16 +720,12 @@ export default function ClientEditor({
 
     const handlePhotoUpload = async (i: number, file: File) => {
         setUploadingPhoto(i);
-        const supabase = createClient();
-        const ext = file.name.split(".").pop() || "jpg";
-        const path = `${projectId}/${Date.now()}-${i}.${ext}`;
-        const { error } = await supabase.storage
-            .from("proposal-photos")
-            .upload(path, file, { upsert: true });
-        if (!error) {
-            const { data } = supabase.storage.from("proposal-photos").getPublicUrl(path);
-            updatePhoto(i, "url", data.publicUrl);
-        }
+        const formData = new FormData();
+        formData.set("file", file);
+        formData.set("projectId", projectId);
+        const result = await uploadPhotoAction(formData);
+        if (result.url) updatePhoto(i, "url", result.url);
+        else toast.error(result.error || "Upload failed");
         setUploadingPhoto(null);
     };
 
@@ -1051,7 +1046,7 @@ export default function ClientEditor({
                                     <label className={`block relative rounded-lg border-2 border-dashed transition-colors cursor-pointer ${photo.url ? "border-slate-700 bg-slate-800" : "border-slate-700 bg-slate-800/50 hover:border-blue-600 hover:bg-slate-800"}`}>
                                         <input
                                             type="file"
-                                            accept="image/*"
+                                            accept="image/jpeg,image/png,image/webp"
                                             className="sr-only"
                                             onChange={(e) => {
                                                 const file = e.target.files?.[0];

@@ -3,9 +3,9 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { saveOnboardingAction, generateCapabilityStatementAction } from "./actions";
+import { uploadProfileImageAction } from "@/app/storage/actions";
 import PostcodeLookup from "@/components/postcode-lookup";
 import { Sparkles, Upload, X, Plus } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { getLaunchLandingPath, isCapabilityEnabled } from "@/lib/launch-profile";
 import {
     STANDARD_PROPOSAL_TERMS,
@@ -117,15 +117,14 @@ export default function OnboardingClient({ initialFullName }: { initialFullName:
     const handleLogoUpload = async (file: File) => {
         setLogoUploading(true);
         try {
-            const supabase = createClient();
-            const ext = file.name.split(".").pop();
-            const path = `logos/${Date.now()}.${ext}`;
-            const { error } = await supabase.storage.from("proposal-photos").upload(path, file, { upsert: true });
-            if (error) throw error;
-            const { data: { publicUrl } } = supabase.storage.from("proposal-photos").getPublicUrl(path);
-            setLogoUrl(publicUrl);
-        } catch (e: any) {
-            console.error("Logo upload failed:", e.message);
+            const formData = new FormData();
+            formData.set("file", file);
+            formData.set("purpose", "branding");
+            const result = await uploadProfileImageAction(formData);
+            if (!result.url) throw new Error(result.error || "Logo upload failed.");
+            setLogoUrl(result.url);
+        } catch (error) {
+            console.error("Logo upload failed:", error);
         } finally {
             setLogoUploading(false);
         }
@@ -239,11 +238,11 @@ export default function OnboardingClient({ initialFullName }: { initialFullName:
                                 >
                                     <Upload className="w-6 h-6 text-slate-500 group-hover:text-blue-400 mx-auto mb-2 transition-colors" />
                                     <p className="text-sm font-semibold text-slate-400 group-hover:text-blue-400">{logoUploading ? "Uploading..." : "Click to upload logo"}</p>
-                                    <p className="text-xs text-slate-500 mt-1">PNG, JPG or SVG — appears on your proposal cover page</p>
+                                    <p className="text-xs text-slate-500 mt-1">PNG, JPG or WebP, up to 10 MB</p>
                                     <input
                                         ref={logoInputRef}
                                         type="file"
-                                        accept="image/*"
+                                        accept="image/jpeg,image/png,image/webp"
                                         className="hidden"
                                         onChange={e => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f); e.target.value = ""; }}
                                     />

@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Loader2, MapPin, Briefcase, Calendar, PoundSterling, Sparkles } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { saveCaseStudiesAction, enhanceCaseStudyAction } from "./actions";
+import { uploadProfileImageAction } from "@/app/storage/actions";
 
 interface CaseStudy {
     id: string;
@@ -54,21 +54,18 @@ export default function CaseStudiesClient({ initialCaseStudies, userId }: { init
     };
 
     const handlePhotoUpload = async (csIndex: number, slot: number, file: File) => {
-        const supabase = createClient();
         const cs = caseStudies[csIndex];
-        const ext = file.name.split(".").pop() || "jpg";
-        const path = `case-studies/${cs.id}/${slot}.${ext}`;
-        const { error } = await supabase.storage
-            .from("proposal-photos")
-            .upload(path, file, { upsert: true });
-        if (!error) {
-            const { data } = supabase.storage.from("proposal-photos").getPublicUrl(path);
+        const formData = new FormData();
+        formData.set("file", file);
+        formData.set("purpose", "case-study");
+        const result = await uploadProfileImageAction(formData);
+        if (result.url) {
             const newPhotos = [...(cs.photos || ["", "", ""])];
-            newPhotos[slot] = data.publicUrl;
+            newPhotos[slot] = result.url;
             updateCaseStudy(csIndex, "photos", newPhotos);
             toast.success("Photo uploaded");
         } else {
-            toast.error("Upload failed: " + error.message);
+            toast.error(result.error || "Upload failed");
         }
     };
 
@@ -246,14 +243,14 @@ function CaseStudyCard({
                                             <img src={cs.photos[slot]} alt={`Photo ${slot + 1}`} className="w-full h-full object-cover" />
                                             <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
                                                 <Upload className="w-5 h-5 text-white" />
-                                                <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
+                                                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
                                             </label>
                                         </>
                                     ) : (
                                         <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-700 transition-colors">
                                             <Upload className="w-5 h-5 text-slate-500 mb-1" />
                                             <span className="text-[10px] text-slate-500">Upload</span>
-                                            <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
+                                            <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
                                         </label>
                                     )}
                                 </div>

@@ -17,6 +17,7 @@
     "test:definer-sql": "bash scripts/test-legacy-definer-sql.sh",
     "test:organization-sql": "bash scripts/test-organization-membership-sql.sh",
     "test:proposal-sql": "bash scripts/test-proposal-publication-sql.sh",
+    "test:supervisor-sql": "bash scripts/test-supervisor-token-sql.sh",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },

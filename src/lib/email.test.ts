@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { buildProposalResponseReceiptContent } from "./email";
+import {
+    buildProposalResponseReceiptContent,
+    escapeEmailHtml,
+    normalizeEmailSubjectPart,
+    requireTrustedAppUrl,
+} from "./email";
 
 const base = {
     recipientKind: "client" as const,
@@ -55,6 +60,7 @@ describe("email environment boundary", () => {
     beforeEach(() => {
         vi.resetModules();
         vi.stubEnv("RESEND_API_KEY", "");
+        vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://example.com");
     });
 
     afterEach(() => {
@@ -83,5 +89,35 @@ describe("email environment boundary", () => {
             companyName: "Test Contractor",
             portalUrl: "https://example.com/supervisor/test",
         })).resolves.toBeUndefined();
+    });
+});
+
+describe("transactional email safety helpers", () => {
+    it("escapes tags, quotes and ampersands", () => {
+        expect(escapeEmailHtml(`<a href="x">Tom & O'Brien</a>`)).toBe(
+            "&lt;a href=&quot;x&quot;&gt;Tom &amp; O&#039;Brien&lt;/a&gt;",
+        );
+    });
+
+    it("removes subject control characters and caps length", () => {
+        expect(normalizeEmailSubjectPart("Project\r\nBcc: attacker@example.com", 20)).toBe(
+            "Project Bcc: attacke",
+        );
+    });
+
+    it("accepts only links on the configured application origin", () => {
+        vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://app.constructa.test");
+        vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://workspace.constructa.test");
+
+        expect(requireTrustedAppUrl("https://app.constructa.test/proposal/token")).toBe(
+            "https://app.constructa.test/proposal/token",
+        );
+        expect(requireTrustedAppUrl("https://workspace.constructa.test/dashboard")).toBe(
+            "https://workspace.constructa.test/dashboard",
+        );
+        expect(() => requireTrustedAppUrl("https://attacker.test/proposal/token")).toThrow(
+            "configured Constructa origin",
+        );
+        expect(() => requireTrustedAppUrl("javascript:alert(1)")).toThrow();
     });
 });

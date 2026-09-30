@@ -591,9 +591,9 @@ export default function ClientEditor({
             const projectName = project?.name || "your project";
             const subject = encodeURIComponent(`Your Proposal — ${projectName}`);
             const body = encodeURIComponent(
-                `Dear ${clientName},\n\nPlease find your proposal for ${projectName} at the link below:\n\n${result.url}\n\nYou can review the full scope, pricing, and programme, and confirm your acceptance directly through the link.\n\nPlease don't hesitate to get in touch if you have any questions.\n\nKind regards`
+                `Dear ${clientName},\n\nPlease find your proposal for ${projectName} at the link below:\n\n${result.url}\n\nYou can review the full scope, pricing, programme, and terms, then acknowledge receipt through the link.\n\nPlease don't hesitate to get in touch if you have any questions.\n\nKind regards`
             );
-            window.location.href = `mailto:?subject=${subject}&body=${body}`;
+            window.location.assign(`mailto:?subject=${subject}&body=${body}`);
         }
     };
 

@@ -39,6 +39,11 @@ CREATE TABLE public.organization_members (
   user_id uuid NOT NULL REFERENCES auth.users(id),
   PRIMARY KEY (organization_id, user_id)
 );
+CREATE TABLE public.profiles (
+  id uuid PRIMARY KEY REFERENCES auth.users(id),
+  email text,
+  full_name text
+);
 CREATE TABLE public.projects (
   id uuid PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES auth.users(id),
@@ -71,13 +76,35 @@ CREATE TABLE public.estimate_lines (
 
 GRANT SELECT ON public.organization_members, public.projects, public.estimates,
   public.estimate_lines TO authenticated;
+GRANT SELECT ON public.profiles TO authenticated;
+
+-- Reproduce a historical/default over-grant so the boundary migration must
+-- actively remove browser-anonymous access rather than relying on a clean DB.
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.projects, public.profiles TO PUBLIC, anon;
 SQL
 
 "${PSQL[@]}" -f "$ROOT_DIR/supabase/migrations/20260930150000_proposal_publication_foundation.sql" >/dev/null
+"${PSQL[@]}" -f "$ROOT_DIR/supabase/migrations/20260930220000_lock_public_proposal_base_tables.sql" >/dev/null
 
 "${PSQL[@]}" <<'SQL'
 DO $$
 BEGIN
+  IF has_table_privilege('anon', 'public.projects', 'SELECT')
+     OR has_table_privilege('anon', 'public.projects', 'INSERT')
+     OR has_table_privilege('anon', 'public.projects', 'UPDATE')
+     OR has_table_privilege('anon', 'public.projects', 'DELETE')
+     OR has_table_privilege('anon', 'public.profiles', 'SELECT')
+     OR has_table_privilege('anon', 'public.profiles', 'INSERT')
+     OR has_table_privilege('anon', 'public.profiles', 'UPDATE')
+     OR has_table_privilege('anon', 'public.profiles', 'DELETE') THEN
+    RAISE EXCEPTION 'Anonymous browser role retains base proposal-table privileges.';
+  END IF;
+
+  IF NOT has_table_privilege('authenticated', 'public.projects', 'SELECT')
+     OR NOT has_table_privilege('authenticated', 'public.profiles', 'SELECT') THEN
+    RAISE EXCEPTION 'Authenticated owner access was removed with the anonymous boundary.';
+  END IF;
+
   IF has_function_privilege('anon', 'public.resolve_proposal_publication(text,boolean)', 'EXECUTE')
      OR has_function_privilege('authenticated', 'public.resolve_proposal_publication(text,boolean)', 'EXECUTE')
      OR has_function_privilege('anon', 'public.respond_to_proposal_publication(text,text,text,text,text)', 'EXECUTE')

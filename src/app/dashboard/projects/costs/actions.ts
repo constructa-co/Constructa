@@ -430,7 +430,6 @@ export async function saveRateBuildupAction(
         components,
         built_up_rate: builtUpRate,
         total_manhours_per_unit: totalManhoursPerUnit,
-        is_system_default: false,
     });
     if (error) throw new Error(error.message);
 }

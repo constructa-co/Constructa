@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { updateProfileAction, rewriteWithAIAction, rewriteMdMessageAction } from "./actions";
-import { createClient } from "@/lib/supabase/client";
+import { uploadProfileImageAction } from "@/app/storage/actions";
 import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Loader2, Sparkles } from "lucide-react";
 
 interface CaseStudy {
@@ -127,19 +127,16 @@ function CaseStudyCard({
 
     const handlePhotoUpload = async (slot: number, file: File) => {
         setUploading(slot);
-        const supabase = createClient();
-        const ext = file.name.split(".").pop() || "jpg";
-        const path = `case-studies/${cs.id}/${slot}.${ext}`;
-        const { error } = await supabase.storage
-            .from("proposal-photos")
-            .upload(path, file, { upsert: true });
-        if (!error) {
-            const { data } = supabase.storage.from("proposal-photos").getPublicUrl(path);
+        const formData = new FormData();
+        formData.set("file", file);
+        formData.set("purpose", "case-study");
+        const result = await uploadProfileImageAction(formData);
+        if (result.url) {
             const newPhotos = [...(cs.photos || ["", "", ""])];
-            newPhotos[slot] = data.publicUrl;
+            newPhotos[slot] = result.url;
             update("photos", newPhotos);
         } else {
-            toast.error("Upload failed: " + error.message);
+            toast.error(result.error || "Upload failed");
         }
         setUploading(null);
     };
@@ -269,7 +266,7 @@ function CaseStudyCard({
                                                 )}
                                                 <input
                                                     type="file"
-                                                    accept="image/*"
+                                                    accept="image/jpeg,image/png,image/webp"
                                                     className="hidden"
                                                     onChange={e => {
                                                         const file = e.target.files?.[0];
@@ -331,18 +328,12 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
     const handleLogoUpload = async (file: File) => {
         setUploadingLogo(true);
         try {
-            const supabase = createClient();
-            const { data: authData } = await supabase.auth.getUser();
-            const userId = authData?.user?.id;
-            if (!userId) { toast.error("Not authenticated"); return; }
-            const ext = file.name.split(".").pop() || "png";
-            const path = `logos/${userId}/${Date.now()}.${ext}`;
-            const { error } = await supabase.storage
-                .from("proposal-photos")
-                .upload(path, file, { upsert: true });
-            if (error) { toast.error("Upload failed: " + error.message); return; }
-            const { data } = supabase.storage.from("proposal-photos").getPublicUrl(path);
-            setLogoUrl(data.publicUrl);
+            const formData = new FormData();
+            formData.set("file", file);
+            formData.set("purpose", "branding");
+            const result = await uploadProfileImageAction(formData);
+            if (!result.url) { toast.error(result.error || "Upload failed"); return; }
+            setLogoUrl(result.url);
             toast.success("Logo uploaded");
         } finally {
             setUploadingLogo(false);
@@ -651,14 +642,14 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
                             <input
                                 ref={logoInputRef}
                                 type="file"
-                                accept="image/*"
+                                accept="image/jpeg,image/png,image/webp"
                                 className="hidden"
                                 onChange={(e) => {
                                     const file = e.target.files?.[0];
                                     if (file) handleLogoUpload(file);
                                 }}
                             />
-                            <p className="text-xs text-slate-500">PNG or JPG, max 2MB recommended</p>
+                            <p className="text-xs text-slate-500">PNG, JPG or WebP, up to 10 MB</p>
                         </div>
                     </div>
                 </div>

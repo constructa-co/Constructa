@@ -2,6 +2,7 @@
 
 import { requireProjectAccess } from "@/lib/supabase/auth-utils";
 import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-access";
+import { validatePublicImage } from "@/lib/storage/public-image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SaveProposalSchema, parseInput } from "@/lib/validation/schemas";
 import { revalidatePath } from "next/cache";
@@ -652,18 +653,27 @@ export async function updateCaseStudySelectionAction(projectId: string, selected
 }
 
 export async function uploadPhotoAction(formData: FormData) {
-    const file = formData.get("file") as File;
-    const projectId = formData.get("projectId") as string;
+    const file = formData.get("file");
+    const projectId = formData.get("projectId");
 
-    if (!file) return { error: "No file provided" };
+    if (!(file instanceof File)) return { error: "No image was provided." };
+    if (typeof projectId !== "string" || !projectId) return { error: "Project is required." };
     const { user, supabase } = await requireEditableProjectAccess(projectId);
-
-    const ext = file.name.split(".").pop() || "jpg";
-    const path = `${user.id}/${projectId}/${Date.now()}.${ext}`;
+    let validated: Awaited<ReturnType<typeof validatePublicImage>>;
+    try {
+        validated = await validatePublicImage(file);
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : "Invalid image." };
+    }
+    const path = `${user.id}/proposal/${projectId}/${crypto.randomUUID()}.${validated.extension}`;
 
     const { error } = await supabase.storage
         .from("proposal-photos")
-        .upload(path, file, { upsert: true });
+        .upload(path, file, {
+            cacheControl: "31536000",
+            contentType: validated.contentType,
+            upsert: false,
+        });
 
     if (error) return { error: error.message };
 

@@ -27,36 +27,34 @@ interface SendProposalEmailArgs {
     idempotencyKey?: string;
 }
 
-interface AcceptanceConfirmationArgs {
-    clientEmail: string;
-    clientName: string;
-    projectName: string;
-    companyName: string;
-    refCode: string;
-    siteAddress?: string;
-}
-
-interface ContractorNotificationArgs {
-    contractorEmail: string;
-    clientName: string;
-    projectName: string;
-    projectValue?: number;
-    refCode: string;
-}
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function fmtGBP(n: number) {
-    return "£" + n.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-}
-
-function escapeHtml(value: string) {
+export function escapeEmailHtml(value: string) {
     return value
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+}
+
+export function normalizeEmailSubjectPart(value: string, maxLength = 120) {
+    return value
+        .replace(/[\u0000-\u001f\u007f]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, maxLength);
+}
+
+export function requireTrustedAppUrl(value: string) {
+    const url = new URL(value);
+    const configuredOrigin = new URL(
+        process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app",
+    ).origin;
+    if (!['http:', 'https:'].includes(url.protocol) || url.origin !== configuredOrigin || url.username || url.password) {
+        throw new Error("Email link must use the configured Constructa origin.");
+    }
+    return url.toString();
 }
 
 type ProposalResponse = "acknowledged" | "accepted" | "declined";
@@ -78,11 +76,11 @@ interface ProposalResponseReceiptArgs {
 export function buildProposalResponseReceiptContent(
     args: Omit<ProposalResponseReceiptArgs, "recipientEmail" | "idempotencyKey">,
 ) {
-    const clientName = escapeHtml(args.clientName);
-    const projectName = escapeHtml(args.projectName);
-    const companyName = escapeHtml(args.companyName);
-    const refCode = escapeHtml(args.refCode);
-    const snapshotReference = escapeHtml(args.snapshotReference.slice(0, 12));
+    const clientName = escapeEmailHtml(args.clientName);
+    const projectName = escapeEmailHtml(args.projectName);
+    const companyName = escapeEmailHtml(args.companyName);
+    const refCode = escapeEmailHtml(args.refCode);
+    const snapshotReference = escapeEmailHtml(args.snapshotReference.slice(0, 12));
     const responseLabel = args.response === "acknowledged"
         ? "Receipt acknowledged"
         : args.response === "accepted"
@@ -108,7 +106,7 @@ export function buildProposalResponseReceiptContent(
         : `<strong>${clientName}</strong> responded to your published proposal for <strong>${projectName}</strong>.`;
 
     return {
-        subject: `${responseLabel} — ${args.projectName}`,
+        subject: `${responseLabel} — ${normalizeEmailSubjectPart(args.projectName)}`,
         html: `
 <!DOCTYPE html>
 <html>
@@ -158,13 +156,18 @@ export async function sendProposalEmail({
     responseMode = "acknowledgement",
     idempotencyKey,
 }: SendProposalEmailArgs) {
+    const safeClientName = escapeEmailHtml(clientName);
+    const safeProjectName = escapeEmailHtml(projectName);
+    const safeCompanyName = escapeEmailHtml(companyName);
+    const safeSiteAddress = siteAddress ? escapeEmailHtml(siteAddress) : null;
+    const safeProposalUrl = escapeEmailHtml(requireTrustedAppUrl(proposalUrl));
     const responseCopy = responseMode === "binding_acceptance"
         ? "and confirm your acceptance directly through the proposal"
         : "and acknowledge receipt after reviewing the complete proposal";
     return getResend().emails.send({
         from: FROM,
         to: clientEmail,
-        subject: `Your Proposal — ${projectName}`,
+        subject: `Your Proposal — ${normalizeEmailSubjectPart(projectName)}`,
         html: `
 <!DOCTYPE html>
 <html>
@@ -173,32 +176,32 @@ export async function sendProposalEmail({
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:12px; border:1px solid #e5e7eb; overflow:hidden;">
     <tr>
       <td style="background:#0d0d0d; padding:28px 32px;">
-        <p style="color:#ffffff; font-size:22px; font-weight:700; margin:0;">${companyName}</p>
+        <p style="color:#ffffff; font-size:22px; font-weight:700; margin:0;">${safeCompanyName}</p>
         <p style="color:#9ca3af; font-size:13px; margin:4px 0 0;">Proposal</p>
       </td>
     </tr>
     <tr>
       <td style="padding:32px;">
-        <p style="color:#111827; font-size:16px; margin:0 0 16px;">Dear ${clientName},</p>
+        <p style="color:#111827; font-size:16px; margin:0 0 16px;">Dear ${safeClientName},</p>
         <p style="color:#374151; font-size:15px; line-height:1.6; margin:0 0 16px;">
           Thank you for the opportunity to work with you. Please find your proposal for
-          <strong>${projectName}</strong>${siteAddress ? ` at ${siteAddress}` : ""} via the link below.
+          <strong>${safeProjectName}</strong>${safeSiteAddress ? ` at ${safeSiteAddress}` : ""} via the link below.
         </p>
         <p style="color:#374151; font-size:15px; line-height:1.6; margin:0 0 24px;">
           You can review the full scope of works, pricing, programme, and terms — ${responseCopy}.
         </p>
-        <a href="${proposalUrl}" style="display:inline-block; background:#0d0d0d; color:#ffffff; font-size:15px; font-weight:600; text-decoration:none; padding:14px 28px; border-radius:8px;">
+        <a href="${safeProposalUrl}" style="display:inline-block; background:#0d0d0d; color:#ffffff; font-size:15px; font-weight:600; text-decoration:none; padding:14px 28px; border-radius:8px;">
           View Your Proposal →
         </a>
         <p style="color:#6b7280; font-size:13px; margin:24px 0 0;">
-          Or copy this link: <a href="${proposalUrl}" style="color:#2563eb;">${proposalUrl}</a>
+          Or copy this link: <a href="${safeProposalUrl}" style="color:#2563eb;">${safeProposalUrl}</a>
         </p>
       </td>
     </tr>
     <tr>
       <td style="background:#f9fafb; padding:20px 32px; border-top:1px solid #e5e7eb;">
         <p style="color:#9ca3af; font-size:12px; margin:0;">
-          This proposal was sent via Constructa. If you have any questions, please contact ${companyName} directly.
+          This proposal was sent via Constructa. If you have any questions, please contact ${safeCompanyName} directly.
         </p>
       </td>
     </tr>
@@ -206,80 +209,6 @@ export async function sendProposalEmail({
 </body>
 </html>`,
     }, idempotencyKey ? { idempotencyKey } : undefined);
-}
-
-// ─── Email: Client receives acceptance confirmation ───────────────────────────
-
-export async function sendAcceptanceConfirmationEmail({
-    clientEmail,
-    clientName,
-    projectName,
-    companyName,
-    refCode,
-    siteAddress,
-}: AcceptanceConfirmationArgs) {
-    const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-    return getResend().emails.send({
-        from: FROM,
-        to: clientEmail,
-        subject: `Acceptance Confirmed — ${projectName}`,
-        html: `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8" /></head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f9f9f9; margin:0; padding:24px;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:12px; border:1px solid #e5e7eb; overflow:hidden;">
-    <tr>
-      <td style="background:#16a34a; padding:28px 32px;">
-        <p style="color:#ffffff; font-size:22px; font-weight:700; margin:0;">✓ Proposal Accepted</p>
-        <p style="color:#bbf7d0; font-size:13px; margin:4px 0 0;">${date} · Ref: ${refCode}</p>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding:32px;">
-        <p style="color:#111827; font-size:16px; margin:0 0 16px;">Dear ${clientName},</p>
-        <p style="color:#374151; font-size:15px; line-height:1.6; margin:0 0 16px;">
-          Thank you for accepting the proposal for <strong>${projectName}</strong>${siteAddress ? ` at ${siteAddress}` : ""}.
-          This email confirms your acceptance on <strong>${date}</strong>.
-        </p>
-        <table style="width:100%; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:16px; margin:0 0 16px;" cellpadding="0" cellspacing="0">
-          <tr>
-            <td style="padding:6px 12px; color:#6b7280; font-size:13px;">Project</td>
-            <td style="padding:6px 12px; color:#111827; font-size:13px; font-weight:600;">${projectName}</td>
-          </tr>
-          ${siteAddress ? `<tr>
-            <td style="padding:6px 12px; color:#6b7280; font-size:13px;">Site</td>
-            <td style="padding:6px 12px; color:#111827; font-size:13px;">${siteAddress}</td>
-          </tr>` : ""}
-          <tr>
-            <td style="padding:6px 12px; color:#6b7280; font-size:13px;">Contractor</td>
-            <td style="padding:6px 12px; color:#111827; font-size:13px; font-weight:600;">${companyName}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 12px; color:#6b7280; font-size:13px;">Reference</td>
-            <td style="padding:6px 12px; color:#111827; font-size:13px; font-family:monospace;">${refCode}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 12px; color:#6b7280; font-size:13px;">Date</td>
-            <td style="padding:6px 12px; color:#111827; font-size:13px;">${date}</td>
-          </tr>
-        </table>
-        <p style="color:#374151; font-size:14px; line-height:1.6; margin:0;">
-          ${companyName} will be in touch shortly to confirm the next steps. Please keep this email as your confirmation record.
-        </p>
-      </td>
-    </tr>
-    <tr>
-      <td style="background:#f9fafb; padding:20px 32px; border-top:1px solid #e5e7eb;">
-        <p style="color:#9ca3af; font-size:12px; margin:0;">
-          This confirmation was generated via Constructa.
-        </p>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`,
-    });
 }
 
 // ─── Email: Contractor notified when client views proposal ───────────────────
@@ -297,12 +226,15 @@ export async function sendContractorViewedNotification({
     projectName,
     proposalUrl,
 }: ContractorViewedArgs) {
+    const safeClientName = escapeEmailHtml(clientName);
+    const safeProjectName = escapeEmailHtml(projectName);
+    const safeProposalUrl = escapeEmailHtml(requireTrustedAppUrl(proposalUrl));
     const time = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
     const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
     return getResend().emails.send({
         from: FROM,
         to: contractorEmail,
-        subject: `👀 ${clientName} just opened your proposal — ${projectName}`,
+        subject: `Proposal viewed — ${normalizeEmailSubjectPart(projectName)}`,
         html: `
 <!DOCTYPE html>
 <html>
@@ -317,11 +249,11 @@ export async function sendContractorViewedNotification({
     </tr>
     <tr>
       <td style="padding:32px;">
-        <p style="color:#111827; font-size:16px; margin:0 0 12px;"><strong>${clientName}</strong> has just opened your proposal for <strong>${projectName}</strong>.</p>
+        <p style="color:#111827; font-size:16px; margin:0 0 12px;"><strong>${safeClientName}</strong> has just opened your proposal for <strong>${safeProjectName}</strong>.</p>
         <p style="color:#374151; font-size:14px; line-height:1.6; margin:0 0 24px;">
           Now is a great time to follow up — they're actively reviewing your proposal right now.
         </p>
-        <a href="${proposalUrl}" style="display:inline-block; background:#1e3a5f; color:#ffffff; font-size:14px; font-weight:600; text-decoration:none; padding:12px 24px; border-radius:8px;">
+        <a href="${safeProposalUrl}" style="display:inline-block; background:#1e3a5f; color:#ffffff; font-size:14px; font-weight:600; text-decoration:none; padding:12px 24px; border-radius:8px;">
           View Proposal →
         </a>
       </td>
@@ -352,11 +284,13 @@ export async function sendWelcomeEmail({
     companyName,
     dashboardUrl,
 }: WelcomeEmailArgs) {
-    const greeting = fullName ? `Hi ${fullName.split(" ")[0]},` : "Welcome,";
+    const safeCompanyName = escapeEmailHtml(companyName);
+    const safeDashboardUrl = escapeEmailHtml(requireTrustedAppUrl(dashboardUrl));
+    const greeting = fullName ? `Hi ${escapeEmailHtml(fullName.split(" ")[0])},` : "Welcome,";
     return getResend().emails.send({
         from: FROM,
         to: contractorEmail,
-        subject: `Welcome to Constructa, ${companyName} 🎉`,
+        subject: `Welcome to Constructa, ${normalizeEmailSubjectPart(companyName)}`,
         html: `
 <!DOCTYPE html>
 <html>
@@ -373,7 +307,7 @@ export async function sendWelcomeEmail({
       <td style="padding:32px;">
         <p style="color:#111827; font-size:16px; margin:0 0 16px;">${greeting}</p>
         <p style="color:#374151; font-size:15px; line-height:1.6; margin:0 0 20px;">
-          Your Constructa account for <strong>${companyName}</strong> is all set up and ready to go. Here's what to do next:
+          Your Constructa account for <strong>${safeCompanyName}</strong> is all set up and ready to go. Here's what to do next:
         </p>
         <table cellpadding="0" cellspacing="0" style="width:100%; margin:0 0 24px;">
           <tr>
@@ -401,7 +335,7 @@ export async function sendWelcomeEmail({
             </td>
           </tr>
         </table>
-        <a href="${dashboardUrl}" style="display:inline-block; background:#0d0d0d; color:#ffffff; font-size:15px; font-weight:600; text-decoration:none; padding:14px 28px; border-radius:8px;">
+        <a href="${safeDashboardUrl}" style="display:inline-block; background:#0d0d0d; color:#ffffff; font-size:15px; font-weight:600; text-decoration:none; padding:14px 28px; border-radius:8px;">
           Go to Dashboard →
         </a>
       </td>
@@ -476,7 +410,8 @@ export async function sendContractAlertEmail({
 }: ContractAlertEmailArgs) {
     if (items.length === 0) return null;
 
-    const greeting = contractorName ? `Hi ${contractorName.split(" ")[0]},` : "Good morning,";
+    const greeting = contractorName ? `Hi ${escapeEmailHtml(contractorName.split(" ")[0])},` : "Good morning,";
+    const safeCompanyName = escapeEmailHtml(companyName);
 
     // Sort: red urgency first, then ascending daysRemaining (most urgent at top).
     const sorted = [...items].sort((a, b) => {
@@ -496,10 +431,16 @@ export async function sendContractAlertEmail({
     if (dueSoonCount > 0) subjectParts.push(`${dueSoonCount} due soon`);
     const subject = `⚠ Contract alerts — ${subjectParts.join(", ")}`;
 
-    const baseUrl = dashboardUrl.replace(/\/+$/, "");
+    const baseUrl = requireTrustedAppUrl(dashboardUrl).replace(/\/+$/, "");
+    const safeBaseUrl = escapeEmailHtml(baseUrl);
 
     const itemsHtml = sorted.map(item => {
         const urg = urgencyPhrase(item.daysRemaining);
+        const safeClauseRef = item.clauseRef ? escapeEmailHtml(item.clauseRef) : null;
+        const safeTitle = escapeEmailHtml(item.title);
+        const safeProjectName = escapeEmailHtml(item.projectName);
+        const safeDetail = item.detail ? escapeEmailHtml(item.detail) : null;
+        const projectId = encodeURIComponent(item.projectId);
         const badgeBg = urg.tone === "red" ? "#fee2e2" : "#fef3c7";
         const badgeFg = urg.tone === "red" ? "#b91c1c" : "#92400e";
         const borderColour = urg.tone === "red" ? "#dc2626" : "#f59e0b";
@@ -510,7 +451,7 @@ export async function sendContractAlertEmail({
               <tr>
                 <td>
                   <span style="color:#9ca3af; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">
-                    ${alertTypeLabel(item.type)}${item.clauseRef ? ` · cl. ${item.clauseRef}` : ""}
+                    ${alertTypeLabel(item.type)}${safeClauseRef ? ` · cl. ${safeClauseRef}` : ""}
                   </span>
                 </td>
                 <td align="right">
@@ -520,10 +461,10 @@ export async function sendContractAlertEmail({
                 </td>
               </tr>
             </table>
-            <p style="color:#111827; font-size:14px; font-weight:600; margin:6px 0 2px;">${item.title}</p>
-            <p style="color:#6b7280; font-size:12px; margin:0 0 6px;">${item.projectName}</p>
-            ${item.detail ? `<p style="color:#374151; font-size:12px; margin:4px 0 0; line-height:1.5;">${item.detail}</p>` : ""}
-            <a href="${baseUrl}/dashboard/projects/contract-admin?projectId=${item.projectId}"
+            <p style="color:#111827; font-size:14px; font-weight:600; margin:6px 0 2px;">${safeTitle}</p>
+            <p style="color:#6b7280; font-size:12px; margin:0 0 6px;">${safeProjectName}</p>
+            ${safeDetail ? `<p style="color:#374151; font-size:12px; margin:4px 0 0; line-height:1.5;">${safeDetail}</p>` : ""}
+            <a href="${safeBaseUrl}/dashboard/projects/contract-admin?projectId=${projectId}"
                style="display:inline-block; color:#2563eb; font-size:12px; font-weight:600; text-decoration:none; margin-top:8px;">
               Open in Contract Admin →
             </a>
@@ -544,7 +485,7 @@ export async function sendContractAlertEmail({
     <tr>
       <td style="background:#0d0d0d; padding:24px 28px; border-bottom:3px solid #dc2626;">
         <p style="color:#ffffff; font-size:20px; font-weight:700; margin:0;">⚠ Contract Alerts</p>
-        <p style="color:#9ca3af; font-size:13px; margin:4px 0 0;">${companyName} · ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
+        <p style="color:#9ca3af; font-size:13px; margin:4px 0 0;">${safeCompanyName} · ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
       </td>
     </tr>
     <tr>
@@ -565,7 +506,7 @@ export async function sendContractAlertEmail({
     </tr>
     <tr>
       <td style="padding:8px 28px 24px;">
-        <a href="${baseUrl}${getLaunchLandingPath()}"
+        <a href="${safeBaseUrl}${getLaunchLandingPath()}"
            style="display:inline-block; background:#0d0d0d; color:#ffffff; font-size:14px; font-weight:600; text-decoration:none; padding:12px 24px; border-radius:8px;">
           Open Dashboard →
         </a>
@@ -586,68 +527,6 @@ export async function sendContractAlertEmail({
     });
 }
 
-// ─── Email: Contractor notified when client accepts ───────────────────────────
-
-export async function sendContractorAcceptanceNotification({
-    contractorEmail,
-    clientName,
-    projectName,
-    projectValue,
-    refCode,
-}: ContractorNotificationArgs) {
-    const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-    return getResend().emails.send({
-        from: FROM,
-        to: contractorEmail,
-        subject: `🎉 Accepted — ${clientName} has signed off on ${projectName}`,
-        html: `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8" /></head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f9f9f9; margin:0; padding:24px;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:12px; border:1px solid #e5e7eb; overflow:hidden;">
-    <tr>
-      <td style="background:#0d0d0d; padding:28px 32px;">
-        <p style="color:#ffffff; font-size:22px; font-weight:700; margin:0;">🎉 Proposal Accepted</p>
-        <p style="color:#9ca3af; font-size:13px; margin:4px 0 0;">You've won the job</p>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding:32px;">
-        <p style="color:#374151; font-size:15px; line-height:1.6; margin:0 0 16px;">
-          <strong>${clientName}</strong> has accepted your proposal for <strong>${projectName}</strong> on ${date}.
-        </p>
-        ${projectValue ? `<p style="color:#16a34a; font-size:28px; font-weight:700; margin:0 0 20px;">${fmtGBP(projectValue)}</p>` : ""}
-        <table style="width:100%; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:16px; margin:0 0 20px;" cellpadding="0" cellspacing="0">
-          <tr>
-            <td style="padding:6px 12px; color:#6b7280; font-size:13px;">Client</td>
-            <td style="padding:6px 12px; color:#111827; font-size:13px; font-weight:600;">${clientName}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 12px; color:#6b7280; font-size:13px;">Project</td>
-            <td style="padding:6px 12px; color:#111827; font-size:13px;">${projectName}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 12px; color:#6b7280; font-size:13px;">Reference</td>
-            <td style="padding:6px 12px; color:#111827; font-size:13px; font-family:monospace;">${refCode}</td>
-          </tr>
-        </table>
-        <p style="color:#374151; font-size:14px; line-height:1.6;">
-          Log in to Constructa to manage the next steps.
-        </p>
-      </td>
-    </tr>
-    <tr>
-      <td style="background:#f9fafb; padding:20px 32px; border-top:1px solid #e5e7eb;">
-        <p style="color:#9ca3af; font-size:12px; margin:0;">Constructa — smart proposals for construction contractors.</p>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`,
-    });
-}
-
 // ── Supervisor Portal Invite ──────────────────────────────────────────────
 
 export async function sendSupervisorInviteEmail(args: {
@@ -659,43 +538,48 @@ export async function sendSupervisorInviteEmail(args: {
 }) {
     if (!process.env.RESEND_API_KEY) return;
 
+    const safeCompanyName = escapeEmailHtml(args.companyName);
+    const safeSupervisorName = escapeEmailHtml(args.supervisorName);
+    const safeProjectName = escapeEmailHtml(args.projectName);
+    const safePortalUrl = escapeEmailHtml(requireTrustedAppUrl(args.portalUrl));
+
     await getResend().emails.send({
         from: FROM,
         to: [args.supervisorEmail],
-        subject: `${args.companyName} — Supervisor Portal for ${args.projectName}`,
+        subject: `${normalizeEmailSubjectPart(args.companyName)} — Supervisor Portal for ${normalizeEmailSubjectPart(args.projectName)}`,
         html: `<!DOCTYPE html>
 <html>
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; margin:0; padding:0; background:#f8fafc;">
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; margin:0 auto;">
     <tr>
       <td style="background:#0f172a; padding:24px 32px;">
-        <h1 style="color:#fff; font-size:18px; margin:0;">${args.companyName}</h1>
+        <h1 style="color:#fff; font-size:18px; margin:0;">${safeCompanyName}</h1>
         <p style="color:#94a3b8; font-size:13px; margin:4px 0 0;">Supervisor Portal Invitation</p>
       </td>
     </tr>
     <tr>
       <td style="background:#fff; padding:32px;">
         <p style="color:#1e293b; font-size:15px; line-height:1.6; margin:0 0 16px;">
-          Dear ${args.supervisorName},
+          Dear ${safeSupervisorName},
         </p>
         <p style="color:#475569; font-size:14px; line-height:1.6; margin:0 0 16px;">
           You have been invited to view and acknowledge contract obligations on
-          <strong>${args.projectName}</strong>.
+          <strong>${safeProjectName}</strong>.
         </p>
         <p style="color:#475569; font-size:14px; line-height:1.6; margin:0 0 24px;">
           Click the button below to access your supervisor portal. No account or login is required.
         </p>
-        <a href="${args.portalUrl}" style="display:inline-block; background:#2563eb; color:#fff; text-decoration:none; padding:12px 28px; border-radius:8px; font-weight:600; font-size:14px;">
+        <a href="${safePortalUrl}" style="display:inline-block; background:#2563eb; color:#fff; text-decoration:none; padding:12px 28px; border-radius:8px; font-weight:600; font-size:14px;">
           Open Supervisor Portal
         </a>
         <p style="color:#94a3b8; font-size:12px; margin:24px 0 0;">
-          If the button doesn't work, copy this link: ${args.portalUrl}
+          If the button doesn't work, copy this link: ${safePortalUrl}
         </p>
       </td>
     </tr>
     <tr>
       <td style="background:#f9fafb; padding:20px 32px; border-top:1px solid #e5e7eb;">
-        <p style="color:#9ca3af; font-size:12px; margin:0;">Sent via Constructa on behalf of ${args.companyName}.</p>
+        <p style="color:#9ca3af; font-size:12px; margin:0;">Sent via Constructa on behalf of ${safeCompanyName}.</p>
       </td>
     </tr>
   </table>

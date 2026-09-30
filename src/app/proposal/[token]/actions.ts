@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashProposalAccessToken, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
 import { sendProposalResponseReceipt } from "@/lib/email";
+import { parseProposalResponseInput } from "@/lib/proposal-response";
 
 export async function respondToProposalAction(
     token: string,
@@ -10,6 +11,12 @@ export async function respondToProposalAction(
     clientName: string,
     clientEmail: string,
 ): Promise<{ success: boolean; status?: string; respondedAt?: string; error?: string }> {
+    const parsed = parseProposalResponseInput({ token, response, clientName, clientEmail });
+    if (!parsed.success) {
+        return { success: false, error: "Enter a valid name and email address." };
+    }
+    ({ token, response, clientName, clientEmail } = parsed.data);
+
     let tokenHash: string;
     try {
         tokenHash = await hashProposalAccessToken(token);

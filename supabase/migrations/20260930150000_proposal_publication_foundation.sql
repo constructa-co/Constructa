@@ -4,6 +4,13 @@
 
 BEGIN;
 
+-- These fields are used by the live estimator but were originally added
+-- out-of-band. Reconcile them here before the publication RPC depends on
+-- them so a migrations-only environment produces the same contract sum.
+ALTER TABLE public.estimates
+    ADD COLUMN IF NOT EXISTS discount_pct numeric(5,2) DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS discount_reason text;
+
 CREATE TABLE IF NOT EXISTS public.proposal_publications (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id uuid NOT NULL REFERENCES public.projects(id) ON DELETE RESTRICT,
@@ -248,6 +255,199 @@ USING (
 REVOKE ALL ON TABLE public.proposal_publications FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.proposal_publications TO authenticated;
 GRANT ALL ON TABLE public.proposal_publications TO service_role;
+
+CREATE OR REPLACE FUNCTION public.publish_proposal_publication(
+    p_project_id uuid,
+    p_publication_id uuid,
+    p_estimate_id uuid,
+    p_version_number integer,
+    p_token_hash text,
+    p_snapshot jsonb,
+    p_snapshot_hash text,
+    p_contract_sum_ex_vat numeric,
+    p_vat_rate numeric,
+    p_vat_amount numeric,
+    p_contract_sum_inc_vat numeric,
+    p_sent_at timestamptz,
+    p_validity_days integer,
+    p_expires_at timestamptz
+)
+RETURNS TABLE (
+    publication_id uuid,
+    published_version integer,
+    published_at timestamptz,
+    publication_expires_at timestamptz
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+    v_actor uuid := auth.uid();
+    v_project public.projects%ROWTYPE;
+    v_estimate public.estimates%ROWTYPE;
+    v_active_estimate_count integer;
+    v_expected_version integer;
+    v_previous_id uuid;
+    v_direct_cost numeric := 0;
+    v_explicit_prelims numeric := 0;
+    v_explicit_prelims_count integer := 0;
+    v_base_cost numeric := 0;
+    v_prelims numeric := 0;
+    v_canonical_sum numeric := 0;
+BEGIN
+    IF v_actor IS NULL THEN
+        RAISE EXCEPTION 'Authentication required.' USING ERRCODE = '42501';
+    END IF;
+
+    SELECT project.*
+      INTO v_project
+      FROM public.projects project
+     WHERE project.id = p_project_id
+       AND project.user_id = v_actor
+     FOR UPDATE;
+
+    IF NOT FOUND OR v_project.organization_id IS NULL OR NOT EXISTS (
+        SELECT 1
+          FROM public.organization_members membership
+         WHERE membership.organization_id = v_project.organization_id
+           AND membership.user_id = v_actor
+    ) THEN
+        RAISE EXCEPTION 'Unauthorized project access.' USING ERRCODE = '42501';
+    END IF;
+
+    IF v_project.is_archived IS TRUE
+       OR v_project.proposal_status = 'accepted'
+       OR v_project.proposal_accepted_at IS NOT NULL THEN
+        RAISE EXCEPTION 'This project can no longer publish a proposal.' USING ERRCODE = '23514';
+    END IF;
+
+    SELECT count(*)
+      INTO v_active_estimate_count
+      FROM public.estimates estimate
+     WHERE estimate.project_id = p_project_id
+       AND estimate.is_active IS TRUE;
+
+    IF v_active_estimate_count <> 1 THEN
+        RAISE EXCEPTION 'Exactly one active estimate is required before publishing.' USING ERRCODE = '23514';
+    END IF;
+
+    SELECT estimate.*
+      INTO v_estimate
+      FROM public.estimates estimate
+     WHERE estimate.id = p_estimate_id
+       AND estimate.project_id = p_project_id
+       AND estimate.is_active IS TRUE
+     FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'The selected estimate is not the active project estimate.' USING ERRCODE = '23514';
+    END IF;
+
+    SELECT
+        COALESCE(sum(line.line_total) FILTER (
+            WHERE COALESCE(line.trade_section, 'General') <> 'Preliminaries'
+              AND COALESCE(line.line_total, 0) > 0
+        ), 0),
+        COALESCE(sum(line.line_total) FILTER (
+            WHERE COALESCE(line.trade_section, '') = 'Preliminaries'
+        ), 0),
+        count(*) FILTER (WHERE COALESCE(line.trade_section, '') = 'Preliminaries')
+      INTO v_direct_cost, v_explicit_prelims, v_explicit_prelims_count
+      FROM public.estimate_lines line
+     WHERE line.estimate_id = v_estimate.id;
+
+    v_base_cost := CASE
+        WHEN v_direct_cost > 0 THEN v_direct_cost
+        ELSE COALESCE(v_estimate.total_cost, 0)
+    END;
+    v_prelims := CASE
+        WHEN v_explicit_prelims_count > 0 THEN v_explicit_prelims
+        ELSE v_base_cost * COALESCE(v_estimate.prelims_pct, 0) / 100
+    END;
+    v_canonical_sum := round(
+        (((v_base_cost + v_prelims)
+            * (1 + COALESCE(v_estimate.overhead_pct, 0) / 100))
+            * (1 + COALESCE(v_estimate.risk_pct, 0) / 100))
+            * (1 + COALESCE(v_estimate.profit_pct, 0) / 100)
+            * (1 - COALESCE(v_estimate.discount_pct, 0) / 100),
+        2
+    );
+
+    IF v_canonical_sum <= 0 OR v_canonical_sum IS DISTINCT FROM p_contract_sum_ex_vat THEN
+        RAISE EXCEPTION 'Published contract sum does not match the active estimate.' USING ERRCODE = '23514';
+    END IF;
+
+    SELECT COALESCE(max(publication.version_number), 0) + 1
+      INTO v_expected_version
+      FROM public.proposal_publications publication
+     WHERE publication.project_id = p_project_id;
+
+    IF p_version_number <> v_expected_version
+       OR p_token_hash !~ '^[a-f0-9]{64}$'
+       OR p_snapshot_hash !~ '^[a-f0-9]{64}$'
+       OR p_snapshot#>>'{project,id}' <> p_project_id::text
+       OR p_snapshot#>>'{commercial,estimate_id}' <> v_estimate.id::text
+       OR (p_snapshot#>>'{publication,id}')::uuid IS DISTINCT FROM p_publication_id
+       OR (p_snapshot#>>'{publication,version_number}')::integer IS DISTINCT FROM p_version_number THEN
+        RAISE EXCEPTION 'Proposal publication payload failed validation.' USING ERRCODE = '23514';
+    END IF;
+
+    SELECT publication.id
+      INTO v_previous_id
+      FROM public.proposal_publications publication
+     WHERE publication.project_id = p_project_id
+       AND publication.status IN ('sent', 'viewed')
+     FOR UPDATE;
+
+    IF v_previous_id IS NOT NULL THEN
+        UPDATE public.proposal_publications
+           SET status = 'revoked', revoked_at = p_sent_at
+         WHERE id = v_previous_id;
+    END IF;
+
+    INSERT INTO public.proposal_publications (
+        id, project_id, organization_id, owner_user_id, version_number,
+        token_hash, status, snapshot, snapshot_hash,
+        contract_sum_ex_vat, vat_rate, vat_amount, contract_sum_inc_vat,
+        sent_at, validity_days, expires_at
+    ) VALUES (
+        p_publication_id, p_project_id, v_project.organization_id, v_actor, p_version_number,
+        p_token_hash, 'sent', p_snapshot, p_snapshot_hash,
+        p_contract_sum_ex_vat, p_vat_rate, p_vat_amount, p_contract_sum_inc_vat,
+        p_sent_at, p_validity_days, p_expires_at
+    );
+
+    IF v_previous_id IS NOT NULL THEN
+        UPDATE public.proposal_publications
+           SET superseded_by = p_publication_id
+         WHERE id = v_previous_id;
+    END IF;
+
+    UPDATE public.projects
+       SET current_proposal_publication_id = p_publication_id,
+           proposal_token = NULL,
+           proposal_sent_at = p_sent_at,
+           proposal_status = 'sent',
+           status = CASE
+               WHEN status IS NULL OR status IN ('Lead', 'Estimating') THEN 'Proposal Sent'
+               ELSE status
+           END
+     WHERE id = p_project_id
+       AND user_id = v_actor;
+
+    RETURN QUERY SELECT p_publication_id, p_version_number, p_sent_at, p_expires_at;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.publish_proposal_publication(
+    uuid, uuid, uuid, integer, text, jsonb, text, numeric, numeric,
+    numeric, numeric, timestamptz, integer, timestamptz
+) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.publish_proposal_publication(
+    uuid, uuid, uuid, integer, text, jsonb, text, numeric, numeric,
+    numeric, numeric, timestamptz, integer, timestamptz
+) TO authenticated, service_role;
 
 COMMENT ON TABLE public.proposal_publications IS
     'Immutable client-safe sent proposal versions. Public token access is server-only by SHA-256 digest.';

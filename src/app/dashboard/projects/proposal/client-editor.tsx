@@ -537,24 +537,53 @@ export default function ClientEditor({
 
     const handleCopyLink = async () => {
         setSending(true);
-        const result = await getProposalLinkAction(projectId);
-        if (result?.url) {
+        try {
+            const savedDraft = await persistProposal(buildProposalFormData());
+            if (!savedDraft?.success) {
+                toast.error(savedDraft?.error || "Save failed. The proposal was not published.");
+                return;
+            }
+            const result = await getProposalLinkAction(projectId);
+            if (!result?.success || !result.url) {
+                toast.error(result?.error || "The proposal could not be published.");
+                return;
+            }
             await navigator.clipboard.writeText(result.url);
             setLinkCopied(true);
+            toast.success(`Proposal v${result.versionNumber} published and copied`);
             setTimeout(() => setLinkCopied(false), 3000);
+        } catch {
+            toast.error("The proposal could not be published. Please retry.");
+        } finally {
+            setSending(false);
         }
-        setSending(false);
     };
 
     const handleSendEmail = async () => {
         setSending(true);
-        const result = await sendProposalAction(projectId);
-        setSending(false);
-        if (!result?.url) return;
+        let result: Awaited<ReturnType<typeof sendProposalAction>> | undefined;
+        try {
+            const savedDraft = await persistProposal(buildProposalFormData());
+            if (!savedDraft?.success) {
+                toast.error(savedDraft?.error || "Save failed. The proposal was not published.");
+                return;
+            }
+            result = await sendProposalAction(projectId);
+        } catch {
+            toast.error("The proposal could not be published. Please retry.");
+            return;
+        } finally {
+            setSending(false);
+        }
+        if (!result?.success || !result.url) {
+            toast.error(result?.error || "The proposal could not be published.");
+            return;
+        }
 
         if (result.hasClientEmail) {
             // Resend handled it server-side — show confirmation
             setEmailSent(true);
+            toast.success(`Proposal v${result.versionNumber} published and queued for email`);
             setTimeout(() => setEmailSent(false), 4000);
         } else {
             // No client email on file — fall back to mailto
@@ -1611,11 +1640,11 @@ export default function ClientEditor({
                         className="w-full h-12 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 rounded-xl font-bold transition-all flex items-center justify-center gap-2"
                     >
                         {sending ? (
-                            <><Loader2 className="w-4 h-4 animate-spin" /> Getting link...</>
+                            <><Loader2 className="w-4 h-4 animate-spin" /> Publishing...</>
                         ) : linkCopied ? (
                             <><Check className="w-4 h-4 text-green-400" /> Link Copied!</>
                         ) : (
-                            <><Copy className="w-4 h-4" /> Copy Proposal Link</>
+                            <><Copy className="w-4 h-4" /> {proposalStatus === "Sent" ? "Publish New Version & Copy Link" : "Publish & Copy Link"}</>
                         )}
                     </button>
 
@@ -1631,7 +1660,7 @@ export default function ClientEditor({
                         ) : emailSent ? (
                             <><Check className="w-4 h-4 text-green-400" /> Email Sent!</>
                         ) : (
-                            <><Send className="w-4 h-4" /> Send Proposal via Email</>
+                            <><Send className="w-4 h-4" /> {proposalStatus === "Sent" ? "Publish New Version & Email" : "Publish & Send via Email"}</>
                         )}
                     </button>
 

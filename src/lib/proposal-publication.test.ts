@@ -3,6 +3,7 @@ import {
     assertProposalPublicationIsClientSafe,
     buildProposalPublicationSnapshot,
     canonicalProposalPublicationJson,
+    hashProposalAccessToken,
     hashProposalPublication,
     type BuildProposalPublicationInput,
 } from "./proposal-publication";
@@ -149,6 +150,12 @@ describe("proposal publication snapshot", () => {
 
         await expect(hashProposalPublication(snapshot)).resolves.toBe(await hashProposalPublication(reordered));
         await expect(hashProposalPublication(snapshot)).resolves.toMatch(/^[a-f0-9]{64}$/);
+    });
+
+    it("hashes a 32-byte access token and rejects weak token shapes", async () => {
+        const token = "ab".repeat(32);
+        await expect(hashProposalAccessToken(token)).resolves.toMatch(/^[a-f0-9]{64}$/);
+        await expect(hashProposalAccessToken("predictable-token")).rejects.toThrow("32 random bytes");
     });
 
     it("fails closed without a positive canonical value or resolved terms", () => {

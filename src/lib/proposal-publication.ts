@@ -9,6 +9,7 @@ export interface ProposalPublicationProjectInput {
     client_name?: string | null;
     client_address?: string | null;
     site_address?: string | null;
+    start_date?: string | null;
     proposal_introduction?: string | null;
     scope_text?: string | null;
     exclusions_text?: string | null;
@@ -88,6 +89,7 @@ export interface ProposalPublicationSnapshot {
         client_name: string | null;
         client_address: string | null;
         site_address: string | null;
+        start_date: string | null;
     };
     contractor: {
         company_name: string;
@@ -322,6 +324,7 @@ export function buildProposalPublicationSnapshot(
             client_name: optionalText(input.project.client_name, 200),
             client_address: optionalText(input.project.client_address, 500),
             site_address: optionalText(input.project.site_address, 500),
+            start_date: optionalText(input.project.start_date, 20),
         },
         contractor: {
             company_name: requiredText(input.profile.company_name ?? "The Contractor", "Company name", 200),
@@ -387,5 +390,13 @@ export function canonicalProposalPublicationJson(snapshot: ProposalPublicationSn
 export async function hashProposalPublication(snapshot: ProposalPublicationSnapshot): Promise<string> {
     const bytes = new TextEncoder().encode(canonicalProposalPublicationJson(snapshot));
     const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export async function hashProposalAccessToken(token: string): Promise<string> {
+    if (!/^[a-f0-9]{64}$/.test(token)) {
+        throw new Error("Proposal access token must contain 32 random bytes encoded as hex.");
+    }
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
     return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }

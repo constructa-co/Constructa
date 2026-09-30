@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { acceptProposalAction } from "./actions";
+import { respondToProposalAction } from "./actions";
 
 interface Props {
     project: any;
@@ -9,6 +9,8 @@ interface Props {
     companyName: string;
     token: string;
     isExpired: boolean;
+    isRevoked: boolean;
+    expiresAt: string;
     sentAt: string | null;
     totalWeeks: number | null;
     refCode: string;
@@ -29,6 +31,8 @@ export default function AcceptanceClient({
     companyName,
     token,
     isExpired,
+    isRevoked,
+    expiresAt,
     sentAt,
     totalWeeks,
     refCode,
@@ -36,7 +40,9 @@ export default function AcceptanceClient({
 }: Props) {
     const [clientName, setClientName] = useState(project?.client_name || "");
     const [clientEmail, setClientEmail] = useState("");
-    const [accepted, setAccepted] = useState(!!project?.proposal_accepted_at);
+    const isAcknowledgement = project?.response_mode === "acknowledgement";
+    const hasResponded = ["acknowledged", "accepted", "declined"].includes(project?.proposal_status);
+    const [accepted, setAccepted] = useState(hasResponded);
     const [accepting, setAccepting] = useState(false);
     const [acceptedAt, setAcceptedAt] = useState<string | null>(project?.proposal_accepted_at || null);
     const [acceptError, setAcceptError] = useState("");
@@ -49,26 +55,35 @@ export default function AcceptanceClient({
         setAccepting(true);
         setAcceptError("");
         try {
-            const result = await acceptProposalAction(token, clientName, clientEmail);
+            const result = await respondToProposalAction(
+                token,
+                isAcknowledgement ? "acknowledged" : "accepted",
+                clientName,
+                clientEmail,
+            );
             if (result?.success) {
                 setAccepted(true);
-                setAcceptedAt(new Date().toISOString());
+                setAcceptedAt(result.respondedAt || new Date().toISOString());
             } else {
                 setAcceptError(result?.error || "Something went wrong. Please try again.");
             }
+        } catch {
+            setAcceptError("Your response could not be recorded. Please retry or contact the contractor.");
         } finally {
             setAccepting(false);
         }
     };
 
     const sentDate = sentAt ? new Date(sentAt) : null;
-    const validUntil = sentDate ? new Date(sentDate.getTime() + 30 * 86400000) : null;
+    const validUntil = new Date(expiresAt);
     const contractValue = project?.potential_value;
     const paymentSchedule: any[] = project?.payment_schedule || [];
     const ganttPhases: any[] = project?.gantt_phases || [];
     const scopeText: string = project?.scope_text || "";
     const exclusionsText: string = project?.exclusions_text || "";
+    const clarificationsText: string = project?.clarifications_text || "";
     const scopePreview = scopeText;
+    const terms: Array<{ title: string; body: string }> = project?.terms || [];
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -88,6 +103,7 @@ export default function AcceptanceClient({
                         </div>
                     </div>
                 </div>
+
             </header>
 
             <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
@@ -115,6 +131,12 @@ export default function AcceptanceClient({
                         </span>
                     </div>
                 </div>
+
+                {project.proposal_introduction && (
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                        <p className="text-slate-300 leading-relaxed whitespace-pre-line">{project.proposal_introduction}</p>
+                    </div>
+                )}
 
                 {/* ── KEY NUMBERS BAR ── */}
                 <div className="grid sm:grid-cols-3 gap-4">
@@ -173,7 +195,7 @@ export default function AcceptanceClient({
                                 </thead>
                                 <tbody>
                                     {paymentSchedule.map((row: any, i: number) => {
-                                        const amount = contractValue * row.percentage / 100;
+                                        const amount = row.amount ?? (contractValue * row.percentage / 100);
                                         return (
                                             <tr key={i} className="border-b border-slate-800/50 hover:bg-slate-800/30">
                                                 <td className="px-6 py-3.5 font-semibold text-slate-200">{row.stage}</td>
@@ -247,6 +269,13 @@ export default function AcceptanceClient({
                     </div>
                 )}
 
+                {clarificationsText && (
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                        <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-3">Clarifications</h2>
+                        <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">{clarificationsText}</p>
+                    </div>
+                )}
+
                 {/* ── COMPANY CREDENTIALS ── */}
                 {(profile?.capability_statement || profile?.accreditations) && (
                     <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
@@ -287,19 +316,44 @@ export default function AcceptanceClient({
                     </div>
                 )}
 
+                {project.closing_statement && (
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                        <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">{project.closing_statement}</p>
+                    </div>
+                )}
+
+                {/* All frozen terms are displayed before the response control. */}
+                {terms.length > 0 && (
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700">
+                            <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400">Terms &amp; Conditions</h2>
+                        </div>
+                        <div className="p-6 space-y-5">
+                            {terms.map((term, index) => (
+                                <div key={`${term.title}-${index}`}>
+                                    <h3 className="text-sm font-semibold text-slate-200 mb-1">{index + 1}. {term.title}</h3>
+                                    <p className="text-sm text-slate-400 leading-relaxed">{term.body}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* ── ACCEPTANCE SECTION ── */}
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
-                    {accepted || project.proposal_accepted_at ? (
+                    {accepted || hasResponded ? (
                         <div className="text-center space-y-3">
                             <div className="w-16 h-16 bg-green-900/30 rounded-full flex items-center justify-center mx-auto">
                                 <svg className="w-8 h-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                                 </svg>
                             </div>
-                            <h2 className="text-xl font-bold text-green-400">Proposal Accepted</h2>
+                            <h2 className="text-xl font-bold text-green-400">
+                                {isAcknowledgement ? "Proposal Receipt Acknowledged" : "Proposal Accepted"}
+                            </h2>
                             <p className="text-slate-300">
-                                Thank you, <strong>{project.proposal_accepted_by || clientName || "Client"}</strong>. Your acceptance of the proposal for{" "}
-                                <strong>{project.name}</strong> has been recorded at{" "}
+                                Thank you, <strong>{project.proposal_accepted_by || clientName || "Client"}</strong>. Your {isAcknowledgement ? "acknowledgement" : "acceptance"} of the proposal for{" "}
+                                <strong>{project.name}</strong> was recorded on{" "}
                                 {formatDate(new Date(acceptedAt || project.proposal_accepted_at))}.
                             </p>
                             <p className="text-sm text-slate-500">
@@ -309,25 +363,28 @@ export default function AcceptanceClient({
                                 {companyName} will be in touch to confirm next steps.
                             </p>
                         </div>
-                    ) : isExpired ? (
+                    ) : isExpired || isRevoked ? (
                         <div className="text-center space-y-3">
                             <div className="w-14 h-14 bg-red-900/20 rounded-full flex items-center justify-center mx-auto">
                                 <svg className="w-7 h-7 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
-                            <h2 className="text-xl font-bold text-red-400">Proposal Expired</h2>
+                            <h2 className="text-xl font-bold text-red-400">Proposal {isRevoked ? "Superseded" : "Expired"}</h2>
                             <p className="text-sm text-slate-400">
-                                This proposal has passed its 30-day validity period. Please contact {companyName} for an updated proposal.
+                                This proposal is no longer open for response. Please contact {companyName} for the current version.
                             </p>
                         </div>
                     ) : (
                         <div className="space-y-5">
                             <div className="text-center">
-                                <h2 className="text-xl font-bold text-white mb-2">Accept This Proposal</h2>
+                                <h2 className="text-xl font-bold text-white mb-2">
+                                    {isAcknowledgement ? "Acknowledge This Proposal" : "Accept This Proposal"}
+                                </h2>
                                 <p className="text-sm text-slate-400 max-w-md mx-auto">
-                                    By accepting below, you confirm your agreement to the Scope of Works, Fee Proposal,
-                                    and Terms &amp; Conditions set out in this proposal. This constitutes a binding agreement.
+                                    {isAcknowledgement
+                                        ? "By acknowledging below, you confirm receipt and review of this proposal. This acknowledgement is not contract acceptance."
+                                        : "By accepting below, you confirm your agreement to the Scope of Works, Fee Proposal, and Terms & Conditions set out above."}
                                 </p>
                             </div>
 
@@ -366,12 +423,16 @@ export default function AcceptanceClient({
                             >
                                 {accepting
                                     ? "Processing..."
-                                    : contractValue
+                                    : isAcknowledgement
+                                        ? "Acknowledge Receipt"
+                                        : contractValue
                                         ? `Accept Proposal \u2014 ${formatGBP(contractValue)}`
                                         : "Accept This Proposal"}
                             </button>
                             <p className="text-xs text-slate-600 text-center">
-                                This constitutes a binding agreement. You will receive confirmation shortly.
+                                {isAcknowledgement
+                                    ? "Acknowledgement records receipt only and does not create a binding agreement."
+                                    : "This constitutes a binding agreement. You will receive confirmation shortly."}
                             </p>
                         </div>
                     )}

@@ -23,6 +23,7 @@ interface SendProposalEmailArgs {
     proposalUrl: string;
     companyName: string;
     siteAddress?: string;
+    responseMode?: "binding_acceptance" | "acknowledgement";
 }
 
 interface AcceptanceConfirmationArgs {
@@ -57,7 +58,11 @@ export async function sendProposalEmail({
     proposalUrl,
     companyName,
     siteAddress,
+    responseMode = "acknowledgement",
 }: SendProposalEmailArgs) {
+    const responseCopy = responseMode === "binding_acceptance"
+        ? "and confirm your acceptance directly through the proposal"
+        : "and acknowledge receipt after reviewing the complete proposal";
     return getResend().emails.send({
         from: FROM,
         to: clientEmail,
@@ -82,7 +87,7 @@ export async function sendProposalEmail({
           <strong>${projectName}</strong>${siteAddress ? ` at ${siteAddress}` : ""} via the link below.
         </p>
         <p style="color:#374151; font-size:15px; line-height:1.6; margin:0 0 24px;">
-          You can review the full scope of works, pricing, programme, and terms — and confirm your acceptance directly through the proposal.
+          You can review the full scope of works, pricing, programme, and terms — ${responseCopy}.
         </p>
         <a href="${proposalUrl}" style="display:inline-block; background:#0d0d0d; color:#ffffff; font-size:15px; font-weight:600; text-decoration:none; padding:14px 28px; border-radius:8px;">
           View Your Proposal →

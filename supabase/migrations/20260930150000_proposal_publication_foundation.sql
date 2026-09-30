@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS public.proposal_publications (
     version_number integer NOT NULL CHECK (version_number > 0),
     token_hash text NOT NULL UNIQUE CHECK (token_hash ~ '^[a-f0-9]{64}$'),
     status text NOT NULL DEFAULT 'sent'
-        CHECK (status IN ('sent', 'viewed', 'accepted', 'declined', 'revoked')),
+        CHECK (status IN ('sent', 'viewed', 'acknowledged', 'accepted', 'declined', 'revoked')),
     snapshot_schema_version integer NOT NULL DEFAULT 1
         CHECK (snapshot_schema_version = 1),
     snapshot jsonb NOT NULL CHECK (jsonb_typeof(snapshot) = 'object'),
@@ -44,8 +44,8 @@ CREATE TABLE IF NOT EXISTS public.proposal_publications (
         contract_sum_inc_vat = contract_sum_ex_vat + vat_amount
     ),
     CONSTRAINT proposal_publications_response_check CHECK (
-        (status IN ('accepted', 'declined') AND responded_at IS NOT NULL AND responded_by IS NOT NULL)
-        OR (status NOT IN ('accepted', 'declined') AND responded_at IS NULL)
+        (status IN ('acknowledged', 'accepted', 'declined') AND responded_at IS NOT NULL AND responded_by IS NOT NULL)
+        OR (status NOT IN ('acknowledged', 'accepted', 'declined') AND responded_at IS NULL)
     ),
     CONSTRAINT proposal_publications_revocation_check CHECK (
         (status = 'revoked' AND revoked_at IS NOT NULL)
@@ -155,8 +155,8 @@ BEGIN
     END IF;
 
     IF OLD.status IS DISTINCT FROM NEW.status AND NOT (
-        (OLD.status = 'sent' AND NEW.status IN ('viewed', 'accepted', 'declined', 'revoked'))
-        OR (OLD.status = 'viewed' AND NEW.status IN ('accepted', 'declined', 'revoked'))
+        (OLD.status = 'sent' AND NEW.status IN ('viewed', 'acknowledged', 'accepted', 'declined', 'revoked'))
+        OR (OLD.status = 'viewed' AND NEW.status IN ('acknowledged', 'accepted', 'declined', 'revoked'))
     ) THEN
         RAISE EXCEPTION 'Invalid proposal publication status transition.' USING ERRCODE = '23514';
     END IF;
@@ -344,6 +344,14 @@ BEGIN
         RAISE EXCEPTION 'The selected estimate is not the active project estimate.' USING ERRCODE = '23514';
     END IF;
 
+    -- Serialize against estimate-line edits before independently recomputing
+    -- the amount that the application placed in the immutable snapshot.
+    PERFORM 1
+      FROM public.estimate_lines line
+     WHERE line.estimate_id = v_estimate.id
+     ORDER BY line.id
+     FOR UPDATE;
+
     SELECT
         COALESCE(sum(line.line_total) FILTER (
             WHERE COALESCE(line.trade_section, 'General') <> 'Preliminaries'
@@ -448,6 +456,179 @@ GRANT EXECUTE ON FUNCTION public.publish_proposal_publication(
     uuid, uuid, uuid, integer, text, jsonb, text, numeric, numeric,
     numeric, numeric, timestamptz, integer, timestamptz
 ) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.resolve_proposal_publication(
+    p_token_hash text,
+    p_mark_viewed boolean DEFAULT true
+)
+RETURNS TABLE (
+    publication_id uuid,
+    project_id uuid,
+    owner_user_id uuid,
+    publication_status text,
+    snapshot jsonb,
+    first_viewed_at timestamptz,
+    responded_at timestamptz,
+    responded_by text,
+    was_just_viewed boolean
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+    v_publication public.proposal_publications%ROWTYPE;
+    v_just_viewed boolean := false;
+BEGIN
+    IF p_token_hash !~ '^[a-f0-9]{64}$' THEN
+        RETURN;
+    END IF;
+
+    SELECT publication.*
+      INTO v_publication
+      FROM public.proposal_publications publication
+     WHERE publication.token_hash = p_token_hash
+     FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RETURN;
+    END IF;
+
+    IF p_mark_viewed
+       AND v_publication.status = 'sent'
+       AND v_publication.expires_at > now() THEN
+        UPDATE public.proposal_publications AS target
+           SET status = 'viewed', first_viewed_at = COALESCE(target.first_viewed_at, now())
+         WHERE target.id = v_publication.id
+         RETURNING * INTO v_publication;
+        v_just_viewed := true;
+    END IF;
+
+    RETURN QUERY SELECT
+        v_publication.id,
+        v_publication.project_id,
+        v_publication.owner_user_id,
+        v_publication.status,
+        v_publication.snapshot,
+        v_publication.first_viewed_at,
+        v_publication.responded_at,
+        v_publication.responded_by,
+        v_just_viewed;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.resolve_proposal_publication(text, boolean)
+    FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.resolve_proposal_publication(text, boolean)
+    TO service_role;
+
+CREATE OR REPLACE FUNCTION public.respond_to_proposal_publication(
+    p_token_hash text,
+    p_response text,
+    p_name text,
+    p_email text DEFAULT NULL,
+    p_note text DEFAULT NULL
+)
+RETURNS TABLE (
+    publication_id uuid,
+    project_id uuid,
+    owner_user_id uuid,
+    publication_status text,
+    snapshot jsonb,
+    responded_at timestamptz
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+    v_publication public.proposal_publications%ROWTYPE;
+    v_mode text;
+    v_name text := btrim(COALESCE(p_name, ''));
+    v_email text := NULLIF(btrim(COALESCE(p_email, '')), '');
+    v_note text := NULLIF(btrim(COALESCE(p_note, '')), '');
+BEGIN
+    IF p_token_hash !~ '^[a-f0-9]{64}$'
+       OR length(v_name) < 2 OR length(v_name) > 200
+       OR (v_email IS NOT NULL AND length(v_email) > 320)
+       OR (v_note IS NOT NULL AND length(v_note) > 5000) THEN
+        RAISE EXCEPTION 'Invalid proposal response.' USING ERRCODE = '22023';
+    END IF;
+
+    SELECT publication.*
+      INTO v_publication
+      FROM public.proposal_publications publication
+     WHERE publication.token_hash = p_token_hash
+     FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Proposal not found.' USING ERRCODE = 'P0002';
+    END IF;
+
+    v_mode := v_publication.snapshot#>>'{publication,response_mode}';
+    IF (v_mode = 'acknowledgement' AND p_response <> 'acknowledged')
+       OR (v_mode = 'binding_acceptance' AND p_response NOT IN ('accepted', 'declined'))
+       OR v_mode NOT IN ('acknowledgement', 'binding_acceptance') THEN
+        RAISE EXCEPTION 'Response is not permitted for this proposal.' USING ERRCODE = '23514';
+    END IF;
+
+    IF v_publication.status = p_response THEN
+        IF v_publication.responded_by IS DISTINCT FROM v_name
+           OR v_publication.responded_email IS DISTINCT FROM v_email THEN
+            RAISE EXCEPTION 'This proposal already has a different recorded response.' USING ERRCODE = '23514';
+        END IF;
+        RETURN QUERY SELECT v_publication.id, v_publication.project_id,
+            v_publication.owner_user_id, v_publication.status,
+            v_publication.snapshot, v_publication.responded_at;
+        RETURN;
+    END IF;
+
+    IF v_publication.status NOT IN ('sent', 'viewed')
+       OR v_publication.expires_at <= now()
+       OR v_publication.superseded_by IS NOT NULL THEN
+        RAISE EXCEPTION 'This proposal can no longer receive a response.' USING ERRCODE = '23514';
+    END IF;
+
+    UPDATE public.proposal_publications
+       SET status = p_response,
+           responded_at = now(),
+           responded_by = v_name,
+           responded_email = v_email,
+           response_note = v_note,
+           first_viewed_at = COALESCE(first_viewed_at, now())
+     WHERE id = v_publication.id
+     RETURNING * INTO v_publication;
+
+    UPDATE public.projects
+       SET current_proposal_publication_id = v_publication.id,
+           accepted_proposal_publication_id = CASE
+               WHEN p_response = 'accepted' THEN v_publication.id
+               ELSE accepted_proposal_publication_id
+           END,
+           proposal_status = p_response,
+           proposal_accepted_at = CASE
+               WHEN p_response = 'accepted' THEN v_publication.responded_at
+               ELSE proposal_accepted_at
+           END,
+           proposal_accepted_by = CASE
+               WHEN p_response = 'accepted' THEN v_name
+               ELSE proposal_accepted_by
+           END,
+           client_email = COALESCE(v_email, client_email),
+           status = CASE WHEN p_response = 'accepted' THEN 'Won' ELSE status END
+     WHERE id = v_publication.project_id
+       AND user_id = v_publication.owner_user_id;
+
+    RETURN QUERY SELECT v_publication.id, v_publication.project_id,
+        v_publication.owner_user_id, v_publication.status,
+        v_publication.snapshot, v_publication.responded_at;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.respond_to_proposal_publication(text, text, text, text, text)
+    FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.respond_to_proposal_publication(text, text, text, text, text)
+    TO service_role;
 
 COMMENT ON TABLE public.proposal_publications IS
     'Immutable client-safe sent proposal versions. Public token access is server-only by SHA-256 digest.';

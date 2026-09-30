@@ -6,6 +6,18 @@ import { SaveProposalSchema, parseInput } from "@/lib/validation/schemas";
 import { revalidatePath } from "next/cache";
 import { generateJSON, generateText } from "@/lib/ai";
 import { sendProposalEmail } from "@/lib/email";
+import {
+    buildProposalPublicationSnapshot,
+    hashProposalAccessToken,
+    hashProposalPublication,
+    type ProposalPublicationEstimateInput,
+    type ProposalPublicationSnapshot,
+} from "@/lib/proposal-publication";
+import {
+    PROPOSAL_TERMS_PROFILE_VERSION,
+    resolveProposalTerms,
+    type ProposalTermsClause,
+} from "@/lib/proposal-terms";
 
 // ── Types for AI Wizard ──────────────────────────────────────
 export interface ProposalAnswers {
@@ -205,22 +217,6 @@ export async function saveProposalAction(formData: FormData) {
         }
     }
 
-    // Generate proposal_token if it doesn't exist yet
-    const { data: existing, error: existingError } = await supabase
-        .from("projects")
-        .select("proposal_token")
-        .eq("id", id)
-        .eq("user_id", user.id)
-        .single();
-    if (existingError) {
-        console.error("saveProposalAction token lookup failed", { projectId: id, code: existingError.code });
-        return { success: false, error: "Could not load the current proposal before saving." };
-    }
-
-    if (!existing?.proposal_token) {
-        updateData.proposal_token = crypto.randomUUID();
-    }
-
     const { data: savedProject, error: saveError } = await supabase
         .from("projects")
         .update(updateData)
@@ -238,77 +234,135 @@ export async function saveProposalAction(formData: FormData) {
 }
 
 export async function getProposalLinkAction(projectId: string) {
-    const { user, supabase } = await requireProjectAccess(projectId);
-
-    const { data: project } = await supabase
-        .from("projects")
-        .select("proposal_token")
-        .eq("id", projectId)
-        .eq("user_id", user.id)
-        .single();
-
-    let token = project?.proposal_token;
-    if (!token) {
-        token = crypto.randomUUID();
-        await supabase.from("projects")
-            .update({ proposal_token: token })
-            .eq("id", projectId)
-            .eq("user_id", user.id);
-    }
-
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app";
-    return { success: true, url: `${baseUrl}/proposal/${token}` };
+    return publishProposal(projectId, false);
 }
 
 export async function sendProposalAction(projectId: string) {
+    return publishProposal(projectId, true);
+}
+
+function randomProposalToken(): string {
+    return Array.from(crypto.getRandomValues(new Uint8Array(32)), (byte) =>
+        byte.toString(16).padStart(2, "0"),
+    ).join("");
+}
+
+async function publishProposal(projectId: string, deliverByEmail: boolean) {
     const { user, supabase } = await requireEditableProjectAccess(projectId);
 
-    // Get or generate token — also fetch fields needed for email
-    const { data: project } = await supabase
+    const { data: project, error: projectError } = await supabase
         .from("projects")
-        .select("proposal_token, proposal_status, name, client_name, client_email, site_address")
+        .select("*")
         .eq("id", projectId)
         .eq("user_id", user.id)
         .single();
+    if (projectError || !project) {
+        return { success: false, error: "Could not load the proposal for publishing." };
+    }
 
-    let token = project?.proposal_token;
-    const tokenUpdate = token ? {} : { proposal_token: (token = crypto.randomUUID()) };
+    const { data: estimates, error: estimateError } = await supabase
+        .from("estimates")
+        .select("*, estimate_lines(id, trade_section, description, quantity, unit, line_total)")
+        .eq("project_id", projectId)
+        .eq("is_active", true);
+    if (estimateError || !estimates || estimates.length !== 1) {
+        return {
+            success: false,
+            error: "Exactly one active estimate is required before publishing this proposal.",
+        };
+    }
 
-    // Auto-advance kanban: Lead/Estimating → Proposal Sent when proposal is sent
-    const advanceStatus =
-        project?.proposal_status !== "accepted" &&
-        (project?.proposal_status === null ||
-         project?.proposal_status === "draft" ||
-         project?.proposal_status === undefined);
-    // Always bump kanban status to "Proposal Sent" unless already Active/Completed/Lost
-    const { data: projStatus } = await supabase
-        .from("projects")
-        .select("status")
-        .eq("id", projectId)
-        .eq("user_id", user.id)
+    const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("company_name, logo_url, phone, website, accreditations, capability_statement, years_trading, specialisms, insurance_details")
+        .eq("id", user.id)
         .single();
-    const shouldAdvanceKanban = projStatus?.status === "Lead" || projStatus?.status === "Estimating" || projStatus?.status === null;
+    if (profileError || !profile) {
+        return { success: false, error: "Complete your company profile before publishing." };
+    }
 
-    await supabase.from("projects").update({
-        ...tokenUpdate,
-        proposal_sent_at: new Date().toISOString(),
-        proposal_status: "sent",
-        ...(shouldAdvanceKanban ? { status: "Proposal Sent" } : {}),
-    }).eq("id", projectId).eq("user_id", user.id);
+    const { data: latestPublication, error: versionError } = await supabase
+        .from("proposal_publications")
+        .select("version_number")
+        .eq("project_id", projectId)
+        .order("version_number", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+    if (versionError) {
+        return { success: false, error: "Could not determine the next proposal version." };
+    }
+
+    const estimate = estimates[0] as ProposalPublicationEstimateInput;
+    const publicationId = crypto.randomUUID();
+    const versionNumber = (latestPublication?.version_number ?? 0) + 1;
+    const sentAt = new Date().toISOString();
+    const validityDays = Math.max(1, Math.min(365, Number(project.validity_days) || 30));
+    const token = randomProposalToken();
+    let snapshot: ProposalPublicationSnapshot;
+    let tokenHash: string;
+    let snapshotHash: string;
+    try {
+        const terms = resolveProposalTerms(project.tc_overrides as ProposalTermsClause[] | null);
+        snapshot = buildProposalPublicationSnapshot({
+            publicationId,
+            versionNumber,
+            sentAt,
+            validityDays,
+            project,
+            profile,
+            estimate,
+            termsProfileVersion: PROPOSAL_TERMS_PROFILE_VERSION,
+            resolvedTerms: terms,
+            responseMode: "acknowledgement",
+            vatRate: project.is_vat_reverse_charge === true ? 0 : 20,
+        });
+        [tokenHash, snapshotHash] = await Promise.all([
+            hashProposalAccessToken(token),
+            hashProposalPublication(snapshot),
+        ]);
+    } catch (publicationError) {
+        console.error("Proposal snapshot validation failed", { projectId, publicationError });
+        return {
+            success: false,
+            error: publicationError instanceof Error
+                ? publicationError.message
+                : "The proposal is incomplete and could not be published.",
+        };
+    }
+
+    const { error: publishError } = await supabase.rpc("publish_proposal_publication", {
+        p_project_id: projectId,
+        p_publication_id: publicationId,
+        p_estimate_id: estimate.id,
+        p_version_number: versionNumber,
+        p_token_hash: tokenHash,
+        p_snapshot: snapshot,
+        p_snapshot_hash: snapshotHash,
+        p_contract_sum_ex_vat: snapshot.commercial.contract_sum_ex_vat,
+        p_vat_rate: snapshot.commercial.vat_rate,
+        p_vat_amount: snapshot.commercial.vat_amount,
+        p_contract_sum_inc_vat: snapshot.commercial.contract_sum_inc_vat,
+        p_sent_at: snapshot.publication.sent_at,
+        p_validity_days: snapshot.publication.validity_days,
+        p_expires_at: snapshot.publication.expires_at,
+    });
+    if (publishError) {
+        console.error("publishProposal transaction failed", {
+            projectId,
+            code: publishError.code,
+        });
+        return { success: false, error: publishError.message || "Could not publish the proposal." };
+    }
 
     revalidatePath("/dashboard");
+    revalidatePath(`/dashboard/projects/proposal?projectId=${projectId}`);
 
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app";
     const url = `${baseUrl}/proposal/${token}`;
 
-    // If client email is on the project, send via Resend (non-blocking)
-    if (project?.client_email) {
-        const { data: profile } = await supabase
-            .from("profiles")
-            .select("company_name")
-            .eq("id", user.id)
-            .single();
-
+    // Delivery starts only after the publication transaction commits. Email
+    // failure can never roll back or disguise the immutable sent version.
+    if (deliverByEmail && project.client_email) {
         sendProposalEmail({
             clientEmail: project.client_email,
             clientName: project.client_name || "Client",
@@ -316,10 +370,17 @@ export async function sendProposalAction(projectId: string) {
             proposalUrl: url,
             companyName: profile?.company_name || "The Contractor",
             siteAddress: project.site_address,
+            responseMode: snapshot.publication.response_mode,
         }).catch((e) => console.error("Proposal email send failed:", e));
     }
 
-    return { success: true, url, hasClientEmail: !!project?.client_email };
+    return {
+        success: true,
+        url,
+        hasClientEmail: deliverByEmail && !!project.client_email,
+        publicationId,
+        versionNumber,
+    };
 }
 
 export async function generateAiScopeAction(projectId: string) {

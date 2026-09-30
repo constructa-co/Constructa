@@ -39,4 +39,6 @@ jobs:
         run: npm run test:organization-sql
       - name: Verify proposal publication SQL security boundary
         run: npm run test:proposal-sql
+      - name: Verify supervisor token SQL security boundary
+        run: npm run test:supervisor-sql
       - run: npm run build

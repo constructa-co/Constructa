@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAuth } from "@/lib/supabase/auth-utils";
+import { requireAuth, requireProjectAccess } from "@/lib/supabase/auth-utils";
 import { requireLaunchCapability } from "@/lib/launch-profile";
 import { revalidatePath } from "next/cache";
 import { CONTRACTS_CONFIG, ContractType, addDays } from "@/lib/contracts-config";
@@ -569,7 +569,7 @@ export async function createSupervisorTokenAction(data: {
   role?: string;
 }): Promise<{ success: boolean; token?: string; error?: string }> {
   requireLaunchCapability("contract-shield");
-  const { user, supabase } = await requireAuth();
+  const { user, supabase } = await requireProjectAccess(data.projectId);
 
   const { data: row, error } = await supabase
     .from("supervisor_tokens")

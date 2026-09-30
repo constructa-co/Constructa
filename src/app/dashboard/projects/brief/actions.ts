@@ -70,61 +70,23 @@ export async function saveBriefAction(projectId: string, data: {
   brief_completed: boolean;
   potential_value?: number;
   start_date?: string;
-}) {
+}): Promise<{ success: true } | { success: false; error: string }> {
   const { supabase } = await requireEditableProjectAccess(projectId);
 
-  // Fetch existing proposal fields so we don't overwrite them
-  const { data: existing } = await supabase
-    .from("projects")
-    .select("proposal_introduction, scope_text")
-    .eq("id", projectId)
-    .single();
-
-  const updateData: any = { ...data };
-
-  // Pre-fill proposal_introduction if not already written
-  if (!existing?.proposal_introduction && data.brief_scope) {
-    updateData.proposal_introduction = data.brief_scope;
-  }
-
-  // Pre-fill scope_text if not already written
-  if (!existing?.scope_text && data.brief_scope) {
-    updateData.scope_text = data.brief_scope;
-  }
-
-  const { error } = await supabase.from("projects").update(updateData).eq("id", projectId);
-  if (error) console.error("Save brief error:", error);
-
-  // Auto-scaffold estimate sections from selected trades if an estimate has no lines yet
-  if (data.brief_trade_sections?.length) {
-    const { data: activeEst } = await supabase
-      .from("estimates")
-      .select("id, estimate_lines(id)")
-      .eq("project_id", projectId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
-
-    if (activeEst && (!activeEst.estimate_lines || activeEst.estimate_lines.length === 0)) {
-      // Insert a placeholder line per trade section (no rate — just scaffolds the section)
-      const placeholders = data.brief_trade_sections.map((trade: string) => ({
-        estimate_id: activeEst.id,
-        trade_section: trade,
-        description: "",
-        quantity: 1,
-        unit: "item",
-        unit_rate: 0,
-        line_total: 0,
-        pricing_mode: "simple",
-      }));
-      await supabase.from("estimate_lines").insert(placeholders);
-    }
+  const { error } = await supabase.rpc("save_phase1_brief", {
+    p_project_id: projectId,
+    p_brief: data,
+  });
+  if (error) {
+    console.error("saveBriefAction transaction failed", { projectId, code: error.code });
+    return { success: false, error: "Could not save the brief. Your changes remain on screen; please retry." };
   }
 
   revalidatePath("/dashboard/projects/brief");
   revalidatePath("/dashboard/projects/schedule");
   revalidatePath("/dashboard/projects/proposal");
   revalidatePath("/proposal", "layout");
+  return { success: true };
 }
 
 export async function suggestEstimateLineItemsAction(

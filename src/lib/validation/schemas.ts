@@ -130,6 +130,22 @@ export const UpdatePhasesSchema = z.object({
     startDate: IsoDate.optional(),
 });
 
+// ── Phase 1 project creation ────────────────────────────────────────────────
+
+export const CreateProjectFromTemplateSchema = z.object({
+    requestId:       Uuid,
+    name:            NonEmptyString(200),
+    client:          NonEmptyString(200),
+    clientEmail:     z.string().trim().email().max(200).optional().or(z.literal("")),
+    clientPhone:     z.string().trim().max(50).optional().default(""),
+    clientAddress:   z.string().trim().max(500).optional().default(""),
+    siteAddress:     z.string().trim().max(500).optional().default(""),
+    projectType:     NonEmptyString(100),
+    startDate:       IsoDate.optional().or(z.literal("")),
+    potentialValue:  z.number().min(0).max(100_000_000).optional().nullable(),
+    typeId:          NonEmptyString(100),
+});
+
 // ── 6. Change events (change-management/actions.ts createChangeEventAction) ──
 // NEC/JCT CE register entry. Values and days tracked separately.
 

@@ -79,6 +79,7 @@ export default function NewProjectWizard({ businessType }: Props) {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const [requestId] = useState(() => crypto.randomUUID());
 
     const [form, setForm] = useState<FormState>({
         name: "",
@@ -109,6 +110,7 @@ export default function NewProjectWizard({ businessType }: Props) {
         fd.set("startDate", form.startDate);
         fd.set("potentialValue", form.potentialValue);
         fd.set("typeId", form.typeId);
+        fd.set("requestId", requestId);
 
         const result = await createProjectFromTemplateAction(fd);
 

@@ -4,6 +4,7 @@ import { useState, useTransition, useMemo, useEffect, useRef, useCallback } from
 import { updatePhasesAction, getEstimatePhasesAction, saveProgrammePhasesAction } from "./actions";
 import ProgrammeAiUpdate from "./programme-ai-update";
 import { toast } from "sonner";
+import { createLatestWriteQueue } from "@/lib/latest-write-queue";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface Phase {
@@ -163,7 +164,7 @@ interface DragState {
 // ─── Main Component ──────────────────────────────────────────────────────────
 export default function ClientSchedulePage({ project, estimate, projectId }: Props) {
     const [isPending, startTransition] = useTransition();
-    const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+    const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
     const [isDragging, setIsDragging] = useState(false);
     const [showLiveTracking, setShowLiveTracking] = useState(false);
 
@@ -172,6 +173,10 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const isInitialMount     = useRef(true);
     const autoSaveTimer      = useRef<NodeJS.Timeout | null>(null);
     const programmeStartRef  = useRef<Date | null>(null);
+    const [persistPhases] = useState(() => createLatestWriteQueue(
+        ({ phases: nextPhases, startDate }: { phases: Phase[]; startDate: string }) =>
+            updatePhasesAction(project.id, nextPhases, startDate),
+    ));
 
     // ── Working week (persisted in localStorage per project) ──────────────
     const DPW_KEY = `prog_dpw_${projectId}`;
@@ -243,12 +248,22 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
         autoSaveTimer.current = setTimeout(() => {
             autoSaveTimer.current = null;
             const startDateStr = toInputDate(programmeStartRef.current || programmeStart);
-            updatePhasesAction(project.id, phasesRef.current, startDateStr)
-                .then(() => {
+            setSaveStatus("saving");
+            persistPhases({ phases: phasesRef.current, startDate: startDateStr })
+                .then((result) => {
+                    if (!result.success) {
+                        setSaveStatus("error");
+                        toast.error(result.error);
+                        return;
+                    }
                     setSaveStatus("saved");
                     setTimeout(() => setSaveStatus("idle"), 2000);
                 })
-                .catch(console.error);
+                .catch((error) => {
+                    console.error(error);
+                    setSaveStatus("error");
+                    toast.error("Could not save the programme. Please retry.");
+                });
         }, 500);
         return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -262,7 +277,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 autoSaveTimer.current = null;
                 const startDateStr = toInputDate(programmeStartRef.current || new Date());
                 // Fire-and-forget — best-effort save on unmount
-                updatePhasesAction(project.id, phasesRef.current, startDateStr).catch(console.error);
+                persistPhases({ phases: phasesRef.current, startDate: startDateStr }).catch(console.error);
             }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -454,7 +469,12 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
         startTransition(async () => {
             setSaveStatus("saving");
             const startDateStr = toInputDate(programmeStart);
-            await updatePhasesAction(project.id, phases, startDateStr);
+            const result = await persistPhases({ phases, startDate: startDateStr });
+            if (!result.success) {
+                setSaveStatus("error");
+                toast.error(result.error);
+                return;
+            }
             setSaveStatus("saved");
             setTimeout(() => setSaveStatus("idle"), 2500);
             toast.success("Programme saved to proposal");
@@ -508,6 +528,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     {saveStatus === "saving" && <span className="text-xs text-slate-400 animate-pulse">Saving…</span>}
+                    {saveStatus === "error" && <span className="text-xs text-red-400">Save failed — retry</span>}
                     {saveStatus === "saved"  && <span className="text-xs text-emerald-400">✓ Auto-saved</span>}
                     {phases.length > 1 && (
                         <button type="button" onClick={sequencePhases}

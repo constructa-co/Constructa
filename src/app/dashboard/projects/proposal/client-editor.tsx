@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2, RefreshCw, FileDown, Send, History } from "lucide-react";
 import { saveProposalAction, generateAiScopeAction, sendProposalAction, getProposalLinkAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction, updatePaymentScheduleTypeAction, generateClosingStatementAction, saveClosingStatementAction, saveProposalOverridesAction, createProposalVersionAction, type ProposalVersionRow } from "./actions";
+import { createLatestWriteQueue } from "@/lib/latest-write-queue";
 // Sprint 58 P3.4 — delegate the QS math to the canonical helper so the
 // editor can never silently diverge from the proposal PDF, billing page,
 // or P&L dashboard. All 35 Vitest tests in src/lib/financial.test.ts
@@ -249,6 +250,7 @@ export default function ClientEditor({
     // no "did that save?" question.
     const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
     const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [persistProposal] = useState(() => createLatestWriteQueue(saveProposalAction));
     const initialMountRef = useRef(true);
     const savedClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -599,17 +601,29 @@ export default function ClientEditor({
 
     const handleSave = async () => {
         setSaving(true);
-        await saveProposalAction(buildProposalFormData());
-        setSaved(true);
-        setSaving(false);
-        // Autosave indicator shares the same "saved" moment so the two
-        // UIs stay consistent.
-        setAutosaveStatus("saved");
-        if (savedClearTimerRef.current) clearTimeout(savedClearTimerRef.current);
-        savedClearTimerRef.current = setTimeout(() => {
-            setSaved(false);
-            setAutosaveStatus("idle");
-        }, 3000);
+        try {
+            const result = await persistProposal(buildProposalFormData());
+            if (!result.success) {
+                setAutosaveStatus("error");
+                toast.error(result.error);
+                return;
+            }
+            setSaved(true);
+            // Autosave indicator shares the same "saved" moment so the two
+            // UIs stay consistent.
+            setAutosaveStatus("saved");
+            if (savedClearTimerRef.current) clearTimeout(savedClearTimerRef.current);
+            savedClearTimerRef.current = setTimeout(() => {
+                setSaved(false);
+                setAutosaveStatus("idle");
+            }, 3000);
+        } catch (error) {
+            console.error(error);
+            setAutosaveStatus("error");
+            toast.error("Could not save the proposal. Your draft remains on screen.");
+        } finally {
+            setSaving(false);
+        }
     };
 
     // ── Debounced autosave ─────────────────────────────────────────────
@@ -629,7 +643,8 @@ export default function ClientEditor({
         setAutosaveStatus("saving");
         autosaveTimer.current = setTimeout(async () => {
             try {
-                await saveProposalAction(buildProposalFormData());
+                const result = await persistProposal(buildProposalFormData());
+                if (!result.success) throw new Error(result.error);
                 setAutosaveStatus("saved");
                 if (savedClearTimerRef.current) clearTimeout(savedClearTimerRef.current);
                 savedClearTimerRef.current = setTimeout(

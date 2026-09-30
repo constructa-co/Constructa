@@ -86,7 +86,7 @@ export async function updatePhasesAction(
         dependsOn?: number[];
     }[],
     startDate?: string   // ISO YYYY-MM-DD — if provided, saves to projects.start_date
-): Promise<void> {
+): Promise<{ success: true } | { success: false; error: string }> {
     const input = parseInput(UpdatePhasesSchema, { projectId, phases, startDate }, "programme phases");
     // This shared autosave also carries post-award live tracking fields
     // (`pct_complete` and actual dates). Keep ownership enforcement here, but
@@ -107,10 +107,14 @@ export async function updatePhasesAction(
         .eq("id", input.projectId)
         .eq("user_id", user.id);
 
-    if (error) console.error("Update phases error:", error);
+    if (error) {
+        console.error("updatePhasesAction failed", { projectId: input.projectId, code: error.code });
+        return { success: false, error: "Could not save the programme. Your changes remain on screen; please retry." };
+    }
     revalidatePath("/dashboard/projects/schedule");
     revalidatePath("/dashboard/projects/proposal");
     revalidatePath("/proposal", "layout");
+    return { success: true };
 }
 
 export async function getEstimatePhasesAction(

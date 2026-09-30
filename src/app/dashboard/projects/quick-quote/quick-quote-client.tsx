@@ -58,6 +58,7 @@ export default function QuickQuoteClient({
     templates: QuickQuoteTemplate[];
 }) {
     const router = useRouter();
+    const [requestId] = useState(() => crypto.randomUUID());
     const [selectedTemplate, setSelectedTemplate] =
         useState<QuickQuoteTemplate | null>(null);
     const [form, setForm] = useState({
@@ -91,6 +92,7 @@ export default function QuickQuoteClient({
         }
         startTransition(async () => {
             const res = await createQuickQuoteFromTemplateAction({
+                requestId,
                 templateId:      selectedTemplate.id,
                 name:            form.name.trim(),
                 client_name:     form.client_name.trim(),

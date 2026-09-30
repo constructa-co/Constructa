@@ -361,7 +361,7 @@ async function publishProposal(projectId: string, deliverByEmail: boolean) {
         };
     }
 
-    const { error: publishError } = await supabase.rpc("publish_proposal_publication", {
+    const { data: publicationRows, error: publishError } = await supabase.rpc("publish_proposal_publication", {
         p_project_id: projectId,
         p_publication_id: publicationId,
         p_estimate_id: estimate.id,
@@ -376,6 +376,7 @@ async function publishProposal(projectId: string, deliverByEmail: boolean) {
         p_sent_at: snapshot.publication.sent_at,
         p_validity_days: snapshot.publication.validity_days,
         p_expires_at: snapshot.publication.expires_at,
+        p_delivery_email: deliverByEmail && project.client_email ? project.client_email : null,
     });
     if (publishError) {
         console.error("publishProposal transaction failed", {
@@ -390,19 +391,46 @@ async function publishProposal(projectId: string, deliverByEmail: boolean) {
 
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app";
     const url = `${baseUrl}/proposal/${token}`;
+    const publicationResult = Array.isArray(publicationRows) ? publicationRows[0] : null;
+    const deliveryId = publicationResult?.delivery_id as string | null | undefined;
 
-    // Delivery starts only after the publication transaction commits. Email
-    // failure can never roll back or disguise the immutable sent version.
+    // Delivery starts only after the publication and attempt-ledger row commit. A
+    // stable provider idempotency key makes retry safe if the process exits
+    // after Resend accepts the message but before the attempt is recorded.
     if (deliverByEmail && project.client_email) {
-        sendProposalEmail({
-            clientEmail: project.client_email,
-            clientName: project.client_name || "Client",
-            projectName: project.name || "Your Project",
-            proposalUrl: url,
-            companyName: profile?.company_name || "The Contractor",
-            siteAddress: project.site_address,
-            responseMode: snapshot.publication.response_mode,
-        }).catch((e) => console.error("Proposal email send failed:", e));
+        try {
+            const delivery = await sendProposalEmail({
+                clientEmail: project.client_email,
+                clientName: project.client_name || "Client",
+                projectName: project.name || "Your Project",
+                proposalUrl: url,
+                companyName: profile?.company_name || "The Contractor",
+                siteAddress: project.site_address,
+                responseMode: snapshot.publication.response_mode,
+                idempotencyKey: deliveryId ? `proposal-delivery/${deliveryId}` : undefined,
+            });
+            if (delivery.error) throw new Error(delivery.error.name || "provider_error");
+            if (deliveryId) {
+                const { error: recordError } = await supabase.rpc("record_proposal_delivery_attempt", {
+                    p_delivery_id: deliveryId,
+                    p_succeeded: true,
+                    p_provider_message_id: delivery.data?.id ?? null,
+                    p_error_code: null,
+                });
+                if (recordError) console.error("Proposal delivery success could not be recorded", { code: recordError.code });
+            }
+        } catch (deliveryError) {
+            console.error("Proposal email send failed:", deliveryError);
+            if (deliveryId) {
+                const { error: recordError } = await supabase.rpc("record_proposal_delivery_attempt", {
+                    p_delivery_id: deliveryId,
+                    p_succeeded: false,
+                    p_provider_message_id: null,
+                    p_error_code: deliveryError instanceof Error ? deliveryError.message : "unknown",
+                });
+                if (recordError) console.error("Proposal delivery failure could not be recorded", { code: recordError.code });
+            }
+        }
     }
 
     return {

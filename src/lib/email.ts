@@ -24,6 +24,7 @@ interface SendProposalEmailArgs {
     companyName: string;
     siteAddress?: string;
     responseMode?: "binding_acceptance" | "acknowledgement";
+    idempotencyKey?: string;
 }
 
 interface AcceptanceConfirmationArgs {
@@ -59,6 +60,7 @@ export async function sendProposalEmail({
     companyName,
     siteAddress,
     responseMode = "acknowledgement",
+    idempotencyKey,
 }: SendProposalEmailArgs) {
     const responseCopy = responseMode === "binding_acceptance"
         ? "and confirm your acceptance directly through the proposal"
@@ -107,7 +109,7 @@ export async function sendProposalEmail({
   </table>
 </body>
 </html>`,
-    });
+    }, idempotencyKey ? { idempotencyKey } : undefined);
 }
 
 // ─── Email: Client receives acceptance confirmation ───────────────────────────

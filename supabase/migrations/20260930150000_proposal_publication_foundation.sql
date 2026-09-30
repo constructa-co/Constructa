@@ -78,6 +78,49 @@ CREATE INDEX IF NOT EXISTS proposal_publications_owner_project_idx
 CREATE INDEX IF NOT EXISTS proposal_publications_organization_idx
     ON public.proposal_publications(organization_id, sent_at DESC);
 
+CREATE TABLE IF NOT EXISTS public.proposal_publication_events (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    publication_id uuid NOT NULL REFERENCES public.proposal_publications(id) ON DELETE RESTRICT,
+    organization_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE RESTRICT,
+    owner_user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
+    event_type text NOT NULL CHECK (event_type IN (
+        'published', 'revoked', 'viewed', 'acknowledged', 'accepted', 'declined',
+        'delivery_queued', 'delivery_sent', 'delivery_failed'
+    )),
+    actor_kind text NOT NULL CHECK (actor_kind IN ('owner', 'client', 'system')),
+    details jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(details) = 'object'),
+    occurred_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS proposal_publication_events_publication_idx
+    ON public.proposal_publication_events(publication_id, occurred_at, id);
+
+CREATE TABLE IF NOT EXISTS public.proposal_delivery_attempts (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    publication_id uuid NOT NULL REFERENCES public.proposal_publications(id) ON DELETE RESTRICT,
+    organization_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE RESTRICT,
+    owner_user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
+    template text NOT NULL DEFAULT 'proposal_published'
+        CHECK (template IN ('proposal_published')),
+    recipient_email text NOT NULL CHECK (length(recipient_email) BETWEEN 3 AND 320),
+    status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed')),
+    attempt_count integer NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+    last_attempt_at timestamptz,
+    sent_at timestamptz,
+    provider_message_id text CHECK (provider_message_id IS NULL OR length(provider_message_id) <= 500),
+    last_error_code text CHECK (last_error_code IS NULL OR length(last_error_code) <= 200),
+    created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT proposal_delivery_attempts_once UNIQUE (publication_id, template, recipient_email),
+    CONSTRAINT proposal_delivery_attempts_sent_check CHECK (
+        (status = 'sent' AND sent_at IS NOT NULL)
+        OR (status <> 'sent' AND sent_at IS NULL)
+    )
+);
+
+CREATE INDEX IF NOT EXISTS proposal_delivery_attempts_pending_idx
+    ON public.proposal_delivery_attempts(status, created_at)
+    WHERE status IN ('pending', 'failed');
+
 CREATE OR REPLACE FUNCTION public.proposal_snapshot_has_forbidden_keys(p_snapshot jsonb)
 RETURNS boolean
 LANGUAGE sql
@@ -236,6 +279,8 @@ ON public.projects
 FOR EACH ROW EXECUTE FUNCTION public.guard_project_publication_pointers();
 
 ALTER TABLE public.proposal_publications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.proposal_publication_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.proposal_delivery_attempts ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS proposal_publications_owner_read ON public.proposal_publications;
 CREATE POLICY proposal_publications_owner_read
@@ -252,9 +297,43 @@ USING (
     )
 );
 
+DROP POLICY IF EXISTS proposal_publication_events_owner_read ON public.proposal_publication_events;
+CREATE POLICY proposal_publication_events_owner_read
+ON public.proposal_publication_events
+FOR SELECT
+TO authenticated
+USING (
+    owner_user_id = auth.uid()
+    AND EXISTS (
+        SELECT 1 FROM public.organization_members membership
+         WHERE membership.organization_id = proposal_publication_events.organization_id
+           AND membership.user_id = auth.uid()
+    )
+);
+
+DROP POLICY IF EXISTS proposal_delivery_attempts_owner_read ON public.proposal_delivery_attempts;
+CREATE POLICY proposal_delivery_attempts_owner_read
+ON public.proposal_delivery_attempts
+FOR SELECT
+TO authenticated
+USING (
+    owner_user_id = auth.uid()
+    AND EXISTS (
+        SELECT 1 FROM public.organization_members membership
+         WHERE membership.organization_id = proposal_delivery_attempts.organization_id
+           AND membership.user_id = auth.uid()
+    )
+);
+
 REVOKE ALL ON TABLE public.proposal_publications FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.proposal_publications TO authenticated;
 GRANT ALL ON TABLE public.proposal_publications TO service_role;
+REVOKE ALL ON TABLE public.proposal_publication_events FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON TABLE public.proposal_publication_events TO authenticated;
+GRANT ALL ON TABLE public.proposal_publication_events TO service_role;
+REVOKE ALL ON TABLE public.proposal_delivery_attempts FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON TABLE public.proposal_delivery_attempts TO authenticated;
+GRANT ALL ON TABLE public.proposal_delivery_attempts TO service_role;
 
 CREATE OR REPLACE FUNCTION public.publish_proposal_publication(
     p_project_id uuid,
@@ -270,13 +349,15 @@ CREATE OR REPLACE FUNCTION public.publish_proposal_publication(
     p_contract_sum_inc_vat numeric,
     p_sent_at timestamptz,
     p_validity_days integer,
-    p_expires_at timestamptz
+    p_expires_at timestamptz,
+    p_delivery_email text DEFAULT NULL
 )
 RETURNS TABLE (
     publication_id uuid,
     published_version integer,
     published_at timestamptz,
-    publication_expires_at timestamptz
+    publication_expires_at timestamptz,
+    delivery_id uuid
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -289,6 +370,7 @@ DECLARE
     v_active_estimate_count integer;
     v_expected_version integer;
     v_previous_id uuid;
+    v_delivery_id uuid;
     v_direct_cost numeric := 0;
     v_explicit_prelims numeric := 0;
     v_explicit_prelims_count integer := 0;
@@ -412,6 +494,13 @@ BEGIN
         UPDATE public.proposal_publications
            SET status = 'revoked', revoked_at = p_sent_at
          WHERE id = v_previous_id;
+        INSERT INTO public.proposal_publication_events (
+            publication_id, organization_id, owner_user_id, event_type,
+            actor_kind, details, occurred_at
+        ) VALUES (
+            v_previous_id, v_project.organization_id, v_actor, 'revoked',
+            'owner', jsonb_build_object('superseded_by', p_publication_id), p_sent_at
+        );
     END IF;
 
     INSERT INTO public.proposal_publications (
@@ -425,6 +514,32 @@ BEGIN
         p_contract_sum_ex_vat, p_vat_rate, p_vat_amount, p_contract_sum_inc_vat,
         p_sent_at, p_validity_days, p_expires_at
     );
+
+    INSERT INTO public.proposal_publication_events (
+        publication_id, organization_id, owner_user_id, event_type,
+        actor_kind, details, occurred_at
+    ) VALUES (
+        p_publication_id, v_project.organization_id, v_actor, 'published',
+        'owner', jsonb_build_object('version_number', p_version_number), p_sent_at
+    );
+
+    IF NULLIF(btrim(COALESCE(p_delivery_email, '')), '') IS NOT NULL THEN
+        IF length(btrim(p_delivery_email)) > 320 THEN
+            RAISE EXCEPTION 'Delivery email is invalid.' USING ERRCODE = '22023';
+        END IF;
+        INSERT INTO public.proposal_delivery_attempts (
+            publication_id, organization_id, owner_user_id, recipient_email
+        ) VALUES (
+            p_publication_id, v_project.organization_id, v_actor, lower(btrim(p_delivery_email))
+        ) RETURNING id INTO v_delivery_id;
+        INSERT INTO public.proposal_publication_events (
+            publication_id, organization_id, owner_user_id, event_type,
+            actor_kind, details, occurred_at
+        ) VALUES (
+            p_publication_id, v_project.organization_id, v_actor, 'delivery_queued',
+            'system', jsonb_build_object('delivery_id', v_delivery_id), p_sent_at
+        );
+    END IF;
 
     IF v_previous_id IS NOT NULL THEN
         UPDATE public.proposal_publications
@@ -444,18 +559,89 @@ BEGIN
      WHERE id = p_project_id
        AND user_id = v_actor;
 
-    RETURN QUERY SELECT p_publication_id, p_version_number, p_sent_at, p_expires_at;
+    RETURN QUERY SELECT p_publication_id, p_version_number, p_sent_at, p_expires_at, v_delivery_id;
 END;
 $$;
 
 REVOKE ALL ON FUNCTION public.publish_proposal_publication(
     uuid, uuid, uuid, integer, text, jsonb, text, numeric, numeric,
-    numeric, numeric, timestamptz, integer, timestamptz
+    numeric, numeric, timestamptz, integer, timestamptz, text
 ) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.publish_proposal_publication(
     uuid, uuid, uuid, integer, text, jsonb, text, numeric, numeric,
-    numeric, numeric, timestamptz, integer, timestamptz
+    numeric, numeric, timestamptz, integer, timestamptz, text
 ) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.record_proposal_delivery_attempt(
+    p_delivery_id uuid,
+    p_succeeded boolean,
+    p_provider_message_id text DEFAULT NULL,
+    p_error_code text DEFAULT NULL
+)
+RETURNS TABLE (delivery_status text, attempt_count integer)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+    v_actor uuid := auth.uid();
+    v_delivery public.proposal_delivery_attempts%ROWTYPE;
+BEGIN
+    IF v_actor IS NULL THEN
+        RAISE EXCEPTION 'Authentication required.' USING ERRCODE = '42501';
+    END IF;
+
+    SELECT delivery.*
+      INTO v_delivery
+      FROM public.proposal_delivery_attempts delivery
+     WHERE delivery.id = p_delivery_id
+       AND delivery.owner_user_id = v_actor
+     FOR UPDATE;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Delivery record not found.' USING ERRCODE = 'P0002';
+    END IF;
+
+    IF v_delivery.status = 'sent' THEN
+        RETURN QUERY SELECT v_delivery.status, v_delivery.attempt_count;
+        RETURN;
+    END IF;
+
+    UPDATE public.proposal_delivery_attempts AS target
+       SET status = CASE WHEN p_succeeded THEN 'sent' ELSE 'failed' END,
+           attempt_count = target.attempt_count + 1,
+           last_attempt_at = now(),
+           sent_at = CASE WHEN p_succeeded THEN now() ELSE NULL END,
+           provider_message_id = CASE WHEN p_succeeded THEN left(p_provider_message_id, 500) ELSE NULL END,
+           last_error_code = CASE WHEN p_succeeded THEN NULL ELSE left(COALESCE(p_error_code, 'unknown'), 200) END
+     WHERE target.id = v_delivery.id
+     RETURNING * INTO v_delivery;
+
+    INSERT INTO public.proposal_publication_events (
+        publication_id, organization_id, owner_user_id, event_type,
+        actor_kind, details, occurred_at
+    ) VALUES (
+        v_delivery.publication_id,
+        v_delivery.organization_id,
+        v_delivery.owner_user_id,
+        CASE WHEN p_succeeded THEN 'delivery_sent' ELSE 'delivery_failed' END,
+        'system',
+        jsonb_build_object(
+            'delivery_id', v_delivery.id,
+            'attempt_count', v_delivery.attempt_count,
+            'provider_message_id', CASE WHEN p_succeeded THEN v_delivery.provider_message_id ELSE NULL END,
+            'error_code', CASE WHEN p_succeeded THEN NULL ELSE v_delivery.last_error_code END
+        ),
+        v_delivery.last_attempt_at
+    );
+
+    RETURN QUERY SELECT v_delivery.status, v_delivery.attempt_count;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.record_proposal_delivery_attempt(uuid, boolean, text, text)
+    FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.record_proposal_delivery_attempt(uuid, boolean, text, text)
+    TO authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.resolve_proposal_publication(
     p_token_hash text,
@@ -502,6 +688,14 @@ BEGIN
          WHERE target.id = v_publication.id
          RETURNING * INTO v_publication;
         v_just_viewed := true;
+        INSERT INTO public.proposal_publication_events (
+            publication_id, organization_id, owner_user_id, event_type,
+            actor_kind, details, occurred_at
+        ) VALUES (
+            v_publication.id, v_publication.organization_id,
+            v_publication.owner_user_id, 'viewed', 'client', '{}'::jsonb,
+            v_publication.first_viewed_at
+        );
     END IF;
 
     RETURN QUERY SELECT
@@ -618,6 +812,15 @@ BEGIN
            status = CASE WHEN p_response = 'accepted' THEN 'Won' ELSE status END
      WHERE id = v_publication.project_id
        AND user_id = v_publication.owner_user_id;
+
+    INSERT INTO public.proposal_publication_events (
+        publication_id, organization_id, owner_user_id, event_type,
+        actor_kind, details, occurred_at
+    ) VALUES (
+        v_publication.id, v_publication.organization_id,
+        v_publication.owner_user_id, p_response, 'client',
+        jsonb_build_object('responded_by', v_name), v_publication.responded_at
+    );
 
     RETURN QUERY SELECT v_publication.id, v_publication.project_id,
         v_publication.owner_user_id, v_publication.status,

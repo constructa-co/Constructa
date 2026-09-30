@@ -65,8 +65,18 @@ BEGIN
        OR has_table_privilege('anon', 'public.' || table_name, 'DELETE') THEN
       RAISE EXCEPTION 'anon retains a privilege on public.%', table_name;
     END IF;
-    IF NOT has_table_privilege('service_role', 'public.' || table_name, 'SELECT') THEN
+    IF NOT has_table_privilege(
+         'service_role', 'public.' || table_name,
+         'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'
+       ) THEN
       RAISE EXCEPTION 'service_role lacks access to public.%', table_name;
+    END IF;
+    IF NOT (
+      SELECT relrowsecurity
+        FROM pg_class
+       WHERE oid = ('public.' || table_name)::regclass
+    ) THEN
+      RAISE EXCEPTION 'RLS is not enabled on public.%', table_name;
     END IF;
   END LOOP;
 
@@ -74,6 +84,8 @@ BEGIN
      OR has_table_privilege('authenticated', 'public.profiles', 'DELETE')
      OR NOT has_table_privilege('authenticated', 'public.organizations', 'SELECT')
      OR has_table_privilege('authenticated', 'public.organizations', 'INSERT')
+     OR NOT has_table_privilege('authenticated', 'public.organization_members', 'SELECT')
+     OR has_table_privilege('authenticated', 'public.organization_members', 'INSERT')
      OR NOT has_table_privilege('authenticated', 'public.projects', 'SELECT,INSERT,UPDATE,DELETE')
      OR NOT has_table_privilege('authenticated', 'public.estimates', 'SELECT,INSERT,UPDATE,DELETE')
      OR NOT has_table_privilege('authenticated', 'public.estimate_lines', 'SELECT,INSERT,UPDATE,DELETE')
@@ -84,9 +96,28 @@ BEGIN
      OR NOT has_table_privilege('authenticated', 'public.cost_library_items', 'SELECT')
      OR has_table_privilege('authenticated', 'public.cost_library_items', 'INSERT')
      OR NOT has_table_privilege('authenticated', 'public.proposal_publications', 'SELECT')
-     OR has_table_privilege('authenticated', 'public.proposal_publications', 'UPDATE') THEN
+     OR has_table_privilege('authenticated', 'public.proposal_publications', 'INSERT,UPDATE,DELETE')
+     OR NOT has_table_privilege('authenticated', 'public.proposal_publication_events', 'SELECT')
+     OR has_table_privilege('authenticated', 'public.proposal_publication_events', 'INSERT,UPDATE,DELETE')
+     OR NOT has_table_privilege('authenticated', 'public.proposal_delivery_attempts', 'SELECT')
+     OR has_table_privilege('authenticated', 'public.proposal_delivery_attempts', 'INSERT,UPDATE,DELETE') THEN
     RAISE EXCEPTION 'authenticated Phase 1 grant matrix is not least privilege';
   END IF;
+
+  FOREACH table_name IN ARRAY ARRAY[
+    'profiles', 'organizations', 'organization_members', 'projects',
+    'estimates', 'estimate_lines', 'estimate_line_components',
+    'rate_buildups', 'cost_library_items', 'labour_rates',
+    'estimate_dependencies', 'proposal_publications',
+    'proposal_publication_events', 'proposal_delivery_attempts'
+  ] LOOP
+    IF has_table_privilege(
+         'authenticated', 'public.' || table_name,
+         'TRUNCATE,REFERENCES,TRIGGER'
+       ) THEN
+      RAISE EXCEPTION 'authenticated retains administrative privilege on public.%', table_name;
+    END IF;
+  END LOOP;
 
   IF has_sequence_privilege(
        'anon', 'public.proposal_publication_events_id_seq', 'USAGE'
@@ -104,12 +135,25 @@ $$;
 
 CREATE FUNCTION public.future_object_must_be_explicit() RETURNS void
 LANGUAGE sql AS $$ SELECT $$;
+CREATE TABLE public.future_table_must_be_explicit (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY
+);
 
 DO $$
 BEGIN
   IF has_function_privilege('anon', 'public.future_object_must_be_explicit()', 'EXECUTE')
      OR has_function_privilege('authenticated', 'public.future_object_must_be_explicit()', 'EXECUTE') THEN
     RAISE EXCEPTION 'future function inherited browser execution privilege';
+  END IF;
+  IF has_table_privilege('anon', 'public.future_table_must_be_explicit', 'SELECT')
+     OR has_table_privilege('authenticated', 'public.future_table_must_be_explicit', 'SELECT')
+     OR has_sequence_privilege(
+       'anon', 'public.future_table_must_be_explicit_id_seq', 'USAGE'
+     )
+     OR has_sequence_privilege(
+       'authenticated', 'public.future_table_must_be_explicit_id_seq', 'USAGE'
+     ) THEN
+    RAISE EXCEPTION 'future table or sequence inherited browser privilege';
   END IF;
 END;
 $$;

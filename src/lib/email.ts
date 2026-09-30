@@ -50,6 +50,102 @@ function fmtGBP(n: number) {
     return "£" + n.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
+function escapeHtml(value: string) {
+    return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+type ProposalResponse = "acknowledged" | "accepted" | "declined";
+
+interface ProposalResponseReceiptArgs {
+    recipientEmail: string;
+    recipientKind: "client" | "owner";
+    clientName: string;
+    projectName: string;
+    companyName: string;
+    response: ProposalResponse;
+    respondedAt: string;
+    refCode: string;
+    publicationVersion: number;
+    snapshotReference: string;
+    idempotencyKey: string;
+}
+
+export function buildProposalResponseReceiptContent(
+    args: Omit<ProposalResponseReceiptArgs, "recipientEmail" | "idempotencyKey">,
+) {
+    const clientName = escapeHtml(args.clientName);
+    const projectName = escapeHtml(args.projectName);
+    const companyName = escapeHtml(args.companyName);
+    const refCode = escapeHtml(args.refCode);
+    const snapshotReference = escapeHtml(args.snapshotReference.slice(0, 12));
+    const responseLabel = args.response === "acknowledged"
+        ? "Receipt acknowledged"
+        : args.response === "accepted"
+            ? "Proposal accepted"
+            : "Proposal declined";
+    const responseExplanation = args.response === "acknowledged"
+        ? "This records receipt and review of the proposal. It is not contract acceptance."
+        : args.response === "accepted"
+            ? "This records the client's acceptance of the published proposal."
+            : "This records that the client declined the published proposal.";
+    const date = new Date(args.respondedAt).toLocaleString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Europe/London",
+        timeZoneName: "short",
+    });
+    const greeting = args.recipientKind === "client" ? `Dear ${clientName},` : "Hello,";
+    const summary = args.recipientKind === "client"
+        ? `Your response to ${companyName}'s proposal for <strong>${projectName}</strong> has been recorded.`
+        : `<strong>${clientName}</strong> responded to your published proposal for <strong>${projectName}</strong>.`;
+
+    return {
+        subject: `${responseLabel} — ${args.projectName}`,
+        html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9f9f9;margin:0;padding:24px;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;">
+    <tr><td style="background:#0f172a;padding:28px 32px;color:#ffffff;">
+      <p style="font-size:22px;font-weight:700;margin:0;">${responseLabel}</p>
+      <p style="color:#cbd5e1;font-size:13px;margin:4px 0 0;">${date} · ${refCode}</p>
+    </td></tr>
+    <tr><td style="padding:32px;">
+      <p style="color:#111827;font-size:16px;margin:0 0 16px;">${greeting}</p>
+      <p style="color:#374151;font-size:15px;line-height:1.6;margin:0 0 16px;">${summary}</p>
+      <p style="color:#374151;font-size:14px;line-height:1.6;margin:0 0 20px;">${responseExplanation}</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;">
+        <tr><td style="color:#64748b;font-size:13px;padding:4px 8px;">Publication</td><td style="color:#0f172a;font-size:13px;padding:4px 8px;font-weight:600;">Version ${args.publicationVersion}</td></tr>
+        <tr><td style="color:#64748b;font-size:13px;padding:4px 8px;">Reference</td><td style="color:#0f172a;font-size:13px;padding:4px 8px;font-family:monospace;">${refCode}</td></tr>
+        <tr><td style="color:#64748b;font-size:13px;padding:4px 8px;">Snapshot</td><td style="color:#0f172a;font-size:13px;padding:4px 8px;font-family:monospace;">${snapshotReference}</td></tr>
+      </table>
+      <p style="color:#64748b;font-size:12px;line-height:1.5;margin:20px 0 0;">Keep this email as a response receipt. It references the immutable proposal version shown to the client.</p>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+    };
+}
+
+export async function sendProposalResponseReceipt(args: ProposalResponseReceiptArgs) {
+    const content = buildProposalResponseReceiptContent(args);
+    return getResend().emails.send({
+        from: FROM,
+        to: args.recipientEmail,
+        subject: content.subject,
+        html: content.html,
+    }, { idempotencyKey: args.idempotencyKey });
+}
+
 // ─── Email: Contractor sends proposal to client ───────────────────────────────
 
 export async function sendProposalEmail({

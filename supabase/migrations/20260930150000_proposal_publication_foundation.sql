@@ -85,7 +85,9 @@ CREATE TABLE IF NOT EXISTS public.proposal_publication_events (
     owner_user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
     event_type text NOT NULL CHECK (event_type IN (
         'published', 'revoked', 'viewed', 'acknowledged', 'accepted', 'declined',
-        'delivery_queued', 'delivery_sent', 'delivery_failed'
+        'delivery_queued', 'delivery_sent', 'delivery_failed',
+        'client_receipt_sent', 'client_receipt_failed',
+        'owner_receipt_sent', 'owner_receipt_failed'
     )),
     actor_kind text NOT NULL CHECK (actor_kind IN ('owner', 'client', 'system')),
     details jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(details) = 'object'),
@@ -637,6 +639,73 @@ REVOKE ALL ON FUNCTION public.record_proposal_delivery_attempt(uuid, boolean, te
 GRANT EXECUTE ON FUNCTION public.record_proposal_delivery_attempt(uuid, boolean, text, text)
     TO service_role;
 
+CREATE OR REPLACE FUNCTION public.record_proposal_receipt_delivery(
+    p_publication_id uuid,
+    p_audience text,
+    p_succeeded boolean,
+    p_provider_message_id text DEFAULT NULL,
+    p_error_code text DEFAULT NULL
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+    v_publication public.proposal_publications%ROWTYPE;
+    v_event_type text;
+BEGIN
+    IF p_audience NOT IN ('client', 'owner') THEN
+        RAISE EXCEPTION 'Invalid receipt audience.' USING ERRCODE = '22023';
+    END IF;
+
+    SELECT publication.*
+      INTO v_publication
+      FROM public.proposal_publications publication
+     WHERE publication.id = p_publication_id;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Publication not found.' USING ERRCODE = 'P0002';
+    END IF;
+
+    v_event_type := CASE
+        WHEN p_audience = 'client' AND p_succeeded THEN 'client_receipt_sent'
+        WHEN p_audience = 'client' THEN 'client_receipt_failed'
+        WHEN p_succeeded THEN 'owner_receipt_sent'
+        ELSE 'owner_receipt_failed'
+    END;
+
+    IF p_succeeded AND EXISTS (
+        SELECT 1
+          FROM public.proposal_publication_events event
+         WHERE event.publication_id = v_publication.id
+           AND event.event_type = v_event_type
+    ) THEN
+        RETURN;
+    END IF;
+
+    INSERT INTO public.proposal_publication_events (
+        publication_id, organization_id, owner_user_id, event_type,
+        actor_kind, details, occurred_at
+    ) VALUES (
+        v_publication.id,
+        v_publication.organization_id,
+        v_publication.owner_user_id,
+        v_event_type,
+        'system',
+        jsonb_build_object(
+            'provider_message_id', CASE WHEN p_succeeded THEN left(p_provider_message_id, 500) ELSE NULL END,
+            'error_code', CASE WHEN p_succeeded THEN NULL ELSE left(COALESCE(p_error_code, 'unknown'), 200) END
+        ),
+        now()
+    );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.record_proposal_receipt_delivery(uuid, text, boolean, text, text)
+    FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.record_proposal_receipt_delivery(uuid, text, boolean, text, text)
+    TO service_role;
+
 CREATE OR REPLACE FUNCTION public.resolve_proposal_publication(
     p_token_hash text,
     p_mark_viewed boolean DEFAULT true
@@ -723,7 +792,8 @@ RETURNS TABLE (
     owner_user_id uuid,
     publication_status text,
     snapshot jsonb,
-    responded_at timestamptz
+    responded_at timestamptz,
+    publication_snapshot_hash text
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -767,7 +837,8 @@ BEGIN
         END IF;
         RETURN QUERY SELECT v_publication.id, v_publication.project_id,
             v_publication.owner_user_id, v_publication.status,
-            v_publication.snapshot, v_publication.responded_at;
+            v_publication.snapshot, v_publication.responded_at,
+            v_publication.snapshot_hash;
         RETURN;
     END IF;
 
@@ -818,7 +889,8 @@ BEGIN
 
     RETURN QUERY SELECT v_publication.id, v_publication.project_id,
         v_publication.owner_user_id, v_publication.status,
-        v_publication.snapshot, v_publication.responded_at;
+        v_publication.snapshot, v_publication.responded_at,
+        v_publication.snapshot_hash;
 END;
 $$;
 

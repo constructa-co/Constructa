@@ -82,7 +82,8 @@ BEGIN
      OR has_function_privilege('authenticated', 'public.resolve_proposal_publication(text,boolean)', 'EXECUTE')
      OR has_function_privilege('anon', 'public.respond_to_proposal_publication(text,text,text,text,text)', 'EXECUTE')
      OR has_function_privilege('authenticated', 'public.respond_to_proposal_publication(text,text,text,text,text)', 'EXECUTE')
-     OR has_function_privilege('authenticated', 'public.record_proposal_delivery_attempt(uuid,boolean,text,text)', 'EXECUTE') THEN
+     OR has_function_privilege('authenticated', 'public.record_proposal_delivery_attempt(uuid,boolean,text,text)', 'EXECUTE')
+     OR has_function_privilege('authenticated', 'public.record_proposal_receipt_delivery(uuid,text,boolean,text,text)', 'EXECUTE') THEN
     RAISE EXCEPTION 'Server-only publication RPC is executable by a browser role.';
   END IF;
 
@@ -165,6 +166,12 @@ SET ROLE service_role;
 SELECT * FROM public.record_proposal_delivery_attempt(
   '40000000-0000-0000-0000-000000000001', true, 'provider-1', null
 );
+SELECT public.record_proposal_receipt_delivery(
+  '30000000-0000-0000-0000-000000000001', 'client', true, 'receipt-provider-1', null
+);
+SELECT public.record_proposal_receipt_delivery(
+  '30000000-0000-0000-0000-000000000001', 'client', true, 'receipt-provider-1', null
+);
 RESET ROLE;
 
 DO $$
@@ -175,6 +182,13 @@ BEGIN
        AND status = 'sent' AND attempt_count = 1 AND provider_message_id = 'provider-1'
   ) THEN
     RAISE EXCEPTION 'Service-role delivery result was not recorded.';
+  END IF;
+  IF (SELECT count(*) FROM public.proposal_publication_events
+     WHERE publication_id = '30000000-0000-0000-0000-000000000001'
+       AND event_type = 'client_receipt_sent'
+       AND details->>'provider_message_id' = 'receipt-provider-1'
+  ) <> 1 THEN
+    RAISE EXCEPTION 'Service-role receipt result was not recorded idempotently.';
   END IF;
 END;
 $$;

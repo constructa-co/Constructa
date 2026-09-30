@@ -2,10 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashProposalAccessToken, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
-import {
-    sendAcceptanceConfirmationEmail,
-    sendContractorAcceptanceNotification,
-} from "@/lib/email";
+import { sendProposalResponseReceipt } from "@/lib/email";
 
 export async function respondToProposalAction(
     token: string,
@@ -48,40 +45,58 @@ export async function respondToProposalAction(
     const snapshot = result.snapshot as ProposalPublicationSnapshot;
     const refCode = `${snapshot.project.id.substring(0, 8).toUpperCase()}-V${snapshot.publication.version_number}`;
 
-    // Binding-acceptance notifications remain isolated from acknowledgement
-    // mode so the system never tells either party that a contract was accepted
-    // when the publication asked only for receipt acknowledgement.
-    if (response === "accepted") {
-        let contractorEmail: string | undefined;
-        try {
-            const { data: contractorAuth } = await adminSupabase.auth.admin.getUserById(result.owner_user_id);
-            contractorEmail = contractorAuth?.user?.email;
-        } catch (authError) {
-            console.error("Contractor auth lookup failed:", authError);
-        }
+    let contractorEmail: string | undefined;
+    try {
+        const { data: contractorAuth } = await adminSupabase.auth.admin.getUserById(result.owner_user_id);
+        contractorEmail = contractorAuth?.user?.email;
+    } catch (authError) {
+        console.error("Contractor auth lookup failed:", authError);
+    }
 
-        const emailPromises: Promise<unknown>[] = [];
-        if (clientEmail) {
-            emailPromises.push(sendAcceptanceConfirmationEmail({
-                clientEmail,
+    const publicationId = String(result.publication_id);
+    const respondedAt = String(result.responded_at);
+    const snapshotReference = String(result.publication_snapshot_hash || "");
+    const sendReceipt = async (audience: "client" | "owner", recipientEmail: string) => {
+        try {
+            const delivery = await sendProposalResponseReceipt({
+                recipientEmail,
+                recipientKind: audience,
                 clientName,
                 projectName: snapshot.project.name,
                 companyName: snapshot.contractor.company_name,
+                response,
+                respondedAt,
                 refCode,
-                siteAddress: snapshot.project.site_address || undefined,
-            }).catch((emailError) => console.error("Client confirmation email failed:", emailError)));
+                publicationVersion: snapshot.publication.version_number,
+                snapshotReference,
+                idempotencyKey: `proposal-response-${audience}/${publicationId}/${response}`,
+            });
+            if (delivery.error) throw new Error(delivery.error.name || "provider_error");
+            const { error: recordError } = await adminSupabase.rpc("record_proposal_receipt_delivery", {
+                p_publication_id: publicationId,
+                p_audience: audience,
+                p_succeeded: true,
+                p_provider_message_id: delivery.data?.id ?? null,
+                p_error_code: null,
+            });
+            if (recordError) console.error("Response receipt success could not be recorded", { audience, code: recordError.code });
+        } catch (emailError) {
+            console.error("Proposal response receipt failed", { audience, emailError });
+            const { error: recordError } = await adminSupabase.rpc("record_proposal_receipt_delivery", {
+                p_publication_id: publicationId,
+                p_audience: audience,
+                p_succeeded: false,
+                p_provider_message_id: null,
+                p_error_code: emailError instanceof Error ? emailError.message : "unknown",
+            });
+            if (recordError) console.error("Response receipt failure could not be recorded", { audience, code: recordError.code });
         }
-        if (contractorEmail) {
-            emailPromises.push(sendContractorAcceptanceNotification({
-                contractorEmail,
-                clientName,
-                projectName: snapshot.project.name,
-                projectValue: snapshot.commercial.contract_sum_ex_vat,
-                refCode,
-            }).catch((emailError) => console.error("Contractor notification email failed:", emailError)));
-        }
-        await Promise.all(emailPromises);
-    }
+    };
+
+    const receiptPromises: Promise<void>[] = [];
+    if (clientEmail) receiptPromises.push(sendReceipt("client", clientEmail));
+    if (contractorEmail) receiptPromises.push(sendReceipt("owner", contractorEmail));
+    await Promise.all(receiptPromises);
 
     return {
         success: true,

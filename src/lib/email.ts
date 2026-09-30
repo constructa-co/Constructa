@@ -48,10 +48,12 @@ export function normalizeEmailSubjectPart(value: string, maxLength = 120) {
 
 export function requireTrustedAppUrl(value: string) {
     const url = new URL(value);
-    const configuredOrigin = new URL(
-        process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app",
-    ).origin;
-    if (!['http:', 'https:'].includes(url.protocol) || url.origin !== configuredOrigin || url.username || url.password) {
+    const configuredOrigins = new Set(
+        [process.env.NEXT_PUBLIC_SITE_URL, process.env.NEXT_PUBLIC_APP_URL, "https://constructa-nu.vercel.app"]
+            .filter((candidate): candidate is string => Boolean(candidate))
+            .map((candidate) => new URL(candidate).origin),
+    );
+    if (!['http:', 'https:'].includes(url.protocol) || !configuredOrigins.has(url.origin) || url.username || url.password) {
         throw new Error("Email link must use the configured Constructa origin.");
     }
     return url.toString();

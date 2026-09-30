@@ -107,9 +107,13 @@ describe("transactional email safety helpers", () => {
 
     it("accepts only links on the configured application origin", () => {
         vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://app.constructa.test");
+        vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://workspace.constructa.test");
 
         expect(requireTrustedAppUrl("https://app.constructa.test/proposal/token")).toBe(
             "https://app.constructa.test/proposal/token",
+        );
+        expect(requireTrustedAppUrl("https://workspace.constructa.test/dashboard")).toBe(
+            "https://workspace.constructa.test/dashboard",
         );
         expect(() => requireTrustedAppUrl("https://attacker.test/proposal/token")).toThrow(
             "configured Constructa origin",

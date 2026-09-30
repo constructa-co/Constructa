@@ -10,8 +10,8 @@ import {
     PAGE_W, ML, MR, CW,
     CONTENT_BOTTOM,
     addPageHeader, renderSectionHeading,
-    STANDARD_TC_CLAUSES,
 } from "./helpers";
+import { resolveProposalTerms } from "@/lib/proposal-terms";
 
 export function renderTerms(ctx: ProposalContext): number {
     const { doc, T, companyName, docTitle, totalPagesRef, project } = ctx;
@@ -79,7 +79,7 @@ export function renderTerms(ctx: ProposalContext): number {
     doc.text("TERMS & CONDITIONS", boxX2 + 4, termRightY + 5.5);
     termRightY += 12;
 
-    const tcClauses = project?.tc_overrides || STANDARD_TC_CLAUSES.map(([t, b]) => ({ title: t, body: b }));
+    const tcClauses = resolveProposalTerms(project?.tc_overrides);
     tcClauses.forEach((c: any, idx: number) => {
         const title = c.title || (Array.isArray(c) ? c[0] : "");
         const body = c.body || (Array.isArray(c) ? c[1] : "");

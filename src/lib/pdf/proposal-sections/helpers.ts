@@ -69,23 +69,6 @@ export function normaliseAddress(addr: string): string {
         .trim();
 }
 
-// ── Standard T&C clauses ───────────────────────────────────────────────────
-
-export const STANDARD_TC_CLAUSES = [
-    ["1 — Jurisdiction", "The law of Contract is the Law of England and Wales. The Language of this Contract is English."],
-    ["2 — Responsibilities", "The Works are detailed within the Scope of Works attached to this Proposal. All Works are to meet Statutory Requirements, including all applicable British and European Standards, and industry best practices."],
-    ["3 — Alternative Dispute Resolution", "Should any dispute arise which cannot be resolved by negotiation, escalation shall be via Adjudication. The Adjudicating Nominated Body is the Royal Institute of Chartered Surveyors (RICS), under the RICS Homeowner Adjudication Scheme."],
-    ["4 — Liability", "The Defect Liability Period is 12 months from the date of Completion Certificate. Any Defects notified within the Defect Period are to be promptly rectified by the Contractor."],
-    ["5 — Workmanship", "All Works are to be performed using reasonable skill and care to that of a competent Contractor with experience on projects of similar size and scope."],
-    ["6 — Insurances", "The Contractor shall maintain throughout the Works: Public Liability Insurance; Employers Liability Insurance; Contractors All Risk Insurance. Evidence of current policies available on request."],
-    ["7 — Payments", "Payment dates are 21 Calendar days from receipt of Application. Any deductions by the Client must be formally notified as a 'Pay-Less-Notice' no later than 7 days following receipt of Application."],
-    ["8 — Change Management", "Any Variations to the Scope must be issued in writing. The Contractor will respond within 7 Calendar days with any Cost and/or Time implications."],
-    ["9 — Health, Safety & CDM", "The Client is a Domestic Client under the Construction Design Management (CDM) Regulations 2015. The Contractor shall act as Principal Contractor and comply with all CDM requirements."],
-    ["10 — Materials & Ownership", "All materials supplied and fixed by the Contractor shall remain the property of the Contractor until payment in full has been received. Risk in materials passes to the Client on delivery to site."],
-    ["11 — Practical Completion", "Practical Completion shall be certified in writing by the Contractor upon substantial completion of the Works. Minor snags shall not prevent Practical Completion being declared, provided they are remedied within the Defect Liability Period."],
-    ["12 — Confidentiality", "The terms, pricing, and conditions contained within this Proposal and resulting Contract are confidential between the parties and shall not be disclosed to any third party without the prior written consent of the other party."],
-];
-
 // ── Layout primitives ──────────────────────────────────────────────────────
 
 export function addPageHeader(

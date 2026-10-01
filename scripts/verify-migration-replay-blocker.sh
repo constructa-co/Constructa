@@ -3,9 +3,9 @@ set -euo pipefail
 
 repaired_migration="20260117000000_foundations_estimator.sql"
 repaired_path="supabase/migrations/$repaired_migration"
-expected_blocker="20260312000100_library_consolidation.sql"
-expected_success_count=30
-expected_error='record "rec" has no field "category"'
+expected_blocker="20260318000001_uk_library_seed.sql"
+expected_success_count=35
+expected_error='column "is_system_default" of relation "mom_items" does not exist'
 output_file="$(mktemp "${TMPDIR:-/tmp}/constructa-migration-replay.XXXXXX")"
 
 cleanup() {

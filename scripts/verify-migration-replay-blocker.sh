@@ -3,6 +3,9 @@ set -euo pipefail
 
 repaired_migration="20260117000000_foundations_estimator.sql"
 repaired_path="supabase/migrations/$repaired_migration"
+expected_blocker="20260226260000_lean_library.sql"
+expected_success_count=28
+expected_error='column "category" does not exist'
 output_file="$(mktemp "${TMPDIR:-/tmp}/constructa-migration-replay.XXXXXX")"
 
 cleanup() {
@@ -58,12 +61,28 @@ for migration_path in "${migrations[@]}"; do
   set -e
 
   if [[ "$migration_status" -ne 0 ]]; then
-    echo "First replay failure after $replayed_count successful migrations: ${migration_path##*/}" >&2
-    sed -n '1,220p' "$output_file" >&2
-    exit 1
+    failed_migration="${migration_path##*/}"
+    if [[ "$failed_migration" != "$expected_blocker" || "$replayed_count" -ne "$expected_success_count" ]]; then
+      echo "Unexpected replay failure after $replayed_count successful migrations: $failed_migration" >&2
+      sed -n '1,220p' "$output_file" >&2
+      exit 1
+    fi
+    if ! grep -Fq "$expected_error" "$output_file"; then
+      echo "$expected_blocker failed for an unexpected reason." >&2
+      sed -n '1,220p' "$output_file" >&2
+      exit 1
+    fi
+
+    matched_error="$(grep -F "$expected_error" "$output_file" | tail -n 1)"
+    echo "Replayed migrations: $replayed_count"
+    echo "Expected blocker: $failed_migration"
+    echo "Matched PostgreSQL error: $matched_error"
+    echo "constructa-migration-replay: confirmed next blocker in $failed_migration"
+    exit 0
   fi
 
   replayed_count=$((replayed_count + 1))
 done
 
-echo "constructa-migration-replay: all $replayed_count migrations replayed successfully"
+echo "All $replayed_count migrations replayed; remove the stale blocker assertion." >&2
+exit 1

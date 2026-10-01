@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/migration-replay.yml"
       - "scripts/fixtures/supabase-storage.sql"
+      - "scripts/verify-phase1-smoke.sql"
       - "scripts/verify-migration-replay.sh"
       - "supabase/migrations/**"
 
@@ -43,3 +44,7 @@ jobs:
         env:
           MIGRATION_DATABASE_URL: postgresql://supabase_admin:postgres@localhost:5432/constructa_replay
         run: bash scripts/verify-migration-replay.sh
+      - name: Verify Phase 1 database smoke journey
+        env:
+          MIGRATION_DATABASE_URL: postgresql://supabase_admin:postgres@localhost:5432/constructa_replay
+        run: psql "$MIGRATION_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f scripts/verify-phase1-smoke.sql

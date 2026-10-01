@@ -128,14 +128,14 @@ CREATE POLICY delete_own_projects ON projects FOR DELETE USING (tenant_id = auth
 
 -- Estimates
 CREATE POLICY select_own_estimates ON estimates FOR SELECT USING (project_id IN (SELECT p.id FROM projects p WHERE p.user_id = auth.uid()));
-CREATE POLICY insert_own_estimates ON estimates FOR INSERT WITH CHECK (NEW.project_id IN (SELECT p.id FROM projects p WHERE p.user_id = auth.uid()));
-CREATE POLICY update_own_estimates ON estimates FOR UPDATE USING (project_id IN (SELECT p.id FROM projects p WHERE p.user_id = auth.uid())) WITH CHECK (NEW.project_id IN (SELECT p.id FROM projects p WHERE p.user_id = auth.uid()));
+CREATE POLICY insert_own_estimates ON estimates FOR INSERT WITH CHECK (project_id IN (SELECT p.id FROM projects p WHERE p.user_id = auth.uid()));
+CREATE POLICY update_own_estimates ON estimates FOR UPDATE USING (project_id IN (SELECT p.id FROM projects p WHERE p.user_id = auth.uid())) WITH CHECK (project_id IN (SELECT p.id FROM projects p WHERE p.user_id = auth.uid()));
 CREATE POLICY delete_own_estimates ON estimates FOR DELETE USING (project_id IN (SELECT p.id FROM projects p WHERE p.user_id = auth.uid()));
 
 -- Estimate Lines
 CREATE POLICY select_own_estimate_lines ON estimate_lines FOR SELECT USING (EXISTS (SELECT 1 FROM estimates e JOIN projects pr ON e.project_id = pr.id WHERE e.id = estimate_lines.estimate_id AND pr.user_id = auth.uid()));
-CREATE POLICY insert_own_estimate_lines ON estimate_lines FOR INSERT WITH CHECK (NEW.estimate_id IN (SELECT e.id FROM estimates e JOIN projects pr ON e.project_id = pr.id WHERE pr.user_id = auth.uid()));
-CREATE POLICY update_own_estimate_lines ON estimate_lines FOR UPDATE USING (EXISTS (SELECT 1 FROM estimates e JOIN projects pr ON e.project_id = pr.id WHERE e.id = estimate_lines.estimate_id AND pr.user_id = auth.uid())) WITH CHECK (NEW.estimate_id IN (SELECT e.id FROM estimates e JOIN projects pr ON e.project_id = pr.id WHERE pr.user_id = auth.uid()));
+CREATE POLICY insert_own_estimate_lines ON estimate_lines FOR INSERT WITH CHECK (estimate_id IN (SELECT e.id FROM estimates e JOIN projects pr ON e.project_id = pr.id WHERE pr.user_id = auth.uid()));
+CREATE POLICY update_own_estimate_lines ON estimate_lines FOR UPDATE USING (EXISTS (SELECT 1 FROM estimates e JOIN projects pr ON e.project_id = pr.id WHERE e.id = estimate_lines.estimate_id AND pr.user_id = auth.uid())) WITH CHECK (estimate_id IN (SELECT e.id FROM estimates e JOIN projects pr ON e.project_id = pr.id WHERE pr.user_id = auth.uid()));
 CREATE POLICY delete_own_estimate_lines ON estimate_lines FOR DELETE USING (EXISTS (SELECT 1 FROM estimates e JOIN projects pr ON e.project_id = pr.id WHERE e.id = estimate_lines.estimate_id AND pr.user_id = auth.uid()));
 
 -- Assemblies
@@ -153,7 +153,7 @@ CREATE POLICY delete_user_cost_items ON cost_library_items FOR DELETE USING (ten
 -- Assembly Items
 CREATE POLICY select_user_and_system_assembly_items ON assembly_items FOR SELECT USING (EXISTS (SELECT 1 FROM assemblies asm JOIN cost_library_items cli ON asm.id = assembly_items.assembly_id AND cli.id = assembly_items.cost_library_item_id WHERE (asm.tenant_id = auth.uid() OR asm.is_system_default) AND (cli.tenant_id = auth.uid() OR cli.is_system_default)));
 -- Simplified insert/update/delete policies for assembly items to avoid complex subqueries in check (assuming app logic enforces ownership)
-CREATE POLICY insert_user_assembly_items ON assembly_items FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM assemblies asm WHERE asm.id = NEW.assembly_id AND asm.tenant_id = auth.uid()));
+CREATE POLICY insert_user_assembly_items ON assembly_items FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM assemblies asm WHERE asm.id = assembly_items.assembly_id AND asm.tenant_id = auth.uid()));
 CREATE POLICY update_user_assembly_items ON assembly_items FOR UPDATE USING (EXISTS (SELECT 1 FROM assemblies asm WHERE asm.id = assembly_items.assembly_id AND asm.tenant_id = auth.uid()));
 CREATE POLICY delete_user_assembly_items ON assembly_items FOR DELETE USING (EXISTS (SELECT 1 FROM assemblies asm WHERE asm.id = assembly_items.assembly_id AND asm.tenant_id = auth.uid()));
 

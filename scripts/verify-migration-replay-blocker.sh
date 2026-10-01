@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-expected_migration="20260117000000_foundations_estimator.sql"
-expected_path="supabase/migrations/$expected_migration"
+repaired_migration="20260117000000_foundations_estimator.sql"
+repaired_path="supabase/migrations/$repaired_migration"
 output_file="$(mktemp "${TMPDIR:-/tmp}/constructa-migration-replay.XXXXXX")"
 
 cleanup() {
@@ -33,35 +33,32 @@ command -v psql >/dev/null || {
   exit 1
 }
 
-first_migration="$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' -print \
-  | LC_ALL=C sort \
-  | sed -n '1p')"
-if [[ "$first_migration" != "$expected_path" ]]; then
-  echo "Expected $expected_migration to remain the first migration; found $first_migration." >&2
+mapfile -t migrations < <(
+  find supabase/migrations -maxdepth 1 -type f -name '*.sql' -print | LC_ALL=C sort
+)
+if [[ "${migrations[0]:-}" != "$repaired_path" ]]; then
+  echo "Expected $repaired_migration to remain the first migration; found ${migrations[0]:-none}." >&2
   exit 1
 fi
 
-set +e
-psql "$MIGRATION_DATABASE_URL" \
-  -X -v ON_ERROR_STOP=1 \
-  -f "$expected_path" \
-  >"$output_file" 2>&1
-status=$?
-set -e
+replayed_count=0
+for migration_path in "${migrations[@]}"; do
+  : >"$output_file"
+  set +e
+  psql "$MIGRATION_DATABASE_URL" \
+    -X -v ON_ERROR_STOP=1 \
+    -f "$migration_path" \
+    >"$output_file" 2>&1
+  migration_status=$?
+  set -e
 
-if [[ "$status" -eq 0 ]]; then
-  echo "$expected_migration replayed successfully; remove the known-blocker assertion." >&2
-  exit 1
-fi
+  if [[ "$migration_status" -ne 0 ]]; then
+    echo "First replay failure after $replayed_count successful migrations: ${migration_path##*/}" >&2
+    sed -n '1,220p' "$output_file" >&2
+    exit 1
+  fi
 
-error_pattern='(missing|invalid reference to) FROM-clause entry for table "new"'
-if ! grep -Eiq "$error_pattern" "$output_file"; then
-  echo "The expected migration failed for an unexpected reason." >&2
-  sed -n '1,220p' "$output_file" >&2
-  exit 1
-fi
+  replayed_count=$((replayed_count + 1))
+done
 
-matched_error="$(grep -Ei "$error_pattern" "$output_file" | tail -n 1)"
-echo "Attempted migration: $expected_migration"
-echo "Matched PostgreSQL error: $matched_error"
-echo "constructa-migration-replay: confirmed first blocker in $expected_migration"
+echo "constructa-migration-replay: all $replayed_count migrations replayed successfully"

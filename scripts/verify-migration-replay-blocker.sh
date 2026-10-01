@@ -3,9 +3,9 @@ set -euo pipefail
 
 repaired_migration="20260117000000_foundations_estimator.sql"
 repaired_path="supabase/migrations/$repaired_migration"
-expected_blocker="20260318000002_mom_item_overrides.sql"
-expected_success_count=36
-expected_error='syntax error at or near "NOT"'
+expected_blocker="20260405200000_sprint16_cost_logging.sql"
+expected_success_count=68
+expected_error='relation "staff_resources" does not exist'
 output_file="$(mktemp "${TMPDIR:-/tmp}/constructa-migration-replay.XXXXXX")"
 
 cleanup() {

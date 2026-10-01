@@ -6,7 +6,7 @@ on:
     paths:
       - ".github/workflows/migration-replay.yml"
       - "scripts/fixtures/supabase-storage.sql"
-      - "scripts/verify-migration-replay-blocker.sh"
+      - "scripts/verify-migration-replay.sh"
       - "supabase/migrations/**"
 
 permissions:
@@ -42,4 +42,4 @@ jobs:
       - name: Replay all committed migrations in order
         env:
           MIGRATION_DATABASE_URL: postgresql://supabase_admin:postgres@localhost:5432/constructa_replay
-        run: bash scripts/verify-migration-replay-blocker.sh
+        run: bash scripts/verify-migration-replay.sh

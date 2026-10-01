@@ -27,7 +27,7 @@ BEGIN
       RETURNS text[]
       LANGUAGE sql
       IMMUTABLE
-      AS 'SELECT string_to_array(name, ''/'')[:array_length(string_to_array(name, ''/''), 1) - 1]'
+      AS 'SELECT (string_to_array(name, ''/''))[1:array_length(string_to_array(name, ''/''), 1) - 1]'
     $function$;
   END IF;
 END

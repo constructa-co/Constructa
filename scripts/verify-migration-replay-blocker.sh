@@ -20,16 +20,27 @@ if [[ "$status" -eq 0 ]]; then
   exit 1
 fi
 
-if ! grep -Fq "$expected_migration" "$output_file"; then
-  echo "Migration replay failed before or after the expected first blocker." >&2
+last_attempted_migration="$(
+  grep -Eo 'Applying migration [^[:space:]]+' "$output_file" \
+    | tail -n 1 \
+    | awk '{print $3}' \
+    || true
+)"
+
+if [[ "$last_attempted_migration" != "$expected_migration" ]]; then
+  echo "Migration replay did not stop in the expected first migration." >&2
   sed -n '1,220p' "$output_file" >&2
   exit 1
 fi
 
-if ! grep -Eiq 'missing FROM-clause entry for table "new"|invalid reference.*new' "$output_file"; then
+error_pattern='(missing|invalid reference to) FROM-clause entry for table "new"'
+if ! grep -Eiq "$error_pattern" "$output_file"; then
   echo "The expected migration failed for an unexpected reason." >&2
   sed -n '1,220p' "$output_file" >&2
   exit 1
 fi
 
+matched_error="$(grep -Ei "$error_pattern" "$output_file" | tail -n 1)"
+echo "Last attempted migration: $last_attempted_migration"
+echo "Matched PostgreSQL error: $matched_error"
 echo "constructa-migration-replay: confirmed first blocker in $expected_migration"

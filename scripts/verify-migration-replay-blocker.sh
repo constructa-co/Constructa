@@ -3,9 +3,9 @@ set -euo pipefail
 
 repaired_migration="20260117000000_foundations_estimator.sql"
 repaired_path="supabase/migrations/$repaired_migration"
-expected_blocker="20260318000001_uk_library_seed.sql"
-expected_success_count=35
-expected_error='column "is_system_default" of relation "mom_items" does not exist'
+expected_blocker="20260318000002_mom_item_overrides.sql"
+expected_success_count=36
+expected_error='syntax error at or near "NOT"'
 output_file="$(mktemp "${TMPDIR:-/tmp}/constructa-migration-replay.XXXXXX")"
 
 cleanup() {

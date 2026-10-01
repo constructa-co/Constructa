@@ -6,37 +6,13 @@ BEGIN;
 -- same durable user row exercises the real signup trigger and all downstream
 -- database boundaries without touching production.
 INSERT INTO auth.users (
-  instance_id,
   id,
-  aud,
-  role,
   email,
-  encrypted_password,
-  email_confirmed_at,
-  raw_app_meta_data,
-  raw_user_meta_data,
-  created_at,
-  updated_at,
-  confirmation_token,
-  recovery_token,
-  email_change_token_new,
-  email_change
+  raw_user_meta_data
 ) VALUES (
-  '00000000-0000-0000-0000-000000000000',
   '10000000-0000-0000-0000-000000000001',
-  'authenticated',
-  'authenticated',
   'phase1-smoke@example.test',
-  '',
-  now(),
-  '{"provider":"email","providers":["email"]}'::jsonb,
-  '{"full_name":"Phase One Smoke"}'::jsonb,
-  now(),
-  now(),
-  '',
-  '',
-  '',
-  ''
+  '{"full_name":"Phase One Smoke"}'::jsonb
 );
 
 DO $$

@@ -14,17 +14,31 @@ permissions:
 jobs:
   clean-replay:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: supabase/postgres:17.6.1.173
+        env:
+          POSTGRES_USER: supabase_admin
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: constructa_replay
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U supabase_admin -d constructa_replay"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v7
-      - uses: supabase/setup-cli@v3
-        with:
-          # Match the CLI version recorded by the linked Constructa checkout.
-          version: 2.84.2
-      - name: Initialise local Supabase configuration
+      - name: Install PostgreSQL 17 client
         run: |
-          if [[ ! -f supabase/config.toml ]]; then
-            supabase init
-          fi
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install --yes postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
       - name: Prove the current first clean-replay blocker
+        env:
+          MIGRATION_DATABASE_URL: postgresql://supabase_admin:postgres@localhost:5432/constructa_replay
         run: bash scripts/verify-migration-replay-blocker.sh

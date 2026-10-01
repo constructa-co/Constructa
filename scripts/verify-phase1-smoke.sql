@@ -219,6 +219,59 @@ SELECT *
 
 RESET ROLE;
 
+SET LOCAL ROLE authenticated;
+SELECT set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000001',
+  true
+);
+
+UPDATE public.profiles
+   SET data_consent = true,
+       data_consent_at = now()
+ WHERE id = '10000000-0000-0000-0000-000000000001';
+
+INSERT INTO public.archive_snapshots (
+  project_id,
+  user_id,
+  contract_value,
+  total_costs_posted,
+  gross_margin_pct,
+  total_invoiced,
+  total_paid,
+  retention_outstanding,
+  planned_duration_days,
+  actual_duration_days,
+  programme_delay_days,
+  variation_count,
+  approved_variation_total,
+  notes
+) VALUES (
+  :'smoke_project_id'::uuid,
+  '10000000-0000-0000-0000-000000000001',
+  100,
+  75,
+  25,
+  100,
+  100,
+  0,
+  10,
+  12,
+  2,
+  1,
+  10,
+  'Hosted archive trigger smoke'
+);
+
+UPDATE public.projects
+   SET is_archived = true,
+       archived_at = now(),
+       archived_by = '10000000-0000-0000-0000-000000000001',
+       archive_reason = 'Hosted archive trigger smoke'
+ WHERE id = :'smoke_project_id'::uuid;
+
+RESET ROLE;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -264,6 +317,22 @@ BEGIN
           WHERE publication_id = '30000000-0000-0000-0000-000000000001'
             AND event_type = 'accepted') <> 1 THEN
     RAISE EXCEPTION 'Proposal publication audit events are incomplete or duplicated.';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+      FROM public.project_benchmarks benchmark
+     WHERE benchmark.project_type = 'Extension'
+       AND benchmark.contract_value_band = '0-50k'
+       AND benchmark.gross_margin_pct = 25
+       AND benchmark.planned_duration_days = 10
+       AND benchmark.actual_duration_days = 12
+       AND benchmark.programme_delay_days = 2
+       AND benchmark.variation_count = 1
+       AND benchmark.variation_rate_pct = 10
+       AND benchmark.subcontract_cost_pct = 0
+  ) OR (SELECT count(*) FROM public.project_benchmarks) <> 1 THEN
+    RAISE EXCEPTION 'Archive benchmark trigger did not capture the expected anonymized outcome.';
   END IF;
 END;
 $$;

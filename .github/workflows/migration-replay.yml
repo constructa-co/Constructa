@@ -39,7 +39,7 @@ jobs:
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           sudo apt-get install --yes postgresql-client-17
           echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
-      - name: Prove the current first clean-replay blocker
+      - name: Replay all committed migrations in order
         env:
           MIGRATION_DATABASE_URL: postgresql://supabase_admin:postgres@localhost:5432/constructa_replay
         run: bash scripts/verify-migration-replay-blocker.sh

@@ -6,14 +6,15 @@ CREATE SCHEMA storage;
 CREATE TABLE storage.buckets (
   id text PRIMARY KEY,
   name text NOT NULL UNIQUE,
-  public boolean DEFAULT false
+  public boolean DEFAULT false,
+  file_size_limit bigint,
+  allowed_mime_types text[]
 );
 
 CREATE TABLE storage.objects (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   bucket_id text REFERENCES storage.buckets(id),
-  name text,
-  owner uuid
+  name text
 );
 
 ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;

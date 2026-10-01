@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 15
     services:
       postgres:
-        image: supabase/postgres:17.6.1.173
+        image: supabase/postgres@sha256:edb20149b36e92c915f13b24ae04fed35e6e0a19a6bd6e06d54ed4afbce5c931
         env:
           POSTGRES_USER: supabase_admin
           POSTGRES_PASSWORD: postgres

@@ -33,19 +33,13 @@ command -v psql >/dev/null || {
   exit 1
 }
 
-psql "$MIGRATION_DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL' >/dev/null
-CREATE SCHEMA IF NOT EXISTS auth;
-CREATE TABLE IF NOT EXISTS auth.users (
-  id uuid PRIMARY KEY
-);
-CREATE OR REPLACE FUNCTION auth.uid()
-RETURNS uuid
-LANGUAGE sql
-STABLE
-AS $$
-  SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
-$$;
-SQL
+first_migration="$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' -print \
+  | LC_ALL=C sort \
+  | sed -n '1p')"
+if [[ "$first_migration" != "$expected_path" ]]; then
+  echo "Expected $expected_migration to remain the first migration; found $first_migration." >&2
+  exit 1
+fi
 
 set +e
 psql "$MIGRATION_DATABASE_URL" \

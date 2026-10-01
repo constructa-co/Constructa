@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/migration-replay.yml"
+      - "scripts/fixtures/supabase-storage.sql"
       - "scripts/verify-migration-replay-blocker.sh"
       - "supabase/migrations/**"
 

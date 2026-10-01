@@ -41,6 +41,11 @@ if [[ "${migrations[0]:-}" != "$repaired_path" ]]; then
   exit 1
 fi
 
+psql "$MIGRATION_DATABASE_URL" \
+  -X -v ON_ERROR_STOP=1 \
+  -f scripts/fixtures/supabase-storage.sql \
+  >/dev/null
+
 replayed_count=0
 for migration_path in "${migrations[@]}"; do
   : >"$output_file"

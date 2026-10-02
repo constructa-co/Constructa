@@ -7,6 +7,7 @@ import { uploadProfileImageAction } from "@/app/storage/actions";
 import PostcodeLookup from "@/components/postcode-lookup";
 import { Sparkles, Upload, X, Plus } from "lucide-react";
 import { getLaunchLandingPath, isCapabilityEnabled } from "@/lib/launch-profile";
+import { ONBOARDING_SAVE_FALLBACK_ERROR, resolveOnboardingOutcome } from "@/lib/onboarding-outcome";
 import {
     STANDARD_PROPOSAL_TERMS,
     STANDARD_PROPOSAL_TERMS_MAX_CLAUSE,
@@ -69,6 +70,9 @@ export default function OnboardingClient({ initialFullName }: { initialFullName:
     const [step, setStep] = useState(1);
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState("");
+    // Guards against double submission beyond the disabled button (fast
+    // double-clicks can fire before React re-renders the disabled state).
+    const finishInFlightRef = useRef(false);
 
     // Step 1
     const [companyName, setCompanyName] = useState("");
@@ -153,6 +157,8 @@ export default function OnboardingClient({ initialFullName }: { initialFullName:
     const removeCustomClause = (n: number) => setTcClauses(prev => prev.filter(c => c.clause_number !== n));
 
     const handleFinish = async () => {
+        if (finishInFlightRef.current) return;
+        finishInFlightRef.current = true;
         setSaving(true);
         setSaveError("");
         const fd = new FormData();
@@ -170,14 +176,38 @@ export default function OnboardingClient({ initialFullName }: { initialFullName:
         fd.set("insurance_schedule", JSON.stringify(insuranceRows.filter(r => r.details)));
         fd.set("default_tc_overrides", useCustomTc ? JSON.stringify(tcClauses.filter(c => !c.hidden)) : "");
 
-        const result = await saveOnboardingAction(fd);
-        if (result && "error" in result) {
-            setSaveError(result.error ?? "Unknown error");
+        let result: unknown;
+        try {
+            // On success the action issues a server-side redirect, so this
+            // await typically never resolves and the router navigates for us.
+            result = await saveOnboardingAction(fd);
+        } catch {
+            setSaveError(ONBOARDING_SAVE_FALLBACK_ERROR);
             setSaving(false);
-        } else {
-            // Success — navigate client-side
-            router.push(getLaunchLandingPath());
+            finishInFlightRef.current = false;
+            return;
         }
+
+        const outcome = resolveOnboardingOutcome(result);
+        if (!outcome.ok) {
+            setSaveError(outcome.error);
+            setSaving(false);
+            finishInFlightRef.current = false;
+            return;
+        }
+
+        // Success — keep the button in its Saving state while the page
+        // transitions. Clear any cached RSC payload, then push as a fallback
+        // in case the server-side redirect was not followed.
+        const landingPath = getLaunchLandingPath();
+        router.refresh();
+        router.push(landingPath);
+        // Last-resort hard navigation if the soft navigation never settles.
+        window.setTimeout(() => {
+            if (window.location.pathname.startsWith("/onboarding")) {
+                window.location.assign(landingPath);
+            }
+        }, 5000);
     };
 
     return (

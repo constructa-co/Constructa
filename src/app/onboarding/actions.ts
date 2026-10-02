@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/supabase/auth-utils";
 import { redirect } from "next/navigation";
 import { generateText, generateJSON } from "@/lib/ai";
 import { sendWelcomeEmail } from "@/lib/email";
+import { getLaunchLandingPath } from "@/lib/launch-profile";
 
 export async function saveOnboardingAction(formData: FormData) {
     const { user, supabase } = await requireAuth();
@@ -69,7 +70,10 @@ export async function saveOnboardingAction(formData: FormData) {
         }).catch((e) => console.error("Welcome email failed:", e));
     }
 
-    return { success: true };
+    // Redirect server-side so navigation cannot be stranded by a client
+    // router push that never settles (E2E-01). This throws NEXT_REDIRECT,
+    // so the client-side await of this action never resolves on success.
+    redirect(getLaunchLandingPath());
 }
 
 export async function generateCapabilityStatementAction(trade: string, specialisms: string): Promise<string> {

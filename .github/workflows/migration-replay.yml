@@ -1,0 +1,50 @@
+name: Supabase migration replay
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/migration-replay.yml"
+      - "scripts/fixtures/supabase-storage.sql"
+      - "scripts/verify-phase1-smoke.sql"
+      - "scripts/verify-migration-replay.sh"
+      - "supabase/migrations/**"
+
+permissions:
+  contents: read
+
+jobs:
+  clean-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: supabase/postgres@sha256:edb20149b36e92c915f13b24ae04fed35e6e0a19a6bd6e06d54ed4afbce5c931
+        env:
+          POSTGRES_USER: supabase_admin
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: constructa_replay
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U supabase_admin -d constructa_replay"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install --yes postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+      - name: Replay all committed migrations in order
+        env:
+          MIGRATION_DATABASE_URL: postgresql://supabase_admin:postgres@localhost:5432/constructa_replay
+        run: bash scripts/verify-migration-replay.sh
+      - name: Verify Phase 1 database smoke journey
+        env:
+          MIGRATION_DATABASE_URL: postgresql://supabase_admin:postgres@localhost:5432/constructa_replay
+        run: psql "$MIGRATION_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f scripts/verify-phase1-smoke.sql

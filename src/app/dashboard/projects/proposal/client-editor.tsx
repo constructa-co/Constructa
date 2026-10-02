@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Save, FileText, AlertCircle, Camera, Scale, CalendarDays, CheckCircle, Circle, Copy, Check, ExternalLink, CreditCard, MessageSquare, Info, Plus, Loader2, RefreshCw, FileDown, Send } from "lucide-react";
 import { saveProposalAction, generateAiScopeAction, sendProposalAction, getProposalLinkAction, rewriteIntroductionAction, updateCaseStudySelectionAction, generateClarificationsAction, generateExclusionsAction, saveWizardResultsAction, updatePaymentScheduleTypeAction, generateClosingStatementAction, saveClosingStatementAction, saveProposalOverridesAction, uploadPhotoAction } from "./actions";
 import { createLatestWriteQueue } from "@/lib/latest-write-queue";
+import { copyTextWithFallback } from "@/lib/clipboard-copy";
 // Sprint 58 P3.4 — delegate the QS math to the canonical helper so the
 // editor can never silently diverge from the proposal PDF, billing page,
 // or P&L dashboard. All 35 Vitest tests in src/lib/financial.test.ts
@@ -277,6 +278,11 @@ export default function ClientEditor({
     const [linkCopied, setLinkCopied] = useState(false);
     const [sending, setSending] = useState(false);
     const [emailSent, setEmailSent] = useState(false);
+    // The URL of the most recent publication in this session. Exposed in the
+    // sidebar so a clipboard failure never strands the contractor — the link
+    // is always copyable by hand without republishing.
+    const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
+    const publishedUrlInputRef = useRef<HTMLInputElement>(null);
 
     // Active estimate computation
     const activeEstimateRaw = estimates.find((e: any) => e.is_active) || estimates[0];
@@ -517,16 +523,43 @@ export default function ClientEditor({
                 toast.error(result?.error || "The proposal could not be published.");
                 return;
             }
-            await navigator.clipboard.writeText(result.url);
+            // Publication is committed and immutable from here on — the busy
+            // state and toasts below must never suggest otherwise, and a copy
+            // failure must never trigger a republish.
             setProposalStatus("Sent");
             setPublishedVersion(result.versionNumber);
-            setLinkCopied(true);
-            toast.success(`Proposal v${result.versionNumber} published and copied`);
-            setTimeout(() => setLinkCopied(false), 3000);
+            setPublishedUrl(result.url);
+
+            const copyOutcome = await copyTextWithFallback(result.url);
+            if (copyOutcome === "copied") {
+                setLinkCopied(true);
+                toast.success(`Proposal v${result.versionNumber} published and copied`);
+                setTimeout(() => setLinkCopied(false), 3000);
+            } else {
+                toast.success(`Proposal v${result.versionNumber} published — copy the link below`);
+            }
         } catch {
             toast.error("The proposal could not be published. Please retry.");
         } finally {
             setSending(false);
+        }
+    };
+
+    // Copies the already-published URL. Never republishes — publications are
+    // immutable, so re-copying must reuse the existing link.
+    const handleCopyPublishedLink = async () => {
+        if (!publishedUrl) return;
+        const copyOutcome = await copyTextWithFallback(publishedUrl);
+        if (copyOutcome === "copied") {
+            setLinkCopied(true);
+            toast.success("Link copied");
+            setTimeout(() => setLinkCopied(false), 3000);
+        } else {
+            // Clipboard unavailable or timed out — select the URL so the
+            // contractor can copy it manually.
+            publishedUrlInputRef.current?.focus();
+            publishedUrlInputRef.current?.select();
+            toast.info("Clipboard unavailable — the link is selected, press Ctrl/Cmd+C to copy");
         }
     };
 
@@ -553,6 +586,7 @@ export default function ClientEditor({
 
         setProposalStatus("Sent");
         setPublishedVersion(result.versionNumber);
+        setPublishedUrl(result.url);
 
         if (result.hasClientEmail) {
             // Resend handled it server-side — show confirmation
@@ -1571,6 +1605,35 @@ export default function ClientEditor({
                             <><Copy className="w-4 h-4" /> {proposalStatus === "Sent" ? "Publish New Version & Copy Link" : "Publish & Copy Link"}</>
                         )}
                     </button>
+
+                    {/* Published link — always available after publication so
+                        a clipboard failure never strands the contractor. The
+                        Copy button here re-copies only; it never republishes. */}
+                    {publishedUrl && (
+                        <div className="bg-slate-900 border border-emerald-800/50 rounded-xl p-4 space-y-2">
+                            <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <CheckCircle className="w-3.5 h-3.5" /> Published link
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    ref={publishedUrlInputRef}
+                                    type="text"
+                                    readOnly
+                                    value={publishedUrl}
+                                    onFocus={(e) => e.currentTarget.select()}
+                                    className="flex-1 min-w-0 h-9 rounded-lg border border-slate-700 bg-slate-800 px-3 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleCopyPublishedLink}
+                                    className="h-9 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 text-xs font-bold flex items-center gap-1.5 flex-shrink-0 transition-colors"
+                                >
+                                    {linkCopied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                                    {linkCopied ? "Copied" : "Copy"}
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Send via Email Button */}
                     <button

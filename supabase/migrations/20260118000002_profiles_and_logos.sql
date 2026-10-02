@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS profiles (
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can manage their own profile" ON profiles
-    FOR ALL USING (auth.uid() = user_id);
+    FOR ALL USING (auth.uid() = id);
 
 -- 2. Create Storage for Logos
 INSERT INTO storage.buckets (id, name, public) VALUES ('logos', 'logos', true)

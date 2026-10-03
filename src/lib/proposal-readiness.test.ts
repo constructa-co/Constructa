@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
     evaluateProposalReadiness,
     getPublishGate,
+    isUntouchedStarterProgramme,
     isValidPaymentRow,
     isValidProgrammePhase,
+    showsPublishBlockReason,
     type ProposalReadinessInput,
     type ReadinessKey,
 } from "./proposal-readiness";
@@ -200,5 +202,87 @@ describe("getPublishGate", () => {
         expect(gate.message).toBe("Finish 2 items above before you send.");
         const one = evaluateProposalReadiness({ ...complete, scope: "" });
         expect(getPublishGate({ saveState: "idle", readiness: one }).message).toBe("Finish 1 item above before you send.");
+    });
+});
+
+describe("showsPublishBlockReason", () => {
+    const ready = evaluateProposalReadiness(complete);
+    const notReady = evaluateProposalReadiness({ ...complete, scope: "" });
+
+    it("shows the reason for every block the contractor can act on", () => {
+        expect(showsPublishBlockReason(getPublishGate({ saveState: "error", readiness: ready }))).toBe(true);
+        expect(showsPublishBlockReason(getPublishGate({ saveState: "saving", readiness: ready }))).toBe(true);
+        expect(showsPublishBlockReason(getPublishGate({ saveState: "idle", readiness: notReady }))).toBe(true);
+    });
+
+    it("shows nothing while publishing or when clear to send, so no control may reference it", () => {
+        expect(showsPublishBlockReason(getPublishGate({ saveState: "idle", publishing: true, readiness: ready }))).toBe(false);
+        expect(showsPublishBlockReason(getPublishGate({ saveState: "idle", readiness: ready }))).toBe(false);
+    });
+});
+
+describe("isUntouchedStarterProgramme", () => {
+    const seeds = [
+        { name: "Groundworks", duration_days: 14, duration_unit: "Weeks" },
+        { name: "Structure", duration_days: 21, duration_unit: "Weeks" },
+    ];
+    const START = "2026-11-02";
+    const seeded = (start: string) => seeds.map((seed, i) => ({ ...seed, id: String(i + 1), color: "blue", start_date: start }));
+
+    it("recognises exact starter content seeded with the project start date", () => {
+        expect(isUntouchedStarterProgramme(seeded(START), seeds, START)).toBe(true);
+    });
+
+    it("recognises starter content seeded before the project had a start date", () => {
+        expect(isUntouchedStarterProgramme(seeded(""), seeds, null)).toBe(true);
+        expect(isUntouchedStarterProgramme(seeded(""), seeds, START)).toBe(true);
+    });
+
+    it("ignores ids and colours", () => {
+        const regenerated = seeded(START).map((phase, i) => ({ ...phase, id: `uuid-${i}`, color: "teal" }));
+        expect(isUntouchedStarterProgramme(regenerated, seeds, START)).toBe(true);
+    });
+
+    it("treats a changed duration as the contractor's programme", () => {
+        const phases = seeded(START);
+        phases[1] = { ...phases[1], duration_days: 10 };
+        expect(isUntouchedStarterProgramme(phases, seeds, START)).toBe(false);
+    });
+
+    it("treats a changed duration unit as the contractor's programme", () => {
+        const phases = seeded(START);
+        phases[0] = { ...phases[0], duration_unit: "Days" };
+        expect(isUntouchedStarterProgramme(phases, seeds, START)).toBe(false);
+    });
+
+    it("treats a changed start as the contractor's programme", () => {
+        const phases = seeded(START);
+        phases[1] = { ...phases[1], start_date: "2026-11-16" };
+        expect(isUntouchedStarterProgramme(phases, seeds, START)).toBe(false);
+    });
+
+    it("treats a changed name as the contractor's programme", () => {
+        const phases = seeded(START);
+        phases[0] = { ...phases[0], name: "Dig out and footings" };
+        expect(isUntouchedStarterProgramme(phases, seeds, START)).toBe(false);
+    });
+
+    it("treats an added or removed phase as the contractor's programme", () => {
+        expect(isUntouchedStarterProgramme(seeded(START).slice(0, 1), seeds, START)).toBe(false);
+        expect(isUntouchedStarterProgramme([...seeded(START), { name: "Roofing", duration_days: 14, duration_unit: "Weeks", start_date: START }], seeds, START)).toBe(false);
+        expect(isUntouchedStarterProgramme([], seeds, START)).toBe(false);
+        expect(isUntouchedStarterProgramme(null, seeds, START)).toBe(false);
+    });
+
+    it("lets an edited starter list satisfy the programme check, and an untouched one not", () => {
+        const edited = seeded(START);
+        edited[0] = { ...edited[0], duration_days: 5 };
+        const programmeFor = (phases: unknown[]) => evaluateProposalReadiness({
+            ...complete,
+            programmePhases: isUntouchedStarterProgramme(phases, seeds, START) ? [] : phases,
+            projectStartDate: START,
+        }).mandatory.find((item) => item.key === "programme")?.ok;
+        expect(programmeFor(edited)).toBe(true);
+        expect(programmeFor(seeded(START))).toBe(false);
     });
 });

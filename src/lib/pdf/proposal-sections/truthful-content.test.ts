@@ -157,6 +157,20 @@ describe("About Us renders only saved facts", () => {
         expect(text).toContain("Sam Example");
     });
 
+    it("prints the saved MD message exactly once", () => {
+        const text = render(renderAboutUs, fullProfile).replace(/\s+/g, " ");
+        expect(text.split("I look after every job myself.")).toHaveLength(2);
+        expect(text.split("Sam Example")).toHaveLength(2);
+        expect(text).not.toContain("A Message from Our Director");
+    });
+
+    it("prints a long MD message exactly once, keeping it together on a new page if needed", () => {
+        const sentence = "Unique marker sentence about how I run my jobs.";
+        const longMessage = `${sentence} ${"I keep the site tidy and tell you straight away if anything changes. ".repeat(60)}`;
+        const text = render(renderAboutUs, { ...fullProfile, md_message: longMessage }).replace(/\s+/g, " ");
+        expect(text.split(sentence)).toHaveLength(2);
+    });
+
     it("uses the per-proposal About Us override when one is saved", () => {
         const text = render(renderAboutUs, sparseProfile, { proposal_capability: "Bathroom refits for this street." });
         expect(text).toContain("Bathroom refits for this street.");

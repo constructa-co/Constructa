@@ -9,8 +9,8 @@
 
 import {
     type ProposalContext,
-    PAGE_H, ML, CW,
-    addPageHeader, renderSectionHeading, ensureSpace,
+    ML, CW,
+    addPageHeader, ensureSpace,
     splitAddress, sanitiseText,
 } from "./helpers";
 
@@ -156,14 +156,14 @@ export function renderAboutUs(ctx: ProposalContext): number {
         });
     }
 
-    // MD Message (inline in about-us page)
+    // MD message — rendered once, directly under the two columns so the
+    // page stays balanced. No filler follows: this page prints only facts
+    // the contractor has saved, and whitespace is better than invented content.
     if (profile.md_message) {
-        const mdY = Math.max(leftY, rightY) + 4;
-        y = ensureSpace(doc, mdY, 30, companyName, docTitle, totalPagesRef, T);
-        doc.setFillColor(...T.surface);
-        const mdText = sanitiseText(profile.md_message);
-        const mdLines = doc.splitTextToSize(mdText, CW - 20);
+        const mdLines = doc.splitTextToSize(sanitiseText(profile.md_message), CW - 20);
         const mdBoxH = mdLines.length * 5 + 18;
+        y = ensureSpace(doc, Math.max(leftY, rightY) + 4, mdBoxH, companyName, docTitle, totalPagesRef, T);
+        doc.setFillColor(...T.surface);
         doc.roundedRect(ML, y, CW, mdBoxH, 3, 3, "F");
         doc.setFont("helvetica", "italic");
         doc.setFontSize(9.5);
@@ -178,41 +178,6 @@ export function renderAboutUs(ctx: ProposalContext): number {
         y = y + mdBoxH + 8;
     } else {
         y = Math.max(leftY, rightY) + 8;
-    }
-
-    // No filler below this point. Unsupported stats and fixed promises were
-    // removed: this page renders only facts the contractor has saved.
-    // Whitespace is better than invented content.
-
-    // MD / Director Message section heading (if it wasn't rendered inline above)
-    if (profile?.md_message) {
-        if (y > PAGE_H - 80) {
-            doc.addPage();
-            totalPagesRef.n++;
-            y = addPageHeader(doc, companyName, docTitle, totalPagesRef.n, totalPagesRef, T);
-        }
-        y = renderSectionHeading(doc, y, "A Message from Our Director", T);
-
-        doc.setFillColor(...T.surface);
-        const msgLines = doc.splitTextToSize(sanitiseText(profile.md_message), CW - 16);
-        const msgH = msgLines.length * 5 + 16;
-        doc.roundedRect(ML, y, CW, msgH, 3, 3, "F");
-        doc.setDrawColor(...T.borderLight);
-        doc.setLineWidth(0.3);
-        doc.roundedRect(ML, y, CW, msgH, 3, 3, "S");
-
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(9.5);
-        doc.setTextColor(...T.textDark);
-        doc.text(msgLines, ML + 8, y + 10);
-
-        if (profile.md_name) {
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(9);
-            doc.setTextColor(...T.textDark);
-            doc.text(`— ${profile.md_name}`, ML + 8, y + msgH - 4);
-        }
-        y += msgH + 10;
     }
 
     return y;

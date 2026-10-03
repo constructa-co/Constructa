@@ -99,6 +99,39 @@ export function isValidProgrammePhase(phase: unknown, projectStartDate?: string 
     return isValidDate(projectStartDate) && Number.isFinite(offset) && offset >= 0;
 }
 
+export interface StarterPhaseSeed {
+    name: string;
+    duration_days: number;
+    duration_unit: string;
+}
+
+/**
+ * True when the phases are still the seeded starter list, i.e. nothing the
+ * contractor has decided. Ids and colours carry no meaning, so they are
+ * ignored. Any change to a name, a duration, a duration unit or a start
+ * date, or adding or removing a phase, makes it the contractor's programme.
+ *
+ * Starter phases are seeded with the project start date, or with no start
+ * when the project had none at the time. Both count as the seeded start.
+ */
+export function isUntouchedStarterProgramme(
+    phases: unknown[] | null | undefined,
+    seeds: readonly StarterPhaseSeed[],
+    projectStartDate?: string | null,
+): boolean {
+    if (!Array.isArray(phases) || phases.length !== seeds.length) return false;
+    const seededStart = typeof projectStartDate === "string" ? projectStartDate.trim() : "";
+    return phases.every((phase, index) => {
+        const p = asRecord(phase);
+        const seed = seeds[index];
+        const start = typeof p.start_date === "string" ? p.start_date.trim() : "";
+        return p.name === seed.name
+            && Number(p.duration_days) === seed.duration_days
+            && p.duration_unit === seed.duration_unit
+            && (start === "" || start === seededStart);
+    });
+}
+
 /** A payment row counts when it has a stage name and a share or amount above zero. */
 export function isValidPaymentRow(row: unknown): boolean {
     const r = asRecord(row);
@@ -184,6 +217,15 @@ export interface PublishGate {
     reason: PublishBlockReason | null;
     /** Why sending is blocked and what to do about it. Null when clear to send. */
     message: string | null;
+}
+
+/**
+ * Whether the on-screen explanation is shown. While a publication is in
+ * flight the buttons carry their own busy label, so nothing is rendered and
+ * nothing may point at it with aria-describedby.
+ */
+export function showsPublishBlockReason(gate: Pick<PublishGate, "blocked" | "reason">): boolean {
+    return gate.blocked && gate.reason !== "publishing";
 }
 
 export function getPublishGate(input: {

@@ -19,7 +19,7 @@ import AiWizard from "./ai-wizard";
 import Link from "next/link";
 import { toast } from "sonner";
 import { STANDARD_PROPOSAL_TERMS, resolveProposalTerms } from "@/lib/proposal-terms";
-import { evaluateProposalReadiness, getPublishGate, type ReadinessKey } from "@/lib/proposal-readiness";
+import { evaluateProposalReadiness, getPublishGate, isUntouchedStarterProgramme, showsPublishBlockReason, type ReadinessKey } from "@/lib/proposal-readiness";
 
 // Auto-assigned phase colours cycling by index
 const AUTO_COLORS = ["blue", "green", "orange", "purple", "slate", "teal"];
@@ -413,8 +413,7 @@ export default function ClientEditor({
     // otherwise this draft's phases. Untouched starter phases are not the
     // contractor's programme, so they never count.
     const draftPhases = sequentialMode ? computedPhases : ganttPhases;
-    const isStarterProgramme = draftPhases.length === DEFAULT_PHASES.length
-        && draftPhases.every((p, i) => p.id === DEFAULT_PHASES[i].id && p.name === DEFAULT_PHASES[i].name);
+    const isStarterProgramme = isUntouchedStarterProgramme(draftPhases, DEFAULT_PHASES, project?.start_date);
     const savedProgramme = Array.isArray(project?.programme_phases) && project.programme_phases.length > 0
         ? project.programme_phases
         : null;
@@ -434,6 +433,7 @@ export default function ClientEditor({
         closingStatement,
     });
     const publishGate = getPublishGate({ saveState: autosaveStatus, saving, publishing: sending, readiness });
+    const publishBlockReasonShown = showsPublishBlockReason(publishGate);
     const readinessFixLinks: Partial<Record<ReadinessKey, { href: string; label: string }>> = {
         identity: { href: `/dashboard/projects/settings?projectId=${projectId}`, label: "Open project details" },
         scope: { href: "#proposal-scope", label: "Go to Scope of Works" },
@@ -1695,7 +1695,7 @@ export default function ClientEditor({
                     </button>
 
                     {/* Why sending is blocked, and what to do about it. */}
-                    {publishGate.blocked && publishGate.reason !== "publishing" && (
+                    {publishBlockReasonShown && (
                         <p id="publish-blocked-reason" role="status" className="rounded-lg border border-amber-700/50 bg-amber-950/40 px-3 py-2 text-xs font-medium text-amber-200">
                             Can&apos;t send yet. {publishGate.message}
                         </p>
@@ -1706,7 +1706,7 @@ export default function ClientEditor({
                         type="button"
                         onClick={handleCopyLink}
                         disabled={publishGate.blocked}
-                        aria-describedby={publishGate.blocked ? "publish-blocked-reason" : undefined}
+                        aria-describedby={publishBlockReasonShown ? "publish-blocked-reason" : undefined}
                         className="w-full h-12 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 rounded-xl font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-800"
                     >
                         {sending ? (
@@ -1752,7 +1752,7 @@ export default function ClientEditor({
                         type="button"
                         onClick={handleSendEmail}
                         disabled={publishGate.blocked || emailSent}
-                        aria-describedby={publishGate.blocked ? "publish-blocked-reason" : undefined}
+                        aria-describedby={publishBlockReasonShown ? "publish-blocked-reason" : undefined}
                         className="w-full h-12 bg-blue-700/20 hover:bg-blue-700/30 border border-blue-600/40 text-blue-300 hover:text-blue-200 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-700/20"
                     >
                         {sending ? (

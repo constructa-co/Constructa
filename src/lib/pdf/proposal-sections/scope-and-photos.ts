@@ -58,8 +58,9 @@ export function renderScopeAndPhotos(ctx: ProposalContext): void {
     if (project?.proposal_introduction) {
         leftY = renderBodyText(doc, leftY, project.proposal_introduction, T, leftColW);
     } else {
-        const para1 = `Thank you for the opportunity to submit this Proposal for ${projectName} at ${address || "the project site"}. We have carefully reviewed your requirements and are pleased to present our comprehensive fee proposal for the Works described herein.`;
-        const para2 = `This document sets out our Scope of Works, commercial terms, and the basis upon which we propose to undertake this project. We are committed to delivering these Works to the highest standard, on time and within budget.`;
+        // Neutral fallback — no promises the contractor has not written.
+        const para1 = `Thank you for the opportunity to submit this Proposal for ${projectName} at ${address || "the project site"}.`;
+        const para2 = `This document sets out our Scope of Works, commercial terms, and the basis upon which we propose to undertake this project.`;
         leftY = renderBodyText(doc, leftY, para1, T, leftColW);
         leftY += 3;
         leftY = renderBodyText(doc, leftY, para2, T, leftColW);

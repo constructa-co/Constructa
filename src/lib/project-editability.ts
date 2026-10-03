@@ -31,3 +31,16 @@ export function getPrecontractEditLockReason(
 
   return null;
 }
+
+/**
+ * The lock reasons above are written for the contractor. Returns the message
+ * when an error is one of them, so an action can show it instead of a generic
+ * failure; any other error returns null.
+ */
+export function precontractLockMessage(error: unknown): string | null {
+  const message = error instanceof Error ? error.message : "";
+  const isLock = message.startsWith("This project is archived")
+    || message.startsWith("This proposal has been accepted")
+    || message.startsWith("Pre-contract information is locked");
+  return isLock ? message : null;
+}

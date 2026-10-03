@@ -1,12 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import {
     TrendingUp, HardHat, Plus, ArrowRight, Clock, CheckCircle2, AlertCircle,
     AlertTriangle, FileText, CreditCard, GitBranch, RefreshCw, MessageSquare,
-    Banknote, ShieldAlert, CalendarDays, Activity, Zap, X, Sparkles,
-    BarChart3, FileDown, Shield,
+    Banknote, ShieldAlert, CalendarDays, Activity, FileDown,
 } from "lucide-react";
 import { isActiveProject, isPipelineProject, isClosedProject } from "@/lib/project-helpers";
 // Stage 5 hardening (19 Apr 2026): canonical contract sum replaces an inline
@@ -15,7 +13,8 @@ import { isActiveProject, isPipelineProject, isClosedProject } from "@/lib/proje
 // "contract value" agrees with every other surface.
 import { computeContractSumValue } from "@/lib/financial";
 import { calendarDayDiff } from "@/lib/dates";
-import { dismissOnboardingAction } from "./actions";
+import { getHomePresentation } from "@/lib/first-session";
+import FirstProjectStart from "@/components/first-project-start";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmt = (n: number) => {
@@ -156,6 +155,18 @@ function getProjectProgrammeDelay(project: any): number {
 
 export default function HomeClient({ projects, profile, estimates, invoices, variations, changeEvents, rfis, ewns, contractEvents, contractObligations, dataWarnings }: Props) {
 
+    // Before the first project there is nothing to report, so Home offers
+    // the one useful action instead of empty KPI cards and module shortcuts.
+    if (getHomePresentation(projects.length) === "first-project") {
+        return (
+            <div className="min-h-screen bg-[#0a0a0a] px-4 py-6 sm:p-6">
+                <div className="max-w-3xl mx-auto">
+                    <FirstProjectStart companyName={profile?.company_name} forceDark />
+                </div>
+            </div>
+        );
+    }
+
     // ── Project categories ────────────────────────────────────────────────────
     // Sprint 58 P1.5: unified via isActiveProject/isPipelineProject/isClosedProject
     // so this page matches the Pipeline Kanban and Management Accounts counts.
@@ -295,13 +306,6 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        {/* Sprint 58 P2.10 — Quick Quote entry point. Primary CTA for
-                            smaller domestic jobs where the full 5-step wizard is overkill. */}
-                        <Link href="/dashboard/projects/quick-quote"
-                            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors">
-                            <span aria-hidden>⚡</span>
-                            Quick Quote
-                        </Link>
                         <Link href="/dashboard/projects/new"
                             className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors">
                             <Plus className="w-4 h-4" />
@@ -309,9 +313,6 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
                         </Link>
                     </div>
                 </div>
-
-                {/* ── Onboarding welcome tour ── */}
-                <WelcomeTour profile={profile} projectCount={projects.length} />
 
                 {/* P0-2 — if any secondary queries failed, tell the user rather than lie */}
                 {dataWarnings && dataWarnings.length > 0 && (
@@ -667,7 +668,6 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
                             <h3 className="text-sm font-semibold text-white mb-3">Quick Actions</h3>
                             <div className="space-y-1.5">
                                 {[
-                                    { label: "Quick Quote",        href: "/dashboard/projects/quick-quote", icon: Zap,       colour: "text-purple-400" },
                                     { label: "New Project",        href: "/dashboard/projects/new",      icon: Plus,         colour: "text-blue-400" },
                                     { label: "View Pipeline",      href: "/dashboard",                    icon: TrendingUp,   colour: "text-blue-400" },
                                     { label: "Billing & Invoices", href: "/dashboard/projects/billing",  icon: CreditCard,   colour: "text-amber-400" },
@@ -707,118 +707,6 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
                     </div>
                 </div>
 
-            </div>
-        </div>
-    );
-}
-
-// ── Welcome Tour Component ───────────────────────────────────────────────
-
-const TOUR_STEPS = [
-    {
-        icon: Sparkles,
-        title: "Welcome to Constructa",
-        body: "Your all-in-one platform for running construction projects — from first estimate to final account. Let's get you started.",
-        color: "bg-blue-600",
-    },
-    {
-        icon: BarChart3,
-        title: "Estimate, Propose & Win",
-        body: "Build detailed estimates, generate professional proposals, and send them to clients for digital acceptance — all in one flow.",
-        color: "bg-emerald-600",
-    },
-    {
-        icon: Shield,
-        title: "Manage, Bill & Close",
-        body: "Track live projects with Job P&L, raise variations, manage contracts, and close with final accounts and lessons learned.",
-        color: "bg-violet-600",
-    },
-];
-
-function WelcomeTour({ profile, projectCount }: { profile: any; projectCount: number }) {
-    const [dismissed, setDismissed] = useState(false);
-    const [step, setStep] = useState(0);
-
-    // Don't show if already seen or if user has projects
-    if (dismissed || profile?.onboarding_seen_at || projectCount > 0) return null;
-
-    const handleDismiss = async () => {
-        setDismissed(true);
-        try { await dismissOnboardingAction(); } catch { /* best-effort */ }
-    };
-
-    const current = TOUR_STEPS[step];
-    const Icon = current.icon;
-    const isLast = step === TOUR_STEPS.length - 1;
-
-    return (
-        <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
-            {/* Progress dots + dismiss */}
-            <div className="flex items-center justify-between px-6 pt-5">
-                <div className="flex items-center gap-1.5">
-                    {TOUR_STEPS.map((_, i) => (
-                        <div
-                            key={i}
-                            className={`w-2 h-2 rounded-full transition-colors ${
-                                i === step ? "bg-blue-500" : i < step ? "bg-blue-800" : "bg-slate-700"
-                            }`}
-                        />
-                    ))}
-                </div>
-                <button
-                    onClick={handleDismiss}
-                    className="text-slate-600 hover:text-slate-400 transition-colors p-1"
-                    aria-label="Dismiss tour"
-                >
-                    <X className="w-4 h-4" />
-                </button>
-            </div>
-
-            {/* Content */}
-            <div className="px-6 py-6">
-                <div className={`w-12 h-12 ${current.color} rounded-xl flex items-center justify-center mb-4`}>
-                    <Icon className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-2">{current.title}</h3>
-                <p className="text-sm text-slate-400 leading-relaxed max-w-lg">{current.body}</p>
-            </div>
-
-            {/* Actions */}
-            <div className="px-6 pb-5 flex items-center gap-3">
-                {isLast ? (
-                    <>
-                        <Link
-                            href="/dashboard/projects/quick-quote"
-                            onClick={handleDismiss}
-                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors"
-                        >
-                            <Zap className="w-4 h-4" />
-                            Try Quick Quote
-                        </Link>
-                        <button
-                            onClick={handleDismiss}
-                            className="text-sm text-slate-500 hover:text-slate-300 transition-colors px-3 py-2.5"
-                        >
-                            I&apos;ll explore on my own
-                        </button>
-                    </>
-                ) : (
-                    <>
-                        <button
-                            onClick={() => setStep(step + 1)}
-                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors"
-                        >
-                            Next
-                            <ArrowRight className="w-4 h-4" />
-                        </button>
-                        <button
-                            onClick={handleDismiss}
-                            className="text-sm text-slate-500 hover:text-slate-300 transition-colors px-3 py-2.5"
-                        >
-                            Skip tour
-                        </button>
-                    </>
-                )}
             </div>
         </div>
     );

@@ -1,29 +1,16 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { ThemeProvider } from '@/lib/theme-context';
-import DashboardShell from '@/components/dashboard-shell';
-import { Toaster } from 'sonner';
+import OnboardingFrame from './onboarding-frame';
 
+/**
+ * First-time setup sits outside the dashboard shell: no sidebar, project
+ * picker or module navigation until the contractor has finished it.
+ */
 export default async function OnboardingLayout({ children }: { children: React.ReactNode }) {
     const supabase = await createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
     if (!user) redirect('/login');
 
-    const [{ data: projects }, { data: profile }] = await Promise.all([
-        supabase.from('projects').select('id, name, client_name').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
-        supabase.from('profiles').select('company_name, theme_preference').eq('id', user.id).single(),
-    ]);
-
-    const initialTheme = profile?.theme_preference || 'system-c';
-    const isAdmin = !!process.env.ADMIN_EMAIL && user.email === process.env.ADMIN_EMAIL;
-
-    return (
-        <ThemeProvider initialTheme={initialTheme}>
-            <DashboardShell user={{ email: user.email }} projects={projects || []} isAdmin={isAdmin}>
-                {children}
-            </DashboardShell>
-            <Toaster richColors position="bottom-right" />
-        </ThemeProvider>
-    );
+    return <OnboardingFrame>{children}</OnboardingFrame>;
 }

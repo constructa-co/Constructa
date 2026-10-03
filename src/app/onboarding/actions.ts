@@ -2,98 +2,103 @@
 
 import { requireAuth } from "@/lib/supabase/auth-utils";
 import { redirect } from "next/navigation";
-import { generateText, generateJSON } from "@/lib/ai";
 import { sendWelcomeEmail } from "@/lib/email";
 import { getLaunchLandingPath } from "@/lib/launch-profile";
+import {
+    SETUP_SAVE_FALLBACK_ERROR,
+    buildSetupPatch,
+    resolvePostSetupPath,
+    shouldSendWelcomeEmail,
+    type SetupStepInput,
+} from "@/lib/first-session";
 
-export async function saveOnboardingAction(formData: FormData) {
-    const { user, supabase } = await requireAuth();
+export type SaveSetupStepResult = { ok: true } | { error: string };
 
-    // Parse insurance schedule from JSON string
-    let insurance_schedule = null;
-    const insuranceRaw = formData.get("insurance_schedule") as string;
-    if (insuranceRaw) {
-        try { insurance_schedule = JSON.parse(insuranceRaw); } catch { /* skip */ }
-    }
+/**
+ * The one save path for first-time setup. Each step sends only its own
+ * answers and only those columns are written, so anything else already on
+ * the profile (logo, address, capability statement, insurance, terms) is
+ * left exactly as it was.
+ *
+ * The trade step returns `{ ok: true }`. The business step finishes setup and
+ * redirects on the server, so the caller's await never resolves on success.
+ */
+export async function saveSetupStepAction(input: SetupStepInput): Promise<SaveSetupStepResult> {
+    const built = buildSetupPatch(input);
+    if (!built.ok) return { error: built.error };
 
-    // Parse default TC overrides from JSON string
-    let default_tc_overrides = null;
-    const tcRaw = formData.get("default_tc_overrides") as string;
-    if (tcRaw) {
-        try { default_tc_overrides = JSON.parse(tcRaw); } catch { /* skip */ }
-    }
+    let userEmail: string | undefined;
+    let destination: string | null = null;
 
-    const years_trading_raw = formData.get("years_trading") as string;
+    try {
+        const { user, supabase } = await requireAuth();
+        userEmail = user.email;
 
-    const updateData: Record<string, any> = {
-        full_name: formData.get("full_name") as string || null,
-        company_name: formData.get("company_name") as string || null,
-        phone: formData.get("phone") as string || null,
-        address: formData.get("address") as string || null,
-        website: formData.get("website") as string || null,
-        logo_url: formData.get("logo_url") as string || null,
-        years_trading: years_trading_raw ? parseInt(years_trading_raw, 10) : null,
-        business_type: formData.get("business_type") as string || null,
-        specialisms: formData.get("specialisms") as string || null,
-        capability_statement: formData.get("capability_statement") as string || null,
-        accreditations: formData.get("accreditations") as string || null,
-        insurance_schedule,
-        default_tc_overrides,
-    };
+        // Finishing setup for the first time is the moment a business name
+        // first lands on the profile. Claiming that in a single conditional
+        // update means two overlapping submissions cannot both see "first
+        // time", so the welcome email cannot be sent twice.
+        let companyNameClaimedNow = false;
+        if (built.step === "business") {
+            const { data: claimed, error: claimError } = await supabase
+                .from("profiles")
+                .update(built.patch)
+                .eq("id", user.id)
+                .is("company_name", null)
+                .select("id");
+            if (claimError) {
+                console.error("saveSetupStepAction claim failed", { code: claimError.code, message: claimError.message });
+                return { error: SETUP_SAVE_FALLBACK_ERROR };
+            }
+            companyNameClaimedNow = (claimed?.length ?? 0) > 0;
+        }
 
-    // Check if this is the first time completing onboarding (company_name going from null → set)
-    const { data: existingProfile } = await supabase
-        .from("profiles")
-        .select("company_name")
-        .eq("id", user.id)
-        .single();
-    const isFirstTimeOnboarding = !existingProfile?.company_name && !!updateData.company_name;
+        if (!companyNameClaimedNow) {
+            // Profile row already exists from the signup trigger, so update
+            // and confirm a row was actually written.
+            const { data: updated, error } = await supabase
+                .from("profiles")
+                .update(built.patch)
+                .eq("id", user.id)
+                .select("id");
+            if (error || (updated?.length ?? 0) === 0) {
+                console.error("saveSetupStepAction failed", { step: built.step, code: error?.code, message: error?.message });
+                return { error: SETUP_SAVE_FALLBACK_ERROR };
+            }
+        }
 
-    // Use UPDATE (not upsert) — profile row already exists from signup trigger
-    const { error } = await supabase
-        .from("profiles")
-        .update(updateData)
-        .eq("id", user.id);
+        if (built.step === "trade") return { ok: true };
 
-    if (error) {
-        return { error: error.message };
-    }
+        if (shouldSendWelcomeEmail({ step: built.step, companyNameClaimedNow, hasEmail: !!userEmail })
+            && userEmail && "company_name" in built.patch) {
+            const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app";
+            // Fire-and-forget: a mail failure must never block setup.
+            sendWelcomeEmail({
+                contractorEmail: userEmail,
+                fullName: built.patch.full_name || undefined,
+                companyName: built.patch.company_name,
+                dashboardUrl: `${baseUrl}/dashboard`,
+            }).catch((e) => console.error("Welcome email failed:", e));
+        }
 
-    // Sprint 23: Send welcome email on first-time onboarding completion (fire-and-forget)
-    if (isFirstTimeOnboarding && user.email) {
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app";
-        sendWelcomeEmail({
-            contractorEmail: user.email,
-            fullName: updateData.full_name || undefined,
-            companyName: updateData.company_name,
-            dashboardUrl: `${baseUrl}/dashboard`,
-        }).catch((e) => console.error("Welcome email failed:", e));
+        // The answers are saved; if this count fails, fall back to the
+        // normal landing page rather than reporting a save failure.
+        const { count } = await supabase
+            .from("projects")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id);
+        destination = count === null
+            ? getLaunchLandingPath()
+            : resolvePostSetupPath(count, getLaunchLandingPath());
+    } catch (error) {
+        console.error("saveSetupStepAction threw", {
+            message: error instanceof Error ? error.message : String(error),
+        });
+        return { error: SETUP_SAVE_FALLBACK_ERROR };
     }
 
     // Redirect server-side so navigation cannot be stranded by a client
-    // router push that never settles (E2E-01). This throws NEXT_REDIRECT,
-    // so the client-side await of this action never resolves on success.
-    redirect(getLaunchLandingPath());
-}
-
-export async function generateCapabilityStatementAction(trade: string, specialisms: string): Promise<string> {
-    // Uses OpenAI via shared utility
-
-    const prompt = `Write a 2-paragraph professional capability statement for a UK building contractor with the following profile:
-Primary Trade: ${trade}
-Specialisms: ${specialisms || "general construction works"}
-
-The statement should:
-- Be written in third person ("The Contractor" or the company)
-- Sound professional and authoritative
-- Highlight expertise, quality, and reliability
-- Be suitable for inclusion in a construction proposal document
-- Be around 120-160 words total
-- Return plain text only, no markdown, no headings`;
-
-    try {
-        return await generateText(prompt);
-    } catch (error: any) {
-        return `Error generating statement: ${error.message}`;
-    }
+    // router push that never settles (E2E-01). This throws NEXT_REDIRECT, so
+    // it has to sit outside the try block above.
+    redirect(destination ?? getLaunchLandingPath());
 }

@@ -1,89 +1,49 @@
 "use server";
 
 import { requireAuth } from "@/lib/supabase/auth-utils";
-import { PROJECT_TEMPLATES } from "@/lib/templates";
-import { CreateProjectFromTemplateSchema, parseInput } from "@/lib/validation/schemas";
+import {
+    BLANK_PROJECT_CREATE_ERROR,
+    buildBlankProjectGraph,
+    parseBlankProjectInput,
+    resolveBlankProjectCreation,
+    type CreateBlankProjectResult,
+} from "@/lib/blank-project";
 
-type CreateProjectResult =
-    | { success: true; projectId: string }
-    | { success: false; error: string };
-
-export async function createProjectFromTemplateAction(
+/**
+ * Creates a blank project through the atomic, idempotent creation RPC. The
+ * client sends the same request id on every retry, so a retry after a lost
+ * response returns the project that was already committed.
+ */
+export async function createBlankProjectAction(
     formData: FormData,
-): Promise<CreateProjectResult> {
+): Promise<CreateBlankProjectResult> {
+    const parsed = parseBlankProjectInput(Object.fromEntries(formData.entries()));
+    if (!parsed.ok) {
+        return { success: false, error: parsed.error, fieldErrors: parsed.fieldErrors };
+    }
+    const graph = buildBlankProjectGraph(parsed.input);
+
     try {
-        const potentialValueRaw = String(formData.get("potentialValue") ?? "").trim();
-        const input = parseInput(CreateProjectFromTemplateSchema, {
-            requestId: String(formData.get("requestId") ?? ""),
-            name: String(formData.get("name") ?? ""),
-            client: String(formData.get("client") ?? ""),
-            clientEmail: String(formData.get("clientEmail") ?? ""),
-            clientPhone: String(formData.get("clientPhone") ?? ""),
-            clientAddress: String(formData.get("clientAddress") ?? ""),
-            siteAddress: String(formData.get("siteAddress") ?? ""),
-            projectType: String(formData.get("projectType") ?? "Extension"),
-            startDate: String(formData.get("startDate") ?? ""),
-            potentialValue: potentialValueRaw ? Number(potentialValueRaw) : null,
-            typeId: String(formData.get("typeId") ?? ""),
-        }, "new project");
         const { supabase } = await requireAuth();
-
-        const template = PROJECT_TEMPLATES.find((candidate) => candidate.id === input.typeId);
-        if (!template) return { success: false, error: "Project template not found" };
-
-        const project = {
-            name: input.name,
-            client_name: input.client,
-            client_email: input.clientEmail || null,
-            client_phone: input.clientPhone || null,
-            client_address: input.clientAddress || input.siteAddress || null,
-            site_address: input.siteAddress || input.clientAddress || null,
-            project_type: input.projectType,
-            start_date: input.startDate || null,
-            potential_value: input.potentialValue ?? null,
-            status: template.items.length > 0 ? "Estimating" : "Lead",
-            proposal_complexity: "full",
-        };
-        const estimates = template.items.map((item, index) => ({
-            version_name: item.name,
-            total_cost: item.cost,
-            overhead_pct: 10,
-            profit_pct: 20,
-            risk_pct: 0,
-            prelims_pct: 0,
-            is_active: index === 0,
-            lines: item.lines.map((line) => ({
-                trade_section: item.name,
-                description: line.desc,
-                quantity: line.qty,
-                unit: line.unit,
-                unit_rate: line.rate,
-                line_total: line.qty * line.rate,
-                pricing_mode: "simple",
-                line_type: "general",
-            })),
-        }));
-
         const { data, error } = await supabase.rpc("create_phase1_project_graph", {
-            p_request_id: input.requestId,
-            p_project: project,
-            p_estimates: estimates,
+            p_request_id: graph.requestId,
+            p_project: graph.project,
+            p_estimates: graph.estimates,
         });
-        const created = Array.isArray(data) ? data[0] : data;
-        if (error || !created?.project_id) {
-            console.error("createProjectFromTemplateAction failed", {
-                requestId: input.requestId,
+        const result = resolveBlankProjectCreation(data, error);
+        if (!result.success) {
+            console.error("createBlankProjectAction failed", {
+                requestId: graph.requestId,
                 code: error?.code,
                 message: error?.message,
             });
-            return { success: false, error: "Could not create the project. Your inputs are still available; please retry." };
         }
-
-        return { success: true, projectId: created.project_id };
+        return result;
     } catch (error) {
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : "Could not create the project",
-        };
+        console.error("createBlankProjectAction threw", {
+            requestId: graph.requestId,
+            message: error instanceof Error ? error.message : String(error),
+        });
+        return { success: false, error: BLANK_PROJECT_CREATE_ERROR };
     }
 }

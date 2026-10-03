@@ -45,9 +45,11 @@ import {
     Smartphone,
     Package,
     Zap,
+    Menu,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
+import { buildPhoneNav, getPhoneNavTitle, isPhoneNavItemActive, type PhoneNavKey } from "@/lib/phone-nav";
 
 interface Project {
     id: string;
@@ -134,6 +136,17 @@ function SidebarSection({
     );
 }
 
+const PHONE_NAV_ICONS: Record<PhoneNavKey, any> = {
+    "pipeline": Kanban,
+    "new-project": FilePlus,
+    "brief": ClipboardList,
+    "estimates": Calculator,
+    "programmes": CalendarDays,
+    "proposals": FileText,
+    "profile": Building2,
+    "case-studies": Images,
+};
+
 const SECTION_KEYS = ["company-profile", "work-winning", "pre-construction", "live-projects", "closed-projects"];
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -152,6 +165,9 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
     const [pickerOpen, setPickerOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const pickerRef = useRef<HTMLDivElement>(null);
+
+    // Phone menu — the desktop sidebar is hidden below md.
+    const [phoneMenuOpen, setPhoneMenuOpen] = useState(false);
 
     // Accordion: all sections collapsed by default
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
@@ -230,6 +246,19 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
         return () => document.removeEventListener("mousedown", handleClick);
     }, []);
 
+    // Phone menu: close after any navigation and on Escape.
+    useEffect(() => {
+        setPhoneMenuOpen(false);
+    }, [pathname, searchParams]);
+    useEffect(() => {
+        if (!phoneMenuOpen) return;
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setPhoneMenuOpen(false);
+        };
+        document.addEventListener("keydown", handleKey);
+        return () => document.removeEventListener("keydown", handleKey);
+    }, [phoneMenuOpen]);
+
     // Accordion toggle — opening one section ALWAYS closes all others
     const toggleSection = (key: string) => {
         setCollapsed(prev => {
@@ -271,8 +300,8 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
         }
     };
 
-    const clearProject = (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const clearProject = (e?: React.MouseEvent) => {
+        e?.stopPropagation();
         setSelectedProjectId(null);
         setSelectedProjectName(null);
         localStorage.removeItem("constructa_selected_project_id");
@@ -297,7 +326,114 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
         (p.client_name ?? "").toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const phoneNav = buildPhoneNav(selectedProjectId);
+    const phoneTitle = getPhoneNavTitle(pathname, phoneNav);
+
     return (
+        <>
+        {/* ── Phone top bar + menu (below md only) ─────────────────────── */}
+        <header className="md:hidden fixed top-0 inset-x-0 z-30 h-14 bg-[#0d0d0d] border-b border-white/10 flex items-center gap-3 px-3">
+            <button
+                type="button"
+                onClick={() => setPhoneMenuOpen(true)}
+                aria-label="Open menu"
+                aria-expanded={phoneMenuOpen}
+                aria-controls="phone-menu"
+                className="w-11 h-11 flex items-center justify-center rounded-lg text-slate-200 hover:bg-white/10 transition-colors"
+            >
+                <Menu className="w-6 h-6" />
+            </button>
+            <div className="min-w-0 flex-1">
+                <div className="text-sm font-bold text-white truncate">{phoneTitle}</div>
+                {selectedProjectName && (
+                    <div className="text-[11px] text-blue-300 truncate">{selectedProjectName}</div>
+                )}
+            </div>
+            <Link href="/dashboard" aria-label="Constructa pipeline" className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-base flex-shrink-0">C</Link>
+        </header>
+
+        {phoneMenuOpen && (
+            <div className="md:hidden fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Menu" id="phone-menu">
+                <button
+                    type="button"
+                    aria-label="Close menu"
+                    onClick={() => setPhoneMenuOpen(false)}
+                    className="absolute inset-0 w-full h-full bg-black/60"
+                />
+                <nav className="absolute inset-y-0 left-0 w-[86%] max-w-xs bg-[#0d0d0d] border-r border-white/10 flex flex-col shadow-2xl">
+                    <div className="h-14 flex items-center justify-between px-4 border-b border-white/10 flex-shrink-0">
+                        <span className="text-lg font-bold tracking-tight text-white">Constructa</span>
+                        <button
+                            type="button"
+                            onClick={() => setPhoneMenuOpen(false)}
+                            aria-label="Close menu"
+                            className="w-11 h-11 -mr-2 flex items-center justify-center rounded-lg text-slate-300 hover:bg-white/10 transition-colors"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
+                        <div>
+                            <label htmlFor="phone-active-project" className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-1 pb-1.5">
+                                Active Project
+                            </label>
+                            <select
+                                id="phone-active-project"
+                                value={selectedProjectId ?? ""}
+                                onChange={(e) => {
+                                    const match = projects.find((p) => p.id === e.target.value);
+                                    if (match) selectProject(match.id, match.name);
+                                    else clearProject();
+                                }}
+                                className="w-full h-11 rounded-lg bg-white/5 border border-white/10 px-3 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+                            >
+                                <option value="">{projects.length === 0 ? "No projects yet" : "Select a project…"}</option>
+                                {projects.map((p) => (
+                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {phoneNav.map((group) => (
+                            <div key={group.key}>
+                                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-1 pb-1">{group.label}</div>
+                                <div className="space-y-0.5">
+                                    {group.items.map((item) => {
+                                        const Icon = PHONE_NAV_ICONS[item.key];
+                                        const active = isPhoneNavItemActive(pathname, item);
+                                        return (
+                                            <Link
+                                                key={item.key}
+                                                href={item.href}
+                                                onClick={() => setPhoneMenuOpen(false)}
+                                                aria-current={active ? "page" : undefined}
+                                                className={`flex items-center gap-3 px-3 min-h-11 rounded-lg text-base font-medium transition-colors ${
+                                                    active ? "bg-gray-900 text-white" : "text-slate-300 hover:text-white hover:bg-white/8"
+                                                }`}
+                                            >
+                                                <Icon className={`w-5 h-5 flex-shrink-0 ${active ? "text-blue-400" : "text-slate-400"}`} />
+                                                <span className="truncate">{item.label}</span>
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="p-3 border-t border-white/10 flex items-center gap-3 flex-shrink-0">
+                        <div className="min-w-0 flex-1 text-xs text-slate-400 truncate">{user.email}</div>
+                        <form action="/auth/signout" method="post">
+                            <button className="h-11 px-3 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/10 flex items-center gap-2">
+                                <LogOut className="w-4 h-4" /> Sign out
+                            </button>
+                        </form>
+                    </div>
+                </nav>
+            </div>
+        )}
+
         <aside className="w-64 bg-[#0d0d0d] hidden md:flex flex-col h-screen fixed z-30">
             {/* Logo */}
             <div className="p-5 pb-3">
@@ -513,5 +649,6 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                 </div>
             </div>
         </aside>
+        </>
     );
 }

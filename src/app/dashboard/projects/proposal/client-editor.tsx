@@ -18,7 +18,8 @@ import ProposalPdfButton from "./proposal-pdf-button";
 import AiWizard from "./ai-wizard";
 import Link from "next/link";
 import { toast } from "sonner";
-import { STANDARD_PROPOSAL_TERMS } from "@/lib/proposal-terms";
+import { STANDARD_PROPOSAL_TERMS, resolveProposalTerms } from "@/lib/proposal-terms";
+import { evaluateProposalReadiness, getPublishGate, type ReadinessKey } from "@/lib/proposal-readiness";
 
 // Auto-assigned phase colours cycling by index
 const AUTO_COLORS = ["blue", "green", "orange", "purple", "slate", "teal"];
@@ -405,6 +406,57 @@ export default function ClientEditor({
         }
     }
 
+    // ── Readiness + publish gate ───────────────────────────────────────
+    // One pure model decides what is missing; the buttons and both publish
+    // handlers read the same answer. The programme checked here is the one
+    // that would be published: the Programme tab's phases when saved,
+    // otherwise this draft's phases. Untouched starter phases are not the
+    // contractor's programme, so they never count.
+    const draftPhases = sequentialMode ? computedPhases : ganttPhases;
+    const isStarterProgramme = draftPhases.length === DEFAULT_PHASES.length
+        && draftPhases.every((p, i) => p.id === DEFAULT_PHASES[i].id && p.name === DEFAULT_PHASES[i].name);
+    const savedProgramme = Array.isArray(project?.programme_phases) && project.programme_phases.length > 0
+        ? project.programme_phases
+        : null;
+    const readiness = evaluateProposalReadiness({
+        projectName: project?.name,
+        clientName: project?.client_name,
+        scope,
+        contractSum: computedContractSum,
+        programmePhases: savedProgramme ?? (isStarterProgramme ? [] : draftPhases),
+        projectStartDate: project?.start_date,
+        paymentSchedule,
+        terms: resolveProposalTerms(useCustomTc ? tcOverrides : null),
+        hasPhotos: sitePhotos.some(p => p.url),
+        hasCaseStudies: allCaseStudies.length > 0,
+        exclusions,
+        clarifications,
+        closingStatement,
+    });
+    const publishGate = getPublishGate({ saveState: autosaveStatus, saving, publishing: sending, readiness });
+    const readinessFixLinks: Partial<Record<ReadinessKey, { href: string; label: string }>> = {
+        identity: { href: `/dashboard/projects/settings?projectId=${projectId}`, label: "Open project details" },
+        scope: { href: "#proposal-scope", label: "Go to Scope of Works" },
+        contractValue: { href: `/dashboard/projects/costs?projectId=${projectId}`, label: "Open Estimates" },
+        programme: { href: `/dashboard/projects/schedule?projectId=${projectId}`, label: "Open Programme" },
+        payment: { href: "#proposal-payment", label: "Go to Payment Schedule" },
+    };
+
+    // Publication always saves the draft first. A failed save surfaces the
+    // same Retry save recovery as a failed autosave and stops the send.
+    const saveBeforePublish = async (): Promise<boolean> => {
+        try {
+            const savedDraft = await persistProposal(buildProposalFormData());
+            if (savedDraft?.success) return true;
+            setAutosaveStatus("error");
+            toast.error(savedDraft?.error || "Save failed. The proposal was not sent.");
+        } catch {
+            setAutosaveStatus("error");
+            toast.error("Save failed. The proposal was not sent. Press Retry save.");
+        }
+        return false;
+    };
+
     const handleGenerateClosing = async () => {
         setIsGeneratingClosing(true);
         try {
@@ -511,13 +563,15 @@ export default function ClientEditor({
     };
 
     const handleCopyLink = async () => {
+        // Re-check here as well as on the button: a disabled attribute is
+        // not a guarantee.
+        if (publishGate.blocked) {
+            toast.error(publishGate.message ?? "This proposal is not ready to send yet.");
+            return;
+        }
         setSending(true);
         try {
-            const savedDraft = await persistProposal(buildProposalFormData());
-            if (!savedDraft?.success) {
-                toast.error(savedDraft?.error || "Save failed. The proposal was not published.");
-                return;
-            }
+            if (!(await saveBeforePublish())) return;
             const result = await getProposalLinkAction(projectId);
             if (!result?.success || !result.url) {
                 toast.error(result?.error || "The proposal could not be published.");
@@ -564,14 +618,14 @@ export default function ClientEditor({
     };
 
     const handleSendEmail = async () => {
+        if (publishGate.blocked) {
+            toast.error(publishGate.message ?? "This proposal is not ready to send yet.");
+            return;
+        }
         setSending(true);
         let result: Awaited<ReturnType<typeof sendProposalAction>> | undefined;
         try {
-            const savedDraft = await persistProposal(buildProposalFormData());
-            if (!savedDraft?.success) {
-                toast.error(savedDraft?.error || "Save failed. The proposal was not published.");
-                return;
-            }
+            if (!(await saveBeforePublish())) return;
             result = await sendProposalAction(projectId);
         } catch {
             toast.error("The proposal could not be published. Please retry.");
@@ -801,16 +855,15 @@ export default function ClientEditor({
         scope: scope.trim().length > 50,
         exclusions: exclusions.trim().length > 5,
         timeline: ganttPhases.some(p => p.name.trim()),
-        payment: paymentSchedule.length > 0,
+        payment: readiness.mandatory.some(item => item.key === "payment" && item.ok),
         photos: sitePhotos.some(p => p.url),
         terms: true,
     };
-    const completedCount = Object.values(checks).filter(Boolean).length;
 
     const profileComplete = !!(profile?.company_name);
     const profileIncomplete = !profile?.company_name || !profile?.capability_statement || (profile?.capability_statement?.length || 0) < 30;
     return (
-        <div className="grid lg:grid-cols-3 gap-8 items-start pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start pb-20">
             {/* ── AI Wizard Modal ── */}
             {showWizard && (
                 <AiWizard
@@ -822,7 +875,7 @@ export default function ClientEditor({
             )}
 
             {/* ── MAIN CONTENT COL ── */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 min-w-0 space-y-6">
 
                 {/* Sync from Brief & Contracts banner */}
                 {(initialBriefScope || initialContractExclusions || initialContractClarifications) && (
@@ -1024,7 +1077,7 @@ export default function ClientEditor({
                 </div>
 
                 {/* SECTION 4: Scope of Works */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                <div id="proposal-scope" className="scroll-mt-20 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
                     <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             {checks.scope ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4 text-slate-600" />}
@@ -1212,7 +1265,7 @@ export default function ClientEditor({
                 </div>
 
                 {/* SECTION 7: Payment Schedule */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                <div id="proposal-payment" className="scroll-mt-20 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
                     <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700 flex items-center gap-2">
                         {checks.payment ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4 text-slate-600" />}
                         <CreditCard className="w-4 h-4 text-slate-400" />
@@ -1234,7 +1287,7 @@ export default function ClientEditor({
                             </div>
                         )}
                         {/* Payment type toggle */}
-                        <div className="flex items-center gap-4 pb-3 border-b border-slate-800">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pb-3 border-b border-slate-800">
                             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Payment Type:</span>
                             <button
                                 type="button"
@@ -1270,6 +1323,9 @@ export default function ClientEditor({
 
                         {paymentScheduleType === "percentage" ? (
                             <>
+                                {/* Phone width: the row scrolls sideways rather than clipping. */}
+                                <div className="overflow-x-auto">
+                                <div className="min-w-[540px] space-y-3">
                                 {/* Column headers */}
                                 <div className="grid gap-3 text-xs font-bold uppercase tracking-wider text-slate-500 pb-1 border-b border-slate-800" style={{ gridTemplateColumns: "1fr 2fr 80px 100px 40px" }}>
                                     <span>Stage</span>
@@ -1321,6 +1377,8 @@ export default function ClientEditor({
                                         </div>
                                     );
                                 })}
+                                </div>
+                                </div>
                                 <div className="flex items-center justify-between pt-2">
                                     <button
                                         type="button"
@@ -1348,6 +1406,9 @@ export default function ClientEditor({
                                         Populate from estimate sections
                                     </button>
                                 )}
+                                {/* Phone width: the row scrolls sideways rather than clipping. */}
+                                <div className="overflow-x-auto">
+                                <div className="min-w-[540px] space-y-3">
                                 <div className="grid gap-3 text-xs font-bold uppercase tracking-wider text-slate-500 pb-1 border-b border-slate-800" style={{ gridTemplateColumns: "1fr 2fr 100px 40px" }}>
                                     <span>Stage</span>
                                     <span>Trigger</span>
@@ -1415,6 +1476,8 @@ export default function ClientEditor({
                                         </div>
                                     );
                                 })}
+                                </div>
+                                </div>
                                 <div className="flex items-center justify-between pt-2">
                                     <button
                                         type="button"
@@ -1497,8 +1560,8 @@ export default function ClientEditor({
             </div>
 
             {/* ── STICKY SIDEBAR ── */}
-            <div className="lg:col-span-1">
-                <div className="sticky top-6 space-y-4">
+            <div className="lg:col-span-1 min-w-0">
+                <div className="lg:sticky lg:top-6 space-y-4">
                     {/* Status + Version Badge */}
                     <div className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-xl px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -1516,63 +1579,104 @@ export default function ClientEditor({
                         </span>
                     </div>
 
-                    {/* Completion Checklist */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                    {/* Readiness — what must be in place before sending, and
+                        what is only nice to have. */}
+                    <div id="proposal-readiness" className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                         <div className="flex items-center justify-between mb-3">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Completion</span>
-                            <span className="text-xs text-slate-500">{completedCount}/{Object.keys(checks).length}</span>
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ready to send?</span>
+                            <span className={`text-xs font-semibold ${readiness.ready ? "text-green-400" : "text-amber-300"}`}>
+                                {readiness.ready ? "Yes" : `${readiness.missing.length} to finish`}
+                            </span>
                         </div>
-                        <div className="space-y-2">
-                            {[
-                                { key: "introduction", label: "Client Introduction" },
-                                { key: "scope", label: "Scope of Works" },
-                                { key: "exclusions", label: "Exclusions" },
-                                { key: "timeline", label: "Timeline" },
-                                { key: "payment", label: "Payment Schedule" },
-                                { key: "photos", label: "Site Photos" },
-                                { key: "terms", label: "T&Cs" },
-                            ].map(({ key, label }) => (
-                                <div key={key} className="flex items-center gap-2">
-                                    {checks[key as keyof typeof checks] ? (
-                                        <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-                                    ) : (
-                                        <Circle className="w-3.5 h-3.5 text-slate-700 flex-shrink-0" />
-                                    )}
-                                    <span className={`text-xs ${checks[key as keyof typeof checks] ? "text-slate-300" : "text-slate-600"}`}>
-                                        {label}
-                                    </span>
-                                </div>
-                            ))}
+                        <ul className="space-y-2">
+                            {readiness.mandatory.map((item) => {
+                                const link = readinessFixLinks[item.key];
+                                return (
+                                    <li key={item.key} className="flex items-start gap-2">
+                                        {item.ok ? (
+                                            <CheckCircle className="w-4 h-4 mt-0.5 text-green-500 flex-shrink-0" />
+                                        ) : (
+                                            <AlertCircle className="w-4 h-4 mt-0.5 text-amber-400 flex-shrink-0" />
+                                        )}
+                                        <div className="min-w-0">
+                                            <p className={`text-sm ${item.ok ? "text-slate-300" : "font-semibold text-amber-200"}`}>{item.label}</p>
+                                            {!item.ok && (
+                                                <p className="text-xs text-amber-300/90 mt-0.5">
+                                                    {item.fix}
+                                                    {link && (
+                                                        <>
+                                                            {" "}
+                                                            <Link href={link.href} className="underline font-semibold text-blue-300 hover:text-blue-200 whitespace-nowrap">
+                                                                {link.label}
+                                                            </Link>
+                                                        </>
+                                                    )}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                        <div className="mt-4 pt-3 border-t border-slate-800">
+                            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Nice to have</p>
+                            <ul className="space-y-1.5">
+                                {readiness.recommended.map((item) => (
+                                    <li key={item.key} className="flex items-center gap-2">
+                                        {item.ok ? (
+                                            <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                                        ) : (
+                                            <Circle className="w-3.5 h-3.5 text-slate-700 flex-shrink-0" />
+                                        )}
+                                        <span className={`text-xs ${item.ok ? "text-slate-300" : "text-slate-500"}`}>{item.label}</span>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                     </div>
 
-                    {/* Sprint 58 P2.11 — Autosave status row. Sits just
-                        above the manual Save button so the contractor can
-                        see at a glance that their edits are being persisted
-                        without having to click anything. */}
-                    <div className="flex items-center justify-center gap-1.5 h-5 text-[11px]">
-                        {autosaveStatus === "saving" && (
-                            <>
-                                <Loader2 className="w-3 h-3 animate-spin text-slate-500" />
-                                <span className="text-slate-500">Autosaving…</span>
-                            </>
-                        )}
-                        {autosaveStatus === "saved" && (
-                            <>
-                                <Check className="w-3 h-3 text-emerald-500" />
-                                <span className="text-emerald-500">Saved</span>
-                            </>
-                        )}
-                        {autosaveStatus === "error" && (
-                            <>
-                                <AlertCircle className="w-3 h-3 text-red-500" />
-                                <span className="text-red-500">Autosave failed — click Save to retry</span>
-                            </>
-                        )}
-                        {autosaveStatus === "idle" && !saved && (
-                            <span className="text-slate-600">Autosave on — changes save every 1.5 s</span>
-                        )}
-                    </div>
+                    {/* Save status. A failed save is never left as small
+                        print: it gets its own block with a Retry save
+                        button that reuses the normal save handler. */}
+                    {autosaveStatus === "error" ? (
+                        <div role="alert" className="rounded-xl border border-red-700/60 bg-red-950/40 p-3 space-y-2">
+                            <p className="flex items-start gap-2 text-sm font-semibold text-red-200">
+                                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                Your changes did not save.
+                            </p>
+                            <p className="text-xs text-red-200/80">Nothing is lost. Your work is still on this screen. Check your connection and try again.</p>
+                            <button
+                                type="button"
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="w-full h-11 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-60 text-white text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+                            >
+                                {saving ? (
+                                    <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+                                ) : (
+                                    <><RefreshCw className="w-4 h-4" /> Retry save</>
+                                )}
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-center gap-1.5 h-5 text-[11px]" role="status">
+                            {autosaveStatus === "saving" && (
+                                <>
+                                    <Loader2 className="w-3 h-3 animate-spin text-slate-500" />
+                                    <span className="text-slate-500">Saving…</span>
+                                </>
+                            )}
+                            {autosaveStatus === "saved" && (
+                                <>
+                                    <Check className="w-3 h-3 text-emerald-500" />
+                                    <span className="text-emerald-500">Saved</span>
+                                </>
+                            )}
+                            {autosaveStatus === "idle" && !saved && (
+                                <span className="text-slate-600">Changes save automatically</span>
+                            )}
+                        </div>
+                    )}
 
                     {/* Save Button */}
                     <button
@@ -1590,12 +1694,20 @@ export default function ClientEditor({
                         )}
                     </button>
 
+                    {/* Why sending is blocked, and what to do about it. */}
+                    {publishGate.blocked && publishGate.reason !== "publishing" && (
+                        <p id="publish-blocked-reason" role="status" className="rounded-lg border border-amber-700/50 bg-amber-950/40 px-3 py-2 text-xs font-medium text-amber-200">
+                            Can&apos;t send yet. {publishGate.message}
+                        </p>
+                    )}
+
                     {/* Copy Link Button */}
                     <button
                         type="button"
                         onClick={handleCopyLink}
-                        disabled={sending}
-                        className="w-full h-12 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 rounded-xl font-bold transition-all flex items-center justify-center gap-2"
+                        disabled={publishGate.blocked}
+                        aria-describedby={publishGate.blocked ? "publish-blocked-reason" : undefined}
+                        className="w-full h-12 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 rounded-xl font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-800"
                     >
                         {sending ? (
                             <><Loader2 className="w-4 h-4 animate-spin" /> Publishing...</>
@@ -1639,8 +1751,9 @@ export default function ClientEditor({
                     <button
                         type="button"
                         onClick={handleSendEmail}
-                        disabled={sending || emailSent}
-                        className="w-full h-12 bg-blue-700/20 hover:bg-blue-700/30 border border-blue-600/40 text-blue-300 hover:text-blue-200 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
+                        disabled={publishGate.blocked || emailSent}
+                        aria-describedby={publishGate.blocked ? "publish-blocked-reason" : undefined}
+                        className="w-full h-12 bg-blue-700/20 hover:bg-blue-700/30 border border-blue-600/40 text-blue-300 hover:text-blue-200 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-700/20"
                     >
                         {sending ? (
                             <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</>

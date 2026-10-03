@@ -25,7 +25,7 @@ export default function DashboardShell({
   return (
     <div className={`flex h-screen overflow-hidden ${isDark ? "bg-[#0d0d0d]" : "bg-slate-50"}`}>
       <SidebarNav user={user} projects={projects} isAdmin={isAdmin} />
-      <main className={`flex-1 ml-64 overflow-y-auto ${isDark ? "bg-[#0d0d0d]" : "bg-slate-50"}`} style={{ isolation: "isolate" }}>
+      <main className={`flex-1 min-w-0 pt-14 md:pt-0 md:ml-64 overflow-y-auto ${isDark ? "bg-[#0d0d0d]" : "bg-slate-50"}`} style={{ isolation: "isolate" }}>
         <div className="min-h-screen">{children}</div>
       </main>
     </div>

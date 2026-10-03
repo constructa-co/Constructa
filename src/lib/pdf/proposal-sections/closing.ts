@@ -21,8 +21,10 @@ export function renderClosing(ctx: ProposalContext): void {
         : "acknowledgement";
 
     // ── Why Choose Us page ─────────────────────────────────────────────────
+    // The fallback is a plain thank-you: no claims about expertise or quality
+    // the contractor has not written themselves.
     const closingText = project?.closing_statement ||
-        `Thank you for considering ${companyName} for this project. We are confident our expertise and commitment to quality make us the right choice. We look forward to delivering an outstanding result for you.`;
+        `Thank you for considering ${companyName} for this project.`;
     {
         doc.addPage();
         totalPagesRef.n++;
@@ -39,42 +41,38 @@ export function renderClosing(ctx: ProposalContext): void {
             y += profileClosingLines.length * 6 + 12;
         }
 
-        // Key reasons box
+        // Key facts box — saved profile facts only, stated as saved.
         const reasons: string[] = [];
-        if (profile?.years_trading) reasons.push(`${profile.years_trading}+ years of experience in the construction industry`);
+        if (profile?.years_trading) reasons.push(`${profile.years_trading} years trading`);
         if (profile?.accreditations) {
-            const accreds = String(profile.accreditations).split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean);
-            accreds.forEach((a: string) => reasons.push(`Accredited: ${a}`));
+            const accreds = sanitiseText(String(profile.accreditations)).split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean);
+            accreds.forEach((a: string) => reasons.push(`Accreditation: ${a}`));
         }
-        if (profile?.insurance_details) reasons.push("Fully insured — Public Liability, Employer's Liability & Contractors All Risk");
+        if (profile?.insurance_details) {
+            const insurance = sanitiseText(String(profile.insurance_details)).replace(/\s*\n+\s*/g, "; ");
+            if (insurance) reasons.push(`Insurance: ${insurance}`);
+        }
         if (profile?.specialisms) {
-            const specs = String(profile.specialisms).split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean);
-            if (specs.length === 1) {
-                reasons.push(`Specialists in ${specs[0]}`);
-            } else if (specs.length > 1) {
-                reasons.push(`Specialists in: ${specs.join(", ")}`);
-            }
-        }
-        if (project?.project_type) reasons.push(`Experienced in ${project.project_type} projects`);
-        if (reasons.length < 3) {
-            reasons.push("Dedicated project management from inception to completion");
-            reasons.push("Clear communication and transparent pricing — no hidden costs");
-            reasons.push("All works warranted and backed by our Defect Liability Period");
+            const specs = sanitiseText(String(profile.specialisms)).split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean);
+            if (specs.length > 0) reasons.push(`Specialisms: ${specs.join(", ")}`);
         }
 
         if (reasons.length > 0) {
             doc.setFillColor(...T.surface);
-            const reasonsBoxH = reasons.length * 9 + 14;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9.5);
+            const reasonLines = reasons.map(reason => doc.splitTextToSize(`•  ${reason}`, CW - 16) as string[]);
+            const reasonsBoxH = reasonLines.reduce((h, lines) => h + 4 + lines.length * 5, 0) + 10;
             doc.roundedRect(ML, y, CW, reasonsBoxH, 3, 3, "F");
             doc.setDrawColor(...T.borderLight);
             doc.roundedRect(ML, y, CW, reasonsBoxH, 3, 3, "S");
             y += 8;
-            reasons.forEach(reason => {
+            reasonLines.forEach(lines => {
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(9.5);
                 doc.setTextColor(...T.textDark);
-                doc.text(`•  ${reason}`, ML + 8, y);
-                y += 9;
+                doc.text(lines, ML + 8, y);
+                y += 4 + lines.length * 5;
             });
             y += 6;
         }

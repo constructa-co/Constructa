@@ -3,15 +3,14 @@
  *
  * Two-column layout: left = capability statement + specialisms + years;
  * right = contact info box + accreditations. Optional MD message block
- * below. If space remains and no MD message, a 2×2 "Our Commitment"
- * value-prop grid fills the whitespace.
+ * below. Every value comes from the saved profile or project — nothing is
+ * invented to fill space.
  */
 
 import {
     type ProposalContext,
-    PAGE_W, PAGE_H, ML, MR, CW,
-    CONTENT_BOTTOM,
-    addPageHeader, renderSectionHeading, renderBodyText, ensureSpace,
+    PAGE_H, ML, CW,
+    addPageHeader, renderSectionHeading, ensureSpace,
     splitAddress, sanitiseText,
 } from "./helpers";
 
@@ -181,76 +180,9 @@ export function renderAboutUs(ctx: ProposalContext): number {
         y = Math.max(leftY, rightY) + 8;
     }
 
-    // Fill whitespace with stat boxes if space available
-    if (y < 175 && y > 60) {
-        y += 15;
-        const stats = [
-            { label: "YEARS EXPERIENCE", value: profile?.years_trading ? `${profile.years_trading}+` : "10+" },
-            { label: "PROJECTS DELIVERED", value: "50+" },
-            { label: "QUALITY ASSURED", value: "Yes" },
-        ];
-        const boxW = (MR - ML - 10) / 3;
-        stats.forEach((stat, i) => {
-            const bx = ML + i * (boxW + 5);
-            doc.setFillColor(...T.primary);
-            doc.roundedRect(bx, y, boxW, 20, 2, 2, "F");
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(18);
-            doc.setTextColor(...T.accent);
-            doc.text(stat.value, bx + boxW / 2, y + 12, { align: "center" });
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(7);
-            doc.setTextColor(...T.muted);
-            doc.text(stat.label, bx + boxW / 2, y + 17, { align: "center" });
-        });
-        y += 28;
-    }
-
-    // Our Commitment filler if no MD message and space remains
-    if (!profile.md_message && y < CONTENT_BOTTOM - 70) {
-        y += 8;
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
-        doc.setTextColor(...T.primary);
-        doc.text("OUR COMMITMENT TO YOU", ML, y);
-        doc.setDrawColor(...T.primary);
-        doc.setLineWidth(0.5);
-        doc.line(ML, y + 1.5, ML + 50, y + 1.5);
-        y += 10;
-
-        const commitments = [
-            { title: "Transparent Pricing", body: "Every line item justified, no hidden costs, and margins explained on request." },
-            { title: "Clear Communication", body: "A single point of contact, weekly written updates, and prompt response to queries." },
-            { title: "Programme Certainty", body: "Detailed resource-loaded programme with early warning of any changes to your finish date." },
-            { title: "Quality Without Compromise", body: "Fully insured, accredited trades, and snag-free handover with comprehensive O&M package." },
-        ];
-        const ccGap = 5;
-        const ccW = (CW - ccGap) / 2;
-        const ccH = 28;
-        commitments.forEach((c, i) => {
-            const col = i % 2;
-            const row = Math.floor(i / 2);
-            const cx = ML + col * (ccW + ccGap);
-            const cy = y + row * (ccH + ccGap);
-            doc.setFillColor(...T.surface);
-            doc.roundedRect(cx, cy, ccW, ccH, 2, 2, "F");
-            doc.setDrawColor(...T.borderLight);
-            doc.setLineWidth(0.3);
-            doc.roundedRect(cx, cy, ccW, ccH, 2, 2, "S");
-            doc.setFillColor(...T.primary);
-            doc.rect(cx, cy, 1.8, ccH, "F");
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(10);
-            doc.setTextColor(...T.textDark);
-            doc.text(c.title, cx + 6, cy + 8);
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(8.5);
-            doc.setTextColor(...T.textMid);
-            const bodyLines = doc.splitTextToSize(c.body, ccW - 10);
-            doc.text(bodyLines, cx + 6, cy + 14);
-        });
-        y += ccH * 2 + ccGap + 4;
-    }
+    // No filler below this point. Unsupported stats and fixed promises were
+    // removed: this page renders only facts the contractor has saved.
+    // Whitespace is better than invented content.
 
     // MD / Director Message section heading (if it wasn't rendered inline above)
     if (profile?.md_message) {

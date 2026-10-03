@@ -1,1220 +1,745 @@
 "use client";
-// v3 - extracted BuildUpPanel as standalone client component
 
-import { useState, useTransition, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import {
-    createEstimateAction,
-    updateEstimateMarginsAction,
-    updateEstimateNameAction,
-    addLineItemAction,
-    updateLineItemAction,
-    deleteLineItemAction,
-    setActiveEstimateAction,
-    deleteEstimateAction,
-    setPricingModeAction,
-    saveDiscountAction,
-} from "./actions";
-import { Plus, Trash2, Check, Star, Loader2, CalendarDays, ClipboardList, FileDown } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import BuildUpPanel from "./build-up-panel";
-import VisionTakeoff from "@/app/dashboard/foundations/vision-takeoff";
-import BoQImport from "./boq-import";
-import { exportBoQToExcel } from "./boq-excel-export";
-import { isCapabilityEnabled } from "@/lib/launch-profile";
-import type { EstimateLineComponent, EstimateLine, Estimate, CostLibraryItem, LabourRate, RateBuildup } from "./types";
+import { AlertTriangle, ArrowRight, ChevronDown, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { useTheme } from "@/lib/theme-context";
+import { newClientId } from "@/lib/client-id";
+import { useReducerStore } from "@/lib/use-reducer-store";
+import { workspaceStyles, type WorkspaceStyles } from "@/lib/workspace-styles";
+import { splitScope } from "@/lib/guided-brief";
+import {
+    ADJUSTMENT_HELP,
+    EMPTY_PRICE_LINE_DRAFT,
+    NEW_LINE_KEY,
+    adjustmentsDraftFromEstimate,
+    advancedCapabilities,
+    buildAdjustments,
+    currentEstimate,
+    draftFromLine,
+    draftLineTotal,
+    estimatingReducer,
+    formatGBP,
+    initialEstimatingState,
+    isSimpleEditable,
+    removePriceLine,
+    submitAdjustments,
+    submitPriceLine,
+    summarisePrice,
+    unitOptions,
+    type AdjustmentKey,
+    type EstimatingServer,
+    type LineOp,
+    type PriceLineDraft,
+    type PriceSummary,
+} from "@/lib/simple-estimate";
+import {
+    deleteSimplePriceLineAction,
+    loadAdvancedEstimatingDataAction,
+    savePriceAdjustmentsAction,
+    saveSimplePriceLineAction,
+    updateSimplePriceLineAction,
+    type AdvancedEstimatingData,
+} from "./simple-actions";
+import type { Estimate, EstimateLine } from "./types";
+
+// The full BoQ workspace and its import, take-off and build-up tools are only
+// downloaded when Advanced estimating is opened.
+const AdvancedEstimate = dynamic(() => import("./advanced-estimate"), {
+    ssr: false,
+    loading: () => <p className="p-4 text-sm text-slate-300">Loading the advanced tools…</p>,
+});
+
+interface ProjectContext {
+    id: string;
+    name: string;
+    client_name: string;
+    brief_scope: string;
+}
+
+type LoadAdvancedData = () => Promise<{ ok: true; data: AdvancedEstimatingData } | { ok: false; error: string }>;
 
 interface Props {
     estimates: Estimate[];
-    costLibrary: CostLibraryItem[];
-    projectId: string;
-    orgId: string;
-    rateBuildups: RateBuildup[];
-    labourRates: LabourRate[];
-    preferredTrades: string[];
+    project: ProjectContext;
     defaultTabId?: string;
+    /** Default to the real server actions; replaced only by tests and evidence capture. */
+    server?: EstimatingServer;
+    loadAdvancedData?: LoadAdvancedData;
 }
 
-const TRADE_SECTIONS = [
-    "Preliminaries",
-    "Demolition",
-    "Groundworks",
-    "Concrete",
-    "Drainage",
-    "Utilities",
-    "Surfacing",
-    "Masonry",
-    "Structural Steel",
-    "Roofing",
-    "Carpentry",
-    "Windows & Doors",
-    "Electrical",
-    "Plumbing",
-    "Heating & HVAC",
-    "Drylining & Partitions",
-    "Plastering",
-    "Finishes",
-    "External Works",
-    "Subcontract",
-    "Provisional Sums",
-    "General",
-];
+const REAL_SERVER: EstimatingServer = {
+    saveLine: saveSimplePriceLineAction,
+    updateLine: updateSimplePriceLineAction,
+    deleteLine: deleteSimplePriceLineAction,
+    saveAdjustments: savePriceAdjustmentsAction,
+};
 
-const UNITS = ["m", "m2", "m3", "nr", "item", "day", "week", "tonne", "kg", "lm"];
+const SCOPE_PREVIEW_LENGTH = 220;
 
-const LINE_TYPES = ["general", "labour", "plant", "material", "subcontract", "consultancy"];
+export default function EstimateClient({
+    estimates: initialEstimates,
+    project,
+    defaultTabId,
+    server = REAL_SERVER,
+    loadAdvancedData = loadAdvancedEstimatingDataAction,
+}: Props) {
+    const { theme } = useTheme();
+    const isDark = theme === "dark";
+    const s = workspaceStyles(isDark);
 
-function formatGBP(n: number): string {
-    return "\u00A3" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+    const [state, store] = useReducerStore(estimatingReducer, () =>
+        initialEstimatingState(initialEstimates, { pendingEstimateId: newClientId(), preferredEstimateId: defaultTabId }),
+    );
+    const estimate = currentEstimate(state);
+    const lines = useMemo(() => estimate?.estimate_lines ?? [], [estimate]);
+    const summary = useMemo(() => summarisePrice(estimate, lines), [estimate, lines]);
+    const newOp = state.ops[NEW_LINE_KEY];
 
-// ─── Main Component ──────────────────────────────────────
+    const [showFullScope, setShowFullScope] = useState(false);
+    const [advanced, setAdvanced] = useState<{ status: "idle" | "loading" | "failed" | "ready"; data: AdvancedEstimatingData | null; error: string }>(
+        { status: "idle", data: null, error: "" },
+    );
 
-export default function EstimateClient({ estimates: initialEstimates, costLibrary, projectId, orgId, rateBuildups, labourRates, preferredTrades, defaultTabId }: Props) {
-    const router = useRouter();
-    const showClientBoQImport = isCapabilityEnabled("client-boq-import");
-    const showDrawingTakeoff = isCapabilityEnabled("drawing-takeoff");
-    const [estimates, setEstimates] = useState<Estimate[]>(() => initialEstimates);
-
-    // Project-scoped sessionStorage key so tab selection survives navigation within the same project
-    const TAB_KEY = `constructa_tab_${projectId}`;
-
-    // Ref to hold newly-imported estimate ID across the close handler — avoids stale closure issues
-    const importedEstimateIdRef = useRef<string | null>(null);
-
-    // Tab selection priority: URL param (defaultTabId) > sessionStorage > first estimate
-    const [activeTab, setActiveTabState] = useState<string>(() => {
-        if (defaultTabId && initialEstimates.some((e) => e.id === defaultTabId)) {
-            if (typeof window !== "undefined") sessionStorage.setItem(TAB_KEY, defaultTabId);
-            return defaultTabId;
-        }
-        if (typeof window !== "undefined") {
-            const saved = sessionStorage.getItem(TAB_KEY);
-            if (saved && initialEstimates.some((e) => e.id === saved)) return saved;
-        }
-        return initialEstimates[0]?.id || "";
-    });
-
-    // Wrapper that keeps sessionStorage in sync whenever the tab changes
-    const setActiveTab = (id: string) => {
-        setActiveTabState(id);
-        if (typeof window !== "undefined") sessionStorage.setItem(TAB_KEY, id);
+    // Keep the chosen estimate version when moving between project tabs.
+    const tabKey = `constructa_tab_${project.id}`;
+    useEffect(() => {
+        if (defaultTabId) return;
+        const saved = window.sessionStorage.getItem(tabKey);
+        if (saved) store.dispatch({ type: "estimate/select", estimateId: saved });
+    }, [defaultTabId, store, tabKey]);
+    const selectEstimate = (estimateId: string) => {
+        store.dispatch({ type: "estimate/select", estimateId });
+        if (estimateId) window.sessionStorage.setItem(tabKey, estimateId);
     };
 
-    const [_isPending, startTransition] = useTransition();
-    const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-    const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const [openBuildUpPanels, setOpenBuildUpPanels] = useState<Set<string>>(new Set());
-    const [showBoQImport, setShowBoQImport] = useState(false);
+    const openAdd = () =>
+        store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: EMPTY_PRICE_LINE_DRAFT, lineId: newClientId() });
+    const openEdit = (line: EstimateLine) =>
+        store.dispatch({ type: "op/open", key: line.id, kind: "edit", draft: draftFromLine(line), lineId: line.id });
+    const openDelete = (line: EstimateLine) =>
+        store.dispatch({ type: "op/open", key: line.id, kind: "delete", draft: draftFromLine(line), lineId: line.id });
 
-    const currentEstimate = estimates.find((e) => e.id === activeTab);
-
-    const showSaving = useCallback(() => {
-        setSaveStatus("saving");
-        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    }, []);
-
-    const showSaved = useCallback(() => {
-        setSaveStatus("saved");
-        saveTimeoutRef.current = setTimeout(() => setSaveStatus("idle"), 2000);
-    }, []);
-
-    const showSaveError = useCallback((message: string) => {
-        setSaveStatus("error");
-        toast.error(message);
-    }, []);
-
-    // ─── Estimate CRUD ──────────────────────────────────
-    const handleCreateEstimate = () => {
-        const name = `Estimate v${estimates.length + 1}`;
-        startTransition(async () => {
-            showSaving();
-            try {
-                const result = await createEstimateAction(projectId, name);
-                if (!result) {
-                    showSaveError("Failed to create estimate");
-                    return;
-                }
-                const newEst: Estimate = {
-                    ...result,
-                    estimate_lines: [],
-                    overhead_pct: result.overhead_pct ?? 10,
-                    profit_pct: result.profit_pct ?? 15,
-                    risk_pct: result.risk_pct ?? 0,
-                    prelims_pct: result.prelims_pct ?? 10,
-                    discount_pct: result.discount_pct ?? 0,
-                    discount_reason: result.discount_reason ?? "",
-                    total_cost: 0,
-                    is_active: false,
-                };
-                setEstimates((prev) => [...prev, newEst]);
-                setActiveTab(result.id);
-                showSaved();
-            } catch (error) {
-                console.error(error);
-                showSaveError("Failed to create estimate");
-            }
-        });
-    };
-
-    const handleDeleteEstimate = (estId: string) => {
-        if (!confirm("Delete this estimate and all its line items?")) return;
-        startTransition(async () => {
-            showSaving();
-            try {
-                await deleteEstimateAction(estId);
-                setEstimates((prev) => prev.filter((e) => e.id !== estId));
-                if (activeTab === estId) {
-                    const remaining = estimates.filter((e) => e.id !== estId);
-                    setActiveTab(remaining[0]?.id || "");
-                }
-                showSaved();
-            } catch (error) {
-                console.error(error);
-                showSaveError("Failed to delete estimate");
-            }
-        });
-    };
-
-    const handleSetActive = (estId: string) => {
-        startTransition(async () => {
-            showSaving();
-            try {
-                await setActiveEstimateAction(estId, projectId);
-                setEstimates((prev) =>
-                    prev.map((e) => ({ ...e, is_active: e.id === estId }))
-                );
-                showSaved();
-            } catch (error) {
-                console.error(error);
-                showSaveError("Failed to change the active estimate");
-            }
-        });
-    };
-
-    // ─── Margin updates ─────────────────────────────────
-    const handleMarginChange = (field: "overhead_pct" | "profit_pct" | "risk_pct" | "prelims_pct", value: number) => {
-        if (!currentEstimate) return;
-        const updated = { ...currentEstimate, [field]: value };
-        setEstimates((prev) => prev.map((e) => (e.id === currentEstimate.id ? updated : e)));
-    };
-    const handleMarginBlur = (field: "overhead_pct" | "profit_pct" | "risk_pct" | "prelims_pct", value: number) => {
-        if (!currentEstimate) return;
-        const updated = { ...currentEstimate, [field]: value };
-        setEstimates((prev) => prev.map((e) => (e.id === currentEstimate.id ? updated : e)));
-        showSaving();
-        updateEstimateMarginsAction(currentEstimate.id, updated.overhead_pct, updated.profit_pct, updated.risk_pct, updated.prelims_pct)
-            .then((result) => {
-                if (result && !result.success) {
-                    // P1-3 — roll the optimistic update back if the server
-                    // rejected the change (most likely the project is locked).
-                    setEstimates((prev) => prev.map((e) => (e.id === currentEstimate.id ? currentEstimate : e)));
-                    showSaveError(result.error ?? "Failed to save margins");
-                    return;
-                }
-                showSaved();
-            })
-            .catch((err) => {
-                console.error(err);
-                showSaveError("Failed to save margins");
-            });
-    };
-
-    const handleNameBlur = (name: string) => {
-        if (!currentEstimate) return;
-        setEstimates((prev) =>
-            prev.map((e) => (e.id === currentEstimate.id ? { ...e, version_name: name } : e))
-        );
-        // Fire-and-forget server sync
-        showSaving();
-        updateEstimateNameAction(currentEstimate.id, name)
-            .then(() => showSaved())
-            .catch((error) => {
-                console.error(error);
-                showSaveError("Failed to save estimate name");
-            });
-    };
-
-    // ─── Vision Takeoff handler ───────────────────────────
-    const handleAddFromVision = async (item: { description: string; quantity: number; unit: string; unit_rate: number }) => {
-        if (!currentEstimate) return;
-        const section = "General";
-        const tempId = crypto.randomUUID();
-        const newLine: EstimateLine = {
-            id: tempId,
-            estimate_id: currentEstimate.id,
-            description: item.description,
-            quantity: item.quantity,
-            unit: item.unit,
-            unit_rate: item.unit_rate,
-            line_total: item.quantity * item.unit_rate,
-            trade_section: section,
-            line_type: "general",
-            pricing_mode: "simple",
-            estimate_line_components: [],
-        };
-        setEstimates((prev) => prev.map((e) =>
-            e.id === currentEstimate.id
-                ? { ...e, estimate_lines: [...e.estimate_lines, newLine] }
-                : e
-        ));
-        showSaving();
+    const loadAdvanced = async () => {
+        setAdvanced({ status: "loading", data: null, error: "" });
         try {
-            const result = await addLineItemAction(currentEstimate.id, section, {
-                description: item.description, quantity: item.quantity, unit: item.unit, unit_rate: item.unit_rate,
-                line_type: "general",
-            });
-            if (result?.error) {
-                setEstimates((prev) => prev.map((e) => e.id === currentEstimate.id
-                    ? { ...e, estimate_lines: e.estimate_lines.filter((line) => line.id !== tempId) }
-                    : e));
-                router.refresh();
-                showSaveError(result.error);
-                return;
-            }
-            if (result?.id) {
-                setEstimates((prev) => prev.map((e) =>
-                    e.id !== currentEstimate.id ? e : {
-                        ...e,
-                        estimate_lines: e.estimate_lines.map((l) =>
-                            l.id === tempId ? { ...l, id: result.id } : l
-                        ),
-                    }
-                ));
-            }
-            if (result?.warning) {
-                showSaveError(result.warning);
-                return;
-            }
-            showSaved();
-        } catch (err) {
-            console.error(err);
-            showSaveError(err instanceof Error ? err.message : "Failed to add line");
+            const result = await loadAdvancedData();
+            setAdvanced(result.ok
+                ? { status: "ready", data: result.data, error: "" }
+                : { status: "failed", data: null, error: result.error });
+        } catch {
+            setAdvanced({ status: "failed", data: null, error: "The advanced tools couldn't be loaded. Check your connection and try again." });
         }
     };
 
-    // ─── BoQ Import handler ──────────────────────────────
-    const handleBoQImported = (estimateId: string, _filename: string) => {
-        // Store the new estimate ID in a ref — the modal hasn't closed yet so we can't navigate yet
-        importedEstimateIdRef.current = estimateId;
+    const toggleAdvanced = () => {
+        const opening = !state.advancedOpen;
+        store.dispatch({ type: "advanced/toggle" });
+        if (opening && store.getState().advancedOpen && advanced.status !== "ready" && advanced.status !== "loading") void loadAdvanced();
     };
 
-    const handleBoQClose = () => {
-        setShowBoQImport(false);
-        if (importedEstimateIdRef.current) {
-            const id = importedEstimateIdRef.current;
-            importedEstimateIdRef.current = null;
-            // Use a full navigation (not router.push) so the client component fully remounts,
-            // the server re-fetches the new estimate, and the useState initializer picks up defaultTabId.
-            // sessionStorage is also updated by the initializer so subsequent soft-navigations work too.
-            window.location.href = `/dashboard/projects/costs?projectId=${projectId}&tab=${id}`;
-        }
-    };
+    const { work } = splitScope(project.brief_scope);
+    const scope = work.trim();
+    const scopeIsLong = scope.length > SCOPE_PREVIEW_LENGTH;
+    const briefHref = `/dashboard/projects/brief?projectId=${encodeURIComponent(project.id)}`;
+    const programmeHref = `/dashboard/projects/schedule?projectId=${encodeURIComponent(project.id)}`;
+    const hasLines = lines.length > 0;
+    const capabilities = advancedCapabilities();
 
-    // ─── Line item CRUD ─────────────────────────────────
-    const handleAddLine = async (section: string) => {
-        if (!currentEstimate) return;
-        // Validate: only add if previous line in section has a description
-        const sectionLines = currentEstimate.estimate_lines.filter(l => l.trade_section === section);
-        const lastLine = sectionLines[sectionLines.length - 1];
-        if (lastLine && (!lastLine.description || lastLine.description === "" || lastLine.description === "\u2014")) {
-            return; // Don't add another blank row
-        }
-        const tempId = crypto.randomUUID();
-        const newLine: EstimateLine = {
-            id: tempId,
-            estimate_id: currentEstimate.id,
-            description: "",
-            quantity: 1,
-            unit: "nr",
-            unit_rate: 0,
-            line_total: 0,
-            trade_section: section,
-            line_type: "general",
-            pricing_mode: "simple",
-            estimate_line_components: [],
-        };
-        // Add optimistically
-        setEstimates((prev) => prev.map((e) =>
-            e.id === currentEstimate.id
-                ? { ...e, estimate_lines: [...e.estimate_lines, newLine] }
-                : e
-        ));
-        // Save to server, swap temp ID with real ID
-        showSaving();
-        try {
-            const result = await addLineItemAction(currentEstimate.id, section, {
-                description: "", quantity: 1, unit: "nr", unit_rate: 0,
-                line_type: "general",
-            });
-            if (result?.error) {
-                setEstimates((prev) => prev.map((e) => e.id === currentEstimate.id
-                    ? { ...e, estimate_lines: e.estimate_lines.filter((line) => line.id !== tempId) }
-                    : e));
-                showSaveError(result.error);
-                return;
-            }
-            if (result?.id) {
-                setEstimates((prev) => prev.map((e) =>
-                    e.id !== currentEstimate.id ? e : {
-                        ...e,
-                        estimate_lines: e.estimate_lines.map((l) =>
-                            l.id === tempId ? { ...l, id: result.id } : l
-                        ),
-                    }
-                ));
-            }
-            showSaved();
-        } catch (err) {
-            console.error(err);
-            showSaveError(err instanceof Error ? err.message : "Failed to add line");
-        }
-    };
-
-    const handleUpdateLine = (lineId: string, updates: Partial<EstimateLine>) => {
-        if (!currentEstimate) return;
-
-        const line = currentEstimate.estimate_lines.find((l) => l.id === lineId);
-        const qty = updates.quantity ?? line?.quantity ?? 1;
-        const rate = updates.unit_rate ?? line?.unit_rate ?? 0;
-
-        // Optimistic local update + recalc total in one pass
-        setEstimates((prev) =>
-            prev.map((e) => {
-                if (e.id !== currentEstimate.id) return e;
-                const updatedLines = e.estimate_lines.map((l) => {
-                    if (l.id !== lineId) return l;
-                    const updated = { ...l, ...updates };
-                    if (updates.quantity !== undefined || updates.unit_rate !== undefined) {
-                        updated.line_total = (updates.quantity ?? l.quantity) * (updates.unit_rate ?? l.unit_rate);
-                    }
-                    return updated;
-                });
-                const total = updatedLines.reduce((s, l) => s + (l.line_total || 0), 0);
-                return { ...e, estimate_lines: updatedLines, total_cost: total };
-            })
-        );
-
-        showSaving();
-        updateLineItemAction(lineId, { ...updates, quantity: qty, unit_rate: rate })
-            .then((result) => {
-                if (result && !result.success) {
-                    router.refresh(); // re-pull authoritative state after a rejected update
-                    showSaveError(result.error ?? "Failed to update line");
-                    return;
-                }
-                if (result?.warning) {
-                    showSaveError(result.warning);
-                    return;
-                }
-                showSaved();
-            })
-            .catch((err) => {
-                console.error(err);
-                showSaveError("Failed to update line");
-            });
-    };
-
-    const handleDeleteLine = (lineId: string) => {
-        if (!currentEstimate) return;
-        // Snapshot previous state so we can roll back on server rejection.
-        const prevEstimate = currentEstimate;
-        setEstimates((prev) =>
-            prev.map((e) => {
-                if (e.id !== currentEstimate.id) return e;
-                const remaining = e.estimate_lines.filter((l) => l.id !== lineId);
-                const total = remaining.reduce((s, l) => s + (l.line_total || 0), 0);
-                return { ...e, estimate_lines: remaining, total_cost: total };
-            })
-        );
-        showSaving();
-        deleteLineItemAction(lineId)
-            .then((result) => {
-                if (result && !result.success) {
-                    // Roll the optimistic delete back
-                    setEstimates((prev) => prev.map((e) => (e.id === prevEstimate.id ? prevEstimate : e)));
-                    router.refresh();
-                    showSaveError(result.error ?? "Failed to delete line");
-                    return;
-                }
-                if (result?.warning) {
-                    showSaveError(result.warning);
-                    return;
-                }
-                showSaved();
-            })
-            .catch((err) => {
-                console.error(err);
-                showSaveError("Failed to delete line");
-            });
-    };
-
-    const handleLibrarySelect = (lineId: string, itemId: string, section: string) => {
-        const item = costLibrary.find((c) => c.id === itemId);
-        if (!item) return;
-        handleUpdateLine(lineId, {
-            description: item.description,
-            unit: item.unit,
-            unit_rate: item.base_rate,
-            cost_library_item_id: item.id,
-        });
-    };
-
-    // ─── Build-Up Handlers ───────────────────────────────
-    const handleTogglePricingMode = (lineId: string, currentMode: string) => {
-        const newMode = currentMode === "buildup" ? "simple" : "buildup";
-        // Control panel visibility
-        setOpenBuildUpPanels((prev) => {
-            const next = new Set(prev);
-            if (newMode === "buildup") {
-                next.add(lineId);
-            } else {
-                next.delete(lineId);
-            }
-            return next;
-        });
-        // Optimistic update — immediate, no transition
-        setEstimates((prev) =>
-            prev.map((e) =>
-                e.id === currentEstimate?.id
-                    ? { ...e, estimate_lines: e.estimate_lines.map((l) => (l.id === lineId ? { ...l, pricing_mode: newMode as "simple" | "buildup" } : l)) }
-                    : e
-            )
-        );
-        // Fire-and-forget server sync — don't await, don't use transition
-        setPricingModeAction(lineId, newMode as "simple" | "buildup").catch(console.error);
-    };
-
-    const handleComponentsChanged = (lineId: string, components: EstimateLineComponent[], newUnitRate: number) => {
-        setEstimates((prev) =>
-            prev.map((e) => {
-                if (e.id !== currentEstimate?.id) return e;
-                return {
-                    ...e,
-                    estimate_lines: e.estimate_lines.map((l) => {
-                        if (l.id !== lineId) return l;
-                        return {
-                            ...l,
-                            estimate_line_components: components,
-                            unit_rate: newUnitRate,
-                            line_total: l.quantity * newUnitRate,
-                        };
-                    }),
-                };
-            })
-        );
-    };
-
-    // ─── CORRECT QS COST HIERARCHY ──────────────────────
-    const lines = currentEstimate?.estimate_lines || [];
-    // Filter out blank lines for display
-    const displayLines = lines.filter(l => l.description && l.description !== "" && l.description !== "\u2014");
-
-    const prelimsPct = currentEstimate?.prelims_pct || 0;
-    const overheadPct = currentEstimate?.overhead_pct || 0;
-    const profitPct = currentEstimate?.profit_pct || 0;
-    const riskPct = currentEstimate?.risk_pct || 0;
-    const discountPct = currentEstimate?.discount_pct || 0;
-
-    // Step 1: Direct Construction Cost = sum of all line item totals (excluding Preliminaries section)
-    const directCost = lines
-        .filter(l => l.trade_section !== "Preliminaries" && l.line_total > 0)
-        .reduce((sum, l) => sum + l.line_total, 0);
-
-    // Step 2: Prelims = either explicit Prelims section lines OR prelims_pct % of direct cost
-    const explicitPrelimsLines = lines.filter(l => l.trade_section === "Preliminaries");
-    const explicitPrelimsTotal = explicitPrelimsLines.reduce((sum, l) => sum + l.line_total, 0);
-    const prelimsFromPct = directCost * (prelimsPct / 100);
-    const prelimsTotal = explicitPrelimsLines.length > 0 ? explicitPrelimsTotal : prelimsFromPct;
-
-    // Step 3: Total Construction Cost
-    const totalConstructionCost = directCost + prelimsTotal;
-
-    // Step 4: Overhead applied to Total Construction Cost
-    const overheadAmount = totalConstructionCost * (overheadPct / 100);
-    const costPlusOverhead = totalConstructionCost + overheadAmount;
-
-    // Step 5: Risk applied to (Construction Cost + Overhead)
-    const riskAmount = costPlusOverhead * (riskPct / 100);
-    const adjustedTotal = costPlusOverhead + riskAmount;
-
-    // Step 6: Profit applied to Adjusted Total
-    const profitAmount = adjustedTotal * (profitPct / 100);
-    const contractSumPreDiscount = adjustedTotal + profitAmount;
-
-    // Step 7: Discount
-    const discountAmount = contractSumPreDiscount * (discountPct / 100);
-    const contractSum = contractSumPreDiscount - discountAmount;
-
-    const vat = contractSum * 0.2;
-    const totalIncVat = contractSum + vat;
-
-    // Group lines by trade section (only display lines with descriptions)
-    const sectionGroups: Record<string, EstimateLine[]> = {};
-    lines.forEach((l) => {
-        const sec = l.trade_section || "General";
-        if (!sectionGroups[sec]) sectionGroups[sec] = [];
-        sectionGroups[sec].push(l);
-    });
-
-    // All sections that have lines, plus keep order from TRADE_SECTIONS
-    const activeSections = TRADE_SECTIONS.filter((s) => sectionGroups[s]?.length);
-    // Add any custom sections not in the predefined list
-    Object.keys(sectionGroups).forEach((s) => {
-        if (!activeSections.includes(s)) activeSections.push(s);
-    });
-
-    return (
-        <>
-        <div className="space-y-6">
-            {/* HEADER WITH CTA */}
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-white">Estimating</h1>
-                <div className="flex items-center gap-3">
-                    {contractSum > 0 && (
-                        <span className="text-sm text-slate-400">Contract Sum: <strong className="text-slate-200">{formatGBP(contractSum)}</strong></span>
-                    )}
-                    <Link href={`/dashboard/projects/schedule?projectId=${projectId}`}
-                        className="bg-slate-800 border border-slate-700 text-slate-300 px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-2">
-                        <CalendarDays className="w-4 h-4" />
-                        View Programme
-                    </Link>
-                    <Link href={`/dashboard/projects/schedule?projectId=${projectId}`}
-                        className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-blue-500 transition-colors flex items-center gap-2">
-                        <CalendarDays className="w-4 h-4" />
-                        Next: Programme →
-                    </Link>
-                </div>
-            </div>
-
-            {/* TABS */}
-            <div className="flex items-center gap-2 flex-wrap">
-                {estimates.map((est) => (
-                    <button
-                        type="button"
-                        key={est.id}
-                        onClick={() => setActiveTab(est.id)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                            activeTab === est.id
-                                ? "bg-slate-700 text-white border border-slate-600"
-                                : "bg-slate-800/50 text-slate-400 border border-slate-700 hover:bg-slate-700/50 hover:text-slate-200"
-                        }`}
-                    >
-                        {est.version_name || "Estimate"}
-                        {est.is_active && <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
-                    </button>
-                ))}
+    const advancedSection = (
+            <section className={`${s.card}`} aria-labelledby="advanced-estimating-title">
                 <button
                     type="button"
-                    onClick={handleCreateEstimate}
-                    className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-500 transition-colors flex items-center gap-1.5"
+                    onClick={toggleAdvanced}
+                    aria-expanded={state.advancedOpen}
+                    aria-controls="advanced-estimating"
+                    className={`w-full min-h-14 px-4 sm:px-5 py-3 flex items-center justify-between gap-3 text-left ${s.body}`}
                 >
-                    <Plus className="w-4 h-4" /> New Estimate
+                    <span>
+                        <span id="advanced-estimating-title" className={`block text-base font-bold ${s.heading}`}>Advanced estimating</span>
+                        <span className={`block text-sm ${s.muted}`}>
+                            Optional. Bill of quantities, rate build-ups{capabilities.some((c) => c.key === "client-boq") ? ", BoQ import" : ""} and the cost library.
+                        </span>
+                    </span>
+                    <ChevronDown className={`w-5 h-5 flex-shrink-0 transition-transform ${state.advancedOpen ? "rotate-180" : ""}`} aria-hidden="true" />
                 </button>
-                {showClientBoQImport && (
-                    <button
-                        type="button"
-                        onClick={() => setShowBoQImport(true)}
-                        className="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-700 hover:bg-emerald-600 text-white transition-colors flex items-center gap-1.5"
-                    >
-                        <ClipboardList className="w-4 h-4" /> Import Client BoQ
-                    </button>
-                )}
 
-                {/* Save indicator */}
-                <div className="ml-auto text-xs text-slate-500 flex items-center gap-1.5">
-                    {saveStatus === "saving" && (
-                        <>
-                            <Loader2 className="w-3 h-3 animate-spin" /> Saving...
-                        </>
-                    )}
-                    {saveStatus === "saved" && (
-                        <>
-                            <Check className="w-3 h-3 text-emerald-400" /> Saved
-                        </>
-                    )}
-                    {saveStatus === "error" && (
-                        <span className="text-red-400">Save failed — retry</span>
-                    )}
-                </div>
-            </div>
+                {state.advancedOpen && (
+                    <div id="advanced-estimating" className="px-3 sm:px-5 pb-5 space-y-4">
+                        <ul className={`text-sm list-disc pl-5 space-y-0.5 ${s.muted}`}>
+                            {capabilities.map((c) => <li key={c.key}>{c.label}</li>)}
+                        </ul>
+                        <p className={`text-sm ${s.muted}`}>
+                            The simple price list is hidden while this is open. Close Advanced estimating to go back to it. The running total below covers both.
+                            This workspace is laid out for a wide screen.
+                        </p>
 
-            {!currentEstimate ? (
-                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl px-5 py-16 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                        <div className="h-12 w-12 rounded-xl bg-slate-700/50 flex items-center justify-center">
-                            <Plus className="h-6 w-6 text-slate-500" />
-                        </div>
-                        <p className="text-sm text-slate-500">No estimates yet</p>
-                        <p className="text-xs text-slate-600">Click &quot;New Estimate&quot; to create your first Bill of Quantities.</p>
-                    </div>
-                </div>
-            ) : (
-                <>
-                    {/* CLIENT BOQ BANNER */}
-                    {currentEstimate.is_client_boq && (
-                        <div className="flex items-center justify-between bg-emerald-900/20 border border-emerald-700/40 rounded-xl px-5 py-3">
-                            <div className="flex items-center gap-2.5">
-                                <ClipboardList className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                                <div>
-                                    <span className="text-emerald-300 text-sm font-medium">Client BoQ</span>
-                                    {currentEstimate.client_boq_filename && (
-                                        <span className="text-emerald-600 text-xs ml-2">{currentEstimate.client_boq_filename}</span>
-                                    )}
-                                    <p className="text-emerald-600/80 text-xs mt-0.5">
-                                        {currentEstimate.is_active
-                                            ? "Active — programme will be generated from these sections."
-                                            : "Not active — set as active so the programme uses these sections."}
-                                    </p>
+                        {advanced.status === "loading" && (
+                            <p role="status" className={`text-sm flex items-center gap-2 ${s.body}`}>
+                                <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Loading the cost library and rates…
+                            </p>
+                        )}
+                        {advanced.status === "failed" && (
+                            <div role="alert" className={`${s.errorBox} flex flex-wrap items-center gap-3 text-sm`}>
+                                <p className="flex-1 min-w-[12rem]">{advanced.error}</p>
+                                <button type="button" onClick={() => void loadAdvanced()} className={`${s.secondaryButton} min-h-11 text-sm`}>Try again</button>
+                            </div>
+                        )}
+                        {advanced.status === "ready" && advanced.data && (
+                            <div data-wide-workspace className="rounded-xl bg-[#0d0d0d] p-3 sm:p-4 overflow-x-auto">
+                                <div className="min-w-[760px]">
+                                    <AdvancedEstimate
+                                        estimates={state.estimates}
+                                        setEstimates={(update) => store.dispatch({ type: "estimates/replace", update })}
+                                        activeTab={estimate?.id ?? ""}
+                                        setActiveTab={selectEstimate}
+                                        costLibrary={advanced.data.costLibrary}
+                                        projectId={project.id}
+                                        orgId={advanced.data.orgId}
+                                        rateBuildups={advanced.data.rateBuildups}
+                                        labourRates={advanced.data.labourRates}
+                                        preferredTrades={advanced.data.preferredTrades}
+                                    />
                                 </div>
-                            </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                                {!currentEstimate.is_active && (
-                                    <button
-                                        type="button"
-                                        onClick={() => handleSetActive(currentEstimate.id)}
-                                        className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium rounded-lg transition-colors"
-                                    >
-                                        <Star className="w-4 h-4" />
-                                        Set as Active
-                                    </button>
-                                )}
-                                {showClientBoQImport && (
-                                    <button
-                                        type="button"
-                                        onClick={() => exportBoQToExcel(currentEstimate)}
-                                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
-                                    >
-                                        <FileDown className="w-4 h-4" />
-                                        Export to Excel
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ESTIMATE HEADER */}
-                    <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 space-y-4">
-                        <div className="flex flex-wrap items-end gap-4">
-                            <div className="flex-1 min-w-[200px]">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Estimate Name</label>
-                                <input
-                                    type="text"
-                                    defaultValue={currentEstimate.version_name}
-                                    onBlur={(e) => handleNameBlur(e.target.value)}
-                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50"
-                                />
-                            </div>
-                            <div className="w-24">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Prelims %</label>
-                                <input
-                                    type="number"
-                                    step="0.5"
-                                    value={currentEstimate.prelims_pct}
-                                    onChange={(e) => handleMarginChange("prelims_pct", parseFloat(e.target.value) || 0)}
-                                    onBlur={(e) => handleMarginBlur("prelims_pct", parseFloat(e.target.value) || 0)}
-                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500/50"
-                                />
-                            </div>
-                            <div className="w-24">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Overhead %</label>
-                                <input
-                                    type="number"
-                                    step="0.5"
-                                    value={currentEstimate.overhead_pct}
-                                    onChange={(e) => handleMarginChange("overhead_pct", parseFloat(e.target.value) || 0)}
-                                    onBlur={(e) => handleMarginBlur("overhead_pct", parseFloat(e.target.value) || 0)}
-                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500/50"
-                                />
-                            </div>
-                            <div className="w-24">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Risk %</label>
-                                <input
-                                    type="number"
-                                    step="0.5"
-                                    value={currentEstimate.risk_pct}
-                                    onChange={(e) => handleMarginChange("risk_pct", parseFloat(e.target.value) || 0)}
-                                    onBlur={(e) => handleMarginBlur("risk_pct", parseFloat(e.target.value) || 0)}
-                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500/50"
-                                />
-                            </div>
-                            <div className="w-24">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Profit %</label>
-                                <input
-                                    type="number"
-                                    step="0.5"
-                                    value={currentEstimate.profit_pct}
-                                    onChange={(e) => handleMarginChange("profit_pct", parseFloat(e.target.value) || 0)}
-                                    onBlur={(e) => handleMarginBlur("profit_pct", parseFloat(e.target.value) || 0)}
-                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500/50"
-                                />
-                            </div>
-                            <div className="w-24">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Discount %</label>
-                                <input
-                                    type="number"
-                                    step="0.5"
-                                    value={currentEstimate.discount_pct}
-                                    onChange={(e) => {
-                                        const val = parseFloat(e.target.value) || 0;
-                                        setEstimates(prev => prev.map(est => est.id === currentEstimate.id ? { ...est, discount_pct: val } : est));
-                                    }}
-                                    onBlur={(e) => {
-                                        const val = parseFloat(e.target.value) || 0;
-                                        const prevDiscount = currentEstimate.discount_pct;
-                                        setEstimates(prev => prev.map(est => est.id === currentEstimate.id ? { ...est, discount_pct: val } : est));
-                                        showSaving();
-                                        saveDiscountAction(currentEstimate.id, val, currentEstimate.discount_reason || "")
-                                            .then((result) => {
-                                                if (result && !result.success) {
-                                                    setEstimates(prev => prev.map(est => est.id === currentEstimate.id ? { ...est, discount_pct: prevDiscount } : est));
-                                                    showSaveError(result.error ?? "Failed to save discount");
-                                                    return;
-                                                }
-                                                showSaved();
-                                            })
-                                            .catch((err) => { console.error(err); showSaveError("Failed to save discount"); });
-                                    }}
-                                    className="w-full h-10 px-3 border border-emerald-700/50 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
-                                />
-                            </div>
-                            <div className="flex gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => handleSetActive(currentEstimate.id)}
-                                    className={`h-10 px-4 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
-                                        currentEstimate.is_active
-                                            ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
-                                            : "bg-slate-700/50 text-slate-400 hover:bg-amber-500/10 hover:text-amber-400 border border-slate-600"
-                                    }`}
-                                >
-                                    <Star className={`w-3.5 h-3.5 ${currentEstimate.is_active ? "fill-amber-400" : ""}`} />
-                                    {currentEstimate.is_active ? "Active" : "Use in Proposal"}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => handleDeleteEstimate(currentEstimate.id)}
-                                    className="h-10 px-3 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 border border-slate-700 transition-colors"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                        {currentEstimate.discount_pct > 0 && (
-                            <div className="flex items-center gap-3">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">Discount Reason</label>
-                                <input
-                                    type="text"
-                                    value={currentEstimate.discount_reason || ""}
-                                    onChange={(e) => {
-                                        setEstimates(prev => prev.map(est => est.id === currentEstimate.id ? { ...est, discount_reason: e.target.value } : est));
-                                    }}
-                                    onBlur={(e) => {
-                                        showSaving();
-                                        saveDiscountAction(currentEstimate.id, currentEstimate.discount_pct, e.target.value)
-                                            .then((result) => {
-                                                if (result && !result.success) {
-                                                    showSaveError(result.error ?? "Failed to save discount");
-                                                    return;
-                                                }
-                                                showSaved();
-                                            })
-                                            .catch((err) => { console.error(err); showSaveError("Failed to save discount"); });
-                                    }}
-                                    className="flex-1 h-10 px-3 border border-emerald-700/50 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
-                                    placeholder="e.g. Returning client, early payment, etc."
-                                />
                             </div>
                         )}
                     </div>
+                )}
+            </section>
+    );
 
-                    {/* Vision Takeoff prompt — shown when estimate is empty */}
-                    {showDrawingTakeoff && displayLines.length === 0 && (
-                        <div className="mb-4 p-4 border-2 border-dashed border-purple-500/30 rounded-xl bg-purple-500/5 flex items-center justify-between">
-                            <div>
-                                <p className="font-medium text-slate-200">Got a drawing?</p>
-                                <p className="text-sm text-slate-400">Upload a floor plan or sketch and AI extracts quantities automatically.</p>
-                            </div>
-                            <VisionTakeoff onAddItem={handleAddFromVision} />
-                        </div>
+    return (
+        <div className="space-y-5">
+            <div>
+                <h1 className={`text-2xl sm:text-3xl font-bold ${s.heading}`}>Build the price</h1>
+                <p className={`mt-1 text-base break-words ${s.muted}`}>
+                    {project.name}{project.client_name ? ` for ${project.client_name}` : ""}
+                </p>
+            </div>
+
+            {/* What is being priced */}
+            <section className={`${s.card} p-4 sm:p-5`} aria-labelledby="pricing-context-title">
+                <div className="flex items-start justify-between gap-3">
+                    <h2 id="pricing-context-title" className={`text-sm font-semibold ${s.muted}`}>What you&apos;re pricing</h2>
+                    <Link href={briefHref} className={`${s.quietButton} -my-2 flex-shrink-0`}>Edit brief</Link>
+                </div>
+                {scope ? (
+                    <>
+                        <p className={`mt-1 text-base whitespace-pre-wrap break-words ${s.body}`}>
+                            {scopeIsLong && !showFullScope ? `${scope.slice(0, SCOPE_PREVIEW_LENGTH).trimEnd()}…` : scope}
+                        </p>
+                        {scopeIsLong && (
+                            <button type="button" onClick={() => setShowFullScope((v) => !v)} aria-expanded={showFullScope} className={`${s.quietButton} -ml-3 mt-1`}>
+                                {showFullScope ? "Show less" : "Show all"}
+                            </button>
+                        )}
+                    </>
+                ) : (
+                    <p className={`mt-1 text-base ${s.muted}`}>No job description yet. Add one in the brief so the price has something to refer to.</p>
+                )}
+            </section>
+
+            {state.estimates.length > 1 && (
+                <div className={`${s.card} p-4 sm:p-5`}>
+                    <label htmlFor="estimate-version" className={s.label}>Estimate version</label>
+                    <select
+                        id="estimate-version"
+                        value={estimate?.id ?? ""}
+                        onChange={(e) => selectEstimate(e.target.value)}
+                        className={`${s.input} mt-2`}
+                    >
+                        {state.estimates.map((e) => (
+                            <option key={e.id} value={e.id}>
+                                {e.version_name || "Estimate"}{e.is_active ? " (used in the proposal)" : ""}
+                            </option>
+                        ))}
+                    </select>
+                    {estimate && !estimate.is_active && (
+                        <p className={`mt-2 text-sm ${s.muted}`}>
+                            This version is not the one used in the proposal. Change which one is used under Advanced estimating.
+                        </p>
                     )}
+                </div>
+            )}
 
-                    {/* ADD SECTION */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Add Section:</span>
-                        {TRADE_SECTIONS.map((section) => {
-                            const isActive = !!sectionGroups[section]?.length;
-                            return (
-                                <button
-                                    type="button"
-                                    key={section}
-                                    onClick={() => { if (!isActive) handleAddLine(section); }}
-                                    disabled={isActive}
-                                    className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
-                                        isActive
-                                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500 cursor-default"
-                                            : "bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 hover:border-slate-600"
-                                    }`}
-                                >
-                                    {isActive ? "✓" : "+"} {section}
+            {state.notice && (
+                <div role="status" className={`${s.noticeBox} flex items-start gap-3 text-sm`}>
+                    <AlertTriangle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                    <p className="flex-1">{state.notice}</p>
+                    <button type="button" onClick={() => store.dispatch({ type: "notice/clear" })} className="underline font-semibold">Dismiss</button>
+                </div>
+            )}
+
+            {/* Price lines */}
+            {!state.advancedOpen && (
+                <section className={`${s.card} p-4 sm:p-6`} aria-labelledby="price-lines-title">
+                    <h2 id="price-lines-title" className={`text-lg font-bold ${s.heading}`}>Price lines</h2>
+
+                    {!hasLines && !newOp ? (
+                        <div className="py-8 text-center" data-empty-estimate>
+                            <p className={`text-lg font-semibold ${s.heading}`}>No prices yet</p>
+                            <p className={`mt-1 text-base max-w-md mx-auto ${s.muted}`}>
+                                Start with one figure for the whole job, or break it down line by line. You can add detail later.
+                            </p>
+                            <button type="button" onClick={openAdd} className={`${s.primaryButton} mt-5 w-full sm:w-auto`}>
+                                <Plus className="w-5 h-5" aria-hidden="true" /> Add the first price line
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            <ul className={`mt-3 divide-y ${isDark ? "divide-[#2a2a2a]" : "divide-gray-200"}`}>
+                                {lines.map((line) => (
+                                    <PriceLineRow
+                                        key={line.id}
+                                        line={line}
+                                        editable={!!estimate && isSimpleEditable(line, estimate)}
+                                        isClientBoQ={!!estimate?.is_client_boq}
+                                        op={state.ops[line.id]}
+                                        s={s}
+                                        isDark={isDark}
+                                        onEdit={() => openEdit(line)}
+                                        onDelete={() => openDelete(line)}
+                                        onChange={(patch) => store.dispatch({ type: "op/change", key: line.id, patch })}
+                                        onCancel={() => store.dispatch({ type: "op/cancel", key: line.id })}
+                                        onSave={() => void submitPriceLine(store, server, project.id, line.id)}
+                                        onConfirmDelete={() => void removePriceLine(store, server, line.id)}
+                                    />
+                                ))}
+                            </ul>
+
+                            {newOp ? (
+                                <div className={`mt-4 ${s.inset} p-4`}>
+                                    <LineForm
+                                        idPrefix="new-line"
+                                        title={hasLines ? "New price line" : "First price line"}
+                                        op={newOp}
+                                        s={s}
+                                        isDark={isDark}
+                                        onChange={(patch) => store.dispatch({ type: "op/change", key: NEW_LINE_KEY, patch })}
+                                        onCancel={() => store.dispatch({ type: "op/cancel", key: NEW_LINE_KEY })}
+                                        onSave={() => void submitPriceLine(store, server, project.id, NEW_LINE_KEY)}
+                                    />
+                                </div>
+                            ) : (
+                                <button type="button" onClick={openAdd} className={`${s.secondaryButton} mt-4 w-full sm:w-auto`}>
+                                    <Plus className="w-5 h-5" aria-hidden="true" /> Add a price line
                                 </button>
-                            );
-                        })}
+                            )}
+                        </>
+                    )}
+                </section>
+            )}
+
+            {state.advancedOpen && advancedSection}
+
+            {/* Running total. In the page flow, so it never sits over a row or a button. */}
+            <TotalCard
+                summary={summary}
+                estimate={estimate}
+                lines={lines}
+                state={state.adjustments}
+                s={s}
+                onToggle={() => store.dispatch({ type: "adjustments/toggle" })}
+                onChange={(patch) => store.dispatch({ type: "adjustments/change", patch })}
+                onSave={() => void submitAdjustments(store, server)}
+            />
+
+            {hasLines && (
+                <div className="flex justify-end">
+                    <Link href={programmeHref} className={`${s.primaryButton} w-full sm:w-auto`}>
+                        Next: Programme <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                    </Link>
+                </div>
+            )}
+
+            {/* Offered last while closed, so it does not compete with the simple list. */}
+            {!state.advancedOpen && advancedSection}
+        </div>
+    );
+}
+
+// ─── One price line ──────────────────────────────────────
+
+function PriceLineRow({
+    line, editable, isClientBoQ, op, s, isDark, onEdit, onDelete, onChange, onCancel, onSave, onConfirmDelete,
+}: {
+    line: EstimateLine;
+    editable: boolean;
+    isClientBoQ: boolean;
+    op: LineOp | undefined;
+    s: WorkspaceStyles;
+    isDark: boolean;
+    onEdit: () => void;
+    onDelete: () => void;
+    onChange: (patch: Partial<PriceLineDraft>) => void;
+    onCancel: () => void;
+    onSave: () => void;
+    onConfirmDelete: () => void;
+}) {
+    const name = line.description?.trim() || "No description yet";
+    const isAmount = Number(line.quantity) === 1 && (line.unit === "item" || !line.unit);
+    const section = line.trade_section && line.trade_section !== "General" ? line.trade_section : "";
+
+    if (op && op.kind === "edit") {
+        return (
+            <li className="py-4">
+                <LineForm idPrefix={`line-${line.id}`} title="Change this line" op={op} s={s} isDark={isDark} onChange={onChange} onCancel={onCancel} onSave={onSave} />
+            </li>
+        );
+    }
+
+    const iconButton = `min-h-11 min-w-11 rounded-lg inline-flex items-center justify-center transition-colors ${
+        isDark ? "text-slate-300 hover:bg-white/10" : "text-gray-700 hover:bg-gray-100"
+    }`;
+
+    return (
+        <li className="py-3" data-price-line={line.id}>
+            <div className="flex items-start gap-2">
+                <div className="min-w-0 flex-1">
+                    <p className={`text-base font-semibold break-words ${line.description?.trim() ? s.body : s.muted}`}>{name}</p>
+                    <p className={`text-sm ${s.muted}`}>
+                        {[
+                            section,
+                            isAmount ? "" : `${Number(line.quantity)} ${line.unit} × ${formatGBP(Number(line.unit_rate) || 0)}`,
+                            line.pricing_mode === "buildup" ? "Rate build-up" : "",
+                            isClientBoQ ? "Client BoQ" : "",
+                        ].filter(Boolean).join(" · ")}
+                    </p>
+                    {!editable && (
+                        <p className={`text-sm ${s.muted}`}>Change this line in Advanced estimating.</p>
+                    )}
+                </div>
+                <p className={`text-base font-bold whitespace-nowrap pt-0.5 ${s.heading}`}>{formatGBP(Number(line.line_total) || 0)}</p>
+            </div>
+
+            {op && op.kind === "delete" ? (
+                <div role={op.status === "failed" ? "alert" : undefined} className={`mt-3 ${op.status === "failed" ? s.errorBox : s.noticeBox} space-y-3`}>
+                    <p className="text-sm font-medium">
+                        {op.status === "failed"
+                            ? op.error
+                            : `Remove this line? ${formatGBP(Number(line.line_total) || 0)} will come off your price lines.`}
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <button type="button" onClick={onConfirmDelete} disabled={op.status === "saving"} className={`${s.secondaryButton} min-h-11 text-sm`}>
+                            {op.status === "saving"
+                                ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Removing…</>
+                                : op.status === "failed" ? "Try again" : "Remove line"}
+                        </button>
+                        <button type="button" onClick={onCancel} disabled={op.status === "saving"} className={`${s.quietButton}`}>
+                            Keep it
+                        </button>
                     </div>
+                </div>
+            ) : editable && (
+                <div className="mt-1 -ml-2 flex gap-1">
+                    <button type="button" onClick={onEdit} aria-label={`Change ${name}`} className={`${iconButton} px-2 gap-1.5 text-sm font-semibold`}>
+                        <Pencil className="w-4 h-4" aria-hidden="true" /> Change
+                    </button>
+                    <button type="button" onClick={onDelete} aria-label={`Remove ${name}`} className={`${iconButton} px-2 gap-1.5 text-sm font-semibold`}>
+                        <Trash2 className="w-4 h-4" aria-hidden="true" /> Remove
+                    </button>
+                </div>
+            )}
+        </li>
+    );
+}
 
-                    {/* TRADE SECTIONS */}
-                    {activeSections.map((section) => {
-                        const sectionLines = sectionGroups[section] || [];
-                        const sectionTotal = sectionLines.reduce((s, l) => s + (l.line_total || 0), 0);
-                        const sectionLibrary = costLibrary.filter(
-                            (c) => c.category === section || section === "General"
-                        );
+// ─── Add / change form ───────────────────────────────────
 
-                        return (
-                            <div key={section} className="bg-slate-800/50 border border-slate-700/50 rounded-xl" style={{ overflow: "visible" }}>
-                                {/* Section header */}
-                                <div className="flex items-center justify-between px-5 py-3 bg-slate-900/50 border-b border-slate-700/50 rounded-t-xl">
-                                    <h3 className="font-bold text-sm uppercase tracking-wide text-slate-200">{section}</h3>
-                                    <span className="font-bold text-sm text-slate-100">{formatGBP(sectionTotal)}</span>
+function LineForm({
+    idPrefix, title, op, s, isDark, onChange, onCancel, onSave,
+}: {
+    idPrefix: string;
+    title: string;
+    op: LineOp;
+    s: WorkspaceStyles;
+    isDark: boolean;
+    onChange: (patch: Partial<PriceLineDraft>) => void;
+    onCancel: () => void;
+    onSave: () => void;
+}) {
+    const { draft, fieldErrors } = op;
+    const saving = op.status === "saving";
+    const total = draftLineTotal(draft);
+
+    const field = (name: keyof typeof fieldErrors) => ({
+        id: `${idPrefix}-${name}`,
+        disabled: saving,
+        "aria-invalid": fieldErrors[name] ? true : undefined,
+        "aria-describedby": fieldErrors[name] ? `${idPrefix}-${name}-error` : undefined,
+    });
+    const fieldError = (name: keyof typeof fieldErrors) =>
+        fieldErrors[name] ? <p id={`${idPrefix}-${name}-error`} className={`mt-1.5 text-sm ${s.errorText}`}>{fieldErrors[name]}</p> : null;
+
+    const modeButton = (mode: PriceLineDraft["mode"], label: string) => (
+        <button
+            type="button"
+            aria-pressed={draft.mode === mode}
+            disabled={saving}
+            onClick={() => onChange({ mode })}
+            className={`min-h-11 px-3 rounded-lg border text-sm font-semibold transition-colors ${
+                draft.mode === mode
+                    ? "border-blue-500 bg-blue-600 text-white"
+                    : isDark ? "border-[#3a3a3a] text-slate-200 hover:border-slate-400" : "border-gray-300 text-gray-800 hover:border-gray-500"
+            }`}
+        >
+            {label}
+        </button>
+    );
+
+    return (
+        <form noValidate onSubmit={(e) => { e.preventDefault(); onSave(); }} className="space-y-4" aria-label={title}>
+            <p className={`text-base font-bold ${s.heading}`}>{title}</p>
+
+            <div>
+                <label htmlFor={`${idPrefix}-description`} className={s.label}>What is this price for?</label>
+                <input
+                    {...field("description")}
+                    value={draft.description}
+                    onChange={(e) => onChange({ description: e.target.value })}
+                    placeholder="e.g. Bathroom refit, labour and materials"
+                    autoComplete="off"
+                    maxLength={500}
+                    className={`${s.input} mt-1.5`}
+                />
+                {fieldError("description")}
+            </div>
+
+            <fieldset>
+                <legend className={s.label}>How do you want to price it?</legend>
+                <div className="mt-1.5 grid grid-cols-2 gap-2">
+                    {modeButton("amount", "One price")}
+                    {modeButton("rate", "Quantity and rate")}
+                </div>
+            </fieldset>
+
+            {draft.mode === "amount" ? (
+                <div>
+                    <label htmlFor={`${idPrefix}-amount`} className={s.label}>Price (£)</label>
+                    <input
+                        {...field("amount")}
+                        inputMode="decimal"
+                        autoComplete="off"
+                        value={draft.amount}
+                        onChange={(e) => onChange({ amount: e.target.value })}
+                        placeholder="e.g. 2500"
+                        className={`${s.input} mt-1.5 sm:max-w-xs`}
+                    />
+                    {fieldError("amount")}
+                </div>
+            ) : (
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                    <div>
+                        <label htmlFor={`${idPrefix}-quantity`} className={s.label}>Quantity</label>
+                        <input
+                            {...field("quantity")}
+                            inputMode="decimal"
+                            autoComplete="off"
+                            value={draft.quantity}
+                            onChange={(e) => onChange({ quantity: e.target.value })}
+                            className={`${s.input} mt-1.5`}
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor={`${idPrefix}-unit`} className={s.label}>Unit</label>
+                        <select
+                            {...field("unit")}
+                            value={draft.unit}
+                            onChange={(e) => onChange({ unit: e.target.value })}
+                            className={`${s.input} mt-1.5 px-2`}
+                        >
+                            {unitOptions(draft.unit).map((unit) => <option key={unit} value={unit}>{unit}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label htmlFor={`${idPrefix}-rate`} className={s.label}>Rate (£)</label>
+                        <input
+                            {...field("rate")}
+                            inputMode="decimal"
+                            autoComplete="off"
+                            value={draft.rate}
+                            onChange={(e) => onChange({ rate: e.target.value })}
+                            className={`${s.input} mt-1.5`}
+                        />
+                    </div>
+                    <div className="col-span-3 -mt-1">
+                        {fieldError("quantity")}
+                        {fieldError("unit")}
+                        {fieldError("rate")}
+                    </div>
+                </div>
+            )}
+
+            <p className={`text-base ${s.body}`} aria-live="polite">
+                Line total: <strong className={s.heading}>{total === null ? "—" : formatGBP(total)}</strong>
+            </p>
+
+            {op.status === "failed" && (
+                <div role="alert" className={`${s.errorBox} flex items-start gap-3 text-sm`}>
+                    <AlertTriangle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                    <p>{op.error}</p>
+                </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-2">
+                <button type="submit" disabled={saving} className={s.primaryButton}>
+                    {saving
+                        ? <><Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> Saving…</>
+                        : op.status === "failed" ? "Try again" : "Save line"}
+                </button>
+                <button type="button" onClick={onCancel} disabled={saving} className={s.secondaryButton}>Cancel</button>
+            </div>
+        </form>
+    );
+}
+
+// ─── Running total and price adjustments ─────────────────
+
+const ADJUSTMENT_ORDER: AdjustmentKey[] = ["prelims", "overhead", "risk", "profit", "discount"];
+
+function TotalCard({
+    summary, estimate, lines, state, s, onToggle, onChange, onSave,
+}: {
+    summary: PriceSummary;
+    estimate: Estimate | null;
+    lines: EstimateLine[];
+    state: {
+        open: boolean;
+        status: "idle" | "saving" | "failed";
+        draft: ReturnType<typeof adjustmentsDraftFromEstimate> | null;
+        error: string | null;
+        fieldErrors: Partial<Record<AdjustmentKey, string>>;
+    };
+    s: WorkspaceStyles;
+    onToggle: () => void;
+    onChange: (patch: Partial<ReturnType<typeof adjustmentsDraftFromEstimate>>) => void;
+    onSave: () => void;
+}) {
+    const draft = state.draft ?? (estimate ? adjustmentsDraftFromEstimate(estimate) : null);
+    const saving = state.status === "saving";
+    const built = state.draft ? buildAdjustments(state.draft) : null;
+    const preview = estimate && built?.ok ? summarisePrice({ ...estimate, ...built.input }, lines) : null;
+    const row = "flex items-baseline justify-between gap-3";
+
+    return (
+        <section className={`${s.card} p-4 sm:p-6`} aria-labelledby="price-total-title" data-price-total>
+            <h2 id="price-total-title" className={`text-lg font-bold ${s.heading}`}>Running total</h2>
+
+            <dl className="mt-3 space-y-2">
+                <div className={row}>
+                    <dt className={`text-base ${s.body}`}>Your price lines</dt>
+                    <dd className={`text-base font-semibold ${s.heading}`}>{formatGBP(summary.linesTotal)}</dd>
+                </div>
+                {summary.adjustments.map((a) => (
+                    <div key={a.key} className={row}>
+                        <dt className={`text-base ${s.muted}`}>{a.label} ({a.pct}%)</dt>
+                        <dd className={`text-base ${s.body}`}>{formatGBP(a.amount)}</dd>
+                    </div>
+                ))}
+                <div className={`${row} pt-2 border-t ${s.divider}`}>
+                    <dt className={`text-base font-bold ${s.heading}`}>Total before VAT</dt>
+                    <dd className={`text-xl font-bold ${s.heading}`} data-contract-sum>{formatGBP(summary.contractSum)}</dd>
+                </div>
+                <div className={row}>
+                    <dt className={`text-sm ${s.muted}`}>VAT (20%)</dt>
+                    <dd className={`text-sm ${s.muted}`}>{formatGBP(summary.vat)}</dd>
+                </div>
+                <div className={row}>
+                    <dt className={`text-sm ${s.muted}`}>Total including VAT</dt>
+                    <dd className={`text-sm font-semibold ${s.body}`}>{formatGBP(summary.totalIncVat)}</dd>
+                </div>
+            </dl>
+
+            {estimate && summary.adjustments.length === 0 && (
+                <p className={`mt-3 text-sm ${s.muted}`}>
+                    Nothing has been added on top of your lines for overhead, risk or profit. If your prices already allow for them, leave it as it is.
+                </p>
+            )}
+
+            <div className={`mt-4 rounded-xl border ${s.divider}`}>
+                <button
+                    type="button"
+                    onClick={onToggle}
+                    aria-expanded={state.open}
+                    aria-controls="price-adjustments"
+                    className={`w-full min-h-12 px-4 flex items-center justify-between gap-3 text-left text-sm font-semibold ${s.body}`}
+                >
+                    <span className="py-2">
+                        <span className="block">Price adjustments</span>
+                        <span className={`block font-normal ${s.muted}`}>Preliminaries, overhead, risk, profit and discount</span>
+                    </span>
+                    <ChevronDown className={`w-5 h-5 flex-shrink-0 transition-transform ${state.open ? "rotate-180" : ""}`} aria-hidden="true" />
+                </button>
+
+                {state.open && (
+                    <div id="price-adjustments" className="px-4 pb-4 space-y-4">
+                        {!estimate || !draft ? (
+                            <p className={`text-sm ${s.muted}`}>Add a price line first. Adjustments are percentages added on top of your lines.</p>
+                        ) : (
+                            <form noValidate onSubmit={(e) => { e.preventDefault(); onSave(); }} className="space-y-4">
+                                <p className={`text-sm ${s.muted}`}>
+                                    Each percentage is added on top of your lines, in this order. The client sees your price, not the overhead, risk or profit behind it.
+                                </p>
+                                {ADJUSTMENT_ORDER.map((key) => (
+                                    <div key={key}>
+                                        <label htmlFor={`adjust-${key}`} className={s.label}>{ADJUSTMENT_HELP[key].label} (%)</label>
+                                        <p id={`adjust-${key}-help`} className={`mt-0.5 text-sm ${s.muted}`}>
+                                            {key === "prelims" && summary.prelimsFromLines
+                                                ? "You have priced preliminaries as your own lines, so this percentage is not used."
+                                                : ADJUSTMENT_HELP[key].help}
+                                        </p>
+                                        <input
+                                            id={`adjust-${key}`}
+                                            aria-describedby={`adjust-${key}-help`}
+                                            aria-invalid={state.fieldErrors[key] ? true : undefined}
+                                            inputMode="decimal"
+                                            autoComplete="off"
+                                            disabled={saving}
+                                            value={draft[key]}
+                                            onChange={(e) => onChange({ [key]: e.target.value })}
+                                            className={`${s.input} mt-1.5 max-w-[10rem]`}
+                                        />
+                                        {state.fieldErrors[key] && <p className={`mt-1.5 text-sm ${s.errorText}`}>{state.fieldErrors[key]}</p>}
+                                    </div>
+                                ))}
+                                <div>
+                                    <label htmlFor="adjust-discount-reason" className={s.label}>Reason for the discount</label>
+                                    <p className={`mt-0.5 text-sm ${s.muted}`}>Optional. Shown to the client with the discount.</p>
+                                    <input
+                                        id="adjust-discount-reason"
+                                        autoComplete="off"
+                                        disabled={saving}
+                                        maxLength={500}
+                                        value={draft.discountReason}
+                                        onChange={(e) => onChange({ discountReason: e.target.value })}
+                                        placeholder="e.g. Returning client"
+                                        className={`${s.input} mt-1.5`}
+                                    />
                                 </div>
 
-                                {/* Table header */}
-                                {currentEstimate.is_client_boq ? (
-                                    <div className="grid grid-cols-[50px_1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 bg-slate-900/30 border-b border-slate-700/50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                                        <div>Ref</div>
-                                        <div>Description</div>
-                                        <div className="text-center">Qty</div>
-                                        <div className="text-center">Unit</div>
-                                        <div className="text-right">Rate</div>
-                                        <div className="text-right">Total</div>
-                                        <div></div>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-[70px_1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 bg-slate-900/30 border-b border-slate-700/50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                                        <div>Type</div>
-                                        <div>Description</div>
-                                        <div className="text-center">Qty</div>
-                                        <div className="text-center">Unit</div>
-                                        <div className="text-right">Rate</div>
-                                        <div className="text-right">Total</div>
-                                        <div></div>
+                                {state.draft && preview && (
+                                    <p role="status" className={`${s.noticeBox} text-sm`}>
+                                        Not saved yet. With these adjustments the total before VAT would be <strong>{formatGBP(preview.contractSum)}</strong>.
+                                    </p>
+                                )}
+                                {state.status === "failed" && (
+                                    <div role="alert" className={`${s.errorBox} flex items-start gap-3 text-sm`}>
+                                        <AlertTriangle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                                        <p>{state.error}</p>
                                     </div>
                                 )}
 
-                                {/* Line items */}
-                                {sectionLines.map((line) => (
-                                    <div key={line.id}>
-                                        <div className="flex items-stretch">
-                                            {/* Mode toggle button — hidden for client BoQ lines */}
-                                            {!currentEstimate.is_client_boq && (
-                                                <div className="flex items-center px-2 border-b border-slate-700/30">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleTogglePricingMode(line.id, line.pricing_mode)}
-                                                        title={line.pricing_mode === "buildup" ? "Switch to simple rate" : "Build up from first principles"}
-                                                        className={`flex-shrink-0 w-5 h-5 rounded text-xs font-bold border transition-colors ${
-                                                            line.pricing_mode === "buildup"
-                                                                ? "bg-blue-600 text-white border-blue-600"
-                                                                : "bg-slate-700 text-slate-400 border-slate-600 hover:border-blue-500 hover:text-slate-200"
-                                                        }`}
-                                                    >
-                                                        +
-                                                    </button>
-                                                </div>
-                                            )}
-                                            <div className="flex-1">
-                                                <LineItemRow
-                                                    line={line}
-                                                    library={sectionLibrary}
-                                                    allLibrary={costLibrary}
-                                                    section={section}
-                                                    isClientBoQ={!!currentEstimate.is_client_boq}
-                                                    onUpdate={handleUpdateLine}
-                                                    onDelete={handleDeleteLine}
-                                                    onLibrarySelect={handleLibrarySelect}
-                                                />
-                                            </div>
-                                        </div>
-                                        {/* Build-up panel — only shown when explicitly toggled, not on page load */}
-                                        {openBuildUpPanels.has(line.id) && (
-                                            <BuildUpPanel
-                                                line={line}
-                                                orgId={orgId}
-                                                labourRates={labourRates}
-                                                rateBuildups={rateBuildups}
-                                                materialLibrary={costLibrary}
-                                                preferredTrades={preferredTrades}
-                                                onComponentsChanged={handleComponentsChanged}
-                                            />
-                                        )}
-                                    </div>
-                                ))}
-
-                                {/* Add line button */}
-                                <button
-                                    type="button"
-                                    onClick={() => handleAddLine(section)}
-                                    className="w-full px-5 py-2.5 text-left text-sm text-blue-400 hover:bg-blue-500/10 flex items-center gap-1.5 transition-colors"
-                                >
-                                    <Plus className="w-4 h-4" /> Add line item
+                                <button type="submit" disabled={saving || !state.draft} className={`${s.primaryButton} w-full sm:w-auto`}>
+                                    {saving
+                                        ? <><Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> Saving…</>
+                                        : state.status === "failed" ? "Try again" : state.draft ? "Save adjustments" : "No changes to save"}
                                 </button>
-                            </div>
-                        );
-                    })}
-
-                    {/* SUMMARY STRIP */}
-                    <div className="bg-slate-900 border border-slate-700/50 rounded-xl p-5 sticky bottom-0 z-20 shadow-xl mt-4">
-                        <h3 className="font-semibold text-[11px] uppercase tracking-wider text-slate-500 mb-4">Cost Summary</h3>
-                        <div className="space-y-2">
-                            <SummaryRow label="Direct Construction Cost" value={directCost} />
-                            {(prelimsTotal > 0 || prelimsPct > 0) && (
-                                <SummaryRow
-                                    label={explicitPrelimsLines.length > 0 ? "Preliminaries (line items)" : `Preliminaries (${prelimsPct}%)`}
-                                    value={prelimsTotal}
-                                />
-                            )}
-                            <div className="border-t border-slate-700/50 pt-2 mt-2">
-                                <SummaryRow label="Total Construction Cost" value={totalConstructionCost} bold />
-                            </div>
-                            {overheadPct > 0 && (
-                                <SummaryRow label={`Overhead (${overheadPct}%)`} value={overheadAmount} />
-                            )}
-                            {riskPct > 0 && (
-                                <SummaryRow label={`Risk (${riskPct}%)`} value={riskAmount} />
-                            )}
-                            {profitPct > 0 && (
-                                <SummaryRow label={`Profit (${profitPct}%)`} value={profitAmount} />
-                            )}
-                            {discountPct > 0 && (
-                                <SummaryRow label={`Discount (${discountPct}%)`} value={-discountAmount} />
-                            )}
-                            <div className="border-t-2 border-slate-600 pt-2 mt-2">
-                                <SummaryRow label="CONTRACT SUM (exc. VAT)" value={contractSum} bold />
-                            </div>
-                            <SummaryRow label="VAT (20%)" value={vat} />
-                            <div className="border-t border-slate-700/50 pt-2 mt-2">
-                                <SummaryRow label="TOTAL inc. VAT" value={totalIncVat} bold large />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Bottom CTA */}
-                    <div className="mt-8 flex justify-end">
-                        <Link href={`/dashboard/projects/schedule?projectId=${projectId}`}
-                            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold text-sm hover:bg-blue-500 transition-colors flex items-center gap-2">
-                            <CalendarDays className="w-4 h-4" />
-                            Next: Programme →
-                        </Link>
-                    </div>
-                </>
-            )}
-        </div>
-
-        {/* BoQ Import Modal */}
-        {showClientBoQImport && showBoQImport && (
-            <BoQImport
-                projectId={projectId}
-                onImported={handleBoQImported}
-                onClose={() => handleBoQClose()}
-            />
-        )}
-        </>
-    );
-}
-
-// ─── Line Item Row ───────────────────────────────────────
-function LineItemRow({
-    line,
-    library,
-    allLibrary,
-    section,
-    isClientBoQ,
-    onUpdate,
-    onDelete,
-    onLibrarySelect,
-}: {
-    line: EstimateLine;
-    library: CostLibraryItem[];
-    allLibrary: CostLibraryItem[];
-    section: string;
-    isClientBoQ?: boolean;
-    onUpdate: (id: string, updates: Partial<EstimateLine>) => void;
-    onDelete: (id: string) => void;
-    onLibrarySelect: (lineId: string, itemId: string, section: string) => void;
-}) {
-    const [search, setSearch] = useState(line.description || "");
-    const [showDropdown, setShowDropdown] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
-
-    // Use all library items for search, but prioritize section matches
-    const filtered = search.length > 0
-        ? allLibrary
-            .filter((c) => {
-                const q = search.toLowerCase();
-                return (
-                    c.description.toLowerCase().includes(q) ||
-                    c.code.toLowerCase().includes(q) ||
-                    c.category.toLowerCase().includes(q)
-                );
-            })
-            .sort((a, b) => {
-                // Section matches first
-                const aMatch = a.category === section ? 0 : 1;
-                const bMatch = b.category === section ? 0 : 1;
-                return aMatch - bMatch;
-            })
-            .slice(0, 15)
-        : [];
-
-    return (
-        <div className={`grid gap-2 px-5 py-2 border-b border-slate-700/30 items-center hover:bg-slate-700/20 transition-colors ${
-            isClientBoQ
-                ? "grid-cols-[50px_1fr_80px_80px_100px_100px_40px]"
-                : "grid-cols-[70px_1fr_80px_80px_100px_100px_40px]"
-        }`}>
-            {/* Client ref (BoQ) or line type badge (standard) */}
-            {isClientBoQ ? (
-                <span className="text-slate-500 text-xs font-mono truncate" title={line.client_ref || ""}>
-                    {line.client_ref || ""}
-                </span>
-            ) : (
-                <select
-                    value={line.line_type || "general"}
-                    onChange={(e) => onUpdate(line.id, { line_type: e.target.value })}
-                    className="h-8 px-1 border border-slate-700 rounded text-xs text-slate-400 bg-slate-900/50 truncate focus:outline-none"
-                >
-                    {LINE_TYPES.map((t) => (
-                        <option key={t} value={t}>
-                            {t.charAt(0).toUpperCase() + t.slice(1)}
-                        </option>
-                    ))}
-                </select>
-            )}
-
-            {/* Description with library search — free-text supported */}
-            <div className="relative" ref={dropdownRef} style={{ overflow: "visible" }}>
-                <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => {
-                        setSearch(e.target.value);
-                        if (e.target.value.length > 0) {
-                            setShowDropdown(true);
-                        } else {
-                            setShowDropdown(false);
-                        }
-                    }}
-                    onFocus={() => {
-                        if (search.length > 0) setShowDropdown(true);
-                    }}
-                    onBlur={() => {
-                        // Delay so click on dropdown registers
-                        setTimeout(() => {
-                            setShowDropdown(false);
-                            // Free-text mode: keep whatever was typed
-                            if (search !== line.description) {
-                                onUpdate(line.id, { description: search });
-                            }
-                        }, 200);
-                    }}
-                    placeholder="Search library or type description..."
-                    className="w-full h-8 px-2 border border-slate-700 rounded text-sm text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50 placeholder:text-slate-600"
-                />
-                {showDropdown && filtered.length > 0 && (
-                    <div className="absolute z-50 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
-                        {filtered.map((item) => (
-                            <button
-                                type="button"
-                                key={item.id}
-                                onMouseDown={(e) => {
-                                    e.preventDefault();
-                                    setSearch(item.description);
-                                    setShowDropdown(false);
-                                    onLibrarySelect(line.id, item.id, section);
-                                }}
-                                className="w-full text-left px-3 py-1.5 hover:bg-slate-700/50 flex items-center justify-between text-sm transition-colors"
-                            >
-                                <span className="text-slate-200 truncate">
-                                    <span className="text-slate-500 text-xs mr-1.5">{item.code}</span>
-                                    {item.description}
-                                </span>
-                                <span className="text-slate-400 text-xs ml-2 whitespace-nowrap">
-                                    {formatGBP(item.base_rate)}/{item.unit}
-                                </span>
-                            </button>
-                        ))}
+                            </form>
+                        )}
                     </div>
                 )}
             </div>
-
-            {/* Qty */}
-            <input
-                type="number"
-                step="0.01"
-                defaultValue={line.quantity}
-                onBlur={(e) => onUpdate(line.id, { quantity: parseFloat(e.target.value) || 0 })}
-                className="h-8 px-2 border border-slate-700 rounded text-sm text-center text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
-            />
-
-            {/* Unit */}
-            <select
-                key={line.unit}
-                defaultValue={line.unit}
-                onChange={(e) => onUpdate(line.id, { unit: e.target.value })}
-                className="h-8 px-1 border border-slate-700 rounded text-sm text-slate-300 bg-slate-900/50 focus:outline-none"
-            >
-                {UNITS.map((u) => (
-                    <option key={u} value={u}>
-                        {u}
-                    </option>
-                ))}
-            </select>
-
-            {/* Rate */}
-            {line.pricing_mode === "buildup" ? (
-                <div className="h-8 px-2 rounded text-sm text-right font-medium text-blue-400 bg-blue-500/10 flex flex-col items-end justify-center leading-tight">
-                    <span>{formatGBP(line.unit_rate)}</span>
-                    <span className="text-[9px] text-blue-500">built up</span>
-                </div>
-            ) : (
-                <input
-                    key={line.unit_rate}
-                    type="number"
-                    step="0.01"
-                    defaultValue={line.unit_rate}
-                    onBlur={(e) => onUpdate(line.id, { unit_rate: parseFloat(e.target.value) || 0 })}
-                    className="h-8 px-2 border border-slate-700 rounded text-sm text-right text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
-                />
-            )}
-
-            {/* Total (readonly) */}
-            <div className="text-sm font-medium text-slate-200 text-right pr-2">
-                {formatGBP(line.line_total || 0)}
-            </div>
-
-            {/* Delete */}
-            <button
-                type="button"
-                onClick={() => onDelete(line.id)}
-                className="h-8 w-8 flex items-center justify-center rounded text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-            >
-                <Trash2 className="w-3.5 h-3.5" />
-            </button>
-        </div>
-    );
-}
-
-// ─── Summary Row ─────────────────────────────────────────
-function SummaryRow({ label, value, bold, large }: { label: string; value: number; bold?: boolean; large?: boolean }) {
-    return (
-        <div className="flex justify-between items-center">
-            <span className={`text-sm ${bold ? "font-bold text-slate-100" : "text-slate-400"} ${large ? "text-base" : ""}`}>
-                {label}
-            </span>
-            <span className={`${bold ? "font-bold text-white" : "text-slate-300"} ${large ? "text-lg" : "text-sm"}`}>
-                {formatGBP(value)}
-            </span>
-        </div>
+        </section>
     );
 }

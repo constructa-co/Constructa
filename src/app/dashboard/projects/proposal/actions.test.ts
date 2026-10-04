@@ -58,7 +58,10 @@ function setup(projectPatch: Record<string, unknown> = {}, publications: Record<
         ? { data: [{ publication_id: args.p_publication_id, delivery_id: args.p_delivery_email ? DELIVERY_ID : null }], error: null }
         : { data: null, error: null });
 
-    const admin = fakeSupabase({});
+    // The delivery ledger is server-only, as the database grants make it:
+    // the service role holds it and the contractor's session is refused.
+    const admin = fakeSupabase({ proposal_delivery_attempts: [] });
+    db.fail("proposal_delivery_attempts", "select", "42501", Number.MAX_SAFE_INTEGER, "permission denied for table proposal_delivery_attempts");
     const access = { user: { id: USER_ID }, supabase: db.client };
     mocks.requireEditableProjectAccess.mockResolvedValue(access);
     mocks.requireProjectAccess.mockResolvedValue(access);
@@ -302,7 +305,7 @@ describe("retryProposalDeliveryAction", () => {
     async function arrange(status = "sent", attemptStatus = "failed") {
         const snapshot = { project: { name: "Job", client_name: "Alex Client", site_address: null }, contractor: { company_name: "Example Building Ltd" }, publication: { response_mode: "acknowledgement" }, response: { kind: "non_binding_intent" } };
         const world = setup({}, [{ id: PUBLICATION_ID, project_id: PROJECT_ID, token_hash: await hashProposalAccessToken(token), status, snapshot }]);
-        world.db.tables.proposal_delivery_attempts.push({ id: DELIVERY_ID, publication_id: PUBLICATION_ID, status: attemptStatus, attempt_count: 1, recipient_email: "alex@example.test" });
+        world.admin.tables.proposal_delivery_attempts.push({ id: DELIVERY_ID, publication_id: PUBLICATION_ID, status: attemptStatus, attempt_count: 1, recipient_email: "alex@example.test" });
         return world;
     }
 

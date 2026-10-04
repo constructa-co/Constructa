@@ -89,6 +89,8 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
 
     const currentEstimate = estimates.find((e) => e.id === activeTab);
 
+    const addingSectionsRef = useRef(new Set<string>());
+
     const showSaving = useCallback(() => {
         setSaveStatus("saving");
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -299,54 +301,47 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
         if (lastLine && (!lastLine.description || lastLine.description === "" || lastLine.description === "\u2014")) {
             return; // Don't add another blank row
         }
-        const tempId = crypto.randomUUID();
-        const newLine: EstimateLine = {
-            id: tempId,
-            estimate_id: currentEstimate.id,
-            description: "",
-            quantity: 1,
-            unit: "nr",
-            unit_rate: 0,
-            line_total: 0,
-            trade_section: section,
-            line_type: "general",
-            pricing_mode: "simple",
-            estimate_line_components: [],
-        };
-        // Add optimistically
-        setEstimates((prev) => prev.map((e) =>
-            e.id === currentEstimate.id
-                ? { ...e, estimate_lines: [...e.estimate_lines, newLine] }
-                : e
-        ));
-        // Save to server, swap temp ID with real ID
+        // The row is shown only once the server has confirmed it, and one add
+        // runs per section at a time. A row shown earlier under a temporary
+        // id could be typed into before it existed: those edits were refused
+        // by the server but stayed on screen and in the running total.
+        if (addingSectionsRef.current.has(section)) return;
+        addingSectionsRef.current.add(section);
+        const estimateId = currentEstimate.id;
         showSaving();
         try {
-            const result = await addLineItemAction(currentEstimate.id, section, {
+            const result = await addLineItemAction(estimateId, section, {
                 description: "", quantity: 1, unit: "nr", unit_rate: 0,
                 line_type: "general",
             });
-            if (result?.error) {
-                setEstimates((prev) => prev.map((e) => e.id === currentEstimate.id
-                    ? { ...e, estimate_lines: e.estimate_lines.filter((line) => line.id !== tempId) }
-                    : e));
-                showSaveError(result.error);
+            if (result?.error || !result?.id) {
+                showSaveError(result?.error ?? "Failed to add line");
                 return;
             }
-            if (result?.id) {
-                setEstimates((prev) => prev.map((e) =>
-                    e.id !== currentEstimate.id ? e : {
-                        ...e,
-                        estimate_lines: e.estimate_lines.map((l) =>
-                            l.id === tempId ? { ...l, id: result.id } : l
-                        ),
-                    }
-                ));
-            }
+            const newLine: EstimateLine = {
+                id: result.id,
+                estimate_id: estimateId,
+                description: "",
+                quantity: 1,
+                unit: "nr",
+                unit_rate: 0,
+                line_total: 0,
+                trade_section: section,
+                line_type: "general",
+                pricing_mode: "simple",
+                estimate_line_components: [],
+            };
+            setEstimates((prev) => prev.map((e) =>
+                e.id === estimateId
+                    ? { ...e, estimate_lines: [...e.estimate_lines, newLine] }
+                    : e
+            ));
             showSaved();
         } catch (err) {
             console.error(err);
             showSaveError(err instanceof Error ? err.message : "Failed to add line");
+        } finally {
+            addingSectionsRef.current.delete(section);
         }
     };
 
@@ -375,7 +370,12 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
         );
 
         showSaving();
-        updateLineItemAction(lineId, { ...updates, quantity: qty, unit_rate: rate })
+        // Quantity and rate are sent together only when one of them changed.
+        // A change to the description alone must never write a price back:
+        // it can be issued from an earlier render and would undo a rate the
+        // contractor has just typed.
+        const changesPrice = updates.quantity !== undefined || updates.unit_rate !== undefined;
+        updateLineItemAction(lineId, changesPrice ? { ...updates, quantity: qty, unit_rate: rate } : updates)
             .then((result) => {
                 if (result && !result.success) {
                     router.refresh(); // re-pull authoritative state after a rejected update
@@ -541,7 +541,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                 )}
 
                 {/* Save indicator */}
-                <div className="ml-auto text-xs text-slate-500 flex items-center gap-1.5">
+                <div className="ml-auto text-xs text-slate-400 flex items-center gap-1.5">
                     {saveStatus === "saving" && (
                         <>
                             <Loader2 className="w-3 h-3 animate-spin" /> Saving...
@@ -616,8 +616,9 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                     <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 space-y-4">
                         <div className="flex flex-wrap items-end gap-4">
                             <div className="flex-1 min-w-[200px]">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Estimate Name</label>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1">Estimate Name</label>
                                 <input
+                                    aria-label="Estimate Name"
                                     type="text"
                                     defaultValue={currentEstimate.version_name}
                                     onBlur={(e) => handleNameBlur(e.target.value)}
@@ -625,8 +626,9 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                 />
                             </div>
                             <div className="w-24">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Prelims %</label>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1">Prelims %</label>
                                 <input
+                                    aria-label="Prelims %"
                                     type="number"
                                     step="0.5"
                                     value={currentEstimate.prelims_pct}
@@ -636,8 +638,9 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                 />
                             </div>
                             <div className="w-24">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Overhead %</label>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1">Overhead %</label>
                                 <input
+                                    aria-label="Overhead %"
                                     type="number"
                                     step="0.5"
                                     value={currentEstimate.overhead_pct}
@@ -647,8 +650,9 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                 />
                             </div>
                             <div className="w-24">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Risk %</label>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1">Risk %</label>
                                 <input
+                                    aria-label="Risk %"
                                     type="number"
                                     step="0.5"
                                     value={currentEstimate.risk_pct}
@@ -658,8 +662,9 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                 />
                             </div>
                             <div className="w-24">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Profit %</label>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1">Profit %</label>
                                 <input
+                                    aria-label="Profit %"
                                     type="number"
                                     step="0.5"
                                     value={currentEstimate.profit_pct}
@@ -669,8 +674,9 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                 />
                             </div>
                             <div className="w-24">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block mb-1">Discount %</label>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1">Discount %</label>
                                 <input
+                                    aria-label="Discount %"
                                     type="number"
                                     step="0.5"
                                     value={currentEstimate.discount_pct}
@@ -713,7 +719,8 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                 <button
                                     type="button"
                                     onClick={() => handleDeleteEstimate(currentEstimate.id)}
-                                    className="h-10 px-3 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 border border-slate-700 transition-colors"
+                                    aria-label="Delete this estimate"
+                                    className="h-10 px-3 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-slate-700 transition-colors"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>
@@ -721,8 +728,9 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                         </div>
                         {currentEstimate.discount_pct > 0 && (
                             <div className="flex items-center gap-3">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">Discount Reason</label>
+                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 whitespace-nowrap">Discount Reason</label>
                                 <input
+                                    aria-label="Discount Reason"
                                     type="text"
                                     value={currentEstimate.discount_reason || ""}
                                     onChange={(e) => {
@@ -760,7 +768,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
 
                     {/* ADD SECTION */}
                     <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Add Section:</span>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Add Section:</span>
                         {TRADE_SECTIONS.map((section) => {
                             const isActive = !!sectionGroups[section]?.length;
                             return (
@@ -790,7 +798,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                         );
 
                         return (
-                            <div key={section} className="bg-slate-800/50 border border-slate-700/50 rounded-xl" style={{ overflow: "visible" }}>
+                            <div key={section} role="group" aria-label={section} className="bg-slate-800/50 border border-slate-700/50 rounded-xl" style={{ overflow: "visible" }}>
                                 {/* Section header */}
                                 <div className="flex items-center justify-between px-5 py-3 bg-slate-900/50 border-b border-slate-700/50 rounded-t-xl">
                                     <h3 className="font-bold text-sm uppercase tracking-wide text-slate-200">{section}</h3>
@@ -799,7 +807,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
 
                                 {/* Table header */}
                                 {currentEstimate.is_client_boq ? (
-                                    <div className="grid grid-cols-[50px_1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 bg-slate-900/30 border-b border-slate-700/50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                                    <div className="grid grid-cols-[50px_1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 bg-slate-900/30 border-b border-slate-700/50 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                                         <div>Ref</div>
                                         <div>Description</div>
                                         <div className="text-center">Qty</div>
@@ -809,7 +817,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                         <div></div>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-[70px_1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 bg-slate-900/30 border-b border-slate-700/50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                                    <div className="grid grid-cols-[70px_1fr_80px_80px_100px_100px_40px] gap-2 px-5 py-2 bg-slate-900/30 border-b border-slate-700/50 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                                         <div>Type</div>
                                         <div>Description</div>
                                         <div className="text-center">Qty</div>
@@ -956,6 +964,7 @@ function LineItemRow({
                 <select
                     value={line.line_type || "general"}
                     onChange={(e) => onUpdate(line.id, { line_type: e.target.value })}
+                    aria-label="Line type"
                     className="h-8 px-1 border border-slate-700 rounded text-xs text-slate-400 bg-slate-900/50 truncate focus:outline-none"
                 >
                     {LINE_TYPES.map((t) => (
@@ -993,6 +1002,7 @@ function LineItemRow({
                         }, 200);
                     }}
                     placeholder="Search library or type description..."
+                    aria-label="Description"
                     className="w-full h-8 px-2 border border-slate-700 rounded text-sm text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50 placeholder:text-slate-600"
                 />
                 {showDropdown && filtered.length > 0 && (
@@ -1028,6 +1038,7 @@ function LineItemRow({
                 step="0.01"
                 defaultValue={line.quantity}
                 onBlur={(e) => onUpdate(line.id, { quantity: parseFloat(e.target.value) || 0 })}
+                aria-label="Quantity"
                 className="h-8 px-2 border border-slate-700 rounded text-sm text-center text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
             />
 
@@ -1036,6 +1047,7 @@ function LineItemRow({
                 key={line.unit}
                 defaultValue={line.unit}
                 onChange={(e) => onUpdate(line.id, { unit: e.target.value })}
+                aria-label="Unit"
                 className="h-8 px-1 border border-slate-700 rounded text-sm text-slate-300 bg-slate-900/50 focus:outline-none"
             >
                 {UNITS.map((u) => (
@@ -1058,6 +1070,7 @@ function LineItemRow({
                     step="0.01"
                     defaultValue={line.unit_rate}
                     onBlur={(e) => onUpdate(line.id, { unit_rate: parseFloat(e.target.value) || 0 })}
+                    aria-label="Rate (£)"
                     className="h-8 px-2 border border-slate-700 rounded text-sm text-right text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
                 />
             )}
@@ -1071,6 +1084,7 @@ function LineItemRow({
             <button
                 type="button"
                 onClick={() => onDelete(line.id)}
+                aria-label="Remove line"
                 className="h-8 w-8 flex items-center justify-center rounded text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
             >
                 <Trash2 className="w-3.5 h-3.5" />

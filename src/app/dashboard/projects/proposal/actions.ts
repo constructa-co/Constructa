@@ -464,10 +464,13 @@ export async function retryProposalDeliveryAction(
         return { success: false, error: "This version is no longer open, so its email was not sent again." };
     }
 
-    const { data: attempt, error: attemptError } = await supabase
+    // The delivery ledger is server-only: the contractor's own session is not
+    // granted access to it. That this publication is theirs was proved just
+    // above, by reading it as the contractor and matching the link's token.
+    const { data: attempt, error: attemptError } = await createAdminClient()
         .from("proposal_delivery_attempts")
         .select("id, status, attempt_count, recipient_email")
-        .eq("publication_id", input.publicationId)
+        .eq("publication_id", publication.id)
         .maybeSingle();
     if (attemptError || !attempt) {
         return { success: false, error: "No email was requested for this version. Share the link yourself." };

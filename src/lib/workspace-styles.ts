@@ -21,7 +21,7 @@ export function workspaceStyles(isDark: boolean) {
         label: `block text-sm font-semibold ${isDark ? "text-slate-200" : "text-gray-800"}`,
         input: `${inputBase} h-12`,
         textarea: `${inputBase} py-2.5`,
-        primaryButton: `${button} bg-blue-600 hover:bg-blue-500 text-white`,
+        primaryButton: `${button} bg-blue-600 hover:bg-blue-700 text-white`,
         secondaryButton: `${button} border ${
             isDark ? "border-[#3a3a3a] text-slate-100 hover:bg-white/5" : "border-gray-300 text-gray-900 hover:bg-gray-50"
         }`,

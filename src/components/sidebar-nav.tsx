@@ -88,7 +88,7 @@ function NavItem({
     return (
         <Link
             href={href}
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg font-medium transition-all group text-sm ${
+            className={`flex items-center gap-2.5 min-h-11 lg:min-h-0 px-3 py-2 rounded-lg font-medium transition-all group text-sm ${
                 active ? "bg-gray-900 text-white" : "text-slate-300 hover:text-white hover:bg-white/8"
             }`}
         >
@@ -116,9 +116,9 @@ function SidebarSection({
         <div>
             <button
                 onClick={() => onToggle(sectionKey)}
-                className="w-full flex items-center justify-between px-3 py-2 group"
+                className="w-full min-h-11 lg:min-h-0 flex items-center justify-between px-3 py-2 group"
             >
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 group-hover:text-slate-400 transition-colors">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 group-hover:text-slate-400 transition-colors">
                     {label}
                 </span>
                 {collapsed
@@ -348,7 +348,9 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                     <div className="text-[11px] text-blue-300 truncate">{selectedProjectName}</div>
                 )}
             </div>
-            <Link href="/dashboard" aria-label="Constructa pipeline" className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-base flex-shrink-0">C</Link>
+            <Link href="/dashboard" aria-label="Constructa pipeline" className="w-11 h-11 -mr-1.5 flex items-center justify-center flex-shrink-0">
+                <span className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-base">C</span>
+            </Link>
         </header>
 
         {phoneMenuOpen && (
@@ -374,7 +376,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
 
                     <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
                         <div>
-                            <label htmlFor="phone-active-project" className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-1 pb-1.5">
+                            <label htmlFor="phone-active-project" className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-1 pb-1.5">
                                 Active Project
                             </label>
                             <select
@@ -396,7 +398,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
 
                         {phoneNav.map((group) => (
                             <div key={group.key}>
-                                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-1 pb-1">{group.label}</div>
+                                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-1 pb-1">{group.label}</div>
                                 <div className="space-y-0.5">
                                     {group.items.map((item) => {
                                         const Icon = PHONE_NAV_ICONS[item.key];
@@ -436,7 +438,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
         <aside className="w-64 bg-[#0d0d0d] hidden md:flex flex-col h-screen fixed z-30">
             {/* Logo */}
             <div className="p-5 pb-3">
-                <Link href="/dashboard" className="flex items-center gap-2.5 group">
+                <Link href="/dashboard" className="flex items-center gap-2.5 min-h-11 lg:min-h-0 group">
                     <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-base group-hover:bg-blue-500 transition-colors">C</div>
                     <span className="text-lg font-bold tracking-tight text-white group-hover:text-blue-300 transition-colors">Constructa</span>
                 </Link>
@@ -455,13 +457,13 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
 
                 {/* ── Active Project Selector — always visible, at top ─── */}
                 <div className="pb-3">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 pb-1.5">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 pb-1.5">
                         Active Project
                     </div>
                     <div ref={pickerRef} className="relative px-1">
                         <button
                             onClick={() => setPickerOpen(!pickerOpen)}
-                            className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-all border ${
+                            className={`w-full min-h-11 lg:min-h-0 flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-all border ${
                                 selectedProjectId
                                     ? "bg-blue-600/15 border-blue-500/30 text-blue-300 hover:bg-blue-600/25"
                                     : "bg-white/5 border-white/8 text-slate-400 hover:bg-white/10 hover:text-slate-200"
@@ -505,18 +507,18 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                                             }`}
                                         >
                                             <div className="font-medium truncate">{p.name}</div>
-                                            {p.client_name && <div className="text-[10px] text-slate-500 truncate mt-0.5">{p.client_name}</div>}
+                                            {p.client_name && <div className="text-[10px] text-slate-400 truncate mt-0.5">{p.client_name}</div>}
                                         </button>
                                     ))}
                                 </div>
-                                <div className="px-3 py-1.5 border-t border-white/10 text-[10px] text-slate-600">
+                                <div className="px-3 py-1.5 border-t border-white/10 text-[10px] text-slate-400">
                                     {selectedProjectId ? "Click × to deselect" : "Select to focus module links"}
                                 </div>
                             </div>
                         )}
                     </div>
                     {selectedProjectId && (
-                        <p className="px-3 pt-1 text-[10px] text-slate-600">Module links open this project</p>
+                        <p className="px-3 pt-1 text-[10px] text-slate-400">Module links open this project</p>
                     )}
                 </div>
 
@@ -572,14 +574,14 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
 
                     {/* Resources — direct links, no accordion */}
                     <div className="pt-1">
-                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 pb-1.5">Resources</div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 pb-1.5">Resources</div>
                         <NavItem href="/dashboard/resources/portfolio" icon={PieChart} label="Resource Portfolio" active={is("/dashboard/resources/portfolio")} />
                         <NavItem href="/dashboard/accounting" icon={Receipt} label="Accounting" active={is("/dashboard/accounting")} />
                     </div>
 
                     {/* Reporting — direct links, no accordion */}
                     <div className="pt-1">
-                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 pb-1.5">Reporting</div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 pb-1.5">Reporting</div>
                         <NavItem href="/dashboard/reporting" icon={FileText} label="Reports & Photos" active={is("/dashboard/reporting")} />
                         <NavItem href="/dashboard/management-accounts" icon={BarChart2} label="Management Accounts" active={is("/dashboard/management-accounts")} />
                         <NavItem href="/dashboard/cis" icon={HardHat} label="CIS Compliance" active={is("/dashboard/cis")} />
@@ -618,7 +620,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
             <div className="px-4 pb-3">
                 <button
                     onClick={() => setTheme(isDark ? "system-c" : "dark")}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all text-xs font-medium"
+                    className="w-full min-h-11 lg:min-h-0 flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all text-xs font-medium"
                     title={isDark ? "Switch to the default theme (dark sidebar, lighter content)" : "Switch to the full-dark theme"}
                 >
                     {isDark ? (
@@ -637,10 +639,10 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                     </div>
                     <div className="overflow-hidden flex-1 min-w-0">
                         <div className="text-xs font-semibold text-slate-200 truncate">{user.email?.split("@")[0]}</div>
-                        <div className="text-[10px] text-slate-500 truncate">{user.email}</div>
+                        <div className="text-[10px] text-slate-400 truncate">{user.email}</div>
                     </div>
                     <form action="/auth/signout" method="post">
-                        <button className="p-1.5 rounded-md hover:bg-white/10 text-slate-500 hover:text-red-400 transition-colors">
+                        <button aria-label="Sign out" className="inline-flex items-center justify-center min-w-11 min-h-11 lg:min-w-0 lg:min-h-0 p-1.5 rounded-md hover:bg-white/10 text-slate-400 hover:text-red-400 transition-colors">
                             <LogOut className="w-3.5 h-3.5" />
                         </button>
                     </form>

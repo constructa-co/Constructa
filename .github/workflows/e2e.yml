@@ -1,0 +1,72 @@
+name: E2E
+
+# The Phase 1 browser journey against the disposable Supabase project.
+#
+# This job needs four repository settings. Until they exist it fails with
+# "E2E CONFIGURATION FAILURE", which is a configuration result and never a
+# product pass:
+#   variable  E2E_SUPABASE_PROJECT_REF       the disposable project reference
+#   secret    E2E_SUPABASE_URL
+#   secret    E2E_SUPABASE_ANON_KEY
+#   secret    E2E_SUPABASE_SERVICE_ROLE_KEY
+# The harness refuses any value that does not belong to the approved
+# disposable project (e2e/support/env.ts).
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      evidence:
+        description: Run the full viewport matrix with evidence capture
+        type: boolean
+        default: false
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  phase1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      E2E_SUPABASE_PROJECT_REF: ${{ vars.E2E_SUPABASE_PROJECT_REF }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # Loads the configuration only. Missing or unsafe settings stop here
+      # with a message that says so, before anything is built or run.
+      - name: Check the E2E configuration
+        run: npx playwright test --list
+      # Uses the Chrome already on the runner. No browser is downloaded.
+      - name: Phase 1 smoke (desktop and phone)
+        if: ${{ !inputs.evidence }}
+        run: npm run e2e:smoke
+      - name: Phase 1 evidence run (desktop, tablet, phone, keyboard)
+        if: ${{ inputs.evidence }}
+        run: npm run e2e:evidence
+      # Results and failure screenshots only. Traces are left on the runner:
+      # they record the synthetic session and are not published.
+      - name: Keep the results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase1-e2e-results
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            test-results/report.json
+            test-results/phase1/*.json
+            test-results/**/*.png
+            docs/evidence/stage2-tranche-2e/results-*.json

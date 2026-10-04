@@ -7,7 +7,10 @@ export default defineConfig({
         // functions in src/lib/**/*.test.ts. Gradually expand to server
         // actions (they're async but still pure) and then to React
         // components if/when that's needed.
-        include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+        // e2e/**/*.test.ts are unit tests of the browser harness itself (its
+        // environment gate). The browser journeys are *.spec.ts and run under
+        // Playwright, not here.
+        include: ["src/**/*.test.ts", "src/**/*.test.tsx", "e2e/**/*.test.ts"],
         environment: "node",
         globals: false,
     },

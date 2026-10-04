@@ -41,6 +41,23 @@ visible as warnings so the framework/security migration is not coupled to a
 large unrelated cleanup. New or existing rules that are still errors fail CI;
 the warning baseline should be reduced in focused follow-up work.
 
+## Browser Release Proof
+
+`e2e/` holds one Playwright journey that takes a synthetic contractor from
+sign-up to a recorded client response in a real browser, at desktop, tablet
+and phone sizes and by keyboard alone.
+
+```bash
+npm run e2e:smoke      # desktop and phone
+npm run e2e:evidence   # full matrix, writes docs/evidence/stage2-tranche-2e/
+```
+
+It writes real rows, so it runs only against the disposable Supabase project
+and refuses to start otherwise. `e2e/README.md` lists the required
+environment and every isolation check. The `E2E` workflow runs the smoke on
+pull requests; without its repository settings it fails as a configuration
+failure, never as a pass.
+
 ## Known Quarantine
 
 Four date-semantics assertions in `delay-analysis.test.ts` are skipped under

@@ -42,3 +42,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# browser release proof (generated; see e2e/README.md)
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

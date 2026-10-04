@@ -108,7 +108,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
     };
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 h-full items-start min-w-[900px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 h-full items-start md:min-w-[900px]">
             {COLUMNS.map(col => {
                 const items = projects.filter(p => getStatus(p) === col.id);
                 // P1-4 — prefer the canonical contract sum from the active
@@ -120,7 +120,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                 );
 
                 return (
-                    <div key={col.id} className="flex flex-col h-[calc(100vh-280px)] gap-3">
+                    <div key={col.id} className="flex flex-col md:h-[calc(100vh-280px)] gap-3">
                         {/* COLUMN HEADER */}
                         <div className="flex flex-col gap-1 px-1">
                             <div className="flex items-center justify-between">
@@ -132,7 +132,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     {col.id === "Lead" && (
-                                        <Link href="/dashboard/projects/new" title="New lead" className={`p-1 rounded-md transition-colors ${isDark ? "hover:bg-white/10 text-slate-500 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-600"}`}>
+                                        <Link href="/dashboard/projects/new" title="New lead" aria-label="New lead" className={`inline-flex items-center justify-center min-w-11 min-h-11 lg:min-w-0 lg:min-h-0 p-1 rounded-md transition-colors ${isDark ? "hover:bg-white/10 text-slate-500 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-600"}`}>
                                             <FilePlus className="w-3.5 h-3.5" />
                                         </Link>
                                     )}
@@ -141,12 +141,12 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                     </Badge>
                                 </div>
                             </div>
-                            <div className={`text-[9px] font-black uppercase tracking-widest mt-0.5 ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>
+                            <div className={`text-[9px] font-black uppercase tracking-widest mt-0.5 ${isDark ? "text-[#a0a0a0]" : "text-gray-600"}`}>
                                 £{colTotal.toLocaleString("en-GB", { maximumFractionDigits: 0 })}
                             </div>
                             {/* Lead column hint */}
                             {col.id === "Lead" && (
-                                <div className={`text-[9px] ${isDark ? "text-[#505050]" : "text-gray-300"}`}>
+                                <div className={`text-[9px] ${isDark ? "text-[#a0a0a0]" : "text-gray-600"}`}>
                                     New projects start here
                                 </div>
                             )}
@@ -179,7 +179,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 <div className={`font-bold text-xs leading-tight uppercase tracking-tight truncate ${isDark ? "text-white" : "text-gray-900"}`}>
                                                     {p.name}
                                                 </div>
-                                                <div className={`text-[10px] font-medium mt-0.5 truncate ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>
+                                                <div className={`text-[10px] font-medium mt-0.5 truncate ${isDark ? "text-[#a0a0a0]" : "text-gray-600"}`}>
                                                     {p.client_name || "Unknown Client"}
                                                 </div>
                                             </div>
@@ -196,14 +196,14 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 <span className={`font-mono font-black text-xs ${isDark ? "text-white" : "text-gray-900"}`}>
                                                     {value ? `£${value.toLocaleString("en-GB", { maximumFractionDigits: 0 })}` : "£—"}
                                                 </span>
-                                                <span className={`text-[9px] font-bold ${days > 30 ? "text-amber-500" : isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>
+                                                <span className={`text-[9px] font-bold ${days > 30 ? "text-amber-500" : isDark ? "text-[#a0a0a0]" : "text-gray-600"}`}>
                                                     {days}d
                                                 </span>
                                             </div>
 
                                             {/* MANUAL STATUS OVERRIDE DROPDOWN */}
                                             <Select value={status} onValueChange={(val) => move(p.id, val)} disabled={isPending}>
-                                                <SelectTrigger className={`h-7 text-[10px] font-bold transition-colors ${
+                                                <SelectTrigger aria-label={`Stage of ${p.name}`} className={`h-11 lg:h-7 text-[10px] font-bold transition-colors ${
                                                     isDark
                                                         ? "border-[#2a2a2a] bg-[#0d0d0d] text-white hover:bg-[#1a1a1a]"
                                                         : "border-gray-100 bg-gray-50/50 hover:bg-gray-50"
@@ -225,7 +225,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 <button
                                                     onClick={() => move(p.id, "Active")}
                                                     disabled={isPending}
-                                                    className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
+                                                    className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
                                                         isDark
                                                             ? "bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border-emerald-500/20"
                                                             : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200"
@@ -237,7 +237,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 <button
                                                     onClick={() => move(p.id, "Estimating")}
                                                     disabled={isPending}
-                                                    className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
+                                                    className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
                                                         isDark
                                                             ? "bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border-blue-500/20"
                                                             : "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
@@ -249,7 +249,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 <button
                                                     onClick={() => move(p.id, "Proposal Sent")}
                                                     disabled={isPending}
-                                                    className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
+                                                    className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
                                                         isDark
                                                             ? "bg-purple-500/15 text-purple-400 hover:bg-purple-500/25 border-purple-500/20"
                                                             : "bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"
@@ -261,7 +261,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 <button
                                                     onClick={() => move(p.id, "Completed")}
                                                     disabled={isPending}
-                                                    className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
+                                                    className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
                                                         isDark
                                                             ? "bg-white/8 text-slate-300 hover:bg-white/12 border-white/10"
                                                             : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border-zinc-200"
@@ -273,7 +273,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 <button
                                                     onClick={() => move(p.id, status === "Lost" ? "Proposal Sent" : "Active")}
                                                     disabled={isPending}
-                                                    className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
+                                                    className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
                                                         isDark
                                                             ? "bg-white/5 text-slate-400 hover:bg-white/10 border-white/8"
                                                             : "bg-slate-50 text-slate-500 hover:bg-slate-100 border-slate-200"
@@ -290,8 +290,8 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                         <button
                                                             onClick={() => move(p.id, prevStage)}
                                                             disabled={isPending}
-                                                            className={`text-[9px] font-semibold transition-colors disabled:opacity-40 flex items-center gap-0.5 ${
-                                                                isDark ? "text-slate-600 hover:text-slate-400" : "text-gray-300 hover:text-gray-500"
+                                                            className={`min-h-11 lg:min-h-0 px-2 lg:px-0 text-[9px] font-semibold transition-colors disabled:opacity-40 flex items-center gap-0.5 ${
+                                                                isDark ? "text-slate-400 hover:text-slate-200" : "text-gray-600 hover:text-gray-900"
                                                             }`}
                                                         >
                                                             ← Pull Back
@@ -301,7 +301,9 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                         <button
                                                             onClick={() => move(p.id, "Lost")}
                                                             disabled={isPending}
-                                                            className="text-[9px] font-semibold text-red-500/50 hover:text-red-400 transition-colors disabled:opacity-40"
+                                                            className={`min-h-11 lg:min-h-0 px-2 lg:px-0 text-[9px] font-semibold transition-colors disabled:opacity-40 ${
+                                                                isDark ? "text-red-400 hover:text-red-300" : "text-red-700 hover:text-red-900"
+                                                            }`}
                                                         >
                                                             Mark as Lost
                                                         </button>
@@ -311,10 +313,10 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
 
                                             {/* QUICK LINKS */}
                                             <div className={`flex items-center gap-3 pt-1 border-t ${isDark ? "border-[#2a2a2a]" : "border-gray-50"}`}>
-                                                <Link href={`/dashboard/projects/proposal?projectId=${p.id}`} className="text-[9px] font-black uppercase text-purple-600 hover:underline tracking-widest">
+                                                <Link href={`/dashboard/projects/proposal?projectId=${p.id}`} className="inline-flex items-center justify-center min-w-11 min-h-11 lg:min-w-0 lg:min-h-0 text-[9px] font-black uppercase text-purple-600 hover:underline tracking-widest">
                                                     Proposal
                                                 </Link>
-                                                <Link href={`/dashboard/projects/costs?projectId=${p.id}`} className="text-[9px] font-black uppercase text-green-600 hover:underline tracking-widest">
+                                                <Link href={`/dashboard/projects/costs?projectId=${p.id}`} className="inline-flex items-center justify-center min-w-11 min-h-11 lg:min-w-0 lg:min-h-0 text-[9px] font-black uppercase text-green-700 hover:underline tracking-widest">
                                                     Costs
                                                 </Link>
                                                 {status === "Active" && showExtendedModules && (
@@ -329,11 +331,11 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                             })}
 
                             {items.length === 0 && (
-                                <div className="flex flex-col items-center justify-center p-6 opacity-40">
+                                <div className="flex flex-col items-center justify-center p-6">
                                     <div className={`p-3 rounded-full shadow-inner ${isDark ? "bg-[#1a1a1a] border border-[#2a2a2a]" : "bg-white border border-gray-100"}`}>
                                         <Layers className={`w-5 h-5 ${isDark ? "text-[#a0a0a0]" : "text-gray-300"}`} />
                                     </div>
-                                    <p className={`mt-2 text-[9px] font-black uppercase tracking-widest ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>Empty</p>
+                                    <p className={`mt-2 text-[9px] font-black uppercase tracking-widest ${isDark ? "text-[#a0a0a0]" : "text-gray-600"}`}>Empty</p>
                                 </div>
                             )}
                         </div>

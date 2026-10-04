@@ -255,7 +255,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                                                 : "border-gray-200 bg-white text-gray-700 hover:border-gray-400"
                                     }`}
                                 >
-                                    <span className="block text-xs font-semibold opacity-80">Step {index + 1}</span>
+                                    <span className="block text-xs font-semibold">Step {index + 1}</span>
                                     <span className="block text-xs sm:text-sm font-bold leading-tight">{item.short}</span>
                                 </button>
                             </li>
@@ -609,14 +609,16 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
 
 function ReviewRow({ s, label, onChange, children }: { s: WorkspaceStyles; label: string; onChange: () => void; children: React.ReactNode }) {
     return (
-        <div className="py-3 flex items-start justify-between gap-3">
-            <div className="min-w-0">
-                <dt className={`text-sm font-semibold ${s.muted}`}>{label}</dt>
-                <dd className={`mt-0.5 text-base break-words ${s.body}`}>{children}</dd>
-            </div>
-            <button type="button" onClick={onChange} aria-label={`Change ${label.toLowerCase()}`} className={`${s.quietButton} flex-shrink-0`}>
-                Change
-            </button>
+        // A term, its value and its action sit directly in the group so the
+        // list is read out as terms and values.
+        <div className="py-3 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3">
+            <dt className={`col-start-1 text-sm font-semibold ${s.muted}`}>{label}</dt>
+            <dd className={`col-start-1 mt-0.5 text-base break-words ${s.body}`}>{children}</dd>
+            <dd className="col-start-2 row-start-1 row-span-2">
+                <button type="button" onClick={onChange} aria-label={`Change ${label.toLowerCase()}`} className={s.quietButton}>
+                    Change
+                </button>
+            </dd>
         </div>
     );
 }

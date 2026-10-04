@@ -261,7 +261,7 @@ export default function OnboardingClient({
                     <button
                         type="submit"
                         disabled={saving}
-                        className="flex-1 min-h-12 px-6 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-70 disabled:cursor-not-allowed text-white text-base font-bold transition-colors flex items-center justify-center gap-2"
+                        className="flex-1 min-h-12 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed text-white text-base font-bold transition-colors flex items-center justify-center gap-2"
                     >
                         {saving ? (
                             <>

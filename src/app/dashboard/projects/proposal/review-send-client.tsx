@@ -15,6 +15,7 @@ import type { ProposalPublicationSnapshot } from "@/lib/proposal-publication";
 import type { ReadinessKey, RecommendedKey } from "@/lib/proposal-readiness";
 import { RESPONSE_KINDS, responseWording } from "@/lib/proposal-response";
 import {
+    DELIVERY_ERROR,
     MAX_PAYMENT_STAGES,
     MAX_PHOTOS,
     REVIEW_STATUS_LABEL,
@@ -965,6 +966,10 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                                 ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Sending the email…</>
                                                 : "Try the email again"}
                                         </button>
+                                        {/* Why a retry was refused, when it was not simply another failed send. */}
+                                        {state.delivery.status === "idle" && state.delivery.error && state.delivery.error !== DELIVERY_ERROR && (
+                                            <p data-delivery-refused>{state.delivery.error}</p>
+                                        )}
                                     </div>
                                 )}
 

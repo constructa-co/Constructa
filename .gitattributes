@@ -1,0 +1,2 @@
+# Evidence PDFs are documents, not source: keep them out of text diffs.
+docs/evidence/**/*.pdf binary

@@ -1,5 +1,13 @@
 import { computeContractSum, roundMoney, toNumber } from "@/lib/financial";
+import { computeProgrammePlan, resolveProgrammeSource, type ProgrammePlan } from "@/lib/programme-plan";
+import { isProposalResponseKind, responseWording, type ProposalResponseKind } from "@/lib/proposal-response";
 
+/**
+ * The response mode the database enforces. Every new publication is
+ * "acknowledgement", which permits a single non-binding response and never
+ * acceptance. "binding_acceptance" exists only on publications made before
+ * binding acceptance was withdrawn; it is read, never written.
+ */
 export type ProposalResponseMode = "binding_acceptance" | "acknowledgement";
 
 export interface ProposalPublicationProjectInput {
@@ -18,6 +26,8 @@ export interface ProposalPublicationProjectInput {
     programme_phases?: unknown[] | null;
     gantt_phases?: unknown[] | null;
     payment_schedule?: unknown[] | null;
+    site_photos?: unknown[] | null;
+    selected_case_study_ids?: unknown[] | null;
 }
 
 export interface ProposalPublicationProfileInput {
@@ -31,6 +41,9 @@ export interface ProposalPublicationProfileInput {
     specialisms?: string | null;
     insurance_details?: string | null;
     pdf_theme?: string | null;
+    md_name?: string | null;
+    md_message?: string | null;
+    case_studies?: unknown[] | null;
 }
 
 export interface ProposalPublicationEstimateLineInput {
@@ -69,8 +82,30 @@ export interface BuildProposalPublicationInput {
     estimate: ProposalPublicationEstimateInput;
     termsProfileVersion: string;
     resolvedTerms: ProposalTermClause[];
-    responseMode: ProposalResponseMode;
+    /** What the client is asked for. Binding acceptance cannot be requested. */
+    responseKind: ProposalResponseKind;
     vatRate?: number;
+    /** Why the rate is what it is. A reverse charge always publishes at 0%. */
+    vatTreatment?: ProposalVatTreatment;
+}
+
+export type ProposalVatTreatment = "standard" | "domestic_reverse_charge";
+
+export interface ProposalCaseStudy {
+    title: string;
+    project_type: string | null;
+    location: string | null;
+    client: string | null;
+    contract_value: string | null;
+    duration: string | null;
+    delivered: string | null;
+    value_added: string | null;
+    photos: string[];
+}
+
+export interface ProposalPhoto {
+    url: string;
+    caption: string | null;
 }
 
 export interface ProposalPublicationSnapshot {
@@ -103,6 +138,8 @@ export interface ProposalPublicationSnapshot {
         specialisms: string | null;
         insurance_details: string | null;
         pdf_theme: string | null;
+        md_name?: string | null;
+        md_message?: string | null;
     };
     content: {
         introduction: string | null;
@@ -119,6 +156,8 @@ export interface ProposalPublicationSnapshot {
         vat_rate: number;
         vat_amount: number;
         contract_sum_inc_vat: number;
+        /** Absent on publications made before it was recorded. */
+        vat_treatment?: ProposalVatTreatment;
         fee_items: Array<{
             id: string;
             trade_section: string;
@@ -147,7 +186,20 @@ export interface ProposalPublicationSnapshot {
         profile_version: string;
         clauses: ProposalTermClause[];
     };
+    // Everything below was added after the first publications were made.
+    // It is absent on those, and they are rendered from what they do carry.
+    /** The canonical programme: start, finish, length and stages. */
+    programme_plan?: ProgrammePlan;
+    /** What the client was asked for, with the statement they were shown. */
+    response?: {
+        kind: ProposalResponseKind;
+        notice: string;
+    };
+    case_studies?: ProposalCaseStudy[];
+    photos?: ProposalPhoto[];
 }
+
+export const PROGRAMME_REQUIRED_ERROR = "A start date and how long the job takes are required before send.";
 
 const FORBIDDEN_PUBLICATION_KEYS = new Set([
     "total_cost",
@@ -272,6 +324,73 @@ function sanitiseProgramme(value: unknown[] | null | undefined): ProposalPublica
     });
 }
 
+/**
+ * A link that is safe to load as an image on a public page: https, or plain
+ * http on this machine during development. Anything else is dropped.
+ */
+export function safeImageUrl(value: unknown): string | null {
+    if (typeof value !== "string") return null;
+    const trimmed = value.trim();
+    if (!trimmed || trimmed.length > 2000) return null;
+    try {
+        const url = new URL(trimmed);
+        const local = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+        if (url.username || url.password) return null;
+        return url.protocol === "https:" || (url.protocol === "http:" && local) ? url.toString() : null;
+    } catch {
+        return null;
+    }
+}
+
+function textField(row: Record<string, unknown>, key: string, maxLength: number): string | null {
+    const value = row[key];
+    if (typeof value !== "string") return null;
+    const trimmed = value.trim();
+    return trimmed ? trimmed.slice(0, maxLength) : null;
+}
+
+/**
+ * The past jobs the contractor chose for this proposal, as they wrote them.
+ * A case study is included only when it is ticked; nothing is added or
+ * reworded, and one without a title is left out.
+ */
+export function selectCaseStudies(all: unknown[] | null | undefined, selected: unknown[] | null | undefined): ProposalCaseStudy[] {
+    if (!Array.isArray(all) || !Array.isArray(selected) || selected.length === 0) return [];
+    const chosen = new Set(selected.map((id) => String(id)));
+    return all
+        .map((entry, index) => ({ row: asRecord(entry), index }))
+        .filter(({ row, index }) => chosen.has(String(index)) || (typeof row.id === "string" && chosen.has(row.id)))
+        .map(({ row }) => ({
+            title: textField(row, "projectName", 200) ?? "",
+            project_type: textField(row, "projectType", 200),
+            location: textField(row, "location", 200),
+            client: textField(row, "client", 200),
+            contract_value: textField(row, "contractValue", 50),
+            duration: textField(row, "programmeDuration", 100),
+            delivered: textField(row, "whatWeDelivered", 5000),
+            value_added: textField(row, "valueAdded", 5000),
+            photos: (Array.isArray(row.photos) ? row.photos : [])
+                .map(safeImageUrl)
+                .filter((url): url is string => url !== null)
+                .slice(0, 3),
+        }))
+        .filter((study) => study.title !== "")
+        .slice(0, 6);
+}
+
+/** Site photographs with the contractor's own captions. No caption is supplied for them. */
+export function sanitisePhotos(value: unknown[] | null | undefined): ProposalPhoto[] {
+    if (!Array.isArray(value)) return [];
+    return value
+        .map((entry) => {
+            const row = typeof entry === "string" ? { url: entry } : asRecord(entry);
+            const url = safeImageUrl(row.url);
+            return url ? { url, caption: textField(row, "caption", 300) } : null;
+        })
+        .filter((photo): photo is ProposalPhoto => photo !== null)
+        .slice(0, 12);
+}
+
 export function assertProposalPublicationIsClientSafe(value: unknown): void {
     const visit = (node: unknown): void => {
         if (Array.isArray(node)) {
@@ -291,6 +410,11 @@ export function assertProposalPublicationIsClientSafe(value: unknown): void {
 
 export function buildProposalPublicationSnapshot(
     input: BuildProposalPublicationInput,
+    /**
+     * `allowIncomplete` builds a draft preview while the price or programme
+     * is still missing. It is never used to publish.
+     */
+    options: { allowIncomplete?: boolean } = {},
 ): ProposalPublicationSnapshot {
     if (!Number.isInteger(input.versionNumber) || input.versionNumber < 1) {
         throw new Error("Publication version must be a positive integer.");
@@ -302,12 +426,24 @@ export function buildProposalPublicationSnapshot(
     if (!Number.isFinite(vatRate) || vatRate < 0 || vatRate > 100) {
         throw new Error("VAT rate must be between 0 and 100.");
     }
+    if (input.vatTreatment === "domestic_reverse_charge" && vatRate !== 0) {
+        throw new Error("A reverse-charge proposal cannot charge VAT.");
+    }
     if (input.resolvedTerms.length === 0) throw new Error("Resolved proposal terms are required.");
+    if (!isProposalResponseKind(input.responseKind)) {
+        throw new Error("Choose how the client responds: confirm receipt, or a non-binding intention to proceed.");
+    }
 
     const breakdown = computeContractSum(input.estimate, input.estimate.estimate_lines);
     const contractSumExVat = roundMoney(breakdown.contractSum);
-    if (contractSumExVat <= 0) throw new Error("A positive canonical contract sum is required before send.");
+    if (contractSumExVat <= 0 && !options.allowIncomplete) {
+        throw new Error("A positive canonical contract sum is required before send.");
+    }
     const vatAmount = roundMoney(contractSumExVat * vatRate / 100);
+
+    const programmeSource = resolveProgrammeSource(input.project);
+    const programmePlan = computeProgrammePlan(input.project.start_date, programmeSource.phases);
+    if (!programmePlan && !options.allowIncomplete) throw new Error(PROGRAMME_REQUIRED_ERROR);
 
     const snapshot: ProposalPublicationSnapshot = {
         schema_version: 1,
@@ -317,7 +453,9 @@ export function buildProposalPublicationSnapshot(
             sent_at: new Date(input.sentAt).toISOString(),
             expires_at: addCalendarDays(input.sentAt, input.validityDays),
             validity_days: input.validityDays,
-            response_mode: input.responseMode,
+            // Fixed: the database then permits one non-binding response and
+            // refuses acceptance. What is asked for is in `response` below.
+            response_mode: "acknowledgement",
         },
         project: {
             id: requiredText(input.project.id, "Project id", 100),
@@ -339,6 +477,8 @@ export function buildProposalPublicationSnapshot(
             specialisms: optionalText(input.profile.specialisms, 5000),
             insurance_details: optionalText(input.profile.insurance_details, 5000),
             pdf_theme: optionalText(input.profile.pdf_theme, 100),
+            md_name: optionalText(input.profile.md_name, 200),
+            md_message: optionalText(input.profile.md_message, 5000),
         },
         content: {
             introduction: optionalText(input.project.proposal_introduction, 20000),
@@ -355,14 +495,11 @@ export function buildProposalPublicationSnapshot(
             vat_rate: vatRate,
             vat_amount: vatAmount,
             contract_sum_inc_vat: roundMoney(contractSumExVat + vatAmount),
+            ...(input.vatTreatment ? { vat_treatment: input.vatTreatment } : {}),
             fee_items: buildFeeItems(input.estimate, contractSumExVat),
             payment_schedule: sanitisePaymentSchedule(input.project.payment_schedule),
         },
-        programme: sanitiseProgramme(
-            (Array.isArray(input.project.programme_phases) && input.project.programme_phases.length > 0)
-                ? input.project.programme_phases
-                : input.project.gantt_phases,
-        ),
+        programme: sanitiseProgramme(programmeSource.phases),
         terms: {
             profile_version: requiredText(input.termsProfileVersion, "Terms profile version", 100),
             clauses: input.resolvedTerms.map((clause) => ({
@@ -370,6 +507,13 @@ export function buildProposalPublicationSnapshot(
                 body: requiredText(clause.body, "Term body", 10000),
             })),
         },
+        ...(programmePlan ? { programme_plan: programmePlan } : {}),
+        response: {
+            kind: input.responseKind,
+            notice: responseWording(input.responseKind).notice,
+        },
+        case_studies: selectCaseStudies(input.profile.case_studies, input.project.selected_case_study_ids),
+        photos: sanitisePhotos(input.project.site_photos),
     };
 
     assertProposalPublicationIsClientSafe(snapshot);

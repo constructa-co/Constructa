@@ -18,6 +18,7 @@
     "test:organization-sql": "bash scripts/test-organization-membership-sql.sh",
     "test:phase1-grants-sql": "bash scripts/test-phase1-data-api-grants-sql.sh",
     "test:proposal-sql": "bash scripts/test-proposal-publication-sql.sh",
+    "test:proposal-response-sql": "bash scripts/test-proposal-response-sql.sh",
     "test:supervisor-sql": "bash scripts/test-supervisor-token-sql.sh",
     "test:storage-sql": "bash scripts/test-storage-policy-sql.sh",
     "test:watch": "vitest",

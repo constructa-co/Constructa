@@ -1,5 +1,11 @@
 import { Resend } from "resend";
 import { getLaunchLandingPath } from "@/lib/launch-profile";
+import {
+    describeRecordedResponse,
+    responseWording,
+    type ProposalResponseKind,
+    type RecordedResponseKind,
+} from "@/lib/proposal-response";
 
 function getResend(): Resend {
     const apiKey = process.env.RESEND_API_KEY;
@@ -23,7 +29,8 @@ interface SendProposalEmailArgs {
     proposalUrl: string;
     companyName: string;
     siteAddress?: string;
-    responseMode?: "binding_acceptance" | "acknowledgement";
+    /** What the client is asked for. Worded from the one response wording table. */
+    responseKind?: ProposalResponseKind;
     idempotencyKey?: string;
 }
 
@@ -68,6 +75,8 @@ interface ProposalResponseReceiptArgs {
     projectName: string;
     companyName: string;
     response: ProposalResponse;
+    /** What the publication asked for. Decides how an acknowledgement is described. */
+    responseKind?: RecordedResponseKind;
     respondedAt: string;
     refCode: string;
     publicationVersion: number;
@@ -83,16 +92,10 @@ export function buildProposalResponseReceiptContent(
     const companyName = escapeEmailHtml(args.companyName);
     const refCode = escapeEmailHtml(args.refCode);
     const snapshotReference = escapeEmailHtml(args.snapshotReference.slice(0, 12));
-    const responseLabel = args.response === "acknowledged"
-        ? "Receipt acknowledged"
-        : args.response === "accepted"
-            ? "Proposal accepted"
-            : "Proposal declined";
-    const responseExplanation = args.response === "acknowledged"
-        ? "This records receipt and review of the proposal. It is not contract acceptance."
-        : args.response === "accepted"
-            ? "This records the client's acceptance of the published proposal."
-            : "This records that the client declined the published proposal.";
+    const { label: responseLabel, explanation: responseExplanation } = describeRecordedResponse(
+        args.response,
+        args.responseKind ?? "acknowledgement",
+    );
     const date = new Date(args.respondedAt).toLocaleString("en-GB", {
         day: "numeric",
         month: "long",
@@ -148,27 +151,22 @@ export async function sendProposalResponseReceipt(args: ProposalResponseReceiptA
 
 // ─── Email: Contractor sends proposal to client ───────────────────────────────
 
-export async function sendProposalEmail({
-    clientEmail,
+/** The email that delivers a published proposal to the client. */
+export function buildProposalEmailContent({
     clientName,
     projectName,
     proposalUrl,
     companyName,
     siteAddress,
-    responseMode = "acknowledgement",
-    idempotencyKey,
-}: SendProposalEmailArgs) {
+    responseKind = "acknowledgement",
+}: Omit<SendProposalEmailArgs, "clientEmail" | "idempotencyKey">) {
     const safeClientName = escapeEmailHtml(clientName);
     const safeProjectName = escapeEmailHtml(projectName);
     const safeCompanyName = escapeEmailHtml(companyName);
     const safeSiteAddress = siteAddress ? escapeEmailHtml(siteAddress) : null;
     const safeProposalUrl = escapeEmailHtml(requireTrustedAppUrl(proposalUrl));
-    const responseCopy = responseMode === "binding_acceptance"
-        ? "and confirm your acceptance directly through the proposal"
-        : "and acknowledge receipt after reviewing the complete proposal";
-    return getResend().emails.send({
-        from: FROM,
-        to: clientEmail,
+    const responseCopy = escapeEmailHtml(responseWording(responseKind).emailInvite);
+    return {
         subject: `Your Proposal — ${normalizeEmailSubjectPart(projectName)}`,
         html: `
 <!DOCTYPE html>
@@ -186,11 +184,11 @@ export async function sendProposalEmail({
       <td style="padding:32px;">
         <p style="color:#111827; font-size:16px; margin:0 0 16px;">Dear ${safeClientName},</p>
         <p style="color:#374151; font-size:15px; line-height:1.6; margin:0 0 16px;">
-          Thank you for the opportunity to work with you. Please find your proposal for
+          Please find our proposal for
           <strong>${safeProjectName}</strong>${safeSiteAddress ? ` at ${safeSiteAddress}` : ""} via the link below.
         </p>
         <p style="color:#374151; font-size:15px; line-height:1.6; margin:0 0 24px;">
-          You can review the full scope of works, pricing, programme, and terms — ${responseCopy}.
+          You can read the scope of works, price, programme and terms, ${responseCopy}.
         </p>
         <a href="${safeProposalUrl}" style="display:inline-block; background:#0d0d0d; color:#ffffff; font-size:15px; font-weight:600; text-decoration:none; padding:14px 28px; border-radius:8px;">
           View Your Proposal →
@@ -210,6 +208,16 @@ export async function sendProposalEmail({
   </table>
 </body>
 </html>`,
+    };
+}
+
+export async function sendProposalEmail({ clientEmail, idempotencyKey, ...args }: SendProposalEmailArgs) {
+    const content = buildProposalEmailContent(args);
+    return getResend().emails.send({
+        from: FROM,
+        to: clientEmail,
+        subject: content.subject,
+        html: content.html,
     }, idempotencyKey ? { idempotencyKey } : undefined);
 }
 

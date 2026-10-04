@@ -9,6 +9,11 @@
  * and where to fix it.
  */
 
+import { roundMoney } from "./financial";
+import { computeProgrammePlan } from "./programme-plan";
+
+export { isUntouchedStarterProgramme, type StarterPhaseSeed } from "./programme-plan";
+
 export type ReadinessKey =
     | "identity"
     | "scope"
@@ -18,11 +23,14 @@ export type ReadinessKey =
     | "terms";
 
 export type RecommendedKey =
+    | "introduction"
+    | "about"
     | "photos"
     | "caseStudies"
     | "exclusions"
     | "clarifications"
-    | "closingStatement";
+    | "closingStatement"
+    | "paymentCoverage";
 
 export interface ReadinessItem<K extends string = ReadinessKey> {
     key: K;
@@ -46,6 +54,9 @@ export interface ProposalReadinessInput {
     /** Resolved terms as they would be published. */
     terms?: unknown[] | null;
     // Recommended — never block publication.
+    introduction?: string | null;
+    /** The contractor's description of their business, from the company profile. */
+    aboutBusiness?: string | null;
     hasPhotos?: boolean;
     hasCaseStudies?: boolean;
     exclusions?: string | null;
@@ -99,44 +110,26 @@ export function isValidProgrammePhase(phase: unknown, projectStartDate?: string 
     return isValidDate(projectStartDate) && Number.isFinite(offset) && offset >= 0;
 }
 
-export interface StarterPhaseSeed {
-    name: string;
-    duration_days: number;
-    duration_unit: string;
-}
-
-/**
- * True when the phases are still the seeded starter list, i.e. nothing the
- * contractor has decided. Ids and colours carry no meaning, so they are
- * ignored. Any change to a name, a duration, a duration unit or a start
- * date, or adding or removing a phase, makes it the contractor's programme.
- *
- * Starter phases are seeded with the project start date, or with no start
- * when the project had none at the time. Both count as the seeded start.
- */
-export function isUntouchedStarterProgramme(
-    phases: unknown[] | null | undefined,
-    seeds: readonly StarterPhaseSeed[],
-    projectStartDate?: string | null,
-): boolean {
-    if (!Array.isArray(phases) || phases.length !== seeds.length) return false;
-    const seededStart = typeof projectStartDate === "string" ? projectStartDate.trim() : "";
-    return phases.every((phase, index) => {
-        const p = asRecord(phase);
-        const seed = seeds[index];
-        const start = typeof p.start_date === "string" ? p.start_date.trim() : "";
-        return p.name === seed.name
-            && Number(p.duration_days) === seed.duration_days
-            && p.duration_unit === seed.duration_unit
-            && (start === "" || start === seededStart);
-    });
-}
-
 /** A payment row counts when it has a stage name and a share or amount above zero. */
 export function isValidPaymentRow(row: unknown): boolean {
     const r = asRecord(row);
     if (!hasText(r.stage)) return false;
     return positiveNumber(r.percentage) > 0 || positiveNumber(r.amount) > 0;
+}
+
+/**
+ * What the payment stages add up to, as a share of the price. A stage with
+ * its own amount counts as that amount; a percentage stage as that share.
+ */
+export function paymentCoverage(rows: unknown[] | null | undefined, contractSum: number | null | undefined): number | null {
+    const total = positiveNumber(contractSum);
+    const valid = (Array.isArray(rows) ? rows : []).filter(isValidPaymentRow).map(asRecord);
+    if (valid.length === 0 || total <= 0) return null;
+    const amount = valid.reduce((sum, row) => {
+        const fixed = positiveNumber(row.amount);
+        return sum + (fixed > 0 ? fixed : (total * positiveNumber(row.percentage)) / 100);
+    }, 0);
+    return roundMoney((amount / total) * 100);
 }
 
 function isVisibleTerm(clause: unknown): boolean {
@@ -150,6 +143,12 @@ export function evaluateProposalReadiness(input: ProposalReadinessInput): Propos
     const phases = Array.isArray(input.programmePhases) ? input.programmePhases : [];
     const payments = Array.isArray(input.paymentSchedule) ? input.paymentSchedule : [];
     const terms = Array.isArray(input.terms) ? input.terms : [];
+    // The proposal shows a start, a finish and a length. All three come from
+    // the one programme calculation, so it must produce an answer.
+    const hasProgramme = phases.some((phase) => isValidProgrammePhase(phase, input.projectStartDate))
+        && computeProgrammePlan(input.projectStartDate, phases) !== null;
+    const coverage = paymentCoverage(payments, input.contractSum);
+    const paymentsExceedPrice = coverage !== null && coverage > 100.01;
 
     const mandatory: ReadinessItem[] = [
         {
@@ -177,14 +176,16 @@ export function evaluateProposalReadiness(input: ProposalReadinessInput): Propos
         {
             key: "programme",
             label: "Programme",
-            ok: phases.some((phase) => isValidProgrammePhase(phase, input.projectStartDate)),
-            fix: "Add at least one stage with a name, a start date and how long it takes in Programme.",
+            ok: hasProgramme,
+            fix: "Add the start date and how long the job takes in Programme.",
         },
         {
             key: "payment",
             label: "Payment stages",
-            ok: payments.some(isValidPaymentRow),
-            fix: "Add at least one payment stage with a name and an amount or percentage.",
+            ok: payments.some(isValidPaymentRow) && !paymentsExceedPrice,
+            fix: paymentsExceedPrice
+                ? `Your payment stages add up to ${coverage}% of the price. Bring them down to 100% or less.`
+                : "Add at least one payment stage with a name and an amount or percentage.",
         },
         {
             key: "terms",
@@ -195,11 +196,19 @@ export function evaluateProposalReadiness(input: ProposalReadinessInput): Propos
     ];
 
     const recommended: ReadinessItem<RecommendedKey>[] = [
+        { key: "introduction", label: "Opening message", ok: hasText(input.introduction), fix: "Write a short opening message to the client." },
+        { key: "about", label: "About your business", ok: hasText(input.aboutBusiness), fix: "Describe your business in your company profile." },
         { key: "photos", label: "Site photos", ok: input.hasPhotos === true, fix: "Add a site photo." },
-        { key: "caseStudies", label: "Past jobs", ok: input.hasCaseStudies === true, fix: "Add a past job in Case Studies." },
+        { key: "caseStudies", label: "Past jobs", ok: input.hasCaseStudies === true, fix: "Choose a past job to show, or add one in Case Studies." },
         { key: "exclusions", label: "What's not included", ok: hasText(input.exclusions), fix: "List what's not included." },
         { key: "clarifications", label: "Clarifications", ok: hasText(input.clarifications), fix: "Add any clarifications." },
         { key: "closingStatement", label: "Closing message", ok: hasText(input.closingStatement), fix: "Add a closing message." },
+        {
+            key: "paymentCoverage",
+            label: "Payment stages cover the whole price",
+            ok: coverage === null || coverage >= 99.99,
+            fix: `Your payment stages cover ${coverage ?? 0}% of the price. Add stages until they reach 100%.`,
+        },
     ];
 
     const missing = mandatory.filter((item) => !item.ok);

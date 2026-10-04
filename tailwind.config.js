@@ -5,6 +5,10 @@ module.exports = {
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    // Shared class lists (workspace-styles.ts) live here. Without this a
+    // class used nowhere else, such as the light-theme error colour, is
+    // never generated.
+    './src/lib/**/*.{ts,tsx}',
   ],
   theme: {
   	extend: {

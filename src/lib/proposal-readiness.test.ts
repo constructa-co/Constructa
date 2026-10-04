@@ -5,6 +5,7 @@ import {
     isUntouchedStarterProgramme,
     isValidPaymentRow,
     isValidProgrammePhase,
+    paymentCoverage,
     showsPublishBlockReason,
     type ProposalReadinessInput,
     type ReadinessKey,
@@ -37,6 +38,8 @@ describe("evaluateProposalReadiness", () => {
     it("does not let recommended items block readiness", () => {
         const result = evaluateProposalReadiness({
             ...complete,
+            introduction: "",
+            aboutBusiness: null,
             hasPhotos: false,
             hasCaseStudies: false,
             exclusions: "",
@@ -45,14 +48,18 @@ describe("evaluateProposalReadiness", () => {
         });
         expect(result.ready).toBe(true);
         expect(result.recommended.map((item) => item.key)).toEqual([
-            "photos", "caseStudies", "exclusions", "clarifications", "closingStatement",
+            "introduction", "about", "photos", "caseStudies", "exclusions", "clarifications", "closingStatement", "paymentCoverage",
         ]);
+        // The one payment stage covers 20% of the price: allowed, and pointed out.
         expect(result.recommended.every((item) => !item.ok)).toBe(true);
     });
 
     it("marks recommended items as done when supplied", () => {
         const result = evaluateProposalReadiness({
             ...complete,
+            paymentSchedule: [{ stage: "Deposit", percentage: 20 }, { stage: "Completion", percentage: 80 }],
+            introduction: "Thanks for showing us round.",
+            aboutBusiness: "A family firm.",
             hasPhotos: true,
             hasCaseStudies: true,
             exclusions: "Planning fees",
@@ -100,6 +107,18 @@ describe("evaluateProposalReadiness", () => {
         expect(missingKeys({ ...complete, projectStartDate: null })).toEqual(["programme"]);
     });
 
+    it("needs a start date, a duration and so a finish date: the facts every proposal shows", () => {
+        const fix = "Add the start date and how long the job takes in Programme.";
+        const withoutStart = evaluateProposalReadiness({ ...complete, projectStartDate: "" });
+        expect(withoutStart.ready).toBe(false);
+        expect(withoutStart.missing).toEqual([{ key: "programme", label: "Programme", ok: false, fix }]);
+        // A start date alone is not a programme.
+        expect(missingKeys({ ...complete, programmePhases: [{ name: "Works on site", calculatedDays: 0, manualDays: null }] })).toEqual(["programme"]);
+        // A duration alone is not a programme.
+        expect(missingKeys({ ...complete, projectStartDate: "not a date" })).toEqual(["programme"]);
+        expect(missingKeys({ ...complete, programmePhases: [{ name: "Works on site", manualDays: 15, calculatedDays: 15, startOffset: 0 }] })).toEqual([]);
+    });
+
     it("passes when at least one phase is valid among invalid ones", () => {
         expect(missingKeys({
             ...complete,
@@ -111,6 +130,24 @@ describe("evaluateProposalReadiness", () => {
         expect(missingKeys({ ...complete, paymentSchedule: [] })).toEqual(["payment"]);
         expect(missingKeys({ ...complete, paymentSchedule: [{ stage: "", percentage: 20 }] })).toEqual(["payment"]);
         expect(missingKeys({ ...complete, paymentSchedule: [{ stage: "Deposit", percentage: 0 }] })).toEqual(["payment"]);
+    });
+
+    it("blocks payment stages that add up to more than the price, and only those", () => {
+        const over = evaluateProposalReadiness({
+            ...complete,
+            paymentSchedule: [{ stage: "Deposit", percentage: 60 }, { stage: "Completion", percentage: 60 }],
+        });
+        expect(over.missing.map((item) => item.key)).toEqual(["payment"]);
+        expect(over.missing[0].fix).toBe("Your payment stages add up to 120% of the price. Bring them down to 100% or less.");
+
+        expect(missingKeys({ ...complete, paymentSchedule: [{ stage: "Deposit", percentage: 0, amount: 13000 }] })).toEqual(["payment"]);
+        expect(missingKeys({ ...complete, paymentSchedule: [{ stage: "All", percentage: 0, amount: 12000 }] })).toEqual([]);
+        expect(missingKeys({ ...complete, paymentSchedule: [{ stage: "A", percentage: 33.33 }, { stage: "B", percentage: 33.33 }, { stage: "C", percentage: 33.34 }] })).toEqual([]);
+
+        expect(paymentCoverage([{ stage: "Deposit", percentage: 20 }], 12000)).toBe(20);
+        expect(paymentCoverage([{ stage: "Deposit", percentage: 0, amount: 3000 }, { stage: "Rest", percentage: 50 }], 12000)).toBe(75);
+        expect(paymentCoverage([], 12000)).toBeNull();
+        expect(paymentCoverage([{ stage: "Deposit", percentage: 20 }], 0)).toBeNull();
     });
 
     it("fails when no term is showing", () => {

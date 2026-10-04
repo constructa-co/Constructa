@@ -3,19 +3,29 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashProposalAccessToken, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
 import { sendProposalResponseReceipt } from "@/lib/email";
-import { parseProposalResponseInput } from "@/lib/proposal-response";
+import { proposalReference } from "@/lib/proposal-document";
+import { parseProposalResponseInput, responseKindOfSnapshot } from "@/lib/proposal-response";
 
+/**
+ * Records the client's response to a published proposal.
+ *
+ * The browser sends a name and an optional email, nothing else. The only
+ * response this action can record is the non-binding one the publication
+ * asked for: confirmation of receipt, or an intention to proceed. It cannot
+ * record acceptance. What the response means is read from the immutable
+ * snapshot, and the database refuses anything the publication does not
+ * permit.
+ */
 export async function respondToProposalAction(
     token: string,
-    response: "acknowledged" | "accepted" | "declined",
     clientName: string,
     clientEmail: string,
 ): Promise<{ success: boolean; status?: string; respondedAt?: string; error?: string }> {
-    const parsed = parseProposalResponseInput({ token, response, clientName, clientEmail });
+    const parsed = parseProposalResponseInput({ token, clientName, clientEmail });
     if (!parsed.success) {
-        return { success: false, error: "Enter a valid name and email address." };
+        return { success: false, error: "Enter your full name and, if you add one, a valid email address." };
     }
-    ({ token, response, clientName, clientEmail } = parsed.data);
+    ({ token, clientName, clientEmail } = parsed.data);
 
     let tokenHash: string;
     try {
@@ -30,7 +40,7 @@ export async function respondToProposalAction(
     const adminSupabase = createAdminClient();
     const { data, error } = await adminSupabase.rpc("respond_to_proposal_publication", {
         p_token_hash: tokenHash,
-        p_response: response,
+        p_response: "acknowledged",
         p_name: clientName,
         p_email: clientEmail || null,
         p_note: null,
@@ -42,7 +52,7 @@ export async function respondToProposalAction(
             ? "Proposal not found."
             : error?.code === "23514"
                 ? "This proposal can no longer receive a response. Please contact the contractor."
-                : "Could not record your response. Please contact the contractor.";
+                : "Your response could not be recorded. Please try again, or contact the contractor.";
         return {
             success: false,
             error: publicError,
@@ -50,7 +60,8 @@ export async function respondToProposalAction(
     }
 
     const snapshot = result.snapshot as ProposalPublicationSnapshot;
-    const refCode = `${snapshot.project.id.substring(0, 8).toUpperCase()}-V${snapshot.publication.version_number}`;
+    const refCode = proposalReference(snapshot);
+    const responseKind = responseKindOfSnapshot(snapshot);
 
     let contractorEmail: string | undefined;
     try {
@@ -63,6 +74,9 @@ export async function respondToProposalAction(
     const publicationId = String(result.publication_id);
     const respondedAt = String(result.responded_at);
     const snapshotReference = String(result.publication_snapshot_hash || "");
+    // The response is committed from here on. A receipt that fails to send is
+    // recorded against the publication and never turns the response into a
+    // failure for the client.
     const sendReceipt = async (audience: "client" | "owner", recipientEmail: string) => {
         try {
             const delivery = await sendProposalResponseReceipt({
@@ -71,12 +85,13 @@ export async function respondToProposalAction(
                 clientName,
                 projectName: snapshot.project.name,
                 companyName: snapshot.contractor.company_name,
-                response,
+                response: "acknowledged",
+                responseKind,
                 respondedAt,
                 refCode,
                 publicationVersion: snapshot.publication.version_number,
                 snapshotReference,
-                idempotencyKey: `proposal-response-${audience}/${publicationId}/${response}`,
+                idempotencyKey: `proposal-response-${audience}/${publicationId}/acknowledged`,
             });
             if (delivery.error) throw new Error(delivery.error.name || "provider_error");
             const { error: recordError } = await adminSupabase.rpc("record_proposal_receipt_delivery", {

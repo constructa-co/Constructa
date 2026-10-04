@@ -66,3 +66,23 @@ Server Actions all enforce the same profile. Deferred action modules authenticat
 through `src/lib/supabase/extended-module-auth-utils.ts`; do not replace that
 adapter with the base auth helper unless the module is deliberately promoted
 into the cohort journey.
+
+## Proposal Document
+
+A proposal is published as an immutable snapshot (`proposal_publications`).
+The client's web page and the PDF are both drawn from that snapshot through
+one document model, so they cannot state different prices, dates or terms:
+
+- `src/lib/programme-plan.ts` is the only place a programme date is worked
+  out (working days are Monday to Friday).
+- `src/lib/proposal-publication.ts` builds the snapshot.
+- `src/lib/proposal-document.ts` turns a snapshot into ordered sections.
+- `src/components/proposal/proposal-document-view.tsx` renders it as HTML and
+  `src/lib/pdf/proposal-brochure.ts` as an A4 PDF with content-aware page
+  breaks.
+- `src/lib/proposal-response.ts` holds the wording of the client response.
+  New publications ask for receipt or a non-binding intention to proceed;
+  binding acceptance is not offered.
+
+`npm run test:proposal-response-sql` checks the response rules against the
+migrations in a throwaway local Postgres.

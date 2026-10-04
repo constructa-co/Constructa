@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProjectNavBar from "@/components/project-navbar";
-import ClientSchedulePage from "./client-page";
+import { getPrecontractEditLockReason } from "@/lib/project-editability";
+import SimpleProgrammeClient from "./simple-programme-client";
 
 export const dynamic = "force-dynamic";
 
@@ -27,34 +28,34 @@ export default async function SchedulePage(props: { searchParams: Promise<{ proj
         .from("projects")
         .select("*")
         .eq("id", activeProjectId)
+        .eq("user_id", user.id)
         .single();
 
     if (!project) {
         return <div className="p-8 text-slate-400">No projects found. Create one in the dashboard first.</div>;
     }
 
-    // Fetch active estimate with lines and components (for manhours)
+    // The active estimate with lines and components. Only the detailed planner
+    // uses it, to suggest stage lengths from man-hours.
     const { data: estimates } = await supabase
         .from("estimates")
         .select("*, estimate_lines(*, estimate_line_components(*))")
         .eq("project_id", project.id)
         .order("created_at");
 
-    // Use whatever estimate is marked active — if the client BoQ has been imported it
-    // will be set as active and its sections become the programme phases.
     const activeEstimate =
-        (estimates || []).find((e: any) => e.is_active) ||
+        (estimates || []).find((e: { is_active?: boolean }) => e.is_active) ||
         (estimates || [])[0] ||
         null;
 
     return (
-        <div className="max-w-7xl mx-auto p-8 pt-24 space-y-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-8 pt-4 sm:pt-8 pb-16">
             <ProjectNavBar projectId={activeProjectId} activeTab="programme" />
 
-            <ClientSchedulePage
+            <SimpleProgrammeClient
                 project={project}
+                lockReason={getPrecontractEditLockReason(project)}
                 estimate={activeEstimate}
-                projectId={activeProjectId}
             />
         </div>
     );

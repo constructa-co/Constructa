@@ -146,21 +146,6 @@ export const CreateChangeEventSchema = z.object({
     notes:              z.string().max(5000).optional(),
 });
 
-// ── 7. Proposal save (proposal/actions.ts saveProposalAction) ────────────────
-// The proposal editor serialises its state into FormData — schema validates
-// the extracted fields before the DB write. String bounds kept generous to
-// match the full proposal editor's textareas.
-
-export const SaveProposalSchema = z.object({
-    projectId:              Uuid,
-    scope:                  z.string().max(20000).optional(),
-    exclusions:             z.string().max(10000).optional(),
-    clarifications:         z.string().max(10000).optional(),
-    proposal_introduction:  z.string().max(20000).optional(),
-    // Everything else is accepted as-is but the above cover the most
-    // user-editable text-heavy fields.
-});
-
 // ── 8. Client BoQ import (costs/boq-import-action.ts createBoQEstimateAction) ─
 // Bulk insert from Excel/PDF parsing. This is the `any[]` Perplexity flagged.
 // Matches the flat `ParsedClientBoQ` shape emitted by the PDF / Excel parsers.

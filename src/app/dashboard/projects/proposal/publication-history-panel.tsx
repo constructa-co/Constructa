@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Eye, FileCheck2, History } from "lucide-react";
+import { ChevronDown, FileDown, Loader2 } from "lucide-react";
+import type { ProposalPublicationSnapshot } from "@/lib/proposal-publication";
+import { describeRecordedResponse, type RecordedResponseKind } from "@/lib/proposal-response";
+import type { WorkspaceStyles } from "@/lib/workspace-styles";
 
 export interface ProposalPublicationHistoryRow {
     id: string;
@@ -14,7 +17,14 @@ export interface ProposalPublicationHistoryRow {
     responded_by: string | null;
     superseded_by: string | null;
     snapshot_hash: string;
+    /** What the publication asked the client for, read from its snapshot. */
+    response_kind?: string | null;
+    response_mode?: string | null;
 }
+
+type LoadPublication = (publicationId: string) => Promise<
+    { success: true; snapshot: ProposalPublicationSnapshot; snapshotHash: string } | { success: false; error: string }
+>;
 
 function formatDate(value: string | null) {
     if (!value) return null;
@@ -24,74 +34,125 @@ function formatDate(value: string | null) {
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
+        timeZone: "Europe/London",
     });
 }
 
-const STATUS_STYLES: Record<ProposalPublicationHistoryRow["status"], string> = {
-    sent: "bg-blue-500/15 text-blue-300",
-    viewed: "bg-cyan-500/15 text-cyan-300",
-    acknowledged: "bg-emerald-500/15 text-emerald-300",
-    accepted: "bg-emerald-500/15 text-emerald-300",
-    declined: "bg-red-500/15 text-red-300",
-    revoked: "bg-slate-700/60 text-slate-400",
+export function publicationResponseKind(row: Pick<ProposalPublicationHistoryRow, "response_kind" | "response_mode">): RecordedResponseKind {
+    if (row.response_kind === "non_binding_intent" || row.response_kind === "acknowledgement") return row.response_kind;
+    return row.response_mode === "binding_acceptance" ? "binding_acceptance" : "acknowledgement";
+}
+
+const ASKED_FOR: Record<RecordedResponseKind, string> = {
+    acknowledgement: "confirmation of receipt",
+    non_binding_intent: "a non-binding intention to proceed",
+    binding_acceptance: "acceptance (no longer offered)",
 };
 
+/** The status in plain words. A recorded response is described by what that version asked for. */
+export function publicationStatusLabel(row: ProposalPublicationHistoryRow): string {
+    switch (row.status) {
+        case "sent": return "Sent, not opened yet";
+        case "viewed": return "Opened by the client";
+        case "revoked": return "Replaced by a newer version";
+        default: return describeRecordedResponse(row.status, publicationResponseKind(row)).label;
+    }
+}
+
+/**
+ * Every version that has been sent. Each one is a fixed record: it shows
+ * what was sent and what the client did, and its PDF is drawn from that
+ * version's own snapshot, whatever the draft says now.
+ */
 export default function PublicationHistoryPanel({
-    publications,
+    publications, s, loadPublication,
 }: {
     publications: ProposalPublicationHistoryRow[];
+    s: WorkspaceStyles;
+    loadPublication: LoadPublication;
 }) {
     const [open, setOpen] = useState(false);
+    const [pdf, setPdf] = useState<{ id: string | null; note: string; failed: boolean }>({ id: null, note: "", failed: false });
+
+    const download = async (publicationId: string) => {
+        setPdf({ id: publicationId, note: "", failed: false });
+        try {
+            const publication = await loadPublication(publicationId);
+            if (!publication.success) {
+                setPdf({ id: null, note: publication.error, failed: true });
+                return;
+            }
+            const { downloadProposalPdf } = await import("@/lib/pdf/proposal-brochure");
+            const result = await downloadProposalPdf(publication.snapshot, publication.snapshotHash);
+            setPdf({
+                id: null,
+                failed: false,
+                note: result.skippedImages > 0
+                    ? `The PDF was made without ${result.skippedImages} ${result.skippedImages === 1 ? "image" : "images"} that could not be loaded.`
+                    : "",
+            });
+        } catch {
+            setPdf({ id: null, note: "The PDF could not be made. Try again.", failed: true });
+        }
+    };
 
     return (
-        <div className="overflow-hidden rounded-xl border border-slate-700/60 bg-slate-900/60">
+        <section className={s.card} aria-labelledby="sent-versions-title" data-publication-history>
             <button
                 type="button"
                 onClick={() => setOpen((value) => !value)}
-                className="flex w-full items-center justify-between px-4 py-3 text-sm text-slate-300 transition-colors hover:bg-slate-800/50 hover:text-slate-100"
+                aria-expanded={open}
+                aria-controls="sent-versions"
+                className={`w-full min-h-14 px-4 sm:px-5 py-3 flex items-center justify-between gap-3 text-left ${s.body}`}
             >
-                <span className="flex items-center gap-2 font-medium">
-                    <History className="h-4 w-4 text-blue-400" />
-                    Published history
-                    <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-400">
-                        {publications.length}
+                <span>
+                    <span id="sent-versions-title" className={`block text-base font-bold ${s.heading}`}>
+                        Sent versions ({publications.length})
                     </span>
+                    <span className={`block text-sm ${s.muted}`}>Each version is kept exactly as it was sent.</span>
                 </span>
-                {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                <ChevronDown className={`w-5 h-5 flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
             </button>
 
             {open && (
-                <div className="divide-y divide-slate-800 border-t border-slate-700/60">
-                    {publications.map((publication) => (
-                        <div key={publication.id} className="space-y-2 px-4 py-3">
-                            <div className="flex items-center justify-between gap-3">
-                                <span className="flex items-center gap-2 text-sm font-semibold text-slate-200">
-                                    <FileCheck2 className="h-4 w-4 text-blue-400" />
-                                    Version {publication.version_number}
-                                </span>
-                                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${STATUS_STYLES[publication.status]}`}>
-                                    {publication.status}
-                                </span>
-                            </div>
-                            <p className="text-xs text-slate-400">Published {formatDate(publication.sent_at)}</p>
-                            {publication.first_viewed_at && (
-                                <p className="flex items-center gap-1 text-xs text-slate-400">
-                                    <Eye className="h-3.5 w-3.5" /> Viewed {formatDate(publication.first_viewed_at)}
-                                </p>
-                            )}
-                            {publication.responded_at && (
-                                <p className="text-xs text-slate-400">
-                                    Response recorded {formatDate(publication.responded_at)}
-                                    {publication.responded_by ? ` by ${publication.responded_by}` : ""}
-                                </p>
-                            )}
-                            <p className="font-mono text-[10px] text-slate-600" title={publication.snapshot_hash}>
-                                Snapshot {publication.snapshot_hash.slice(0, 12)}
-                            </p>
-                        </div>
-                    ))}
+                <div id="sent-versions" className="px-4 sm:px-5 pb-5">
+                    {pdf.note && (
+                        <p role={pdf.failed ? "alert" : "status"} className={`mb-3 text-sm ${pdf.failed ? s.errorBox : s.noticeBox}`}>{pdf.note}</p>
+                    )}
+                    <ul className={`divide-y ${s.divider}`}>
+                        {publications.map((publication) => (
+                            <li key={publication.id} className="py-4 space-y-1" data-publication-version={publication.version_number}>
+                                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                                    <p className={`text-base font-bold ${s.heading}`}>Version {publication.version_number}</p>
+                                    <p className={`text-sm font-semibold ${s.body}`}>{publicationStatusLabel(publication)}</p>
+                                </div>
+                                <p className={`text-sm ${s.muted}`}>Sent {formatDate(publication.sent_at)}. Valid until {formatDate(publication.expires_at)}.</p>
+                                <p className={`text-sm ${s.muted}`}>Asked the client for {ASKED_FOR[publicationResponseKind(publication)]}.</p>
+                                {publication.first_viewed_at && (
+                                    <p className={`text-sm ${s.muted}`}>First opened {formatDate(publication.first_viewed_at)}.</p>
+                                )}
+                                {publication.responded_at && (
+                                    <p className={`text-sm ${s.muted}`}>
+                                        Response recorded {formatDate(publication.responded_at)}
+                                        {publication.responded_by ? ` by ${publication.responded_by}` : ""}.
+                                    </p>
+                                )}
+                                <p className={`font-mono text-xs break-all ${s.muted}`}>Snapshot {publication.snapshot_hash.slice(0, 12)}</p>
+                                <button
+                                    type="button"
+                                    onClick={() => void download(publication.id)}
+                                    disabled={pdf.id !== null}
+                                    className={`${s.quietButton} -ml-3`}
+                                >
+                                    {pdf.id === publication.id
+                                        ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Making the PDF…</>
+                                        : <><FileDown className="w-4 h-4" aria-hidden="true" /> Download version {publication.version_number} as a PDF</>}
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
                 </div>
             )}
-        </div>
+        </section>
     );
 }

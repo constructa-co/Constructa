@@ -2,13 +2,21 @@
 
 About 30 minutes. No developer tools and no database.
 
+> Walkthrough status (5 October 2026): partially completed on laptop after
+> mobile access difficulties. Release proof did not pass. See
+> [OWNER-WALKTHROUGH-FINDINGS.md](./OWNER-WALKTHROUGH-FINDINGS.md) for the
+> sanitised findings, blockers and retest scope.
+
 **Before you start**
 
 - Use the test link you are given for this release candidate. Do not use the
   live app: this walkthrough creates a made-up contractor and sends a made-up
   proposal.
-- Use made-up details only. For every email address use one ending
-  `@example.com`, for example `walkthrough-1@example.com`.
+- Use made-up details only. For the contractor account, use the reserved test
+  address `walkthrough-051026-1@constructa.co`. The disposable Supabase
+  project's hosted sign-up rejects RFC example domains and subdomains without
+  mail records; this address has been verified against that project. Client
+  email addresses can continue to end `@example.com`.
 - Have your phone and a laptop. Do Part A on the phone.
 
 **If anything differs from "You should see"**, stop at that step and send
@@ -20,7 +28,7 @@ carry on if you can.
 
 | # | Do this | You should see |
 | --- | --- | --- |
-| 1 | Open the test link and add `/login` to the end. Tap **Sign up**. Enter a made-up email and a password twice. Tap **Create account**. | A green message starting "Account created." |
+| 1 | Open the test link and add `/login` to the end. Tap **Sign up**. Enter `walkthrough-051026-1@constructa.co` and a password twice. Tap **Create account**. | A green message starting "Account created." |
 | 2 | Tap **Sign in**, then sign in with the same email and password. | "Step 1 of 2" and "What kind of work do you do?" |
 | 3 | Tap a trade, then **Save and continue**. Type a business name. Tap **Save and add your first job**. | "Add your first job". |
 | 4 | Type a job name and a client name. Tap **Add more details** and type a client email ending `@example.com`. Tap **Create project and start the brief**. | "Job brief", with your job name under it. |

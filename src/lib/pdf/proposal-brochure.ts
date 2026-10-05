@@ -891,7 +891,7 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
         const headingLines = wrap(response.heading, PAGE.contentWidth - 16, headingStyle);
         const noticeLines = wrap(response.notice, PAGE.contentWidth - 16, STYLES.body);
         const footnote = wrap(
-            `Reference ${document.reference}.${document.snapshotRef ? ` Snapshot ${document.snapshotRef}.` : ""}`,
+            `Reference ${document.reference}.${document.snapshotRef ? ` Snapshot ${document.snapshotRef}.` : ""}${document.draftCheckCode ? ` Check code ${document.draftCheckCode}.` : ""}`,
             PAGE.contentWidth - 16, STYLES.small,
         );
         const signatureHeight = 33;
@@ -994,12 +994,19 @@ export function brochureFilename(document: ProposalDocument): string {
 /**
  * Makes and saves the PDF for a snapshot, in the browser. The document is
  * built from the snapshot alone; no draft or profile data is read.
+ *
+ * With `draft`, the snapshot is the one the review screen previews: the PDF
+ * is marked as a draft on every page and carries the draft's check code.
+ * It is drawn by the same code from the same kind of snapshot as the PDF of
+ * a sent version, so the two differ only in that marking, the reference and
+ * the dates of issue.
  */
 export async function downloadProposalPdf(
     snapshot: ProposalPublicationSnapshot,
     snapshotHash?: string | null,
+    draft?: { checkCode: string | null },
 ): Promise<{ pages: number; skippedImages: number }> {
-    const document = buildProposalDocument(snapshot, { snapshotHash });
+    const document = buildProposalDocument(snapshot, draft ? { isDraft: true, draftCheckCode: draft.checkCode } : { snapshotHash });
     const images = await loadDocumentImages(document);
     const result = renderProposalBrochure(document, images);
     result.doc.save(brochureFilename(document));

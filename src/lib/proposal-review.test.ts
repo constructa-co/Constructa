@@ -8,17 +8,23 @@ import {
     AI_UNAVAILABLE_ERROR,
     DELIVERY_ERROR,
     DRAFT_SAVE_ERROR,
+    PAYMENT_PRESETS,
     PUBLISH_ERROR,
     PUBLISH_UNKNOWN_ERROR,
+    REVIEW_CHANGED_ERROR,
     SEND_BLOCK_MESSAGE,
     addedFigures,
+    balanceFor,
     buildPreviewSnapshot,
     buildProposalPayload,
+    depositBalancePayments,
     draftFromProject,
     initialReviewState,
     isReviewDirty,
+    paymentPresetOf,
     paymentShareField,
     paymentStageField,
+    presetPayments,
     requestWording,
     retryDelivery,
     reviewReadiness,
@@ -64,7 +70,8 @@ function storeFor(context: ReviewContext, patch: Partial<ProposalDraft> = {}) {
 
 const context = contextFrom();
 const okSave: SaveProposalDraft = async () => ({ success: true });
-const published = { success: true as const, url: `https://app.example.test/proposal/${"a".repeat(64)}`, versionNumber: 1, publicationId: "pub-1" };
+const REVIEWED = "c".repeat(64);
+const published = { success: true as const, url: `https://app.example.test/proposal/${"a".repeat(64)}`, versionNumber: 1, publicationId: "pub-1", contentHash: REVIEWED };
 
 describe("draft", () => {
     it("opens what the project holds, in the client's reading order", () => {
@@ -159,6 +166,118 @@ describe("save payload", () => {
         const built = buildProposalPayload({ ...draft, terms });
         expect(built.ok).toBe(false);
         if (!built.ok) expect(Object.keys(built.fieldErrors)).toEqual([termField(3)]);
+    });
+});
+
+describe("payment presets", () => {
+    const empty = contextFrom({ payment_schedule: [] });
+    const choose = (store: ReturnType<typeof storeFor>, preset: "completion" | "deposit_balance" | "custom") =>
+        store.dispatch({ type: "draft/change", patch: { payments: presetPayments(preset, keys(), store.getState().draft.payments) } });
+    const payment = (store: ReturnType<typeof storeFor>, from: ReviewContext = empty) =>
+        reviewReadiness(from, store.getState().draft).mandatory.find((item) => item.key === "payment")!;
+
+    it("offers on completion, a deposit and balance, and custom stages", () => {
+        expect(PAYMENT_PRESETS.map((preset) => preset.kind)).toEqual(["completion", "deposit_balance", "custom"]);
+    });
+
+    it("payment on completion is one stage for the whole price, and readiness is met the moment it is chosen", () => {
+        const store = storeFor(empty);
+        expect(payment(store)).toMatchObject({ ok: false, fix: "Choose how you are paid: on completion, a deposit and balance, or your own stages." });
+
+        choose(store, "completion");
+        expect(store.getState().draft.payments).toEqual([{ key: "k0", stage: "Payment on completion", when: "When the work is finished", percentage: "100" }]);
+        // Nothing has been saved, and the screen already says what is true of the draft.
+        expect(isReviewDirty(store.getState())).toBe(true);
+        expect(payment(store).ok).toBe(true);
+        expect(reviewReadiness(empty, store.getState().draft).ready).toBe(true);
+        expect(paymentPresetOf(store.getState().draft)).toBe("completion");
+    });
+
+    it("a deposit and balance needs no arithmetic: the balance always makes up the whole price", () => {
+        const store = storeFor(empty);
+        choose(store, "deposit_balance");
+        expect(store.getState().draft.payments.map((row) => [row.stage, row.when, row.percentage])).toEqual([
+            ["Deposit", "On booking", "30"],
+            ["Balance", "On completion", "70"],
+        ]);
+        expect(payment(store).ok).toBe(true);
+
+        const setDeposit = (raw: string) => store.dispatch({
+            type: "draft/change",
+            patch: { payments: depositBalancePayments(raw, keys(), store.getState().draft.payments) },
+        });
+        const fieldKeys = store.getState().draft.payments.map((row) => row.key);
+        for (const [deposit, balance] of [["25", "75"], ["12.5", "87.5"], ["33.33", "66.67"], ["1", "99"], ["99", "1"]]) {
+            setDeposit(deposit);
+            expect(store.getState().draft.payments.map((row) => row.percentage), deposit).toEqual([deposit, balance]);
+            expect(paymentPresetOf(store.getState().draft)).toBe("deposit_balance");
+            // The same two fields throughout: changing the deposit never replaces them.
+            expect(store.getState().draft.payments.map((row) => row.key)).toEqual(fieldKeys);
+            const built = buildProposalPayload(store.getState().draft);
+            expect(built.ok && built.payload.paymentSchedule!.reduce((sum, row) => sum + row.percentage, 0)).toBe(100);
+        }
+    });
+
+    it("an unusable deposit is refused with the reason, and is never guessed at", () => {
+        const store = storeFor(empty);
+        choose(store, "deposit_balance");
+        for (const raw of ["", "0", "100", "150", "-5", "abc", "12.345"]) {
+            store.dispatch({ type: "draft/change", patch: { payments: depositBalancePayments(raw, keys(), store.getState().draft.payments) } });
+            expect(balanceFor(raw), raw).toBe("");
+            expect(store.getState().draft.payments[1].percentage).toBe("");
+            // Still the deposit choice while it is being typed.
+            expect(paymentPresetOf(store.getState().draft)).toBe("deposit_balance");
+        }
+        const built = buildProposalPayload(store.getState().draft);
+        expect(built.ok).toBe(false);
+        if (!built.ok) expect(built.fieldErrors[paymentShareField(store.getState().draft.payments[0].key)]).toBe("Enter a percentage between 1 and 100.");
+    });
+
+    it("custom keeps the stages already there, or opens one empty stage to fill in", () => {
+        const store = storeFor(empty);
+        choose(store, "custom");
+        expect(store.getState().draft.payments).toEqual([{ key: "k0", stage: "", when: "", percentage: "" }]);
+        // An empty stage is not a payment stage: readiness still says so.
+        expect(payment(store).ok).toBe(false);
+
+        const withStages = storeFor(context);
+        const before = withStages.getState().draft.payments;
+        choose(withStages, "custom");
+        expect(withStages.getState().draft.payments).toEqual(before);
+    });
+
+    it("opens on the choice that was saved", () => {
+        const of = (schedule: unknown[]) => paymentPresetOf(draftFromProject(contextFrom({ payment_schedule: schedule }).project, keys()));
+        expect(of([])).toBeNull();
+        expect(of([{ id: "a", stage: "Payment on completion", description: "When the work is finished", percentage: 100 }])).toBe("completion");
+        expect(of([{ id: "a", stage: "Deposit", description: "On booking", percentage: 30 }, { id: "b", stage: "Balance", description: "On completion", percentage: 70 }])).toBe("deposit_balance");
+        // The same names with shares the contractor set by hand are their own stages.
+        expect(of([{ id: "a", stage: "Deposit", percentage: 30 }, { id: "b", stage: "Balance", percentage: 60 }])).toBe("custom");
+        expect(of(context.project.payment_schedule!)).toBe("custom");
+        // Fixed amounts from the earlier editor are none of the three.
+        expect(of([{ stage: "Deposit", amount: 500 }])).toBeNull();
+    });
+
+    it("a preset is published exactly like stages typed by hand", () => {
+        const store = storeFor(empty);
+        choose(store, "deposit_balance");
+        const preview = buildPreviewSnapshot(empty, store.getState().draft, "acknowledgement", "2026-10-05T09:00:00.000Z")!;
+        expect(preview.commercial.payment_schedule).toEqual([
+            { id: "k0", stage: "Deposit", description: "On booking", percentage: 30, amount: null },
+            { id: "k1", stage: "Balance", description: "On completion", percentage: 70, amount: null },
+        ]);
+        const typed = storeFor(contextFrom({ payment_schedule: [
+            { id: "k0", stage: "Deposit", description: "On booking", percentage: 30 },
+            { id: "k1", stage: "Balance", description: "On completion", percentage: 70 },
+        ] }));
+        expect(buildPreviewSnapshot(empty, typed.getState().draft, "acknowledgement", "2026-10-05T09:00:00.000Z")).toEqual(preview);
+    });
+
+    it("choosing a preset after ticking the box asks for the tick again", () => {
+        const store = storeFor(context);
+        store.dispatch({ type: "confirm/set", confirmed: true });
+        choose(store, "completion");
+        expect(store.getState().confirmed).toBe(false);
     });
 });
 
@@ -371,7 +490,7 @@ describe("response choice", () => {
 
 describe("send", () => {
     const ready = () => ({ ready: true });
-    const deps = (publish: PublishProposal, save: SaveProposalDraft = okSave) => ({ save, publish, readiness: ready, deliverByEmail: true });
+    const deps = (publish: PublishProposal, save: SaveProposalDraft = okSave) => ({ save, publish, readiness: ready, deliverByEmail: true, reviewedContent: async () => REVIEWED });
 
     it("is blocked, in order, by missing facts, a pending suggestion and a missing confirmation", () => {
         const store = storeFor(context);
@@ -405,7 +524,7 @@ describe("send", () => {
         store.dispatch({ type: "confirm/set", confirmed: true });
         const publish = vi.fn<PublishProposal>(async () => ({ ...published, delivery: { status: "sent", email: "alex@example.test" } }));
         await expect(sendProposal(store, deps(publish))).resolves.toBe("published");
-        expect(publish).toHaveBeenCalledWith({ responseKind: "non_binding_intent", deliverByEmail: true });
+        expect(publish).toHaveBeenCalledWith({ responseKind: "non_binding_intent", deliverByEmail: true, reviewedContent: REVIEWED });
         expect(store.getState().send.status).toBe("published");
         expect(store.getState().published).toMatchObject({ versionNumber: 1, responseKind: "non_binding_intent", delivery: { status: "sent" } });
         // A second send needs a fresh confirmation.
@@ -464,6 +583,56 @@ describe("send", () => {
         expect(store.getState().draft).toEqual(before);
         // The confirmation stands, so the retry is one press.
         await expect(sendProposal(store, deps(publish))).resolves.toBe("published");
+    });
+
+    it("sends the fingerprint of what is on screen, read after the save", async () => {
+        const store = storeFor(context);
+        store.dispatch({ type: "draft/change", patch: { closing: "Edited just before sending." } });
+        store.dispatch({ type: "confirm/set", confirmed: true });
+        const order: string[] = [];
+        const save = vi.fn<SaveProposalDraft>(async () => { order.push("save"); return { success: true }; });
+        const publish = vi.fn<PublishProposal>(async (input) => { order.push(`publish:${input.reviewedContent}`); return { ...published, delivery: { status: "not_requested" } }; });
+        const reviewedContent = vi.fn(async () => { order.push(`fingerprint:${store.getState().draft.closing}`); return REVIEWED; });
+        await expect(sendProposal(store, { ...deps(publish, save), reviewedContent })).resolves.toBe("published");
+        expect(order).toEqual(["save", "fingerprint:Edited just before sending.", `publish:${REVIEWED}`]);
+        expect(store.getState().published?.contentHash).toBe(REVIEWED);
+    });
+
+    it("publishes nothing when there is no proposal to fingerprint", async () => {
+        const store = storeFor(context);
+        store.dispatch({ type: "confirm/set", confirmed: true });
+        const publish = vi.fn();
+        await expect(sendProposal(store, { ...deps(publish), reviewedContent: async () => null })).resolves.toBe("failed");
+        expect(publish).not.toHaveBeenCalled();
+        expect(store.getState().send).toEqual({ status: "failed", error: PUBLISH_ERROR });
+
+        // The same when the fingerprint cannot be worked out at all. Nothing
+        // reached the server, so this is "not sent", never "we could not tell".
+        await expect(sendProposal(store, { ...deps(publish), reviewedContent: async () => { throw new Error("no crypto"); } })).resolves.toBe("failed");
+        expect(publish).not.toHaveBeenCalled();
+        expect(store.getState().send).toEqual({ status: "failed", error: PUBLISH_ERROR });
+    });
+
+    it("when the server finds the proposal has changed, nothing is sent and the tick comes off", async () => {
+        const store = storeFor(context);
+        store.dispatch({ type: "confirm/set", confirmed: true });
+        const before = store.getState().draft;
+        const publish = vi.fn<PublishProposal>()
+            .mockResolvedValueOnce({ success: false, error: REVIEW_CHANGED_ERROR, changed: true })
+            .mockResolvedValueOnce({ ...published, delivery: { status: "not_requested" } });
+
+        await expect(sendProposal(store, deps(publish))).resolves.toBe("failed");
+        expect(store.getState().send).toEqual({ status: "failed", error: REVIEW_CHANGED_ERROR, changed: true });
+        expect(store.getState().published).toBeNull();
+        expect(store.getState().draft).toEqual(before);
+        // It has to be read and confirmed again; one more press does not send it.
+        expect(store.getState().confirmed).toBe(false);
+        await expect(sendProposal(store, deps(publish))).resolves.toBe("blocked");
+        expect(publish).toHaveBeenCalledTimes(1);
+
+        store.dispatch({ type: "confirm/set", confirmed: true });
+        await expect(sendProposal(store, deps(publish))).resolves.toBe("published");
+        expect(store.getState().send).toEqual({ status: "published", error: null });
     });
 
     it("does not claim success or failure when the reply is lost", async () => {

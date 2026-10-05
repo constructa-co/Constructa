@@ -49,7 +49,7 @@ and phone sizes and by keyboard alone.
 
 ```bash
 npm run e2e:smoke      # desktop and phone
-npm run e2e:evidence   # full matrix, writes docs/evidence/stage2-tranche-2e/
+npm run e2e:evidence   # full matrix, writes docs/evidence/stage2-tranche-2f/
 ```
 
 It writes real rows, so it runs only against the disposable Supabase project
@@ -57,6 +57,78 @@ and refuses to start otherwise. `e2e/README.md` lists the required
 environment and every isolation check. The `E2E` workflow runs the smoke on
 pull requests; without its repository settings it fails as a configuration
 failure, never as a pass.
+
+## Preview and E2E database isolation
+
+A preview or E2E build must never be compiled against, or started against,
+the production database. This is enforced, not left to how the environment
+variables happen to be set.
+
+**The rule.** `src/lib/deployment/supabase-target.mjs` holds the canonical
+production project reference and the one rule. In a preview or E2E context:
+
+- `CONSTRUCTA_NONPROD_SUPABASE_PROJECT_REF` must name the disposable project
+  that context may use, and must not be production;
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and
+  `SUPABASE_SERVICE_ROLE_KEY` must all be set and belong to that project;
+- no other variable may address production (a database or pooler URL, a
+  second Supabase URL, a production key under another name).
+
+Anything missing or unprovable fails. Production is never checked.
+
+**Which context a build is in.** On Vercel, `VERCEL_ENV` decides and nothing
+can override it: `production` is production, and everything else that is not
+local development is a preview. Away from Vercel the context is declared
+with `CONSTRUCTA_DEPLOY_CONTEXT=preview` or `e2e`; the Playwright harness
+sets `e2e` itself. A build with neither, such as the CI health build, is not
+a preview and is not checked.
+
+**Where it runs.**
+
+| Check | When | What it reads |
+| --- | --- | --- |
+| Configuration | `next.config.mjs`, so every `next build` and `next start` whatever the build command | The server's environment: the URL, both keys, every other variable |
+| Compiled build | `scripts/verify-build-supabase-target.mjs`, chained after `next build` in `npm run build` and before `next start` in the Playwright harness | The browser and server bundles in `.next`: the project the public URL was inlined as |
+
+A failure stops the build with `SUPABASE TARGET CHECK FAILED`. Both checks
+print one line each, which is the deployment's evidence of what it is bound
+to, for example:
+
+```
+Supabase target check: context=preview (from VERCEL_ENV) expected=<ref> url=<ref> anon-key=<ref> service-key=<ref> -> PASS
+Compiled Supabase target: context=preview (from VERCEL_ENV) expected=<ref> projects in build=<ref> -> PASS
+```
+
+Only project references appear. They are public identifiers (they are in the
+URL of every page). No key, password or connection string is ever printed.
+
+**Setting up a preview.** In Vercel, for the Preview environment only (or a
+single branch), set the three Supabase variables to the disposable project
+and `CONSTRUCTA_NONPROD_SUPABASE_PROJECT_REF` to its reference. Leave the
+Production environment's variables as they are. A preview that inherits the
+production values, or has none, fails to build. Keep Vercel's build command
+as `npm run build` (the default) so the compiled-build check runs too.
+
+**Retiring or rotating a disposable project.**
+
+1. Remove or repoint the Preview variables first, including
+   `CONSTRUCTA_NONPROD_SUPABASE_PROJECT_REF`. Previews fail to build until a
+   replacement is set, which is the intended state.
+2. Delete the preview deployments built against the old project. Their
+   bundles still name it.
+3. Delete the Supabase project. Its keys die with it; nothing needs
+   revoking. To keep the project but rotate its keys, roll them in Supabase
+   and update the Preview variables and the E2E secrets together.
+4. For the E2E harness, update `APPROVED_DISPOSABLE_PROJECT` in
+   `e2e/support/env.ts`, the `E2E_SUPABASE_PROJECT_REF` repository variable,
+   the three `E2E_SUPABASE_*` secrets and the Keychain items named in
+   `scripts/e2e-with-keychain.sh`.
+5. Never copy production data into a disposable project. Use made-up
+   contractors and clients only.
+
+If the production project itself ever changes, update
+`PRODUCTION_SUPABASE_PROJECT_REF` in the same commit that repoints
+production.
 
 ## Known Quarantine
 

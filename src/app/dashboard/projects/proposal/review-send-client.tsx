@@ -3,29 +3,34 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Check, ChevronDown, Circle, Loader2, Plus, Send, Sparkles, Trash2 } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, Circle, FileDown, Loader2, Plus, Send, Sparkles, Trash2 } from "lucide-react";
 import ProgrammeTimeline from "@/components/programme-timeline";
 import ProposalDocumentView from "@/components/proposal/proposal-document-view";
 import SaveStatus from "@/components/save-status";
 import { newClientId } from "@/lib/client-id";
 import { copyTextWithFallback } from "@/lib/clipboard-copy";
 import { programmePlanForProject } from "@/lib/programme-plan";
-import { buildProposalDocument, vatLines, vatNote } from "@/lib/proposal-document";
-import type { ProposalPublicationSnapshot } from "@/lib/proposal-publication";
+import { buildProposalDocument, paymentRows, vatLines, vatNote } from "@/lib/proposal-document";
+import { contentCheckCode, hashProposalContent, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
 import type { ReadinessKey, RecommendedKey } from "@/lib/proposal-readiness";
 import { RESPONSE_KINDS, responseWording } from "@/lib/proposal-response";
 import {
     DELIVERY_ERROR,
     MAX_PAYMENT_STAGES,
     MAX_PHOTOS,
+    PAYMENT_PRESETS,
     REVIEW_STATUS_LABEL,
     SEND_BLOCK_MESSAGE,
+    balanceFor,
     buildPreviewSnapshot,
+    depositBalancePayments,
     draftFromProject,
     initialReviewState,
     isSuggestionStale,
+    paymentPresetOf,
     paymentShareField,
     paymentStageField,
+    presetPayments,
     requestWording,
     retryDelivery,
     reviewReadiness,
@@ -38,6 +43,7 @@ import {
     standardTermDrafts,
     termField,
     type AskWording,
+    type PaymentPreset,
     type ProposalDraft,
     type PublishProposal,
     type RetryDelivery,
@@ -146,6 +152,12 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     const [upload, setUpload] = useState<{ busy: boolean; error: string }>({ busy: false, error: "" });
     const [copy, setCopy] = useState("");
     const [pdfNote, setPdfNote] = useState<{ busy: boolean; text: string; failed: boolean }>({ busy: false, text: "", failed: false });
+    const [draftPdf, setDraftPdf] = useState<{ busy: boolean; text: string; failed: boolean }>({ busy: false, text: "", failed: false });
+    // How the contractor chose to be paid. It opens on what is saved.
+    const [paymentMode, setPaymentMode] = useState<PaymentPreset | null>(() => paymentPresetOf(draft));
+    const [contentCheck, setContentCheck] = useState<{ of: ProposalPublicationSnapshot; code: string } | null>(null);
+    const confirmRef = useRef<HTMLInputElement>(null);
+    const sendBlockRef = useRef<HTMLDivElement>(null);
     const fileRef = useRef<HTMLInputElement>(null);
     const linkRef = useRef<HTMLInputElement>(null);
     const saveAlertRef = useRef<HTMLDivElement>(null);
@@ -161,6 +173,20 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     const block = sendBlock(state, readiness);
     const current = publications[0] ?? null;
 
+    // The check code of the draft on screen: a short fingerprint of everything
+    // the client would read. The same code is printed on the draft PDF and
+    // shown again when the proposal is sent, and the server sends only the
+    // content it belongs to.
+    useEffect(() => {
+        if (!preview) return;
+        let live = true;
+        void hashProposalContent(preview)
+            .then((hash) => { if (live) setContentCheck({ of: preview, code: contentCheckCode(hash) }); })
+            .catch(() => undefined);
+        return () => { live = false; };
+    }, [preview]);
+    const checkCode = preview && contentCheck?.of === preview ? contentCheck.code : null;
+
     useUnsavedGuard(
         !locked && (status === "unsaved" || status === "failed" || status === "saving"),
         "Your proposal has changes that are not saved yet.\n\nPress Cancel to stay here and save them, or OK to leave without saving.",
@@ -175,13 +201,15 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
         if (saveFailed) saveAlertRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }, [saveFailed]);
     const sendStatus = state.send.status;
+    const sendChanged = state.send.changed === true;
     useEffect(() => {
         if (sendStatus === "published" || sendStatus === "failed" || sendStatus === "unknown") {
             resultRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
         }
         // A new version, or an outcome we could not confirm: reload the sent versions.
-        if (sendStatus === "published" || sendStatus === "unknown") router.refresh();
-    }, [sendStatus, router]);
+        // A proposal that changed under the contractor: reload what it now says.
+        if (sendStatus === "published" || sendStatus === "unknown" || (sendStatus === "failed" && sendChanged)) router.refresh();
+    }, [sendStatus, sendChanged, router]);
 
     const edit = (patch: Partial<ProposalDraft>) => store.dispatch({ type: "draft/change", patch });
     const handleSave = () => void saveDraft(store, api.save);
@@ -190,7 +218,31 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
         publish: api.publish,
         readiness: () => reviewReadiness(context, store.getState().draft),
         deliverByEmail: deliverByEmail && Boolean(project.client_email),
+        reviewedContent: async () => {
+            const { draft: confirmedDraft, responseKind } = store.getState();
+            const confirmed = buildPreviewSnapshot(context, confirmedDraft, responseKind, previewTime);
+            return confirmed ? hashProposalContent(confirmed) : null;
+        },
     });
+
+    // ── Payment stages ───────────────────────────────────────────────────────
+
+    const choosePayment = (preset: PaymentPreset) => {
+        setPaymentMode(preset);
+        edit({ payments: presetPayments(preset, newClientId, store.getState().draft.payments) });
+    };
+    /**
+     * A preset chosen from beside the Send button. The button that was
+     * pressed goes away with the blocker it fixed, so focus moves on to the
+     * next thing to do rather than being dropped.
+     */
+    const choosePaymentFromSend = (preset: PaymentPreset) => {
+        choosePayment(preset);
+        requestAnimationFrame(() => {
+            const confirm = confirmRef.current;
+            (confirm && !confirm.disabled ? confirm : sendBlockRef.current)?.focus();
+        });
+    };
 
     const href = (path: string) => `/dashboard/projects/${path}?projectId=${encodeURIComponent(project.id)}`;
     const requiredFix: Partial<Record<ReadinessKey, { href: string; label: string }>> = {
@@ -198,7 +250,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
         scope: { href: "#review-scope", label: "Go to the scope" },
         contractValue: { href: href("costs"), label: "Open Estimating" },
         programme: { href: href("schedule"), label: "Open Programme" },
-        payment: { href: "#review-price", label: "Go to payment stages" },
+        payment: { href: "#review-payments", label: "Choose how you are paid" },
         terms: { href: "#review-terms", label: "Go to the terms" },
     };
     const recommendedFix: Partial<Record<RecommendedKey, { href: string; label: string }>> = {
@@ -209,7 +261,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
         exclusions: { href: "#review-scope", label: "Go to the scope" },
         clarifications: { href: "#review-scope", label: "Go to the scope" },
         closingStatement: { href: "#review-closing", label: "Go to the closing message" },
-        paymentCoverage: { href: "#review-price", label: "Go to payment stages" },
+        paymentCoverage: { href: "#review-payments", label: "Go to payment stages" },
     };
 
     // ── Wording field with a pending AI suggestion ───────────────────────────
@@ -333,7 +385,39 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
         }
     };
 
+    /**
+     * The PDF of the draft on screen, before anything is sent. It is built
+     * from the same snapshot as the preview by the code that draws the PDF of
+     * a sent version, and marked as a draft on every page.
+     */
+    const downloadDraftPdf = async () => {
+        const { draft: shownDraft, responseKind } = store.getState();
+        const snapshot = buildPreviewSnapshot(context, shownDraft, responseKind, now ?? new Date().toISOString());
+        if (!snapshot) return;
+        setDraftPdf({ busy: true, text: "", failed: false });
+        try {
+            const code = contentCheckCode(await hashProposalContent(snapshot));
+            const { downloadProposalPdf } = await import("@/lib/pdf/proposal-brochure");
+            const result = await downloadProposalPdf(snapshot, null, { checkCode: code });
+            setDraftPdf({
+                busy: false,
+                failed: false,
+                text: `Draft PDF downloaded. Check code ${code}. Nothing has been sent.${
+                    result.skippedImages > 0
+                        ? ` It was made without ${result.skippedImages} ${result.skippedImages === 1 ? "image" : "images"} that could not be loaded.`
+                        : ""
+                }`,
+            });
+        } catch {
+            setDraftPdf({ busy: false, text: "The draft PDF could not be made. Try again.", failed: true });
+        }
+    };
+
     const estimateTotals = preview && preview.commercial.contract_sum_ex_vat > 0 ? vatLines(preview.commercial) : null;
+    // The stages as the client will read them, with what each comes to.
+    const paymentSummary = preview && estimateTotals ? paymentRows(preview.commercial) : [];
+    const depositRow = paymentMode === "deposit_balance" ? draft.payments[0] : undefined;
+    const depositError = depositRow ? fieldErrors[paymentShareField(depositRow.key)] : undefined;
     const terms = draft.terms ?? standardTermDrafts();
     const shownTerms = terms.filter((clause) => !clause.hidden);
     const sectionCard = `${s.card} p-4 sm:p-6 space-y-5 scroll-mt-4`;
@@ -595,9 +679,9 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                         )}
                         {elsewhere("Lines and totals are changed in the estimate.", href("costs"), "Open Estimating")}
 
-                        <div>
+                        <div id="review-payments" tabIndex={-1} className="scroll-mt-20 focus:outline-none" data-review-payments>
                             <p className={s.label}>Payment stages</p>
-                            <p className={`mt-0.5 text-sm ${s.muted}`}>When you get paid, as a share of the price. For example: Deposit, 30%, on booking.</p>
+                            <p className={`mt-0.5 text-sm ${s.muted}`}>How and when you get paid. Your client sees each stage with the amount it comes to.</p>
 
                             {draft.fixedPayments ? (
                                 <div className={`mt-3 ${s.noticeBox} text-sm space-y-3`} data-fixed-payments>
@@ -605,85 +689,163 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                         These stages use fixed amounts set in the earlier proposal editor. They are sent as they are:
                                         {" "}{draft.fixedPayments.map((row) => String((row as { stage?: unknown }).stage ?? "")).filter(Boolean).join(", ")}.
                                     </p>
-                                    <button type="button" disabled={busy} onClick={() => edit({ fixedPayments: null, payments: [] })} className={`${s.secondaryButton} min-h-11 text-sm`}>
+                                    <button
+                                        type="button"
+                                        disabled={busy}
+                                        onClick={() => { setPaymentMode(null); edit({ fixedPayments: null, payments: [] }); }}
+                                        className={`${s.secondaryButton} min-h-11 text-sm`}
+                                    >
                                         Replace them with percentage stages
                                     </button>
                                 </div>
                             ) : (
                                 <>
-                                    <ol className="mt-3 space-y-3">
-                                        {draft.payments.map((row, index) => {
-                                            const stageError = fieldErrors[paymentStageField(row.key)];
-                                            const shareError = fieldErrors[paymentShareField(row.key)];
-                                            const change = (patch: Partial<typeof row>) =>
-                                                edit({ payments: draft.payments.map((p) => (p.key === row.key ? { ...p, ...patch } : p)) });
+                                    <fieldset className="mt-3 space-y-2 min-w-0" disabled={busy}>
+                                        <legend className={`text-sm font-semibold ${s.body}`}>Choose how you are paid</legend>
+                                        {PAYMENT_PRESETS.map((preset) => {
+                                            const chosen = paymentMode === preset.kind;
                                             return (
-                                                <li key={row.key} className={`${s.inset} p-3 sm:p-4`} data-payment-stage>
-                                                    <div className="grid grid-cols-[minmax(0,1fr)_6.5rem] gap-3">
-                                                        <div>
-                                                            <label htmlFor={`payment-${index}-stage`} className={s.label}>Stage {index + 1}</label>
-                                                            <input
-                                                                id={`payment-${index}-stage`}
-                                                                value={row.stage}
-                                                                disabled={busy}
-                                                                maxLength={200}
-                                                                autoComplete="off"
-                                                                placeholder="e.g. Deposit"
-                                                                aria-invalid={stageError ? true : undefined}
-                                                                onChange={(e) => change({ stage: e.target.value })}
-                                                                className={`${s.input} mt-1.5`}
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <label htmlFor={`payment-${index}-share`} className={s.label}>Share (%)</label>
-                                                            <input
-                                                                id={`payment-${index}-share`}
-                                                                inputMode="decimal"
-                                                                autoComplete="off"
-                                                                value={row.percentage}
-                                                                disabled={busy}
-                                                                aria-invalid={shareError ? true : undefined}
-                                                                onChange={(e) => change({ percentage: e.target.value })}
-                                                                className={`${s.input} mt-1.5`}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <label htmlFor={`payment-${index}-when`} className={`${s.label} mt-3`}>When it is due (optional)</label>
+                                                <label
+                                                    key={preset.kind}
+                                                    data-payment-preset={preset.kind}
+                                                    className={`flex items-start gap-3 rounded-xl border p-3 sm:p-4 cursor-pointer ${
+                                                        chosen ? "border-blue-500 ring-1 ring-blue-500" : isDark ? "border-[#3a3a3a]" : "border-gray-300"
+                                                    }`}
+                                                >
                                                     <input
-                                                        id={`payment-${index}-when`}
-                                                        value={row.when}
-                                                        disabled={busy}
-                                                        maxLength={1000}
-                                                        autoComplete="off"
-                                                        placeholder="e.g. On booking"
-                                                        onChange={(e) => change({ when: e.target.value })}
-                                                        className={`${s.input} mt-1.5`}
+                                                        type="radio"
+                                                        name="payment-preset"
+                                                        className="mt-1 w-5 h-5 flex-shrink-0"
+                                                        checked={chosen}
+                                                        onChange={() => choosePayment(preset.kind)}
                                                     />
-                                                    {(stageError || shareError) && (
-                                                        <p role="alert" className={`mt-1.5 text-sm ${s.errorText}`}>{[stageError, shareError].filter(Boolean).join(" ")}</p>
-                                                    )}
-                                                    <button
-                                                        type="button"
-                                                        disabled={busy}
-                                                        onClick={() => edit({ payments: draft.payments.filter((p) => p.key !== row.key) })}
-                                                        className={`${s.quietButton} -ml-3 mt-1`}
-                                                    >
-                                                        <Trash2 className="w-4 h-4" aria-hidden="true" /> Remove stage {index + 1}
-                                                    </button>
-                                                </li>
+                                                    <span className="min-w-0">
+                                                        <span className={`block text-base font-semibold ${s.heading}`}>{preset.label}</span>
+                                                        <span className={`block text-sm ${s.muted}`}>{preset.help}</span>
+                                                    </span>
+                                                </label>
                                             );
                                         })}
-                                    </ol>
-                                    {fieldErrors.payments && <p role="alert" className={`mt-2 text-sm ${s.errorText}`}>{fieldErrors.payments}</p>}
-                                    {!locked && draft.payments.length < MAX_PAYMENT_STAGES && (
-                                        <button
-                                            type="button"
-                                            disabled={busy}
-                                            onClick={() => edit({ payments: [...draft.payments, { key: newClientId(), stage: "", when: "", percentage: "" }] })}
-                                            className={`${s.secondaryButton} min-h-11 text-sm mt-3`}
-                                        >
-                                            <Plus className="w-4 h-4" aria-hidden="true" /> Add a payment stage
-                                        </button>
+                                    </fieldset>
+
+                                    {depositRow && (
+                                        <div className={`mt-3 ${s.inset} p-3 sm:p-4`} data-payment-deposit>
+                                            <label htmlFor="payment-deposit" className={s.label}>Deposit (%)</label>
+                                            <input
+                                                id="payment-deposit"
+                                                inputMode="decimal"
+                                                autoComplete="off"
+                                                value={depositRow.percentage}
+                                                disabled={busy}
+                                                aria-invalid={depositError ? true : undefined}
+                                                aria-describedby="payment-deposit-help"
+                                                onChange={(e) => edit({ payments: depositBalancePayments(e.target.value, newClientId, draft.payments) })}
+                                                className={`${s.input} mt-1.5 max-w-[10rem]`}
+                                            />
+                                            <p id="payment-deposit-help" className={`mt-1.5 text-sm ${depositError ? s.errorText : s.muted}`}>
+                                                {balanceFor(depositRow.percentage)
+                                                    ? `The balance is ${balanceFor(depositRow.percentage)}%, due on completion. It is worked out for you.`
+                                                    : "Enter a deposit between 1 and 99. The balance is worked out for you."}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {paymentMode === "custom" && (
+                                        <>
+                                            <ol className="mt-3 space-y-3">
+                                                {draft.payments.map((row, index) => {
+                                                    const stageError = fieldErrors[paymentStageField(row.key)];
+                                                    const shareError = fieldErrors[paymentShareField(row.key)];
+                                                    const change = (patch: Partial<typeof row>) =>
+                                                        edit({ payments: draft.payments.map((p) => (p.key === row.key ? { ...p, ...patch } : p)) });
+                                                    return (
+                                                        <li key={row.key} className={`${s.inset} p-3 sm:p-4`} data-payment-stage>
+                                                            <div className="grid grid-cols-[minmax(0,1fr)_6.5rem] gap-3">
+                                                                <div>
+                                                                    <label htmlFor={`payment-${index}-stage`} className={s.label}>Stage {index + 1}</label>
+                                                                    <input
+                                                                        id={`payment-${index}-stage`}
+                                                                        value={row.stage}
+                                                                        disabled={busy}
+                                                                        maxLength={200}
+                                                                        autoComplete="off"
+                                                                        placeholder="e.g. Deposit"
+                                                                        aria-invalid={stageError ? true : undefined}
+                                                                        onChange={(e) => change({ stage: e.target.value })}
+                                                                        className={`${s.input} mt-1.5`}
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label htmlFor={`payment-${index}-share`} className={s.label}>Share (%)</label>
+                                                                    <input
+                                                                        id={`payment-${index}-share`}
+                                                                        inputMode="decimal"
+                                                                        autoComplete="off"
+                                                                        value={row.percentage}
+                                                                        disabled={busy}
+                                                                        aria-invalid={shareError ? true : undefined}
+                                                                        onChange={(e) => change({ percentage: e.target.value })}
+                                                                        className={`${s.input} mt-1.5`}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <label htmlFor={`payment-${index}-when`} className={`${s.label} mt-3`}>When it is due (optional)</label>
+                                                            <input
+                                                                id={`payment-${index}-when`}
+                                                                value={row.when}
+                                                                disabled={busy}
+                                                                maxLength={1000}
+                                                                autoComplete="off"
+                                                                placeholder="e.g. On booking"
+                                                                onChange={(e) => change({ when: e.target.value })}
+                                                                className={`${s.input} mt-1.5`}
+                                                            />
+                                                            {(stageError || shareError) && (
+                                                                <p role="alert" className={`mt-1.5 text-sm ${s.errorText}`}>{[stageError, shareError].filter(Boolean).join(" ")}</p>
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                disabled={busy}
+                                                                onClick={() => edit({ payments: draft.payments.filter((p) => p.key !== row.key) })}
+                                                                className={`${s.quietButton} -ml-3 mt-1`}
+                                                            >
+                                                                <Trash2 className="w-4 h-4" aria-hidden="true" /> Remove stage {index + 1}
+                                                            </button>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ol>
+                                            {fieldErrors.payments && <p role="alert" className={`mt-2 text-sm ${s.errorText}`}>{fieldErrors.payments}</p>}
+                                            {!locked && draft.payments.length < MAX_PAYMENT_STAGES && (
+                                                <button
+                                                    type="button"
+                                                    disabled={busy}
+                                                    onClick={() => edit({ payments: [...draft.payments, { key: newClientId(), stage: "", when: "", percentage: "" }] })}
+                                                    className={`${s.secondaryButton} min-h-11 text-sm mt-3`}
+                                                >
+                                                    <Plus className="w-4 h-4" aria-hidden="true" /> Add a payment stage
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+                                    {paymentMode !== "custom" && fieldErrors.payments && <p role="alert" className={`mt-2 text-sm ${s.errorText}`}>{fieldErrors.payments}</p>}
+
+                                    {paymentSummary.length > 0 && (
+                                        <div className="mt-3" data-payment-summary>
+                                            <p className={`text-sm font-semibold ${s.body}`}>Your client will see</p>
+                                            <ul className={`mt-1 space-y-1 text-sm ${s.body}`}>
+                                                {paymentSummary.map((row, index) => (
+                                                    <li key={index} className="flex flex-wrap items-baseline justify-between gap-x-3">
+                                                        <span className="min-w-0 break-words">
+                                                            <span className="font-semibold">{row.stage}</span>
+                                                            {row.when ? ` · ${row.when}` : ""}{row.share ? ` · ${row.share}` : ""}
+                                                        </span>
+                                                        <span className="whitespace-nowrap">{row.amount}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                            {preview && preview.commercial.vat_rate > 0 && <p className={`mt-1 text-sm ${s.muted}`}>Stage amounts are before VAT.</p>}
+                                        </div>
                                     )}
                                 </>
                             )}
@@ -809,6 +971,29 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                         </span>
                         <ChevronDown className={`w-5 h-5 flex-shrink-0 transition-transform ${previewOpen ? "rotate-180" : ""}`} aria-hidden="true" />
                     </button>
+
+                    {/* The exact PDF, before anything is sent */}
+                    <div className="px-4 sm:px-5 pb-4 space-y-2" data-presend-pdf>
+                        <button
+                            type="button"
+                            onClick={() => void downloadDraftPdf()}
+                            disabled={!preview || draftPdf.busy}
+                            aria-describedby="presend-pdf-note"
+                            className={`${s.secondaryButton} min-h-11 text-sm w-full sm:w-auto`}
+                        >
+                            {draftPdf.busy
+                                ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Making the PDF…</>
+                                : <><FileDown className="w-4 h-4" aria-hidden="true" /> Download this draft as a PDF</>}
+                        </button>
+                        <p id="presend-pdf-note" className={`text-sm ${s.muted}`}>
+                            {preview
+                                ? "The PDF your client will get, marked as a draft. Downloading it sends nothing."
+                                : "The PDF is available once the job has a name and an estimate."}
+                            {checkCode && <> Check code <span className="font-mono font-semibold" data-check-code>{checkCode}</span>.</>}
+                        </p>
+                        {draftPdf.text && <p role={draftPdf.failed ? "alert" : "status"} className={`text-sm ${draftPdf.failed ? s.errorText : s.body}`} data-presend-pdf-result>{draftPdf.text}</p>}
+                    </div>
+
                     {previewOpen && (
                         <div id="review-preview" className="bg-stone-200 p-2 sm:p-6 rounded-b-2xl">
                             {previewDocument ? (
@@ -895,22 +1080,76 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                         )}
                     </div>
 
-                    <label className={`flex items-start gap-3 min-h-11 py-1 text-base ${s.body}`}>
-                        <input
-                            type="checkbox"
-                            className="mt-1 w-5 h-5 flex-shrink-0"
-                            checked={state.confirmed}
-                            disabled={!readiness.ready || state.send.status === "publishing"}
-                            onChange={(e) => store.dispatch({ type: "confirm/set", confirmed: e.target.checked })}
-                            data-send-confirm
-                        />
-                        <span className="min-w-0">
-                            I have read the preview and it is right. Send version {context.nextVersion} to {project.client_name || "the client"}.
-                        </span>
-                    </label>
+                    {/* Why sending is not available yet, with the way to fix each thing, right where the controls are. */}
+                    {block === "not-ready" && (
+                        <div
+                            id="send-block-reason"
+                            ref={sendBlockRef}
+                            tabIndex={-1}
+                            className={`${s.noticeBox} text-sm space-y-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`}
+                            data-send-block="not-ready"
+                        >
+                            <p className="text-base font-bold">
+                                You can&apos;t send yet. {readiness.missing.length} {readiness.missing.length === 1 ? "thing is" : "things are"} still needed.
+                            </p>
+                            <ul className="space-y-3">
+                                {readiness.missing.map((item) => (
+                                    <li key={item.key} data-send-missing={item.key}>
+                                        <p><span className="font-semibold">{item.label}:</span> {item.fix}</p>
+                                        <div className="mt-1 flex flex-col sm:flex-row sm:flex-wrap gap-2">
+                                            {item.key === "payment" && !draft.fixedPayments && draft.payments.length === 0 && (
+                                                <>
+                                                    <button type="button" onClick={() => choosePaymentFromSend("completion")} className={`${s.secondaryButton} min-h-11 text-sm`} data-quick-payment="completion">
+                                                        Use payment on completion
+                                                    </button>
+                                                    <button type="button" onClick={() => choosePaymentFromSend("deposit_balance")} className={`${s.secondaryButton} min-h-11 text-sm`} data-quick-payment="deposit_balance">
+                                                        Use a deposit and balance
+                                                    </button>
+                                                </>
+                                            )}
+                                            {requiredFix[item.key] && (
+                                                <a href={requiredFix[item.key]!.href} className={s.quietButton}>{requiredFix[item.key]!.label}</a>
+                                            )}
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
 
-                    {block && block !== "publishing" && (
-                        <p id="send-block-reason" className={`text-sm ${s.muted}`} data-send-block={block}>{SEND_BLOCK_MESSAGE[block]}</p>
+                    <div>
+                        <label className={`flex items-start gap-3 min-h-11 py-1 text-base ${s.body}`}>
+                            <input
+                                ref={confirmRef}
+                                type="checkbox"
+                                className="mt-1 w-5 h-5 flex-shrink-0"
+                                checked={state.confirmed}
+                                disabled={!readiness.ready || state.send.status === "publishing"}
+                                aria-describedby={block && block !== "publishing" ? "send-block-reason" : undefined}
+                                onChange={(e) => store.dispatch({ type: "confirm/set", confirmed: e.target.checked })}
+                                data-send-confirm
+                            />
+                            <span className="min-w-0">
+                                I have read the preview and it is right. Send version {context.nextVersion} to {project.client_name || "the client"}.
+                            </span>
+                        </label>
+                        {readiness.ready && checkCode && (
+                            <p className={`mt-1 text-sm ${s.muted}`}>
+                                Check code for what will be sent: <span className="font-mono font-semibold">{checkCode}</span>. A draft PDF downloaded now carries the same code.
+                            </p>
+                        )}
+                    </div>
+
+                    {block && block !== "publishing" && block !== "not-ready" && (
+                        <div id="send-block-reason" className={`text-sm ${s.muted}`} data-send-block={block}>
+                            <p>{SEND_BLOCK_MESSAGE[block]}</p>
+                            {block === "save-failed" && (
+                                <button type="button" onClick={handleSave} className={`${s.quietButton} -ml-3`}>Save now</button>
+                            )}
+                            {block === "suggestion-pending" && state.suggestion && (
+                                <a href={`#wording-${state.suggestion.field}`} className={`${s.quietButton} -ml-3`}>Go to the suggested wording</a>
+                            )}
+                        </div>
                     )}
 
                     <button
@@ -942,6 +1181,10 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                         {state.published && (
                             <div role="status" className={`${s.successBox} space-y-3 text-sm`} data-send-result="published">
                                 <p className="text-base font-bold">Version {state.published.versionNumber} is published.</p>
+                                <p data-published-check>
+                                    It is the proposal you checked: check code{" "}
+                                    <span className="font-mono font-semibold">{contentCheckCode(state.published.contentHash)}</span>, the same as the draft.
+                                </p>
                                 <p>{responseWording(state.published.responseKind).optionHelp}</p>
 
                                 {state.published.delivery.status === "sent" && (

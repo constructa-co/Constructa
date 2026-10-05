@@ -1,5 +1,5 @@
 import { computeContractSum, roundMoney, toNumber } from "@/lib/financial";
-import { computeProgrammePlan, resolveProgrammeSource, type ProgrammePlan } from "@/lib/programme-plan";
+import { computeProgrammePlan, planCoversEveryPhase, resolveProgrammeSource, type ProgrammePlan } from "@/lib/programme-plan";
 import { isProposalResponseKind, responseWording, type ProposalResponseKind } from "@/lib/proposal-response";
 
 /**
@@ -200,6 +200,8 @@ export interface ProposalPublicationSnapshot {
 }
 
 export const PROGRAMME_REQUIRED_ERROR = "A start date and how long the job takes are required before send.";
+export const PROGRAMME_INCOMPLETE_ERROR =
+    "One or more saved programme stages has no start or no length. Fix or remove it in Programme before send.";
 
 const FORBIDDEN_PUBLICATION_KEYS = new Set([
     "total_cost",
@@ -305,23 +307,22 @@ function sanitisePaymentSchedule(value: unknown[] | null | undefined): ProposalP
     });
 }
 
-function sanitiseProgramme(value: unknown[] | null | undefined): ProposalPublicationSnapshot["programme"] {
-    if (!Array.isArray(value)) return [];
-    return value.slice(0, 200).map((entry, index) => {
-        const phase = asRecord(entry);
-        const manualDays = phase.manualDays == null ? null : toNumber(phase.manualDays as number | string | null);
-        const calculatedDays = toNumber(phase.calculatedDays as number | string | null);
-        const legacyDays = toNumber(phase.duration_days as number | string | null);
-        const durationDays = (manualDays ?? calculatedDays) || legacyDays || 1;
-        return {
-            id: optionalText(typeof phase.id === "string" ? phase.id : null, 100),
-            name: requiredText(typeof phase.name === "string" ? phase.name : `Phase ${index + 1}`, "Programme phase", 200),
-            duration_days: Math.max(1, Math.min(3650, durationDays)),
-            duration_unit: optionalText(typeof phase.duration_unit === "string" ? phase.duration_unit : null, 50) ?? "Days",
-            start_offset_days: Math.max(0, Math.min(36500, toNumber(phase.startOffset as number | string | null))),
-            start_date: optionalText(typeof phase.start_date === "string" ? phase.start_date : null, 20),
-        };
-    });
+/**
+ * The stage list kept beside the canonical plan. It is written from the plan
+ * itself, so the two can never describe different programmes: the same
+ * stages, in the same order, with the same names and dates. Readers made
+ * before the plan existed use this list; everything since uses the plan.
+ */
+function stageListFromPlan(plan: ProgrammePlan | null): ProposalPublicationSnapshot["programme"] {
+    if (!plan) return [];
+    return plan.stages.map((stage) => ({
+        id: null,
+        name: stage.name,
+        duration_days: stage.working_days,
+        duration_unit: "Days",
+        start_offset_days: stage.offset_days,
+        start_date: stage.start_date,
+    }));
 }
 
 /**
@@ -444,6 +445,10 @@ export function buildProposalPublicationSnapshot(
     const programmeSource = resolveProgrammeSource(input.project);
     const programmePlan = computeProgrammePlan(input.project.start_date, programmeSource.phases);
     if (!programmePlan && !options.allowIncomplete) throw new Error(PROGRAMME_REQUIRED_ERROR);
+    // A stage the contractor saved is never left out of what is sent.
+    if (programmePlan && !options.allowIncomplete && !planCoversEveryPhase(programmePlan, programmeSource.phases)) {
+        throw new Error(PROGRAMME_INCOMPLETE_ERROR);
+    }
 
     const snapshot: ProposalPublicationSnapshot = {
         schema_version: 1,
@@ -499,7 +504,7 @@ export function buildProposalPublicationSnapshot(
             fee_items: buildFeeItems(input.estimate, contractSumExVat),
             payment_schedule: sanitisePaymentSchedule(input.project.payment_schedule),
         },
-        programme: sanitiseProgramme(programmeSource.phases),
+        programme: stageListFromPlan(programmePlan),
         terms: {
             profile_version: requiredText(input.termsProfileVersion, "Terms profile version", 100),
             clauses: input.resolvedTerms.map((clause) => ({
@@ -538,6 +543,31 @@ export async function hashProposalPublication(snapshot: ProposalPublicationSnaps
     const bytes = new TextEncoder().encode(canonicalProposalPublicationJson(snapshot));
     const digest = await crypto.subtle.digest("SHA-256", bytes);
     return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * A fingerprint of what a proposal says: every word, figure, date and term
+ * the client reads. It leaves out only the three things that must differ
+ * between a draft and the version sent from it: the publication's id, the
+ * moment it was sent and the moment it expires.
+ *
+ * The contractor's preview and pre-send PDF are built from a draft snapshot;
+ * the version sent is built again on the server from what is saved. When the
+ * two fingerprints are equal, what was sent is what was reviewed. The server
+ * refuses to publish when they are not.
+ */
+export async function hashProposalContent(snapshot: ProposalPublicationSnapshot): Promise<string> {
+    const { version_number, validity_days, response_mode } = snapshot.publication;
+    const content = { ...snapshot, publication: { version_number, validity_days, response_mode } };
+    const bytes = new TextEncoder().encode(JSON.stringify(canonicalise(content)));
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+/** A content fingerprint short enough to read and compare by eye: "3FA9-C1D2". */
+export function contentCheckCode(contentHash: string): string {
+    const code = contentHash.slice(0, 8).toUpperCase();
+    return `${code.slice(0, 4)}-${code.slice(4)}`;
 }
 
 export async function hashProposalAccessToken(token: string): Promise<string> {

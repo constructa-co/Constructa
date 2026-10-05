@@ -6,6 +6,10 @@ About 30 minutes. No developer tools and no database.
 > mobile access difficulties. Release proof did not pass. See
 > [OWNER-WALKTHROUGH-FINDINGS.md](./OWNER-WALKTHROUGH-FINDINGS.md) for the
 > sanitised findings, blockers and retest scope.
+>
+> Stage 2F changed steps 12 to 18 (programme stages, payment stages, the PDF
+> before sending). For the retest use
+> [../stage2-tranche-2f/OWNER-RETEST.md](../stage2-tranche-2f/OWNER-RETEST.md).
 
 **Before you start**
 

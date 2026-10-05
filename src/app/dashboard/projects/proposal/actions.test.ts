@@ -17,9 +17,19 @@ vi.mock("@/lib/ai", () => ({ generateText: mocks.generateText }));
 vi.mock("@/lib/storage/public-image", () => ({ validatePublicImage: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
-import { hashProposalAccessToken, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
-import { AI_UNAVAILABLE_ERROR, DELIVERY_ERROR, DRAFT_SAVE_ERROR, PUBLISH_ERROR, type ProposalDraftPayload } from "@/lib/proposal-review";
-import { responseWording } from "@/lib/proposal-response";
+import { hashProposalAccessToken, hashProposalContent, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
+import {
+    AI_UNAVAILABLE_ERROR,
+    DELIVERY_ERROR,
+    DRAFT_SAVE_ERROR,
+    PUBLISH_ERROR,
+    REVIEW_CHANGED_ERROR,
+    buildPreviewSnapshot,
+    draftFromProject,
+    type ProposalDraftPayload,
+    type ReviewContext,
+} from "@/lib/proposal-review";
+import { responseWording, type ProposalResponseKind } from "@/lib/proposal-response";
 import {
     getProposalPublicationAction,
     publishProposalAction,
@@ -34,6 +44,29 @@ const ESTIMATE_ID = "33333333-3333-4333-8333-333333333333";
 const DELIVERY_ID = "55555555-5555-4555-8555-555555555555";
 
 const input = representativeInput();
+
+let world: ReturnType<typeof fakeSupabase>;
+
+/**
+ * The fingerprint the review screen sends with a send: that of the snapshot
+ * it previews for the project, estimate and profile as they stand now. It is
+ * worked out here the way the screen does it, from the draft, and not by the
+ * action under test.
+ */
+async function reviewedContent(responseKind: ProposalResponseKind): Promise<string> {
+    const project = world.tables.projects[0] as unknown as ReviewContext["project"];
+    const estimate = (world.tables.estimates.find((row) => row.is_active) ?? null) as unknown as ReviewContext["estimate"];
+    const versions = world.tables.proposal_publications.map((row) => Number(row.version_number) || 0);
+    const context: ReviewContext = { project, profile: world.tables.profiles[0], estimate, nextVersion: Math.max(0, ...versions) + 1 };
+    let key = 0;
+    const preview = buildPreviewSnapshot(context, draftFromProject(project, () => `k${key++}`), responseKind, "2026-10-05T09:00:00.000Z");
+    return preview ? hashProposalContent(preview) : "0".repeat(64);
+}
+
+/** Sends the proposal as the review screen does: with the fingerprint of what is on screen. */
+async function publishAsReviewed(responseKind: ProposalResponseKind, deliverByEmail: boolean) {
+    return publishProposalAction(PROJECT_ID, { responseKind, deliverByEmail, reviewedContent: await reviewedContent(responseKind) });
+}
 
 function setup(projectPatch: Record<string, unknown> = {}, publications: Record<string, unknown>[] = []) {
     const db = fakeSupabase({
@@ -67,6 +100,7 @@ function setup(projectPatch: Record<string, unknown> = {}, publications: Record<
     mocks.requireProjectAccess.mockResolvedValue(access);
     mocks.createAdminClient.mockReturnValue(admin.client);
     mocks.sendProposalEmail.mockResolvedValue({ data: { id: "provider-1" }, error: null });
+    world = db;
     return { db, admin };
 }
 
@@ -160,7 +194,7 @@ describe("saveProposalDraftAction", () => {
 describe("publishProposalAction", () => {
     it("publishes an acknowledgement proposal with the canonical programme in the snapshot", async () => {
         const { db } = setup();
-        const result = await publishProposalAction(PROJECT_ID, { responseKind: "acknowledgement", deliverByEmail: false });
+        const result = await publishAsReviewed("acknowledgement", false);
         expect(result).toMatchObject({ success: true, versionNumber: 1, delivery: { status: "not_requested" } });
         if (!result.success) return;
         expect(result.url).toMatch(/^https:\/\/app\.example\.test\/proposal\/[a-f0-9]{64}$/);
@@ -183,7 +217,7 @@ describe("publishProposalAction", () => {
 
     it("publishes a non-binding intention under the acknowledgement mode", async () => {
         const { db } = setup();
-        await publishProposalAction(PROJECT_ID, { responseKind: "non_binding_intent", deliverByEmail: false });
+        await publishAsReviewed("non_binding_intent", false);
         const snapshot = publishedSnapshot(db);
         expect(snapshot.publication.response_mode).toBe("acknowledgement");
         expect(snapshot.response).toEqual({ kind: "non_binding_intent", notice: responseWording("non_binding_intent").notice });
@@ -191,7 +225,7 @@ describe("publishProposalAction", () => {
 
     it.each(["binding_acceptance", "accepted", "", null, undefined])("refuses to publish asking for %j, before touching the database", async (kind) => {
         const { db } = setup();
-        const result = await publishProposalAction(PROJECT_ID, { responseKind: kind as never, deliverByEmail: false });
+        const result = await publishAsReviewed(kind as never, false);
         expect(result).toEqual({ success: false, error: PUBLISH_ERROR });
         expect(db.log).toEqual([]);
         expect(mocks.requireEditableProjectAccess).not.toHaveBeenCalled();
@@ -199,7 +233,7 @@ describe("publishProposalAction", () => {
 
     it("blocks a proposal with no programme, checked again on the server", async () => {
         const { db } = setup({ programme_phases: [] });
-        const result = await publishProposalAction(PROJECT_ID, { responseKind: "acknowledgement", deliverByEmail: true });
+        const result = await publishAsReviewed("acknowledgement", true);
         expect(result.success).toBe(false);
         if (!result.success) expect(result.error).toContain("Add the start date and how long the job takes in Programme.");
         expect(db.rpcCalls).toEqual([]);
@@ -208,14 +242,14 @@ describe("publishProposalAction", () => {
 
     it("blocks a proposal with a duration but no start date", async () => {
         const { db } = setup({ start_date: null });
-        const result = await publishProposalAction(PROJECT_ID, { responseKind: "acknowledgement", deliverByEmail: false });
+        const result = await publishAsReviewed("acknowledgement", false);
         expect(result.success).toBe(false);
         expect(db.rpcCalls).toEqual([]);
     });
 
     it("blocks a proposal with no scope or no payment stages", async () => {
         const { db } = setup({ scope_text: "", payment_schedule: [] });
-        const result = await publishProposalAction(PROJECT_ID, { responseKind: "acknowledgement", deliverByEmail: false });
+        const result = await publishAsReviewed("acknowledgement", false);
         expect(result.success).toBe(false);
         expect(db.rpcCalls).toEqual([]);
     });
@@ -223,12 +257,12 @@ describe("publishProposalAction", () => {
     it("refuses a locked project and one without exactly one active estimate", async () => {
         const { db } = setup();
         mocks.requireEditableProjectAccess.mockRejectedValueOnce(new Error("This proposal has been accepted. Record later scope or price changes as variations."));
-        await expect(publishProposalAction(PROJECT_ID, { responseKind: "acknowledgement", deliverByEmail: false })).resolves.toMatchObject({
+        await expect(publishAsReviewed("acknowledgement", false)).resolves.toMatchObject({
             success: false,
             error: "This proposal has been accepted. Record later scope or price changes as variations.",
         });
         db.tables.estimates[0].is_active = false;
-        await expect(publishProposalAction(PROJECT_ID, { responseKind: "acknowledgement", deliverByEmail: false })).resolves.toMatchObject({
+        await expect(publishAsReviewed("acknowledgement", false)).resolves.toMatchObject({
             success: false,
             error: "Exactly one active estimate is required before publishing this proposal.",
         });
@@ -238,14 +272,14 @@ describe("publishProposalAction", () => {
     it("reports a publication the database refused as not published, and sends no email", async () => {
         const { db } = setup();
         db.fail("publish_proposal_publication", "rpc", "23514", 1, "Published contract sum does not match the active estimate.");
-        const result = await publishProposalAction(PROJECT_ID, { responseKind: "acknowledgement", deliverByEmail: true });
+        const result = await publishAsReviewed("acknowledgement", true);
         expect(result).toEqual({ success: false, error: "Published contract sum does not match the active estimate." });
         expect(mocks.sendProposalEmail).not.toHaveBeenCalled();
     });
 
     it("emails the client only after the publication commits, worded for the chosen response", async () => {
         const { db, admin } = setup();
-        const result = await publishProposalAction(PROJECT_ID, { responseKind: "non_binding_intent", deliverByEmail: true });
+        const result = await publishAsReviewed("non_binding_intent", true);
         expect(result).toMatchObject({ success: true, delivery: { status: "sent", email: "alex@example.test" } });
         expect(db.rpcCalls[0].args.p_delivery_email).toBe("alex@example.test");
         expect(mocks.sendProposalEmail).toHaveBeenCalledWith(expect.objectContaining({
@@ -265,7 +299,7 @@ describe("publishProposalAction", () => {
     ])("still reports the publication as published when %s", async (_label, arrange) => {
         const { admin } = setup();
         arrange();
-        const result = await publishProposalAction(PROJECT_ID, { responseKind: "acknowledgement", deliverByEmail: true });
+        const result = await publishAsReviewed("acknowledgement", true);
         expect(result).toMatchObject({ success: true, versionNumber: 1, delivery: { status: "failed", email: "alex@example.test" } });
         expect(admin.rpcCalls[0].args).toMatchObject({ p_delivery_id: DELIVERY_ID, p_succeeded: false });
     });
@@ -273,13 +307,13 @@ describe("publishProposalAction", () => {
     it("still reports the publication as published when the email outcome cannot be recorded", async () => {
         const { admin } = setup();
         admin.fail("record_proposal_delivery_attempt", "rpc");
-        const result = await publishProposalAction(PROJECT_ID, { responseKind: "acknowledgement", deliverByEmail: true });
+        const result = await publishAsReviewed("acknowledgement", true);
         expect(result).toMatchObject({ success: true, delivery: { status: "sent" } });
     });
 
     it("sends no email when there is no client email, even if asked", async () => {
         const { db } = setup({ client_email: null });
-        const result = await publishProposalAction(PROJECT_ID, { responseKind: "acknowledgement", deliverByEmail: true });
+        const result = await publishAsReviewed("acknowledgement", true);
         expect(result).toMatchObject({ success: true, delivery: { status: "not_requested" } });
         expect(db.rpcCalls[0].args.p_delivery_email).toBeNull();
     });
@@ -288,12 +322,75 @@ describe("publishProposalAction", () => {
         const earlier = { id: "pub-1", project_id: PROJECT_ID, version_number: 1, status: "viewed", snapshot: { frozen: true }, snapshot_hash: "h1" };
         const { db } = setup({}, [earlier]);
         await saveProposalDraftAction(PROJECT_ID, { ...payload, scope: "A different scope after sending." });
-        const result = await publishProposalAction(PROJECT_ID, { responseKind: "acknowledgement", deliverByEmail: false });
+        const result = await publishAsReviewed("acknowledgement", false);
         expect(result).toMatchObject({ success: true, versionNumber: 2 });
         expect(publishedSnapshot(db).content.scope).toBe("A different scope after sending.");
         // The earlier row is untouched: superseding it is the database's job, inside the publish transaction.
         expect(db.tables.proposal_publications[0]).toEqual(earlier);
         expect(db.updates.every((update) => update.table === "projects")).toBe(true);
+    });
+});
+
+describe("what is published is what was reviewed", () => {
+    it("publishes when the saved proposal is the one on the contractor's screen, and returns its fingerprint", async () => {
+        const { db } = setup();
+        const reviewed = await reviewedContent("acknowledgement");
+        const result = await publishProposalAction(PROJECT_ID, { responseKind: "acknowledgement", deliverByEmail: false, reviewedContent: reviewed });
+        expect(result).toMatchObject({ success: true, contentHash: reviewed });
+        // The fingerprint of the immutable snapshot is the fingerprint that was reviewed.
+        expect(await hashProposalContent(publishedSnapshot(db))).toBe(reviewed);
+    });
+
+    it.each([
+        ["the price", () => { (world.tables.estimates[0].estimate_lines as Array<{ line_total: number }>)[0].line_total += 100; }],
+        ["a programme stage", () => { (world.tables.projects[0].programme_phases as Array<{ name: string }>)[0].name = "Demolition"; }],
+        ["the start date", () => { world.tables.projects[0].start_date = "2026-11-09"; }],
+        ["a payment stage", () => { (world.tables.projects[0].payment_schedule as Array<{ percentage: number }>)[0].percentage = 25; }],
+        ["the scope", () => { world.tables.projects[0].scope_text = "A different scope."; }],
+        ["the terms", () => { world.tables.projects[0].tc_overrides = [{ clause_number: 1, title: "Payment", body: "Paid on the day." }]; }],
+        ["the company profile", () => { world.tables.profiles[0].capability_statement = "A different description."; }],
+        ["the VAT treatment", () => { world.tables.projects[0].is_vat_reverse_charge = true; }],
+    ])("publishes nothing when %s changed after the contractor read the preview", async (_what, change) => {
+        const { db } = setup();
+        const reviewed = await reviewedContent("acknowledgement");
+        change();
+        const result = await publishProposalAction(PROJECT_ID, { responseKind: "acknowledgement", deliverByEmail: true, reviewedContent: reviewed });
+        expect(result).toEqual({ success: false, error: REVIEW_CHANGED_ERROR, changed: true });
+        expect(db.rpcCalls).toEqual([]);
+        expect(mocks.sendProposalEmail).not.toHaveBeenCalled();
+
+        // Read again, it can be sent.
+        await expect(publishAsReviewed("acknowledgement", false)).resolves.toMatchObject({ success: true });
+    });
+
+    it("publishes nothing when the response asked for is not the one that was previewed", async () => {
+        const { db } = setup();
+        const reviewed = await reviewedContent("acknowledgement");
+        const result = await publishProposalAction(PROJECT_ID, { responseKind: "non_binding_intent", deliverByEmail: false, reviewedContent: reviewed });
+        expect(result).toMatchObject({ success: false, changed: true });
+        expect(db.rpcCalls).toEqual([]);
+    });
+
+    it.each([undefined, null, "", "not-a-fingerprint", "A".repeat(64)])("refuses a send that does not say what was reviewed (%j), before touching the database", async (value) => {
+        const { db } = setup();
+        const result = await publishProposalAction(PROJECT_ID, { responseKind: "acknowledgement", deliverByEmail: false, reviewedContent: value as never });
+        expect(result).toEqual({ success: false, error: REVIEW_CHANGED_ERROR, changed: true });
+        expect(db.log).toEqual([]);
+    });
+
+    it("is not thrown by when it is sent: the same draft sent a day later has the same fingerprint", async () => {
+        setup();
+        const context: ReviewContext = {
+            project: world.tables.projects[0] as unknown as ReviewContext["project"],
+            profile: world.tables.profiles[0],
+            estimate: world.tables.estimates[0] as unknown as ReviewContext["estimate"],
+            nextVersion: 1,
+        };
+        const draft = draftFromProject(context.project, () => "k");
+        const monday = buildPreviewSnapshot(context, draft, "acknowledgement", "2026-10-05T09:00:00.000Z")!;
+        const tuesday = buildPreviewSnapshot(context, draft, "acknowledgement", "2026-10-06T17:30:00.000Z")!;
+        expect(tuesday.publication.expires_at).not.toBe(monday.publication.expires_at);
+        expect(await hashProposalContent(tuesday)).toBe(await hashProposalContent(monday));
     });
 });
 

@@ -11,7 +11,9 @@
  *    the contractor applies it;
  *  - a proposal is published only when it is ready, saved and explicitly
  *    confirmed, and what happened is reported as it happened: a publication
- *    that committed is never shown as failed because its email did not send.
+ *    that committed is never shown as failed because its email did not send;
+ *  - what is published is what was reviewed: the content the contractor
+ *    confirmed is fingerprinted and the server publishes only that content.
  */
 
 import { computeContractSum, roundMoney } from "./financial";
@@ -191,6 +193,74 @@ const comparable = (draft: ProposalDraft) => JSON.stringify([
 
 export function draftsEqual(a: ProposalDraft, b: ProposalDraft): boolean {
     return comparable(a) === comparable(b);
+}
+
+// ── Payment presets ──────────────────────────────────────────────────────────
+
+/**
+ * The quick ways to say how the job is paid. Each one fills in ordinary
+ * payment stages, so the proposal, its PDF and the sent version treat a
+ * preset exactly like stages typed by hand.
+ */
+export type PaymentPreset = "completion" | "deposit_balance" | "custom";
+
+export const PAYMENT_PRESETS: ReadonlyArray<{ kind: PaymentPreset; label: string; help: string }> = [
+    { kind: "completion", label: "Payment on completion", help: "The whole price when the work is finished." },
+    { kind: "deposit_balance", label: "Deposit and balance", help: "A deposit on booking, the rest when the work is finished." },
+    { kind: "custom", label: "Custom stages", help: "Your own stages, each with its share of the price." },
+];
+
+export const DEFAULT_DEPOSIT_PERCENT = 30;
+const COMPLETION_STAGE = { stage: "Payment on completion", when: "When the work is finished" } as const;
+const DEPOSIT_STAGE = { stage: "Deposit", when: "On booking" } as const;
+const BALANCE_STAGE = { stage: "Balance", when: "On completion" } as const;
+
+/** A deposit share that leaves a balance: more than 0 and less than 100, to two decimal places. */
+function depositShare(raw: string): number | null {
+    const share = parsePercentage(raw);
+    return share !== null && share > 0 && share < 100 ? share : null;
+}
+
+/** The balance share for a deposit, as it is typed into a stage. Empty until the deposit is usable. */
+export function balanceFor(depositRaw: string): string {
+    const deposit = depositShare(depositRaw);
+    return deposit === null ? "" : String(roundMoney(100 - deposit));
+}
+
+/**
+ * The stages for a deposit and a balance. The balance is always worked out
+ * from the deposit, so the two add up to the whole price. The existing
+ * stages' keys are kept when the deposit is being changed, so the fields on
+ * screen stay the same fields.
+ */
+export function depositBalancePayments(depositRaw: string, makeKey: () => string, current: readonly PaymentStageDraft[] = []): PaymentStageDraft[] {
+    const kept = paymentPresetOf({ payments: current, fixedPayments: null }) === "deposit_balance" ? current : [];
+    return [
+        { key: kept[0]?.key ?? makeKey(), ...DEPOSIT_STAGE, percentage: depositRaw },
+        { key: kept[1]?.key ?? makeKey(), ...BALANCE_STAGE, percentage: balanceFor(depositRaw) },
+    ];
+}
+
+/** The stages a preset starts with. "Custom" keeps what is there, or opens one empty stage to fill in. */
+export function presetPayments(preset: PaymentPreset, makeKey: () => string, current: readonly PaymentStageDraft[] = []): PaymentStageDraft[] {
+    if (preset === "completion") return [{ key: makeKey(), ...COMPLETION_STAGE, percentage: "100" }];
+    if (preset === "deposit_balance") return depositBalancePayments(String(DEFAULT_DEPOSIT_PERCENT), makeKey, current);
+    return current.length > 0 ? [...current] : [{ key: makeKey(), stage: "", when: "", percentage: "" }];
+}
+
+/**
+ * Which preset the saved or typed stages are, so the screen opens on the
+ * choice the contractor made. Null when there are no stages, or when they
+ * are fixed amounts from the earlier editor.
+ */
+export function paymentPresetOf(draft: { payments: readonly PaymentStageDraft[]; fixedPayments: unknown[] | null }): PaymentPreset | null {
+    if (draft.fixedPayments) return null;
+    const rows = draft.payments;
+    if (rows.length === 0) return null;
+    if (rows.length === 1 && rows[0].stage === COMPLETION_STAGE.stage && parsePercentage(rows[0].percentage) === 100) return "completion";
+    if (rows.length === 2 && rows[0].stage === DEPOSIT_STAGE.stage && rows[1].stage === BALANCE_STAGE.stage
+        && rows[1].percentage === balanceFor(rows[0].percentage)) return "deposit_balance";
+    return "custom";
 }
 
 // ── Save payload ─────────────────────────────────────────────────────────────
@@ -427,6 +497,8 @@ export const PUBLISH_ERROR = "The proposal was not published. Nothing has been s
 export const PUBLISH_UNKNOWN_ERROR =
     "We couldn't confirm whether the proposal was published. Check the sent versions below before you send again.";
 export const DELIVERY_ERROR = "The email could not be sent. The proposal is still published; share the link yourself or try the email again.";
+export const REVIEW_CHANGED_ERROR =
+    "This proposal has changed since you checked it, so it was not sent. Read the preview again, then tick the box and send.";
 
 export type DeliveryOutcome =
     | { status: "sent"; email: string }
@@ -439,6 +511,8 @@ export interface PublishedResult {
     publicationId: string;
     responseKind: ProposalResponseKind;
     delivery: DeliveryOutcome;
+    /** The fingerprint of what was published. It equals the one that was reviewed. */
+    contentHash: string;
 }
 
 export interface ReviewState {
@@ -451,7 +525,8 @@ export interface ReviewState {
     responseKind: ProposalResponseKind;
     /** The contractor's explicit tick that this is ready to go to the client. */
     confirmed: boolean;
-    send: { status: "idle" | "publishing" | "published" | "failed" | "unknown"; error: string | null };
+    /** `changed`: refused because what would be sent is not what was reviewed. */
+    send: { status: "idle" | "publishing" | "published" | "failed" | "unknown"; error: string | null; changed?: boolean };
     published: PublishedResult | null;
     delivery: { status: "idle" | "sending"; error: string | null };
 }
@@ -488,7 +563,7 @@ export type ReviewAction =
     | { type: "confirm/set"; confirmed: boolean }
     | { type: "send/started" }
     | { type: "send/published"; result: PublishedResult }
-    | { type: "send/failed"; error: string }
+    | { type: "send/failed"; error: string; changed?: boolean }
     | { type: "send/unknown" }
     | { type: "send/reset" }
     | { type: "delivery/started" }
@@ -571,7 +646,11 @@ export function reviewReducer(state: ReviewState, action: ReviewAction): ReviewS
             };
 
         case "send/failed":
-            return { ...state, send: { status: "failed", error: action.error } };
+            // A proposal that changed under the contractor has to be read
+            // again before it can go, so the tick comes off.
+            return action.changed
+                ? { ...state, send: { status: "failed", error: action.error, changed: true }, confirmed: false }
+                : { ...state, send: { status: "failed", error: action.error } };
 
         case "send/unknown":
             return { ...state, send: { status: "unknown", error: PUBLISH_UNKNOWN_ERROR }, confirmed: false };
@@ -643,11 +722,16 @@ export interface ReviewStore {
     dispatch: (action: ReviewAction) => void;
 }
 
-type Outcome<T> = Promise<({ success: true } & T) | { success: false; error: string }>;
+type Outcome<T> = Promise<({ success: true } & T) | { success: false; error: string; changed?: boolean }>;
 
 export type SaveProposalDraft = (payload: ProposalDraftPayload) => Outcome<object>;
 export type AskWording = (field: WordingField, text: string) => Promise<{ ok: true; text: string } | { ok: false; error: string }>;
-export type PublishProposal = (input: { responseKind: ProposalResponseKind; deliverByEmail: boolean }) => Outcome<Omit<PublishedResult, "responseKind">>;
+export type PublishProposal = (input: {
+    responseKind: ProposalResponseKind;
+    deliverByEmail: boolean;
+    /** The fingerprint of the content the contractor confirmed. */
+    reviewedContent: string;
+}) => Outcome<Omit<PublishedResult, "responseKind">>;
 export type RetryDelivery = (input: { publicationId: string; url: string }) => Outcome<{ delivery: DeliveryOutcome }>;
 
 export type DraftSaveOutcome = "saved" | "failed" | "invalid" | "busy";
@@ -723,7 +807,18 @@ export type SendOutcome = "published" | "blocked" | "save-failed" | "failed" | "
  */
 export async function sendProposal(
     store: ReviewStore,
-    deps: { save: SaveProposalDraft; publish: PublishProposal; readiness: () => Pick<ProposalReadiness, "ready">; deliverByEmail: boolean },
+    deps: {
+        save: SaveProposalDraft;
+        publish: PublishProposal;
+        readiness: () => Pick<ProposalReadiness, "ready">;
+        deliverByEmail: boolean;
+        /**
+         * The fingerprint of the proposal as it stands on screen now, or null
+         * when there is nothing that could be sent. Read after any save, so
+         * it describes exactly what the contractor confirmed.
+         */
+        reviewedContent: () => Promise<string | null>;
+    },
 ): Promise<SendOutcome> {
     if (sendBlock(store.getState(), deps.readiness()) !== null) return "blocked";
 
@@ -736,10 +831,24 @@ export async function sendProposal(
 
     const { responseKind } = store.getState();
     store.dispatch({ type: "send/started" });
+
+    // Worked out before anything is asked of the server, so failing here is
+    // plainly "not sent" and never "we could not tell".
+    let reviewedContent: string | null = null;
     try {
-        const result = await deps.publish({ responseKind, deliverByEmail: deps.deliverByEmail });
+        reviewedContent = await deps.reviewedContent();
+    } catch {
+        reviewedContent = null;
+    }
+    if (!reviewedContent) {
+        store.dispatch({ type: "send/failed", error: PUBLISH_ERROR });
+        return "failed";
+    }
+
+    try {
+        const result = await deps.publish({ responseKind, deliverByEmail: deps.deliverByEmail, reviewedContent });
         if (!result.success) {
-            store.dispatch({ type: "send/failed", error: result.error || PUBLISH_ERROR });
+            store.dispatch({ type: "send/failed", error: result.error || PUBLISH_ERROR, changed: result.changed === true });
             return "failed";
         }
         store.dispatch({
@@ -750,6 +859,7 @@ export async function sendProposal(
                 publicationId: result.publicationId,
                 responseKind,
                 delivery: result.delivery,
+                contentHash: result.contentHash,
             },
         });
         return "published";

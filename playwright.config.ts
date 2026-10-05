@@ -11,7 +11,9 @@ const appEnv = serverEnv(env);
 // The production build is what gets tested. E2E_SKIP_BUILD reuses an existing
 // build during local iteration; global setup still proves which backend that
 // build was compiled against before any test runs.
-const startApp = `npx next start -H ${appUrl.hostname} -p ${appUrl.port}`;
+// The compiled build is checked against the disposable project before the
+// server starts, by the same script that checks a preview build.
+const startApp = `node scripts/verify-build-supabase-target.mjs && npx next start -H ${appUrl.hostname} -p ${appUrl.port}`;
 const appCommand = process.env.E2E_SKIP_BUILD === "1" ? startApp : `npx next build && ${startApp}`;
 
 const touch = { hasTouch: true, isMobile: true, deviceScaleFactor: 2 };

@@ -102,6 +102,11 @@ export interface ProposalDocument {
     };
     /** Short fingerprint of the published snapshot, when known. */
     snapshotRef: string | null;
+    /**
+     * On a draft only: the code the contractor compares with the one shown
+     * when the proposal is sent, to see that what was sent is what they read.
+     */
+    draftCheckCode: string | null;
 }
 
 // ── Text ─────────────────────────────────────────────────────────────────────
@@ -364,6 +369,8 @@ export interface BuildDocumentOptions {
     /** The contractor's preview of an unsent draft. */
     isDraft?: boolean;
     snapshotHash?: string | null;
+    /** The draft's content check code, when it has been worked out. */
+    draftCheckCode?: string | null;
 }
 
 export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, options: BuildDocumentOptions = {}): ProposalDocument {
@@ -425,6 +432,7 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
             signatureLabel: wording.pdfSignatureLabel,
         },
         snapshotRef: options.snapshotHash ? options.snapshotHash.slice(0, 12) : null,
+        draftCheckCode: options.isDraft && options.draftCheckCode ? options.draftCheckCode : null,
     };
 }
 

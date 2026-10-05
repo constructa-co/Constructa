@@ -71,6 +71,10 @@ export default function SimpleProgrammeClient({ project, lockReason, estimate, s
 
     const [detailedOpen, setDetailedOpen] = useState(false);
     const [startedSimple, setStartedSimple] = useState(false);
+    // The planner replaces the simple editor on screen, which would drop
+    // anything typed there and not yet saved. It is not opened over that.
+    const [unsavedSimple, setUnsavedSimple] = useState(false);
+    const [plannerRefused, setPlannerRefused] = useState(false);
 
     // Keys for saved stages are positional so the first render matches on the
     // server and in the browser.
@@ -83,6 +87,11 @@ export default function SimpleProgrammeClient({ project, lockReason, estimate, s
     // The detailed planner saves as it goes. Closing it reloads the project so
     // the simple view shows what the planner left behind.
     const toggleDetailed = () => {
+        if (!detailedOpen && unsavedSimple) {
+            setPlannerRefused(true);
+            return;
+        }
+        setPlannerRefused(false);
         if (detailedOpen) startRefresh(() => router.refresh());
         setDetailedOpen((open) => !open);
     };
@@ -94,6 +103,7 @@ export default function SimpleProgrammeClient({ project, lockReason, estimate, s
                 onClick={toggleDetailed}
                 aria-expanded={detailedOpen}
                 aria-controls="detailed-planner"
+                aria-describedby={plannerRefused && unsavedSimple ? "detailed-planner-refused" : undefined}
                 className={`w-full min-h-14 px-4 sm:px-5 py-3 flex items-center justify-between gap-3 text-left ${s.body}`}
             >
                 <span>
@@ -104,6 +114,12 @@ export default function SimpleProgrammeClient({ project, lockReason, estimate, s
                 </span>
                 <ChevronDown className={`w-5 h-5 flex-shrink-0 transition-transform ${detailedOpen ? "rotate-180" : ""}`} aria-hidden="true" />
             </button>
+
+            {plannerRefused && unsavedSimple && !detailedOpen && (
+                <p id="detailed-planner-refused" role="alert" className={`mx-4 sm:mx-5 mb-4 text-sm ${s.noticeBox}`} data-planner-refused>
+                    Save your programme first. Opening the planner now would lose the changes above that are not saved yet.
+                </p>
+            )}
 
             {detailedOpen && (
                 <div id="detailed-planner" className="px-3 sm:px-5 pb-5 space-y-4">
@@ -117,8 +133,9 @@ export default function SimpleProgrammeClient({ project, lockReason, estimate, s
                     </p>
                     {view.kind === "simple" && !view.hasSaved && (
                         <p role="note" className={`text-sm ${s.noticeBox}`}>
-                            This job has no programme yet. The planner starts one from the sections of your estimate, with a
-                            placeholder length for any section it cannot work out, and saves it. Check every length before you send.
+                            This job has no programme yet. The planner offers a starting point from your estimate, with a
+                            placeholder length for anything it cannot work out. Nothing is saved, and your proposal has no
+                            programme, until you change it or press Save to Proposal.
                         </p>
                     )}
                     <div data-wide-workspace className="rounded-xl bg-[#0d0d0d] p-3 sm:p-4 overflow-x-auto">
@@ -162,6 +179,7 @@ export default function SimpleProgrammeClient({ project, lockReason, estimate, s
                             project={project}
                             initial={view.kind === "simple" ? view : { kind: "simple", draft: emptyProgrammeDraft(view.startDate), hasSaved: false }}
                             save={save ?? ((input) => saveSimpleProgrammeAction(project.id, input))}
+                            onUnsavedChange={setUnsavedSimple}
                             s={s}
                             isDark={isDark}
                         />
@@ -247,11 +265,13 @@ function ReadOnlyProgramme({
 // ─── The simple editor ───────────────────────────────────────────────────────
 
 function ProgrammeEditor({
-    project, initial, save, s, isDark,
+    project, initial, save, onUnsavedChange, s, isDark,
 }: {
     project: ProgrammeProject;
     initial: { kind: "simple"; draft: ProgrammeDraft; hasSaved: boolean };
     save: SaveProgramme;
+    /** Told whenever there is, or is no longer, anything typed here that the server does not hold. */
+    onUnsavedChange?: (unsaved: boolean) => void;
     s: WorkspaceStyles;
     isDark: boolean;
 }) {
@@ -265,10 +285,15 @@ function ProgrammeEditor({
     const plan = useMemo(() => draftPlan(draft), [draft]);
     const alertRef = useRef<HTMLDivElement>(null);
 
+    const unsaved = status === "unsaved" || status === "failed" || status === "saving";
     useUnsavedGuard(
-        !leaving && (status === "unsaved" || status === "failed" || status === "saving"),
+        !leaving && unsaved,
         "Your programme has changes that are not saved yet.\n\nPress Cancel to stay here and save them, or OK to leave without saving.",
     );
+    useEffect(() => {
+        onUnsavedChange?.(unsaved);
+        return () => onUnsavedChange?.(false);
+    }, [unsaved, onUnsavedChange]);
 
     // A save can be started from the bottom of the page. Bring a failure and
     // its retry into view rather than leaving them off screen. The alert keeps

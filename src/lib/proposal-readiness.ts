@@ -10,7 +10,7 @@
  */
 
 import { roundMoney } from "./financial";
-import { computeProgrammePlan } from "./programme-plan";
+import { computeProgrammePlan, planCoversEveryPhase } from "./programme-plan";
 
 export { isUntouchedStarterProgramme, type StarterPhaseSeed } from "./programme-plan";
 
@@ -143,10 +143,16 @@ export function evaluateProposalReadiness(input: ProposalReadinessInput): Propos
     const phases = Array.isArray(input.programmePhases) ? input.programmePhases : [];
     const payments = Array.isArray(input.paymentSchedule) ? input.paymentSchedule : [];
     const terms = Array.isArray(input.terms) ? input.terms : [];
-    // The proposal shows a start, a finish and a length. All three come from
-    // the one programme calculation, so it must produce an answer.
-    const hasProgramme = phases.some((phase) => isValidProgrammePhase(phase, input.projectStartDate))
-        && computeProgrammePlan(input.projectStartDate, phases) !== null;
+    // The proposal shows a start, a finish and a length, and every stage the
+    // contractor saved. All of it comes from the one programme calculation,
+    // so that must produce an answer that leaves no saved stage out: a stage
+    // with no name, start or length blocks sending rather than being dropped
+    // or given an invented name.
+    const unusablePhases = phases.filter((phase) => !isValidProgrammePhase(phase, input.projectStartDate)).length;
+    const hasProgramme = phases.length > 0
+        && unusablePhases === 0
+        && planCoversEveryPhase(computeProgrammePlan(input.projectStartDate, phases), phases);
+    const hasStart = isValidDate(input.projectStartDate) || phases.some((phase) => isValidDate(asRecord(phase).start_date));
     const coverage = paymentCoverage(payments, input.contractSum);
     const paymentsExceedPrice = coverage !== null && coverage > 100.01;
 
@@ -177,7 +183,13 @@ export function evaluateProposalReadiness(input: ProposalReadinessInput): Propos
             key: "programme",
             label: "Programme",
             ok: hasProgramme,
-            fix: "Add the start date and how long the job takes in Programme.",
+            fix: phases.length === 0 || !hasStart
+                ? "Add the start date and how long the job takes in Programme."
+                : unusablePhases === 1
+                    ? "One of your programme stages has no name or no length. Fix or remove it in Programme."
+                    : unusablePhases > 1
+                        ? "Some of your programme stages have no name or no length. Fix or remove them in Programme."
+                        : "One of your programme stages cannot be dated. Check its start and length in Programme.",
         },
         {
             key: "payment",
@@ -185,7 +197,7 @@ export function evaluateProposalReadiness(input: ProposalReadinessInput): Propos
             ok: payments.some(isValidPaymentRow) && !paymentsExceedPrice,
             fix: paymentsExceedPrice
                 ? `Your payment stages add up to ${coverage}% of the price. Bring them down to 100% or less.`
-                : "Add at least one payment stage with a name and an amount or percentage.",
+                : "Choose how you are paid: on completion, a deposit and balance, or your own stages.",
         },
         {
             key: "terms",

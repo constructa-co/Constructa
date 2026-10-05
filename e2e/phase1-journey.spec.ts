@@ -6,7 +6,7 @@ import { luminance } from "./support/checks";
 import { keyboardDriver, pointerDriver, type Driver, type FocusRecord } from "./support/driver";
 import { APPROVED_DISPOSABLE_PROJECT, SYNTHETIC_EMAIL_DOMAIN, readE2EEnv } from "./support/env";
 import { AI_MARKER, COMPANY, JOB, PAYMENT_STAGES, PRICE, STAGES, expectedPrice, expectedProgramme } from "./support/journey-data";
-import { Recorder } from "./support/recorder";
+import { EVIDENCE_DIR, Recorder } from "./support/recorder";
 
 const env = readE2EEnv();
 const money = expectedPrice();
@@ -294,7 +294,19 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
             await expect(needed).toContainText("Payment stages Missing");
             const send = page.getByRole("region", { name: "Send to your client" });
             await expect(button(/^Send version 1/, send)).toBeDisabled();
-            await expect(send.getByText("Finish the required items above before you send.")).toBeVisible();
+            // What is missing, and the way to fix each thing, is beside the controls it disables.
+            const blocker = send.locator('[data-send-block="not-ready"]');
+            await expect(blocker).toContainText("You can't send yet. 2 things are still needed.");
+            await expect(blocker.locator('[data-send-missing="programme"]')).toContainText("Add the start date and how long the job takes in Programme.");
+            await expect(blocker.getByRole("link", { name: "Open Programme" })).toHaveAttribute("href", `/dashboard/projects/schedule?projectId=${projectId}`);
+            await expect(blocker.locator('[data-send-missing="payment"]')).toContainText("Choose how you are paid");
+            await expect(blocker.getByRole("link", { name: "Choose how you are paid" })).toHaveAttribute("href", "#review-payments");
+            await expect(button("Use payment on completion", blocker)).toBeVisible();
+            await expect(button("Use a deposit and balance", blocker)).toBeVisible();
+            const confirm = send.getByRole("checkbox", { name: /I have read the preview/ });
+            await expect(confirm).toBeDisabled();
+            await expect(confirm).toHaveAttribute("aria-describedby", "send-block-reason");
+            await expect(button(/^Send version 1/, send)).toHaveAttribute("aria-describedby", "send-block-reason");
             // The price the client will be sent is the price the estimate shows.
             const price = page.getByRole("region", { name: "Price", exact: true }).first();
             await expect(price).toContainText(money.beforeVat);
@@ -307,9 +319,31 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
         // ── 7. Programme ─────────────────────────────────────────────────────
         await test.step("programme: dates, stages, a failed save and its retry", async () => {
             recorder.step("programme: start, duration, finish, stages, save failure and retry");
-            await openProjectTab("Programme");
+            // The blocker beside Send is the way in: its link opens the programme directly.
+            await use.activate(page.getByRole("region", { name: "Send to your client" }).locator('[data-send-block="not-ready"]').getByRole("link", { name: "Open Programme" }));
+            await expect(page).toHaveURL(new RegExp(`/dashboard/projects/schedule\\?projectId=${projectId}$`));
             await expect(page.getByRole("heading", { level: 1, name: "Programme" })).toBeVisible();
             const timeline = page.getByRole("region", { name: "How it looks on the proposal" });
+            const plannerToggle = button(/^Detailed programme planner/);
+            const planner = page.locator("#detailed-planner");
+
+            // Opening the detailed planner on a job with no programme offers a
+            // starting point and saves nothing. It used to save one stage named
+            // after the estimate's "General" section, which then went out on the proposal.
+            if (!keyboardRun) {
+                await use.activate(plannerToggle);
+                await expect(planner.locator("[data-planner-suggestion]")).toContainText("They are not saved");
+                const suggested = await planner.locator('input[type="text"], input:not([type])').evaluateAll((inputs) => inputs.map((input) => (input as HTMLInputElement).value));
+                expect(suggested, "the planner suggests stages for this estimate").toContain("Works on site");
+                expect(suggested, "the filing label is never a stage name").not.toContain("General");
+                // Longer than the planner's own save delay.
+                await page.waitForTimeout(1500);
+                await use.activate(plannerToggle);
+                await expect(page.getByLabel("Start on site")).toHaveValue("");
+                await expect(page.getByLabel("How long it takes")).toHaveValue("");
+                await expect(main.getByRole("status").filter({ hasText: "Nothing to save yet" })).toBeVisible();
+                recorder.results.parity.plannerSuggestionNotSaved = true;
+            }
 
             await use.fillDate(page.getByLabel("Start on site"), programme.startIso);
             await use.fill(page.getByLabel("How long it takes"), "3");
@@ -333,6 +367,14 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
             await expect(timeline).toContainText(programme.stagedFinish);
             await expect(timeline.getByRole("list", { name: "Programme stages" }).getByRole("listitem")).toHaveCount(STAGES.length);
 
+            // The planner takes the simple editor's place on screen. It is not
+            // opened over stages that have been typed and not yet saved.
+            await use.activate(plannerToggle);
+            await expect(page.locator("[data-planner-refused]")).toContainText("Save your programme first.");
+            await expect(plannerToggle).toHaveAttribute("aria-expanded", "false");
+            for (const [index, stage] of STAGES.entries()) await expect(rows.nth(index).getByRole("textbox").first()).toHaveValue(stage.name);
+            await recorder.checkpoint("programme-unsaved-planner-refused", { scope: "main main", focusOn: page.locator("[data-planner-refused]") });
+
             if (!keyboardRun) {
                 await failNextServerAction(page);
                 await use.activate(button(/^(Save programme|Try again)$/).last());
@@ -343,8 +385,36 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
             }
             await use.activate(button(/^(Save programme|Try again)$/).last());
             await expect(main.getByRole("status").filter({ hasText: /^Saved$/ })).toBeVisible();
-            recorder.results.parity.programme = { start: programme.start, finish: programme.stagedFinish };
+            recorder.results.parity.programme = { start: programme.start, finish: programme.stagedFinish, stages: programme.stages };
             await recorder.checkpoint("programme-saved", { scope: "main main", focusOn: timeline });
+
+            // Reloading, and opening the planner on the saved programme, loses
+            // nothing: the same stages, in the same order, with the same dates.
+            const expectSavedStages = async () => {
+                await expect(rows).toHaveCount(STAGES.length);
+                for (const [index, stage] of STAGES.entries()) {
+                    await expect(rows.nth(index).getByRole("textbox").first()).toHaveValue(stage.name);
+                    await expect(rows.nth(index).getByLabel("How long")).toHaveValue(stage.length);
+                }
+                for (const stage of programme.stages) {
+                    await expect(timeline).toContainText(stage.name);
+                    await expect(timeline).toContainText(stage.dates);
+                }
+            };
+            await page.reload();
+            await expectSavedStages();
+            if (!keyboardRun) {
+                await use.activate(plannerToggle);
+                await expect(planner.getByRole("heading", { level: 1, name: "Programme" })).toBeVisible();
+                await expect(planner.locator("[data-planner-suggestion]")).toHaveCount(0);
+                const opened = await planner.locator('input[type="text"], input:not([type])').evaluateAll((inputs) => inputs.map((input) => (input as HTMLInputElement).value));
+                for (const stage of STAGES) expect(opened, "the planner opens on the saved stages").toContain(stage.name);
+                expect(opened).not.toContain("General");
+                expect(opened).not.toContain("Works on site");
+                await page.waitForTimeout(1500);
+                await use.activate(plannerToggle);
+                await expectSavedStages();
+            }
             await use.activate(button("Next: Proposal"));
             await expect(page).toHaveURL(/\/dashboard\/projects\/proposal\?projectId=/);
         });
@@ -353,6 +423,15 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
         const send = page.getByRole("region", { name: "Send to your client" });
         const preview = page.getByRole("region", { name: "What your client will see" }).getByRole("article");
         let firstLink = "";
+        let checkCode = "";
+        let draftPdfPages = 0;
+        /** What every form of the document must state: the price, the stages with their dates, and how it is paid. */
+        const documentFacts = [
+            money.beforeVat, money.vat, money.includingVat,
+            programme.stagedFinish,
+            ...programme.stages.flatMap((stage) => [stage.name, stage.dates]),
+            ...PAYMENT_STAGES.map((stage) => stage.name), money.deposit, money.balance,
+        ];
 
         const publish = async (version: number): Promise<string> => {
             await use.check(send.getByRole("checkbox", { name: /I have read the preview/ }));
@@ -366,15 +445,42 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
         };
 
         await test.step("review, then publish in acknowledgement mode", async () => {
-            recorder.step("review: payment stages, parity, light document, acknowledgement default, publish v1");
+            recorder.step("review: payment preset, parity, pre-send PDF, light document, acknowledgement default, publish v1");
             await expect(page.getByRole("heading", { level: 1, name: "Review and send" })).toBeVisible();
             const price = page.getByRole("region", { name: "Price", exact: true }).first();
-            for (const [index, stage] of PAYMENT_STAGES.entries()) {
-                await use.activate(button("Add a payment stage", price));
-                await use.fill(price.getByLabel(`Stage ${index + 1}`, { exact: true }), stage.name);
-                await use.fill(price.getByLabel("Share (%)").nth(index), stage.share);
-                await use.fill(price.getByLabel("When it is due (optional)").nth(index), stage.when);
+            const payments = page.locator("[data-review-payments]");
+            const blocker = send.locator('[data-send-block="not-ready"]');
+            const confirm = send.getByRole("checkbox", { name: /I have read the preview/ });
+
+            // One thing is left, and the Send section says which and how to fix it.
+            await expect(blocker).toContainText("You can't send yet. 1 thing is still needed.");
+            await expect(blocker.locator("[data-send-missing]")).toHaveCount(1);
+            await expect(confirm).toBeDisabled();
+            if (keyboardRun) {
+                // One press, from beside the disabled controls. Focus moves on to the tick box it has just enabled.
+                await use.activate(button("Use a deposit and balance", blocker));
+                await expect(confirm).toBeFocused();
+            } else {
+                await use.activate(blocker.getByRole("link", { name: "Choose how you are paid" }));
+                await expect(payments).toBeInViewport();
+                await use.check(payments.getByRole("radio", { name: /Deposit and balance/ }));
             }
+            // No arithmetic: the preset fills both stages and the balance follows the deposit.
+            await expect(payments.getByRole("radio", { name: /Deposit and balance/ })).toBeChecked();
+            await expect(payments.getByLabel("Deposit (%)")).toHaveValue(PAYMENT_STAGES[0].share);
+            await expect(payments).toContainText(`The balance is ${PAYMENT_STAGES[1].share}%, due on completion.`);
+            const summary = payments.locator("[data-payment-summary]");
+            await expect(summary).toContainText(`${PAYMENT_STAGES[0].name} · ${PAYMENT_STAGES[0].when} · ${PAYMENT_STAGES[0].share}%`);
+            await expect(summary).toContainText(money.deposit);
+            await expect(summary).toContainText(`${PAYMENT_STAGES[1].name} · ${PAYMENT_STAGES[1].when} · ${PAYMENT_STAGES[1].share}%`);
+            await expect(summary).toContainText(money.balance);
+            // Readiness is true of the draft at once, before anything is saved.
+            await expect(page.getByRole("heading", { level: 2, name: "Everything needed is in place" })).toBeVisible();
+            await expect(blocker).toHaveCount(0);
+            await expect(confirm).toBeEnabled();
+            await expect(main.getByRole("status").filter({ hasText: "Unsaved" })).toBeVisible();
+            await recorder.checkpoint("review-payment-preset", { scope: "main main", focusOn: payments });
+
             await use.fill(page.getByRole("textbox", { name: "Closing message" }), JOB.closing);
             await use.activate(button("Save draft"));
             await expect(main.getByRole("status").filter({ hasText: /^Saved$/ })).toBeVisible();
@@ -387,10 +493,41 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
             }
             await expect(preview).toContainText(programme.start);
             await expect(preview).toContainText(programme.stagedFinish);
+            // Every saved stage, by name, in order, with its own dates. No invented stage.
+            const previewStages = preview.getByRole("list", { name: "Programme stages" }).getByRole("listitem");
+            await expect(previewStages).toHaveCount(programme.stages.length);
+            for (const [index, stage] of programme.stages.entries()) {
+                await expect(previewStages.nth(index)).toContainText(stage.name);
+                await expect(previewStages.nth(index)).toContainText(stage.dates);
+            }
+            await expect(preview.getByRole("list", { name: "Programme stages" })).not.toContainText("General");
+            for (const stage of PAYMENT_STAGES) await expect(preview).toContainText(stage.name);
+            await expect(preview).toContainText(money.deposit);
+            await expect(preview).toContainText(money.balance);
             await expect(preview.getByRole("heading", { name: RESPONSE.acknowledgement.heading })).toBeVisible();
             for (const hidden of ["Overhead", "Risk (", "Profit"]) await expect(preview).not.toContainText(hidden);
-            recorder.results.parity.review = { beforeVat: money.beforeVat, vat: money.vat, includingVat: money.includingVat, finish: programme.stagedFinish };
+            recorder.results.parity.review = { beforeVat: money.beforeVat, vat: money.vat, includingVat: money.includingVat, finish: programme.stagedFinish, stages: programme.stages };
             await recorder.checkpoint("review-ready", { scope: "main main" });
+
+            // The exact PDF, before anything is sent. Downloading it publishes nothing.
+            const presend = page.locator("[data-presend-pdf]");
+            const draftDownload = page.waitForEvent("download");
+            await use.activate(button("Download this draft as a PDF", presend));
+            const draftFile = await draftDownload;
+            const draftPdf = await pdfText(await draftFile.path());
+            checkCode = (await presend.locator("[data-check-code]").innerText()).trim();
+            expect(checkCode).toMatch(/^[0-9A-F]{4}-[0-9A-F]{4}$/);
+            await expect(presend.locator("[data-presend-pdf-result]")).toContainText(`Check code ${checkCode}. Nothing has been sent.`);
+            expect(draftPdf.text).toContain("DRAFT PREVIEW - NOT SENT TO THE CLIENT");
+            expect(draftPdf.text).toContain(`Check code ${checkCode}.`);
+            for (const fact of documentFacts) expect(draftPdf.text, `the pre-send PDF states ${fact}`).toContain(fact);
+            expect(draftPdf.text).toContain(RESPONSE.acknowledgement.pdfLine);
+            expect(draftPdf.text).not.toMatch(/Overhead|Profit/);
+            expect(await publicationRecords(projectId), "downloading the draft PDF publishes nothing").toEqual([]);
+            draftPdfPages = draftPdf.pages;
+            recorder.results.parity["pdf-presend-draft"] = { pages: draftPdf.pages, checkCode, includingVat: money.includingVat, finish: programme.stagedFinish, stages: programme.stages, published: false };
+            if (env.evidence && project === "desktop") await draftFile.saveAs(`${EVIDENCE_DIR}/proposal-presend-draft.pdf`);
+            await recorder.checkpoint("review-presend-pdf", { scope: "main main", focusOn: presend });
 
             // The client's document stays a light page in either application theme.
             const tones: Record<string, { page: number | null; document: number | null }> = {};
@@ -419,7 +556,10 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
 
             // The email fails once. The publication stands and only the email is retried.
             if (!keyboardRun) await stubControl({ failEmails: 1 });
+            await expect(send).toContainText(`Check code for what will be sent: ${checkCode}.`);
             firstLink = await publish(1);
+            // What was published is what was checked: the server sends only that content.
+            await expect(send.locator("[data-published-check]")).toContainText(checkCode);
             if (!keyboardRun) {
                 await expect(send.locator('[data-delivery="failed"]')).toContainText("The proposal is published, but the email");
                 await recorder.checkpoint("published-email-failed", { scope: "main main", focusOn: send.locator('[data-send-result="published"]') });
@@ -438,7 +578,16 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
             for (const figure of [money.beforeVat, money.vat, money.includingVat]) await expect(document).toContainText(figure);
             await expect(document).toContainText(programme.start);
             await expect(document).toContainText(programme.stagedFinish);
+            const sentStages = document.getByRole("list", { name: "Programme stages" }).getByRole("listitem");
+            await expect(sentStages).toHaveCount(programme.stages.length);
+            for (const [index, stage] of programme.stages.entries()) {
+                await expect(sentStages.nth(index)).toContainText(stage.name);
+                await expect(sentStages.nth(index)).toContainText(stage.dates);
+            }
+            await expect(document.getByRole("list", { name: "Programme stages" })).not.toContainText("General");
             for (const stage of PAYMENT_STAGES) await expect(document).toContainText(stage.name);
+            await expect(document).toContainText(money.deposit);
+            await expect(document).toContainText(money.balance);
             for (const hidden of ["Overhead", "Risk (", "Profit"]) await expect(document).not.toContainText(hidden);
             await expect(document.getByRole("heading", { level: 2, name: wording.heading })).toBeVisible();
             await expect(document).toContainText(wording.notice);
@@ -453,12 +602,15 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
             await client.activate(clientPage.getByRole("button", { name: "Download this proposal as a PDF" }));
             const file = await (await download).path();
             const pdf = await pdfText(file);
-            for (const figure of [money.beforeVat, money.vat, money.includingVat]) expect(pdf.text).toContain(figure);
-            expect(pdf.text).toContain(programme.stagedFinish);
+            // The same facts the contractor read in the pre-send PDF, in a PDF not marked as a draft.
+            for (const fact of documentFacts) expect(pdf.text, `the client's PDF states ${fact}`).toContain(fact);
             expect(pdf.text).toContain(wording.pdfLine);
             expect(pdf.text).not.toMatch(/Overhead|Profit/);
-            recorder.results.parity[`pdf-${label}`] = { pages: pdf.pages, includingVat: money.includingVat, finish: programme.stagedFinish, responseLine: wording.pdfLine };
-            if (env.evidence && project === "desktop") await (await download).saveAs(`docs/evidence/stage2-tranche-2e/proposal-${label}.pdf`);
+            expect(pdf.text).not.toContain("DRAFT");
+            // Version 1 is the draft that was downloaded and checked, page for page.
+            if (label === "acknowledgement") expect(pdf.pages, "the sent PDF has the pages of the draft that was checked").toBe(draftPdfPages);
+            recorder.results.parity[`pdf-${label}`] = { pages: pdf.pages, includingVat: money.includingVat, finish: programme.stagedFinish, stages: programme.stages, responseLine: wording.pdfLine };
+            if (env.evidence && project === "desktop") await (await download).saveAs(`${EVIDENCE_DIR}/proposal-${label}.pdf`);
 
             // A response without a name is refused and can be corrected.
             const name = clientPage.getByLabel("Your full name");

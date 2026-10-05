@@ -12,6 +12,7 @@ import { precontractLockMessage } from "@/lib/project-editability";
 import {
     buildProposalPublicationSnapshot,
     hashProposalAccessToken,
+    hashProposalContent,
     hashProposalPublication,
     safeImageUrl,
     type ProposalPublicationEstimateInput,
@@ -27,6 +28,7 @@ import {
     MAX_PHOTOS,
     MAX_TERMS,
     PUBLISH_ERROR,
+    REVIEW_CHANGED_ERROR,
     TEXT_LIMITS,
     WORDING_FIELDS,
     contractSumOf,
@@ -43,6 +45,8 @@ import {
 } from "@/lib/proposal-terms";
 
 type Failure = { success: false; error: string };
+/** Refused because what would be published is not what the contractor reviewed. */
+type ChangedFailure = Failure & { changed: true };
 
 const PROFILE_PUBLICATION_COLUMNS =
     "company_name, logo_url, phone, website, accreditations, capability_statement, years_trading, specialisms, insurance_details, pdf_theme, md_name, md_message, case_studies";
@@ -248,8 +252,9 @@ async function deliverProposalEmail(args: {
 }
 
 export type PublishProposalResult =
-    | { success: true; url: string; versionNumber: number; publicationId: string; delivery: DeliveryOutcome }
-    | Failure;
+    | { success: true; url: string; versionNumber: number; publicationId: string; delivery: DeliveryOutcome; contentHash: string }
+    | Failure
+    | ChangedFailure;
 
 /**
  * Publishes the saved draft as a new immutable version.
@@ -260,13 +265,23 @@ export type PublishProposalResult =
  * be published by any route. An earlier version is superseded by the
  * database, never edited. Success is returned as soon as the publication
  * commits; the email outcome is reported separately inside it.
+ *
+ * What is published is what was reviewed. The contractor's screen sends the
+ * fingerprint of the content it showed (the preview and the pre-send PDF).
+ * The snapshot is built again here from the saved project, and if its
+ * content fingerprint is different, because the estimate, the programme, the
+ * company profile or anything else moved in the meantime, nothing is
+ * published and the contractor is asked to read the preview again.
  */
 export async function publishProposalAction(
     projectId: string,
-    input: { responseKind: ProposalResponseKind; deliverByEmail: boolean },
+    input: { responseKind: ProposalResponseKind; deliverByEmail: boolean; reviewedContent: string },
 ): Promise<PublishProposalResult> {
     if (!z.string().uuid().safeParse(projectId).success || !isProposalResponseKind(input?.responseKind)) {
         return { success: false, error: PUBLISH_ERROR };
+    }
+    if (typeof input.reviewedContent !== "string" || !/^[a-f0-9]{64}$/.test(input.reviewedContent)) {
+        return { success: false, error: REVIEW_CHANGED_ERROR, changed: true };
     }
     const deliverByEmail = input.deliverByEmail === true;
 
@@ -343,6 +358,7 @@ export async function publishProposalAction(
     let snapshot: ProposalPublicationSnapshot;
     let tokenHash: string;
     let snapshotHash: string;
+    let contentHash: string;
     try {
         snapshot = buildProposalPublicationSnapshot({
             publicationId,
@@ -357,9 +373,10 @@ export async function publishProposalAction(
             responseKind: input.responseKind,
             ...vatFor(project),
         });
-        [tokenHash, snapshotHash] = await Promise.all([
+        [tokenHash, snapshotHash, contentHash] = await Promise.all([
             hashProposalAccessToken(token),
             hashProposalPublication(snapshot),
+            hashProposalContent(snapshot),
         ]);
     } catch (publicationError) {
         console.error("Proposal snapshot validation failed", { projectId, publicationError });
@@ -369,6 +386,10 @@ export async function publishProposalAction(
                 ? publicationError.message
                 : "The proposal is incomplete and could not be published.",
         };
+    }
+
+    if (contentHash !== input.reviewedContent) {
+        return { success: false, error: REVIEW_CHANGED_ERROR, changed: true };
     }
 
     const deliveryEmail = deliverByEmail && project.client_email ? String(project.client_email) : null;
@@ -419,7 +440,7 @@ export async function publishProposalAction(
         })
         : { status: "not_requested" };
 
-    return { success: true, url, versionNumber, publicationId, delivery };
+    return { success: true, url, versionNumber, publicationId, delivery, contentHash };
 }
 
 /**

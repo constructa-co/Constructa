@@ -4,7 +4,11 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Loader2, MapPin, Briefcase, Calendar, PoundSterling, Sparkles } from "lucide-react";
 import { saveCaseStudiesAction, enhanceCaseStudyAction } from "./actions";
+import type { CaseStudyResult, CaseStudySection } from "@/lib/cohort-ai/case-study-enhance";
+import { pendingFrom, sectionState, settle, type PendingCaseStudySuggestion } from "@/lib/cohort-ai/case-study-suggestion";
 import { uploadProfileImageAction } from "@/app/storage/actions";
+
+type Enhance = (whatWeDelivered: string, valueAdded: string, projectName: string, projectType: string) => Promise<CaseStudyResult>;
 
 interface CaseStudy {
     id: string;
@@ -19,7 +23,12 @@ interface CaseStudy {
     photos: string[];
 }
 
-export default function CaseStudiesClient({ initialCaseStudies, userId }: { initialCaseStudies: CaseStudy[]; userId: string }) {
+export default function CaseStudiesClient({ initialCaseStudies, userId, enhance = enhanceCaseStudyAction }: {
+    initialCaseStudies: CaseStudy[];
+    userId: string;
+    /** Defaults to the real server action; replaced only by tests and the fixture harness. */
+    enhance?: Enhance;
+}) {
     const [caseStudies, setCaseStudies] = useState<CaseStudy[]>(initialCaseStudies);
     const [isPending, startTransition] = useTransition();
 
@@ -94,6 +103,7 @@ export default function CaseStudiesClient({ initialCaseStudies, userId }: { init
                     onPhotoUpload={(slot, file) => handlePhotoUpload(index, slot, file)}
                     inputCls={inputCls}
                     labelCls={labelCls}
+                    enhance={enhance}
                 />
             ))}
 
@@ -126,7 +136,9 @@ function CaseStudyCard({
     onPhotoUpload,
     inputCls,
     labelCls,
+    enhance,
 }: {
+    enhance: Enhance;
     cs: CaseStudy;
     index: number;
     onChange: (field: keyof CaseStudy, value: string | string[]) => void;
@@ -138,18 +150,59 @@ function CaseStudyCard({
     const [expanded, setExpanded] = useState(true);
     const [enhancing, setEnhancing] = useState(false);
 
+    // A reply is held here until the contractor decides. It never replaces what is in the form by arriving.
+    const [pending, setPending] = useState<PendingCaseStudySuggestion | null>(null);
+    const [notice, setNotice] = useState<string | null>(null);
+
     const handleEnhance = async () => {
+        // One request at a time: the button is disabled while this runs, and this guards a double press.
+        if (enhancing) return;
         if (!cs.whatWeDelivered && !cs.valueAdded) return;
+        // What the suggestion will have been written from, in case the contractor edits while it is on its way.
+        const askedFrom: Record<CaseStudySection, string> = { whatWeDelivered: cs.whatWeDelivered, valueAdded: cs.valueAdded };
         setEnhancing(true);
+        setNotice(null);
+        setPending(null);
         try {
-            const result = await enhanceCaseStudyAction(cs.whatWeDelivered, cs.valueAdded, cs.projectName, cs.projectType);
-            if (result.whatWeDelivered) onChange("whatWeDelivered", result.whatWeDelivered);
-            if (result.valueAdded) onChange("valueAdded", result.valueAdded);
-            toast.success("Case study enhanced");
+            const result = await enhance(askedFrom.whatWeDelivered, askedFrom.valueAdded, cs.projectName, cs.projectType);
+            const next = pendingFrom(result, askedFrom);
+            setPending(next);
+            // A suggestion is shown beside the text it is about, so that part of the card must be open.
+            if (next) setExpanded(true);
+            if (!result.suggested) setNotice(result.message ?? "The assistant isn't available right now. Nothing has been changed.");
+            else if (!next) setNotice("The assistant had nothing to change. Your wording is as it was.");
+            else setNotice("Suggested wording is shown below. Nothing changes unless you choose to use it.");
         } catch {
-            toast.error("AI enhance failed");
+            setNotice("The assistant isn't available right now. Nothing has been changed.");
         }
         setEnhancing(false);
+    };
+
+    const suggestionPanel = (section: CaseStudySection, label: string) => {
+        const state = sectionState(pending, section, cs[section]);
+        if (state === "none" || !pending) return null;
+        const suggestion = pending.suggestions[section] ?? "";
+        return (
+            <div data-case-study-suggestion={section} data-state={state} role="group" aria-label={`Suggested wording for ${label}`} className="mt-2 rounded-lg border border-dashed border-violet-300 bg-violet-950 p-3 space-y-2">
+                <p className="text-xs font-semibold text-violet-100">
+                    Suggested wording. Check it says only what you wrote. Nothing changes unless you use it.
+                </p>
+                {state === "stale" && (
+                    <p className="text-xs font-semibold text-amber-200">
+                        You have changed this since you asked. The suggestion was written from your earlier wording, not what is in the box now.
+                    </p>
+                )}
+                <p className="text-sm text-slate-100 whitespace-pre-wrap break-words">{suggestion}</p>
+                <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={() => { onChange(section, suggestion); setPending(settle(pending, section)); }} className="min-h-11 px-3 rounded-lg bg-blue-700 hover:bg-blue-800 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+                        {state === "stale" ? "Replace what I have now with this" : "Use this wording"}
+                    </button>
+                    <button type="button" onClick={() => setPending(settle(pending, section))} className="min-h-11 px-3 rounded-lg border border-slate-400 text-sm font-semibold text-slate-100 hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+                        Keep my own
+                    </button>
+                </div>
+            </div>
+        );
     };
 
     return (
@@ -165,7 +218,7 @@ function CaseStudyCard({
                         <button
                             onClick={handleEnhance}
                             disabled={enhancing}
-                            className="flex items-center gap-1.5 h-7 px-3 rounded-lg border border-purple-700 bg-purple-900/30 text-purple-300 hover:bg-purple-800/40 text-xs font-bold transition-colors disabled:opacity-60"
+                            className="flex items-center gap-1.5 h-7 px-3 rounded-lg border border-purple-700 bg-purple-900/30 text-purple-300 hover:bg-purple-800/40 text-xs font-bold transition-colors disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                         >
                             {enhancing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                             {enhancing ? "Enhancing..." : "AI Enhance"}
@@ -179,6 +232,11 @@ function CaseStudyCard({
                     </button>
                 </div>
             </div>
+
+            {/* Says what happened to a request for wording. Never a success unless there is a suggestion to look at. */}
+            <p data-case-study-notice role="status" aria-live="polite" className={notice ? "px-5 py-3 text-sm font-semibold text-slate-100 bg-slate-950 border-b border-slate-700" : "sr-only"}>
+                {notice ?? ""}
+            </p>
 
             {expanded && (
                 <div className="p-5 space-y-4">
@@ -214,10 +272,12 @@ function CaseStudyCard({
                         <textarea
                             className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
                             rows={3}
+                            aria-label="What We Delivered"
                             value={cs.whatWeDelivered}
                             onChange={e => onChange("whatWeDelivered", e.target.value)}
                             placeholder="Brief description of the works delivered..."
                         />
+                        {suggestionPanel("whatWeDelivered", "What We Delivered")}
                     </div>
 
                     <div>
@@ -225,10 +285,12 @@ function CaseStudyCard({
                         <textarea
                             className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
                             rows={2}
+                            aria-label="Value Added"
                             value={cs.valueAdded}
                             onChange={e => onChange("valueAdded", e.target.value)}
                             placeholder="What made this project stand out..."
                         />
+                        {suggestionPanel("valueAdded", "Value Added")}
                     </div>
 
                     {/* Photos */}

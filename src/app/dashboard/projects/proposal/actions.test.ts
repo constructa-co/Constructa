@@ -7,18 +7,20 @@ const mocks = vi.hoisted(() => ({
     requireProjectAccess: vi.fn(),
     createAdminClient: vi.fn(),
     sendProposalEmail: vi.fn(),
-    generateText: vi.fn(),
+    generateStructured: vi.fn(),
 }));
 vi.mock("@/lib/supabase/project-resource-access", () => ({ requireEditableProjectAccess: mocks.requireEditableProjectAccess }));
 vi.mock("@/lib/supabase/auth-utils", () => ({ requireProjectAccess: mocks.requireProjectAccess }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: mocks.createAdminClient }));
 vi.mock("@/lib/email", () => ({ sendProposalEmail: mocks.sendProposalEmail }));
-vi.mock("@/lib/ai", () => ({ generateText: mocks.generateText }));
+// The real budget wrapper runs. Only the provider call itself is replaced, with canned replies.
+vi.mock("@/lib/ai", async (original) => ({ ...(await original<typeof import("@/lib/ai")>()), generateStructured: mocks.generateStructured }));
 vi.mock("@/lib/storage/public-image", () => ({ validatePublicImage: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { hashProposalAccessToken, hashProposalContent, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
 import {
+    AI_ADDED_FIGURES_ERROR,
     AI_UNAVAILABLE_ERROR,
     DELIVERY_ERROR,
     DRAFT_SAVE_ERROR,
@@ -37,6 +39,10 @@ import {
     saveProposalDraftAction,
     suggestProposalWordingAction,
 } from "./actions";
+
+import { fakeAiBudget } from "@/lib/__fixtures__/fake-ai-budget";
+import { WORDING_AI_INPUT_MAX, WORDING_TOO_LONG } from "@/lib/cohort-ai/proposal-wording";
+import { COHORT_AI_OFF } from "@/lib/cohort-ai/shared";
 
 const USER_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const PROJECT_ID = "22222222-2222-4222-8222-222222222222";
@@ -461,36 +467,73 @@ describe("retryProposalDeliveryAction", () => {
 });
 
 describe("suggestProposalWordingAction", () => {
+    const canned = (text: string) => mocks.generateStructured.mockResolvedValue({ data: { text }, model: "canned", usage: { promptTokens: 60, completionTokens: 25 } });
+    /** The contractor may edit; the server's own client is the synthetic budget. */
+    function wording(options: { cohortEnabled?: boolean } = { cohortEnabled: true }) {
+        const world = setup();
+        const budget = fakeAiBudget(options);
+        mocks.createAdminClient.mockReturnValue(budget.admin);
+        return { ...world, budget };
+    }
+
     it("returns wording and writes nothing", async () => {
-        const { db } = setup();
-        mocks.generateText.mockResolvedValue("  We will refit the bathroom.  ");
+        const { db, budget } = wording();
+        canned("  We will refit the bathroom.  ");
         await expect(suggestProposalWordingAction(PROJECT_ID, "scope", "we do the bathroom")).resolves.toEqual({ ok: true, text: "We will refit the bathroom." });
         expect(db.log).toEqual([]);
-        const prompt = String(mocks.generateText.mock.calls[0][0]);
-        expect(prompt).toContain("Do not add any fact, figure, price, date, duration");
-        expect(prompt).toContain("we do the bathroom");
+        const request = mocks.generateStructured.mock.calls[0][0] as { system: string; user: string };
+        expect(request.system).toContain("Do not add any fact, figure, price, date, duration");
+        expect(request.system).not.toContain("we do the bathroom");
+        expect(JSON.parse(request.user)).toEqual({ text: "we do the bathroom" });
+        expect(mocks.generateStructured).toHaveBeenCalledTimes(1);
+        expect(budget.attempts).toHaveLength(1);
+        expect(budget.attempts[0]).toMatchObject({ user_id: USER_ID, feature: "proposal.wording", outcome: "ok", reserved_output_tokens: 2000, completion_tokens: 25, prompt_version: "proposal-wording-v1" });
     });
 
-    it("checks the contractor may edit the project before calling the assistant", async () => {
-        setup();
+    it("checks the contractor may edit the project before the privileged client, the budget or the assistant", async () => {
+        const { budget } = wording();
         mocks.requireEditableProjectAccess.mockRejectedValue(new Error("Unauthorized project access."));
         await expect(suggestProposalWordingAction(PROJECT_ID, "scope", "text")).resolves.toEqual({ ok: false, error: "You can't change this proposal." });
-        expect(mocks.generateText).not.toHaveBeenCalled();
+        expect(mocks.generateStructured).not.toHaveBeenCalled();
+        expect(mocks.createAdminClient).not.toHaveBeenCalled();
+        expect(budget.rpcCalls).toEqual([]);
     });
 
     it("fails quietly so the contractor's own wording carries on working", async () => {
-        setup();
-        mocks.generateText.mockRejectedValue(new Error("OPENAI_API_KEY missing"));
+        const { budget } = wording();
+        mocks.generateStructured.mockRejectedValue(new Error("OPENAI_API_KEY missing"));
         await expect(suggestProposalWordingAction(PROJECT_ID, "closing", "text")).resolves.toEqual({ ok: false, error: AI_UNAVAILABLE_ERROR });
-        mocks.generateText.mockResolvedValue("   ");
+        // Not retried, and charged its whole reservation because nothing is known about what it cost.
+        expect(mocks.generateStructured).toHaveBeenCalledTimes(1);
+        expect(budget.charged()).toEqual([2000]);
+        mocks.createAdminClient.mockImplementation(() => { throw new Error("SUPABASE_SERVICE_ROLE_KEY missing"); });
         await expect(suggestProposalWordingAction(PROJECT_ID, "closing", "text")).resolves.toEqual({ ok: false, error: AI_UNAVAILABLE_ERROR });
+        expect(mocks.generateStructured).toHaveBeenCalledTimes(1);
     });
 
-    it("rejects an unknown field or empty text without calling the assistant", async () => {
-        setup();
+    it("rejects an unknown field, empty or over-long text without the budget or the assistant", async () => {
+        const { budget } = wording();
         await expect(suggestProposalWordingAction(PROJECT_ID, "price" as never, "text")).resolves.toMatchObject({ ok: false });
         await expect(suggestProposalWordingAction(PROJECT_ID, "scope", "   ")).resolves.toMatchObject({ ok: false });
-        expect(mocks.generateText).not.toHaveBeenCalled();
+        await expect(suggestProposalWordingAction(PROJECT_ID, "scope", "w".repeat(WORDING_AI_INPUT_MAX + 1))).resolves.toEqual({ ok: false, error: WORDING_TOO_LONG });
+        await expect(suggestProposalWordingAction(PROJECT_ID, "scope", "\\".repeat(WORDING_AI_INPUT_MAX))).resolves.toEqual({ ok: false, error: WORDING_TOO_LONG });
+        expect(mocks.generateStructured).not.toHaveBeenCalled();
+        expect(budget.rpcCalls).toEqual([]);
+    });
+
+    it("the server drops a reply that adds a figure, and still records what it used", async () => {
+        const { budget } = wording();
+        canned("We will refit the bathroom in 3 weeks.");
+        await expect(suggestProposalWordingAction(PROJECT_ID, "scope", "we do the bathroom")).resolves.toEqual({ ok: false, error: AI_ADDED_FIGURES_ERROR });
+        expect(budget.attempts[0]).toMatchObject({ outcome: "rejected:tripwire", completion_tokens: 25 });
+    });
+
+    it("as seeded, the feature is off: no call, and it says so", async () => {
+        const { budget } = wording({});
+        canned("We will refit the bathroom.");
+        await expect(suggestProposalWordingAction(PROJECT_ID, "scope", "we do the bathroom")).resolves.toEqual({ ok: false, error: COHORT_AI_OFF });
+        expect(mocks.generateStructured).not.toHaveBeenCalled();
+        expect(budget.attempts).toEqual([]);
     });
 });
 

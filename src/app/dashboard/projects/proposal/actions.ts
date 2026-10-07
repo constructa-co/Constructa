@@ -6,7 +6,7 @@ import { requireProjectAccess } from "@/lib/supabase/auth-utils";
 import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-access";
 import { validatePublicImage } from "@/lib/storage/public-image";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { generateText } from "@/lib/ai";
+import { suggestWording } from "@/lib/cohort-ai/proposal-wording";
 import { sendProposalEmail } from "@/lib/email";
 import { precontractLockMessage } from "@/lib/project-editability";
 import {
@@ -30,7 +30,6 @@ import {
     PUBLISH_ERROR,
     REVIEW_CHANGED_ERROR,
     TEXT_LIMITS,
-    WORDING_FIELDS,
     contractSumOf,
     vatFor,
     type DeliveryOutcome,
@@ -143,50 +142,27 @@ export async function saveProposalDraftAction(projectId: string, payload: Propos
 
 // ── AI wording ───────────────────────────────────────────────────────────────
 
-const FIELD_PURPOSE: Record<WordingField, string> = {
-    introduction: "the opening message to the client",
-    scope: "the description of the work that is included",
-    exclusions: "the list of what is not included, one item per line",
-    clarifications: "the list of clarifications and assumptions, one item per line",
-    closing: "the closing message to the client",
-};
-
 /**
  * Suggests clearer wording for text the contractor has already written.
  * It never writes to the project: the reply is shown as a pending suggestion
  * and only the contractor's Apply puts it in the draft. The assistant is
- * told to keep every fact and add none, and the client drops any reply that
- * introduces a figure the contractor did not write.
+ * told to keep every fact and add none. A reply that introduces a figure the
+ * contractor did not write is dropped on the server and recorded as rejected,
+ * and the screen's own check for the same thing is unchanged.
+ *
+ * Order: the contractor's right to edit this proposal is checked first. Only
+ * then is the text looked at and one call made through the usage budget.
  */
 export async function suggestProposalWordingAction(
     projectId: string,
     field: WordingField,
     text: string,
 ): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
-    if (!WORDING_FIELDS.includes(field) || typeof text !== "string" || !text.trim() || text.length > TEXT_LIMITS[field]) {
-        return { ok: false, error: AI_UNAVAILABLE_ERROR };
-    }
     const { access, error: accessError } = await editableAccess(projectId, "You can't change this proposal.");
     if (!access) return { ok: false, error: accessError };
 
-    const prompt = `You are helping a UK building contractor tidy the wording of a proposal to their client.
-
-Rewrite the contractor's text below so it reads clearly and professionally in plain UK English. This text is ${FIELD_PURPOSE[field]}.
-
-Rules:
-- Keep every fact exactly as the contractor gave it.
-- Do not add any fact, figure, price, date, duration, quantity, accreditation, qualification, award, guarantee, promise or claim about experience or quality that is not in the text.
-- Do not remove any information.
-- Keep the same layout: if the text is a list with one item per line, return one item per line.
-- Return only the rewritten text. No heading, no notes, no markdown.
-
-Contractor's text:
-${text}`;
-
     try {
-        const suggestion = (await generateText(prompt)).trim();
-        if (!suggestion) return { ok: false, error: AI_UNAVAILABLE_ERROR };
-        return { ok: true, text: suggestion.slice(0, TEXT_LIMITS[field]) };
+        return await suggestWording({ admin: createAdminClient(), userId: access.user.id }, field, text);
     } catch (error) {
         console.error("suggestProposalWordingAction failed", { projectId, field, error: error instanceof Error ? error.message : "unknown" });
         return { ok: false, error: AI_UNAVAILABLE_ERROR };

@@ -32,7 +32,7 @@ describe("website-import fixture harness", () => {
     });
 
     it("refuses to work unless explicitly switched on, at every entry point", () => {
-        for (const file of ["page.tsx", "actions.ts", "state/route.ts", "interview/page.tsx", "interview/actions.ts", "interview/state/route.ts"]) {
+        for (const file of ["page.tsx", "actions.ts", "state/route.ts", "interview/page.tsx", "interview/actions.ts", "interview/state/route.ts", "case-study/page.tsx", "case-study/actions.ts", "case-study/state/route.ts"]) {
             expect(read(`e2e/import-fixture/app/${file}`), file).toContain('process.env.CONSTRUCTA_IMPORT_FIXTURE !== "1"');
         }
         const actions = read("e2e/import-fixture/app/actions.ts");
@@ -45,6 +45,15 @@ describe("website-import fixture harness", () => {
         expect(interviewExports.map((match) => match[1]).sort()).toEqual(["fixtureAiOffered", "fixtureApprove", "fixtureBuild", "fixtureControl", "fixtureInterview", "fixtureReword", "fixtureSave"]);
         expect(interviewExports.every((match) => match[2] === "guard")).toBe(true);
         expect(Array.from(interview.matchAll(/export async function/g))).toHaveLength(7);
+        const caseStudy = read("e2e/import-fixture/app/case-study/actions.ts");
+        const caseStudyExports = Array.from(caseStudy.matchAll(/export async function (\w+)\([^)]*\)[^{]*\{\n\s+(\w+)\(\);/g));
+        expect(caseStudyExports.map((match) => match[1]).sort()).toEqual(["fixtureCaseStudyControl", "fixtureEnhance"]);
+        expect(caseStudyExports.every((match) => match[2] === "guard")).toBe(true);
+        expect(Array.from(caseStudy.matchAll(/export async function/g))).toHaveLength(2);
+        // The case-study harness uses a canned generator and an in-memory budget, and can show the feature switched off as shipped.
+        expect(caseStudy).toContain('cohortRig({ enabled: !run.startsWith("off-") })');
+        expect(caseStudy).not.toMatch(/createAdminClient|@\/lib\/supabase|from ["']openai["']/);
+
         // AI wording is off in the harness unless a run asks for it by name; the harness cannot change the application's setting.
         expect(interview).toContain('wordingRig({ enabled: run.startsWith("ai-") })');
     });

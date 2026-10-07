@@ -55,6 +55,8 @@ jobs:
         run: npm run test:ai-budget-sql
       - name: Verify an AI-worded draft needs a budgeted attempt
         run: npm run test:company-narrative-ai-sql
+      - name: Verify the four cohort AI features are added switched off and share one allowance
+        run: npm run test:cohort-ai-features-sql
       - run: npm run build
 
   # The company-website import, in a real browser, with no database: the real

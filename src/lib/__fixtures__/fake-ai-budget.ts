@@ -11,10 +11,15 @@ export type Row = Record<string, unknown>;
 const OUTCOMES = ["ok", "rejected:schema", "rejected:tripwire", "sources-moved", "error"];
 const HOUR = 60 * 60 * 1000;
 
-export function fakeAiBudget(options: { introductionEnabled?: boolean } = {}) {
+export function fakeAiBudget(options: { introductionEnabled?: boolean; cohortEnabled?: boolean } = {}) {
+    // As seeded by the migrations: profile rewrite on, everything else off.
     const features: Record<string, { enabled: boolean; max: number }> = {
         "profile.rewrite": { enabled: true, max: 700 },
         "company.introduction": { enabled: options.introductionEnabled ?? false, max: 500 },
+        "brief.suggest": { enabled: options.cohortEnabled ?? false, max: 700 },
+        "proposal.wording": { enabled: options.cohortEnabled ?? false, max: 2000 },
+        "case-studies.enhance": { enabled: options.cohortEnabled ?? false, max: 1000 },
+        "schedule.programme-update": { enabled: options.cohortEnabled ?? false, max: 900 },
     };
     const limits = {
         contractor: { perHour: 6 as number | null, perDay: 20, perDayTokens: 12_000 },

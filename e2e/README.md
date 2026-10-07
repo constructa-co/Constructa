@@ -37,7 +37,9 @@ project `constructa-e2e-pr79`. This is enforced, not assumed:
 | Browser traffic | `phase1-journey.spec.ts` | Every request to a host other than the app and the approved project is aborted and recorded |
 | New account | `phase1-journey.spec.ts` | The sign-up request went to another host, or the account is not in the approved project |
 
-A failure of any of the first five prints `E2E CONFIGURATION FAILURE`. That
+| AI budget and Brief AI state | `support/global-setup.ts`, `support/brief-ai-mode.ts` | After the target is proved and before any account is created: the AI budget's tables or functions are missing from the disposable project, or the Brief suggestion is not in the state this run's mode names. Read-only |
+
+A failure of any of the first five, or of the last, prints `E2E CONFIGURATION FAILURE`. That
 is a configuration result. It is never a product pass and never a skip.
 
 The AI model and the email service are replaced by a loopback stub
@@ -62,6 +64,36 @@ Required environment:
 | `NEXT_PUBLIC_SUPABASE_URL` | The disposable project's URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Its anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Its service-role key. Used by the server for the public proposal, and by the harness to read back what was recorded |
+
+### Brief AI mode
+
+The Brief's AI suggestion is behind a usage budget and ships switched off.
+The journey has two explicit modes, chosen with `E2E_BRIEF_AI_MODE`:
+
+| Mode | The disposable project must have | What the journey does at the Brief |
+| --- | --- | --- |
+| `disabled` (the default on this branch, and what CI names) | the budget migrations applied, and `brief.suggest` switched **off** | Presses the button, requires exactly the "isn't switched on for this yet" message, no suggestion, the description unchanged, no request to the provider stub and no budget attempt. Then writes the brief by hand, picks the trades by hand, and carries on through estimate, programme, proposal and client response. **AI suggestions are not tested in this mode**, and the results file says so (`provider.aiSuggestionTested: false`) |
+| `enabled-with-stub` | the same, with `brief.suggest` switched **on** by an owner-approved change | Requires a pending suggestion from the stub, applies it, and requires one provider request and one budget attempt |
+
+The mode is not a switch. The harness never turns the feature on or off and
+never applies a migration. Before any account is created it reads the
+disposable project and stops with `E2E CONFIGURATION FAILURE` if:
+
+- a budget table or function is missing (the migrations
+  `20261009090000_ai_generation_budget.sql`,
+  `20261010090000_company_narrative_ai_attempt.sql` and
+  `20261011090000_cohort_ai_features.sql` have not been applied there). A
+  missing function makes the application say "not available", which is a
+  different message from "not switched on", so this is never treated as off;
+- the feature is on in `disabled` mode, off in `enabled-with-stub` mode, or
+  in a state that is neither.
+- a read could not be made or understood: it timed out (each read has a
+  10 second limit), or the API's description of its functions is in a form
+  the check does not recognise. That is reported as "could not be checked",
+  which says nothing about whether the function exists.
+
+Applying those migrations to the disposable project, and switching the
+feature on there, are owner-approved changes made outside this harness.
 
 Optional: `E2E_BASE_URL` (default `http://127.0.0.1:3100`), `E2E_STUB_URL`
 (default `http://127.0.0.1:3199`), `E2E_RUN_ID`, `E2E_SYNTHETIC_PASSWORD`,

@@ -1,9 +1,10 @@
 /**
  * The one way two features reach the AI provider: through a usage budget.
  *
- * SCOPE. This covers `profile.rewrite` and `company.introduction` and nothing
- * else. Every other AI call in the application is outside it. It is not an
- * application-wide spending limit.
+ * SCOPE. This covers six named features (see `AiFeature`) and nothing else:
+ * the two it began with, and the four AI text features a cohort contractor
+ * can reach. Every other AI call in the application is outside it.
+ * It is not an application-wide spending limit.
  *
  * What happens, in order:
  *
@@ -32,13 +33,38 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ZodTypeAny, z } from "zod";
 import { AiResponseError, generateStructured, type GenerateStructuredOptions, type StructuredResult } from "@/lib/ai";
 
-export type AiFeature = "company.introduction" | "profile.rewrite";
+export type AiFeature =
+    | "company.introduction"
+    | "profile.rewrite"
+    | "brief.suggest"
+    | "proposal.wording"
+    | "case-studies.enhance"
+    | "schedule.programme-update";
 
 /** Fixed per feature. Output is what gets reserved; the character caps bound the input. */
 export const AI_FEATURE_BOUNDS: Record<AiFeature, { maxOutputTokens: number; timeoutMs: number; maxSystemChars: number; maxUserChars: number }> = {
     "profile.rewrite": { maxOutputTokens: 700, timeoutMs: 20_000, maxSystemChars: 4000, maxUserChars: 6000 },
     "company.introduction": { maxOutputTokens: 500, timeoutMs: 20_000, maxSystemChars: 4000, maxUserChars: 8000 },
+    // The four cohort text features. `maxUserChars` is the limit on the whole
+    // encoded JSON that is sent, escapes included, not on any one field.
+    "brief.suggest": { maxOutputTokens: 700, timeoutMs: 20_000, maxSystemChars: 4000, maxUserChars: 6000 },
+    "proposal.wording": { maxOutputTokens: 2000, timeoutMs: 30_000, maxSystemChars: 4000, maxUserChars: 8000 },
+    "case-studies.enhance": { maxOutputTokens: 1000, timeoutMs: 20_000, maxSystemChars: 4000, maxUserChars: 6000 },
+    "schedule.programme-update": { maxOutputTokens: 900, timeoutMs: 20_000, maxSystemChars: 4000, maxUserChars: 8000 },
 };
+
+/**
+ * Whether a request is inside its feature's fixed size limits. A caller uses
+ * this BEFORE asking for a reservation so that it can tell the contractor,
+ * honestly, that what they wrote is too long, instead of the wrapper refusing
+ * with nothing more to say. The check is on the encoded text that would be
+ * sent, so quotes, backslashes and non-ASCII characters are counted as sent.
+ */
+export function fitsAiBounds(feature: AiFeature, request: { system: string; user: string }): boolean {
+    const bounds = AI_FEATURE_BOUNDS[feature];
+    return !!bounds && request.system.length > 0 && request.user.length > 0
+        && request.system.length <= bounds.maxSystemChars && request.user.length <= bounds.maxUserChars;
+}
 
 /** How an attempt can end once a reply exists. `judge` returns one of these. */
 export type AiVerdict = "ok" | "rejected:tripwire" | "sources-moved";

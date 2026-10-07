@@ -66,7 +66,7 @@ const ORDINARY_CAPITALS = new Set(["i", "we", "our", "us", "the", "a", "an", "an
 /**
  * Capitalised words in generated text that appear nowhere in the sources: the
  * usual shape of an added place, client, person or product name. Used for the
- * interview's AI wording only.
+ * interview's AI wording, case-study wording and programme updates.
  *
  * A tripwire, not a fact check, with known blind spots: a name that begins a
  * sentence is not looked at (every sentence begins with a capital), and a

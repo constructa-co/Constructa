@@ -2,7 +2,9 @@
 
 import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
-import { generateText } from "@/lib/ai";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { enhanceCaseStudy, type CaseStudyResult } from "@/lib/cohort-ai/case-study-enhance";
+import { COHORT_AI_UNAVAILABLE } from "@/lib/cohort-ai/shared";
 
 export async function saveCaseStudiesAction(caseStudies: any[]) {
     const { user, supabase } = await requireAuth();
@@ -17,30 +19,45 @@ export async function saveCaseStudiesAction(caseStudies: any[]) {
     revalidatePath("/dashboard/settings/case-studies");
 }
 
+/**
+ * Suggests clearer wording for a case study's two sections. Saves nothing and
+ * changes nothing: the reply is returned for the screen to show as a pending
+ * suggestion, which the contractor uses or discards.
+ *
+ * The result always carries both sections. If nothing usable was produced,
+ * for any reason, they are the contractor's own text, `suggested` is false
+ * and `message` says why. It is never a success that changed nothing.
+ */
 export async function enhanceCaseStudyAction(
     whatWeDelivered: string,
     valueAdded: string,
     projectName: string,
     projectType: string
-): Promise<{ whatWeDelivered: string; valueAdded: string }> {
+): Promise<CaseStudyResult> {
+    const own = (message: string): CaseStudyResult => ({
+        whatWeDelivered: typeof whatWeDelivered === "string" ? whatWeDelivered : "",
+        valueAdded: typeof valueAdded === "string" ? valueAdded : "",
+        suggested: false,
+        message,
+    });
+
     // Who is asking, first: before any input is read, trimmed or sent, and
-    // before either provider call. A signed-out caller gets their own words
-    // back unchanged and reaches no provider. (The dashboard proxy also
+    // before the budget or the provider. A signed-out caller gets their own
+    // words back unchanged and reaches neither. (The dashboard proxy also
     // redirects unsigned requests; this is the action's own check, the same
     // defence-in-depth every other AI action carries.)
+    let userId: string;
     try {
-        await requireAuth();
+        userId = (await requireAuth()).user.id;
     } catch {
-        return { whatWeDelivered, valueAdded };
+        return own(COHORT_AI_UNAVAILABLE);
     }
 
-    const deliveredPrompt = `Rewrite this construction case study "What We Delivered" section to be more compelling and professional for a UK construction proposal PDF. Keep it to 3-4 sentences. Project: ${projectName} (${projectType}). Original: "${whatWeDelivered}"`;
-    const valuePrompt = `Rewrite this construction case study "Value Added" section to be more compelling and highlight unique benefits for a UK construction proposal PDF. Keep it to 2-3 sentences. Project: ${projectName} (${projectType}). Original: "${valueAdded}"`;
-
-    const [enhancedDelivered, enhancedValue] = await Promise.all([
-        whatWeDelivered.trim().length > 10 ? generateText(deliveredPrompt) : Promise.resolve(whatWeDelivered),
-        valueAdded.trim().length > 10 ? generateText(valuePrompt) : Promise.resolve(valueAdded),
-    ]);
-
-    return { whatWeDelivered: enhancedDelivered, valueAdded: enhancedValue };
+    try {
+        // One call for both sections, through the usage budget. No second call.
+        return await enhanceCaseStudy({ admin: createAdminClient(), userId }, { whatWeDelivered, valueAdded, projectName, projectType });
+    } catch (error) {
+        console.error("enhanceCaseStudyAction failed", { message: error instanceof Error ? error.message : "unknown" });
+        return own(COHORT_AI_UNAVAILABLE);
+    }
 }

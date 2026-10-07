@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:company-import-sql": "bash scripts/test-company-import-sql.sh",
+    "test:company-interview-sql": "bash scripts/test-company-interview-sql.sh",
     "test:cost-library-sql": "bash scripts/test-cost-library-rls-sql.sh",
     "test:definer-sql": "bash scripts/test-legacy-definer-sql.sh",
     "test:organization-sql": "bash scripts/test-organization-membership-sql.sh",

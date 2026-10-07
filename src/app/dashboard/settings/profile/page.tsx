@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import Link from "next/link";
 import { PROPOSAL_READINESS_PATH } from "@/lib/first-session";
 import { IMPORT_PATH } from "@/lib/company-import/draft";
+import { INTERVIEW_PATH } from "@/lib/company-interview/questions";
 import ProfileForm from "./profile-form";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +34,9 @@ export default async function ProfilePage() {
                 </Link>
                 <Link href={IMPORT_PATH} className="ml-6 mt-2 inline-flex items-center min-h-11 text-sm font-semibold text-blue-400 hover:text-blue-300">
                     Bring in details from your website
+                </Link>
+                <Link href={INTERVIEW_PATH} className="ml-6 mt-2 inline-flex items-center min-h-11 text-sm font-semibold text-blue-400 hover:text-blue-300">
+                    Answer a few questions to write your introduction
                 </Link>
             </div>
             <ProfileForm profile={profile} userEmail={user.email || ""} />

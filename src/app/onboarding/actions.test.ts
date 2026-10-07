@@ -83,12 +83,31 @@ describe("saveSetupStepAction", () => {
         expect(mocks.sendWelcomeEmail).not.toHaveBeenCalled();
     });
 
-    it("finishes setup for a contractor with no projects by going to New Project", async () => {
+    it("saves a free-text description of the work exactly as written", async () => {
+        const db = fakeSupabase({ profile: { company_name: null } });
+        signIn(db);
+
+        expect(await saveSetupStepAction({ step: "trade", businessType: "  Dry stone walling and\nlime pointing " })).toEqual({ ok: true });
+        expect(db.updates).toEqual([{ business_type: "Dry stone walling and lime pointing" }]);
+    });
+
+    it("lets a contractor who is already set up change the work answer without a second welcome", async () => {
+        const db = fakeSupabase({ profile: { company_name: "Smith Brickwork", business_type: "Bricklaying" }, projectCount: 2 });
+        signIn(db);
+
+        expect(await saveSetupStepAction({ step: "trade", businessType: "Bricklaying, Stonework" })).toEqual({ ok: true });
+        await expect(saveSetupStepAction({ step: "business", companyName: "Smith Brickwork" })).rejects.toThrow("NEXT_REDIRECT:/dashboard");
+
+        expect(db.profile).toEqual({ company_name: "Smith Brickwork", business_type: "Bricklaying, Stonework" });
+        expect(mocks.sendWelcomeEmail).not.toHaveBeenCalled();
+    });
+
+    it("finishes setup for a contractor with no projects by going to proposal readiness", async () => {
         const db = fakeSupabase({ profile: { company_name: null, business_type: "Bricklaying", ...EXISTING_OPTIONAL }, projectCount: 0 });
         signIn(db);
 
         await expect(saveSetupStepAction({ step: "business", companyName: "Smith Brickwork", fullName: "Sam Smith" }))
-            .rejects.toThrow("NEXT_REDIRECT:/dashboard/projects/new");
+            .rejects.toThrow("NEXT_REDIRECT:/dashboard/settings/profile/readiness");
 
         expect(db.updates).toEqual([{ company_name: "Smith Brickwork", full_name: "Sam Smith" }]);
         expect(db.profile).toMatchObject({ business_type: "Bricklaying", ...EXISTING_OPTIONAL });
@@ -168,6 +187,6 @@ describe("saveSetupStepAction", () => {
         signIn(db);
 
         await expect(saveSetupStepAction({ step: "business", companyName: "Smith Brickwork" }))
-            .rejects.toThrow("NEXT_REDIRECT:/dashboard/projects/new");
+            .rejects.toThrow("NEXT_REDIRECT:/dashboard/settings/profile/readiness");
     });
 });

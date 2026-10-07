@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Toaster } from "sonner";
+import Link from "next/link";
+import { PROPOSAL_READINESS_PATH } from "@/lib/first-session";
 import ProfileForm from "./profile-form";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +27,9 @@ export default async function ProfilePage() {
                 <p className="text-slate-400 mt-1">
                     This information feeds into every proposal PDF you generate.
                 </p>
+                <Link href={PROPOSAL_READINESS_PATH} className="mt-2 inline-flex items-center min-h-11 text-sm font-semibold text-blue-400 hover:text-blue-300">
+                    See what your proposals can use so far
+                </Link>
             </div>
             <ProfileForm profile={profile} userEmail={user.email || ""} />
         </div>

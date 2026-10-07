@@ -57,9 +57,19 @@ export class Recorder {
     private readonly evidence: boolean;
     private shot = 0;
 
-    constructor(private readonly page: Page, private readonly info: TestInfo, input: JourneyResults["input"], evidence: boolean) {
+    /**
+     * `folders` keeps a second spec's results and screenshots apart from the
+     * Phase 1 journey's, which are the default.
+     */
+    constructor(
+        private readonly page: Page,
+        private readonly info: TestInfo,
+        input: JourneyResults["input"],
+        evidence: boolean,
+        folders: { evidence: string; smoke: string } = { evidence: EVIDENCE_DIR, smoke: "test-results/phase1" },
+    ) {
         this.evidence = evidence;
-        this.dir = evidence ? EVIDENCE_DIR : path.resolve("test-results/phase1");
+        this.dir = path.resolve(evidence ? folders.evidence : folders.smoke);
         const viewport = page.viewportSize() ?? { width: 0, height: 0 };
         this.results = {
             project: info.project.name,

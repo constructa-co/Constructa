@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { updateProfileAction, rewriteWithAIAction, rewriteMdMessageAction } from "./actions";
 import { uploadProfileImageAction } from "@/app/storage/actions";
+import { SETUP_LIMITS } from "@/lib/first-session";
 import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Loader2, Sparkles } from "lucide-react";
 
 interface CaseStudy {
@@ -68,19 +69,6 @@ const THEMES = [
         primary: '#1A3A2A',
         accent: '#E8E0D0',
     },
-];
-
-const BUSINESS_TYPES = [
-    "General Builder / Extensions",
-    "Electrical",
-    "Plumbing & Heating",
-    "Roofing",
-    "Groundworks & Civils",
-    "Painting & Decorating",
-    "Joinery & Carpentry",
-    "Bathroom & Kitchen Fitting",
-    "Landscaping & Fencing",
-    "Multi-trade / Other",
 ];
 
 const ALL_TRADES = [
@@ -516,17 +504,16 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
                 </div>
 
                 <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-400">Primary Trade / Business Type</label>
-                    <select
+                    <label htmlFor="profile-business-type" className="text-sm font-medium text-slate-400">What kind of work your business does</label>
+                    {/* Free text, as in setup. A fixed list here would blank an answer it did not contain. */}
+                    <input
+                        id="profile-business-type"
                         name="business_type"
                         defaultValue={profile?.business_type || ""}
+                        maxLength={SETUP_LIMITS.businessType}
+                        placeholder="e.g. Kitchen and bathroom fitting, tiling and small extensions"
                         className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                    >
-                        <option value="">Select your primary trade...</option>
-                        {BUSINESS_TYPES.map(t => (
-                            <option key={t} value={t}>{t}</option>
-                        ))}
-                    </select>
+                    />
                 </div>
 
                 <div>

@@ -21,7 +21,7 @@ All under `e2e/`, plus one workflow line and this report. No file under `src/`, 
 | File | Change |
 | --- | --- |
 | `e2e/support/brief-ai-mode.ts` (new) | The two modes, the read-only prerequisite check, what each mode expects. |
-| `e2e/support/brief-ai-mode.test.ts` (new) | 46 unit tests. |
+| `e2e/support/brief-ai-mode.test.ts` (new) | 38 unit tests. |
 | `e2e/support/backend.ts` | A read-only inspector of the AI budget, and a read of a synthetic account's attempt count. |
 | `e2e/support/global-setup.ts` | Runs the check after the target is proved, before any test. |
 | `e2e/phase1-journey.spec.ts` | The Brief step branches on the explicit mode; the provider record says which mode ran. |
@@ -61,9 +61,11 @@ A failure is an `E2E CONFIGURATION FAILURE` that lists every problem as `PREREQU
 
 ## 4. Verification actually run
 
+Correction, made with the later parser repair: this report first said "46 new tests". The new file had 38; 46 was the total for the `e2e/support` directory. The table below is corrected. See `OPENAPI-REPAIR-REPORT.md` for the current counts.
+
 | Check | Result |
 | --- | --- |
-| `npx vitest run e2e/support` | 46 new tests pass, with the existing harness tests |
+| `npx vitest run e2e/support` | 46 pass: the 38 new tests and the 8 existing environment-gate tests |
 | `npx vitest run` | 75 files, 1,332 passed, 4 skipped (pre-existing skips) |
 | `npx tsc --noEmit` | 0 errors (covers the specs) |
 | `npx eslint .` | 0 errors |

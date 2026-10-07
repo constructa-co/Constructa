@@ -5,10 +5,11 @@ import { fakeAiBudget } from "../../src/lib/__fixtures__/fake-ai-budget";
 import { suggestBrief } from "../../src/lib/cohort-ai/brief-suggest";
 import { COHORT_AI_OFF, COHORT_AI_UNAVAILABLE } from "../../src/lib/cohort-ai/shared";
 import { AI_UNAVAILABLE_ERROR, BRIEF_TRADES } from "../../src/lib/guided-brief";
-import { budgetInspector } from "./backend";
+import { functionSignatureFromApiDescription } from "./api-description";
+import { PREFLIGHT_TIMEOUT_MS, budgetInspector } from "./backend";
 import {
     BRIEF_AI_MODE_VARIABLE, BRIEF_AI_OFF_MESSAGE, BRIEF_AI_PREREQUISITES, DEFAULT_BRIEF_AI_MODE,
-    assertBriefAiPrerequisites, briefAiExpectation, briefAiPrerequisiteProblems, functionArgumentsFromApiDescription, readBriefAiMode,
+    assertBriefAiPrerequisites, briefAiExpectation, briefAiPrerequisiteProblems, readBriefAiMode,
     type BudgetInspector, type Read,
 } from "./brief-ai-mode";
 import { APPROVED_DISPOSABLE_PROJECT, E2EConfigurationError, type E2EEnv } from "./env";
@@ -261,7 +262,9 @@ describe("the real inspector, over a pretend network", () => {
         const pretend = globalThis.fetch;
         vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => (new URL(String(input instanceof Request ? input.url : input)).pathname === "/rest/v1/" ? new Response("no", { status: 401 }) : pretend(input, init)));
         const found = (await briefAiPrerequisiteProblems(budgetInspector(env()), "disabled")).join("\n");
-        expect(found).toContain("the database function ai_generation_reserve could not be checked (HTTP 401)");
+        expect(found).toContain("the database function ai_generation_reserve could not be checked (http-401). This says nothing about whether the function exists or what it takes.");
+        expect(found).not.toContain("does not take");
+        expect(found).not.toContain("does not exist");
         expect(requests.every((request) => request.method === "GET" || request.method === "HEAD")).toBe(true);
     });
 
@@ -273,11 +276,130 @@ describe("the real inspector, over a pretend network", () => {
         expect(requests).toEqual([]);
     });
 
-    it("reads argument names from the API description, and null when the function is not offered", () => {
+    it("reads argument names from the API description, and tells a missing function from one it cannot read", () => {
         const description = openApi(["ai_generation_reserve"]);
-        expect(functionArgumentsFromApiDescription(description, "ai_generation_reserve")).toEqual([...functions.ai_generation_reserve]);
-        expect(functionArgumentsFromApiDescription(description, "ai_generation_finish")).toBeNull();
-        for (const nothing of [null, undefined, {}, { paths: null }, "text"]) expect(functionArgumentsFromApiDescription(nothing, "ai_generation_reserve")).toBeNull();
+        expect(functionSignatureFromApiDescription(description, "ai_generation_reserve")).toEqual({ kind: "arguments", names: [...functions.ai_generation_reserve] });
+        expect(functionSignatureFromApiDescription(description, "ai_generation_finish")).toEqual({ kind: "absent" });
+    });
+
+    /** Serves the given body as the API description, and the tables as a migrated, switched-off project. */
+    function describedAs(body: string, status = 200) {
+        const requests = network(asMigrated());
+        const pretend = globalThis.fetch;
+        vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => (new URL(String(input instanceof Request ? input.url : input)).pathname === "/rest/v1/"
+            ? (requests.push({ method: String(init?.method ?? "GET"), path: "/rest/v1/", host: new URL(String(input)).host }), new Response(body, { status, headers: { "content-type": "application/json" } }))
+            : pretend(input, init)));
+        return requests;
+    }
+    const readOnly = (requests: Array<{ method: string; path: string; host: string }>) => {
+        for (const request of requests) {
+            expect(["GET", "HEAD"], `${request.method} ${request.path}`).toContain(request.method);
+            expect(request.path.startsWith("/rest/v1/rpc/"), request.path).toBe(false);
+            expect(request.host).toBe(`${approved}.supabase.co`);
+        }
+    };
+
+    it("accepts the same functions described with local references, Swagger 2 or OpenAPI 3", async () => {
+        const properties = (name: keyof typeof functions) => Object.fromEntries(functions[name].map((argument) => [argument, { type: "string" }]));
+        const names = Object.keys(functions) as Array<keyof typeof functions>;
+        const swaggerRefs = {
+            swagger: "2.0",
+            paths: Object.fromEntries(names.map((name) => [`/rpc/${name}`, { post: { parameters: [{ $ref: `#/parameters/args.${name}` }, { $ref: "#/parameters/preferParams" }] } }])),
+            parameters: { preferParams: { in: "header", name: "Prefer", type: "string" }, ...Object.fromEntries(names.map((name) => [`args.${name}`, { in: "body", name: "args", schema: { $ref: `#/definitions/${name}` } }])) },
+            definitions: Object.fromEntries(names.map((name) => [name, { type: "object", properties: properties(name) }])),
+        };
+        const oas3 = {
+            openapi: "3.0.3",
+            paths: Object.fromEntries(names.map((name) => [`/rpc/${name}`, { post: { requestBody: { content: { "application/json": { schema: { $ref: `#/components/schemas/${name}` } } } } } }])),
+            components: { schemas: Object.fromEntries(names.map((name) => [name, { type: "object", properties: properties(name) }])) },
+        };
+        for (const description of [swaggerRefs, oas3]) {
+            const requests = describedAs(JSON.stringify(description));
+            expect(await briefAiPrerequisiteProblems(budgetInspector(env()), "disabled")).toEqual([]);
+            readOnly(requests);
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it("a recognised description that lacks an argument is still the wrong signature", async () => {
+        const oas3 = {
+            openapi: "3.0.3",
+            paths: {
+                "/rpc/ai_generation_reserve": { post: { requestBody: { content: { "application/json": { schema: { $ref: "#/components/schemas/reserve" } } } } } },
+                "/rpc/ai_generation_finish": { post: { requestBody: { content: { "application/json": { schema: { type: "object", properties: Object.fromEntries(functions.ai_generation_finish.map((argument) => [argument, {}])) } } } } } },
+            },
+            components: { schemas: { reserve: { type: "object", properties: { p_user_id: {}, p_feature: {}, p_reserve_output_tokens: {} } } } },
+        };
+        describedAs(JSON.stringify(oas3));
+        const found = (await briefAiPrerequisiteProblems(budgetInspector(env()), "disabled")).join("\n");
+        expect(found).toContain("ai_generation_reserve does not take p_source_fingerprint");
+        expect(found).not.toContain("could not be checked");
+    });
+
+    it.each([
+        ["a reference that does not resolve", { paths: { "/rpc/ai_generation_reserve": { post: { parameters: [{ in: "body", schema: { $ref: "#/definitions/gone" } }] } } }, definitions: {} }, "api-description-unreadable:reference-unresolved"],
+        ["a reference to another document", { paths: { "/rpc/ai_generation_reserve": { post: { parameters: [{ in: "body", schema: { $ref: "https://elsewhere.example/spec.json#/definitions/x" } }] } } } }, "api-description-unreadable:reference-external"],
+        ["a body with no schema properties", { paths: { "/rpc/ai_generation_reserve": { post: { parameters: [{ in: "body", schema: { type: "object" } }] } } } }, "api-description-unreadable:body-schema-has-no-properties"],
+        ["something that is not an API description", { message: "hello" }, "api-description-unreadable:not-a-description"],
+    ])("%s is 'could not be checked', never 'does not take'", async (_label, description, code) => {
+        const requests = describedAs(JSON.stringify(description));
+        const found = (await briefAiPrerequisiteProblems(budgetInspector(env()), "disabled")).join("\n");
+        expect(found).toContain(`the database function ai_generation_reserve could not be checked (${code})`);
+        expect(found).not.toContain("ai_generation_reserve does not take");
+        expect(found).not.toContain("ai_generation_reserve does not exist");
+        expect(found).toContain("PREREQUISITE BLOCKED");
+        readOnly(requests);
+        // A reference to somewhere else is never fetched.
+        expect(requests.some((request) => request.host.includes("elsewhere"))).toBe(false);
+    });
+
+    it("a description that is not JSON, or is implausibly large, is a failed read", async () => {
+        describedAs("<html>gateway</html>");
+        expect((await briefAiPrerequisiteProblems(budgetInspector(env()), "disabled")).join("\n")).toContain("could not be checked (api-description-not-json)");
+        vi.unstubAllGlobals();
+        describedAs(`{"paths":{},"pad":"${"x".repeat(8_000_001)}"}`);
+        expect((await briefAiPrerequisiteProblems(budgetInspector(env()), "disabled")).join("\n")).toContain("could not be checked (api-description-too-large)");
+    });
+
+    it("every read has a time limit: a server that never answers blocks the run quickly, with a safe code", async () => {
+        expect(PREFLIGHT_TIMEOUT_MS).toBeLessThanOrEqual(15_000);
+        const signals: Array<AbortSignal | undefined> = [];
+        const methods: string[] = [];
+        vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
+            const signal = init?.signal ?? (input instanceof Request ? input.signal : undefined) ?? undefined;
+            signals.push(signal);
+            methods.push(String(init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase());
+            signal?.addEventListener("abort", () => reject(signal.reason ?? new DOMException("The operation was aborted.", "AbortError")));
+        }));
+        const started = Date.now();
+        const failure = await assertBriefAiPrerequisites(budgetInspector(env(), { timeoutMs: 40 }), "disabled").catch((error: unknown) => error);
+        expect(Date.now() - started).toBeLessThan(5_000);
+        expect(failure).toBeInstanceOf(E2EConfigurationError);
+        const message = (failure as Error).message;
+        // All five reads: three tables, and the one description both functions share.
+        expect(message.match(/\(timeout\)/g)).toHaveLength(5);
+        expect(message).not.toContain("does not take");
+        expect(message).not.toContain("does not exist");
+        expect(message).not.toContain(SECRET);
+        expect(message).not.toContain("supabase.co");
+        expect(signals).toHaveLength(4);
+        expect(signals.every((signal) => signal?.aborted === true)).toBe(true);
+        expect(methods.every((method) => method === "GET" || method === "HEAD")).toBe(true);
+    });
+
+    it("a failed connection, or an error body that repeats the key, leaves only a safe code", async () => {
+        vi.stubGlobal("fetch", async () => { throw new TypeError(`fetch failed: https://${approved}.supabase.co/rest/v1/ apikey=${SECRET}`); });
+        const refused = (await briefAiPrerequisiteProblems(budgetInspector(env()), "disabled")).join("\n");
+        expect(refused).toContain("could not be checked (network)");
+        expect(refused).not.toContain(SECRET);
+        expect(refused).not.toContain("supabase.co");
+        vi.unstubAllGlobals();
+
+        vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ code: `leak ${SECRET}`, message: `bad key ${SECRET}` }), { status: 403, headers: { "content-type": "application/json" } }));
+        const forbidden = (await briefAiPrerequisiteProblems(budgetInspector(env()), "disabled")).join("\n");
+        expect(forbidden).toContain("could not be checked (http-403)");
+        expect(forbidden).toContain("could not be read (unknown)");
+        expect(forbidden).not.toContain(SECRET);
     });
 });
 

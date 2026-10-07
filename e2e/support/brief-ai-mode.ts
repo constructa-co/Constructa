@@ -52,7 +52,7 @@ export function readBriefAiMode(source: NodeJS.ProcessEnv = process.env): BriefA
     throw new E2EConfigurationError([`${BRIEF_AI_MODE_VARIABLE} must be one of: ${BRIEF_AI_MODES.join(", ")}. It is not a switch for the feature; it says which state the disposable project has been put in.`]);
 }
 
-/** A read that either found something or could not be made. `code` is the database's error code only: never a message, URL or key. */
+/** A read that either found something or could not be made. `code` is a short fixed code or the database's error code: never a message, URL or key. */
 export type Read<T> = { ok: true; value: T } | { ok: false; code: string };
 
 /** Read-only views of the disposable project. Every method reads; none writes. */
@@ -63,7 +63,11 @@ export interface BudgetInspector {
     limitScopes(): Promise<Read<string[]>>;
     /** Whether the attempts table can be read. */
     attemptsReadable(): Promise<Read<true>>;
-    /** The argument names of a database function as the API describes it, or null if the API does not offer it. */
+    /**
+     * The argument names of a database function as the API describes it, or
+     * null if the API does not offer it. A description that could not be
+     * fetched or understood is a failed read, never an empty list.
+     */
     functionArguments(name: string): Promise<Read<string[] | null>>;
 }
 
@@ -93,7 +97,7 @@ export async function briefAiPrerequisiteProblems(inspector: BudgetInspector, mo
 
     for (const [name, expected] of Object.entries(functions)) {
         const described = await attempt(() => inspector.functionArguments(name));
-        if (!described.ok) blocked(`the database function ${name} could not be checked (${described.code}).`);
+        if (!described.ok) blocked(`the database function ${name} could not be checked (${described.code}). This says nothing about whether the function exists or what it takes.`);
         else if (described.value === null) blocked(`the database function ${name} does not exist. Without it the Brief says the assistant is not available, which is not the same as switched off.`);
         else {
             const missing = expected.filter((argument) => !described.value!.includes(argument));
@@ -119,19 +123,6 @@ export async function briefAiPrerequisiteProblems(inspector: BudgetInspector, mo
 export async function assertBriefAiPrerequisites(inspector: BudgetInspector, mode: BriefAiMode): Promise<void> {
     const problems = await briefAiPrerequisiteProblems(inspector, mode);
     if (problems.length > 0) throw new E2EConfigurationError([`Brief AI mode: ${mode}.`, ...problems]);
-}
-
-/** The argument names PostgREST's description of the API gives for a function, or null if the function is not offered. */
-export function functionArgumentsFromApiDescription(description: unknown, name: string): string[] | null {
-    const paths = (description as { paths?: Record<string, unknown> } | null)?.paths;
-    const entry = paths && typeof paths === "object" ? (paths[`/rpc/${name}`] as { post?: { parameters?: unknown } } | undefined) : undefined;
-    if (!entry?.post) return null;
-    const names = new Set<string>();
-    for (const parameter of Array.isArray(entry.post.parameters) ? entry.post.parameters : []) {
-        const properties = (parameter as { schema?: { properties?: Record<string, unknown> } } | null)?.schema?.properties;
-        if (properties && typeof properties === "object") for (const key of Object.keys(properties)) names.add(key);
-    }
-    return [...names];
 }
 
 /** What the journey must find, and may go on to do, in each mode. */

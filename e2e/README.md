@@ -87,6 +87,10 @@ disposable project and stops with `E2E CONFIGURATION FAILURE` if:
   different message from "not switched on", so this is never treated as off;
 - the feature is on in `disabled` mode, off in `enabled-with-stub` mode, or
   in a state that is neither.
+- a read could not be made or understood: it timed out (each read has a
+  10 second limit), or the API's description of its functions is in a form
+  the check does not recognise. That is reported as "could not be checked",
+  which says nothing about whether the function exists.
 
 Applying those migrations to the disposable project, and switching the
 feature on there, are owner-approved changes made outside this harness.

@@ -67,12 +67,18 @@ export default function ImportClient({
     const [saveError, setSaveError] = useState<string | null>(null);
     const inFlight = useRef(false);
 
-    const pending = draft?.items.filter((item) => item.status === "pending") ?? [];
+    // An expired draft can be read but nothing in it can be approved; the server refuses it too.
+    const expired = draft?.expired ?? false;
+    const pending = expired ? [] : draft?.items.filter((item) => item.status === "pending") ?? [];
     const outcomeOf = (field: ImportField) => outcomes.find((entry) => entry.field === field);
 
     const check = async () => {
         if (inFlight.current) return;
-        if (!permission) return setCheckError(IMPORT_PERMISSION_ERROR);
+        if (!permission) {
+            // The confirmation is asked for every time a website is read, including a recheck.
+            document.getElementById("import-permission")?.scrollIntoView({ block: "center" });
+            return setCheckError(IMPORT_PERMISSION_ERROR);
+        }
         if (!url.trim()) return setCheckError("Enter your website address, for example www.yourbusiness.co.uk.");
 
         inFlight.current = true;
@@ -170,7 +176,7 @@ export default function ImportClient({
                 {item.status === "same" && (
                     <p className={`text-sm font-semibold ${s.muted}`}>Already matches your profile. Nothing to change.</p>
                 )}
-                {item.status === "pending" && (
+                {item.status === "pending" && !expired && (
                     <label htmlFor={id} className={`flex items-center gap-3 min-h-11 text-base font-semibold cursor-pointer ${s.heading}`}>
                         <input
                             id={id}
@@ -252,15 +258,28 @@ export default function ImportClient({
                         Read from {draft.website} on {when(draft.fetchedAt)}. {draft.pages.length} {draft.pages.length === 1 ? "page" : "pages"} read.
                     </p>
 
+                    {expired && (
+                        <div role="status" className={`mt-4 ${s.noticeBox} text-sm space-y-3`}>
+                            <p>
+                                This preview is more than a day old, so nothing can be saved from it. Your website may have changed since. Check it again to see what it says now.
+                            </p>
+                            <button type="button" onClick={check} disabled={busy !== "idle"} className={`${s.secondaryButton} min-h-11 text-sm`}>
+                                {busy === "checking" ? "Reading your website…" : "Check my website again"}
+                            </button>
+                        </div>
+                    )}
+
                     {draft.items.length === 0 ? (
                         <p className={`mt-4 ${s.noticeBox} text-sm`}>
                             We couldn&apos;t find any details we were sure enough about to suggest. You can enter your details by hand instead.
                         </p>
                     ) : (
                         <>
-                            <p className={`mt-3 text-sm ${s.muted}`}>
-                                Check each one against what you know to be true. Tick only the changes you want.
-                            </p>
+                            {!expired && (
+                                <p className={`mt-3 text-sm ${s.muted}`}>
+                                    Check each one against what you know to be true. Tick only the changes you want. This preview can be used until {when(draft.expiresAt)}.
+                                </p>
+                            )}
                             {GROUPS.map((group) => {
                                 const items = draft.items.filter((item) => specOf(item.field).group === group);
                                 if (items.length === 0) return null;
@@ -290,7 +309,9 @@ export default function ImportClient({
                                 <Link href={PROPOSAL_READINESS_PATH} className={`${s.quietButton}`}>See what your proposals can use so far</Link>
                             </div>
                             <p aria-live="polite" className={`mt-2 text-sm ${s.muted}`}>
-                                {pending.length === 0 ? "Nothing left to decide." : `${pending.length} left to decide. Anything you leave unticked stays as it is.`}
+                                {expired ? "Nothing can be saved from this preview."
+                                    : pending.length === 0 ? "Nothing left to decide."
+                                    : `${pending.length} left to decide. Anything you leave unticked stays as it is.`}
                             </p>
                         </>
                     )}

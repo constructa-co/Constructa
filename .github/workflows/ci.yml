@@ -50,3 +50,30 @@ jobs:
       - name: Verify company import draft isolation
         run: npm run test:company-import-sql
       - run: npm run build
+
+  # The company-website import, in a real browser, with no database: the real
+  # screen and server code over an in-memory database and a made-up website.
+  import-fixture-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Website import fixture run (desktop, phone, keyboard)
+        run: npm run e2e:import-fixture
+      - name: Keep the results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: import-fixture-results
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            test-results/import-fixture/**/*.json
+            test-results/import-fixture/**/*.png

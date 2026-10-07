@@ -5,7 +5,9 @@ const mocks = vi.hoisted(() => ({
     previewImport: vi.fn(),
     applyImport: vi.fn(),
     revalidatePath: vi.fn(),
+    createAdminClient: vi.fn(),
 }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: mocks.createAdminClient }));
 vi.mock("@/lib/supabase/auth-utils", () => ({ requireAuth: mocks.requireAuth }));
 vi.mock("@/lib/company-import/service", () => ({ previewImport: mocks.previewImport, applyImport: mocks.applyImport }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
@@ -14,6 +16,7 @@ import { IMPORT_GENERIC_ERROR, IMPORT_SAVE_ERROR } from "@/lib/company-import/dr
 import { applyWebsiteImportAction, previewWebsiteImportAction } from "./actions";
 
 const supabase = { from: vi.fn() };
+const admin = { rpc: vi.fn() };
 const APPLY = { draftId: "00000000-0000-4000-8000-000000000001", approvals: [{ field: "phone", expectedExisting: null }] };
 
 describe("website import actions", () => {
@@ -22,10 +25,21 @@ describe("website import actions", () => {
         vi.stubEnv("NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE", "cohort");
         vi.spyOn(console, "error").mockImplementation(() => {});
         mocks.requireAuth.mockResolvedValue({ user: { id: "user-1", email: "c@example.test" }, supabase });
+        mocks.createAdminClient.mockReturnValue(admin);
     });
 
     it("refuse a signed-out caller before any import work", async () => {
         mocks.requireAuth.mockRejectedValue(new Error("Unauthorized: No user found."));
+        expect(await previewWebsiteImportAction({ url: "www.smithbuilders.co.uk", permissionConfirmed: true })).toEqual({ ok: false, error: IMPORT_GENERIC_ERROR });
+        expect(await applyWebsiteImportAction(APPLY)).toEqual({ ok: false, error: IMPORT_SAVE_ERROR });
+        expect(mocks.previewImport).not.toHaveBeenCalled();
+        expect(mocks.applyImport).not.toHaveBeenCalled();
+        // The privileged client is not even created for a caller who is not signed in.
+        expect(mocks.createAdminClient).not.toHaveBeenCalled();
+    });
+
+    it("fail closed when the server's privileged client is not configured", async () => {
+        mocks.createAdminClient.mockImplementation(() => { throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY"); });
         expect(await previewWebsiteImportAction({ url: "www.smithbuilders.co.uk", permissionConfirmed: true })).toEqual({ ok: false, error: IMPORT_GENERIC_ERROR });
         expect(await applyWebsiteImportAction(APPLY)).toEqual({ ok: false, error: IMPORT_SAVE_ERROR });
         expect(mocks.previewImport).not.toHaveBeenCalled();
@@ -37,8 +51,8 @@ describe("website import actions", () => {
         mocks.applyImport.mockResolvedValue({ ok: false, error: "x" });
         await previewWebsiteImportAction({ url: "www.smithbuilders.co.uk", permissionConfirmed: true, userId: "someone-else" } as never);
         await applyWebsiteImportAction({ ...APPLY, userId: "someone-else" } as never);
-        expect(mocks.previewImport.mock.calls[0][0]).toEqual({ supabase, userId: "user-1" });
-        expect(mocks.applyImport.mock.calls[0][0]).toEqual({ supabase, userId: "user-1" });
+        expect(mocks.previewImport.mock.calls[0][0]).toEqual({ supabase, admin, userId: "user-1" });
+        expect(mocks.applyImport.mock.calls[0][0]).toEqual({ supabase, admin, userId: "user-1" });
     });
 
     it("never refresh a page for a preview, and refresh only after something was saved", async () => {

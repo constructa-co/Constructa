@@ -21,6 +21,8 @@ const draft = (items: ImportItem[]): ImportDraft => ({
     website: "https://www.smithbuilders.co.uk",
     permissionConfirmedAt: "2026-10-07T10:00:00.000Z",
     fetchedAt: "2026-10-07T10:00:00.000Z",
+    expiresAt: "2026-10-08T10:00:00.000Z",
+    expired: false,
     pages: ["https://www.smithbuilders.co.uk/", "https://www.smithbuilders.co.uk/contact-us"],
     items,
 });
@@ -82,6 +84,22 @@ describe("ImportClient", () => {
         // The source address is shown as text; the only links on the screen are the app's own.
         const hrefs = Array.from(html.matchAll(/href="([^"]+)"/g)).map((match) => match[1]);
         expect(new Set(hrefs)).toEqual(new Set(["/dashboard/settings/profile", "/dashboard/settings/profile/readiness"]));
+    });
+
+    it("says until when a preview can be used", () => {
+        expect(render(draft([base("phone", "0113 496 0000", null)]))).toContain("This preview can be used until 8 Oct 2026, 11:00");
+    });
+
+    it("offers nothing to approve from an expired preview, only a recheck", () => {
+        const html = render({ ...draft([base("phone", "0113 496 0000", "0113 000 0000"), base("website", "https://www.smithbuilders.co.uk", null)]), expired: true });
+        expect(html).toContain("This preview is more than a day old, so nothing can be saved from it");
+        expect(html.match(/Check my website again/g)).toHaveLength(2);
+        expect(html.match(/type="checkbox"/g)).toHaveLength(1); // permission only
+        expect(html).not.toContain("ticked change");
+        expect(html).not.toContain("Replace my phone with this");
+        expect(html).toContain("Nothing can be saved from this preview.");
+        // What was found is still shown, for reference.
+        expect(html).toContain("0113 496 0000");
     });
 
     it("says so when nothing could be suggested, and starts from the saved website", () => {

@@ -5,14 +5,14 @@
     "height": 844
   },
   "input": "touch",
-  "startedAt": "2026-10-07T17:16:56.548Z",
-  "finishedAt": "2026-10-07T17:17:00.430Z",
+  "startedAt": "2026-10-07T17:45:28.896Z",
+  "finishedAt": "2026-10-07T17:45:32.539Z",
   "outcome": "passed",
   "steps": [],
   "checkpoints": [
     {
       "name": "import-start",
-      "path": "/admin-fixture-2g2",
+      "path": "/admin-e2e-import-fixture",
       "layout": {
         "viewportWidth": 390,
         "documentWidth": 390,
@@ -29,7 +29,7 @@
     },
     {
       "name": "import-website-unavailable",
-      "path": "/admin-fixture-2g2",
+      "path": "/admin-e2e-import-fixture",
       "layout": {
         "viewportWidth": 390,
         "documentWidth": 390,
@@ -46,7 +46,7 @@
     },
     {
       "name": "import-preview",
-      "path": "/admin-fixture-2g2",
+      "path": "/admin-e2e-import-fixture",
       "layout": {
         "viewportWidth": 390,
         "documentWidth": 390,
@@ -63,7 +63,7 @@
     },
     {
       "name": "import-preview-item",
-      "path": "/admin-fixture-2g2",
+      "path": "/admin-e2e-import-fixture",
       "layout": {
         "viewportWidth": 390,
         "documentWidth": 390,
@@ -80,7 +80,7 @@
     },
     {
       "name": "import-stale-value-not-overwritten",
-      "path": "/admin-fixture-2g2",
+      "path": "/admin-e2e-import-fixture",
       "layout": {
         "viewportWidth": 390,
         "documentWidth": 390,
@@ -97,7 +97,7 @@
     },
     {
       "name": "import-save-failed",
-      "path": "/admin-fixture-2g2",
+      "path": "/admin-e2e-import-fixture",
       "layout": {
         "viewportWidth": 390,
         "documentWidth": 390,
@@ -110,11 +110,11 @@
       },
       "obscured": [],
       "accessibility": [],
-      "screenshot": null
+      "screenshot": "06-import-save-failed-390x844.jpg"
     },
     {
       "name": "import-selected-saved",
-      "path": "/admin-fixture-2g2",
+      "path": "/admin-e2e-import-fixture",
       "layout": {
         "viewportWidth": 390,
         "documentWidth": 390,
@@ -127,7 +127,7 @@
       },
       "obscured": [],
       "accessibility": [],
-      "screenshot": "06-import-selected-saved-390x844.jpg"
+      "screenshot": "07-import-selected-saved-390x844.jpg"
     }
   ],
   "parity": {},

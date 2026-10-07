@@ -5,14 +5,14 @@
     "height": 800
   },
   "input": "keyboard",
-  "startedAt": "2026-10-07T17:17:01.271Z",
-  "finishedAt": "2026-10-07T17:17:03.815Z",
+  "startedAt": "2026-10-07T17:45:34.460Z",
+  "finishedAt": "2026-10-07T17:45:37.377Z",
   "outcome": "passed",
   "steps": [],
   "checkpoints": [
     {
       "name": "import-start",
-      "path": "/admin-fixture-2g2",
+      "path": "/admin-e2e-import-fixture",
       "layout": {
         "viewportWidth": 1280,
         "documentWidth": 1280,
@@ -29,7 +29,7 @@
     },
     {
       "name": "import-website-unavailable",
-      "path": "/admin-fixture-2g2",
+      "path": "/admin-e2e-import-fixture",
       "layout": {
         "viewportWidth": 1280,
         "documentWidth": 1280,
@@ -46,7 +46,7 @@
     },
     {
       "name": "import-preview",
-      "path": "/admin-fixture-2g2",
+      "path": "/admin-e2e-import-fixture",
       "layout": {
         "viewportWidth": 1280,
         "documentWidth": 1280,
@@ -63,7 +63,7 @@
     },
     {
       "name": "import-preview-item",
-      "path": "/admin-fixture-2g2",
+      "path": "/admin-e2e-import-fixture",
       "layout": {
         "viewportWidth": 1280,
         "documentWidth": 1280,
@@ -80,7 +80,7 @@
     },
     {
       "name": "import-stale-value-not-overwritten",
-      "path": "/admin-fixture-2g2",
+      "path": "/admin-e2e-import-fixture",
       "layout": {
         "viewportWidth": 1280,
         "documentWidth": 1280,
@@ -97,7 +97,7 @@
     },
     {
       "name": "import-save-failed",
-      "path": "/admin-fixture-2g2",
+      "path": "/admin-e2e-import-fixture",
       "layout": {
         "viewportWidth": 1280,
         "documentWidth": 1280,
@@ -114,7 +114,7 @@
     },
     {
       "name": "import-selected-saved",
-      "path": "/admin-fixture-2g2",
+      "path": "/admin-e2e-import-fixture",
       "layout": {
         "viewportWidth": 1280,
         "documentWidth": 1280,

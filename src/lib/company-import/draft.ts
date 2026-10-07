@@ -13,8 +13,14 @@ import type { ImportFailureCode } from "./net-policy";
 
 export const IMPORT_PATH = "/dashboard/settings/profile/import";
 
-/** Previews a contractor may start in any one hour. */
-export const IMPORT_PREVIEWS_PER_HOUR = 6;
+/**
+ * Website reads a contractor may start in any one hour, whatever became of
+ * them, and how long a draft can be approved from. Both are enforced in the
+ * database (`company_import_reserve_attempt`, `company_import_approve_item`);
+ * these are the same numbers for wording and tests.
+ */
+export const IMPORT_READS_PER_HOUR = 6;
+export const IMPORT_DRAFT_HOURS = 24;
 
 export type ImportGroup = "identity" | "services" | "contact";
 
@@ -75,6 +81,10 @@ export interface ImportDraft {
     website: string;
     permissionConfirmedAt: string;
     fetchedAt: string;
+    /** After this nothing in the draft can be approved. Set and enforced by the database. */
+    expiresAt: string;
+    /** Worked out on the server when the draft was loaded. */
+    expired: boolean;
     pages: string[];
     items: ImportItem[];
 }
@@ -136,6 +146,10 @@ export const IMPORT_PERMISSION_ERROR = "Tick the box to confirm this is your own
 export const IMPORT_GENERIC_ERROR = "We couldn't read that website just now. You can try again, or enter your details by hand.";
 export const IMPORT_SAVE_ERROR = "We couldn't save that. Nothing was changed. Check your connection and try again.";
 export const IMPORT_RATE_ERROR = "You've checked a website several times in the last hour. Please try again later, or enter your details by hand.";
+export const IMPORT_IN_FLIGHT_ERROR = "We're already reading your website. Give it a moment to finish, then try again.";
+export const IMPORT_EXPIRED_ERROR = "This preview is more than a day old, so nothing was saved from it. Check your website again to see what it says now.";
+export const IMPORT_DRAFT_GONE_ERROR = "That preview is no longer available. Check your website again to see fresh suggestions.";
+export const IMPORT_REFRESH_ERROR = "Your ticked changes were saved, but we couldn't refresh this page. Reload it to see them.";
 
 /** What the contractor is told. Never the technical detail, which could describe our network. */
 export function importFailureMessage(code: ImportFailureCode): string {
@@ -150,6 +164,7 @@ export function importFailureMessage(code: ImportFailureCode): string {
         case "robots-disallowed":
         case "robots-unavailable":
             return "Your website asks automated readers to stay away, so we haven't read it. You can enter your details by hand.";
+        case "request-limit":
         case "too-large":
         case "not-html":
             return "We couldn't read that page. Try your home page address, or enter your details by hand.";

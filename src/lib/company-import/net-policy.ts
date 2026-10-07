@@ -9,8 +9,10 @@
  */
 
 export const IMPORT_LIMITS = {
-    /** HTML pages read from the website, not counting robots.txt. */
+    /** HTML pages the import tries to read, whether or not each one succeeds. robots.txt is extra. */
     maxPages: 4,
+    /** Every HTTP request of one import added together: robots.txt, pages and each redirect hop. */
+    maxRequests: 10,
     /** Bytes accepted for any one response body. */
     maxResponseBytes: 512 * 1024,
     /** Redirects followed for any one page. */
@@ -27,6 +29,7 @@ export type ImportFailureCode =
     | "unsafe-address"
     | "outside-website"
     | "too-many-redirects"
+    | "request-limit"
     | "too-large"
     | "timeout"
     | "not-html"

@@ -27,11 +27,11 @@ import { createClient } from "./server";
  * message `getActiveOrganizationId()` already throws, so existing error
  * handling paths continue to work unchanged.
  *
- * Return type is intentionally inferred from `createClient()` so the server
+ * Return type is intentionally inferred from `await createClient()` so the server
  * client remains fully typed against the rest of the codebase.
  */
 export async function requireAuth() {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
         throw new Error("Unauthorized: No user found.");
@@ -92,7 +92,7 @@ export async function requireProjectAccess(projectId: string) {
  * This is the source of truth for all organization-level data filtering.
  */
 export async function getActiveOrganizationId() {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // 1. Get the current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();

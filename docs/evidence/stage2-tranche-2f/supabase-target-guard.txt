@@ -1,0 +1,58 @@
+Supabase target guard: build results, 5 October 2026
+
+Each case is a real `npm run build` of this commit with the environment stated.
+Every key was a synthetic token with a placeholder signature, made for the run.
+No real key was used, nothing was started and no network request was made.
+abcdefghijklmnopqrst and zyxwvutsrqponmlkjihg are made-up project references.
+The lines below are the guard's own output, copied from the build logs.
+
+── 1. A preview that inherited the production variables (the 5 October incident)
+   environment: VERCEL_ENV=preview, the production URL, and synthetic keys carrying the production project reference
+   Supabase target check: context=preview (from VERCEL_ENV) expected=not declared url=pudadynieiuypxeoimnz anon-key=pudadynieiuypxeoimnz service-key=pudadynieiuypxeoimnz -> FAIL
+   SUPABASE TARGET CHECK FAILED (configuration) - stopped before the wrong database could be used.
+     - CONSTRUCTA_NONPROD_SUPABASE_PROJECT_REF is not set. State the disposable project this preview may use.
+     - NEXT_PUBLIC_SUPABASE_URL points at the production project.
+     - NEXT_PUBLIC_SUPABASE_ANON_KEY is a key of the production project.
+     - SUPABASE_SERVICE_ROLE_KEY is a key of the production project.
+   exit code: 1, after 1 s
+
+── 2. A preview with no Supabase variables at all
+   environment: VERCEL_ENV=preview, nothing else
+   Supabase target check: context=preview (from VERCEL_ENV) expected=not declared url=not set anon-key=not set service-key=not set -> FAIL
+   SUPABASE TARGET CHECK FAILED (configuration) - stopped before the wrong database could be used.
+     - CONSTRUCTA_NONPROD_SUPABASE_PROJECT_REF is not set. State the disposable project this preview may use.
+     - NEXT_PUBLIC_SUPABASE_URL is not set. A preview needs its own disposable project.
+     - NEXT_PUBLIC_SUPABASE_ANON_KEY is not set. A preview needs its own disposable project's keys.
+     - SUPABASE_SERVICE_ROLE_KEY is not set. A preview needs its own disposable project's keys.
+   exit code: 1, after 0 s
+
+── 3. A correctly isolated preview
+   environment: VERCEL_ENV=preview, CONSTRUCTA_NONPROD_SUPABASE_PROJECT_REF, URL and both keys all of one disposable project
+   Supabase target check: context=preview (from VERCEL_ENV) expected=abcdefghijklmnopqrst url=abcdefghijklmnopqrst anon-key=abcdefghijklmnopqrst service-key=abcdefghijklmnopqrst -> PASS
+   ✓ Compiled successfully in 13.9s
+   Compiled Supabase target: context=preview (from VERCEL_ENV) expected=abcdefghijklmnopqrst projects in build=abcdefghijklmnopqrst -> PASS
+   exit code: 0, after 34 s
+
+── 4. The build from case 3, checked for a preview declared for a different project
+   environment: VERCEL_ENV=preview, everything declared for zyxwvutsrqponmlkjihg, compiled output from case 3 (scripts/verify-build-supabase-target.mjs only)
+   Supabase target check: context=preview (from VERCEL_ENV) expected=zyxwvutsrqponmlkjihg url=zyxwvutsrqponmlkjihg anon-key=zyxwvutsrqponmlkjihg service-key=zyxwvutsrqponmlkjihg -> PASS
+   Compiled Supabase target: context=preview (from VERCEL_ENV) expected=zyxwvutsrqponmlkjihg projects in build=abcdefghijklmnopqrst -> FAIL
+   SUPABASE TARGET CHECK FAILED (compiled build) - stopped before the wrong database could be used.
+     - The compiled build names a project other than the declared disposable one: abcdefghijklmnopqrst.
+   exit code: 1
+
+── 5. Production
+   environment: VERCEL_ENV=production, the production URL, and synthetic keys carrying the production project reference
+   Supabase target check: context=production (from VERCEL_ENV). Not a preview or E2E context, so nothing is enforced.
+   ✓ Compiled successfully in 1414ms
+   Compiled Supabase target: context=production (from VERCEL_ENV) projects in build=pudadynieiuypxeoimnz. Not a preview or E2E context, so nothing is enforced.
+   exit code: 0, after 8 s
+
+── 6. The CI health build
+   environment: no Vercel variables and no Supabase variables
+   Supabase target check: context=unspecified (from none). Not a preview or E2E context, so nothing is enforced.
+   ✓ Compiled successfully in 14.6s
+   Compiled Supabase target: context=unspecified (from none) projects in build=none. Not a preview or E2E context, so nothing is enforced.
+   exit code: 0, after 37 s
+
+Key material in any of the six logs (count of the synthetic signature): 0

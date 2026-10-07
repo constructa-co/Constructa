@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { requireLaunchCapability } from "@/lib/launch-profile";
 
 /**
  * Acknowledge an obligation from the supervisor portal.
@@ -11,11 +12,13 @@ export async function acknowledgeObligationAction(
     obligationId: string,
     acknowledgedBy: string,
 ): Promise<{ success: boolean; error?: string }> {
+    requireLaunchCapability("contract-shield");
+
     if (!token || !obligationId || !acknowledgedBy.trim()) {
         return { success: false, error: "Missing required fields" };
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Validate token exists and get the project_id
     const { data: invite } = await supabase

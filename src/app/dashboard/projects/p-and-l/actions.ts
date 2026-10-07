@@ -8,7 +8,7 @@
 import {
     requireAuth,
     requireProjectAccess,
-} from "@/lib/supabase/auth-utils";
+} from "@/lib/supabase/extended-module-auth-utils";
 import { revalidatePath } from "next/cache";
 import {
     LogCostSchema,

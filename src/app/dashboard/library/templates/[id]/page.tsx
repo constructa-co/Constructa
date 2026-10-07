@@ -6,8 +6,9 @@ import Link from "next/link";
 import { removeTemplateItemAction } from "../../templates-actions";
 import TemplateItemEditor from "./template-item-editor";
 
-export default async function TemplateDetailsPage({ params }: { params: { id: string } }) {
-    const supabase = createClient();
+export default async function TemplateDetailsPage(props: { params: Promise<{ id: string }> }) {
+    const params = await props.params;
+    const supabase = await createClient();
     const { data: template } = await supabase.from("templates").select("*").eq("id", params.id).single();
     const { data: items } = await supabase.from("template_items").select("*").eq("template_id", params.id).order("created_at", { ascending: true });
     const { data: libraryItems } = await supabase.from("library_items").select("*").order("category", { ascending: true });

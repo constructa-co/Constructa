@@ -2,6 +2,7 @@
 
 import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
+import { requireLaunchCapability } from "@/lib/launch-profile";
 
 export async function saveMeasurementsAction(data: {
   projectId: string;
@@ -16,6 +17,7 @@ export async function saveMeasurementsAction(data: {
     points: { x: number; y: number }[];
   }[];
 }) {
+  requireLaunchCapability("drawing-takeoff");
   const { user, supabase } = await requireAuth();
 
   const rows = data.measurements.map(m => ({
@@ -47,6 +49,7 @@ export async function addMeasurementsToEstimateAction(
     tradeSection: string;
   }[]
 ) {
+  requireLaunchCapability("drawing-takeoff");
   const { user, supabase } = await requireAuth();
 
   // Get active estimate for project
@@ -96,6 +99,7 @@ export async function addMeasurementsToEstimateAction(
 }
 
 export async function getDrawingMeasurementsAction(projectId: string) {
+  requireLaunchCapability("drawing-takeoff");
   const { user, supabase } = await requireAuth();
 
   const { data, error } = await supabase
@@ -110,6 +114,7 @@ export async function getDrawingMeasurementsAction(projectId: string) {
 }
 
 export async function deleteMeasurementAction(id: string) {
+  requireLaunchCapability("drawing-takeoff");
   const { user, supabase } = await requireAuth();
 
   const { error } = await supabase

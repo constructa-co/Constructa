@@ -1,0 +1,900 @@
+[
+  {
+    "file": "01-onboarding-step1-trade-1280x800.jpg",
+    "finalPath": "/onboarding-evidence",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "widestElementRight": 1280,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {}
+  },
+  {
+    "file": "02-onboarding-save-failed-1280x800.jpg",
+    "finalPath": "/onboarding-evidence?fail=1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "widestElementRight": 1280,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {}
+  },
+  {
+    "file": "03-onboarding-saving-1280x800.jpg",
+    "finalPath": "/onboarding-evidence?delay=4000",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "widestElementRight": 1280,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {}
+  },
+  {
+    "file": "04-onboarding-retry-saved-step2-1280x800.jpg",
+    "finalPath": "/onboarding-evidence?fail=1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "widestElementRight": 1280,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {
+      "saved": "[{\"step\":\"trade\",\"businessType\":\"Plumbing & Heating\"}]"
+    }
+  },
+  {
+    "file": "05-onboarding-missing-name-1280x800.jpg",
+    "finalPath": "/onboarding-evidence",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "widestElementRight": 1280,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {}
+  },
+  {
+    "file": "06-onboarding-finish-lands-on-new-project-1280x800.jpg",
+    "finalPath": "/dashboard/projects/new",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "widestElementRight": 1280,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {
+      "path": "/dashboard/projects/new"
+    }
+  },
+  {
+    "file": "07-zero-project-pipeline-1280x800.jpg",
+    "finalPath": "/dashboard-evidence/pipeline",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "widestElementRight": 1280,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {}
+  },
+  {
+    "file": "08-zero-project-home-1280x800.jpg",
+    "finalPath": "/dashboard-evidence/home",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "widestElementRight": 1280,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {}
+  },
+  {
+    "file": "09-new-project-blank-1280x800.jpg",
+    "finalPath": "/dashboard-evidence/new",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "widestElementRight": 1280,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {}
+  },
+  {
+    "file": "10-new-project-required-missing-1280x800.jpg",
+    "finalPath": "/dashboard-evidence/new",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "widestElementRight": 1280,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {}
+  },
+  {
+    "file": "11-new-project-optional-details-1280x800.jpg",
+    "finalPath": "/dashboard-evidence/new",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "widestElementRight": 1280,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {}
+  },
+  {
+    "file": "12-new-project-create-failed-inputs-kept-1280x800.jpg",
+    "finalPath": "/dashboard-evidence/new?fail=1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "widestElementRight": 1280,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {
+      "nameKept": "14 Example Road bathroom refit",
+      "clientKept": "Alex Client"
+    }
+  },
+  {
+    "file": "13-retry-arrives-at-named-brief-1280x800.jpg",
+    "finalPath": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "widestElementRight": 1280,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [
+      {
+        "t": "domestic",
+        "h": 38
+      },
+      {
+        "t": "commercial",
+        "h": 38
+      },
+      {
+        "t": "public",
+        "h": 38
+      },
+      {
+        "t": "Site Setup & Preliminaries",
+        "h": 29
+      },
+      {
+        "t": "Demolition & Strip Out",
+        "h": 29
+      },
+      {
+        "t": "Asbestos Removal",
+        "h": 29
+      },
+      {
+        "t": "Roofing",
+        "h": 29
+      },
+      {
+        "t": "Waterproofing",
+        "h": 29
+      },
+      {
+        "t": "Insulation",
+        "h": 29
+      },
+      {
+        "t": "Domestic Electrical",
+        "h": 29
+      },
+      {
+        "t": "Commercial Electrical",
+        "h": 29
+      },
+      {
+        "t": "Industrial Electrical",
+        "h": 29
+      },
+      {
+        "t": "Carpentry & Joinery",
+        "h": 29
+      },
+      {
+        "t": "Kitchen Installation",
+        "h": 29
+      },
+      {
+        "t": "Bathroom Installation",
+        "h": 29
+      },
+      {
+        "t": "Tiling",
+        "h": 29
+      },
+      {
+        "t": "Flooring",
+        "h": 29
+      },
+      {
+        "t": "Ceilings",
+        "h": 29
+      },
+      {
+        "t": "Save Brief",
+        "h": 40
+      },
+      {
+        "t": "Suggest Estimate Lines",
+        "h": 42
+      },
+      {
+        "t": "Go to Estimating",
+        "h": 42
+      },
+      {
+        "t": "INPUT",
+        "h": 40
+      },
+      {
+        "t": "BUTTON",
+        "h": 40
+      }
+    ],
+    "observed": {
+      "requestIds": "[\"d7f4629a-8e21-45f6-b922-ecab76791a42\"]",
+      "requestIdsAfterRetry": "[\"d7f4629a-8e21-45f6-b922-ecab76791a42\",\"d7f4629a-8e21-45f6-b922-ecab76791a42\"]",
+      "path": "/dashboard/projects/brief?projectId=synthetic-project-1"
+    }
+  },
+  {
+    "file": "13b-arrives-at-named-brief-dark-theme-1280x800.jpg",
+    "finalPath": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "widestElementRight": 1280,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [
+      {
+        "t": "domestic",
+        "h": 38
+      },
+      {
+        "t": "commercial",
+        "h": 38
+      },
+      {
+        "t": "public",
+        "h": 38
+      },
+      {
+        "t": "Site Setup & Preliminaries",
+        "h": 29
+      },
+      {
+        "t": "Demolition & Strip Out",
+        "h": 29
+      },
+      {
+        "t": "Asbestos Removal",
+        "h": 29
+      },
+      {
+        "t": "Roofing",
+        "h": 29
+      },
+      {
+        "t": "Waterproofing",
+        "h": 29
+      },
+      {
+        "t": "Insulation",
+        "h": 29
+      },
+      {
+        "t": "Domestic Electrical",
+        "h": 29
+      },
+      {
+        "t": "Commercial Electrical",
+        "h": 29
+      },
+      {
+        "t": "Industrial Electrical",
+        "h": 29
+      },
+      {
+        "t": "Carpentry & Joinery",
+        "h": 29
+      },
+      {
+        "t": "Kitchen Installation",
+        "h": 29
+      },
+      {
+        "t": "Bathroom Installation",
+        "h": 29
+      },
+      {
+        "t": "Tiling",
+        "h": 29
+      },
+      {
+        "t": "Flooring",
+        "h": 29
+      },
+      {
+        "t": "Ceilings",
+        "h": 29
+      },
+      {
+        "t": "Save Brief",
+        "h": 40
+      },
+      {
+        "t": "Suggest Estimate Lines",
+        "h": 42
+      },
+      {
+        "t": "Go to Estimating",
+        "h": 42
+      },
+      {
+        "t": "INPUT",
+        "h": 40
+      },
+      {
+        "t": "BUTTON",
+        "h": 40
+      }
+    ],
+    "observed": {
+      "path": "/dashboard/projects/brief?projectId=synthetic-project-1"
+    }
+  },
+  {
+    "file": "14-established-pipeline-no-quick-quote-1280x800.jpg",
+    "finalPath": "/dashboard-evidence/pipeline?projects=some",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "widestElementRight": 1280,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [
+      {
+        "t": "+ New Project",
+        "h": 40
+      },
+      {
+        "t": "This Week",
+        "h": 28
+      },
+      {
+        "t": "This Month",
+        "h": 28
+      },
+      {
+        "t": "This Quarter",
+        "h": 28
+      },
+      {
+        "t": "This Year",
+        "h": 28
+      },
+      {
+        "t": "INPUT",
+        "h": 38
+      },
+      {
+        "t": "All TypesOtherResidential Exte",
+        "h": 37
+      },
+      {
+        "t": "All StagesLeadEstimatingPropos",
+        "h": 37
+      },
+      {
+        "t": "Board",
+        "h": 28
+      },
+      {
+        "t": "List",
+        "h": 28
+      },
+      {
+        "t": "A",
+        "h": 22
+      },
+      {
+        "t": "Leads",
+        "h": 28
+      },
+      {
+        "t": "Mark as Lost",
+        "h": 14
+      },
+      {
+        "t": "Proposal",
+        "h": 14
+      },
+      {
+        "t": "Costs",
+        "h": 14
+      },
+      {
+        "t": "Estimating",
+        "h": 28
+      },
+      {
+        "t": "\u2190 Pull Back",
+        "h": 27
+      },
+      {
+        "t": "Mark as Lost",
+        "h": 27
+      },
+      {
+        "t": "Proposal",
+        "h": 14
+      },
+      {
+        "t": "Costs",
+        "h": 14
+      },
+      {
+        "t": "Notify me",
+        "h": 34
+      },
+      {
+        "t": "Notify me",
+        "h": 34
+      }
+    ],
+    "observed": {
+      "quickQuote": false
+    }
+  },
+  {
+    "file": "15-established-home-no-quick-quote-1280x800.jpg",
+    "finalPath": "/dashboard-evidence/home?projects=some",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "widestElementRight": 1280,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [
+      {
+        "t": "New Project",
+        "h": 42
+      },
+      {
+        "t": "View pipeline \u2192",
+        "h": 16
+      },
+      {
+        "t": "View all \u2192",
+        "h": 16
+      },
+      {
+        "t": "New Project",
+        "h": 36
+      },
+      {
+        "t": "View Pipeline",
+        "h": 36
+      },
+      {
+        "t": "Billing & Invoices",
+        "h": 36
+      },
+      {
+        "t": "Variations",
+        "h": 36
+      },
+      {
+        "t": "Change Management",
+        "h": 36
+      },
+      {
+        "t": "Communications",
+        "h": 36
+      },
+      {
+        "t": "Final Accounts",
+        "h": 36
+      }
+    ],
+    "observed": {
+      "quickQuote": false
+    }
+  },
+  {
+    "file": "01-onboarding-step1-trade-390x844.jpg",
+    "finalPath": "/onboarding-evidence",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "widestElementRight": 390,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {}
+  },
+  {
+    "file": "02-onboarding-save-failed-390x844.jpg",
+    "finalPath": "/onboarding-evidence?fail=1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "widestElementRight": 390,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {}
+  },
+  {
+    "file": "03-onboarding-saving-390x844.jpg",
+    "finalPath": "/onboarding-evidence?delay=4000",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "widestElementRight": 390,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {}
+  },
+  {
+    "file": "04-onboarding-retry-saved-step2-390x844.jpg",
+    "finalPath": "/onboarding-evidence?fail=1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "widestElementRight": 390,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {
+      "saved": "[{\"step\":\"trade\",\"businessType\":\"Plumbing & Heating\"}]"
+    }
+  },
+  {
+    "file": "05-onboarding-missing-name-390x844.jpg",
+    "finalPath": "/onboarding-evidence",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "widestElementRight": 390,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {}
+  },
+  {
+    "file": "06-onboarding-finish-lands-on-new-project-390x844.jpg",
+    "finalPath": "/dashboard/projects/new",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "widestElementRight": 390,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {
+      "path": "/dashboard/projects/new"
+    }
+  },
+  {
+    "file": "07-zero-project-pipeline-390x844.jpg",
+    "finalPath": "/dashboard-evidence/pipeline",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "widestElementRight": 390,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {}
+  },
+  {
+    "file": "08-zero-project-home-390x844.jpg",
+    "finalPath": "/dashboard-evidence/home",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "widestElementRight": 390,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {}
+  },
+  {
+    "file": "09-new-project-blank-390x844.jpg",
+    "finalPath": "/dashboard-evidence/new",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "widestElementRight": 390,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {}
+  },
+  {
+    "file": "10-new-project-required-missing-390x844.jpg",
+    "finalPath": "/dashboard-evidence/new",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "widestElementRight": 390,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {}
+  },
+  {
+    "file": "11-new-project-optional-details-390x844.jpg",
+    "finalPath": "/dashboard-evidence/new",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "widestElementRight": 390,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {}
+  },
+  {
+    "file": "12-new-project-create-failed-inputs-kept-390x844.jpg",
+    "finalPath": "/dashboard-evidence/new?fail=1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "widestElementRight": 390,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [],
+    "observed": {
+      "nameKept": "14 Example Road bathroom refit",
+      "clientKept": "Alex Client"
+    }
+  },
+  {
+    "file": "13-retry-arrives-at-named-brief-390x844.jpg",
+    "finalPath": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "widestElementRight": 390,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [
+      {
+        "t": "domestic",
+        "h": 38
+      },
+      {
+        "t": "commercial",
+        "h": 38
+      },
+      {
+        "t": "public",
+        "h": 38
+      },
+      {
+        "t": "Roofing",
+        "h": 29
+      },
+      {
+        "t": "Waterproofing",
+        "h": 29
+      },
+      {
+        "t": "Insulation",
+        "h": 29
+      },
+      {
+        "t": "Tiling",
+        "h": 29
+      },
+      {
+        "t": "Flooring",
+        "h": 29
+      },
+      {
+        "t": "Ceilings",
+        "h": 29
+      },
+      {
+        "t": "Save Brief",
+        "h": 40
+      },
+      {
+        "t": "Suggest Estimate Lines",
+        "h": 42
+      },
+      {
+        "t": "Go to Estimating",
+        "h": 42
+      },
+      {
+        "t": "INPUT",
+        "h": 40
+      },
+      {
+        "t": "BUTTON",
+        "h": 40
+      }
+    ],
+    "observed": {
+      "requestIds": "[\"68f18d0a-c096-4937-ba04-4e04576ea4f5\"]",
+      "requestIdsAfterRetry": "[\"68f18d0a-c096-4937-ba04-4e04576ea4f5\",\"68f18d0a-c096-4937-ba04-4e04576ea4f5\"]",
+      "path": "/dashboard/projects/brief?projectId=synthetic-project-1"
+    }
+  },
+  {
+    "file": "13b-arrives-at-named-brief-dark-theme-390x844.jpg",
+    "finalPath": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "widestElementRight": 390,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [
+      {
+        "t": "domestic",
+        "h": 38
+      },
+      {
+        "t": "commercial",
+        "h": 38
+      },
+      {
+        "t": "public",
+        "h": 38
+      },
+      {
+        "t": "Roofing",
+        "h": 29
+      },
+      {
+        "t": "Waterproofing",
+        "h": 29
+      },
+      {
+        "t": "Insulation",
+        "h": 29
+      },
+      {
+        "t": "Tiling",
+        "h": 29
+      },
+      {
+        "t": "Flooring",
+        "h": 29
+      },
+      {
+        "t": "Ceilings",
+        "h": 29
+      },
+      {
+        "t": "Save Brief",
+        "h": 40
+      },
+      {
+        "t": "Suggest Estimate Lines",
+        "h": 42
+      },
+      {
+        "t": "Go to Estimating",
+        "h": 42
+      },
+      {
+        "t": "INPUT",
+        "h": 40
+      },
+      {
+        "t": "BUTTON",
+        "h": 40
+      }
+    ],
+    "observed": {
+      "path": "/dashboard/projects/brief?projectId=synthetic-project-1"
+    }
+  },
+  {
+    "file": "14-established-pipeline-no-quick-quote-390x844.jpg",
+    "finalPath": "/dashboard-evidence/pipeline?projects=some",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "widestElementRight": 390,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [
+      {
+        "t": "INPUT",
+        "h": 38
+      },
+      {
+        "t": "All TypesOtherResidential Exte",
+        "h": 37
+      },
+      {
+        "t": "All StagesLeadEstimatingPropos",
+        "h": 37
+      },
+      {
+        "t": "Board",
+        "h": 28
+      },
+      {
+        "t": "List",
+        "h": 28
+      },
+      {
+        "t": "A",
+        "h": 22
+      },
+      {
+        "t": "Leads",
+        "h": 28
+      },
+      {
+        "t": "Start Estimating",
+        "h": 29
+      },
+      {
+        "t": "Mark as Lost",
+        "h": 14
+      },
+      {
+        "t": "Proposal",
+        "h": 14
+      },
+      {
+        "t": "Costs",
+        "h": 14
+      },
+      {
+        "t": "Estimating",
+        "h": 28
+      },
+      {
+        "t": "Proposal Sent",
+        "h": 29
+      },
+      {
+        "t": "\u2190 Pull Back",
+        "h": 14
+      },
+      {
+        "t": "Mark as Lost",
+        "h": 14
+      },
+      {
+        "t": "Proposal",
+        "h": 14
+      },
+      {
+        "t": "Costs",
+        "h": 14
+      },
+      {
+        "t": "Notify me",
+        "h": 34
+      },
+      {
+        "t": "Notify me",
+        "h": 34
+      }
+    ],
+    "observed": {
+      "quickQuote": false
+    }
+  },
+  {
+    "file": "15-established-home-no-quick-quote-390x844.jpg",
+    "finalPath": "/dashboard-evidence/home?projects=some",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "widestElementRight": 390,
+    "horizontalOverflow": false,
+    "targetsUnder44px": [
+      {
+        "t": "View pipeline \u2192",
+        "h": 16
+      },
+      {
+        "t": "View all \u2192",
+        "h": 16
+      },
+      {
+        "t": "New Project",
+        "h": 36
+      },
+      {
+        "t": "View Pipeline",
+        "h": 36
+      },
+      {
+        "t": "Billing & Invoices",
+        "h": 36
+      },
+      {
+        "t": "Variations",
+        "h": 36
+      },
+      {
+        "t": "Change Management",
+        "h": 36
+      },
+      {
+        "t": "Communications",
+        "h": 36
+      },
+      {
+        "t": "Final Accounts",
+        "h": 36
+      }
+    ],
+    "observed": {
+      "quickQuote": false
+    }
+  }
+]

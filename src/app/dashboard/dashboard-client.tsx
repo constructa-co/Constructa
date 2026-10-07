@@ -19,6 +19,8 @@ import ProjectBoard from "./project-board";
 import ProjectList from "./project-list";
 import { useTheme } from "@/lib/theme-context";
 import { isActiveProject } from "@/lib/project-helpers";
+import { getHomePresentation } from "@/lib/first-session";
+import FirstProjectStart from "@/components/first-project-start";
 
 type Period = "week" | "month" | "quarter" | "year";
 
@@ -42,6 +44,7 @@ interface Props {
     financials: Record<string, number>;
     metrics: Metrics;
     companyName: string;
+    launchNotice?: boolean;
 }
 
 function formatCurrency(value: number): string {
@@ -146,7 +149,7 @@ const PERIOD_OPTIONS: { value: Period; label: string }[] = [
     { value: "year", label: "This Year" },
 ];
 
-export default function DashboardClient({ projects, financials, metrics: serverMetrics, companyName }: Props) {
+export default function DashboardClient({ projects, financials, metrics: serverMetrics, companyName, launchNotice = false }: Props) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
 
@@ -247,8 +250,33 @@ export default function DashboardClient({ projects, financials, metrics: serverM
         },
     ];
 
+    const launchNoticeBanner = launchNotice ? (
+        <div role="status" className={`rounded-xl border px-4 py-3 text-sm ${
+            isDark
+                ? "border-blue-500/30 bg-blue-500/10 text-blue-200"
+                : "border-blue-200 bg-blue-50 text-blue-900"
+        }`}>
+            That module is retained for a later Constructa release. This launch is focused on creating projects, estimates, programmes and proposals.
+        </div>
+    ) : null;
+
+    // Before the first project there is nothing to measure or filter, so the
+    // page offers the one useful action instead of empty KPI cards.
+    if (getHomePresentation(projects.length) === "first-project") {
+        return (
+            <div className={`min-h-screen px-4 py-6 sm:p-8 space-y-6 ${isDark ? "bg-[#0d0d0d] text-white" : "bg-white text-gray-900"}`}>
+                {launchNoticeBanner}
+                <div className="max-w-3xl">
+                    <FirstProjectStart companyName={companyName} />
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className={`pt-8 px-8 pb-12 space-y-8 ${isDark ? "bg-[#0d0d0d] text-white" : "bg-white text-gray-900"}`}>
+
+            {launchNoticeBanner}
 
             {/* SECTION A — Header */}
             <div className="flex items-center justify-between">
@@ -259,15 +287,6 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     <p className={`text-sm mt-0.5 ${isDark ? "text-[#a0a0a0]" : "text-gray-500"}`}>Here&apos;s your pipeline overview for today</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    {/* Sprint 58 P2.10 — Quick Quote CTA on the pipeline header.
-                        Primary path for smaller domestic jobs. */}
-                    <Link
-                        href="/dashboard/projects/quick-quote"
-                        className="inline-flex items-center gap-2 font-semibold text-sm px-4 py-2.5 rounded-xl shadow-sm transition-colors bg-purple-600 hover:bg-purple-500 text-white"
-                    >
-                        <span aria-hidden>⚡</span>
-                        Quick Quote
-                    </Link>
                     <Link
                         href="/dashboard/projects/new"
                         className={`inline-flex items-center gap-2 font-semibold text-sm px-5 py-2.5 rounded-xl shadow-sm transition-colors ${
@@ -377,7 +396,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                                     <div className={`text-sm font-medium uppercase tracking-wide mt-1 ${isDark ? "text-[#a0a0a0]" : "text-gray-500"}`}>
                                         {card.label}
                                     </div>
-                                    <div className={`text-[10px] mt-0.5 leading-tight ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>
+                                    <div className={`text-[10px] mt-0.5 leading-tight ${isDark ? "text-[#a0a0a0]" : "text-gray-600"}`}>
                                         {card.subtitle}
                                     </div>
                                 </div>
@@ -393,16 +412,17 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     ? "bg-[#1a1a1a] border-[#2a2a2a]"
                     : "bg-white border-gray-200 shadow-sm"
             }`}>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
                     {/* Search */}
                     <div className="relative flex-1">
                         <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`} />
                         <input
                             type="text"
                             placeholder="Search by client or project name..."
+                            aria-label="Search by client or project name"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className={`w-full pl-9 pr-4 py-2 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                            className={`w-full min-h-11 lg:min-h-0 pl-9 pr-4 py-2 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                                 isDark
                                     ? "bg-[#0d0d0d] border border-[#2a2a2a] text-white placeholder-[#a0a0a0]"
                                     : "bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400"
@@ -414,7 +434,8 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     <select
                         value={typeFilter}
                         onChange={e => setTypeFilter(e.target.value)}
-                        className={`text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        aria-label="Filter by type of job"
+                        className={`min-h-11 lg:min-h-0 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                             isDark
                                 ? "bg-[#0d0d0d] border border-[#2a2a2a] text-white"
                                 : "bg-gray-50 border border-gray-200 text-gray-700"
@@ -430,7 +451,8 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     <select
                         value={statusFilter}
                         onChange={e => setStatusFilter(e.target.value)}
-                        className={`text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        aria-label="Filter by stage"
+                        className={`min-h-11 lg:min-h-0 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                             isDark
                                 ? "bg-[#0d0d0d] border border-[#2a2a2a] text-white"
                                 : "bg-gray-50 border border-gray-200 text-gray-700"
@@ -446,14 +468,14 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     <div className={`flex items-center gap-1 rounded-lg p-1 ${isDark ? "bg-[#0d0d0d]" : "bg-gray-100"}`}>
                         <button
                             onClick={() => setView("board")}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                            className={`inline-flex items-center gap-1.5 min-h-11 lg:min-h-0 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                                 view === "board"
                                     ? isDark
                                         ? "bg-[#2a2a2a] text-white shadow-sm"
                                         : "bg-white text-gray-900 shadow-sm"
                                     : isDark
                                         ? "text-[#a0a0a0] hover:text-white"
-                                        : "text-gray-500 hover:text-gray-700"
+                                        : "text-gray-600 hover:text-gray-900"
                             }`}
                         >
                             <LayoutGrid className="w-3.5 h-3.5" />
@@ -461,14 +483,14 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                         </button>
                         <button
                             onClick={() => setView("list")}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                            className={`inline-flex items-center gap-1.5 min-h-11 lg:min-h-0 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                                 view === "list"
                                     ? isDark
                                         ? "bg-[#2a2a2a] text-white shadow-sm"
                                         : "bg-white text-gray-900 shadow-sm"
                                     : isDark
                                         ? "text-[#a0a0a0] hover:text-white"
-                                        : "text-gray-500 hover:text-gray-700"
+                                        : "text-gray-600 hover:text-gray-900"
                             }`}
                         >
                             <List className="w-3.5 h-3.5" />
@@ -480,7 +502,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
 
             {/* Pipeline progression legend */}
             {view === "board" && (
-                <div className={`flex items-center gap-1.5 px-1 pb-1 text-[10px] font-semibold uppercase tracking-wider flex-wrap ${isDark ? "text-[#505050]" : "text-gray-400"}`}>
+                <div className={`flex items-center gap-1.5 px-1 pb-1 text-[10px] font-semibold uppercase tracking-wider flex-wrap ${isDark ? "text-[#a0a0a0]" : "text-gray-600"}`}>
                     <span>Pipeline:</span>
                     {[
                         { label: "Lead", hint: "New enquiry, no estimate started" },
@@ -491,7 +513,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                         { label: "Lost", hint: "Manual — project not won" },
                     ].map((stage, i, arr) => (
                         <span key={stage.label} className="flex items-center gap-1.5 group relative">
-                            <span className={`${isDark ? "text-[#707070] hover:text-[#a0a0a0]" : "text-gray-500 hover:text-gray-700"} cursor-default transition-colors`} title={stage.hint}>
+                            <span className={`${isDark ? "text-[#a0a0a0] hover:text-white" : "text-gray-600 hover:text-gray-900"} cursor-default transition-colors`} title={stage.hint}>
                                 {stage.label}
                             </span>
                             {i < arr.length - 1 && <span className={isDark ? "text-[#303030]" : "text-gray-200"}>→</span>}

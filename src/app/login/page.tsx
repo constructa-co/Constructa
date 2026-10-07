@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getLaunchLandingPath } from '@/lib/launch-profile';
 
 // P2-3 — sign-up UX overhaul.
 // Previously "Sign up" was a button below the sign-in form that
@@ -52,7 +53,7 @@ export default function LoginPage() {
             return;
         }
 
-        router.push('/dashboard/home');
+        router.push(getLaunchLandingPath());
         router.refresh();
         setLoading(false);
     };
@@ -114,7 +115,7 @@ export default function LoginPage() {
                                 autoComplete="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="mt-2 w-full px-4 py-2 bg-black border border-zinc-800 rounded-lg focus:ring-2 focus:ring-white focus:border-transparent outline-none transition-all text-white"
+                                className="mt-2 w-full min-h-12 px-4 py-2 bg-black border border-zinc-800 rounded-lg focus:ring-2 focus:ring-white focus:border-transparent outline-none transition-all text-white"
                                 placeholder="you@example.com"
                             />
                         </div>
@@ -125,7 +126,7 @@ export default function LoginPage() {
                                 {!isSignUp && (
                                     <Link
                                         href="/auth/forgot-password"
-                                        className="text-xs text-gray-500 hover:text-white transition-colors"
+                                        className="inline-flex items-center min-h-11 text-xs text-gray-400 hover:text-white transition-colors"
                                     >
                                         Forgot password?
                                     </Link>
@@ -138,11 +139,11 @@ export default function LoginPage() {
                                 autoComplete={isSignUp ? "new-password" : "current-password"}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="mt-2 w-full px-4 py-2 bg-black border border-zinc-800 rounded-lg focus:ring-2 focus:ring-white focus:border-transparent outline-none transition-all text-white"
+                                className="mt-2 w-full min-h-12 px-4 py-2 bg-black border border-zinc-800 rounded-lg focus:ring-2 focus:ring-white focus:border-transparent outline-none transition-all text-white"
                                 placeholder="••••••••"
                             />
                             {isSignUp && (
-                                <p className="mt-1.5 text-xs text-gray-500">At least 8 characters.</p>
+                                <p className="mt-1.5 text-xs text-gray-400">At least 8 characters.</p>
                             )}
                         </div>
 
@@ -156,7 +157,7 @@ export default function LoginPage() {
                                     autoComplete="new-password"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className="mt-2 w-full px-4 py-2 bg-black border border-zinc-800 rounded-lg focus:ring-2 focus:ring-white focus:border-transparent outline-none transition-all text-white"
+                                    className="mt-2 w-full min-h-12 px-4 py-2 bg-black border border-zinc-800 rounded-lg focus:ring-2 focus:ring-white focus:border-transparent outline-none transition-all text-white"
                                     placeholder="••••••••"
                                 />
                             </div>
@@ -177,7 +178,7 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg text-sm font-medium text-black bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="w-full min-h-12 flex items-center justify-center py-2.5 px-4 border border-transparent rounded-lg text-sm font-medium text-black bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                             {loading
                                 ? 'Processing...'
@@ -189,15 +190,15 @@ export default function LoginPage() {
                         <div className="text-center text-sm">
                             {isSignUp ? (
                                 <>
-                                    <span className="text-gray-500">Already have an account? </span>
-                                    <button type="button" onClick={() => switchMode("signin")} className="text-white hover:underline">
+                                    <span className="text-gray-400">Already have an account? </span>
+                                    <button type="button" onClick={() => switchMode("signin")} className="inline-flex items-center min-h-11 px-2 text-white hover:underline">
                                         Sign in
                                     </button>
                                 </>
                             ) : (
                                 <>
-                                    <span className="text-gray-500">Don&apos;t have an account? </span>
-                                    <button type="button" onClick={() => switchMode("signup")} className="text-white hover:underline">
+                                    <span className="text-gray-400">Don&apos;t have an account? </span>
+                                    <button type="button" onClick={() => switchMode("signup")} className="inline-flex items-center min-h-11 px-2 text-white hover:underline">
                                         Sign up
                                     </button>
                                 </>

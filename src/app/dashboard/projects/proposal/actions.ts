@@ -1,750 +1,594 @@
 "use server";
 
-import { requireAuth } from "@/lib/supabase/auth-utils";
-import { SaveProposalSchema, parseInput } from "@/lib/validation/schemas";
 import { revalidatePath } from "next/cache";
-import { generateJSON, generateText } from "@/lib/ai";
+import { z } from "zod";
+import { requireProjectAccess } from "@/lib/supabase/auth-utils";
+import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-access";
+import { validatePublicImage } from "@/lib/storage/public-image";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { generateText } from "@/lib/ai";
 import { sendProposalEmail } from "@/lib/email";
+import { precontractLockMessage } from "@/lib/project-editability";
+import {
+    buildProposalPublicationSnapshot,
+    hashProposalAccessToken,
+    hashProposalContent,
+    hashProposalPublication,
+    safeImageUrl,
+    type ProposalPublicationEstimateInput,
+    type ProposalPublicationSnapshot,
+} from "@/lib/proposal-publication";
+import { evaluateProposalReadiness } from "@/lib/proposal-readiness";
+import { isProposalResponseKind, responseKindOfSnapshot, type ProposalResponseKind } from "@/lib/proposal-response";
+import {
+    AI_UNAVAILABLE_ERROR,
+    DELIVERY_ERROR,
+    DRAFT_SAVE_ERROR,
+    MAX_PAYMENT_STAGES,
+    MAX_PHOTOS,
+    MAX_TERMS,
+    PUBLISH_ERROR,
+    REVIEW_CHANGED_ERROR,
+    TEXT_LIMITS,
+    WORDING_FIELDS,
+    contractSumOf,
+    vatFor,
+    type DeliveryOutcome,
+    type ProposalDraftPayload,
+    type WordingField,
+} from "@/lib/proposal-review";
+import { resolveProgrammeSource } from "@/lib/programme-plan";
+import {
+    PROPOSAL_TERMS_PROFILE_VERSION,
+    resolveProposalTerms,
+    type ProposalTermsClause,
+} from "@/lib/proposal-terms";
 
-// ── Types for AI Wizard ──────────────────────────────────────
-export interface ProposalAnswers {
-    description: string;
-    client: string;
-    siteAddress: string;
-    value: string;
-    startDate: string;
-    duration: string; // e.g. "6 weeks"
-    extras: string;
+type Failure = { success: false; error: string };
+/** Refused because what would be published is not what the contractor reviewed. */
+type ChangedFailure = Failure & { changed: true };
+
+const PROFILE_PUBLICATION_COLUMNS =
+    "company_name, logo_url, phone, website, accreditations, capability_statement, years_trading, specialisms, insurance_details, pdf_theme, md_name, md_message, case_studies";
+
+function siteBaseUrl(): string {
+    return process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app";
 }
 
-export interface GanttPhaseResult {
-    name: string;
-    duration_days: number;
-    duration_unit: string;
+async function editableAccess(projectId: string, denied: string) {
+    try {
+        return { access: await requireEditableProjectAccess(projectId), error: null };
+    } catch (error) {
+        return { access: null, error: precontractLockMessage(error) ?? denied };
+    }
 }
 
-export interface PaymentStageResult {
-    stage: string;
-    description: string;
-    percentage: number;
-}
+// ── Save the draft ───────────────────────────────────────────────────────────
 
-export interface GeneratedProposal {
-    introduction: string;
-    scope_narrative: string;
-    exclusions: string;
-    clarifications: string;
-    gantt_phases: GanttPhaseResult[];
-    payment_stages: PaymentStageResult[];
-}
+const DraftSchema = z.object({
+    projectId: z.string().uuid(),
+    introduction: z.string().max(TEXT_LIMITS.introduction),
+    scope: z.string().max(TEXT_LIMITS.scope),
+    exclusions: z.string().max(TEXT_LIMITS.exclusions),
+    clarifications: z.string().max(TEXT_LIMITS.clarifications),
+    closing: z.string().max(TEXT_LIMITS.closing),
+    validityDays: z.number().int().min(1).max(365),
+    paymentSchedule: z.array(z.object({
+        id: z.string().min(1).max(100),
+        stage: z.string().trim().min(1).max(200),
+        description: z.string().max(1000),
+        percentage: z.number().gt(0).max(100),
+    })).max(MAX_PAYMENT_STAGES).nullable(),
+    photos: z.array(z.object({ url: z.string().max(2000), caption: z.string().max(300) })).max(MAX_PHOTOS),
+    caseStudyIds: z.array(z.string().min(1).max(100)).max(50),
+    terms: z.array(z.object({
+        clause_number: z.number().int().min(1).max(1000),
+        title: z.string().max(500),
+        body: z.string().max(10_000),
+        hidden: z.boolean().optional(),
+        custom: z.boolean().optional(),
+    })).max(MAX_TERMS).nullable(),
+});
 
-export async function generateFullProposalAction(
-    answers: ProposalAnswers,
-    projectId: string
-): Promise<{ success: false; error: string } | { success: true; data: GeneratedProposal }> {
-    const { user, supabase } = await requireAuth();
+/**
+ * Saves the proposal draft in one update. Only the contractor's own wording
+ * and choices are written; nothing is generated. Blocked once pre-contract
+ * information is locked. Published versions are separate, immutable records
+ * and are never touched by a draft save.
+ */
+export async function saveProposalDraftAction(projectId: string, payload: ProposalDraftPayload): Promise<{ success: true } | Failure> {
+    const parsed = DraftSchema.safeParse({ projectId, ...payload });
+    if (!parsed.success) return { success: false, error: "Some details could not be saved. Check them and try again." };
+    const input = parsed.data;
 
-    const { data: project } = await supabase
+    const photos = input.photos.map((photo) => ({ url: safeImageUrl(photo.url), caption: photo.caption.trim() }));
+    if (photos.some((photo) => photo.url === null)) {
+        return { success: false, error: "One of the photos can't be used. Remove it and add it again." };
+    }
+    const paymentTotal = (input.paymentSchedule ?? []).reduce((sum, row) => sum + row.percentage, 0);
+    if (paymentTotal > 100.001) return { success: false, error: "The payment stages add up to more than 100%." };
+
+    const { access, error: accessError } = await editableAccess(input.projectId, "You can't change this proposal.");
+    if (!access) return { success: false, error: accessError };
+    const { user, supabase } = access;
+
+    const update: Record<string, unknown> = {
+        proposal_introduction: input.introduction.trim() || null,
+        scope_text: input.scope.trim() || null,
+        exclusions_text: input.exclusions.trim() || null,
+        clarifications_text: input.clarifications.trim() || null,
+        closing_statement: input.closing.trim() || null,
+        validity_days: input.validityDays,
+        site_photos: photos,
+        selected_case_study_ids: input.caseStudyIds,
+        tc_overrides: input.terms,
+    };
+    if (input.paymentSchedule !== null) update.payment_schedule = input.paymentSchedule;
+
+    const { data: saved, error } = await supabase
         .from("projects")
-        .select("*")
-        .eq("id", projectId)
+        .update(update)
+        .eq("id", input.projectId)
         .eq("user_id", user.id)
+        .select("id")
         .single();
+    if (error || !saved) {
+        console.error("saveProposalDraftAction update failed", { projectId: input.projectId, code: error?.code });
+        return { success: false, error: DRAFT_SAVE_ERROR };
+    }
 
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("business_type, specialisms")
-        .eq("id", user.id)
-        .single();
-
-    if (!project) return { success: false, error: "Project not found" };
-
-    // AI key check handled by generateJSON utility
-
-    const prompt = `You are a senior UK construction quantity surveyor generating a professional proposal.
-
-PROJECT DETAILS:
-- Description: ${answers.description}
-- Client: ${answers.client || project?.client_name || "The Client"}
-- Site: ${answers.siteAddress || project?.site_address || "As agreed"}
-- Value: £${answers.value || project?.potential_value || "TBC"}
-- Start: ${answers.startDate || "TBC"}
-- Duration: ${answers.duration}
-- Highlights/Exclusions: ${answers.extras || "None specified"}
-- Contractor Trade: ${profile?.business_type || "General Contractor"}
-- Contractor Specialisms: ${profile?.specialisms || "Construction Works"}
-
-Generate a complete proposal package. Return ONLY valid JSON:
-{
-  "introduction": "2-sentence personalised opening paragraph starting with Dear [Client],",
-  "scope_narrative": "3 professional paragraphs describing the works technically",
-  "exclusions": "item1\nitem2\nitem3\nitem4\nitem5",
-  "clarifications": "item1\nitem2\nitem3",
-  "gantt_phases": [{"name": "Phase Name", "duration_days": 14, "duration_unit": "Weeks"}],
-  "payment_stages": [{"stage": "Stage Name", "description": "trigger description", "percentage": 20}]
+    revalidatePath("/dashboard/projects/proposal");
+    return { success: true };
 }
+
+// ── AI wording ───────────────────────────────────────────────────────────────
+
+const FIELD_PURPOSE: Record<WordingField, string> = {
+    introduction: "the opening message to the client",
+    scope: "the description of the work that is included",
+    exclusions: "the list of what is not included, one item per line",
+    clarifications: "the list of clarifications and assumptions, one item per line",
+    closing: "the closing message to the client",
+};
+
+/**
+ * Suggests clearer wording for text the contractor has already written.
+ * It never writes to the project: the reply is shown as a pending suggestion
+ * and only the contractor's Apply puts it in the draft. The assistant is
+ * told to keep every fact and add none, and the client drops any reply that
+ * introduces a figure the contractor did not write.
+ */
+export async function suggestProposalWordingAction(
+    projectId: string,
+    field: WordingField,
+    text: string,
+): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+    if (!WORDING_FIELDS.includes(field) || typeof text !== "string" || !text.trim() || text.length > TEXT_LIMITS[field]) {
+        return { ok: false, error: AI_UNAVAILABLE_ERROR };
+    }
+    const { access, error: accessError } = await editableAccess(projectId, "You can't change this proposal.");
+    if (!access) return { ok: false, error: accessError };
+
+    const prompt = `You are helping a UK building contractor tidy the wording of a proposal to their client.
+
+Rewrite the contractor's text below so it reads clearly and professionally in plain UK English. This text is ${FIELD_PURPOSE[field]}.
 
 Rules:
-- Use "The Contractor" and "The Client" throughout
-- Professional UK construction tone
-- gantt_phases: 4-6 phases appropriate to the work type
-- payment_stages: 4-5 stages, percentages must sum to exactly 100
-- Return ONLY the JSON object, no markdown`;
+- Keep every fact exactly as the contractor gave it.
+- Do not add any fact, figure, price, date, duration, quantity, accreditation, qualification, award, guarantee, promise or claim about experience or quality that is not in the text.
+- Do not remove any information.
+- Keep the same layout: if the text is a list with one item per line, return one item per line.
+- Return only the rewritten text. No heading, no notes, no markdown.
+
+Contractor's text:
+${text}`;
 
     try {
-        const parsed = await generateJSON<GeneratedProposal>(prompt);
-
-        // Normalise gantt phases — ensure duration_days is set
-        const ganttPhases = (parsed.gantt_phases || []).map((p, i) => ({
-            id: String(Date.now() + i),
-            name: p.name,
-            start_date: answers.startDate || "",
-            duration_days: p.duration_days || 14,
-            duration_unit: (p.duration_unit as "Hours" | "Days" | "Weeks") || "Weeks",
-            color: ["blue", "green", "orange", "purple", "slate", "red"][i % 6],
-        }));
-
-        const paymentStages = (parsed.payment_stages || []).map((p, i) => ({
-            id: String(Date.now() + i + 100),
-            stage: p.stage,
-            description: p.description,
-            percentage: p.percentage,
-        }));
-
-        // Persist to DB immediately
-        await supabase.from("projects").update({
-            scope_text: parsed.scope_narrative,
-            exclusions_text: parsed.exclusions,
-            clarifications_text: parsed.clarifications,
-            proposal_introduction: parsed.introduction,
-            gantt_phases: ganttPhases,
-            payment_schedule: paymentStages,
-        }).eq("id", projectId).eq("user_id", user.id);
-
-        revalidatePath(`/dashboard/projects/proposal?projectId=${projectId}`);
-
-        return {
-            success: true,
-            data: {
-                introduction: parsed.introduction,
-                scope_narrative: parsed.scope_narrative,
-                exclusions: parsed.exclusions,
-                clarifications: parsed.clarifications,
-                gantt_phases: ganttPhases,
-                payment_stages: paymentStages,
-            },
-        };
-    } catch (error: any) {
-        console.error("generateFullProposalAction error:", error);
-        return { success: false, error: error.message };
+        const suggestion = (await generateText(prompt)).trim();
+        if (!suggestion) return { ok: false, error: AI_UNAVAILABLE_ERROR };
+        return { ok: true, text: suggestion.slice(0, TEXT_LIMITS[field]) };
+    } catch (error) {
+        console.error("suggestProposalWordingAction failed", { projectId, field, error: error instanceof Error ? error.message : "unknown" });
+        return { ok: false, error: AI_UNAVAILABLE_ERROR };
     }
 }
 
-export async function saveProposalAction(formData: FormData) {
-    const { user, supabase } = await requireAuth();
+// ── Publish ──────────────────────────────────────────────────────────────────
 
-    // Validate the user-editable text fields before touching the DB. We validate
-    // only the free-text portions here because the JSONB fields (gantt, photos,
-    // T&Cs, payment schedule) are parsed with try/catch below and have their
-    // own shape-checking downstream.
-    const rawInput = {
-        projectId:             formData.get("projectId") ?? "",
-        scope:                 (formData.get("scope") as string | null) ?? undefined,
-        exclusions:            (formData.get("exclusions") as string | null) ?? undefined,
-        clarifications:        (formData.get("clarifications") as string | null) ?? undefined,
-        proposal_introduction: (formData.get("proposal_introduction") as string | null) ?? undefined,
+function randomProposalToken(): string {
+    return Array.from(crypto.getRandomValues(new Uint8Array(32)), (byte) =>
+        byte.toString(16).padStart(2, "0"),
+    ).join("");
+}
+
+/**
+ * Sends the client email for a publication and records the attempt. Called
+ * only after the publication has committed, so a failure here is a failed
+ * email and nothing more.
+ */
+async function deliverProposalEmail(args: {
+    deliveryId: string | null;
+    recipientEmail: string;
+    url: string;
+    snapshot: ProposalPublicationSnapshot;
+    idempotencyKey: string | undefined;
+}): Promise<DeliveryOutcome> {
+    const { snapshot } = args;
+    const responseKind = responseKindOfSnapshot(snapshot);
+    const record = async (succeeded: boolean, providerMessageId: string | null, errorCode: string | null) => {
+        if (!args.deliveryId) return;
+        const { error } = await createAdminClient().rpc("record_proposal_delivery_attempt", {
+            p_delivery_id: args.deliveryId,
+            p_succeeded: succeeded,
+            p_provider_message_id: providerMessageId,
+            p_error_code: errorCode,
+        });
+        if (error) console.error("Proposal delivery outcome could not be recorded", { succeeded, code: error.code });
     };
-    const input = parseInput(SaveProposalSchema, rawInput, "proposal save");
-    const id = input.projectId;
 
-    const updateData: Record<string, any> = {
-        scope_text:            input.scope ?? null,
-        exclusions_text:       input.exclusions ?? null,
-        clarifications_text:   input.clarifications ?? null,
-        proposal_introduction: input.proposal_introduction ?? null,
-    };
-
-    // Gantt phases
-    const ganttRaw = formData.get("gantt_phases") as string;
-    if (ganttRaw) {
-        try { updateData.gantt_phases = JSON.parse(ganttRaw); } catch { /* skip */ }
-    }
-
-    // T&C overrides
-    const tcRaw = formData.get("tc_overrides") as string;
-    if (tcRaw) {
-        try { updateData.tc_overrides = JSON.parse(tcRaw); } catch { /* skip */ }
-    } else {
-        updateData.tc_overrides = null;
-    }
-
-    // Site photos
-    const photosRaw = formData.get("site_photos") as string;
-    if (photosRaw) {
-        try { updateData.site_photos = JSON.parse(photosRaw); } catch { /* skip */ }
-    }
-
-    // Payment schedule
-    const paymentRaw = formData.get("payment_schedule") as string;
-    if (paymentRaw) {
-        try { updateData.payment_schedule = JSON.parse(paymentRaw); } catch { /* skip */ }
-    }
-
-    // Closing statement
-    const closingStatement = formData.get("closing_statement") as string;
-    if (closingStatement !== null) {
-        updateData.closing_statement = closingStatement || null;
-    }
-
-    // P0-3 — Proposal validity in days (clamped 1..365 in the UI already)
-    const validityRaw = formData.get("validity_days");
-    if (validityRaw !== null) {
-        const n = parseInt(String(validityRaw), 10);
-        if (Number.isFinite(n) && n >= 1 && n <= 365) {
-            updateData.validity_days = n;
+    try {
+        const delivery = await sendProposalEmail({
+            clientEmail: args.recipientEmail,
+            clientName: snapshot.project.client_name || "Client",
+            projectName: snapshot.project.name,
+            proposalUrl: args.url,
+            companyName: snapshot.contractor.company_name,
+            siteAddress: snapshot.project.site_address ?? undefined,
+            responseKind: responseKind === "non_binding_intent" ? "non_binding_intent" : "acknowledgement",
+            idempotencyKey: args.idempotencyKey,
+        });
+        if (delivery.error) throw new Error(delivery.error.name || "provider_error");
+        await record(true, delivery.data?.id ?? null, null);
+        return { status: "sent", email: args.recipientEmail };
+    } catch (deliveryError) {
+        console.error("Proposal email send failed:", deliveryError instanceof Error ? deliveryError.message : "unknown");
+        try {
+            await record(false, null, deliveryError instanceof Error ? deliveryError.message : "unknown");
+        } catch (recordError) {
+            console.error("Proposal delivery failure could not be recorded", recordError instanceof Error ? recordError.message : "unknown");
         }
+        return { status: "failed", email: args.recipientEmail };
     }
-
-    // Generate proposal_token if it doesn't exist yet
-    const { data: existing } = await supabase
-        .from("projects")
-        .select("proposal_token")
-        .eq("id", id)
-        .eq("user_id", user.id)
-        .single();
-
-    if (!existing?.proposal_token) {
-        updateData.proposal_token = crypto.randomUUID();
-    }
-
-    await supabase.from("projects").update(updateData).eq("id", id).eq("user_id", user.id);
-
-    revalidatePath(`/dashboard/projects/proposal?projectId=${id}`);
-    return { success: true };
 }
 
-export async function getProposalLinkAction(projectId: string) {
-    const { user, supabase } = await requireAuth();
+export type PublishProposalResult =
+    | { success: true; url: string; versionNumber: number; publicationId: string; delivery: DeliveryOutcome; contentHash: string }
+    | Failure
+    | ChangedFailure;
 
-    const { data: project } = await supabase
-        .from("projects")
-        .select("proposal_token")
-        .eq("id", projectId)
-        .eq("user_id", user.id)
-        .single();
-
-    let token = project?.proposal_token;
-    if (!token) {
-        token = crypto.randomUUID();
-        await supabase.from("projects")
-            .update({ proposal_token: token })
-            .eq("id", projectId)
-            .eq("user_id", user.id);
+/**
+ * Publishes the saved draft as a new immutable version.
+ *
+ * The client is asked for one of two non-binding responses, chosen for this
+ * send; binding acceptance cannot be requested. Readiness is checked again
+ * here from the saved project, so a proposal missing a required fact cannot
+ * be published by any route. An earlier version is superseded by the
+ * database, never edited. Success is returned as soon as the publication
+ * commits; the email outcome is reported separately inside it.
+ *
+ * What is published is what was reviewed. The contractor's screen sends the
+ * fingerprint of the content it showed (the preview and the pre-send PDF).
+ * The snapshot is built again here from the saved project, and if its
+ * content fingerprint is different, because the estimate, the programme, the
+ * company profile or anything else moved in the meantime, nothing is
+ * published and the contractor is asked to read the preview again.
+ */
+export async function publishProposalAction(
+    projectId: string,
+    input: { responseKind: ProposalResponseKind; deliverByEmail: boolean; reviewedContent: string },
+): Promise<PublishProposalResult> {
+    if (!z.string().uuid().safeParse(projectId).success || !isProposalResponseKind(input?.responseKind)) {
+        return { success: false, error: PUBLISH_ERROR };
     }
-
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app";
-    return { success: true, url: `${baseUrl}/proposal/${token}` };
-}
-
-export async function sendProposalAction(projectId: string) {
-    const { user, supabase } = await requireAuth();
-
-    // Get or generate token — also fetch fields needed for email
-    const { data: project } = await supabase
-        .from("projects")
-        .select("proposal_token, proposal_status, name, client_name, client_email, site_address")
-        .eq("id", projectId)
-        .eq("user_id", user.id)
-        .single();
-
-    let token = project?.proposal_token;
-    const tokenUpdate = token ? {} : { proposal_token: (token = crypto.randomUUID()) };
-
-    // Auto-advance kanban: Lead/Estimating → Proposal Sent when proposal is sent
-    const advanceStatus =
-        project?.proposal_status !== "accepted" &&
-        (project?.proposal_status === null ||
-         project?.proposal_status === "draft" ||
-         project?.proposal_status === undefined);
-    // Always bump kanban status to "Proposal Sent" unless already Active/Completed/Lost
-    const { data: projStatus } = await supabase
-        .from("projects")
-        .select("status")
-        .eq("id", projectId)
-        .eq("user_id", user.id)
-        .single();
-    const shouldAdvanceKanban = projStatus?.status === "Lead" || projStatus?.status === "Estimating" || projStatus?.status === null;
-
-    await supabase.from("projects").update({
-        ...tokenUpdate,
-        proposal_sent_at: new Date().toISOString(),
-        proposal_status: "sent",
-        ...(shouldAdvanceKanban ? { status: "Proposal Sent" } : {}),
-    }).eq("id", projectId).eq("user_id", user.id);
-
-    revalidatePath("/dashboard");
-
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app";
-    const url = `${baseUrl}/proposal/${token}`;
-
-    // If client email is on the project, send via Resend (non-blocking)
-    if (project?.client_email) {
-        const { data: profile } = await supabase
-            .from("profiles")
-            .select("company_name")
-            .eq("id", user.id)
-            .single();
-
-        sendProposalEmail({
-            clientEmail: project.client_email,
-            clientName: project.client_name || "Client",
-            projectName: project.name || "Your Project",
-            proposalUrl: url,
-            companyName: profile?.company_name || "The Contractor",
-            siteAddress: project.site_address,
-        }).catch((e) => console.error("Proposal email send failed:", e));
+    if (typeof input.reviewedContent !== "string" || !/^[a-f0-9]{64}$/.test(input.reviewedContent)) {
+        return { success: false, error: REVIEW_CHANGED_ERROR, changed: true };
     }
+    const deliverByEmail = input.deliverByEmail === true;
 
-    return { success: true, url, hasClientEmail: !!project?.client_email };
-}
+    const { access, error: accessError } = await editableAccess(projectId, "You can't publish this proposal.");
+    if (!access) return { success: false, error: accessError };
+    const { user, supabase } = access;
 
-export async function generateAiScopeAction(projectId: string) {
-    const { user, supabase } = await requireAuth();
-
-    const { data: project } = await supabase
+    const { data: project, error: projectError } = await supabase
         .from("projects")
         .select("*")
         .eq("id", projectId)
         .eq("user_id", user.id)
         .single();
+    if (projectError || !project) {
+        return { success: false, error: "Could not load the proposal for publishing." };
+    }
 
-    if (!project) return { scope_narrative: "Error: Project not found or unauthorized.", suggested_exclusions: "", suggested_clarifications: "" };
-
-    const { data: estimates } = await supabase
+    const { data: estimates, error: estimateError } = await supabase
         .from("estimates")
-        .select("*, estimate_lines(*)")
-        .eq("project_id", projectId);
-
-    // AI via OpenAI utility
-
-    // Build context from all available info
-    let contextSection = "";
-
-    if (estimates && estimates.length > 0) {
-        let itemsList = "";
-        estimates.forEach(est => {
-            itemsList += `\n[PHASE: ${est.version_name}]\n`;
-            if (est.estimate_lines) {
-                est.estimate_lines.forEach((l: any) => {
-                    itemsList += `- ${l.description} (${l.quantity} ${l.unit})\n`;
-                });
-            }
-        });
-        contextSection = `BILL OF QUANTITIES:\n${itemsList}`;
-    } else {
-        contextSection = `NOTE: No detailed bill of quantities available. Use project type and scope to generate a professional narrative.`;
-    }
-
-    // Add gantt phases if available
-    let timelineSection = "";
-    if (project.gantt_phases?.length) {
-        timelineSection = `\nPROJECT PHASES:\n${project.gantt_phases.map((p: any) => `- ${p.name}`).join("\n")}`;
-    }
-
-    // Add existing scope if available
-    let existingScopeSection = "";
-    if (project.scope_text?.trim()) {
-        existingScopeSection = `\nEXISTING SCOPE NOTES:\n${project.scope_text}`;
-    }
-
-    const prompt = `
-    ROLE: You are an expert Construction Estimator / Senior Quantity Surveyor writing a professional proposal.
-    CLIENT: ${project?.client_name || "Valued Client"}
-    PROJECT TYPE: ${project?.project_type || "Construction Works"}
-    SITE ADDRESS: ${project?.site_address || project?.client_address || "As per project details"}
-
-    ${contextSection}
-    ${timelineSection}
-    ${existingScopeSection}
-
-    INSTRUCTION: Based on the following project information, write a professional scope of works narrative.
-    Return ONLY a JSON object with:
-    1. "scope_narrative": A full technical narrative (3+ paragraphs).
-    2. "suggested_exclusions": An array of at least 5 standard exclusions based on this work type.
-    3. "suggested_clarifications": An array of at least 3 technical clarifications.
-
-    TONAL RULES:
-    - Use "The Contractor" and "The Client".
-    - Professional, authoritative UK construction tone.
-    - NO prices or currency symbols.
-    `;
-
-    try {
-        const response = await generateJSON<{scope_narrative: string; suggested_exclusions: string[]; suggested_clarifications: string[]}>(prompt);
-
+        .select("*, estimate_lines(id, trade_section, description, quantity, unit, line_total)")
+        .eq("project_id", projectId)
+        .eq("is_active", true);
+    if (estimateError || !estimates || estimates.length !== 1) {
         return {
-            scope_narrative: response.scope_narrative || "",
-            suggested_exclusions: Array.isArray(response.suggested_exclusions)
-                ? response.suggested_exclusions.join("\n")
-                : "",
-            suggested_clarifications: Array.isArray(response.suggested_clarifications)
-                ? response.suggested_clarifications.join("\n")
-                : "",
+            success: false,
+            error: "Exactly one active estimate is required before publishing this proposal.",
         };
-    } catch (error: any) {
-        console.error("AI Error:", error);
-        return { scope_narrative: `Error generating scope: ${error.message}`, suggested_exclusions: "", suggested_clarifications: "" };
     }
+
+    const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select(PROFILE_PUBLICATION_COLUMNS)
+        .eq("id", user.id)
+        .single();
+    if (profileError || !profile) {
+        return { success: false, error: "Complete your company profile before publishing." };
+    }
+
+    const estimate = estimates[0] as ProposalPublicationEstimateInput;
+    const terms = resolveProposalTerms(project.tc_overrides as ProposalTermsClause[] | null);
+    const readiness = evaluateProposalReadiness({
+        projectName: project.name,
+        clientName: project.client_name,
+        scope: project.scope_text,
+        contractSum: contractSumOf(estimate),
+        programmePhases: resolveProgrammeSource(project).phases,
+        projectStartDate: project.start_date,
+        paymentSchedule: project.payment_schedule,
+        terms,
+    });
+    if (!readiness.ready) {
+        return {
+            success: false,
+            error: `This proposal is not ready to send. ${readiness.missing.map((item) => item.fix).join(" ")}`,
+        };
+    }
+
+    const { data: latestPublication, error: versionError } = await supabase
+        .from("proposal_publications")
+        .select("version_number")
+        .eq("project_id", projectId)
+        .order("version_number", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+    if (versionError) {
+        return { success: false, error: "Could not determine the next proposal version." };
+    }
+
+    const publicationId = crypto.randomUUID();
+    const versionNumber = (latestPublication?.version_number ?? 0) + 1;
+    const sentAt = new Date().toISOString();
+    const validityDays = Math.max(1, Math.min(365, Number(project.validity_days) || 30));
+    const token = randomProposalToken();
+    let snapshot: ProposalPublicationSnapshot;
+    let tokenHash: string;
+    let snapshotHash: string;
+    let contentHash: string;
+    try {
+        snapshot = buildProposalPublicationSnapshot({
+            publicationId,
+            versionNumber,
+            sentAt,
+            validityDays,
+            project,
+            profile,
+            estimate,
+            termsProfileVersion: PROPOSAL_TERMS_PROFILE_VERSION,
+            resolvedTerms: terms,
+            responseKind: input.responseKind,
+            ...vatFor(project),
+        });
+        [tokenHash, snapshotHash, contentHash] = await Promise.all([
+            hashProposalAccessToken(token),
+            hashProposalPublication(snapshot),
+            hashProposalContent(snapshot),
+        ]);
+    } catch (publicationError) {
+        console.error("Proposal snapshot validation failed", { projectId, publicationError });
+        return {
+            success: false,
+            error: publicationError instanceof Error
+                ? publicationError.message
+                : "The proposal is incomplete and could not be published.",
+        };
+    }
+
+    if (contentHash !== input.reviewedContent) {
+        return { success: false, error: REVIEW_CHANGED_ERROR, changed: true };
+    }
+
+    const deliveryEmail = deliverByEmail && project.client_email ? String(project.client_email) : null;
+    const { data: publicationRows, error: publishError } = await supabase.rpc("publish_proposal_publication", {
+        p_project_id: projectId,
+        p_publication_id: publicationId,
+        p_estimate_id: estimate.id,
+        p_version_number: versionNumber,
+        p_token_hash: tokenHash,
+        p_snapshot: snapshot,
+        p_snapshot_hash: snapshotHash,
+        p_contract_sum_ex_vat: snapshot.commercial.contract_sum_ex_vat,
+        p_vat_rate: snapshot.commercial.vat_rate,
+        p_vat_amount: snapshot.commercial.vat_amount,
+        p_contract_sum_inc_vat: snapshot.commercial.contract_sum_inc_vat,
+        p_sent_at: snapshot.publication.sent_at,
+        p_validity_days: snapshot.publication.validity_days,
+        p_expires_at: snapshot.publication.expires_at,
+        p_delivery_email: deliveryEmail,
+    });
+    if (publishError) {
+        console.error("publishProposal transaction failed", {
+            projectId,
+            code: publishError.code,
+        });
+        return { success: false, error: publishError.message || PUBLISH_ERROR };
+    }
+
+    // The publication is committed and immutable from here on. Nothing below
+    // may turn this into a failure.
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/projects/proposal");
+
+    const url = `${siteBaseUrl()}/proposal/${token}`;
+    const publicationResult = Array.isArray(publicationRows) ? publicationRows[0] : null;
+    const deliveryId = (publicationResult?.delivery_id as string | null | undefined) ?? null;
+
+    // Delivery starts only after the publication and attempt-ledger row commit. A
+    // stable provider idempotency key makes retry safe if the process exits
+    // after Resend accepts the message but before the attempt is recorded.
+    const delivery: DeliveryOutcome = deliveryEmail
+        ? await deliverProposalEmail({
+            deliveryId,
+            recipientEmail: deliveryEmail,
+            url,
+            snapshot,
+            idempotencyKey: deliveryId ? `proposal-delivery/${deliveryId}` : undefined,
+        })
+        : { status: "not_requested" };
+
+    return { success: true, url, versionNumber, publicationId, delivery, contentHash };
 }
 
-export async function rewriteIntroductionAction(projectId: string, currentText: string) {
-    const { user, supabase } = await requireAuth();
-
-    // AI via OpenAI utility
-
-    const prompt = `Rewrite this contractor proposal introduction to be more professional and persuasive, maintaining the factual content. Return plain text only, no markdown, no JSON.
-
-Original text:
-${currentText}`;
-
-    try {
-        const text = await generateText(prompt);
-        return { text };
-    } catch (error: any) {
-        return { error: error.message };
+/**
+ * Tries the client email again for a version that is already published. The
+ * link is rebuilt here from the token and checked against the publication,
+ * and the email is worded from that publication's own snapshot. Nothing
+ * about the publication changes.
+ */
+export async function retryProposalDeliveryAction(
+    projectId: string,
+    input: { publicationId: string; url: string },
+): Promise<{ success: true; delivery: DeliveryOutcome } | Failure> {
+    const token = String(input?.url ?? "").split("/").pop() ?? "";
+    if (!z.string().uuid().safeParse(projectId).success || !z.string().uuid().safeParse(input?.publicationId).success) {
+        return { success: false, error: DELIVERY_ERROR };
     }
-}
-
-export async function extractScopeBulletsAction(scopeText: string): Promise<string[]> {
-    if (!scopeText || scopeText.length <= 100) return [];
+    let tokenHash: string;
     try {
-        const result = await generateJSON<{ bullets: string[] }>(
-            `Extract 5-7 concise scope-of-works bullet points from this construction project scope text.
-             Each bullet should be a short actionable deliverable (max 10 words).
-             Return JSON with key "bullets" containing an array of strings.
-             Scope text: ${scopeText.substring(0, 1500)}`
-        );
-        return result.bullets || [];
+        tokenHash = await hashProposalAccessToken(token);
     } catch {
-        return [];
+        return { success: false, error: DELIVERY_ERROR };
     }
+
+    let access: Awaited<ReturnType<typeof requireProjectAccess>>;
+    try {
+        access = await requireProjectAccess(projectId);
+    } catch {
+        return { success: false, error: "You can't send this proposal." };
+    }
+    const { supabase } = access;
+
+    const { data: publication, error: publicationError } = await supabase
+        .from("proposal_publications")
+        .select("id, token_hash, status, snapshot")
+        .eq("id", input.publicationId)
+        .eq("project_id", projectId)
+        .single();
+    if (publicationError || !publication || publication.token_hash !== tokenHash) {
+        return { success: false, error: DELIVERY_ERROR };
+    }
+    if (!["sent", "viewed"].includes(String(publication.status))) {
+        return { success: false, error: "This version is no longer open, so its email was not sent again." };
+    }
+
+    // The delivery ledger is server-only: the contractor's own session is not
+    // granted access to it. That this publication is theirs was proved just
+    // above, by reading it as the contractor and matching the link's token.
+    const { data: attempt, error: attemptError } = await createAdminClient()
+        .from("proposal_delivery_attempts")
+        .select("id, status, attempt_count, recipient_email")
+        .eq("publication_id", publication.id)
+        .maybeSingle();
+    if (attemptError || !attempt) {
+        return { success: false, error: "No email was requested for this version. Share the link yourself." };
+    }
+    if (attempt.status === "sent") {
+        return { success: true, delivery: { status: "sent", email: attempt.recipient_email } };
+    }
+
+    const delivery = await deliverProposalEmail({
+        deliveryId: attempt.id,
+        recipientEmail: attempt.recipient_email,
+        url: `${siteBaseUrl()}/proposal/${token}`,
+        snapshot: publication.snapshot as ProposalPublicationSnapshot,
+        idempotencyKey: `proposal-delivery/${attempt.id}/retry-${Number(attempt.attempt_count) || 0}`,
+    });
+    revalidatePath("/dashboard/projects/proposal");
+    return { success: true, delivery };
 }
 
-export async function saveWizardResultsAction(projectId: string, data: {
-    proposal_introduction?: string;
-    scope_text?: string;
-    exclusions_text?: string;
-    clarifications_text?: string;
-    gantt_phases?: any[];
-    payment_schedule?: any[];
-}) {
-    const { user, supabase } = await requireAuth();
+// ── Published versions ───────────────────────────────────────────────────────
 
-    const { error } = await supabase
-        .from("projects")
-        .update(data)
-        .eq("id", projectId)
-        .eq("user_id", user.id);
+type PublicationResult =
+    | { success: true; snapshot: ProposalPublicationSnapshot; snapshotHash: string }
+    | Failure;
 
-    if (error) return { success: false, error: error.message };
-    revalidatePath(`/dashboard/projects/proposal?projectId=${projectId}`);
-    return { success: true };
+/**
+ * One published version, for its PDF. Read from the immutable publication
+ * row, never from the draft. Defaults to the current version.
+ */
+export async function getProposalPublicationAction(projectId: string, publicationId?: string): Promise<PublicationResult> {
+    let access: Awaited<ReturnType<typeof requireProjectAccess>>;
+    try {
+        access = await requireProjectAccess(projectId);
+    } catch {
+        return { success: false, error: "The published proposal could not be loaded." };
+    }
+    const { user, supabase } = access;
+
+    let id = publicationId;
+    if (!id) {
+        const { data: project, error: projectError } = await supabase
+            .from("projects")
+            .select("current_proposal_publication_id")
+            .eq("id", projectId)
+            .eq("user_id", user.id)
+            .single();
+        if (projectError || !project?.current_proposal_publication_id) {
+            return { success: false, error: "Publish the proposal before downloading its PDF." };
+        }
+        id = String(project.current_proposal_publication_id);
+    }
+
+    const { data: publication, error: publicationError } = await supabase
+        .from("proposal_publications")
+        .select("snapshot, snapshot_hash")
+        .eq("id", id)
+        .eq("project_id", projectId)
+        .single();
+    if (publicationError || !publication?.snapshot) {
+        return { success: false, error: "The published proposal could not be loaded." };
+    }
+    return {
+        success: true,
+        snapshot: publication.snapshot as ProposalPublicationSnapshot,
+        snapshotHash: publication.snapshot_hash,
+    };
 }
 
-export async function generateClarificationsAction(
-    projectType: string,
-    scopeText: string,
-    existingClarifications: string
-): Promise<{ clarifications: string }> {
-    const prompt = `You are an expert construction contract manager. Generate 5-7 professional clarifications for a construction proposal.
-  Project type: ${projectType}
-  Scope: ${scopeText?.substring(0, 500) || 'Not provided'}
-
-  Clarifications are items the contractor needs the client to confirm or that set out the basis of the quote.
-  Examples: "Works based on drawings ref X dated Y", "Assumes clear site access 7am-6pm", "PC sums allowances for X", "Excludes statutory utility diversions unless stated"
-
-  Return as a bullet list, one clarification per line, starting each with "- ".
-  Keep each clarification concise (one sentence). Make them specific to the project type.`;
-
-    const text = await generateText(prompt);
-    return { clarifications: text };
-}
-
-export async function generateExclusionsAction(
-    projectType: string,
-    scopeText: string
-): Promise<{ exclusions: string }> {
-    const prompt = `You are an expert construction contract manager. Generate 5-8 standard exclusions for a construction proposal.
-  Project type: ${projectType}
-  Scope: ${scopeText?.substring(0, 500) || 'Not provided'}
-
-  Exclusions are items NOT included in the contractor's price.
-  Examples: "Planning and Building Control fees", "Floor finishes and decorating", "Furniture and soft furnishings", "External landscaping beyond the site boundary"
-
-  Return as a bullet list, one exclusion per line, starting each with "- ".
-  Keep each exclusion concise. Make them specific to the project type.`;
-
-    const text = await generateText(prompt);
-    return { exclusions: text };
-}
-
-export async function updatePaymentScheduleTypeAction(projectId: string, type: string) {
-    const { user, supabase } = await requireAuth();
-
-    const { error } = await supabase
-        .from("projects")
-        .update({ payment_schedule_type: type })
-        .eq("id", projectId)
-        .eq("user_id", user.id);
-
-    if (error) return { success: false, error: error.message };
-    revalidatePath(`/dashboard/projects/proposal?projectId=${projectId}`);
-    return { success: true };
-}
-
-export async function updateCaseStudySelectionAction(projectId: string, selectedIds: (number | string)[]) {
-    const { user, supabase } = await requireAuth();
-
-    const { error } = await supabase
-        .from("projects")
-        .update({ selected_case_study_ids: selectedIds })
-        .eq("id", projectId)
-        .eq("user_id", user.id);
-
-    if (error) return { success: false, error: error.message };
-    revalidatePath(`/dashboard/projects/proposal?projectId=${projectId}`);
-    return { success: true };
-}
+// ── Photos ───────────────────────────────────────────────────────────────────
 
 export async function uploadPhotoAction(formData: FormData) {
-    const { user, supabase } = await requireAuth();
+    const file = formData.get("file");
+    const projectId = formData.get("projectId");
 
-    const file = formData.get("file") as File;
-    const projectId = formData.get("projectId") as string;
-
-    if (!file) return { error: "No file provided" };
-
-    const ext = file.name.split(".").pop() || "jpg";
-    const path = `${user.id}/${projectId}/${Date.now()}.${ext}`;
+    if (!(file instanceof File)) return { error: "No image was provided." };
+    if (typeof projectId !== "string" || !projectId) return { error: "Project is required." };
+    const { access, error: accessError } = await editableAccess(projectId, "You can't add photos to this proposal.");
+    if (!access) return { error: accessError };
+    const { user, supabase } = access;
+    let validated: Awaited<ReturnType<typeof validatePublicImage>>;
+    try {
+        validated = await validatePublicImage(file);
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : "Invalid image." };
+    }
+    const path = `${user.id}/proposal/${projectId}/${crypto.randomUUID()}.${validated.extension}`;
 
     const { error } = await supabase.storage
         .from("proposal-photos")
-        .upload(path, file, { upsert: true });
+        .upload(path, file, {
+            cacheControl: "31536000",
+            contentType: validated.contentType,
+            upsert: false,
+        });
 
-    if (error) return { error: error.message };
+    if (error) return { error: "The photo could not be uploaded. Try again." };
 
     const { data } = supabase.storage.from("proposal-photos").getPublicUrl(path);
     return { url: data.publicUrl };
-}
-
-export async function generateClosingStatementAction(
-    projectId: string,
-    context: {
-        companyName: string;
-        capability: string;
-        projectName: string;
-        clientName: string;
-        contractValue: number;
-        discountPct: number;
-        discountReason: string;
-        mdName: string;
-    }
-): Promise<{ text: string }> {
-    const discount = context.discountPct > 0
-        ? `We are also pleased to offer a ${context.discountPct}% ${context.discountReason || 'discount'} on this proposal.`
-        : '';
-
-    const text = await generateText(
-        `Write a compelling, personal closing statement for a construction proposal "Why Choose Us" page.
-    Company: ${context.companyName}
-    About the company: ${context.capability?.substring(0, 200) || 'specialist construction contractor'}
-    Project: ${context.projectName} for ${context.clientName}
-    Contract value: £${context.contractValue.toLocaleString()}
-    ${discount}
-    ${context.mdName ? `Written from the perspective of ${context.mdName}` : ''}
-
-    Write 2 paragraphs. First: why this company is the right choice (expertise, approach, track record).
-    Second: genuine enthusiasm for this project, clear call to action to accept.
-    Tone: warm, professional, confident. Avoid cliches. Max 150 words.`
-    );
-
-    const { supabase } = await requireAuth();
-    await supabase.from('projects').update({ closing_statement: text }).eq('id', projectId);
-
-    return { text };
-}
-
-export async function saveClosingStatementAction(projectId: string, text: string) {
-    const { supabase } = await requireAuth();
-    await supabase.from('projects').update({ closing_statement: text }).eq('id', projectId);
-}
-
-export async function saveProposalOverridesAction(
-    projectId: string,
-    overrides: { proposal_capability?: string; proposal_company_name?: string }
-) {
-    const { supabase } = await requireAuth();
-    await supabase.from('projects').update(overrides).eq('id', projectId);
-}
-
-// ─── Sprint 22: Proposal Versioning ──────────────────────────────────────────
-
-export interface ProposalVersionRow {
-    id: string;
-    project_id: string;
-    version_number: number;
-    notes: string | null;
-    snapshot: Record<string, any>;
-    created_at: string;
-}
-
-/** Snapshot the current proposal state and increment the version number. */
-export async function createProposalVersionAction(
-    projectId: string,
-    notes: string
-): Promise<{ success: boolean; error?: string; version_number?: number }> {
-    const { user, supabase } = await requireAuth();
-
-    // Fetch current project (scoped to user)
-    // Cast to any to work around stale Supabase generated types (current_version_number added in Sprint 22)
-    const { data: projectRaw, error: projectErr } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("id", projectId)
-        .eq("user_id", user.id)
-        .single();
-
-    if (projectErr || !projectRaw) return { success: false, error: "Project not found" };
-    const project = projectRaw as any;
-
-    const nextVersion = (project.current_version_number || 1) + 1;
-
-    // Build snapshot — everything that represents the proposal at this point in time
-    const snapshot: Record<string, any> = {
-        scope_text: project.scope_text,
-        proposal_introduction: project.proposal_introduction,
-        exclusions_text: project.exclusions_text,
-        clarifications_text: project.clarifications_text,
-        proposal_capability: project.proposal_capability,
-        proposal_company_name: project.proposal_company_name,
-        closing_statement: project.closing_statement,
-        discount_pct: project.discount_pct,
-        discount_reason: project.discount_reason,
-        tc_tier: project.tc_tier,
-        tc_overrides: project.tc_overrides,
-        contract_exclusions: project.contract_exclusions,
-        contract_clarifications: project.contract_clarifications,
-        risk_register: project.risk_register,
-        programme_phases: project.programme_phases,
-        gantt_phases: project.gantt_phases,
-        payment_schedule: project.payment_schedule,
-        payment_schedule_type: project.payment_schedule_type,
-        selected_case_study_ids: project.selected_case_study_ids,
-        potential_value: project.potential_value,
-        site_photos: project.site_photos,
-    };
-
-    // Insert version row
-    const { error: insertErr } = await supabase
-        .from("proposal_versions")
-        .insert({
-            project_id: projectId,
-            version_number: nextVersion,
-            notes: notes.trim() || null,
-            snapshot,
-            created_by: user.id,
-        });
-
-    if (insertErr) return { success: false, error: insertErr.message };
-
-    // Update projects.current_version_number
-    await supabase
-        .from("projects")
-        .update({ current_version_number: nextVersion })
-        .eq("id", projectId)
-        .eq("user_id", user.id);
-
-    revalidatePath(`/dashboard/projects/proposal?projectId=${projectId}`);
-    return { success: true, version_number: nextVersion };
-}
-
-/** Fetch full version history for a project (newest first). */
-export async function getProposalVersionsAction(
-    projectId: string
-): Promise<{ success: boolean; versions?: ProposalVersionRow[]; error?: string }> {
-    const { user, supabase } = await requireAuth();
-
-    // Verify project belongs to user
-    const { data: project } = await supabase
-        .from("projects")
-        .select("id")
-        .eq("id", projectId)
-        .eq("user_id", user.id)
-        .single();
-
-    if (!project) return { success: false, error: "Project not found" };
-
-    const { data, error } = await supabase
-        .from("proposal_versions")
-        .select("id, project_id, version_number, notes, snapshot, created_at")
-        .eq("project_id", projectId)
-        .order("version_number", { ascending: false });
-
-    if (error) return { success: false, error: error.message };
-    return { success: true, versions: (data || []) as ProposalVersionRow[] };
-}
-
-/** Restore a past version — writes snapshot fields back to the project row. */
-export async function restoreProposalVersionAction(
-    projectId: string,
-    versionId: string
-): Promise<{ success: boolean; error?: string }> {
-    const { user, supabase } = await requireAuth();
-
-    // Verify ownership (select * to avoid stale-type issues with new columns)
-    const { data: project } = await supabase
-        .from("projects")
-        .select("id")
-        .eq("id", projectId)
-        .eq("user_id", user.id)
-        .single();
-
-    if (!project) return { success: false, error: "Project not found" };
-
-    // Fetch the version
-    const { data: version, error: vErr } = await supabase
-        .from("proposal_versions")
-        .select("snapshot, version_number")
-        .eq("id", versionId)
-        .eq("project_id", projectId)
-        .single();
-
-    if (vErr || !version) return { success: false, error: "Version not found" };
-
-    const snap = version.snapshot as Record<string, any>;
-
-    // Write snapshot fields back to project (exclude any nulls in snapshot)
-    const updateFields: Record<string, any> = {};
-    const snapshotKeys = [
-        "scope_text", "proposal_introduction", "exclusions_text", "clarifications_text",
-        "proposal_capability", "proposal_company_name", "closing_statement",
-        "discount_pct", "discount_reason", "tc_tier", "tc_overrides",
-        "contract_exclusions", "contract_clarifications", "risk_register",
-        "programme_phases", "gantt_phases", "payment_schedule", "payment_schedule_type",
-        "selected_case_study_ids", "potential_value", "site_photos",
-    ];
-    snapshotKeys.forEach((k) => {
-        if (k in snap) updateFields[k] = snap[k];
-    });
-
-    const { error: updateErr } = await supabase
-        .from("projects")
-        .update(updateFields)
-        .eq("id", projectId)
-        .eq("user_id", user.id);
-
-    if (updateErr) return { success: false, error: updateErr.message };
-
-    revalidatePath(`/dashboard/projects/proposal?projectId=${projectId}`);
-    return { success: true };
 }

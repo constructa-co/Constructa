@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS public.mom_item_overrides (
 
 ALTER TABLE public.mom_item_overrides ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "org_overrides_all" ON public.mom_item_overrides
+DROP POLICY IF EXISTS "org_overrides_all" ON public.mom_item_overrides;
+CREATE POLICY "org_overrides_all" ON public.mom_item_overrides
 FOR ALL USING (organization_id IN (SELECT public.get_my_organizations()))
 WITH CHECK (organization_id IN (SELECT public.get_my_organizations()));
 

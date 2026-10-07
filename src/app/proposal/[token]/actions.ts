@@ -1,124 +1,128 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-    sendAcceptanceConfirmationEmail,
-    sendContractorAcceptanceNotification,
-} from "@/lib/email";
+import { hashProposalAccessToken, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
+import { sendProposalResponseReceipt } from "@/lib/email";
+import { proposalReference } from "@/lib/proposal-document";
+import { parseProposalResponseInput, responseKindOfSnapshot } from "@/lib/proposal-response";
 
-export async function acceptProposalAction(
+/**
+ * Records the client's response to a published proposal.
+ *
+ * The browser sends a name and an optional email, nothing else. The only
+ * response this action can record is the non-binding one the publication
+ * asked for: confirmation of receipt, or an intention to proceed. It cannot
+ * record acceptance. What the response means is read from the immutable
+ * snapshot, and the database refuses anything the publication does not
+ * permit.
+ */
+export async function respondToProposalAction(
     token: string,
     clientName: string,
-    clientEmail: string
-): Promise<{ success: boolean; error?: string }> {
-    const supabase = createClient();
+    clientEmail: string,
+): Promise<{ success: boolean; status?: string; respondedAt?: string; error?: string }> {
+    const parsed = parseProposalResponseInput({ token, clientName, clientEmail });
+    if (!parsed.success) {
+        return { success: false, error: "Enter your full name and, if you add one, a valid email address." };
+    }
+    ({ token, clientName, clientEmail } = parsed.data);
 
-    const { data: project } = await supabase
-        .from("projects")
-        .select("id, name, site_address, potential_value, proposal_accepted_at, user_id, client_name")
-        .eq("proposal_token", token)
-        .single();
+    let tokenHash: string;
+    try {
+        tokenHash = await hashProposalAccessToken(token);
+    } catch {
+        return { success: false, error: "Proposal not found." };
+    }
 
-    if (!project) return { success: false, error: "Proposal not found" };
-    if (project.proposal_accepted_at)
-        return { success: false, error: "This proposal has already been accepted" };
-
-    const acceptedAt = new Date().toISOString();
-    const refCode = project.id.substring(0, 8).toUpperCase();
-
-    // Stage 4 hardening sub-item (19 Apr 2026): public token-based write to
-    // projects. Previously the update result was ignored — a silent failure
-    // (RLS regression, schema drift on any of these columns) would have left
-    // the project un-accepted while still firing "acceptance" confirmation
-    // emails to the client. Anchor the update by BOTH proposal_token and
-    // project.id (belt + braces), require the update to return the row, and
-    // abort if the row did not in fact flip to accepted.
-    const { data: updated, error: updateError } = await supabase
-        .from("projects")
-        .update({
-            proposal_accepted_at: acceptedAt,
-            proposal_accepted_by: clientName || "Client",
-            client_email: clientEmail || null,
-            proposal_status: "accepted",
-        })
-        .eq("id", project.id)
-        .eq("proposal_token", token)
-        .select("id, proposal_accepted_at")
-        .single();
-
-    if (updateError || !updated?.proposal_accepted_at) {
-        console.error(
-            "Proposal acceptance write failed:",
-            updateError?.message ?? "no row returned"
-        );
+    // The public server action is the only response ingress. The underlying
+    // RPC is service-role-only, so clients cannot bypass validation through
+    // PostgREST even when they possess a valid bearer token.
+    const adminSupabase = createAdminClient();
+    const { data, error } = await adminSupabase.rpc("respond_to_proposal_publication", {
+        p_token_hash: tokenHash,
+        p_response: "acknowledged",
+        p_name: clientName,
+        p_email: clientEmail || null,
+        p_note: null,
+    });
+    const result = !error && Array.isArray(data) ? data[0] : null;
+    if (error || !result?.snapshot) {
+        console.error("Proposal response transaction failed", { code: error?.code });
+        const publicError = error?.code === "P0002"
+            ? "Proposal not found."
+            : error?.code === "23514"
+                ? "This proposal can no longer receive a response. Please contact the contractor."
+                : "Your response could not be recorded. Please try again, or contact the contractor.";
         return {
             success: false,
-            error: "Could not record acceptance. Please try again, or contact the contractor.",
+            error: publicError,
         };
     }
 
-    // Fetch contractor profile for company name + email
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("company_name")
-        .eq("id", project.user_id)
-        .single();
+    const snapshot = result.snapshot as ProposalPublicationSnapshot;
+    const refCode = proposalReference(snapshot);
+    const responseKind = responseKindOfSnapshot(snapshot);
 
-    // Stage 3 hardening (19 Apr 2026): the contractor auth email lookup must
-    // use the service-role admin client, not the cookie-based public client
-    // above. Previously `supabase.auth.admin.getUserById(...)` was called on
-    // the anon-key client which is not authorised for admin auth methods —
-    // the notification path either silently failed or returned an empty user.
-    //
-    // Mirrors the pattern already used in the /proposal/[token]/page.tsx
-    // viewed-notification flow (page.tsx lines 50–67) so both public-proposal
-    // notification paths share one consistent, safe shape: admin client only
-    // where admin privilege is needed, wrapped in try/catch so a contractor-
-    // auth-lookup failure never breaks acceptance itself (the DB write above
-    // is already committed). The client-confirmation email is independent
-    // and still fires.
     let contractorEmail: string | undefined;
     try {
-        const adminSupabase = createAdminClient();
-        const { data: contractorAuth } =
-            await adminSupabase.auth.admin.getUserById(project.user_id);
+        const { data: contractorAuth } = await adminSupabase.auth.admin.getUserById(result.owner_user_id);
         contractorEmail = contractorAuth?.user?.email;
-    } catch (e) {
-        console.error("Contractor auth lookup failed:", e);
+    } catch (authError) {
+        console.error("Contractor auth lookup failed:", authError);
     }
 
-    const companyName = profile?.company_name || "The Contractor";
-
-    // Fire emails in parallel — don't let email failure block the acceptance
-    const emailPromises: Promise<unknown>[] = [];
-
-    if (clientEmail) {
-        emailPromises.push(
-            sendAcceptanceConfirmationEmail({
-                clientEmail,
-                clientName: clientName || "Client",
-                projectName: project.name,
-                companyName,
+    const publicationId = String(result.publication_id);
+    const respondedAt = String(result.responded_at);
+    const snapshotReference = String(result.publication_snapshot_hash || "");
+    // The response is committed from here on. A receipt that fails to send is
+    // recorded against the publication and never turns the response into a
+    // failure for the client.
+    const sendReceipt = async (audience: "client" | "owner", recipientEmail: string) => {
+        try {
+            const delivery = await sendProposalResponseReceipt({
+                recipientEmail,
+                recipientKind: audience,
+                clientName,
+                projectName: snapshot.project.name,
+                companyName: snapshot.contractor.company_name,
+                response: "acknowledged",
+                responseKind,
+                respondedAt,
                 refCode,
-                siteAddress: project.site_address,
-            }).catch((e) => console.error("Client confirmation email failed:", e))
-        );
-    }
+                publicationVersion: snapshot.publication.version_number,
+                snapshotReference,
+                idempotencyKey: `proposal-response-${audience}/${publicationId}/acknowledged`,
+            });
+            if (delivery.error) throw new Error(delivery.error.name || "provider_error");
+            const { error: recordError } = await adminSupabase.rpc("record_proposal_receipt_delivery", {
+                p_publication_id: publicationId,
+                p_audience: audience,
+                p_succeeded: true,
+                p_provider_message_id: delivery.data?.id ?? null,
+                p_error_code: null,
+            });
+            if (recordError) console.error("Response receipt success could not be recorded", { audience, code: recordError.code });
+        } catch (emailError) {
+            console.error("Proposal response receipt failed", { audience, emailError });
+            const { error: recordError } = await adminSupabase.rpc("record_proposal_receipt_delivery", {
+                p_publication_id: publicationId,
+                p_audience: audience,
+                p_succeeded: false,
+                p_provider_message_id: null,
+                p_error_code: emailError instanceof Error ? emailError.message : "unknown",
+            });
+            if (recordError) console.error("Response receipt failure could not be recorded", { audience, code: recordError.code });
+        }
+    };
 
-    if (contractorEmail) {
-        emailPromises.push(
-            sendContractorAcceptanceNotification({
-                contractorEmail,
-                clientName: clientName || "Client",
-                projectName: project.name,
-                projectValue: project.potential_value || undefined,
-                refCode,
-            }).catch((e) => console.error("Contractor notification email failed:", e))
-        );
-    }
+    const receiptPromises: Promise<void>[] = [];
+    if (clientEmail) receiptPromises.push(sendReceipt("client", clientEmail));
+    if (contractorEmail) receiptPromises.push(sendReceipt("owner", contractorEmail));
+    await Promise.all(receiptPromises);
 
-    await Promise.all(emailPromises);
-
-    return { success: true };
+    return {
+        success: true,
+        status: result.publication_status,
+        respondedAt: result.responded_at,
+    };
 }

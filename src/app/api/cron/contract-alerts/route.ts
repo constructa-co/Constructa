@@ -32,6 +32,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendContractAlertEmail, type ContractAlertDigestItem } from "@/lib/email";
 import { calendarDayDiff } from "@/lib/dates";
+import { isCapabilityEnabled } from "@/lib/launch-profile";
 
 // Vercel cron expects this route to be a Node runtime, not edge — Resend
 // SDK pulls in node:crypto.
@@ -109,6 +110,10 @@ interface UserBucket {
 export async function GET(request: NextRequest) {
     if (!isAuthorisedCron(request)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!isCapabilityEnabled("contract-shield")) {
+        return NextResponse.json({ skipped: true, reason: "launch-profile" });
     }
 
     const supabase = createAdminClient();
@@ -363,6 +368,13 @@ export async function GET(request: NextRequest) {
                 items: b.items,
                 dashboardUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://constructa-nu.vercel.app",
             });
+
+            if (!result) {
+                throw new Error("Resend returned no result for contract alert.");
+            }
+            if (result.error) {
+                throw new Error(`Resend rejected contract alert: ${result.error.message}`);
+            }
 
             // Send succeeded — flip reservation rows from 'pending' → 'sent'
             // and record the Resend message id for delivery correlation.

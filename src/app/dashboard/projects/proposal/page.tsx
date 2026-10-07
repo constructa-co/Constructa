@@ -1,14 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProjectNavBar from "@/components/project-navbar";
-import ClientEditor from "./client-editor";
 import ProjectPicker from "@/components/project-picker";
-import type { ProposalVersionRow } from "./actions";
+import { getPrecontractEditLockReason } from "@/lib/project-editability";
+import type { ProposalPublicationEstimateInput } from "@/lib/proposal-publication";
+import ReviewSendClient, { type CaseStudyOption } from "./review-send-client";
+import type { ProposalPublicationHistoryRow } from "./publication-history-panel";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProposalPage({ searchParams }: { searchParams: { projectId: string } }) {
-    const supabase = createClient();
+export default async function ProposalPage(props: { searchParams: Promise<{ projectId: string }> }) {
+    const searchParams = await props.searchParams;
+    const supabase = await createClient();
 
     // Auth check
     const { data: authData } = await supabase.auth.getUser();
@@ -28,8 +31,8 @@ export default async function ProposalPage({ searchParams }: { searchParams: { p
             <ProjectPicker
                 projects={projects ?? []}
                 targetPath="/dashboard/projects/proposal"
-                title="Proposal Editor"
-                description="Select a project to edit and send your proposal"
+                title="Proposal"
+                description="Select a project to review and send its proposal"
             />
         );
     }
@@ -42,58 +45,63 @@ export default async function ProposalPage({ searchParams }: { searchParams: { p
         .eq("user_id", user.id)
         .single();
 
-    // Fetch estimates — scoped to project_id
+    if (!project) {
+        return <div className="p-8 text-slate-400">Project not found.</div>;
+    }
+
+    // The estimate the proposal is priced from: the one marked active.
     const { data: estimates } = await supabase
         .from("estimates")
-        .select("*, estimate_lines(*)")
-        .eq("project_id", projectId);
+        .select("*, estimate_lines(id, trade_section, description, quantity, unit, line_total)")
+        .eq("project_id", projectId)
+        .eq("is_active", true);
+    const activeEstimates = estimates ?? [];
+    const estimate = activeEstimates.length === 1 ? (activeEstimates[0] as ProposalPublicationEstimateInput) : null;
+    const estimateIssue = activeEstimates.length > 1
+        ? "More than one estimate is marked as the one used in the proposal. Choose one in Estimating before you send."
+        : null;
 
-    // Calculate estimated total from all estimates
-    const estimatedTotal = (estimates || []).reduce((sum: number, est: any) => {
-        return sum + (est.total_cost || 0);
-    }, 0);
-
-    // Fetch profile with all capability fields
     const { data: profile } = await supabase
         .from("profiles")
-        .select("*")
+        .select("company_name, logo_url, phone, website, accreditations, capability_statement, years_trading, specialisms, insurance_details, pdf_theme, md_name, md_message, case_studies")
         .eq("id", user.id)
         .single();
 
-    // Fetch proposal version history (newest first)
-    const { data: versions } = await supabase
-        .from("proposal_versions")
-        .select("id, project_id, version_number, notes, snapshot, created_at")
+    // Published history is immutable and distinct from the editable draft.
+    const { data: publications } = await supabase
+        .from("proposal_publications")
+        .select("id, version_number, status, sent_at, expires_at, first_viewed_at, responded_at, responded_by, superseded_by, snapshot_hash, response_kind:snapshot->response->>kind, response_mode:snapshot->publication->>response_mode")
         .eq("project_id", projectId)
         .order("version_number", { ascending: false });
 
+    const caseStudies: CaseStudyOption[] = (Array.isArray(profile?.case_studies) ? profile.case_studies : [])
+        .map((entry: unknown, index: number) => {
+            const study = (entry && typeof entry === "object" ? entry : {}) as Record<string, unknown>;
+            return {
+                id: typeof study.id === "string" && study.id ? study.id : String(index),
+                index,
+                title: typeof study.projectName === "string" ? study.projectName.trim() : "",
+                projectType: typeof study.projectType === "string" ? study.projectType.trim() : "",
+            };
+        })
+        .filter((study: CaseStudyOption) => study.title !== "");
+
+    const history = (publications ?? []) as unknown as ProposalPublicationHistoryRow[];
+
     return (
-        <div className="max-w-7xl mx-auto px-6 py-8 min-h-screen">
-            <div className="flex flex-col gap-4 mb-6">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-100">Proposal Editor</h1>
-                        <p className="text-slate-500 text-sm mt-0.5">
-                            Drafting for: <span className="font-semibold text-slate-300">{project?.name}</span>
-                        </p>
-                    </div>
-                </div>
-                <ProjectNavBar projectId={projectId} activeTab="proposal" />
-            </div>
-            <ClientEditor
-                projectId={projectId}
-                initialScope={project?.scope_text || ""}
-                initialExclusions={project?.exclusions_text || ""}
-                initialClarifications={project?.clarifications_text || ""}
-                initialBriefScope={project?.brief_scope || ""}
-                initialContractExclusions={project?.contract_exclusions || ""}
-                initialContractClarifications={project?.contract_clarifications || ""}
-                estimates={estimates || []}
-                project={project}
-                profile={profile}
-                estimatedTotal={estimatedTotal}
-                proposalVersions={(versions || []) as ProposalVersionRow[]}
-                currentVersionNumber={project?.current_version_number ?? 1}
+        <div className="max-w-5xl mx-auto px-4 sm:px-8 pt-4 sm:pt-8 pb-16">
+            <ProjectNavBar projectId={projectId} activeTab="proposal" />
+            <ReviewSendClient
+                context={{
+                    project,
+                    profile: profile ?? {},
+                    estimate,
+                    nextVersion: (history[0]?.version_number ?? 0) + 1,
+                }}
+                caseStudies={caseStudies}
+                lockReason={getPrecontractEditLockReason(project)}
+                estimateIssue={estimateIssue}
+                publications={history}
             />
         </div>
     );

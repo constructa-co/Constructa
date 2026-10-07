@@ -1,6 +1,7 @@
 "use server";
 
-import { requireAuth } from "@/lib/supabase/auth-utils";
+import { requireAuth, requireProjectAccess } from "@/lib/supabase/auth-utils";
+import { requireLaunchCapability } from "@/lib/launch-profile";
 import { revalidatePath } from "next/cache";
 import { CONTRACTS_CONFIG, ContractType, addDays } from "@/lib/contracts-config";
 import OpenAI from "openai";
@@ -21,6 +22,7 @@ export async function setupContractAction(data: {
   parties: Record<string, string>;
   notes?: string;
 }) {
+  requireLaunchCapability("contract-shield");
   const { user, supabase } = await requireAuth();
 
   const config = CONTRACTS_CONFIG[data.contractType];
@@ -106,6 +108,7 @@ export async function raiseEventAction(data: {
   description?: string;
   reference?: string;
 }) {
+  requireLaunchCapability("contract-shield");
   const { user, supabase } = await requireAuth();
 
   const config = CONTRACTS_CONFIG[data.contractType];
@@ -184,6 +187,7 @@ export async function raiseEventAction(data: {
 // ─── Update Obligation Status ─────────────────────────────────────────────────
 
 export async function updateObligationAction(id: string, status: string, notes?: string) {
+  requireLaunchCapability("contract-shield");
   const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
@@ -210,6 +214,7 @@ export async function updateEventAction(id: string, data: {
   assessedTime?: number;
   assessedCost?: number;
 }) {
+  requireLaunchCapability("contract-shield");
   const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
@@ -243,6 +248,7 @@ export async function logCommunicationAction(data: {
   fromParty?: string;
   toParty?: string;
 }) {
+  requireLaunchCapability("contract-shield");
   const { user, supabase } = await requireAuth();
 
   const { error } = await supabase.from("contract_communications").insert({
@@ -264,6 +270,7 @@ export async function logCommunicationAction(data: {
 }
 
 export async function deleteCommunicationAction(id: string) {
+  requireLaunchCapability("contract-shield");
   const { user, supabase } = await requireAuth();
   await supabase.from("contract_communications").delete().eq("id", id).eq("user_id", user.id);
   REVALIDATE();
@@ -293,6 +300,7 @@ export async function draftNoticeAction(data: {
   programmeDates?: { task: string; planned: string; actual?: string }[];
   recentCosts?: { category: string; amount: number }[];
 }) {
+  requireLaunchCapability("contract-shield");
   const { user, supabase } = await requireAuth();
 
   const config = CONTRACTS_CONFIG[data.contractType];
@@ -381,6 +389,7 @@ export async function raiseClaimAction(data: {
   costClaimed?: number;
   notes?: string;
 }) {
+  requireLaunchCapability("contract-shield");
   const { user, supabase } = await requireAuth();
 
   // Auto-reference
@@ -425,6 +434,7 @@ export async function updateClaimAction(id: string, data: {
   costAgreed?: number;
   notes?: string;
 }) {
+  requireLaunchCapability("contract-shield");
   const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
@@ -468,6 +478,7 @@ export async function draftClaimAction(data: {
   costs?: { category: string; amount: number }[];
   communications?: { date: string; subject: string; direction: string }[];
 }) {
+  requireLaunchCapability("contract-shield");
   const { user, supabase } = await requireAuth();
 
   const config = CONTRACTS_CONFIG[data.contractType];
@@ -557,7 +568,8 @@ export async function createSupervisorTokenAction(data: {
   email?: string;
   role?: string;
 }): Promise<{ success: boolean; token?: string; error?: string }> {
-  const { user, supabase } = await requireAuth();
+  requireLaunchCapability("contract-shield");
+  const { user, supabase } = await requireProjectAccess(data.projectId);
 
   const { data: row, error } = await supabase
     .from("supervisor_tokens")
@@ -601,6 +613,7 @@ export async function createSupervisorTokenAction(data: {
 export async function revokeSupervisorTokenAction(
   tokenId: string,
 ): Promise<{ success: boolean; error?: string }> {
+  requireLaunchCapability("contract-shield");
   const { user, supabase } = await requireAuth();
 
   const { error } = await supabase
@@ -634,6 +647,7 @@ export async function runDelayAnalysisAction(data: {
   windowSizeDays?: number;
   claimId?: string;
 }): Promise<{ success: boolean; analysisId?: string; results?: any; error?: string }> {
+  requireLaunchCapability("contract-shield");
   const { user, supabase } = await requireAuth();
 
   // Fetch programme phases
@@ -726,6 +740,7 @@ export async function draftDelayNarrativeAction(data: {
   results: any;
   projectName: string;
 }): Promise<{ success: boolean; narrative?: string; error?: string }> {
+  requireLaunchCapability("contract-shield");
   const { user, supabase } = await requireAuth();
 
   const methodologyNames: Record<string, string> = {

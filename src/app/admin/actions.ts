@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/supabase/admin-auth";
 import { revalidatePath } from "next/cache";
 
 const VALID_CATEGORIES = [
@@ -21,6 +22,8 @@ export async function saveCostEntryAction(
   formData: FormData
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    await requireAdmin();
+
     const monthRaw = (formData.get("month") as string | null)?.trim();
     const category = (formData.get("category") as string | null)?.trim();
     const description = (formData.get("description") as string | null)?.trim() || null;
@@ -78,6 +81,8 @@ export async function sendReportEmailAction(
   formData: FormData
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    await requireAdmin();
+
     const toRaw = (formData.get("to") as string | null)?.trim();
     const subject = (formData.get("subject") as string | null)?.trim();
     const body = (formData.get("body") as string | null)?.trim();

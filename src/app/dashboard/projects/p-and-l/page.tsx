@@ -16,8 +16,9 @@ function computeContractValue(est: any, lines: any[]): number {
     return computeContractSum(est, lines ?? []).contractSum;
 }
 
-export default async function PLPage({ searchParams }: { searchParams: { projectId?: string } }) {
-    const supabase = createClient();
+export default async function PLPage(props: { searchParams: Promise<{ projectId?: string }> }) {
+    const searchParams = await props.searchParams;
+    const supabase = await createClient();
     const projectId = searchParams.projectId;
 
     const { data: authData } = await supabase.auth.getUser();

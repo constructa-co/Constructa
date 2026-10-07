@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getLaunchLandingPath } from '@/lib/launch-profile'
 
 export default function AuthConfirmPage() {
     const router = useRouter()
@@ -36,7 +37,7 @@ export default function AuthConfirmPage() {
             if (type === 'recovery') {
                 router.replace('/auth/reset-password')
             } else {
-                router.replace('/dashboard')
+                router.replace(getLaunchLandingPath())
             }
         }
 

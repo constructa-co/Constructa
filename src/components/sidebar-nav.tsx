@@ -44,9 +44,11 @@ import {
     Lightbulb,
     Smartphone,
     Package,
-    Zap,
+    Menu,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
+import { isCapabilityEnabled } from "@/lib/launch-profile";
+import { buildPhoneNav, getPhoneNavTitle, isPhoneNavItemActive, type PhoneNavKey } from "@/lib/phone-nav";
 
 interface Project {
     id: string;
@@ -86,7 +88,7 @@ function NavItem({
     return (
         <Link
             href={href}
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg font-medium transition-all group text-sm ${
+            className={`flex items-center gap-2.5 min-h-11 lg:min-h-0 px-3 py-2 rounded-lg font-medium transition-all group text-sm ${
                 active ? "bg-gray-900 text-white" : "text-slate-300 hover:text-white hover:bg-white/8"
             }`}
         >
@@ -114,9 +116,9 @@ function SidebarSection({
         <div>
             <button
                 onClick={() => onToggle(sectionKey)}
-                className="w-full flex items-center justify-between px-3 py-2 group"
+                className="w-full min-h-11 lg:min-h-0 flex items-center justify-between px-3 py-2 group"
             >
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 group-hover:text-slate-400 transition-colors">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 group-hover:text-slate-400 transition-colors">
                     {label}
                 </span>
                 {collapsed
@@ -133,6 +135,17 @@ function SidebarSection({
     );
 }
 
+const PHONE_NAV_ICONS: Record<PhoneNavKey, any> = {
+    "pipeline": Kanban,
+    "new-project": FilePlus,
+    "brief": ClipboardList,
+    "estimates": Calculator,
+    "programmes": CalendarDays,
+    "proposals": FileText,
+    "profile": Building2,
+    "case-studies": Images,
+};
+
 const SECTION_KEYS = ["company-profile", "work-winning", "pre-construction", "live-projects", "closed-projects"];
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -142,6 +155,8 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
     const router = useRouter();
     const { theme, setTheme } = useTheme();
     const isDark = theme === "dark";
+    const showHome = isCapabilityEnabled("home");
+    const showExtendedModules = isCapabilityEnabled("extended-modules");
 
     // Project selector state
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -149,6 +164,9 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
     const [pickerOpen, setPickerOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const pickerRef = useRef<HTMLDivElement>(null);
+
+    // Phone menu — the desktop sidebar is hidden below md.
+    const [phoneMenuOpen, setPhoneMenuOpen] = useState(false);
 
     // Accordion: all sections collapsed by default
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
@@ -227,6 +245,19 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
         return () => document.removeEventListener("mousedown", handleClick);
     }, []);
 
+    // Phone menu: close after any navigation and on Escape.
+    useEffect(() => {
+        setPhoneMenuOpen(false);
+    }, [pathname, searchParams]);
+    useEffect(() => {
+        if (!phoneMenuOpen) return;
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setPhoneMenuOpen(false);
+        };
+        document.addEventListener("keydown", handleKey);
+        return () => document.removeEventListener("keydown", handleKey);
+    }, [phoneMenuOpen]);
+
     // Accordion toggle — opening one section ALWAYS closes all others
     const toggleSection = (key: string) => {
         setCollapsed(prev => {
@@ -268,8 +299,8 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
         }
     };
 
-    const clearProject = (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const clearProject = (e?: React.MouseEvent) => {
+        e?.stopPropagation();
         setSelectedProjectId(null);
         setSelectedProjectName(null);
         localStorage.removeItem("constructa_selected_project_id");
@@ -294,11 +325,120 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
         (p.client_name ?? "").toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const phoneNav = buildPhoneNav(selectedProjectId);
+    const phoneTitle = getPhoneNavTitle(pathname, phoneNav);
+
     return (
+        <>
+        {/* ── Phone top bar + menu (below md only) ─────────────────────── */}
+        <header className="md:hidden fixed top-0 inset-x-0 z-30 h-14 bg-[#0d0d0d] border-b border-white/10 flex items-center gap-3 px-3">
+            <button
+                type="button"
+                onClick={() => setPhoneMenuOpen(true)}
+                aria-label="Open menu"
+                aria-expanded={phoneMenuOpen}
+                aria-controls="phone-menu"
+                className="w-11 h-11 flex items-center justify-center rounded-lg text-slate-200 hover:bg-white/10 transition-colors"
+            >
+                <Menu className="w-6 h-6" />
+            </button>
+            <div className="min-w-0 flex-1">
+                <div className="text-sm font-bold text-white truncate">{phoneTitle}</div>
+                {selectedProjectName && (
+                    <div className="text-[11px] text-blue-300 truncate">{selectedProjectName}</div>
+                )}
+            </div>
+            <Link href="/dashboard" aria-label="Constructa pipeline" className="w-11 h-11 -mr-1.5 flex items-center justify-center flex-shrink-0">
+                <span className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-base">C</span>
+            </Link>
+        </header>
+
+        {phoneMenuOpen && (
+            <div className="md:hidden fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Menu" id="phone-menu">
+                <button
+                    type="button"
+                    aria-label="Close menu"
+                    onClick={() => setPhoneMenuOpen(false)}
+                    className="absolute inset-0 w-full h-full bg-black/60"
+                />
+                <nav className="absolute inset-y-0 left-0 w-[86%] max-w-xs bg-[#0d0d0d] border-r border-white/10 flex flex-col shadow-2xl">
+                    <div className="h-14 flex items-center justify-between px-4 border-b border-white/10 flex-shrink-0">
+                        <span className="text-lg font-bold tracking-tight text-white">Constructa</span>
+                        <button
+                            type="button"
+                            onClick={() => setPhoneMenuOpen(false)}
+                            aria-label="Close menu"
+                            className="w-11 h-11 -mr-2 flex items-center justify-center rounded-lg text-slate-300 hover:bg-white/10 transition-colors"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
+                        <div>
+                            <label htmlFor="phone-active-project" className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-1 pb-1.5">
+                                Active Project
+                            </label>
+                            <select
+                                id="phone-active-project"
+                                value={selectedProjectId ?? ""}
+                                onChange={(e) => {
+                                    const match = projects.find((p) => p.id === e.target.value);
+                                    if (match) selectProject(match.id, match.name);
+                                    else clearProject();
+                                }}
+                                className="w-full h-11 rounded-lg bg-white/5 border border-white/10 px-3 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+                            >
+                                <option value="">{projects.length === 0 ? "No projects yet" : "Select a project…"}</option>
+                                {projects.map((p) => (
+                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {phoneNav.map((group) => (
+                            <div key={group.key}>
+                                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-1 pb-1">{group.label}</div>
+                                <div className="space-y-0.5">
+                                    {group.items.map((item) => {
+                                        const Icon = PHONE_NAV_ICONS[item.key];
+                                        const active = isPhoneNavItemActive(pathname, item);
+                                        return (
+                                            <Link
+                                                key={item.key}
+                                                href={item.href}
+                                                onClick={() => setPhoneMenuOpen(false)}
+                                                aria-current={active ? "page" : undefined}
+                                                className={`flex items-center gap-3 px-3 min-h-11 rounded-lg text-base font-medium transition-colors ${
+                                                    active ? "bg-gray-900 text-white" : "text-slate-300 hover:text-white hover:bg-white/8"
+                                                }`}
+                                            >
+                                                <Icon className={`w-5 h-5 flex-shrink-0 ${active ? "text-blue-400" : "text-slate-400"}`} />
+                                                <span className="truncate">{item.label}</span>
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="p-3 border-t border-white/10 flex items-center gap-3 flex-shrink-0">
+                        <div className="min-w-0 flex-1 text-xs text-slate-400 truncate">{user.email}</div>
+                        <form action="/auth/signout" method="post">
+                            <button className="h-11 px-3 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/10 flex items-center gap-2">
+                                <LogOut className="w-4 h-4" /> Sign out
+                            </button>
+                        </form>
+                    </div>
+                </nav>
+            </div>
+        )}
+
         <aside className="w-64 bg-[#0d0d0d] hidden md:flex flex-col h-screen fixed z-30">
             {/* Logo */}
             <div className="p-5 pb-3">
-                <Link href="/dashboard" className="flex items-center gap-2.5 group">
+                <Link href="/dashboard" className="flex items-center gap-2.5 min-h-11 lg:min-h-0 group">
                     <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-base group-hover:bg-blue-500 transition-colors">C</div>
                     <span className="text-lg font-bold tracking-tight text-white group-hover:text-blue-300 transition-colors">Constructa</span>
                 </Link>
@@ -307,23 +447,23 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
             {/* Scrollable nav */}
             <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-0.5">
 
-                {/* Overview — always visible */}
+                {/* Overview — full profile only; Pipeline remains in Work Winning. */}
                 {/* On-site Hub (Smartphone icon) gated for beta on 19 Apr 2026 —
-                    route now redirects to /dashboard/home. Restore this entry
+                    route now redirects to /dashboard. Restore this entry
                     once the mobile data sources are rewired. */}
-                <div className="pb-2">
+                {showHome && <div className="pb-2">
                     <NavItem href="/dashboard/home" icon={LayoutDashboard} label="Overview" active={is("/dashboard/home")} />
-                </div>
+                </div>}
 
                 {/* ── Active Project Selector — always visible, at top ─── */}
                 <div className="pb-3">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 pb-1.5">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 pb-1.5">
                         Active Project
                     </div>
                     <div ref={pickerRef} className="relative px-1">
                         <button
                             onClick={() => setPickerOpen(!pickerOpen)}
-                            className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-all border ${
+                            className={`w-full min-h-11 lg:min-h-0 flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-all border ${
                                 selectedProjectId
                                     ? "bg-blue-600/15 border-blue-500/30 text-blue-300 hover:bg-blue-600/25"
                                     : "bg-white/5 border-white/8 text-slate-400 hover:bg-white/10 hover:text-slate-200"
@@ -367,18 +507,18 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                                             }`}
                                         >
                                             <div className="font-medium truncate">{p.name}</div>
-                                            {p.client_name && <div className="text-[10px] text-slate-500 truncate mt-0.5">{p.client_name}</div>}
+                                            {p.client_name && <div className="text-[10px] text-slate-400 truncate mt-0.5">{p.client_name}</div>}
                                         </button>
                                     ))}
                                 </div>
-                                <div className="px-3 py-1.5 border-t border-white/10 text-[10px] text-slate-600">
+                                <div className="px-3 py-1.5 border-t border-white/10 text-[10px] text-slate-400">
                                     {selectedProjectId ? "Click × to deselect" : "Select to focus module links"}
                                 </div>
                             </div>
                         )}
                     </div>
                     {selectedProjectId && (
-                        <p className="px-3 pt-1 text-[10px] text-slate-600">Module links open this project</p>
+                        <p className="px-3 pt-1 text-[10px] text-slate-400">Module links open this project</p>
                     )}
                 </div>
 
@@ -388,18 +528,17 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                     <SidebarSection label="Company Profile" sectionKey="company-profile" collapsed={collapsed["company-profile"] ?? true} onToggle={toggleSection}>
                         <NavItem href="/dashboard/settings/profile" icon={Building2} label="Profile" active={is("/dashboard/settings/profile")} />
                         <NavItem href="/dashboard/settings/case-studies" icon={Images} label="Case Studies" active={is("/dashboard/settings/case-studies")} />
-                        <NavItem href="/dashboard/settings/integrations" icon={RefreshCw} label="Integrations" active={is("/dashboard/settings/integrations")} />
-                        <NavItem href="/dashboard/settings/api-keys" icon={Key} label="API Keys" active={is("/dashboard/settings/api-keys")} />
-                        <NavItem href="/dashboard/resources/staff" icon={Users} label="Labour Rates" active={is("/dashboard/resources/staff")} />
-                        <NavItem href="/dashboard/resources/plant" icon={Truck} label="Plant Rates" active={is("/dashboard/resources/plant")} />
-                        <NavItem href="/dashboard/library" icon={BookOpen} label="Cost Library" active={is("/dashboard/library")} />
+                        {showExtendedModules && <NavItem href="/dashboard/settings/integrations" icon={RefreshCw} label="Integrations" active={is("/dashboard/settings/integrations")} />}
+                        {showExtendedModules && <NavItem href="/dashboard/settings/api-keys" icon={Key} label="API Keys" active={is("/dashboard/settings/api-keys")} />}
+                        {showExtendedModules && <NavItem href="/dashboard/resources/staff" icon={Users} label="Labour Rates" active={is("/dashboard/resources/staff")} />}
+                        {showExtendedModules && <NavItem href="/dashboard/resources/plant" icon={Truck} label="Plant Rates" active={is("/dashboard/resources/plant")} />}
+                        {showExtendedModules && <NavItem href="/dashboard/library" icon={BookOpen} label="Cost Library" active={is("/dashboard/library")} />}
                         <NavItem href="/onboarding?force=true" icon={Wand2} label="Setup Wizard" active={false} />
                     </SidebarSection>
 
                     {/* Work Winning */}
                     <SidebarSection label="Work Winning" sectionKey="work-winning" collapsed={collapsed["work-winning"] ?? true} onToggle={toggleSection}>
                         <NavItem href="/dashboard" icon={Kanban} label="Pipeline" active={pathname === "/dashboard"} />
-                        <NavItem href="/dashboard/projects/quick-quote" icon={Zap} label="Quick Quote" active={pathname?.includes("/projects/quick-quote") ?? false} />
                         <NavItem href="/dashboard/projects/new" icon={FilePlus} label="New Project" active={pathname?.includes("/projects/new") ?? false} />
                     </SidebarSection>
 
@@ -408,10 +547,11 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                         <NavItem href={pLink("/dashboard/projects/brief")} icon={ClipboardList} label="Briefs" active={is("/dashboard/projects/brief")} />
                         <NavItem href={pLink("/dashboard/projects/costs")} icon={Calculator} label="Estimates" active={is("/dashboard/projects/costs")} />
                         <NavItem href={pLink("/dashboard/projects/schedule")} icon={CalendarDays} label="Programmes" active={is("/dashboard/projects/schedule")} />
-                        <NavItem href={pLink("/dashboard/projects/contracts")} icon={Scale} label="Contracts" active={is("/dashboard/projects/contracts")} />
+                        {showExtendedModules && <NavItem href={pLink("/dashboard/projects/contracts")} icon={Scale} label="Contracts" active={is("/dashboard/projects/contracts")} />}
                         <NavItem href={pLink("/dashboard/projects/proposal")} icon={FileText} label="Proposals" active={is("/dashboard/projects/proposal")} />
                     </SidebarSection>
 
+                    {showExtendedModules && <>
                     {/* Live Projects */}
                     <SidebarSection label="Live Projects" sectionKey="live-projects" collapsed={collapsed["live-projects"] ?? true} onToggle={toggleSection}>
                         <NavItem href={pLink("/dashboard/projects/overview")} icon={Activity} label="Project Overview" active={is("/dashboard/projects/overview")} />
@@ -434,23 +574,24 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
 
                     {/* Resources — direct links, no accordion */}
                     <div className="pt-1">
-                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 pb-1.5">Resources</div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 pb-1.5">Resources</div>
                         <NavItem href="/dashboard/resources/portfolio" icon={PieChart} label="Resource Portfolio" active={is("/dashboard/resources/portfolio")} />
                         <NavItem href="/dashboard/accounting" icon={Receipt} label="Accounting" active={is("/dashboard/accounting")} />
                     </div>
 
                     {/* Reporting — direct links, no accordion */}
                     <div className="pt-1">
-                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3 pb-1.5">Reporting</div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 pb-1.5">Reporting</div>
                         <NavItem href="/dashboard/reporting" icon={FileText} label="Reports & Photos" active={is("/dashboard/reporting")} />
                         <NavItem href="/dashboard/management-accounts" icon={BarChart2} label="Management Accounts" active={is("/dashboard/management-accounts")} />
                         <NavItem href="/dashboard/cis" icon={HardHat} label="CIS Compliance" active={is("/dashboard/cis")} />
                         {/* Business Intelligence (Lightbulb icon) gated for beta on
-                            19 Apr 2026 — the route now redirects to /dashboard/home.
+                            19 Apr 2026 — the route now redirects to /dashboard.
                             Restore once the backing tables (project_pl_snapshots,
                             project_schedules) exist. */}
                         <NavItem href="/dashboard/materials" icon={Package} label="Material Rates" active={is("/dashboard/materials")} />
                     </div>
+                    </>}
 
                 </div>
             </div>
@@ -479,7 +620,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
             <div className="px-4 pb-3">
                 <button
                     onClick={() => setTheme(isDark ? "system-c" : "dark")}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all text-xs font-medium"
+                    className="w-full min-h-11 lg:min-h-0 flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all text-xs font-medium"
                     title={isDark ? "Switch to the default theme (dark sidebar, lighter content)" : "Switch to the full-dark theme"}
                 >
                     {isDark ? (
@@ -498,15 +639,16 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                     </div>
                     <div className="overflow-hidden flex-1 min-w-0">
                         <div className="text-xs font-semibold text-slate-200 truncate">{user.email?.split("@")[0]}</div>
-                        <div className="text-[10px] text-slate-500 truncate">{user.email}</div>
+                        <div className="text-[10px] text-slate-400 truncate">{user.email}</div>
                     </div>
                     <form action="/auth/signout" method="post">
-                        <button className="p-1.5 rounded-md hover:bg-white/10 text-slate-500 hover:text-red-400 transition-colors">
+                        <button aria-label="Sign out" className="inline-flex items-center justify-center min-w-11 min-h-11 lg:min-w-0 lg:min-h-0 p-1.5 rounded-md hover:bg-white/10 text-slate-400 hover:text-red-400 transition-colors">
                             <LogOut className="w-3.5 h-3.5" />
                         </button>
                     </form>
                 </div>
             </div>
         </aside>
+        </>
     );
 }

@@ -10,7 +10,7 @@ export async function GET(request: Request) {
 
     // Handle PKCE code exchange (standard OAuth / email confirmation)
     if (code) {
-        const supabase = createClient()
+        const supabase = await createClient()
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (!error) {
             // If the code exchange was for a recovery flow, redirect to reset-password
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
 
     // Handle token_hash flow (e.g. email links with token_hash + type)
     if (token_hash && type) {
-        const supabase = createClient()
+        const supabase = await createClient()
         const { error } = await supabase.auth.verifyOtp({
             token_hash,
             type: type as 'recovery' | 'email' | 'signup',

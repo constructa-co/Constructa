@@ -5,8 +5,13 @@ import { computeContractSum } from "@/lib/financial";
 
 export const dynamic = "force-dynamic";
 
-export default async function Dashboard() {
-    const supabase = createClient();
+export default async function Dashboard({
+    searchParams,
+}: {
+    searchParams: Promise<{ notice?: string }>;
+}) {
+    const { notice } = await searchParams;
+    const supabase = await createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
 
@@ -101,6 +106,7 @@ export default async function Dashboard() {
             financials={financialMap}
             metrics={metrics}
             companyName={companyName}
+            launchNotice={notice === "module-unavailable"}
         />
     );
 }

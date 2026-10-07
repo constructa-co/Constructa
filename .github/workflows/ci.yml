@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Report dependency vulnerabilities
+        continue-on-error: true
+        run: npm audit --audit-level=critical
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Verify cost library SQL security boundary
+        run: npm run test:cost-library-sql
+      - name: Verify legacy definer SQL security boundary
+        run: npm run test:definer-sql
+      - name: Verify organization membership SQL security boundary
+        run: npm run test:organization-sql
+      - name: Verify Phase 1 Data API grant boundary
+        run: npm run test:phase1-grants-sql
+      - name: Verify proposal publication SQL security boundary
+        run: npm run test:proposal-sql
+      - name: Verify proposal non-binding response SQL boundary
+        run: npm run test:proposal-response-sql
+      - name: Verify supervisor token SQL security boundary
+        run: npm run test:supervisor-sql
+      - name: Verify Storage tenant boundary
+        run: npm run test:storage-sql
+      - run: npm run build

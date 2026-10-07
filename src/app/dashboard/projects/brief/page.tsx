@@ -12,8 +12,9 @@ function extractPostcode(address: string): string {
     return match ? match[0].toUpperCase() : '';
 }
 
-export default async function BriefPage({ searchParams }: { searchParams: { projectId?: string } }) {
-    const supabase = createClient();
+export default async function BriefPage(props: { searchParams: Promise<{ projectId?: string }> }) {
+    const searchParams = await props.searchParams;
+    const supabase = await createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
 
@@ -39,20 +40,11 @@ export default async function BriefPage({ searchParams }: { searchParams: { proj
         return <div className="p-8 text-slate-400">No projects found. Create one in the dashboard first.</div>;
     }
 
-    // Fetch active estimate (to check if lines exist for "Suggest Estimate Lines")
-    const { data: estimates } = await supabase
-        .from("estimates")
-        .select("id, version_name, is_active")
-        .eq("project_id", project.id)
-        .order("created_at");
-
-    const activeEstimate = (estimates || []).find((e: any) => e.is_active) || (estimates || [])[0] || null;
-
     const siteAddress = project.site_address || project.address || "";
     const postcode = project.postcode || extractPostcode(siteAddress) || "";
 
     return (
-        <div className="max-w-7xl mx-auto p-8 pt-24 space-y-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-8 pt-4 sm:pt-8 pb-16">
             <ProjectNavBar projectId={activeProjectId} activeTab="brief" />
 
             <BriefClient
@@ -62,19 +54,16 @@ export default async function BriefPage({ searchParams }: { searchParams: { proj
                     client_name: project.client_name || "",
                     site_address: siteAddress,
                     postcode,
-                    potential_value: project.potential_value || 0,
+                    potential_value: project.potential_value ?? null,
                     start_date: project.start_date || "",
                     brief_scope: project.brief_scope || "",
                     brief_trade_sections: (project.brief_trade_sections as string[]) || [],
                     client_type: project.client_type || "domestic",
-                    lat: project.lat || null,
-                    lng: project.lng || null,
+                    lat: project.lat ?? null,
+                    lng: project.lng ?? null,
                     region: project.region || "",
                     brief_completed: project.brief_completed || false,
-                    project_type: project.project_type || "",
                 }}
-                activeEstimateId={activeEstimate?.id || null}
-                projectId={activeProjectId}
             />
         </div>
     );

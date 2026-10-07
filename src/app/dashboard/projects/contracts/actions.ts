@@ -9,9 +9,11 @@
 import { requireAuth, requireProjectAccess } from "@/lib/supabase/auth-utils";
 import { generateJSON, generateText } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
+import { requireLaunchCapability } from "@/lib/launch-profile";
 
 // ── PDF / DOCX server-side text extraction ──────────────
 export async function extractContractTextAction(storagePath: string): Promise<{ text: string; error?: string }> {
+    requireLaunchCapability("contract-shield");
     try {
         const { supabase } = await requireAuth();
 
@@ -49,6 +51,7 @@ export async function extractContractTextAction(storagePath: string): Promise<{ 
 
 // ── T&C Tier Management ─────────────────────────────────
 export async function saveTcTierAction(projectId: string, tier: string) {
+    requireLaunchCapability("contract-shield");
     const { user, supabase } = await requireProjectAccess(projectId);
     const { error } = await supabase
         .from("projects")
@@ -93,6 +96,7 @@ export async function analyseContractAction(
     projectId: string,
     contractText: string
 ): Promise<{ flags: Array<{ type: string; clause: string; description: string; severity: string; recommendation: string }>; error?: string }> {
+    requireLaunchCapability("contract-shield");
     try {
         const { user, supabase } = await requireProjectAccess(projectId);
 
@@ -170,6 +174,7 @@ export async function dismissContractFlagAction(
     flagIndex: number,
     status: "accepted" | "disputed"
 ) {
+    requireLaunchCapability("contract-shield");
     const { user, supabase } = await requireProjectAccess(projectId);
     const { data } = await supabase
         .from("projects")
@@ -198,6 +203,7 @@ export async function saveRiskRegisterAction(
     projectId: string,
     riskRegister: Array<{ id: string; type: string; description: string; likelihood: string; impact: string; mitigation: string }>
 ) {
+    requireLaunchCapability("contract-shield");
     const { user, supabase } = await requireProjectAccess(projectId);
     const { error } = await supabase
         .from("projects")
@@ -209,6 +215,7 @@ export async function saveRiskRegisterAction(
 }
 
 export async function generateRiskRegisterAction(projectId: string, scope: string, projectType: string) {
+    requireLaunchCapability("contract-shield");
     return generateJSON<{ risks: Array<{ description: string; likelihood: string; impact: string; mitigation: string }>; opportunities: Array<{ description: string; likelihood: string; impact: string; action: string }> }>(
         `You are a UK construction risk manager. Generate a risk and opportunity register for this project.
     Project type: ${projectType}. Scope: ${scope?.substring(0, 500) || "Not specified"}.
@@ -223,6 +230,7 @@ export async function generateRiskRegisterAction(projectId: string, scope: strin
 
 // ── Exclusions & Clarifications ─────────────────────────
 export async function saveContractExclusionsAction(projectId: string, exclusions: string, clarifications: string) {
+    requireLaunchCapability("contract-shield");
     const { user, supabase } = await requireProjectAccess(projectId);
     const { error } = await supabase
         .from("projects")
@@ -241,6 +249,7 @@ export async function generateContractExclusionsAction(
     projectType: string,
     contractFlags?: Array<{ clause: string; description: string; severity: string; recommendation: string }>
 ) {
+    requireLaunchCapability("contract-shield");
     const flagsContext = contractFlags && contractFlags.length > 0
         ? `\n\nContract Shield has identified these risks/obligations in the client contract:\n${
             contractFlags
@@ -272,6 +281,7 @@ export async function contractChatAction(message: string, contractContext: {
     projectType: string;
     flags: Array<{ description: string }>;
 }): Promise<{ response: string }> {
+    requireLaunchCapability("contract-shield");
     const response = await generateText(
         `You are a UK construction contract risk awareness assistant for SME contractors.
     Help the contractor understand contract terms, risks, and standard practice.
@@ -297,6 +307,7 @@ export async function structureClientContractAction(
     contractText: string,
     flags: Array<{ clause: string; description: string; severity: string; recommendation: string }>
 ): Promise<{ clauses: Array<{ id: string; clauseRef: string; title: string; original: string; proposed: string; status: "accepted" | "modified" | "rejected"; reason: string; flagged: boolean }>; error?: string }> {
+    requireLaunchCapability("contract-shield");
     try {
         // Sanitise: remove control chars but PRESERVE newlines — clause structure depends on them
         const cleanText = contractText
@@ -386,6 +397,7 @@ export async function saveClientContractClausesAction(
     projectId: string,
     clauses: Array<{ id: string; clauseRef: string; title: string; original: string; proposed: string; status: string; reason: string; flagged: boolean }>
 ) {
+    requireLaunchCapability("contract-shield");
     try {
         const { user, supabase } = await requireProjectAccess(projectId);
         const { error } = await supabase
@@ -402,5 +414,6 @@ export async function saveClientContractClausesAction(
 
 // ── Legacy (kept for compatibility) ─────────────────────
 export async function generateContractAction(projectId: string) {
+    requireLaunchCapability("contract-shield");
     return "Use the Contracts hub tabs to manage your contract.";
 }

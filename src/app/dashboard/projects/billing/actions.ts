@@ -5,7 +5,7 @@
 // updateMilestoneAction / deleteMilestoneAction take a trusted projectId for
 // ownership verification and then anchor their UPDATE/DELETE by both the
 // row id and project_id so a spoofed projectId cannot reach a foreign row.
-import { requireProjectAccess } from "@/lib/supabase/auth-utils";
+import { requireProjectAccess } from "@/lib/supabase/extended-module-auth-utils";
 import { revalidatePath } from "next/cache";
 import { CreateAfpSchema, parseInput } from "@/lib/validation/schemas";
 

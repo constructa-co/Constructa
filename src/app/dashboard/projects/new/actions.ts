@@ -1,86 +1,49 @@
 "use server";
 
 import { requireAuth } from "@/lib/supabase/auth-utils";
-import { PROJECT_TEMPLATES } from "@/lib/templates";
+import {
+    BLANK_PROJECT_CREATE_ERROR,
+    buildBlankProjectGraph,
+    parseBlankProjectInput,
+    resolveBlankProjectCreation,
+    type CreateBlankProjectResult,
+} from "@/lib/blank-project";
 
-// Return type for the client
-export async function createProjectFromTemplateAction(formData: FormData) {
-    const { user, supabase } = await requireAuth();
+/**
+ * Creates a blank project through the atomic, idempotent creation RPC. The
+ * client sends the same request id on every retry, so a retry after a lost
+ * response returns the project that was already committed.
+ */
+export async function createBlankProjectAction(
+    formData: FormData,
+): Promise<CreateBlankProjectResult> {
+    const parsed = parseBlankProjectInput(Object.fromEntries(formData.entries()));
+    if (!parsed.ok) {
+        return { success: false, error: parsed.error, fieldErrors: parsed.fieldErrors };
+    }
+    const graph = buildBlankProjectGraph(parsed.input);
 
     try {
-        const name = formData.get("name") as string;
-        const client = formData.get("client") as string;
-        const typeId = formData.get("typeId") as string;
-
-        // New fields
-        const clientEmail = formData.get("clientEmail") as string || null;
-        const clientPhone = formData.get("clientPhone") as string || null;
-        const clientAddressRaw = formData.get("clientAddress") as string || null;
-        const siteAddressRaw = formData.get("siteAddress") as string || null;
-        const siteAddress = siteAddressRaw || clientAddressRaw;
-        const clientAddress = clientAddressRaw || siteAddressRaw;
-        const projectType = formData.get("projectType") as string || "Extension";
-        const startDateRaw = formData.get("startDate") as string;
-        const startDate = startDateRaw || null;
-        const potentialValueRaw = formData.get("potentialValue") as string;
-        const potentialValue = potentialValueRaw ? parseFloat(potentialValueRaw) : null;
-
-        // 1. Create Project — starts as Lead (no estimate yet); advances to Estimating once estimate work begins
-        const template = PROJECT_TEMPLATES.find(t => t.id === typeId);
-        const initialStatus = (template && template.items.length > 0) ? 'Estimating' : 'Lead';
-
-        const { data: project, error: projError } = await supabase.from("projects").insert({
-            user_id: user.id,
-            tenant_id: user.id,
-            name,
-            client_name: client,
-            client_email: clientEmail,
-            client_phone: clientPhone,
-            client_address: clientAddress,
-            site_address: siteAddress,
-            project_type: projectType,
-            start_date: startDate,
-            potential_value: potentialValue,
-            status: initialStatus,
-        }).select().single();
-
-        if (projError) return { success: false, error: "DB Error: " + projError.message };
-        if (!project) return { success: false, error: "Project creation failed (No data returned)" };
-
-        // 2. Unpack Template
-
-        if (template && template.items.length > 0) {
-            for (const item of template.items) {
-                const { data: estimate, error: estError } = await supabase.from("estimates").insert({
-                    project_id: project.id,
-                    tenant_id: user.id,
-                    version_name: item.name,
-                    status: 'Draft',
-                    total_cost: item.cost,
-                    margin_percent: 20
-                }).select().single();
-
-                if (estError) console.error("Estimate Error (Non-fatal):", estError.message);
-
-                if (estimate && item.lines && item.lines.length > 0) {
-                    const linesToInsert = item.lines.map(line => ({
-                        estimate_id: estimate.id,
-                        description: line.desc,
-                        quantity: line.qty,
-                        unit: line.unit,
-                        unit_rate: line.rate,
-                        line_total: line.qty * line.rate,
-                        resource_type: 'Material'
-                    }));
-                    await supabase.from("estimate_lines").insert(linesToInsert);
-                }
-            }
+        const { supabase } = await requireAuth();
+        const { data, error } = await supabase.rpc("create_phase1_project_graph", {
+            p_request_id: graph.requestId,
+            p_project: graph.project,
+            p_estimates: graph.estimates,
+        });
+        const result = resolveBlankProjectCreation(data, error);
+        if (!result.success) {
+            console.error("createBlankProjectAction failed", {
+                requestId: graph.requestId,
+                code: error?.code,
+                message: error?.message,
+            });
         }
-
-        // SUCCESS: Return the ID so the client can redirect to proposal
-        return { success: true, projectId: project.id };
-
-    } catch (err: any) {
-        return { success: false, error: "Server Exception: " + err.message };
+        return result;
+    } catch (error) {
+        console.error("createBlankProjectAction threw", {
+            requestId: graph.requestId,
+            message: error instanceof Error ? error.message : String(error),
+        });
+        return { success: false, error: BLANK_PROJECT_CREATE_ERROR };
     }
 }

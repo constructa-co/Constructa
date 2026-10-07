@@ -1,0 +1,1374 @@
+{
+  "01-brief-blank-start-1280x800.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "description": "",
+      "saveStatus": "Nothing to save yet",
+      "suggestionPending": false
+    }
+  },
+  "02-brief-ai-suggestion-pending-1280x800.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "description": "rip out old bathroom, move soil pipe, new suite, tile walls and floor. about 13500",
+      "saveStatus": "Unsaved",
+      "suggestionPending": true
+    }
+  },
+  "03-brief-suggestion-applied-1280x800.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "description": "Strip out the existing bathroom, relocate the soil pipe, and install a new bathroom suite with wall and floor tiling throughout.",
+      "saveStatus": "Unsaved",
+      "suggestionPending": false
+    }
+  },
+  "03b-brief-applied-trades-step2-1280x800.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 1206,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "included": [
+        "Demolition & Strip Out",
+        "Domestic Plumbing",
+        "Bathroom Installation",
+        "Tiling"
+      ]
+    }
+  },
+  "04-brief-suggestion-discarded-1280x800.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "description": "rip out old bathroom, move soil pipe, new suite, tile walls and floor. about 13500",
+      "saveStatus": "Unsaved",
+      "suggestionPending": false
+    }
+  },
+  "05-brief-ai-unavailable-manual-still-works-1280x800.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "description": "rip out old bathroom, move soil pipe, new suite, tile walls and floor. about 13500",
+      "saveStatus": "Unsaved",
+      "suggestionPending": false
+    }
+  },
+  "06-brief-site-step-1280x800.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": []
+  },
+  "07-brief-review-unsaved-1280x800.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": []
+  },
+  "07b-brief-leave-with-unsaved-changes-stays-1280x800.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "urlAfterChoosingToStay": "/dashboard/projects/brief",
+      "saveStatus": "Unsaved",
+      "confirmShown": [
+        {
+          "type": "confirm",
+          "message": "Your brief has changes that are not saved yet.\n\nPress Cancel to stay here and save them, or OK to leave without saving."
+        }
+      ]
+    }
+  },
+  "08-brief-save-failed-inputs-kept-1280x800.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "url": "/dashboard/projects/brief",
+      "saveStatus": "Failed - try again",
+      "alert": "We couldn't save the brief. Everything you typed is still here. Check your connection and try again.\n\nTry again",
+      "reviewStillShows": true,
+      "saveCalls": 1
+    }
+  },
+  "08b-brief-save-failed-review-retained-1280x800.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "url": "/dashboard/projects/brief",
+      "saveStatus": "Failed - try again",
+      "alert": "We couldn't save the brief. Everything you typed is still here. Check your connection and try again.\n\nTry again",
+      "reviewStillShows": true,
+      "saveCalls": 1
+    }
+  },
+  "09-brief-retry-saved-1280x800.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "url": "/dashboard/projects/brief",
+      "saveStatus": "Saved",
+      "saveCalls": 2,
+      "retrySentSamePayload": true,
+      "payload": {
+        "brief_scope": "rip out old bathroom, move soil pipe, new suite, tile walls and floor. about 13500\n\nSite, access and assumptions:\nRear access only. Client to clear the room before we start.",
+        "brief_trade_sections": [
+          "Bathroom Installation",
+          "Tiling"
+        ],
+        "client_type": "domestic",
+        "brief_completed": true,
+        "potential_value": 13500,
+        "start_date": "2026-11-02"
+      }
+    }
+  },
+  "10-estimate-blank-state-1280x800.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+      "total": "£0.00",
+      "emptyState": true,
+      "advancedOpen": "false",
+      "adjustmentsOpen": "false"
+    }
+  },
+  "11-estimate-first-line-one-price-1280x800.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "lineTotalPreview": "Line total: £9,500.00",
+      "total": "£0.00"
+    }
+  },
+  "12-estimate-first-line-saved-running-total-1280x800.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "total": "£9,500.00",
+      "lines": [
+        "Bathroom refit, labour and materials |  | £9,500.00"
+      ],
+      "calls": [
+        {
+          "action": "saveLine",
+          "projectId": "synthetic-project-1",
+          "estimateId": null,
+          "newEstimateId": "7b376658-9b8d-4adb-99e2-653187df458a",
+          "lineId": "1b0ab858-61d1-415d-abb2-55a9bcf16816",
+          "line": {
+            "description": "Bathroom refit, labour and materials",
+            "quantity": 1,
+            "unit": "item",
+            "unit_rate": 9500
+          }
+        }
+      ]
+    }
+  },
+  "13-estimate-quantity-rate-line-form-1280x800.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "lineTotalPreview": "Line total: £1,560.00",
+      "total": "£9,500.00"
+    }
+  },
+  "14-estimate-two-lines-running-total-1280x800.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "total": "£11,060.00",
+      "lines": [
+        "Bathroom refit, labour and materials |  | £9,500.00",
+        "Wall and floor tiling |  | 24 m2 × £65.00"
+      ],
+      "calls": [
+        {
+          "action": "saveLine",
+          "projectId": "synthetic-project-1",
+          "estimateId": null,
+          "newEstimateId": "7b376658-9b8d-4adb-99e2-653187df458a",
+          "lineId": "1b0ab858-61d1-415d-abb2-55a9bcf16816",
+          "line": {
+            "description": "Bathroom refit, labour and materials",
+            "quantity": 1,
+            "unit": "item",
+            "unit_rate": 9500
+          }
+        },
+        {
+          "action": "saveLine",
+          "projectId": "synthetic-project-1",
+          "estimateId": "7b376658-9b8d-4adb-99e2-653187df458a",
+          "newEstimateId": "7b376658-9b8d-4adb-99e2-653187df458a",
+          "lineId": "7fedf4de-5095-42c6-adb0-95d50443a02c",
+          "line": {
+            "description": "Wall and floor tiling",
+            "quantity": 24,
+            "unit": "m2",
+            "unit_rate": 65
+          }
+        }
+      ]
+    }
+  },
+  "14b-estimate-running-total-card-1280x800.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "total": "£11,060.00",
+      "lines": [
+        "Bathroom refit, labour and materials |  | £9,500.00",
+        "Wall and floor tiling |  | 24 m2 × £65.00"
+      ],
+      "calls": [
+        {
+          "action": "saveLine",
+          "projectId": "synthetic-project-1",
+          "estimateId": null,
+          "newEstimateId": "7b376658-9b8d-4adb-99e2-653187df458a",
+          "lineId": "1b0ab858-61d1-415d-abb2-55a9bcf16816",
+          "line": {
+            "description": "Bathroom refit, labour and materials",
+            "quantity": 1,
+            "unit": "item",
+            "unit_rate": 9500
+          }
+        },
+        {
+          "action": "saveLine",
+          "projectId": "synthetic-project-1",
+          "estimateId": "7b376658-9b8d-4adb-99e2-653187df458a",
+          "newEstimateId": "7b376658-9b8d-4adb-99e2-653187df458a",
+          "lineId": "7fedf4de-5095-42c6-adb0-95d50443a02c",
+          "line": {
+            "description": "Wall and floor tiling",
+            "quantity": 24,
+            "unit": "m2",
+            "unit_rate": 65
+          }
+        }
+      ]
+    }
+  },
+  "15-estimate-line-save-failed-input-kept-1280x800.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "typedDescription": "Skip hire and waste",
+      "typedAmount": "320",
+      "alert": "This line wasn't saved. What you typed is still here. Check your connection and try again.",
+      "total": "£11,060.00",
+      "savedLines": 2
+    }
+  },
+  "16-estimate-line-retry-saved-1280x800.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "total": "£11,380.00",
+      "savedLines": 3,
+      "retryReusedLineId": true,
+      "retryReusedEstimateId": true,
+      "firstLineRequest": {
+        "estimateId": null,
+        "newEstimateId": "7b376658-9b8d-4adb-99e2-653187df458a"
+      }
+    }
+  },
+  "17-estimate-remove-failed-line-kept-1280x800.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "alert": "This line wasn't removed. Check your connection and try again.\n\nTry again\nKeep it",
+      "total": "£11,380.00",
+      "savedLines": 3
+    }
+  },
+  "18-estimate-price-adjustments-open-1280x800.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "total": "£11,380.00",
+      "expanded": "true"
+    }
+  },
+  "18b-estimate-price-adjustments-preview-1280x800.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "totalStillSaved": "£11,380.00",
+      "preview": "Not saved yet. With these adjustments the total before VAT would be £14,395.70."
+    }
+  },
+  "19-estimate-adjustments-saved-total-1280x800.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "total": "£14,395.70",
+      "rows": [
+        "Your price lines £11,380.00",
+        "Overhead (10%) £1,138.00",
+        "Profit (15%) £1,877.70",
+        "Total before VAT £14,395.70",
+        "VAT (20%) £2,879.14",
+        "Total including VAT £17,274.84"
+      ]
+    }
+  },
+  "20-estimate-advanced-disclosure-open-1280x800.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 1211,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 53,
+    "inlineTextLinks": [],
+    "values": {
+      "expanded": "true",
+      "offers": [
+        "Full bill of quantities by trade section",
+        "Rate build-ups from labour, plant and materials",
+        "Cost library search",
+        "More than one version of the estimate"
+      ],
+      "simpleListHidden": true
+    }
+  },
+  "21-established-estimate-simple-view-1280x800.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1&fx=established",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "total": "£18,932.24",
+      "lines": [
+        "Strip out existing bathroom and cart away |  | Demolition",
+        "First and second fix plumbing |  | Plumbing · 3 day × £320.00 · Rate build-up",
+        "Wall and floor tiling |  | Finishes · 24 m2 × £65.00",
+        "Supply and fit bathroom suite |  | Plumbing"
+      ],
+      "calls": []
+    }
+  },
+  "21b-established-estimate-total-1280x800.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1&fx=established",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "total": "£18,932.24",
+      "rows": [
+        "Your price lines £13,290.00",
+        "Preliminaries (10%) £1,329.00",
+        "Overhead (10%) £1,461.90",
+        "Risk (5%) £804.05",
+        "Profit (15%) £2,532.74",
+        "Discount (2.5%) -£485.44",
+        "Total before VAT £18,932.24",
+        "VAT (20%) £3,786.45",
+        "Total including VAT £22,718.69"
+      ]
+    }
+  },
+  "22-established-estimate-advanced-workspace-1280x800.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1&fx=established",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 1211,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 61,
+    "inlineTextLinks": [],
+    "values": {
+      "sections": [
+        "Demolition",
+        "Plumbing",
+        "Finishes"
+      ],
+      "total": "£18,932.24"
+    }
+  },
+  "23-established-brief-data-preserved-1280x800.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1&fx=established",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "description": "Strip out the existing bathroom, move the soil pipe, fit a new suite and tile the walls and floor.",
+      "saveStatus": "Saved",
+      "suggestionPending": false
+    }
+  },
+  "24-brief-blank-start-dark-theme-1280x800.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1&theme=dark",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "description": "",
+      "saveStatus": "Nothing to save yet",
+      "suggestionPending": false
+    }
+  },
+  "25-established-estimate-dark-theme-1280x800.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1&fx=established&theme=dark",
+    "viewportWidth": 1280,
+    "documentScrollWidth": 1280,
+    "mainClientWidth": 1024,
+    "mainScrollWidth": 1024,
+    "widestElementRight": 1280,
+    "widestRightInsideOwnScroller": 782,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "total": "£18,932.24",
+      "lines": [
+        "Strip out existing bathroom and cart away |  | Demolition",
+        "First and second fix plumbing |  | Plumbing · 3 day × £320.00 · Rate build-up",
+        "Wall and floor tiling |  | Finishes · 24 m2 × £65.00",
+        "Supply and fit bathroom suite |  | Plumbing"
+      ],
+      "calls": []
+    }
+  },
+  "01-brief-blank-start-390x844.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "description": "",
+      "saveStatus": "Nothing to save yet",
+      "suggestionPending": false
+    }
+  },
+  "02-brief-ai-suggestion-pending-390x844.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "description": "rip out old bathroom, move soil pipe, new suite, tile walls and floor. about 13500",
+      "saveStatus": "Unsaved",
+      "suggestionPending": true
+    }
+  },
+  "03-brief-suggestion-applied-390x844.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "description": "Strip out the existing bathroom, relocate the soil pipe, and install a new bathroom suite with wall and floor tiling throughout.",
+      "saveStatus": "Unsaved",
+      "suggestionPending": false
+    }
+  },
+  "03b-brief-applied-trades-step2-390x844.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "included": [
+        "Demolition & Strip Out",
+        "Domestic Plumbing",
+        "Bathroom Installation",
+        "Tiling"
+      ]
+    }
+  },
+  "04-brief-suggestion-discarded-390x844.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "description": "rip out old bathroom, move soil pipe, new suite, tile walls and floor. about 13500",
+      "saveStatus": "Unsaved",
+      "suggestionPending": false
+    }
+  },
+  "05-brief-ai-unavailable-manual-still-works-390x844.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "description": "rip out old bathroom, move soil pipe, new suite, tile walls and floor. about 13500",
+      "saveStatus": "Unsaved",
+      "suggestionPending": false
+    }
+  },
+  "06-brief-site-step-390x844.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": []
+  },
+  "07-brief-review-unsaved-390x844.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": []
+  },
+  "07b-brief-leave-with-unsaved-changes-stays-390x844.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "urlAfterChoosingToStay": "/dashboard/projects/brief",
+      "saveStatus": "Unsaved",
+      "confirmShown": [
+        {
+          "type": "confirm",
+          "message": "Your brief has changes that are not saved yet.\n\nPress Cancel to stay here and save them, or OK to leave without saving."
+        }
+      ]
+    }
+  },
+  "08-brief-save-failed-inputs-kept-390x844.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "url": "/dashboard/projects/brief",
+      "saveStatus": "Failed - try again",
+      "alert": "We couldn't save the brief. Everything you typed is still here. Check your connection and try again.\n\nTry again",
+      "reviewStillShows": true,
+      "saveCalls": 1
+    }
+  },
+  "08b-brief-save-failed-review-retained-390x844.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "url": "/dashboard/projects/brief",
+      "saveStatus": "Failed - try again",
+      "alert": "We couldn't save the brief. Everything you typed is still here. Check your connection and try again.\n\nTry again",
+      "reviewStillShows": true,
+      "saveCalls": 1
+    }
+  },
+  "09-brief-retry-saved-390x844.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "url": "/dashboard/projects/brief",
+      "saveStatus": "Saved",
+      "saveCalls": 2,
+      "retrySentSamePayload": true,
+      "payload": {
+        "brief_scope": "rip out old bathroom, move soil pipe, new suite, tile walls and floor. about 13500\n\nSite, access and assumptions:\nRear access only. Client to clear the room before we start.",
+        "brief_trade_sections": [
+          "Bathroom Installation",
+          "Tiling"
+        ],
+        "client_type": "domestic",
+        "brief_completed": true,
+        "potential_value": 13500,
+        "start_date": "2026-11-02"
+      }
+    }
+  },
+  "10-estimate-blank-state-390x844.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+      "total": "£0.00",
+      "emptyState": true,
+      "advancedOpen": "false",
+      "adjustmentsOpen": "false"
+    }
+  },
+  "11-estimate-first-line-one-price-390x844.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "lineTotalPreview": "Line total: £9,500.00",
+      "total": "£0.00"
+    }
+  },
+  "12-estimate-first-line-saved-running-total-390x844.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "total": "£9,500.00",
+      "lines": [
+        "Bathroom refit, labour and materials |  | £9,500.00"
+      ],
+      "calls": [
+        {
+          "action": "saveLine",
+          "projectId": "synthetic-project-1",
+          "estimateId": null,
+          "newEstimateId": "4aaacf6d-8dc5-4ffd-8ff5-3d5b0920784a",
+          "lineId": "8023049d-2ddf-4344-8682-b2d2a8c6a68c",
+          "line": {
+            "description": "Bathroom refit, labour and materials",
+            "quantity": 1,
+            "unit": "item",
+            "unit_rate": 9500
+          }
+        }
+      ]
+    }
+  },
+  "13-estimate-quantity-rate-line-form-390x844.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "lineTotalPreview": "Line total: £1,560.00",
+      "total": "£9,500.00"
+    }
+  },
+  "14-estimate-two-lines-running-total-390x844.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "total": "£11,060.00",
+      "lines": [
+        "Bathroom refit, labour and materials |  | £9,500.00",
+        "Wall and floor tiling |  | 24 m2 × £65.00"
+      ],
+      "calls": [
+        {
+          "action": "saveLine",
+          "projectId": "synthetic-project-1",
+          "estimateId": null,
+          "newEstimateId": "4aaacf6d-8dc5-4ffd-8ff5-3d5b0920784a",
+          "lineId": "8023049d-2ddf-4344-8682-b2d2a8c6a68c",
+          "line": {
+            "description": "Bathroom refit, labour and materials",
+            "quantity": 1,
+            "unit": "item",
+            "unit_rate": 9500
+          }
+        },
+        {
+          "action": "saveLine",
+          "projectId": "synthetic-project-1",
+          "estimateId": "4aaacf6d-8dc5-4ffd-8ff5-3d5b0920784a",
+          "newEstimateId": "4aaacf6d-8dc5-4ffd-8ff5-3d5b0920784a",
+          "lineId": "57dc21c9-8ae7-4907-b70b-1539d4eb9ea2",
+          "line": {
+            "description": "Wall and floor tiling",
+            "quantity": 24,
+            "unit": "m2",
+            "unit_rate": 65
+          }
+        }
+      ]
+    }
+  },
+  "14b-estimate-running-total-card-390x844.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "total": "£11,060.00",
+      "lines": [
+        "Bathroom refit, labour and materials |  | £9,500.00",
+        "Wall and floor tiling |  | 24 m2 × £65.00"
+      ],
+      "calls": [
+        {
+          "action": "saveLine",
+          "projectId": "synthetic-project-1",
+          "estimateId": null,
+          "newEstimateId": "4aaacf6d-8dc5-4ffd-8ff5-3d5b0920784a",
+          "lineId": "8023049d-2ddf-4344-8682-b2d2a8c6a68c",
+          "line": {
+            "description": "Bathroom refit, labour and materials",
+            "quantity": 1,
+            "unit": "item",
+            "unit_rate": 9500
+          }
+        },
+        {
+          "action": "saveLine",
+          "projectId": "synthetic-project-1",
+          "estimateId": "4aaacf6d-8dc5-4ffd-8ff5-3d5b0920784a",
+          "newEstimateId": "4aaacf6d-8dc5-4ffd-8ff5-3d5b0920784a",
+          "lineId": "57dc21c9-8ae7-4907-b70b-1539d4eb9ea2",
+          "line": {
+            "description": "Wall and floor tiling",
+            "quantity": 24,
+            "unit": "m2",
+            "unit_rate": 65
+          }
+        }
+      ]
+    }
+  },
+  "15-estimate-line-save-failed-input-kept-390x844.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "typedDescription": "Skip hire and waste",
+      "typedAmount": "320",
+      "alert": "This line wasn't saved. What you typed is still here. Check your connection and try again.",
+      "total": "£11,060.00",
+      "savedLines": 2
+    }
+  },
+  "16-estimate-line-retry-saved-390x844.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "total": "£11,380.00",
+      "savedLines": 3,
+      "retryReusedLineId": true,
+      "retryReusedEstimateId": true,
+      "firstLineRequest": {
+        "estimateId": null,
+        "newEstimateId": "4aaacf6d-8dc5-4ffd-8ff5-3d5b0920784a"
+      }
+    }
+  },
+  "17-estimate-remove-failed-line-kept-390x844.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "alert": "This line wasn't removed. Check your connection and try again.\n\nTry again\nKeep it",
+      "total": "£11,380.00",
+      "savedLines": 3
+    }
+  },
+  "18-estimate-price-adjustments-open-390x844.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "total": "£11,380.00",
+      "expanded": "true"
+    }
+  },
+  "18b-estimate-price-adjustments-preview-390x844.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "totalStillSaved": "£11,380.00",
+      "preview": "Not saved yet. With these adjustments the total before VAT would be £14,395.70."
+    }
+  },
+  "19-estimate-adjustments-saved-total-390x844.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "total": "£14,395.70",
+      "rows": [
+        "Your price lines £11,380.00",
+        "Overhead (10%) £1,138.00",
+        "Profit (15%) £1,877.70",
+        "Total before VAT £14,395.70",
+        "VAT (20%) £2,879.14",
+        "Total including VAT £17,274.84"
+      ]
+    }
+  },
+  "20-estimate-advanced-disclosure-open-390x844.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 801,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 53,
+    "inlineTextLinks": [],
+    "values": {
+      "expanded": "true",
+      "offers": [
+        "Full bill of quantities by trade section",
+        "Rate build-ups from labour, plant and materials",
+        "Cost library search",
+        "More than one version of the estimate"
+      ],
+      "simpleListHidden": true
+    }
+  },
+  "21-established-estimate-simple-view-390x844.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1&fx=established",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "total": "£18,932.24",
+      "lines": [
+        "Strip out existing bathroom and cart away |  | Demolition",
+        "First and second fix plumbing |  | Plumbing · 3 day × £320.00 · Rate build-up",
+        "Wall and floor tiling |  | Finishes · 24 m2 × £65.00",
+        "Supply and fit bathroom suite |  | Plumbing"
+      ],
+      "calls": []
+    }
+  },
+  "21b-established-estimate-total-390x844.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1&fx=established",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "total": "£18,932.24",
+      "rows": [
+        "Your price lines £13,290.00",
+        "Preliminaries (10%) £1,329.00",
+        "Overhead (10%) £1,461.90",
+        "Risk (5%) £804.05",
+        "Profit (15%) £2,532.74",
+        "Discount (2.5%) -£485.44",
+        "Total before VAT £18,932.24",
+        "VAT (20%) £3,786.45",
+        "Total including VAT £22,718.69"
+      ]
+    }
+  },
+  "22-established-estimate-advanced-workspace-390x844.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1&fx=established",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 801,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 61,
+    "inlineTextLinks": [],
+    "values": {
+      "sections": [
+        "Demolition",
+        "Plumbing",
+        "Finishes"
+      ],
+      "total": "£18,932.24"
+    }
+  },
+  "23-established-brief-data-preserved-390x844.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1&fx=established",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "description": "Strip out the existing bathroom, move the soil pipe, fit a new suite and tile the walls and floor.",
+      "saveStatus": "Saved",
+      "suggestionPending": false
+    }
+  },
+  "24-brief-blank-start-dark-theme-390x844.jpg": {
+    "url": "/dashboard/projects/brief?projectId=synthetic-project-1&theme=dark",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "description": "",
+      "saveStatus": "Nothing to save yet",
+      "suggestionPending": false
+    }
+  },
+  "25-established-estimate-dark-theme-390x844.jpg": {
+    "url": "/dashboard/projects/costs?projectId=synthetic-project-1&fx=established&theme=dark",
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "mainClientWidth": 390,
+    "mainScrollWidth": 390,
+    "widestElementRight": 390,
+    "widestRightInsideOwnScroller": 478,
+    "horizontalOverflow": false,
+    "tapTargetsUnder44": [],
+    "advancedWorkspaceTargetsUnder44": 0,
+    "inlineTextLinks": [],
+    "values": {
+      "total": "£18,932.24",
+      "lines": [
+        "Strip out existing bathroom and cart away |  | Demolition",
+        "First and second fix plumbing |  | Plumbing · 3 day × £320.00 · Rate build-up",
+        "Wall and floor tiling |  | Finishes · 24 m2 × £65.00",
+        "Supply and fit bathroom suite |  | Plumbing"
+      ],
+      "calls": []
+    }
+  }
+}

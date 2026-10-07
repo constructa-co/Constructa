@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import {
     addComponentAction,
     updateComponentAction,
@@ -151,6 +152,7 @@ export default function BuildUpPanel({
     };
 
     const handleUpdate = (compId: string, updates: Partial<EstimateLineComponent>) => {
+        const previous = components;
         if (updates.description !== undefined) {
             setDescInputs(prev => ({ ...prev, [compId]: updates.description! }));
         }
@@ -164,16 +166,29 @@ export default function BuildUpPanel({
         setComponents(updated);
         notifyParent(updated);
         startTransition(async () => {
-            await updateComponentAction(compId, updates);
+            try {
+                await updateComponentAction(compId, updates);
+            } catch (error) {
+                setComponents(previous);
+                notifyParent(previous);
+                toast.error(error instanceof Error ? error.message : "Component update was not saved");
+            }
         });
     };
 
     const handleDelete = (compId: string) => {
+        const previous = components;
         const updated = components.filter((c) => c.id !== compId);
         setComponents(updated);
         notifyParent(updated);
         startTransition(async () => {
-            await deleteComponentAction(compId);
+            try {
+                await deleteComponentAction(compId);
+            } catch (error) {
+                setComponents(previous);
+                notifyParent(previous);
+                toast.error(error instanceof Error ? error.message : "Component delete was not saved");
+            }
         });
     };
 

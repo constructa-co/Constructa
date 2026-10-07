@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { AlertTriangle, RefreshCw, Home, LayoutDashboard } from "lucide-react";
 import { reportError } from "@/lib/observability";
+import { getLaunchLandingPath } from "@/lib/launch-profile";
 
 /**
  * Projects sub-route error boundary.
@@ -74,13 +75,13 @@ export default function ProjectsError({
                         <LayoutDashboard className="w-4 h-4" />
                         Pipeline
                     </Link>
-                    <Link
-                        href="/dashboard/home"
+                    {getLaunchLandingPath() === "/dashboard/home" && <Link
+                        href={getLaunchLandingPath()}
                         className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold transition-colors"
                     >
                         <Home className="w-4 h-4" />
                         Home
-                    </Link>
+                    </Link>}
                 </div>
             </div>
         </div>

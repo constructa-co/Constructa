@@ -1,0 +1,1200 @@
+{
+  "project": "desktop-keyboard",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "input": "keyboard",
+  "startedAt": "2026-10-04T14:06:49.968Z",
+  "finishedAt": "2026-10-04T14:07:39.104Z",
+  "outcome": "passed",
+  "steps": [
+    "protected route redirects to sign in",
+    "sign up, then sign in",
+    "company setup: trade, then business name",
+    "zero projects, then the first blank project",
+    "brief: suggestion pending until Apply, then confirmed",
+    "estimate: three lines, explicit Preliminaries, risk 7.5%",
+    "review: sending blocked until programme and payment stages exist",
+    "programme: start, duration, finish, stages, save failure and retry",
+    "review: payment stages, parity, light document, acknowledgement default, publish v1",
+    "public proposal: anonymous view, PDF parity, validation, acknowledgement",
+    "contractor: history and pipeline show the acknowledgement",
+    "pipeline shows the job; later modules stay closed"
+  ],
+  "checkpoints": [
+    {
+      "name": "account-created",
+      "path": "/login",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 5,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "sign-in",
+      "path": "/login",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 5,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "setup-trade-needed",
+      "path": "/onboarding",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 15,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "setup-business",
+      "path": "/onboarding",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 5,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "first-project",
+      "path": "/dashboard/projects/new",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 18,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": [
+          {
+            "control": "a: CConstructa",
+            "width": 216,
+            "height": 32
+          },
+          {
+            "control": "button: Select a project…",
+            "width": 224,
+            "height": 34
+          },
+          {
+            "control": "button: Company Profile",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Work Winning",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Pre-Construction",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Full Dark Theme",
+            "width": 224,
+            "height": 32
+          },
+          {
+            "control": "button: Sign out",
+            "width": 26,
+            "height": 26
+          }
+        ]
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "brief-suggestion-pending",
+      "path": "/dashboard/projects/brief",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 25,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": [
+          {
+            "control": "a: CConstructa",
+            "width": 216,
+            "height": 32
+          },
+          {
+            "control": "button: Select a project…",
+            "width": 224,
+            "height": 34
+          },
+          {
+            "control": "button: Company Profile",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Work Winning",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Pre-Construction",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Full Dark Theme",
+            "width": 224,
+            "height": 32
+          },
+          {
+            "control": "button: Sign out",
+            "width": 26,
+            "height": 26
+          }
+        ]
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "brief-review",
+      "path": "/dashboard/projects/brief",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 24,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": [
+          {
+            "control": "a: CConstructa",
+            "width": 216,
+            "height": 32
+          },
+          {
+            "control": "button: Select a project…",
+            "width": 224,
+            "height": 34
+          },
+          {
+            "control": "button: Company Profile",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Work Winning",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Pre-Construction",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Full Dark Theme",
+            "width": 224,
+            "height": 32
+          },
+          {
+            "control": "button: Sign out",
+            "width": 26,
+            "height": 26
+          }
+        ]
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "estimate-priced",
+      "path": "/dashboard/projects/costs",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 32,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": [
+          {
+            "control": "a: CConstructa",
+            "width": 216,
+            "height": 32
+          },
+          {
+            "control": "button: 14 Example Road bathroom refit",
+            "width": 224,
+            "height": 34
+          },
+          {
+            "control": "button: Company Profile",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Work Winning",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Pre-Construction",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "a: Briefs",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Estimates",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Programmes",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Proposals",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "button: Full Dark Theme",
+            "width": 224,
+            "height": 32
+          },
+          {
+            "control": "button: Sign out",
+            "width": 26,
+            "height": 26
+          }
+        ]
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "review-not-ready",
+      "path": "/dashboard/projects/proposal",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 43,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": [
+          {
+            "control": "a: CConstructa",
+            "width": 216,
+            "height": 32
+          },
+          {
+            "control": "button: 14 Example Road bathroom refit",
+            "width": 224,
+            "height": 34
+          },
+          {
+            "control": "button: Company Profile",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Work Winning",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Pre-Construction",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "a: Briefs",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Estimates",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Programmes",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Proposals",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "button: Full Dark Theme",
+            "width": 224,
+            "height": 32
+          },
+          {
+            "control": "button: Sign out",
+            "width": 26,
+            "height": 26
+          }
+        ]
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "programme-saved",
+      "path": "/dashboard/projects/schedule",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 37,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": [
+          {
+            "control": "a: CConstructa",
+            "width": 216,
+            "height": 32
+          },
+          {
+            "control": "button: 14 Example Road bathroom refit",
+            "width": 224,
+            "height": 34
+          },
+          {
+            "control": "button: Company Profile",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Work Winning",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Pre-Construction",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "a: Briefs",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Estimates",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Programmes",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Proposals",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "button: Full Dark Theme",
+            "width": 224,
+            "height": 32
+          },
+          {
+            "control": "button: Sign out",
+            "width": 26,
+            "height": 26
+          }
+        ]
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "review-ready",
+      "path": "/dashboard/projects/proposal",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 50,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": [
+          {
+            "control": "a: CConstructa",
+            "width": 216,
+            "height": 32
+          },
+          {
+            "control": "button: 14 Example Road bathroom refit",
+            "width": 224,
+            "height": 34
+          },
+          {
+            "control": "button: Company Profile",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Work Winning",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Pre-Construction",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "a: Briefs",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Estimates",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Programmes",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Proposals",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "button: Full Dark Theme",
+            "width": 224,
+            "height": 32
+          },
+          {
+            "control": "button: Sign out",
+            "width": 26,
+            "height": 26
+          }
+        ]
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "send-acknowledgement-default",
+      "path": "/dashboard/projects/proposal",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 50,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": [
+          {
+            "control": "a: CConstructa",
+            "width": 216,
+            "height": 32
+          },
+          {
+            "control": "button: 14 Example Road bathroom refit",
+            "width": 224,
+            "height": 34
+          },
+          {
+            "control": "button: Company Profile",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Work Winning",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Pre-Construction",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "a: Briefs",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Estimates",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Programmes",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Proposals",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "button: Full Dark Theme",
+            "width": 224,
+            "height": 32
+          },
+          {
+            "control": "button: Sign out",
+            "width": 26,
+            "height": 26
+          }
+        ]
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "published-email-sent",
+      "path": "/dashboard/projects/proposal",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 53,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": [
+          {
+            "control": "a: CConstructa",
+            "width": 216,
+            "height": 32
+          },
+          {
+            "control": "button: 14 Example Road bathroom refit",
+            "width": 224,
+            "height": 34
+          },
+          {
+            "control": "button: Company Profile",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Work Winning",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Pre-Construction",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "a: Briefs",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Estimates",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Programmes",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Proposals",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "button: Full Dark Theme",
+            "width": 224,
+            "height": 32
+          },
+          {
+            "control": "button: Sign out",
+            "width": 26,
+            "height": 26
+          }
+        ]
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "public-acknowledgement",
+      "path": "/proposal/<token>",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 4,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "public-acknowledgement-response",
+      "path": "/proposal/<token>",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 4,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "public-acknowledgement-recorded",
+      "path": "/proposal/<token>",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 1,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "contractor-history-acknowledged",
+      "path": "/dashboard/projects/proposal",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 52,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": [
+          {
+            "control": "a: CConstructa",
+            "width": 216,
+            "height": 32
+          },
+          {
+            "control": "button: 14 Example Road bathroom refit",
+            "width": 224,
+            "height": 34
+          },
+          {
+            "control": "button: Company Profile",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Work Winning",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Pre-Construction",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "a: Briefs",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Estimates",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Programmes",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Proposals",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "button: Full Dark Theme",
+            "width": 224,
+            "height": 32
+          },
+          {
+            "control": "button: Sign out",
+            "width": 26,
+            "height": 26
+          }
+        ]
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "pipeline",
+      "path": "/dashboard",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 28,
+        "undersized": [
+          {
+            "control": "a: + New Project",
+            "width": 135,
+            "height": 40
+          },
+          {
+            "control": "button: This Week",
+            "width": 85,
+            "height": 28
+          },
+          {
+            "control": "button: This Month",
+            "width": 89,
+            "height": 28
+          },
+          {
+            "control": "button: This Quarter",
+            "width": 97,
+            "height": 28
+          },
+          {
+            "control": "button: This Year",
+            "width": 78,
+            "height": 28
+          },
+          {
+            "control": "input: Search by client or project name",
+            "width": 658,
+            "height": 38
+          },
+          {
+            "control": "select: Filter by type of job",
+            "width": 103,
+            "height": 37
+          },
+          {
+            "control": "select: Filter by stage",
+            "width": 134,
+            "height": 37
+          },
+          {
+            "control": "button: Board",
+            "width": 78,
+            "height": 28
+          },
+          {
+            "control": "button: List",
+            "width": 65,
+            "height": 28
+          },
+          {
+            "control": "a: New lead",
+            "width": 22,
+            "height": 22
+          },
+          {
+            "control": "button: Stage of 14 Example Road bathroom refit",
+            "width": 123,
+            "height": 28
+          },
+          {
+            "control": "button: Mark as Won",
+            "width": 123,
+            "height": 29
+          },
+          {
+            "control": "button: ← Pull Back",
+            "width": 52,
+            "height": 14
+          },
+          {
+            "control": "button: Mark as Lost",
+            "width": 56,
+            "height": 14
+          },
+          {
+            "control": "a: Proposal",
+            "width": 57,
+            "height": 14
+          },
+          {
+            "control": "a: Costs",
+            "width": 36,
+            "height": 14
+          }
+        ],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": [
+          {
+            "control": "a: CConstructa",
+            "width": 216,
+            "height": 32
+          },
+          {
+            "control": "button: 14 Example Road bathroom refit",
+            "width": 224,
+            "height": 34
+          },
+          {
+            "control": "button: Company Profile",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Work Winning",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Pre-Construction",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "a: Briefs",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Estimates",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Programmes",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Proposals",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "button: Full Dark Theme",
+            "width": 224,
+            "height": 32
+          },
+          {
+            "control": "button: Sign out",
+            "width": 26,
+            "height": 26
+          }
+        ]
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "later-module-unavailable",
+      "path": "/dashboard",
+      "layout": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 28,
+        "undersized": [
+          {
+            "control": "a: + New Project",
+            "width": 135,
+            "height": 40
+          },
+          {
+            "control": "button: This Week",
+            "width": 85,
+            "height": 28
+          },
+          {
+            "control": "button: This Month",
+            "width": 89,
+            "height": 28
+          },
+          {
+            "control": "button: This Quarter",
+            "width": 97,
+            "height": 28
+          },
+          {
+            "control": "button: This Year",
+            "width": 78,
+            "height": 28
+          },
+          {
+            "control": "input: Search by client or project name",
+            "width": 658,
+            "height": 38
+          },
+          {
+            "control": "select: Filter by type of job",
+            "width": 103,
+            "height": 37
+          },
+          {
+            "control": "select: Filter by stage",
+            "width": 134,
+            "height": 37
+          },
+          {
+            "control": "button: Board",
+            "width": 78,
+            "height": 28
+          },
+          {
+            "control": "button: List",
+            "width": 65,
+            "height": 28
+          },
+          {
+            "control": "a: New lead",
+            "width": 22,
+            "height": 22
+          },
+          {
+            "control": "button: Stage of 14 Example Road bathroom refit",
+            "width": 123,
+            "height": 28
+          },
+          {
+            "control": "button: Mark as Won",
+            "width": 123,
+            "height": 29
+          },
+          {
+            "control": "button: ← Pull Back",
+            "width": 52,
+            "height": 14
+          },
+          {
+            "control": "button: Mark as Lost",
+            "width": 56,
+            "height": 14
+          },
+          {
+            "control": "a: Proposal",
+            "width": 57,
+            "height": 14
+          },
+          {
+            "control": "a: Costs",
+            "width": 36,
+            "height": 14
+          }
+        ],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": [
+          {
+            "control": "a: CConstructa",
+            "width": 216,
+            "height": 32
+          },
+          {
+            "control": "button: 14 Example Road bathroom refit",
+            "width": 224,
+            "height": 34
+          },
+          {
+            "control": "button: Company Profile",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Work Winning",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "button: Pre-Construction",
+            "width": 232,
+            "height": 31
+          },
+          {
+            "control": "a: Briefs",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Estimates",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Programmes",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "a: Proposals",
+            "width": 232,
+            "height": 36
+          },
+          {
+            "control": "button: Full Dark Theme",
+            "width": 224,
+            "height": 32
+          },
+          {
+            "control": "button: Sign out",
+            "width": 26,
+            "height": 26
+          }
+        ]
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    }
+  ],
+  "parity": {
+    "estimate": {
+      "beforeVat": "£10,754.13",
+      "vat": "£2,150.83",
+      "includingVat": "£12,904.96"
+    },
+    "programme": {
+      "start": "Monday 2 November 2026",
+      "finish": "Tuesday 24 November 2026"
+    },
+    "review": {
+      "beforeVat": "£10,754.13",
+      "vat": "£2,150.83",
+      "includingVat": "£12,904.96",
+      "finish": "Tuesday 24 November 2026"
+    },
+    "documentLuminanceByTheme": {
+      "first": {
+        "page": 1,
+        "document": 1
+      },
+      "second": {
+        "page": 0.010329823029626936,
+        "document": 1
+      }
+    },
+    "pdf-acknowledgement": {
+      "pages": 4,
+      "includingVat": "£12,904.96",
+      "finish": "Tuesday 24 November 2026",
+      "responseLine": "Client: receipt confirmed"
+    }
+  },
+  "keyboard": {
+    "controlsReached": 87,
+    "withoutVisibleFocus": []
+  },
+  "blockedThirdPartyHosts": [
+    "plausible.io",
+    "www.clarity.ms"
+  ],
+  "provider": {
+    "aiRequests": 1,
+    "emailsAccepted": 4,
+    "emailsFailedOnPurpose": 0,
+    "everyRecipientSynthetic": true,
+    "violations": []
+  },
+  "database": {
+    "accountCreatedIn": "constructa-e2e-pr79",
+    "publications": [
+      {
+        "version": 1,
+        "status": "acknowledged",
+        "responseKind": "acknowledgement",
+        "events": [
+          "published",
+          "delivery_queued",
+          "delivery_sent",
+          "viewed",
+          "acknowledged",
+          "owner_receipt_sent"
+        ]
+      }
+    ]
+  }
+}

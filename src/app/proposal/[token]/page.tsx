@@ -1,104 +1,97 @@
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import AcceptanceClient from "./acceptance-client";
+import { hashProposalAccessToken, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
+import { buildProposalDocument } from "@/lib/proposal-document";
+import { responseWording } from "@/lib/proposal-response";
+import ProposalDocumentView from "@/components/proposal/proposal-document-view";
 import { sendContractorViewedNotification } from "@/lib/email";
+import ResponseClient from "./response-client";
+import PublicPdfButton from "./public-pdf-button";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProposalAcceptancePage({ params }: { params: { token: string } }) {
-    const supabase = createClient();
-    const { token } = params;
-
-    // Fetch project by proposal_token — no auth required (public route)
-    const { data: project } = await supabase
-        .from("projects")
-        .select("id, name, client_name, potential_value, proposal_status, proposal_sent_at, proposal_accepted_at, proposal_accepted_by, user_id, scope_text, exclusions_text, payment_schedule, gantt_phases, programme_phases, project_type, start_date, site_address, client_address")
-        .eq("proposal_token", token)
-        .single();
-
-    if (!project) {
-        return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center p-8">
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-10 max-w-md w-full text-center">
-                    <h1 className="text-2xl font-bold text-slate-100 mb-3">Proposal Not Found</h1>
-                    <p className="text-slate-400">
-                        This proposal link is invalid or has expired. Please contact the contractor for a new link.
-                    </p>
-                </div>
+function unavailableProposal() {
+    return (
+        <div className="min-h-screen bg-stone-100 flex items-center justify-center p-6">
+            <div className="bg-white ring-1 ring-stone-200 p-8 sm:p-10 max-w-md w-full text-center">
+                <h1 className="font-serif text-3xl text-stone-900 mb-3">Proposal not found</h1>
+                <p className="text-base text-stone-600">
+                    This proposal link is invalid or is no longer available. Please contact the contractor for a new link.
+                </p>
             </div>
-        );
+        </div>
+    );
+}
+
+export default async function PublicProposalPage(props: { params: Promise<{ token: string }> }) {
+    const { token } = await props.params;
+    let tokenHash: string;
+    try {
+        tokenHash = await hashProposalAccessToken(token);
+    } catch {
+        return unavailableProposal();
     }
 
-    // Mark as viewed if it was sent but not yet viewed/accepted
-    const wasJustViewed = project.proposal_status === "sent";
-    if (wasJustViewed) {
-        await supabase
-            .from("projects")
-            .update({ proposal_status: "viewed" })
-            .eq("proposal_token", token);
-        project.proposal_status = "viewed";
-    }
+    // Public tokens are resolved only inside this server-rendered route. The
+    // RPC is service-role-only and cannot be invoked from the browser/Data API.
+    const adminSupabase = createAdminClient();
+    const { data, error } = await adminSupabase.rpc("resolve_proposal_publication", {
+        p_token_hash: tokenHash,
+        p_mark_viewed: true,
+    });
+    const resolved = !error && Array.isArray(data) ? data[0] : null;
+    if (!resolved?.snapshot) return unavailableProposal();
 
-    // Fetch contractor profile
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("company_name, logo_url, phone, website, accreditations, capability_statement, years_trading, specialisms, insurance_details")
-        .eq("id", project.user_id)
-        .single();
+    // Everything on this page comes from the immutable snapshot. No drafting
+    // table is read, so later edits by the contractor cannot change it.
+    const snapshot = resolved.snapshot as ProposalPublicationSnapshot;
+    const publicationStatus = String(resolved.publication_status);
+    const isExpired = new Date(snapshot.publication.expires_at).getTime() <= Date.now();
+    const isRevoked = publicationStatus === "revoked";
 
-    // Sprint 23: Fire "proposal viewed" notification email to contractor (fire-and-forget)
-    if (wasJustViewed) {
+    if (resolved.was_just_viewed === true) {
         try {
-            const adminSupabase = createAdminClient();
-            const { data: contractorAuth } = await adminSupabase.auth.admin.getUserById(project.user_id);
+            const { data: contractorAuth } = await adminSupabase.auth.admin.getUserById(resolved.owner_user_id);
             const contractorEmail = contractorAuth?.user?.email;
             if (contractorEmail) {
                 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app";
                 sendContractorViewedNotification({
                     contractorEmail,
-                    clientName: project.client_name || "Your client",
-                    projectName: project.name || "the project",
-                    proposalUrl: `${baseUrl}/dashboard/projects/proposal?projectId=${project.id}`,
-                }).catch((e) => console.error("Viewed notification email failed:", e));
+                    clientName: snapshot.project.client_name || "Your client",
+                    projectName: snapshot.project.name,
+                    proposalUrl: `${baseUrl}/dashboard/projects/proposal?projectId=${snapshot.project.id}`,
+                }).catch((notificationError) => console.error("Viewed notification email failed:", notificationError));
             }
-        } catch (e) {
-            console.error("Could not send viewed notification:", e);
+        } catch (notificationError) {
+            console.error("Could not send viewed notification:", notificationError);
         }
     }
 
-    const companyName = profile?.company_name || "The Contractor";
-
-    // Check if proposal was sent more than 30 days ago (expired)
-    const sentAt = project.proposal_sent_at ? new Date(project.proposal_sent_at) : null;
-    const isExpired = sentAt ? (Date.now() - sentAt.getTime()) > 30 * 86400000 : false;
-
-    // Calculate total project duration — try all phase sources in priority order
-    let totalWeeks: number | null = null;
-    const programmePhasesRaw = project.programme_phases || project.gantt_phases || [];
-    const allPhaseSources = Array.isArray(programmePhasesRaw) ? programmePhasesRaw : [];
-    if (allPhaseSources.length > 0) {
-        // programme_phases use calculatedDays/manualDays; gantt_phases use duration_days
-        const totalDays = allPhaseSources.reduce((sum: number, p: any) => {
-            const days = p.duration_days ?? p.manualDays ?? p.calculatedDays ?? 0;
-            return sum + days;
-        }, 0);
-        if (totalDays > 0) totalWeeks = Math.ceil(totalDays / 7);
-    }
-
-    const refCode = project.id.substring(0, 8).toUpperCase();
-    const siteAddress = project.site_address || project.client_address || "";
+    const document = buildProposalDocument(snapshot);
+    const wording = responseWording(document.response.kind);
 
     return (
-        <AcceptanceClient
-            project={project}
-            profile={profile}
-            companyName={companyName}
-            token={token}
-            isExpired={isExpired}
-            sentAt={sentAt?.toISOString() || null}
-            totalWeeks={totalWeeks}
-            refCode={refCode}
-            siteAddress={siteAddress}
-        />
+        // The root layout already provides the page's <main> landmark.
+        <div className="min-h-screen bg-stone-100 sm:py-10">
+            <ProposalDocumentView doc={document}>
+                <ResponseClient
+                    token={token}
+                    kind={document.response.kind}
+                    heading={document.response.heading}
+                    notice={document.response.notice}
+                    actionLabel={document.response.actionLabel}
+                    recordedHeading={wording.recordedHeading}
+                    recordedNoun={wording.recordedNoun}
+                    companyName={document.company.name}
+                    reference={document.reference}
+                    defaultName={snapshot.project.client_name || ""}
+                    status={publicationStatus}
+                    respondedAt={resolved.responded_at ?? null}
+                    respondedBy={resolved.responded_by ?? null}
+                    isExpired={isExpired}
+                    isRevoked={isRevoked}
+                />
+                <PublicPdfButton snapshot={snapshot} />
+            </ProposalDocumentView>
+        </div>
     );
 }

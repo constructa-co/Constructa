@@ -4,7 +4,7 @@ import ClientProjectSettings from "./client-page";
 export const dynamic = "force-dynamic";
 
 export default async function ProjectSettingsPage() {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
 

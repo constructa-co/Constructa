@@ -22,12 +22,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  const headersList = headers();
+export default async function RootLayout(
+  {
+    children,
+  }: Readonly<{
+    children: React.ReactNode;
+  }>
+) {
+  const headersList = await headers();
   const pathname = headersList.get('x-pathname') || '';
   const isLandingPage = pathname === '/landing';
   const isPublicProposal = pathname.startsWith('/proposal/');

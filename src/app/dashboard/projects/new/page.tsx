@@ -1,20 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import NewProjectWizard from "./new-project-wizard";
+import NewProjectForm from "./new-project-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewProjectPage() {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
     if (!user) redirect("/login");
 
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("business_type")
-        .eq("id", user.id)
-        .single();
+    const { count } = await supabase
+        .from("projects")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
 
-    return <NewProjectWizard businessType={profile?.business_type || null} />;
+    return <NewProjectForm isFirstProject={(count ?? 0) === 0} />;
 }

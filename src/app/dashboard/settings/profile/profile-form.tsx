@@ -289,14 +289,20 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
     const [mdMessage, setMdMessage] = useState(profile?.md_message || '');
     const [rewritingMdMessage, setRewritingMdMessage] = useState(false);
 
+    // A reply is held here as a suggestion. It replaces nothing until the contractor chooses it.
+    const [capabilitySuggestion, setCapabilitySuggestion] = useState<string | null>(null);
+    const [mdMessageSuggestion, setMdMessageSuggestion] = useState<string | null>(null);
+
     const handleRewriteMdMessage = async () => {
         if (!mdMessage.trim()) return;
         setRewritingMdMessage(true);
+        setMdMessageSuggestion(null);
         try {
             const result = await rewriteMdMessageAction(mdMessage);
-            if (result.text) setMdMessage(result.text);
+            if (result.ok) setMdMessageSuggestion(result.text);
+            else toast.error(result.error);
         } catch {
-            toast.error("AI rewrite failed");
+            toast.error("We couldn't suggest wording just now. Your own text is unchanged.");
         }
         setRewritingMdMessage(false);
     };
@@ -304,14 +310,27 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
     const handleRewriteCapability = async () => {
         if (!capabilityStatement.trim()) return;
         setRewritingCapability(true);
+        setCapabilitySuggestion(null);
         try {
             const result = await rewriteWithAIAction(capabilityStatement, "capability_statement");
-            if (result.text) setCapabilityStatement(result.text);
+            if (result.ok) setCapabilitySuggestion(result.text);
+            else toast.error(result.error);
         } catch {
-            toast.error("AI rewrite failed");
+            toast.error("We couldn't suggest wording just now. Your own text is unchanged.");
         }
         setRewritingCapability(false);
     };
+
+    const suggestionPanel = (id: string, suggestion: string | null, use: () => void, discard: () => void) => suggestion && (
+        <div id={id} role="status" className="rounded-lg border border-dashed border-violet-400/60 bg-violet-500/10 p-3 space-y-2">
+            <p className="text-xs font-semibold text-violet-200">Suggested wording. Check it says only what you wrote. Nothing changes unless you use it.</p>
+            <p className="text-sm text-slate-100 whitespace-pre-wrap break-words">{suggestion}</p>
+            <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={use} className="min-h-11 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-sm font-semibold text-white">Use this wording</button>
+                <button type="button" onClick={discard} className="min-h-11 px-3 rounded-lg border border-slate-600 text-sm font-semibold text-slate-200 hover:bg-white/5">Keep my own</button>
+            </div>
+        </div>
+    );
 
     const handleLogoUpload = async (file: File) => {
         setUploadingLogo(true);
@@ -601,6 +620,7 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
                         className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
                         placeholder="We are a family-run business with over 20 years of experience in residential and commercial construction across the South East..."
                     />
+                    {suggestionPanel("capability-suggestion", capabilitySuggestion, () => { setCapabilityStatement(capabilitySuggestion ?? ""); setCapabilitySuggestion(null); }, () => setCapabilitySuggestion(null))}
                     <p className="text-xs text-slate-500">
                         This is your &ldquo;About Us&rdquo; paragraph — it appears on every proposal PDF.
                     </p>
@@ -754,6 +774,7 @@ export default function ProfileForm({ profile, userEmail }: { profile: Profile |
                         className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
                         placeholder="Thank you for considering us for this project. We pride ourselves on delivering quality work on time and within budget..."
                     />
+                    {suggestionPanel("md-message-suggestion", mdMessageSuggestion, () => { setMdMessage(mdMessageSuggestion ?? ""); setMdMessageSuggestion(null); }, () => setMdMessageSuggestion(null))}
                 </div>
             </div>
 

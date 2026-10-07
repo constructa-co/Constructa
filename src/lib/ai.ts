@@ -106,3 +106,73 @@ export async function generateJSON<T>(
     );
     throw new Error(`AI generation failed (${feature}): ${finalError.message}`);
 }
+
+// ── generateStructured ──────────────────────────────────────────────────────
+//
+// For callers that put a contractor's own words in front of the model and
+// must not pay for, wait on, or be steered by more than they asked for:
+//
+// - rules go in the system message and the contractor's text in the user
+//   message, so the two are never one undifferentiated prompt;
+// - one attempt, with no hidden retry: a second call is the caller's decision;
+// - a hard time limit and a hard output cap;
+// - the reply must be JSON matching the caller's schema;
+// - the model and token counts are returned, so a caller can record them.
+//
+// This does not limit how often it is called. There is no per-contractor
+// usage budget yet; a caller must not be exposed to unbounded use on the
+// strength of this function alone.
+
+export interface GenerateStructuredOptions<T extends ZodTypeAny> {
+    /** Caller identifier for structured logging — e.g. "profile.rewrite". */
+    feature: string;
+    /** The rules. Never contains contractor text. */
+    system: string;
+    /** The contractor's text, as data. Callers should pass JSON. */
+    user: string;
+    schema: T;
+    maxOutputTokens: number;
+    timeoutMs: number;
+    /** Default 0.2: restating, not inventing. */
+    temperature?: number;
+}
+
+export interface StructuredResult<T> {
+    data: T;
+    model: string;
+    usage: { promptTokens: number; completionTokens: number };
+}
+
+export async function generateStructured<T extends ZodTypeAny>(options: GenerateStructuredOptions<T>): Promise<StructuredResult<z.infer<T>>> {
+    const { feature, system, user, schema, maxOutputTokens, timeoutMs } = options;
+    const client = getAIClient();
+    try {
+        const response = await client.chat.completions.create(
+            {
+                model: "gpt-4o-mini",
+                messages: [
+                    { role: "system", content: system },
+                    { role: "user", content: user },
+                ],
+                temperature: options.temperature ?? 0.2,
+                max_tokens: maxOutputTokens,
+                response_format: { type: "json_object" },
+            },
+            // One call only: the SDK's own retries are switched off as well.
+            { timeout: timeoutMs, maxRetries: 0 },
+        );
+        const choice = response.choices[0];
+        if (choice?.finish_reason === "length") throw new Error("the reply was cut off at the output limit");
+        const parsed = schema.safeParse(JSON.parse(choice?.message?.content?.trim() || "{}"));
+        if (!parsed.success) throw new Error("the reply did not match the expected shape");
+        return {
+            data: parsed.data,
+            model: response.model,
+            usage: { promptTokens: response.usage?.prompt_tokens ?? 0, completionTokens: response.usage?.completion_tokens ?? 0 },
+        };
+    } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[AI:${feature}] generateStructured failed:`, message);
+        throw new Error(`AI generation failed (${feature}): ${message}`);
+    }
+}

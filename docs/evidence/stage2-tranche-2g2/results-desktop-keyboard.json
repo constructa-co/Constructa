@@ -1,0 +1,141 @@
+{
+  "project": "desktop-keyboard",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "input": "keyboard",
+  "startedAt": "2026-10-07T17:45:34.460Z",
+  "finishedAt": "2026-10-07T17:45:37.377Z",
+  "outcome": "passed",
+  "steps": [],
+  "checkpoints": [
+    {
+      "name": "import-start",
+      "path": "/admin-e2e-import-fixture",
+      "layout": {
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 4,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "import-website-unavailable",
+      "path": "/admin-e2e-import-fixture",
+      "layout": {
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 4,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "import-preview",
+      "path": "/admin-e2e-import-fixture",
+      "layout": {
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 14,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "import-preview-item",
+      "path": "/admin-e2e-import-fixture",
+      "layout": {
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 14,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "import-stale-value-not-overwritten",
+      "path": "/admin-e2e-import-fixture",
+      "layout": {
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 13,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "import-save-failed",
+      "path": "/admin-e2e-import-fixture",
+      "layout": {
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 13,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "import-selected-saved",
+      "path": "/admin-e2e-import-fixture",
+      "layout": {
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 12,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    }
+  ],
+  "parity": {},
+  "keyboard": {
+    "controlsReached": 12,
+    "withoutVisibleFocus": []
+  },
+  "blockedThirdPartyHosts": [],
+  "provider": {},
+  "database": {}
+}

@@ -48,3 +48,7 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# website-import fixture harness: copied into the app only for a fixture
+# browser run (e2e/import-fixture/prepare.mjs) and never committed
+/src/app/admin-e2e-import-fixture/

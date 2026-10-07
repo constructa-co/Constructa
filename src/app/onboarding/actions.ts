@@ -91,6 +91,9 @@ export async function saveSetupStepAction(input: SetupStepInput): Promise<SaveSe
             ? getLaunchLandingPath()
             : resolvePostSetupPath(count, getLaunchLandingPath());
     } catch (error) {
+        if (error instanceof Error && error.message === "Unauthorized: No user found.") {
+            redirect("/login");
+        }
         console.error("saveSetupStepAction threw", {
             message: error instanceof Error ? error.message : String(error),
         });

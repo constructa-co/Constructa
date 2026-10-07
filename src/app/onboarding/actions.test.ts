@@ -176,8 +176,15 @@ describe("saveSetupStepAction", () => {
         expect(mocks.requireAuth).not.toHaveBeenCalled();
     });
 
-    it("returns a retryable error when the session check throws", async () => {
+    it("redirects to sign in when the session has expired", async () => {
         mocks.requireAuth.mockRejectedValue(new Error("Unauthorized: No user found."));
+        await expect(saveSetupStepAction({ step: "trade", businessType: "Roofing" }))
+            .rejects.toThrow("NEXT_REDIRECT:/login");
+        expect(mocks.sendWelcomeEmail).not.toHaveBeenCalled();
+    });
+
+    it("keeps unexpected session-check failures retryable", async () => {
+        mocks.requireAuth.mockRejectedValue(new Error("connection lost"));
         expect(await saveSetupStepAction({ step: "trade", businessType: "Roofing" })).toEqual({ error: SETUP_SAVE_FALLBACK_ERROR });
     });
 

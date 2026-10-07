@@ -18,7 +18,7 @@ export default async function OnboardingPage(
 
     if (!user) redirect("/login");
 
-    const [{ data: profile }, { count: projectCount }] = await Promise.all([
+    const [{ data: profile, error: profileError }, { count: projectCount, error: projectsError }] = await Promise.all([
         supabase
             .from("profiles")
             .select("company_name, full_name, business_type")
@@ -29,6 +29,9 @@ export default async function OnboardingPage(
             .select("id", { count: "exact", head: true })
             .eq("user_id", user.id),
     ]);
+
+    if (profileError) throw new Error(`Company profile failed to load: ${profileError.message}`);
+    if (projectsError || projectCount === null) throw new Error("Project count failed to load.");
 
     // Only redirect if company_name is set AND force param is not present
     const forceParam = searchParams?.force;
@@ -43,7 +46,7 @@ export default async function OnboardingPage(
             initialBusinessType={profile?.business_type || ""}
             initialCompanyName={profile?.company_name || ""}
             initialFullName={profile?.full_name || ""}
-            completionPath={resolvePostSetupPath(projectCount ?? 1, getLaunchLandingPath())}
+            completionPath={resolvePostSetupPath(projectCount, getLaunchLandingPath())}
             exitPath={alreadySetUp ? getLaunchLandingPath() : null}
         />
     );

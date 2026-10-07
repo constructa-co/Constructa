@@ -3,7 +3,8 @@
 import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { generateStructured } from "@/lib/ai";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { withAiBudget } from "@/lib/ai-budget";
 import { addedClaims } from "@/lib/company-interview/guard";
 
 export async function updateProfileAction(formData: FormData) {
@@ -69,13 +70,15 @@ export async function updateProfileAction(formData: FormData) {
 // contractor to use or discard, and nothing is saved by calling them.
 //
 // Order matters: the caller is authenticated before anything else, the text
-// is capped before any provider is touched, and there is exactly one bounded
-// call. The reply is then checked for added numbers and claims and dropped if
-// any is found.
+// is capped before any provider or budget is touched, and the one bounded
+// call is made only through the usage budget (`withAiBudget`). The reply is
+// then checked for added numbers and claims and dropped if any is found.
 //
-// NOT covered here: there is no per-contractor usage budget. A signed-in
-// contractor can still press the button as often as they like. That budget is
-// a dependency of switching on any further AI wording (Stage 2G.3.2).
+// The budget is shared with the company interview's AI wording, per
+// contractor: one in flight, a number of attempts an hour and a day, and a
+// daily amount of output. Every attempt counts, including ones that fail.
+// It covers these two features only. Other AI features in the application
+// have no usage budget.
 
 const REWRITE_MAX_INPUT = 2000;
 const REWRITE_FIELDS = ["capability_statement", "md_message"] as const;
@@ -86,6 +89,9 @@ export type RewriteResult = { ok: true; text: string } | { ok: false; error: str
 const REWRITE_UNAVAILABLE = "We couldn't suggest wording just now. Your own text is unchanged.";
 const REWRITE_TOO_LONG = `That's too long to tidy in one go. Shorten it to under ${REWRITE_MAX_INPUT} characters, or leave it as it is.`;
 const REWRITE_ADDED = "The suggestion added something you didn't write, so it was dropped. Your own text is unchanged.";
+const REWRITE_BUSY = "A suggestion is already being written. Give it a moment, then try again. Your own text is unchanged.";
+const REWRITE_USED_UP = "You've used your wording suggestions for now. Try again later. Your own text is unchanged.";
+const PROFILE_REWRITE_PROMPT_VERSION = "profile-rewrite-v1";
 
 const REWRITE_PURPOSE: Record<RewriteField, string> = {
     capability_statement: "the company's introduction on its proposals",
@@ -106,9 +112,10 @@ Reply with JSON: {"text": "..."}`;
 const RewriteReply = z.object({ text: z.string().min(1).max(REWRITE_MAX_INPUT * 2) });
 
 async function rewriteProfileText(text: unknown, field: RewriteField): Promise<RewriteResult> {
-    // 1. Who is asking. Before the text is looked at and long before any provider.
+    // 1. Who is asking. Before the text is looked at and long before any provider or budget.
+    let userId: string;
     try {
-        await requireAuth();
+        userId = (await requireAuth()).user.id;
     } catch {
         return { ok: false, error: REWRITE_UNAVAILABLE };
     }
@@ -116,24 +123,26 @@ async function rewriteProfileText(text: unknown, field: RewriteField): Promise<R
     if (!REWRITE_FIELDS.includes(field) || typeof text !== "string" || !text.trim()) return { ok: false, error: REWRITE_UNAVAILABLE };
     if (text.length > REWRITE_MAX_INPUT) return { ok: false, error: REWRITE_TOO_LONG };
 
-    // 3. One bounded call.
-    let suggestion: string;
+    // 3. The budget, then one bounded call, then the tripwires, then the record. All inside the wrapper.
+    let admin;
     try {
-        const reply = await generateStructured({
-            feature: `profile.rewrite.${field}`,
-            system: REWRITE_SYSTEM(field),
-            user: JSON.stringify({ text: text.trim() }),
-            schema: RewriteReply,
-            maxOutputTokens: 700,
-            timeoutMs: 20_000,
-        });
-        suggestion = reply.data.text.trim();
+        admin = createAdminClient();
     } catch {
+        // Without the server's own client the budget cannot be consulted, so no call is made.
         return { ok: false, error: REWRITE_UNAVAILABLE };
     }
-    // 4. Tripwires. These catch added numbers and claims; they do not check truth.
-    if (addedClaims(suggestion, [text], { maxWords: 400, maxChars: REWRITE_MAX_INPUT }).length > 0) return { ok: false, error: REWRITE_ADDED };
-    return { ok: true, text: suggestion };
+    const result = await withAiBudget(
+        { admin, userId, feature: "profile.rewrite", promptVersion: PROFILE_REWRITE_PROMPT_VERSION },
+        { label: `profile.rewrite.${field}`, system: REWRITE_SYSTEM(field), user: JSON.stringify({ text: text.trim() }), schema: RewriteReply },
+        // Tripwires catch added numbers and claims; they do not check truth.
+        (reply) => (addedClaims(reply.text.trim(), [text], { maxWords: 400, maxChars: REWRITE_MAX_INPUT }).length > 0 ? "rejected:tripwire" : "ok"),
+    );
+
+    if (result.status === "ok") return { ok: true, text: result.data.text.trim() };
+    if (result.status === "rejected" && result.outcome === "rejected:tripwire") return { ok: false, error: REWRITE_ADDED };
+    if (result.status === "refused" && result.reason === "in-flight") return { ok: false, error: REWRITE_BUSY };
+    if (result.status === "refused" && ["attempt-limit", "token-limit", "service-limit"].includes(result.reason)) return { ok: false, error: REWRITE_USED_UP };
+    return { ok: false, error: REWRITE_UNAVAILABLE };
 }
 
 export async function rewriteWithAIAction(text: string, fieldName: string): Promise<RewriteResult> {

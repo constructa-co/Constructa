@@ -119,9 +119,9 @@ export async function generateJSON<T>(
 // - the reply must be JSON matching the caller's schema;
 // - the model and token counts are returned, so a caller can record them.
 //
-// This does not limit how often it is called. There is no per-contractor
-// usage budget yet; a caller must not be exposed to unbounded use on the
-// strength of this function alone.
+// This does not limit how often it is called. The two features that have a
+// usage budget reach it only through `withAiBudget` in `ai-budget.ts`. Do
+// not call it directly for a contractor-facing feature.
 
 export interface GenerateStructuredOptions<T extends ZodTypeAny> {
     /** Caller identifier for structured logging — e.g. "profile.rewrite". */
@@ -143,6 +143,27 @@ export interface StructuredResult<T> {
     usage: { promptTokens: number; completionTokens: number };
 }
 
+/**
+ * The provider answered, and was paid for answering, but the reply cannot be
+ * used: it is not JSON, does not match the schema, or was cut off. The usage
+ * it reported is carried here so a caller keeping a budget can charge what
+ * was really spent instead of guessing. No reply text is carried.
+ *
+ * A failure with no response at all (network, timeout, provider error) is a
+ * plain Error: nothing is known about what it cost.
+ */
+export class AiResponseError extends Error {
+    constructor(
+        feature: string,
+        readonly reason: "not-json" | "wrong-shape" | "cut-off",
+        readonly model: string | null,
+        readonly usage: { promptTokens: number; completionTokens: number } | null,
+    ) {
+        super(`AI generation failed (${feature}): the reply was ${reason}`);
+        this.name = "AiResponseError";
+    }
+}
+
 export async function generateStructured<T extends ZodTypeAny>(options: GenerateStructuredOptions<T>): Promise<StructuredResult<z.infer<T>>> {
     const { feature, system, user, schema, maxOutputTokens, timeoutMs } = options;
     const client = getAIClient();
@@ -162,17 +183,28 @@ export async function generateStructured<T extends ZodTypeAny>(options: Generate
             { timeout: timeoutMs, maxRetries: 0 },
         );
         const choice = response.choices[0];
-        if (choice?.finish_reason === "length") throw new Error("the reply was cut off at the output limit");
-        const parsed = schema.safeParse(JSON.parse(choice?.message?.content?.trim() || "{}"));
-        if (!parsed.success) throw new Error("the reply did not match the expected shape");
-        return {
-            data: parsed.data,
-            model: response.model,
-            usage: { promptTokens: response.usage?.prompt_tokens ?? 0, completionTokens: response.usage?.completion_tokens ?? 0 },
-        };
+        // Usage is only trusted when the provider actually reported it.
+        const usage = typeof response.usage?.completion_tokens === "number"
+            ? { promptTokens: response.usage.prompt_tokens ?? 0, completionTokens: response.usage.completion_tokens }
+            : null;
+        const model = typeof response.model === "string" ? response.model : null;
+
+        if (choice?.finish_reason === "length") throw new AiResponseError(feature, "cut-off", model, usage);
+        let json: unknown;
+        try {
+            json = JSON.parse(choice?.message?.content?.trim() || "{}");
+        } catch {
+            throw new AiResponseError(feature, "not-json", model, usage);
+        }
+        const parsed = schema.safeParse(json);
+        if (!parsed.success) throw new AiResponseError(feature, "wrong-shape", model, usage);
+        // A usable reply with no usage figure cannot be budgeted, so it is not usable.
+        if (!usage || !model) throw new AiResponseError(feature, "wrong-shape", model, usage);
+        return { data: parsed.data, model, usage };
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         console.error(`[AI:${feature}] generateStructured failed:`, message);
+        if (err instanceof AiResponseError) throw err;
         throw new Error(`AI generation failed (${feature}): ${message}`);
     }
 }

@@ -51,6 +51,8 @@ jobs:
         run: npm run test:company-import-sql
       - name: Verify company interview answer and draft isolation
         run: npm run test:company-interview-sql
+      - name: Verify AI usage budget for profile rewrite and interview wording
+        run: npm run test:ai-budget-sql
       - run: npm run build
 
   # The company-website import, in a real browser, with no database: the real

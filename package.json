@@ -13,6 +13,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:ai-budget-sql": "bash scripts/test-ai-budget-sql.sh",
     "test:company-import-sql": "bash scripts/test-company-import-sql.sh",
     "test:company-interview-sql": "bash scripts/test-company-interview-sql.sh",
     "test:cost-library-sql": "bash scripts/test-cost-library-rls-sql.sh",

@@ -1,5 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
+import { budgetInspector } from "./backend";
+import { assertBriefAiPrerequisites, readBriefAiMode } from "./brief-ai-mode";
 import { APPROVED_DISPOSABLE_PROJECT, E2EConfigurationError, readE2EEnv } from "./env";
 
 const SUPABASE_HOST = /\b([a-z0-9]{20})\.supabase\.co\b/g;
@@ -41,6 +43,12 @@ export default async function globalSetup() {
     if (!health.ok) {
         throw new E2EConfigurationError([`The disposable project did not answer its own key (HTTP ${health.status}).`]);
     }
+
+    // Only now, with the target proved to be the disposable project and before
+    // any synthetic account exists: is the AI budget there, and is the Brief
+    // suggestion in the state this run's mode says it is? Read-only. A
+    // project without the budget's tables or functions stops here.
+    await assertBriefAiPrerequisites(budgetInspector(env), readBriefAiMode());
 
     await fetch(`${env.stubUrl}/__control`, {
         method: "POST",

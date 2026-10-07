@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { BRIEF_AI_PREREQUISITES, functionArgumentsFromApiDescription, type BudgetInspector, type Read } from "./brief-ai-mode";
 import { APPROVED_DISPOSABLE_PROJECT, SYNTHETIC_EMAIL_DOMAIN, readE2EEnv, type E2EEnv } from "./env";
 
 /**
@@ -77,4 +78,54 @@ export async function publicationRecords(projectId: string): Promise<Publication
         });
     }
     return records;
+}
+
+/**
+ * Read-only views of the AI budget in the disposable project, for the check
+ * that runs before any synthetic account is created. Table reads are SELECTs.
+ * Functions are never called: whether they exist is read from the API's own
+ * description of itself. Errors are reduced to a code, so nothing sensitive
+ * can reach a log.
+ */
+export function budgetInspector(env: E2EEnv = readE2EEnv()): BudgetInspector {
+    const supabase = admin(env);
+    const { tables } = BRIEF_AI_PREREQUISITES;
+    const failed = (error: { code?: string } | null): { ok: false; code: string } => ({ ok: false, code: String(error?.code || "unknown") });
+    let description: Promise<Read<unknown>> | null = null;
+    const apiDescription = () => (description ??= (async (): Promise<Read<unknown>> => {
+        const response = await fetch(`${env.supabaseUrl}/rest/v1/`, {
+            method: "GET",
+            headers: { apikey: env.supabaseServiceRoleKey, authorization: `Bearer ${env.supabaseServiceRoleKey}`, accept: "application/openapi+json" },
+        });
+        if (!response.ok) return { ok: false, code: `HTTP ${response.status}` };
+        return { ok: true, value: await response.json() };
+    })());
+
+    return {
+        feature: async (name) => {
+            const { data, error } = await supabase.from(tables.features).select("enabled").eq("feature", name).maybeSingle();
+            return error ? failed(error) : { ok: true, value: data ? { enabled: (data as { enabled: unknown }).enabled } : null };
+        },
+        limitScopes: async () => {
+            const { data, error } = await supabase.from(tables.limits).select("scope");
+            return error ? failed(error) : { ok: true, value: (data ?? []).map((row) => String((row as { scope: unknown }).scope)) };
+        },
+        attemptsReadable: async () => {
+            const { error } = await supabase.from(tables.attempts).select("id").limit(1);
+            return error ? failed(error) : { ok: true, value: true };
+        },
+        functionArguments: async (name) => {
+            const api = await apiDescription();
+            return api.ok ? { ok: true, value: functionArgumentsFromApiDescription(api.value, name) } : api;
+        },
+    };
+}
+
+/** How many budgeted attempts a synthetic account has for the Brief suggestion. A read. */
+export async function briefAiAttempts(userId: string, email: string): Promise<number> {
+    assertSynthetic(email);
+    const { tables, feature } = BRIEF_AI_PREREQUISITES;
+    const { count, error } = await admin(readE2EEnv()).from(tables.attempts).select("id", { count: "exact", head: true }).eq("user_id", userId).eq("feature", feature);
+    if (error || count === null) throw new Error(`Could not read the AI attempts (${error?.code ?? "no count"}).`);
+    return count;
 }

@@ -38,6 +38,11 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+      # Which state the disposable project is in for the Brief's AI suggestion.
+      # It does not switch anything on. This branch ships the feature off, and
+      # the run stops before creating an account if the project says otherwise
+      # or is missing the AI budget's migrations (e2e/support/brief-ai-mode.ts).
+      E2E_BRIEF_AI_MODE: disabled
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

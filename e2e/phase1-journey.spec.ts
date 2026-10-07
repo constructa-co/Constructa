@@ -1,7 +1,8 @@
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { publicationRecords, syntheticUserExists } from "./support/backend";
+import { briefAiAttempts, publicationRecords, syntheticUserExists } from "./support/backend";
+import { briefAiExpectation, readBriefAiMode } from "./support/brief-ai-mode";
 import { luminance } from "./support/checks";
 import { keyboardDriver, pointerDriver, type Driver, type FocusRecord } from "./support/driver";
 import { APPROVED_DISPOSABLE_PROJECT, SYNTHETIC_EMAIL_DOMAIN, readE2EEnv } from "./support/env";
@@ -10,6 +11,8 @@ import { failNextServerAction, guardNetwork, stubControl, stubLog } from "./supp
 import { EVIDENCE_DIR, Recorder } from "./support/recorder";
 
 const env = readE2EEnv();
+// Explicit, and checked against the disposable project before any account is created (support/global-setup.ts).
+const briefAi = briefAiExpectation(readBriefAiMode());
 const money = expectedPrice();
 const programme = expectedProgramme();
 
@@ -64,6 +67,7 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
     const main = page.locator("main main");
     const button = (name: string | RegExp, scope: Page | Locator = page) => scope.getByRole("button", { name, exact: typeof name === "string" });
     let projectId = "";
+    let accountId = "";
 
     /** Opens a fresh browser with no session: the client's view. */
     const asClient = async (url: string) => {
@@ -117,6 +121,7 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
             const created = await signupResponse.json();
             const userId = String(created.user?.id ?? created.id ?? "");
             expect(await syntheticUserExists(userId, email), "the new account exists in the disposable project").toBe(true);
+            accountId = userId;
             recorder.results.database.accountCreatedIn = APPROVED_DISPOSABLE_PROJECT.name;
             await expect(page.getByText("Account created.")).toBeVisible();
             await recorder.checkpoint("account-created", { scope: "form" });
@@ -173,24 +178,54 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
         });
 
         // ── 4. Guided brief ──────────────────────────────────────────────────
-        await test.step("guided brief: a suggestion stays pending until applied", async () => {
-            recorder.step("brief: suggestion pending until Apply, then confirmed");
+        await test.step(briefAi.suggestionTested ? "guided brief: a suggestion stays pending until applied" : "guided brief: the assistant is switched off, so the brief is written by hand", async () => {
             const description = page.getByLabel("Describe the job in your own words");
+            const suggestion = page.getByRole("region", { name: "From the assistant" });
+            const aiRequestsBefore = (await stubLog()).ai.length;
             await use.fill(description, JOB.description);
             await use.activate(button("Tidy this up for me"));
 
-            const suggestion = page.getByRole("region", { name: "From the assistant" });
-            await expect(suggestion.getByText("Suggestion · not applied")).toBeVisible();
-            await expect(suggestion).toContainText(AI_MARKER);
-            // The contractor's own words are untouched until they choose Apply.
-            await expect(description).toHaveValue(JOB.description);
-            await recorder.checkpoint("brief-suggestion-pending", { scope: "main main" });
+            if (briefAi.suggestionTested) {
+                recorder.step("brief: suggestion pending until Apply, then confirmed");
+                await expect(suggestion.getByText("Suggestion · not applied")).toBeVisible();
+                await expect(suggestion).toContainText(AI_MARKER);
+                // The contractor's own words are untouched until they choose Apply.
+                await expect(description).toHaveValue(JOB.description);
+                await recorder.checkpoint("brief-suggestion-pending", { scope: "main main" });
 
-            await use.activate(button("Apply", suggestion));
-            await expect(description).toHaveValue(`${JOB.description} ${AI_MARKER}`);
-            await expect(main.getByRole("status").filter({ hasText: "Unsaved" })).toBeVisible();
+                await use.activate(button("Apply", suggestion));
+                await expect(description).toHaveValue(`${JOB.description} ${AI_MARKER}`);
+                await expect(main.getByRole("status").filter({ hasText: "Unsaved" })).toBeVisible();
+                expect((await stubLog()).ai.length - aiRequestsBefore, "one press is one request to the provider").toBe(briefAi.providerRequests);
+                expect(await briefAiAttempts(accountId, email), "and one budgeted attempt").toBe(briefAi.budgetAttempts);
 
-            await use.activate(button("Next"));
+                await use.activate(button("Next"));
+            } else {
+                recorder.step("brief: assistant switched off; AI suggestion NOT tested; description and trades entered by hand");
+                // Exactly the deliberate message. "Not available", or any other error, fails here.
+                const refusal = main.getByRole("alert").filter({ hasText: /\S/ });
+                await expect(refusal).toHaveCount(1);
+                await expect(refusal).toHaveText(briefAi.message!);
+                await expect(suggestion).toHaveCount(0);
+                await expect(page.getByText("Suggestion · not applied")).toHaveCount(0);
+                await expect(description, "the contractor's own words are unchanged").toHaveValue(JOB.description);
+                await expect(page.getByText(AI_MARKER)).toHaveCount(0);
+                expect((await stubLog()).ai.length - aiRequestsBefore, "nothing was asked of the provider").toBe(briefAi.providerRequests);
+                expect(await briefAiAttempts(accountId, email), "and nothing was reserved against the allowance").toBe(briefAi.budgetAttempts);
+                await recorder.checkpoint("brief-assistant-switched-off", { scope: "main main" });
+
+                // The brief is completed by hand, with the same trades the suggestion would have offered.
+                await use.activate(button("Next"));
+                const search = page.getByLabel("Find a trade");
+                for (const trade of JOB.trades) {
+                    await use.fill(search, trade);
+                    await use.activate(button(trade));
+                }
+                await use.fill(search, "");
+                for (const trade of JOB.trades) await expect(button(`Remove ${trade}`)).toBeVisible();
+            }
+            recorder.results.parity.briefAi = { mode: briefAi.mode, suggestionTested: briefAi.suggestionTested, tradesChosen: briefAi.tradesChosen, trades: JOB.trades };
+
             await expect(button("Bathroom Installation")).toHaveAttribute("aria-pressed", "true");
             await use.activate(button("Next"));
             await use.fill(page.getByLabel("Access, restrictions and assumptions"), JOB.siteNotes);
@@ -679,6 +714,9 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
         // ── Isolation and provider record ────────────────────────────────────
         const log = await stubLog();
         recorder.results.provider = {
+            briefAiMode: briefAi.mode,
+            // In 'disabled' mode no AI suggestion was produced or checked by this run.
+            aiSuggestionTested: briefAi.suggestionTested,
             aiRequests: log.ai.length,
             emailsAccepted: log.emails.filter((entry) => entry.delivered).length,
             emailsFailedOnPurpose: log.emails.filter((entry) => !entry.delivered).length,
@@ -686,6 +724,7 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
             violations: log.violations,
         };
         expect(recorder.results.provider.everyRecipientSynthetic).toBe(true);
+        expect(log.ai.length, "the provider was asked exactly as often as this mode expects").toBe(briefAi.providerRequests);
         expect(log.violations, "nothing was sent to a real recipient or an unknown provider route").toEqual([]);
         recorder.results.blockedThirdPartyHosts = [...blockedHosts].sort();
         expect([...blockedHosts].filter((host) => !EXPECTED_THIRD_PARTIES.includes(host)), "no unexpected host was requested").toEqual([]);

@@ -15,6 +15,8 @@ export const JOB = {
     clientEmail: "alex.client@example.com",
     site: "14 Example Road, Exampleton",
     description: "Strip out the old bathroom and fit a new suite with tiling throughout",
+    /** The trades for this job. The stub suggests exactly these; with the suggestion switched off the journey picks them by hand. */
+    trades: ["Bathroom Installation", "Tiling"],
     siteNotes: "Rear access only. Client to clear the room before we start.",
     closing: "Thank you for asking us to price this job.",
     laterEdit: "This sentence was added after version 1 was sent.",

@@ -4,7 +4,7 @@ import { z } from "zod";
 const create = vi.hoisted(() => vi.fn());
 vi.mock("openai", () => ({ default: class { chat = { completions: { create } }; } }));
 
-import { generateStructured } from "./ai";
+import { AiResponseError, generateStructured } from "./ai";
 
 const Schema = z.object({ text: z.string().min(1) });
 const reply = (content: string, extra: Record<string, unknown> = {}) => ({
@@ -42,6 +42,35 @@ describe("generateStructured", () => {
         arrange();
         await expect(call()).rejects.toThrow("AI generation failed (test.feature)");
         expect(create).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+        ["not JSON", reply("not json"), "not-json"],
+        ["the wrong shape", reply('{"other":1}'), "wrong-shape"],
+        ["cut off at the output limit", reply('{"text":"cut', { finish_reason: "length" }), "cut-off"],
+    ] as const)("a reply that is %s carries the usage the provider reported, and no reply text", async (_name, response, reason) => {
+        create.mockResolvedValue(response);
+        const error = await call().catch((caught) => caught);
+        expect(error).toBeInstanceOf(AiResponseError);
+        expect(error).toMatchObject({ reason, model: "gpt-4o-mini-2024-07-18", usage: { promptTokens: 120, completionTokens: 40 } });
+        expect(JSON.stringify({ ...error, message: error.message })).not.toMatch(/not json|other|cut"/);
+    });
+
+    it("a failure with no response is a plain error with nothing known about its cost", async () => {
+        create.mockRejectedValue(new Error("socket hang up"));
+        const error = await call().catch((caught) => caught);
+        expect(error).not.toBeInstanceOf(AiResponseError);
+        expect(error).not.toHaveProperty("usage");
+    });
+
+    it("does not invent usage: a reply with no usage figure is unusable and says the usage is unknown", async () => {
+        create.mockResolvedValue({ model: "gpt-4o-mini-2024-07-18", choices: [{ message: { content: '{"text":"tidy"}' }, finish_reason: "stop" }] });
+        const error = await call().catch((caught) => caught);
+        expect(error).toBeInstanceOf(AiResponseError);
+        expect(error.usage).toBeNull();
+
+        create.mockResolvedValue({ model: "gpt-4o-mini-2024-07-18", choices: [{ message: { content: "nope" }, finish_reason: "stop" }], usage: { prompt_tokens: 5 } });
+        expect((await call().catch((caught) => caught)).usage).toBeNull();
     });
 
     it("makes no call without a configured key", async () => {

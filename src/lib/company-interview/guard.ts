@@ -59,3 +59,31 @@ export function plainTextProblem(text: string, maxChars: number): string | null 
     if (/[<>]/.test(trimmed) || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(trimmed)) return "Use plain text only, without angle brackets or special characters.";
     return null;
 }
+
+/** Words that are capitalised in ordinary English without naming anything. */
+const ORDINARY_CAPITALS = new Set(["i", "we", "our", "us", "the", "a", "an", "and", "in", "on", "at", "for", "to", "of", "with", "by", "from", "as", "it", "its", "this", "that", "these", "those", "you", "your", "they", "their", "he", "she", "all", "every", "each", "no", "not", "if", "when", "where", "how", "what", "who", "uk"]);
+
+/**
+ * Capitalised words in generated text that appear nowhere in the sources: the
+ * usual shape of an added place, client, person or product name. Used for the
+ * interview's AI wording only.
+ *
+ * A tripwire, not a fact check, with known blind spots: a name that begins a
+ * sentence is not looked at (every sentence begins with a capital), and a
+ * name written in lower case is not seen at all.
+ */
+export function addedNames(output: string, sources: string[]): string[] {
+    const allowed = normalise(sources.join(" \n "));
+    const names: string[] = [];
+    for (const sentence of output.split(/(?<=[.!?:])\s+|\n+/)) {
+        const words = sentence.trim().split(/\s+/).slice(1); // the first word is capitalised whatever it is
+        for (const word of words) {
+            const bare = word.replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, "").replace(/['’]s$/i, "");
+            if (!/^[A-Z][A-Za-z&'’-]*$/.test(bare)) continue;
+            const lower = bare.toLowerCase();
+            if (ORDINARY_CAPITALS.has(lower) || allowed.includes(lower)) continue;
+            names.push(bare);
+        }
+    }
+    return Array.from(new Set(names));
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addedClaims, plainTextProblem } from "./guard";
+import { addedClaims, addedNames, plainTextProblem } from "./guard";
 
 const SOURCES = ["Smith Builders", "Kitchen and bathroom fitting", "Leeds and about 20 miles around", "2017", "We tidy up every day"];
 const FAITHFUL = "Smith Builders fits kitchens and bathrooms in Leeds and about 20 miles around. The business has been trading since 2017.\n\nWe tidy up every day.";
@@ -54,5 +54,25 @@ describe("plainTextProblem", () => {
         expect(plainTextProblem("x".repeat(2001), 2000)).toContain("too long");
         expect(plainTextProblem("We are <b>great</b>", 2000)).toContain("plain text");
         expect(plainTextProblem("bell\u0007", 2000)).toContain("plain text");
+    });
+});
+
+describe("addedNames", () => {
+    const SOURCES_FOR_NAMES = ["Smith Builders", "Kitchen fitting", "Leeds and about 20 miles around", "Homeowners"];
+
+    it("finds capitalised words that appear nowhere in the sources", () => {
+        expect(addedNames("Smith Builders fits kitchens across Leeds, Harrogate and York.", SOURCES_FOR_NAMES)).toEqual(["Harrogate", "York"]);
+        expect(addedNames("We fit kitchens for Barratt Homes in Leeds.", SOURCES_FOR_NAMES)).toEqual(["Barratt", "Homes"]);
+        expect(addedNames("We also carry out work for Leeds City Council.", SOURCES_FOR_NAMES)).toEqual(["City", "Council"]);
+    });
+
+    it("allows names from the sources in any case, ordinary capitals, and possessives", () => {
+        expect(addedNames("Smith Builders fits kitchens in Leeds for homeowners. We and Our team work across the UK.", [...SOURCES_FOR_NAMES, "uk"])).toEqual([]);
+        expect(addedNames("The team at Smith Builders' yard, and Leeds's homeowners.", SOURCES_FOR_NAMES)).toEqual([]);
+    });
+
+    it("has known blind spots: a name that starts a sentence, and a name in lower case", () => {
+        expect(addedNames("Harrogate is where we started.", SOURCES_FOR_NAMES)).toEqual([]);
+        expect(addedNames("We fit kitchens in harrogate.", SOURCES_FOR_NAMES)).toEqual([]);
     });
 });

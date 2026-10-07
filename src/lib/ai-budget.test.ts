@@ -281,9 +281,12 @@ describe("structure: no call to the provider for these features without the budg
         expect(source.match(/withAiBudget\(/g)).toHaveLength(1);
     });
 
-    it("the interview's AI drafting is still imported by nothing", () => {
+    // Candidate B: the pure prompt and tripwire helpers are used by exactly one module, the one
+    // that goes through this wrapper. (In candidate A this file was imported by nothing.)
+    it("the interview's AI helpers are used only by the module that goes through the wrapper", () => {
         const importers = sources(root).filter((file) => !file.endsWith("company-interview/ai-draft.ts") && /company-interview\/ai-draft|from "\.\/ai-draft"/.test(readFileSync(file, "utf8")));
-        expect(importers.map(relative)).toEqual([]);
+        expect(importers.map(relative)).toEqual(["lib/company-interview/ai-wording.ts"]);
+        expect(readFileSync(path.join(root, "lib/company-interview/ai-draft.ts"), "utf8")).not.toMatch(/withAiBudget\(|generateStructured\(|from "@\/lib\/ai|process\.env|\.rpc\(/);
     });
 
     it("the budget's database functions are called only by the wrapper", () => {

@@ -14,7 +14,10 @@
  * is not a fact until the contractor has approved it into their profile.
  *
  * The draft here is always the fixed-rule template. There is no model call
- * on this path; see `ai-draft.ts` for why and what must exist first.
+ * anywhere in this file, and it must stay that way: loading, resuming,
+ * rebuilding after a change and approving all run through here. The only
+ * module that can reach the provider is `ai-wording.ts`, called by one
+ * explicit action.
  */
 
 import { createHash } from "node:crypto";
@@ -113,12 +116,12 @@ const factValue = (profile: InterviewProfile, field: FactField): string | null =
     return value == null ? null : String(value);
 };
 
-async function readProfile(supabase: Reader, userId: string): Promise<InterviewProfile | null> {
+export async function readProfile(supabase: Reader, userId: string): Promise<InterviewProfile | null> {
     const { data, error } = await supabase.from("profiles").select(PROFILE_COLUMNS).eq("id", userId).single();
     return error || !data ? null : (data as unknown as InterviewProfile);
 }
 
-async function readAnswers(supabase: Reader, userId: string): Promise<AnswerMap | null> {
+export async function readAnswers(supabase: Reader, userId: string): Promise<AnswerMap | null> {
     const { data, error } = await supabase
         .from("company_interview_answers")
         .select("question_key, answer, skipped, revision")
@@ -285,6 +288,8 @@ export async function buildDraft(context: InterviewContext): Promise<DraftResult
             p_profile_baseline: profile.capability_statement ?? null,
             // What this text was written from. Checked now, by the database.
             p_expected_fingerprint: sourceFingerprint(answers, profile.company_name),
+            // A plain draft has no AI attempt. The database refuses one that claims to.
+            p_ai_attempt_id: null,
         });
         const outcome = (data as { outcome?: string } | null)?.outcome;
         if (error || !outcome) {

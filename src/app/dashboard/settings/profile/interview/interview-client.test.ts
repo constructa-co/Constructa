@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { InterviewState, NarrativeDraft } from "@/lib/company-interview/service";
 
-vi.mock("./actions", () => ({ saveInterviewAnswerAction: vi.fn(), buildInterviewDraftAction: vi.fn(), approveInterviewAction: vi.fn() }));
+vi.mock("./actions", () => ({ saveInterviewAnswerAction: vi.fn(), buildInterviewDraftAction: vi.fn(), approveInterviewAction: vi.fn(), rewordInterviewDraftAction: vi.fn() }));
 
 import InterviewClient from "./interview-client";
 
@@ -24,7 +24,7 @@ const draft = (over: Partial<NarrativeDraft> = {}): NarrativeDraft => ({
     stale: false,
     ...over,
 });
-const render = (initialState: InterviewState | null) => renderToStaticMarkup(createElement(InterviewClient, { initialState }));
+const render = (initialState: InterviewState | null, aiOffered?: boolean) => renderToStaticMarkup(createElement(InterviewClient, { initialState, aiOffered }));
 const state = (answers: InterviewState["answers"], d: NarrativeDraft | null = null): InterviewState => ({ companyName: "Smith Builders", answers, draft: d });
 
 describe("InterviewClient", () => {
@@ -95,6 +95,56 @@ describe("InterviewClient", () => {
         expect(html).not.toContain("Save as my introduction");
         expect(html.match(/Saved to your profile\./g)).toHaveLength(1);
         expect(render(state(ALL, draft({ status: "approved", savedIntroduction: "x" })))).not.toContain("with your own changes");
+    });
+
+    it("as shipped, with AI wording switched off, shows no rewording controls at all", () => {
+        for (const html of [render(state(ALL, draft())), render(state(ALL, draft()), false)]) {
+            expect(html).not.toMatch(/Reword it|Show the plain version|writing assistant/);
+            expect(html).toContain("Built by fixed rules");
+        }
+    });
+
+    it("when AI wording is on offer, a plain draft can be reworded on request", () => {
+        const html = render(state(ALL, draft()), true);
+        expect(html).toContain("Reword it for me");
+        expect(html).not.toContain("Show the plain version");
+        expect(html).toContain("Put together from your answers");
+        expect(html).toContain("Built by fixed rules");
+    });
+
+    it("says plainly when a draft was worded by the assistant, that it can be wrong, and keeps the plain version one tap away", () => {
+        const html = render(state(ALL, draft({ generator: "ai", text: "Smith Builders does roofing in Leeds.", savedIntroduction: "Old words" })), true);
+        expect(html).toContain("Worded for you from your answers");
+        expect(html).toContain("Worded by our writing assistant from your answers to questions 1, 4, 6. It can get things wrong, so check it says only what you told us.");
+        expect(html).not.toContain("Built by fixed rules");
+        expect(html).not.toContain("Nothing has been added");
+        expect(html).toContain("Show the plain version");
+        expect(html).toContain("Reword it again");
+        // Still compared with what is saved, still editable, still needs an explicit save.
+        expect(html).toContain("Old words");
+        expect(html).toContain("Replace my introduction with this");
+        expect(html).toContain("If you change the wording, it is saved as your own words.");
+        expect(html).not.toMatch(/verified|checked for accuracy|guaranteed|accurate/i);
+    });
+
+    it("an assistant-worded draft is shown as such even if AI wording has since been switched off, without rewording controls", () => {
+        const html = render(state(ALL, draft({ generator: "ai" })), false);
+        expect(html).toContain("Worded by our writing assistant");
+        expect(html).not.toMatch(/Reword it|Show the plain version/);
+    });
+
+    it("records on screen who the approved words belong to", () => {
+        expect(render(state(ALL, draft({ generator: "ai", status: "approved", savedIntroduction: "x" })), true)).toContain("Saved to your profile, as worded by our writing assistant.");
+        expect(render(state(ALL, draft({ generator: "ai", status: "approved", approvedEdited: true, savedIntroduction: "x" })), true)).toContain("Saved to your profile, with your own changes to the wording.");
+        const plain = render(state(ALL, draft({ status: "approved", savedIntroduction: "x" })), true);
+        expect(plain).toContain("Saved to your profile.");
+        expect(plain).not.toContain("writing assistant");
+    });
+
+    it("a stale draft offers only a plain rebuild, whichever way it was produced", () => {
+        const html = render(state(ALL, draft({ generator: "ai", stale: true })), true);
+        expect(html).toContain("Update it from my latest answers");
+        expect(html).not.toMatch(/Reword it|Save as my introduction|Show the plain version/);
     });
 
     it("asks for the draft to be put together when all questions are decided but none exists", () => {

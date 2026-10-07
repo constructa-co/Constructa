@@ -17,7 +17,13 @@ export type Row = Record<string, unknown>;
 
 const TARGETS = ["introduction", "years_trading", "accreditations", "insurance_details"];
 
-export function fakeInterviewDb(seed: { profiles: Row[]; pendingImport?: Row[] }) {
+export function fakeInterviewDb(seed: {
+    profiles: Row[];
+    pendingImport?: Row[];
+    /** The AI budget's ledger, when a test has one, so an 'ai' draft can be checked against a real attempt. */
+    aiAttempts?: Row[];
+}) {
+    const aiAttempts = seed.aiAttempts ?? [];
     const tables: Record<string, Row[]> = {
         profiles: seed.profiles.map((row) => ({ ...row })),
         company_interview_answers: [],
@@ -107,6 +113,21 @@ export function fakeInterviewDb(seed: { profiles: Row[]; pendingImport?: Row[] }
             if (typeof args.p_expected_fingerprint !== "string" || !/^[0-9a-f]{32}$/.test(args.p_expected_fingerprint)) throw new Error("sources must be stated");
             // Compared before anything is retired or inserted. A stale save leaves no trace.
             if (fingerprint(args.p_user_id) !== args.p_expected_fingerprint) return { outcome: "stale-source" };
+            // Who wrote it, and the proof. As the SQL: checked after the sources, before anything is retired.
+            if (args.p_generator === "template") {
+                if (args.p_ai_attempt_id != null || args.p_model != null) return { outcome: "invalid-attempt" };
+            } else if (args.p_generator === "ai") {
+                const attempt = aiAttempts.find((row) => row.id === args.p_ai_attempt_id && row.user_id === args.p_user_id);
+                if (!attempt || args.p_model == null || args.p_generator_version == null
+                    || attempt.feature !== "company.introduction" || attempt.outcome !== "ok"
+                    || attempt.source_fingerprint !== args.p_expected_fingerprint
+                    || attempt.model !== args.p_model || attempt.prompt_version !== args.p_generator_version
+                    || tables.company_narrative_drafts.some((row) => row.ai_attempt_id === args.p_ai_attempt_id)) {
+                    return { outcome: "invalid-attempt" };
+                }
+            } else {
+                return { outcome: "invalid-attempt" };
+            }
             for (const row of tables.company_narrative_drafts) {
                 if (row.user_id === args.p_user_id && row.section === args.p_section && row.status === "draft") row.status = "superseded";
             }
@@ -116,6 +137,7 @@ export function fakeInterviewDb(seed: { profiles: Row[]; pendingImport?: Row[] }
                 generator: args.p_generator, generator_version: args.p_generator_version, model: args.p_model,
                 question_set_version: args.p_question_set_version, based_on: structuredClone(args.p_based_on), facts: structuredClone(args.p_facts),
                 answers_fingerprint: args.p_expected_fingerprint, profile_baseline: args.p_profile_baseline,
+                ai_attempt_id: args.p_ai_attempt_id ?? null,
                 status: "draft", approved_text: null, approved_edited: null, approved_at: null, created_at: iso(),
             };
             tables.company_narrative_drafts.push(draft);

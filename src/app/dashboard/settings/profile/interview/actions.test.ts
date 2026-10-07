@@ -7,13 +7,15 @@ const mocks = vi.hoisted(() => ({
     buildDraft: vi.fn(),
     approve: vi.fn(),
     revalidatePath: vi.fn(),
+    rewordDraft: vi.fn(),
 }));
+vi.mock("@/lib/company-interview/ai-wording", () => ({ rewordDraft: mocks.rewordDraft }));
 vi.mock("@/lib/supabase/auth-utils", () => ({ requireAuth: mocks.requireAuth }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: mocks.createAdminClient }));
 vi.mock("@/lib/company-interview/service", () => ({ saveAnswer: mocks.saveAnswer, buildDraft: mocks.buildDraft, approve: mocks.approve, INTERVIEW_SAVE_ERROR: "save-error" }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
-import { approveInterviewAction, buildInterviewDraftAction, saveInterviewAnswerAction } from "./actions";
+import { approveInterviewAction, buildInterviewDraftAction, rewordInterviewDraftAction, saveInterviewAnswerAction } from "./actions";
 
 const supabase = { from: vi.fn() };
 const admin = { rpc: vi.fn() };
@@ -50,6 +52,31 @@ describe("interview actions", () => {
         for (const mock of [mocks.saveAnswer, mocks.buildDraft, mocks.approve]) {
             expect(mock.mock.calls[0][0]).toEqual({ supabase, admin, userId: "user-1" });
         }
+    });
+
+    it("the reword action refuses a signed-out caller before the wording module is reached", async () => {
+        mocks.requireAuth.mockRejectedValue(new Error("Unauthorized: No user found."));
+        expect(await rewordInterviewDraftAction()).toEqual({ ok: false, error: "save-error", wording: "unavailable" });
+        expect(mocks.rewordDraft).not.toHaveBeenCalled();
+        expect(mocks.createAdminClient).not.toHaveBeenCalled();
+    });
+
+    it("the reword action acts as the signed-in contractor, takes nothing from the request, and saves nothing to the profile itself", async () => {
+        mocks.rewordDraft.mockResolvedValue({ ok: true, state: {}, wording: "off" });
+        expect(await (rewordInterviewDraftAction as unknown as (input: unknown) => Promise<unknown>)({ userId: "someone-else", generate: () => "x" })).toEqual({ ok: true, state: {}, wording: "off" });
+        expect(mocks.rewordDraft).toHaveBeenCalledTimes(1);
+        expect(mocks.rewordDraft.mock.calls[0][0]).toEqual({ supabase, admin, userId: "user-1" });
+        expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    });
+
+    it("no other action reaches the wording module", async () => {
+        mocks.saveAnswer.mockResolvedValue({ ok: true, revision: 1, answer: "Roofing", skipped: false });
+        mocks.buildDraft.mockResolvedValue({ ok: true, state: {} });
+        mocks.approve.mockResolvedValue({ ok: false, error: "stale", state: {} });
+        await saveInterviewAnswerAction(ANSWER);
+        await buildInterviewDraftAction();
+        await approveInterviewAction(APPROVE);
+        expect(mocks.rewordDraft).not.toHaveBeenCalled();
     });
 
     it("fail closed when the privileged client is not configured", async () => {

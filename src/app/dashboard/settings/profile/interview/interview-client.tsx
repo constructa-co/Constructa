@@ -24,19 +24,35 @@ import {
     type InterviewState,
     type SaveAnswerResult,
 } from "@/lib/company-interview/service";
-import { approveInterviewAction, buildInterviewDraftAction, saveInterviewAnswerAction } from "./actions";
+import type { PlainReason, WordingResult } from "@/lib/company-interview/ai-wording";
+import { approveInterviewAction, buildInterviewDraftAction, rewordInterviewDraftAction, saveInterviewAnswerAction } from "./actions";
 
 interface Props {
     initialState: InterviewState | null;
     /** Default to the real server actions; replaced only by tests and the fixture harness. */
     save?: (input: { key: string; answer: string; skipped: boolean; expectedRevision: number }) => Promise<SaveAnswerResult>;
     build?: () => Promise<DraftResult>;
+    /** The only action that can lead to an AI call. Used on finishing the interview and on "Reword it", and only when `aiOffered`. */
+    reword?: () => Promise<WordingResult>;
+    /** Whether AI wording is switched on. Off by default, and off as shipped. */
+    aiOffered?: boolean;
     approve?: (input: { draftId: string; target: string; text: string | null; expectedExisting: string | null }) => Promise<ApproveResult>;
 }
 
 const REVIEW = QUESTIONS.length;
 const NEVER: SavedAnswer = { answer: "", skipped: false, revision: 0 };
 const questionNumber = (key: QuestionKey) => QUESTIONS.findIndex((question) => question.key === key) + 1;
+
+/** One quiet line when the plain version is shown because rewording did not happen. Never a block. */
+const PLAIN_LINES: Record<PlainReason, string | null> = {
+    off: null,
+    "nothing-to-word": null,
+    busy: "We're already rewording it. Here is the plain version for now.",
+    "used-up": "We couldn't reword it just now, so here is the plain version. You can try again later.",
+    "not-usable": "We couldn't reword it just now, so here is the plain version.",
+    "sources-moved": "Your answers changed while we were rewording it, so here is the plain version from your latest answers.",
+    unavailable: "We couldn't reword it just now, so here is the plain version.",
+};
 
 /**
  * The guided company interview: one plain question at a time, each optional,
@@ -48,6 +64,8 @@ export default function InterviewClient({
     initialState,
     save = saveInterviewAnswerAction,
     build = buildInterviewDraftAction,
+    reword = rewordInterviewDraftAction,
+    aiOffered = false,
     approve = approveInterviewAction,
 }: Props) {
     const { theme } = useTheme();
@@ -105,8 +123,15 @@ export default function InterviewClient({
         return result;
     };
 
-    const makeDraft = async () => {
-        const result = await run("draft", build);
+    /**
+     * "plain" builds the fixed-rule draft and can never reach a provider.
+     * "reword" is the explicit request for AI wording: one budgeted attempt,
+     * and the plain draft with a quiet line if it does not produce one.
+     */
+    const makeDraft = async (how: "plain" | "reword" = "plain") => {
+        const result = how === "reword" && aiOffered
+            ? await run<WordingResult>("reword", reword)
+            : await run<DraftResult>("draft", build);
         if (!result) return;
         if (!result.ok) {
             setIndex(REVIEW);
@@ -115,6 +140,8 @@ export default function InterviewClient({
         }
         adopt(result.state);
         setIndex(REVIEW);
+        const wording = (result as Partial<WordingResult>).wording;
+        if (wording && wording !== "ai") setNotice(PLAIN_LINES[wording]);
     };
 
     const submitAnswer = async (skipped: boolean) => {
@@ -141,7 +168,8 @@ export default function InterviewClient({
         }
 
         if (index + 1 < REVIEW) return goTo(index + 1, next);
-        await makeDraft();
+        // Finishing the interview is the one moment a reworded draft is asked for without a button.
+        await makeDraft("reword");
     };
 
     const approveTarget = async (target: "introduction" | OfferedFact["field"], expectedExisting: string | null) => {
@@ -235,7 +263,7 @@ export default function InterviewClient({
                             )}
                             <button type="button" onClick={() => submitAnswer(true)} disabled={disabled} className={s.secondaryButton}>Skip</button>
                             <button type="submit" disabled={disabled} className={`${s.primaryButton} flex-1`}>
-                                {busy ? (<><Loader2 className="w-5 h-5 animate-spin" aria-hidden /> Saving…</>) : error ? "Try again" : "Save and continue"}
+                                {busy ? (<><Loader2 className="w-5 h-5 animate-spin" aria-hidden /> {busy === "answer" ? "Saving…" : "Putting it together…"}</>) : error ? "Try again" : "Save and continue"}
                             </button>
                         </div>
                     </form>
@@ -266,7 +294,8 @@ export default function InterviewClient({
                             {draft ? "Your answers have changed since this was put together." : "Nothing has been put together yet."}
                         </p>
                         {messages}
-                        <button type="button" onClick={() => makeDraft()} disabled={busy !== null} className={`${s.primaryButton} w-full sm:w-auto`}>
+                        {/* Rebuilding after a change is always the plain version. It never calls a provider. */}
+                        <button type="button" onClick={() => makeDraft("plain")} disabled={busy !== null} className={`${s.primaryButton} w-full sm:w-auto`}>
                             {busy === "draft" ? (<><Loader2 className="w-5 h-5 animate-spin" aria-hidden /> Putting it together…</>) : draft ? "Update it from my latest answers" : "Put my introduction together"}
                         </button>
                     </div>
@@ -274,7 +303,7 @@ export default function InterviewClient({
                     <>
                         <p className={`${s.successBox} text-sm flex items-start gap-2`}>
                             <Check className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden />
-                            <span>Saved to your profile{draft.approvedEdited ? ", with your own changes to the wording" : ""}.</span>
+                            <span>Saved to your profile{draft.approvedEdited ? ", with your own changes to the wording" : draft.generator === "ai" ? ", as worded by our writing assistant" : ""}.</span>
                         </p>
                         <div>
                             <p className={`text-xs font-semibold ${s.muted}`}>Saved on your profile now</p>
@@ -289,7 +318,7 @@ export default function InterviewClient({
                             <p className={`mt-1 ${valueBox} ${draft.savedIntroduction ? s.body : s.muted}`}>{draft.savedIntroduction || "Nothing saved"}</p>
                         </div>
                         <div>
-                            <label htmlFor="interview-introduction" className={s.label}>Put together from your answers</label>
+                            <label htmlFor="interview-introduction" className={s.label}>{draft.generator === "ai" ? "Worded for you from your answers" : "Put together from your answers"}</label>
                             <textarea
                                 id="interview-introduction"
                                 rows={8}
@@ -301,8 +330,10 @@ export default function InterviewClient({
                                 className={`${s.textarea} mt-1.5`}
                             />
                             <p id="interview-introduction-help" className={`mt-2 text-sm ${s.muted}`}>
-                                Built by fixed rules from your answers to {used.length === 1 ? "question" : "questions"} {used.map(questionNumber).join(", ")}. Nothing has been added.
-                                Read it and change anything you like. {edited ? "You have changed the wording, so it will be saved as your own words." : "If you change the wording, it is saved as your own words."}
+                                {draft.generator === "ai"
+                                    ? `Worded by our writing assistant from your answers to ${used.length === 1 ? "question" : "questions"} ${used.map(questionNumber).join(", ")}. It can get things wrong, so check it says only what you told us.`
+                                    : `Built by fixed rules from your answers to ${used.length === 1 ? "question" : "questions"} ${used.map(questionNumber).join(", ")}. Nothing has been added.`}
+                                {" "}Read it and change anything you like. {edited ? "You have changed the wording, so it will be saved as your own words." : "If you change the wording, it is saved as your own words."}
                             </p>
                         </div>
                         {messages}
@@ -311,6 +342,18 @@ export default function InterviewClient({
                                 : error ? "Try again"
                                 : draft.savedIntroduction ? "Replace my introduction with this" : "Save as my introduction"}
                         </button>
+                        {aiOffered && (
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <button type="button" onClick={() => makeDraft("reword")} disabled={busy !== null} className={`${s.secondaryButton} min-h-11 text-sm`}>
+                                    {busy === "reword" ? (<><Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Rewording…</>) : draft.generator === "ai" ? "Reword it again" : "Reword it for me"}
+                                </button>
+                                {draft.generator === "ai" && (
+                                    <button type="button" onClick={() => makeDraft("plain")} disabled={busy !== null} className={`${s.secondaryButton} min-h-11 text-sm`}>
+                                        Show the plain version
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </>
                 ) : (
                     <>

@@ -92,6 +92,10 @@ export function fakeAiBudget(options: { introductionEnabled?: boolean } = {}) {
         /** What each attempt is charged against the allowance. */
         charged: () => attempts.map(charged),
         fail: (name: string, times = 1) => failures.push({ name, times }),
+        /** The budget cannot be reached for the next reservation. */
+        failNextReserve: () => failures.push({ name: "ai_generation_reserve", times: 1 }),
+        /** How many times an attempt has been finished. */
+        finishCount: () => rpcCalls.filter((call) => call.name === "ai_generation_finish").length,
         advance: (ms: number) => { clock += ms; },
     };
 }

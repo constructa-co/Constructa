@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { aiWordingOffered } from "@/lib/company-interview/ai-availability";
 import { loadInterview } from "@/lib/company-interview/service";
 import InterviewClient from "./interview-client";
 
@@ -11,5 +13,13 @@ export default async function CompanyInterviewPage() {
     const user = authData?.user;
     if (!user) redirect("/login");
 
-    return <InterviewClient initialState={await loadInterview({ supabase, userId: user.id })} />;
+    // Whether to show the AI wording controls. One settings row; no provider, no budget.
+    let aiOffered = false;
+    try {
+        aiOffered = await aiWordingOffered(createAdminClient());
+    } catch {
+        // Without the server's own client the answer is no.
+    }
+
+    return <InterviewClient initialState={await loadInterview({ supabase, userId: user.id })} aiOffered={aiOffered} />;
 }

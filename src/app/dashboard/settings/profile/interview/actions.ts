@@ -15,6 +15,7 @@ import {
     type DraftResult,
     type SaveAnswerResult,
 } from "@/lib/company-interview/service";
+import { rewordDraft, type WordingResult } from "@/lib/company-interview/ai-wording";
 
 /**
  * Every action authenticates the contractor first and only then creates the
@@ -46,6 +47,22 @@ export async function buildInterviewDraftAction(): Promise<DraftResult> {
         return await buildDraft(await context());
     } catch (error) {
         return failed("buildInterviewDraftAction", error);
+    }
+}
+
+/**
+ * The one action that can lead to an AI call: the contractor finishing the
+ * interview, or pressing "Reword it". It goes through the usage budget, makes
+ * at most one call, and always comes back with a draft: the AI wording if a
+ * good one was produced, otherwise the plain one. While AI wording is
+ * switched off in the database, which is how it is seeded, this makes no
+ * call and returns the plain draft.
+ */
+export async function rewordInterviewDraftAction(): Promise<WordingResult> {
+    try {
+        return await rewordDraft(await context());
+    } catch (error) {
+        return { ...failed("rewordInterviewDraftAction", error), wording: "unavailable" };
     }
 }
 

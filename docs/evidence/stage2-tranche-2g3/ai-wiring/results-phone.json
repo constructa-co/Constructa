@@ -1,0 +1,87 @@
+{
+  "project": "phone",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "input": "touch",
+  "startedAt": "2026-10-07T20:50:58.741Z",
+  "finishedAt": "2026-10-07T20:51:02.313Z",
+  "outcome": "passed",
+  "steps": [],
+  "checkpoints": [
+    {
+      "name": "ai-worded-draft",
+      "path": "/admin-e2e-import-fixture/interview",
+      "layout": {
+        "viewportWidth": 390,
+        "documentWidth": 390,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 9,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": "01-ai-worded-draft-390x844.jpg"
+    },
+    {
+      "name": "ai-plain-version",
+      "path": "/admin-e2e-import-fixture/interview",
+      "layout": {
+        "viewportWidth": 390,
+        "documentWidth": 390,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 8,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": "02-ai-plain-version-390x844.jpg"
+    },
+    {
+      "name": "ai-quiet-fallback",
+      "path": "/admin-e2e-import-fixture/interview",
+      "layout": {
+        "viewportWidth": 390,
+        "documentWidth": 390,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 8,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": "03-ai-quiet-fallback-390x844.jpg"
+    },
+    {
+      "name": "ai-edited-and-approved",
+      "path": "/admin-e2e-import-fixture/interview",
+      "layout": {
+        "viewportWidth": 390,
+        "documentWidth": 390,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 5,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": "04-ai-edited-and-approved-390x844.jpg"
+    }
+  ],
+  "parity": {},
+  "keyboard": null,
+  "blockedThirdPartyHosts": [],
+  "provider": {},
+  "database": {}
+}

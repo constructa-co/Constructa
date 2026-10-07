@@ -42,9 +42,11 @@ describe("website-import fixture harness", () => {
 
         const interview = read("e2e/import-fixture/app/interview/actions.ts");
         const interviewExports = Array.from(interview.matchAll(/export async function (\w+)\([^)]*\)[^{]*\{\n\s+(\w+)\(\);/g));
-        expect(interviewExports.map((match) => match[1]).sort()).toEqual(["fixtureApprove", "fixtureBuild", "fixtureControl", "fixtureInterview", "fixtureSave"]);
+        expect(interviewExports.map((match) => match[1]).sort()).toEqual(["fixtureAiOffered", "fixtureApprove", "fixtureBuild", "fixtureControl", "fixtureInterview", "fixtureReword", "fixtureSave"]);
         expect(interviewExports.every((match) => match[2] === "guard")).toBe(true);
-        expect(Array.from(interview.matchAll(/export async function/g))).toHaveLength(5);
+        expect(Array.from(interview.matchAll(/export async function/g))).toHaveLength(7);
+        // AI wording is off in the harness unless a run asks for it by name; the harness cannot change the application's setting.
+        expect(interview).toContain('wordingRig({ enabled: run.startsWith("ai-") })');
     });
 
     it("will not be installed on a deployment, or anywhere a database or provider is configured", () => {

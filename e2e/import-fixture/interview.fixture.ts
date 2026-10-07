@@ -157,6 +157,142 @@ test("Guided company interview: one question at a time, skip, back, resume, draf
         expect((await control()).profile).toMatchObject({ accreditations: "Gas Safe registered, number 123456", insurance_details: null, years_trading: null });
         await recorder.checkpoint("interview-approved", { scope: "main main" });
 
+        // As shipped, AI wording is off: the whole journey above made no provider call and touched no budget.
+        const shipped = await control();
+        expect(shipped.providerCalls, "no provider call with AI wording off").toBe(0);
+        expect(shipped.aiAttempts, "no attempt reserved with AI wording off").toEqual([]);
+        expect(shipped.budgetCalls, "the budget was not even consulted").toBe(0);
+        expect(shipped.drafts.every((entry: { generator: string }) => entry.generator === "template")).toBe(true);
+        await expect(main).not.toContainText(/Reword it|writing assistant|Show the plain version/);
+
+        expect(outside.filter((host) => !["plausible.io", "www.clarity.ms"].includes(host)), "no outside host was contacted").toEqual([]);
+        if (keyboardRun) {
+            recorder.keyboard(focusLog);
+            expect(recorder.results.keyboard?.withoutVisibleFocus, "every control reached by keyboard shows where focus is").toEqual([]);
+        }
+        recorder.write(testInfo.errors.length === 0 ? "passed" : "failed");
+    } catch (error) {
+        recorder.write("failed");
+        throw error;
+    }
+});
+
+/**
+ * The switched-on screen, shown with a CANNED generator. AI wording is on
+ * here only because this fixture run asks for it by name; the application
+ * ships with it off. The replies are ones this spec wrote. Nothing here is
+ * evidence about what a real model writes.
+ */
+test("Interview AI wording (canned, switched on in the fixture only): plain and reworded versions, quiet fallback, edit and approve", async ({ page, context, hasTouch }, testInfo) => {
+    const project = testInfo.project.name;
+    const keyboardRun = project === "desktop-keyboard";
+    const focusLog: FocusRecord[] = [];
+    const use = keyboardRun ? keyboardDriver(page, focusLog) : pointerDriver(Boolean(hasTouch));
+    const recorder = new Recorder(page, testInfo, keyboardRun ? "keyboard" : hasTouch ? "touch" : "pointer", process.env.E2E_EVIDENCE === "1", { evidence: "docs/evidence/stage2-tranche-2g3/ai-wiring", smoke: "test-results/import-fixture/ai-wiring" });
+
+    const outside: string[] = [];
+    await context.route((url) => url.hostname !== "127.0.0.1", async (route) => {
+        outside.push(new URL(route.request().url()).host);
+        await route.abort();
+    });
+
+    const run = `ai-${project}-${Date.now()}`;
+    const control = async (op: Record<string, unknown> = {}) => (await page.request.post(`${HARNESS}/state?run=${run}`, { data: op })).json();
+    const button = (name: string | RegExp, scope: Page | Locator = page) => scope.getByRole("button", { name, exact: typeof name === "string" });
+    const answer = page.locator("#interview-answer");
+    const main = page.locator("main main");
+    const onQuestion = (n: number) => expect(page.getByText(`Question ${n} of 8`)).toBeVisible();
+    const next = async (text: string) => { await use.fill(answer, text); await use.activate(button(/Save and continue|Try again/)); };
+    const skip = () => use.activate(button("Skip"));
+    const plainBox = page.getByLabel("Put together from your answers");
+    const wordedBox = page.getByLabel("Worded for you from your answers");
+    const quiet = page.getByRole("status").filter({ hasText: "here is the plain version" });
+
+    const WORDED = "Smith Builders fits kitchens and bathrooms in Leeds. The business has been trading since 2021.\n\nWe tidy up every day.";
+    const PLAIN = "Smith Builders specialises in kitchen and bathroom fitting. We cover Leeds. The business has been trading since 2021.\n\nHow we work: we tidy up every day.";
+
+    try {
+        await page.goto(`${HARNESS}?run=${run}`);
+        await onQuestion(1);
+        await next("Kitchen and bathroom fitting");
+        await next("2021");
+        await onQuestion(3);
+        await skip();
+        await next("Leeds");
+        await onQuestion(5);
+        await skip();
+        await next("We tidy up every day");
+        await onQuestion(7);
+        await next("Gas Safe registered");
+        await onQuestion(8);
+        expect((await control()).providerCalls, "answering questions never calls the provider").toBe(0);
+
+        // Finishing the interview asks for one reworded draft.
+        await control({ aiReply: { text: WORDED } });
+        await skip();
+        await expect(page.getByRole("heading", { level: 1, name: "Your introduction" })).toBeVisible();
+        await expect(wordedBox).toHaveValue(WORDED);
+        await expect(main).toContainText("Worded by our writing assistant from your answers to questions 1, 2, 4, 6. It can get things wrong, so check it says only what you told us.");
+        await expect(main).toContainText("Nothing saved");
+        await expect(main).not.toContainText(/Gas Safe registered\.|verified/i);
+        const worded = await control();
+        expect(worded).toMatchObject({ providerCalls: 1, aiAttempts: ["ok"], aiCharged: [120] });
+        expect(worded.drafts.at(-1)).toEqual({ status: "draft", edited: null, generator: "ai" });
+        expect(worded.profile.capability_statement, "a reworded draft changes nothing on the profile").toBeNull();
+        expect(worded.tablesRead).toEqual(["company_interview_answers", "company_narrative_drafts", "profiles"]);
+        await recorder.checkpoint("ai-worded-draft", { scope: "main main" });
+
+        // The plain version is one tap away and costs nothing.
+        await use.activate(button("Show the plain version"));
+        await expect(plainBox).toHaveValue(PLAIN);
+        await expect(main).toContainText("Built by fixed rules");
+        expect((await control()).providerCalls, "the plain version makes no call").toBe(1);
+        await recorder.checkpoint("ai-plain-version", { scope: "main main" });
+
+        // A reworded reply that adds a claim is not shown: plain version, one quiet line, no block.
+        await control({ aiReply: { text: "Smith Builders is an award-winning kitchen and bathroom fitter in Leeds." } });
+        await use.activate(button("Reword it for me"));
+        await expect(quiet).toContainText("We couldn't reword it just now, so here is the plain version.");
+        await expect(plainBox).toHaveValue(PLAIN);
+        await expect(main).not.toContainText("award-winning");
+        expect(await control()).toMatchObject({ providerCalls: 2, aiAttempts: ["ok", "rejected:tripwire"] });
+        await recorder.checkpoint("ai-quiet-fallback", { scope: "main main" });
+
+        // The provider fails: the same quiet fallback, charged, no retry.
+        await control({ aiReply: { error: true } });
+        await use.activate(button("Reword it for me"));
+        await expect(quiet).toBeVisible();
+        expect(await control()).toMatchObject({ providerCalls: 3, aiAttempts: ["ok", "rejected:tripwire", "error"], aiCharged: [120, 120, 500] });
+
+        // The allowance is used up: nothing is called, and nothing blocks.
+        await control({ aiAllowance: "used-up" });
+        await use.activate(button("Reword it for me"));
+        await expect(quiet).toContainText("You can try again later.");
+        await expect(plainBox).toHaveValue(PLAIN);
+        await expect(button(/Save as my introduction/)).toBeEnabled();
+        expect((await control({ aiAllowance: "normal" })).providerCalls, "a refused allowance makes no call").toBe(3);
+
+        // Reworded again on request; leaving and coming back shows it without another call.
+        await control({ aiReply: { text: WORDED } });
+        await use.activate(button("Reword it for me"));
+        await expect(wordedBox).toHaveValue(WORDED);
+        await page.reload();
+        await expect(wordedBox).toHaveValue(WORDED);
+        expect((await control()).providerCalls, "loading the page never calls the provider").toBe(4);
+
+        // The contractor changes the wording and approves: saved as their own words.
+        const own = "Smith Builders fits kitchens and bathrooms in and around Leeds. We tidy up every day.";
+        await use.fill(wordedBox, own);
+        await expect(main).toContainText("You have changed the wording, so it will be saved as your own words.");
+        await use.activate(button("Save as my introduction"));
+        await expect(main).toContainText("Saved to your profile, with your own changes to the wording.");
+        const approved = await control();
+        expect(approved.profile).toMatchObject({ capability_statement: own, accreditations: null, years_trading: null });
+        expect(approved.drafts.at(-1)).toEqual({ status: "approved", edited: true, generator: "ai" });
+        expect(approved.providerCalls, "approving never calls the provider").toBe(4);
+        expect(approved.aiAttempts).toEqual(["ok", "rejected:tripwire", "error", "ok"]);
+        await recorder.checkpoint("ai-edited-and-approved", { scope: "main main" });
+
         expect(outside.filter((host) => !["plausible.io", "www.clarity.ms"].includes(host)), "no outside host was contacted").toEqual([]);
         if (keyboardRun) {
             recorder.keyboard(focusLog);

@@ -7,7 +7,7 @@ import {
     INTERVIEW_NOTHING_TO_DRAFT,
     INTERVIEW_SAVE_ERROR,
     INTERVIEW_STALE_ANSWERS,
-    answersFingerprint,
+    sourceFingerprint,
     approve,
     buildDraft,
     loadInterview,
@@ -127,10 +127,14 @@ describe("buildDraft", () => {
         expect(saved).toMatchObject({ user_id: ALPHA, generator: "template", generator_version: "intro-template-v1", model: null, question_set_version: "interview-v1" });
     });
 
-    it("the fingerprint is the database's, and matches what the server can recompute from the answers", async () => {
+    it("states which sources the text was written from, and the database stores exactly that", async () => {
         const { db, state } = await interviewed();
-        expect(db.tables.company_narrative_drafts[0].answers_fingerprint).toBe(answersFingerprint(state.answers));
-        expect(db.rpcCalls.find((call) => call.name === "company_narrative_save_draft")!.args).not.toHaveProperty("p_answers_fingerprint");
+        const expected = sourceFingerprint(state.answers, "Smith Builders");
+        expect(db.rpcCalls.find((call) => call.name === "company_narrative_save_draft")!.args.p_expected_fingerprint).toBe(expected);
+        expect(db.tables.company_narrative_drafts[0].answers_fingerprint).toBe(expected);
+        // A different business name is a different source.
+        expect(sourceFingerprint(state.answers, "Smith & Daughters")).not.toBe(expected);
+        expect(sourceFingerprint({}, null)).toMatch(/^[0-9a-f]{32}$/);
     });
 
     it("reads only the contractor's answers, drafts and saved profile, never a website suggestion", async () => {

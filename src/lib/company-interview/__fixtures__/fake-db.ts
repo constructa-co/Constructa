@@ -39,12 +39,13 @@ export function fakeInterviewDb(seed: { profiles: Row[]; pendingImport?: Row[] }
         if (failure) failure.times -= 1;
         return failure ? { code: "08006", message: "connection lost" } : null;
     };
+    // As the SQL: the revision of every answer, and the saved business name.
     const fingerprint = (userId: unknown) => createHash("md5").update(
-        tables.company_interview_answers
+        `${tables.company_interview_answers
             .filter((row) => row.user_id === userId)
             .sort((a, b) => (String(a.question_key) < String(b.question_key) ? -1 : 1))
             .map((row) => `${row.question_key}:${row.revision}:${row.skipped}`)
-            .join("|"),
+            .join("|")}#${tables.profiles.find((row) => row.id === userId)?.company_name ?? ""}`,
     ).digest("hex");
 
     function from(table: string) {
@@ -103,6 +104,9 @@ export function fakeInterviewDb(seed: { profiles: Row[]; pendingImport?: Row[] }
         },
         company_narrative_save_draft: (args) => {
             if (String(args.p_draft_text).length > 2000) throw new Error("draft too long");
+            if (typeof args.p_expected_fingerprint !== "string" || !/^[0-9a-f]{32}$/.test(args.p_expected_fingerprint)) throw new Error("sources must be stated");
+            // Compared before anything is retired or inserted. A stale save leaves no trace.
+            if (fingerprint(args.p_user_id) !== args.p_expected_fingerprint) return { outcome: "stale-source" };
             for (const row of tables.company_narrative_drafts) {
                 if (row.user_id === args.p_user_id && row.section === args.p_section && row.status === "draft") row.status = "superseded";
             }
@@ -111,11 +115,11 @@ export function fakeInterviewDb(seed: { profiles: Row[]; pendingImport?: Row[] }
                 id: id(), user_id: args.p_user_id, section: args.p_section, draft_text: args.p_draft_text,
                 generator: args.p_generator, generator_version: args.p_generator_version, model: args.p_model,
                 question_set_version: args.p_question_set_version, based_on: structuredClone(args.p_based_on), facts: structuredClone(args.p_facts),
-                answers_fingerprint: fingerprint(args.p_user_id), profile_baseline: args.p_profile_baseline,
+                answers_fingerprint: args.p_expected_fingerprint, profile_baseline: args.p_profile_baseline,
                 status: "draft", approved_text: null, approved_edited: null, approved_at: null, created_at: iso(),
             };
             tables.company_narrative_drafts.push(draft);
-            return structuredClone(draft);
+            return { outcome: "saved", draft: structuredClone(draft) };
         },
         company_narrative_approve: ({ p_user_id, p_draft_id, p_target, p_text, p_expected_existing }) => {
             if (typeof p_target !== "string" || !TARGETS.includes(p_target)) return { outcome: "unavailable" };
@@ -158,7 +162,14 @@ export function fakeInterviewDb(seed: { profiles: Row[]; pendingImport?: Row[] }
         },
     };
 
+    // Something that happens "somewhere else" in the gap between the service
+    // reading its sources and its next call to a function: another tab, the
+    // Profile form. Each barrier runs once.
+    const barriers: Array<{ name: string; run: () => void | Promise<void> }> = [];
+
     const rpc = async (name: string, args: Row) => {
+        const barrier = barriers.findIndex((entry) => entry.name === name);
+        if (barrier >= 0) await barriers.splice(barrier, 1)[0].run();
         rpcCalls.push({ name, args: structuredClone(args) });
         const failure = takeFailure(name);
         if (failure) return { data: null, error: failure };
@@ -183,5 +194,7 @@ export function fakeInterviewDb(seed: { profiles: Row[]; pendingImport?: Row[] }
         /** Fails the next call to a function, the next read of a table (`select:<table>`), or the next approval record (`record-approval`). */
         fail: (target: string, times = 1) => failures.push({ target, times }),
         now: () => clock,
+        /** Runs `run` once, immediately before the next call to the named function reaches the database. */
+        beforeNext: (name: string, run: () => void | Promise<void>) => { barriers.push({ name, run }); },
     };
 }

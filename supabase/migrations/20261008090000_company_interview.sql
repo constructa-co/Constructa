@@ -49,7 +49,9 @@ CREATE TABLE public.company_narrative_drafts (
     based_on jsonb NOT NULL DEFAULT '[]'::jsonb,
     -- Facts offered for individual approval, each the contractor's own words.
     facts jsonb NOT NULL DEFAULT '[]'::jsonb,
-    -- Which revision of every answer existed when this was built. Set here, never by a caller.
+    -- The exact sources this text was written from: the revision of every
+    -- answer and the business name, as one fingerprint. The server states which
+    -- sources it read; the database stores that only if they are still current.
     answers_fingerprint text NOT NULL,
     -- The saved introduction the contractor is shown beside the draft.
     profile_baseline text,
@@ -85,16 +87,24 @@ REVOKE ALL PRIVILEGES ON TABLE public.company_interview_answers, public.company_
 GRANT SELECT ON TABLE public.company_interview_answers, public.company_narrative_drafts TO authenticated;
 GRANT ALL PRIVILEGES ON TABLE public.company_interview_answers, public.company_narrative_drafts TO service_role;
 
--- Which revision of every answer a contractor has right now.
+-- The sources a draft is written from, as they are right now: which revision
+-- of every answer exists, and the saved business name (the introduction names
+-- the business). Any change to either gives a different fingerprint.
 CREATE FUNCTION public.company_interview_fingerprint(p_user_id uuid)
 RETURNS text
 LANGUAGE sql
 STABLE
 SET search_path = ''
 AS $$
-    SELECT md5(coalesce(string_agg(question_key || ':' || revision::text || ':' || skipped::text, '|' ORDER BY question_key COLLATE "C"), ''))
-    FROM public.company_interview_answers
-    WHERE user_id = p_user_id;
+    SELECT md5(
+        coalesce((
+            SELECT string_agg(question_key || ':' || revision::text || ':' || skipped::text, '|' ORDER BY question_key COLLATE "C")
+            FROM public.company_interview_answers
+            WHERE user_id = p_user_id
+        ), '')
+        || '#'
+        || coalesce((SELECT company_name FROM public.profiles WHERE id = p_user_id), '')
+    );
 $$;
 
 -- Saves one answer if, and only if, the caller has seen the latest revision.
@@ -147,8 +157,17 @@ BEGIN
 END;
 $$;
 
--- Saves a draft and retires the contractor's earlier unapproved one. The
--- fingerprint of the answers is taken here, not accepted from the caller.
+-- Saves a draft and retires the contractor's earlier unapproved one, but only
+-- if the sources it was written from are still the current ones.
+--
+-- The caller reads the answers and the business name, writes the text, and
+-- then calls this. Those are separate steps, so something can change in
+-- between. p_expected_fingerprint says which sources the text was written
+-- from. It is compared here, under the contractor's lock and with their
+-- profile row locked, with the sources as they are now. If they differ the
+-- text is out of date: nothing is inserted, nothing is retired, and the caller
+-- is told to read again. A draft is never stamped with a fingerprint other
+-- than the one its text was written from.
 CREATE FUNCTION public.company_narrative_save_draft(
     p_user_id uuid,
     p_section text,
@@ -159,7 +178,8 @@ CREATE FUNCTION public.company_narrative_save_draft(
     p_question_set_version text,
     p_based_on jsonb,
     p_facts jsonb,
-    p_profile_baseline text
+    p_profile_baseline text,
+    p_expected_fingerprint text
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -167,11 +187,23 @@ SET search_path = ''
 AS $$
 DECLARE
     v_draft public.company_narrative_drafts%ROWTYPE;
+    v_current text;
 BEGIN
     IF p_user_id IS NULL THEN
         RAISE EXCEPTION 'A contractor is required.' USING ERRCODE = 'invalid_parameter_value';
     END IF;
+    IF p_expected_fingerprint IS NULL OR p_expected_fingerprint !~ '^[0-9a-f]{32}$' THEN
+        RAISE EXCEPTION 'The sources a draft was written from must be stated.' USING ERRCODE = 'invalid_parameter_value';
+    END IF;
+    -- Answer saves take the same lock, and the profile row is held, so neither
+    -- source can change between the comparison and the insert.
     PERFORM pg_advisory_xact_lock(hashtextextended('company_interview:' || p_user_id::text, 0));
+    PERFORM 1 FROM public.profiles WHERE id = p_user_id FOR UPDATE;
+
+    v_current := public.company_interview_fingerprint(p_user_id);
+    IF v_current IS DISTINCT FROM p_expected_fingerprint THEN
+        RETURN jsonb_build_object('outcome', 'stale-source');
+    END IF;
 
     UPDATE public.company_narrative_drafts SET status = 'superseded'
     WHERE user_id = p_user_id AND section = p_section AND status = 'draft';
@@ -180,17 +212,18 @@ BEGIN
         (user_id, section, draft_text, generator, generator_version, model, question_set_version, based_on, facts, answers_fingerprint, profile_baseline)
     VALUES
         (p_user_id, p_section, p_draft_text, p_generator, p_generator_version, p_model, p_question_set_version,
-         coalesce(p_based_on, '[]'::jsonb), coalesce(p_facts, '[]'::jsonb), public.company_interview_fingerprint(p_user_id), p_profile_baseline)
+         coalesce(p_based_on, '[]'::jsonb), coalesce(p_facts, '[]'::jsonb), p_expected_fingerprint, p_profile_baseline)
     RETURNING * INTO v_draft;
-    RETURN to_jsonb(v_draft);
+    RETURN jsonb_build_object('outcome', 'saved', 'draft', to_jsonb(v_draft));
 END;
 $$;
 
 -- Approves one thing from a draft: the introduction, or one offered fact.
 -- The profile column and the approval record change together or not at all.
 --
---   * refused if the contractor's answers have changed since the draft was
---     built (worked out here from the answers table, not taken on trust);
+--   * refused if any source has changed since the draft was written: an answer
+--     or the business name (worked out here from the tables, with the profile
+--     row locked, not taken on trust);
 --   * refused if the profile no longer holds the value the contractor was shown;
 --   * a fact's value is the one saved in the draft, never one sent with the call;
 --   * the introduction may be the contractor's own edit of the draft, which is
@@ -219,6 +252,8 @@ BEGIN
         RETURN jsonb_build_object('outcome', 'unavailable');
     END IF;
     PERFORM pg_advisory_xact_lock(hashtextextended('company_interview:' || p_user_id::text, 0));
+    -- Held to the end, so the business name cannot change between the source check and the write.
+    PERFORM 1 FROM public.profiles WHERE id = p_user_id FOR UPDATE;
 
     SELECT * INTO v_draft FROM public.company_narrative_drafts
     WHERE id = p_draft_id AND user_id = p_user_id
@@ -308,11 +343,11 @@ $$;
 
 REVOKE ALL ON FUNCTION public.company_interview_fingerprint(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.company_interview_save_answer(uuid, text, text, boolean, integer, text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.company_narrative_save_draft(uuid, text, text, text, text, text, text, jsonb, jsonb, text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.company_narrative_save_draft(uuid, text, text, text, text, text, text, jsonb, jsonb, text, text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.company_narrative_approve(uuid, uuid, text, text, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.company_interview_fingerprint(uuid) TO service_role;
 GRANT EXECUTE ON FUNCTION public.company_interview_save_answer(uuid, text, text, boolean, integer, text) TO service_role;
-GRANT EXECUTE ON FUNCTION public.company_narrative_save_draft(uuid, text, text, text, text, text, text, jsonb, jsonb, text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.company_narrative_save_draft(uuid, text, text, text, text, text, text, jsonb, jsonb, text, text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.company_narrative_approve(uuid, uuid, text, text, text) TO service_role;
 
 COMMIT;

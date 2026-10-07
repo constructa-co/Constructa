@@ -87,12 +87,15 @@ test("Guided company interview: one question at a time, skip, back, resume, draf
         await next("Gas Safe registered, number 123456");
         await onQuestion(8);
         await expect(page.getByText("What insurance do you want clients to know you have?")).toBeVisible();
+        // An answer is changed somewhere else in the instant the draft is being put together.
+        // The draft that appears must be written from the newer answer, never the older one.
+        await control({ raceAnswer: ["area", "Leeds and Bradford"] });
         await next("Public liability £2 million");
 
         // The draft: built from the answers, nothing saved to the profile.
         await expect(page.getByRole("heading", { level: 1, name: "Your introduction" })).toBeVisible();
         await expect(draftBox).toHaveValue(
-            "Smith Builders specialises in kitchen and bathroom fitting. We cover Leeds. We mainly work for homeowners and local landlords. The business has been trading since 2021. Experience in the trade: 22 years as a joiner.\n\nHow we work: we tidy up every day and turn up when we say we will.",
+            "Smith Builders specialises in kitchen and bathroom fitting. We cover Leeds and Bradford. We mainly work for homeowners and local landlords. The business has been trading since 2021. Experience in the trade: 22 years as a joiner.\n\nHow we work: we tidy up every day and turn up when we say we will.",
         );
         await expect(main).toContainText("Built by fixed rules from your answers to questions 1, 2, 3, 4, 5, 6. Nothing has been added.");
         await expect(main).not.toContainText(/Evil Website|NICEIC/);
@@ -102,16 +105,28 @@ test("Guided company interview: one question at a time, skip, back, resume, draf
         const previewed = await control();
         expect(previewed.profile, "a draft changes nothing on the profile").toMatchObject(EMPTY_PROFILE);
         expect(previewed.tablesRead, "website suggestions are never read").toEqual(["company_interview_answers", "company_narrative_drafts", "profiles"]);
+        expect(previewed.draftSaves, "the save written from the older answer was refused, and one from the newer answer accepted").toBe(2);
+        expect(previewed.draftTexts, "no draft holds the older answer").toHaveLength(1);
+        expect(previewed.draftTexts[0]).toContain("We cover Leeds and Bradford.");
         await recorder.checkpoint("interview-review", { scope: "main main" });
         await recorder.checkpoint("interview-review-facts", { scope: "main main", focusOn: fact("accreditations") });
 
         // An answer changes somewhere else after the draft was built: nothing from the old draft can be saved.
-        await control({ lateAnswer: ["area", "Leeds and Bradford"] });
+        await control({ lateAnswer: ["area", "Leeds, Bradford and York"] });
         await use.activate(button("Save as my introduction"));
-        await expect(alert).toContainText("Your answers changed after this was put together, so nothing was saved");
-        await expect(draftBox).toHaveValue(/We cover Leeds and Bradford\./);
+        await expect(alert).toContainText("changed after this was put together, so nothing was saved");
+        await expect(draftBox).toHaveValue(/We cover Leeds, Bradford and York\./);
         expect((await control()).profile).toMatchObject(EMPTY_PROFILE);
         await recorder.checkpoint("interview-answers-changed", { scope: "main main" });
+
+        // The business name is changed on the Profile form after the draft was written.
+        // The draft names the old business, so it cannot be saved as it stands.
+        await control({ profile: ["company_name", "Smith & Daughters Ltd"] });
+        await use.activate(button(/Save as my introduction|Try again/));
+        await expect(alert).toContainText("changed after this was put together, so nothing was saved");
+        await expect(draftBox).toHaveValue(/^Smith & Daughters Ltd specialises in/);
+        expect((await control()).profile).toMatchObject(EMPTY_PROFILE);
+        await recorder.checkpoint("interview-business-name-changed", { scope: "main main" });
 
         // The profile is edited by hand somewhere else: it is not overwritten.
         await control({ profile: ["capability_statement", "Typed by hand in another tab"] });
@@ -122,7 +137,7 @@ test("Guided company interview: one question at a time, skip, back, resume, draf
         await recorder.checkpoint("interview-profile-changed", { scope: "main main" });
 
         // The contractor rewords it. The record cannot be written once; nothing changes; the retry saves it as their words.
-        const own = "Smith Builders fits kitchens and bathrooms across Leeds and Bradford. Family run.";
+        const own = "Smith & Daughters fits kitchens and bathrooms across Leeds and Bradford. Family run.";
         await use.fill(draftBox, own);
         await expect(main).toContainText("You have changed the wording, so it will be saved as your own words.");
         await control({ fail: "record-approval" });

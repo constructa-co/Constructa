@@ -61,7 +61,7 @@ export interface NarrativeDraft {
     status: "draft" | "approved";
     approvedEdited: boolean;
     approvedAt: string | null;
-    /** True when the answers changed after this was built. It must be rebuilt before anything in it can be approved. */
+    /** True when an answer or the business name changed after this was written. It must be rebuilt before anything in it can be approved. */
     stale: boolean;
 }
 
@@ -74,7 +74,7 @@ export interface InterviewState {
 export const INTERVIEW_SAVE_ERROR = "We couldn't save that. Nothing was changed. Check your connection and try again.";
 export const INTERVIEW_LOAD_ERROR = "We couldn't load your answers. Check your connection and try again.";
 export const INTERVIEW_NOTHING_TO_DRAFT = "Answer at least one of the first six questions and we'll put an introduction together.";
-export const INTERVIEW_STALE_ANSWERS = "Your answers changed after this was put together, so nothing was saved. Here is a new version from your latest answers.";
+export const INTERVIEW_STALE_ANSWERS = "Your answers or business name changed after this was put together, so nothing was saved. Here is a new version from your latest details.";
 export const INTERVIEW_DRAFT_GONE = "That draft is no longer available. Here is the latest version.";
 
 const PROFILE_COLUMNS = "company_name, business_type, capability_statement, years_trading, accreditations, insurance_details";
@@ -94,13 +94,18 @@ const BasedOnSchema = z.union([
     z.object({ kind: z.literal("profile"), field: z.literal("company_name") }),
 ]);
 
-/** The same fingerprint the database takes: which revision of every answer exists. */
-export function answersFingerprint(answers: AnswerMap): string {
+/**
+ * The sources a draft is written from, as one fingerprint: the revision of
+ * every answer and the saved business name. It is worked out here from what
+ * the server itself read, and worked out again by the database from its own
+ * tables (`company_interview_fingerprint`). It never comes from a browser.
+ */
+export function sourceFingerprint(answers: AnswerMap, companyName: string | null | undefined): string {
     const parts = Object.entries(answers)
         .filter(([, saved]) => saved && saved.revision > 0)
         .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
         .map(([key, saved]) => `${key}:${saved!.revision}:${saved!.skipped}`);
-    return createHash("md5").update(parts.join("|")).digest("hex");
+    return createHash("md5").update(`${parts.join("|")}#${companyName ?? ""}`).digest("hex");
 }
 
 const factValue = (profile: InterviewProfile, field: FactField): string | null => {
@@ -163,7 +168,7 @@ function toDraft(row: DraftRow, answers: AnswerMap, profile: InterviewProfile): 
         status: row.status === "approved" ? "approved" : "draft",
         approvedEdited: row.approved_edited === true,
         approvedAt: row.approved_at,
-        stale: row.answers_fingerprint !== answersFingerprint(answers),
+        stale: row.answers_fingerprint !== sourceFingerprint(answers, profile.company_name),
     };
 }
 
@@ -239,38 +244,60 @@ export async function saveAnswer(context: InterviewContext, rawInput: unknown): 
 
 export type DraftResult = { ok: true; state: InterviewState } | { ok: false; error: string };
 
+/** How many times a draft is rewritten from fresh sources before giving up. */
+export const DRAFT_ATTEMPTS = 3;
+export const INTERVIEW_SOURCES_MOVING = "Your answers were being changed while we put this together, so nothing was saved. Try again in a moment.";
+
 /**
  * Puts a draft together from the saved answers and saves it as a draft.
  * The profile is not touched.
+ *
+ * Reading the sources and saving the draft are separate steps, so each
+ * attempt tells the database exactly which sources the text was written
+ * from. The database saves it only if those are still the current ones. If
+ * an answer or the business name changed in between, nothing is saved and
+ * the text is written again from a fresh read, a bounded number of times.
+ * Old words are never stored against newer sources.
  */
 export async function buildDraft(context: InterviewContext): Promise<DraftResult> {
     const { supabase, admin, userId, now = Date.now } = context;
-    const [profile, answers] = await Promise.all([readProfile(supabase, userId), readAnswers(supabase, userId)]);
-    if (!profile || !answers) return { ok: false, error: INTERVIEW_LOAD_ERROR };
-
     const nowYear = new Date(now()).getUTCFullYear();
-    const introduction = buildIntroduction(answers, profile, nowYear);
-    const facts = buildFacts(answers, profile, nowYear);
-    if (!introduction && facts.length === 0) return { ok: false, error: INTERVIEW_NOTHING_TO_DRAFT };
 
-    const { error } = await admin.rpc("company_narrative_save_draft", {
-        p_user_id: userId,
-        p_section: "introduction",
-        p_draft_text: introduction?.text ?? "",
-        p_generator: "template",
-        p_generator_version: INTRO_TEMPLATE_VERSION,
-        p_model: null,
-        p_question_set_version: QUESTION_SET_VERSION,
-        p_based_on: introduction?.basedOn ?? [],
-        p_facts: facts,
-        p_profile_baseline: profile.capability_statement ?? null,
-    });
-    if (error) {
-        console.error("company interview draft save failed", { code: error.code });
-        return { ok: false, error: INTERVIEW_SAVE_ERROR };
+    for (let attempt = 1; attempt <= DRAFT_ATTEMPTS; attempt += 1) {
+        const [profile, answers] = await Promise.all([readProfile(supabase, userId), readAnswers(supabase, userId)]);
+        if (!profile || !answers) return { ok: false, error: INTERVIEW_LOAD_ERROR };
+
+        const introduction = buildIntroduction(answers, profile, nowYear);
+        const facts = buildFacts(answers, profile, nowYear);
+        if (!introduction && facts.length === 0) return { ok: false, error: INTERVIEW_NOTHING_TO_DRAFT };
+
+        const { data, error } = await admin.rpc("company_narrative_save_draft", {
+            p_user_id: userId,
+            p_section: "introduction",
+            p_draft_text: introduction?.text ?? "",
+            p_generator: "template",
+            p_generator_version: INTRO_TEMPLATE_VERSION,
+            p_model: null,
+            p_question_set_version: QUESTION_SET_VERSION,
+            p_based_on: introduction?.basedOn ?? [],
+            p_facts: facts,
+            // What an approval would replace. Checked separately, at approval.
+            p_profile_baseline: profile.capability_statement ?? null,
+            // What this text was written from. Checked now, by the database.
+            p_expected_fingerprint: sourceFingerprint(answers, profile.company_name),
+        });
+        const outcome = (data as { outcome?: string } | null)?.outcome;
+        if (error || !outcome) {
+            console.error("company interview draft save failed", { code: error?.code });
+            return { ok: false, error: INTERVIEW_SAVE_ERROR };
+        }
+        if (outcome === "saved") {
+            const state = await loadInterview({ supabase, userId });
+            return state ? { ok: true, state } : { ok: false, error: INTERVIEW_LOAD_ERROR };
+        }
+        // 'stale-source': something changed after the read. Nothing was saved. Read again.
     }
-    const state = await loadInterview({ supabase, userId });
-    return state ? { ok: true, state } : { ok: false, error: INTERVIEW_LOAD_ERROR };
+    return { ok: false, error: INTERVIEW_SOURCES_MOVING };
 }
 
 export type ApproveOutcome = "applied" | "conflict" | "unavailable";

@@ -5,8 +5,8 @@
     "height": 800
   },
   "input": "pointer",
-  "startedAt": "2026-10-07T19:29:56.450Z",
-  "finishedAt": "2026-10-07T19:30:00.149Z",
+  "startedAt": "2026-10-07T20:02:48.419Z",
+  "finishedAt": "2026-10-07T20:02:52.602Z",
   "outcome": "passed",
   "steps": [],
   "checkpoints": [
@@ -113,6 +113,23 @@
       "screenshot": "06-interview-answers-changed-1280x800.jpg"
     },
     {
+      "name": "interview-business-name-changed",
+      "path": "/admin-e2e-import-fixture/interview",
+      "layout": {
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 8,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": "07-interview-business-name-changed-1280x800.jpg"
+    },
+    {
       "name": "interview-profile-changed",
       "path": "/admin-e2e-import-fixture/interview",
       "layout": {
@@ -127,7 +144,7 @@
       },
       "obscured": [],
       "accessibility": [],
-      "screenshot": "07-interview-profile-changed-1280x800.jpg"
+      "screenshot": "08-interview-profile-changed-1280x800.jpg"
     },
     {
       "name": "interview-approved",
@@ -144,7 +161,7 @@
       },
       "obscured": [],
       "accessibility": [],
-      "screenshot": "08-interview-approved-1280x800.jpg"
+      "screenshot": "09-interview-approved-1280x800.jpg"
     }
   ],
   "parity": {},

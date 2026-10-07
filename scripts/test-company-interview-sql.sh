@@ -13,6 +13,11 @@
 #     built, when the profile changed after it was shown, or when the text is
 #     not plain; it writes the profile and its own record together or neither;
 #     a fact is written exactly as the contractor typed it;
+#   - a draft is bound to the exact sources it was written from: if an answer
+#     or the business name changed between the server reading them and saving
+#     the draft, the save is refused, nothing is inserted or retired, and old
+#     words are never stored against newer sources, also when the change and
+#     the save arrive at the same moment;
 #   - none of this reads website-import drafts.
 set -euo pipefail
 
@@ -118,12 +123,12 @@ SELECT public.company_interview_save_answer(:alpha, 'business_started', '2017', 
 SELECT public.company_narrative_save_draft(:alpha, 'introduction', 'Alpha Builders specialises in kitchens.' || E'\n\n' || 'How we work: tidy.', 'template', 'intro-template-v1', NULL, :V,
   '[{"kind":"answer","key":"work"}]',
   '[{"field":"years_trading","proposed":"9","existing":null,"questionKey":"business_started","status":"pending","appliedAt":null},{"field":"accreditations","proposed":"Gas Safe registered, number 123456","existing":null,"questionKey":"memberships","status":"pending","appliedAt":null},{"field":"insurance_details","proposed":"","existing":null,"status":"pending"}]',
-  NULL) AS first \gset
-SELECT ((:'first'::jsonb)->>'id') AS first_id \gset
-SELECT t.expect((:'first'::jsonb)->>'answers_fingerprint' = public.company_interview_fingerprint(:alpha), 'the fingerprint is taken by the server when the draft is saved');
+  NULL, public.company_interview_fingerprint(:alpha)) AS first \gset
+SELECT ((:'first'::jsonb)->'draft'->>'id') AS first_id \gset
+SELECT t.expect((:'first'::jsonb)->>'outcome' = 'saved' AND (:'first'::jsonb)->'draft'->>'answers_fingerprint' = public.company_interview_fingerprint(:alpha), 'a draft written from the current sources is saved, stamped with those sources');
 SELECT t.expect((SELECT capability_statement IS NULL AND years_trading IS NULL AND accreditations IS NULL FROM public.profiles WHERE id = :alpha), 'saving a draft does not change the profile');
-SELECT t.expect(t.fails($q$ SELECT public.company_narrative_save_draft('aaaaaaaa-0000-0000-0000-000000000001', 'why_us', 'x', 'template', 'v', NULL, 'interview-v1', '[]', '[]', NULL) $q$), 'only known sections are stored');
-SELECT t.expect(t.fails(format($q$ SELECT public.company_narrative_save_draft('aaaaaaaa-0000-0000-0000-000000000001', 'introduction', %L, 'template', 'v', NULL, 'interview-v1', '[]', '[]', NULL) $q$, repeat('x', 2001))), 'an over-long draft is refused');
+SELECT t.expect(t.fails($q$ SELECT public.company_narrative_save_draft('aaaaaaaa-0000-0000-0000-000000000001', 'why_us', 'x', 'template', 'v', NULL, 'interview-v1', '[]', '[]', NULL, public.company_interview_fingerprint('aaaaaaaa-0000-0000-0000-000000000001')) $q$), 'only known sections are stored');
+SELECT t.expect(t.fails(format($q$ SELECT public.company_narrative_save_draft('aaaaaaaa-0000-0000-0000-000000000001', 'introduction', %L, 'template', 'v', NULL, 'interview-v1', '[]', '[]', NULL, public.company_interview_fingerprint('aaaaaaaa-0000-0000-0000-000000000001')) $q$, repeat('x', 2001))), 'an over-long draft is refused');
 RESET ROLE;
 
 -- ── The owner, from a browser: read only ─────────────────────────────────────
@@ -139,7 +144,7 @@ SELECT t.expect(t.denied($q$ UPDATE public.company_narrative_drafts SET facts = 
 SELECT t.expect(t.denied($q$ UPDATE public.company_narrative_drafts SET status = 'approved', approved_edited = false, answers_fingerprint = 'x' $q$), 'the owner cannot fake an approval or a fingerprint');
 SELECT t.expect(t.denied($q$ DELETE FROM public.company_narrative_drafts $q$), 'the owner cannot delete a draft');
 SELECT t.expect(t.denied($q$ SELECT public.company_interview_save_answer('aaaaaaaa-0000-0000-0000-000000000001', 'work', 'x', false, 2, 'v') $q$), 'a browser cannot call the answer function');
-SELECT t.expect(t.denied($q$ SELECT public.company_narrative_save_draft('aaaaaaaa-0000-0000-0000-000000000001', 'introduction', 'x', 'template', 'v', NULL, 'v', '[]', '[]', NULL) $q$), 'a browser cannot call the draft function');
+SELECT t.expect(t.denied($q$ SELECT public.company_narrative_save_draft('aaaaaaaa-0000-0000-0000-000000000001', 'introduction', 'x', 'template', 'v', NULL, 'v', '[]', '[]', NULL, repeat('a', 32)) $q$), 'a browser cannot call the draft function');
 SELECT t.expect(t.denied(format($q$ SELECT public.company_narrative_approve('aaaaaaaa-0000-0000-0000-000000000001', %L, 'introduction', 'x', NULL) $q$, :'first_id')), 'a browser cannot call the approval function');
 SELECT t.expect(t.denied($q$ SELECT public.company_interview_fingerprint('aaaaaaaa-0000-0000-0000-000000000001') $q$), 'a browser cannot call the fingerprint function');
 
@@ -183,8 +188,8 @@ SELECT t.expect((SELECT accreditations IS NULL AND capability_statement = 'Typed
 -- Rebuilt from the current answers. The earlier draft is retired.
 SELECT public.company_narrative_save_draft(:alpha, 'introduction', 'Alpha Builders specialises in kitchens only now.', 'template', 'intro-template-v1', NULL, :V, '[]',
   '[{"field":"years_trading","proposed":"9","existing":null,"questionKey":"business_started","status":"pending","appliedAt":null},{"field":"accreditations","proposed":"Gas Safe registered, number 123456","existing":null,"questionKey":"memberships","status":"pending","appliedAt":null}]',
-  'Typed by hand in another tab') AS second \gset
-SELECT ((:'second'::jsonb)->>'id') AS second_id \gset
+  'Typed by hand in another tab', public.company_interview_fingerprint(:alpha)) AS second \gset
+SELECT ((:'second'::jsonb)->'draft'->>'id') AS second_id \gset
 SELECT t.expect((SELECT status FROM public.company_narrative_drafts WHERE id = :'first_id') = 'superseded', 'the earlier draft is retired');
 SELECT t.expect(public.company_narrative_approve(:alpha, :'first_id', 'introduction', NULL, 'Typed by hand in another tab')->>'outcome' = 'stale-answers', 'a retired draft cannot be approved');
 
@@ -209,8 +214,8 @@ RESET ROLE;
 -- Unedited approval is recorded as not edited.
 SET ROLE service_role;
 SELECT public.company_interview_save_answer(:beta, 'work', 'Joinery', false, 0, :V);
-SELECT public.company_narrative_save_draft(:beta, 'introduction', 'Beta Joinery specialises in joinery.', 'template', 'intro-template-v1', NULL, :V, '[]', '[]', 'Beta in its own words') AS beta_draft \gset
-SELECT ((:'beta_draft'::jsonb)->>'id') AS beta_id \gset
+SELECT public.company_narrative_save_draft(:beta, 'introduction', 'Beta Joinery specialises in joinery.', 'template', 'intro-template-v1', NULL, :V, '[]', '[]', 'Beta in its own words', public.company_interview_fingerprint(:beta)) AS beta_draft \gset
+SELECT ((:'beta_draft'::jsonb)->'draft'->>'id') AS beta_id \gset
 RESET ROLE;
 
 -- All or nothing: if the approval cannot be recorded, the profile is not changed.
@@ -232,6 +237,134 @@ SELECT t.expect((SELECT count(*) FROM pg_proc WHERE proname LIKE 'company\_inter
   AND (SELECT bool_and(prosrc NOT ILIKE '%company_import%') FROM pg_proc WHERE proname LIKE 'company\_interview\_%' OR proname LIKE 'company\_narrative\_%'), 'no interview function refers to website-import drafts');
 SQL
 
+# ── Source binding: the draft is saved only against the sources it was written from ──
+"${PSQL[@]}" >/dev/null <<'SQL'
+\set gamma '''cccccccc-0000-0000-0000-000000000003'''
+\set V '''interview-v1'''
+\set FACTS_OLD '''[{"field":"accreditations","proposed":"Gas Safe registered","existing":null,"questionKey":"memberships","status":"pending","appliedAt":null},{"field":"years_trading","proposed":"9","existing":null,"questionKey":"business_started","status":"pending","appliedAt":null}]'''
+SET ROLE service_role;
+SELECT public.company_interview_save_answer(:gamma, 'trade', 'Roofing', false, 0, :V);
+SELECT public.company_interview_save_answer(:gamma, 'area', 'Leeds', false, 0, :V);
+SELECT public.company_interview_save_answer(:gamma, 'memberships', 'Gas Safe registered', false, 0, :V);
+SELECT public.company_interview_save_answer(:gamma, 'business_started', '2017', false, 0, :V);
+
+-- A function for the test: the server has READ its sources (fingerprint p_read) and written
+-- old text from them; something changes; then its save arrives. It must be refused whole.
+CREATE FUNCTION pg_temp.stale_save_is_refused(p_user uuid, p_read text, p_label text) RETURNS void
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_before jsonb := (SELECT coalesce(jsonb_agg(to_jsonb(d) ORDER BY d.created_at, d.id), '[]') FROM public.company_narrative_drafts d WHERE d.user_id = p_user);
+  v_result jsonb;
+BEGIN
+  v_result := public.company_narrative_save_draft(p_user, 'introduction', 'OLD TEXT: Gamma Roofing specialises in roofing. We cover Leeds.', 'template', 'intro-template-v1', NULL, 'interview-v1', '[]',
+    '[{"field":"accreditations","proposed":"OLD FACT Gas Safe registered","existing":null,"questionKey":"memberships","status":"pending","appliedAt":null}]', NULL, p_read);
+  PERFORM t.expect(v_result = '{"outcome":"stale-source"}'::jsonb, p_label || ': the save is refused');
+  PERFORM t.expect(v_before = (SELECT coalesce(jsonb_agg(to_jsonb(d) ORDER BY d.created_at, d.id), '[]') FROM public.company_narrative_drafts d WHERE d.user_id = p_user),
+    p_label || ': nothing is inserted and no earlier draft is retired or altered');
+  PERFORM t.expect(NOT EXISTS (SELECT 1 FROM public.company_narrative_drafts WHERE user_id = p_user AND (draft_text LIKE 'OLD TEXT%' OR facts::text LIKE '%OLD FACT%')),
+    p_label || ': the old words are stored nowhere');
+END $$;
+
+-- An earlier, good draft exists, so "not retired" has something to protect.
+SELECT public.company_narrative_save_draft(:gamma, 'introduction', 'Gamma Roofing specialises in roofing. We cover Leeds.', 'template', 'intro-template-v1', NULL, :V, '[]', :FACTS_OLD::jsonb, NULL, public.company_interview_fingerprint(:gamma)) AS good \gset
+SELECT ((:'good'::jsonb)->'draft'->>'id') AS good_id \gset
+
+SELECT public.company_interview_fingerprint(:gamma) AS read \gset
+SELECT public.company_interview_save_answer(:gamma, 'trade', 'Roofing and cladding', false, 1, :V);
+SELECT pg_temp.stale_save_is_refused(:gamma, :'read', 'an answer in the narrative changed');
+
+SELECT public.company_interview_fingerprint(:gamma) AS read \gset
+SELECT public.company_interview_save_answer(:gamma, 'memberships', 'NICEIC approved contractor', false, 1, :V);
+SELECT pg_temp.stale_save_is_refused(:gamma, :'read', 'an answer behind an offered fact changed');
+
+SELECT public.company_interview_fingerprint(:gamma) AS read \gset
+SELECT public.company_interview_save_answer(:gamma, 'business_started', '2021', false, 1, :V);
+SELECT pg_temp.stale_save_is_refused(:gamma, :'read', 'the year behind years trading changed');
+
+SELECT public.company_interview_fingerprint(:gamma) AS read \gset
+SELECT public.company_interview_save_answer(:gamma, 'area', '', true, 1, :V);
+SELECT pg_temp.stale_save_is_refused(:gamma, :'read', 'an answer was skipped');
+
+SELECT public.company_interview_fingerprint(:gamma) AS read \gset
+SELECT public.company_interview_save_answer(:gamma, 'strengths', 'We tidy up', false, 0, :V);
+SELECT pg_temp.stale_save_is_refused(:gamma, :'read', 'a new question was answered');
+
+SELECT public.company_interview_fingerprint(:gamma) AS read \gset
+SELECT public.company_interview_save_answer(:gamma, 'strengths', 'We tidy up', false, 1, :V);
+SELECT pg_temp.stale_save_is_refused(:gamma, :'read', 'the same answer was saved again as a new revision');
+
+RESET ROLE;
+SET ROLE service_role;
+SELECT public.company_interview_fingerprint(:gamma) AS read \gset
+RESET ROLE;
+UPDATE public.profiles SET company_name = 'Gamma Roofing & Cladding Ltd' WHERE id = :gamma;
+SET ROLE service_role;
+SELECT pg_temp.stale_save_is_refused(:gamma, :'read', 'the business name changed');
+
+-- The sources must be stated, and stated as a fingerprint.
+SELECT t.expect(t.fails($q$ SELECT public.company_narrative_save_draft('cccccccc-0000-0000-0000-000000000003', 'introduction', 'x', 'template', 'v', NULL, 'interview-v1', '[]', '[]', NULL, NULL) $q$), 'a draft cannot be saved without stating its sources');
+SELECT t.expect(t.fails($q$ SELECT public.company_narrative_save_draft('cccccccc-0000-0000-0000-000000000003', 'introduction', 'x', 'template', 'v', NULL, 'interview-v1', '[]', '[]', NULL, 'current') $q$), 'the sources are a fingerprint, not a word');
+SELECT t.expect(public.company_narrative_save_draft(:gamma, 'introduction', 'x', 'template', 'v', NULL, :V, '[]', '[]', NULL, repeat('0', 32))->>'outcome' = 'stale-source', 'a made-up fingerprint matches nothing');
+
+-- The good draft from before all that is still there, still a draft, and is itself out of date now.
+SELECT t.expect((SELECT status FROM public.company_narrative_drafts WHERE id = :'good_id') = 'draft', 'the earlier draft was never retired by a refused save');
+SELECT t.expect(public.company_narrative_approve(:gamma, :'good_id', 'introduction', NULL, NULL)->>'outcome' = 'stale-answers', 'the earlier draft cannot be approved: its sources have moved on');
+SELECT t.expect(public.company_narrative_approve(:gamma, :'good_id', 'accreditations', NULL, NULL)->>'outcome' = 'stale-answers', 'nor can a fact from it');
+SELECT t.expect((SELECT capability_statement IS NULL AND accreditations IS NULL AND years_trading IS NULL FROM public.profiles WHERE id = :gamma), 'nothing stale reached the profile');
+
+-- A fresh read and a fresh save succeed, and what is approved is the fresh text and the fresh fact.
+SELECT public.company_narrative_save_draft(:gamma, 'introduction', 'Gamma Roofing & Cladding Ltd specialises in roofing and cladding.', 'template', 'intro-template-v1', NULL, :V, '[]',
+  '[{"field":"accreditations","proposed":"NICEIC approved contractor","existing":null,"questionKey":"memberships","status":"pending","appliedAt":null}]', NULL, public.company_interview_fingerprint(:gamma)) AS fresh \gset
+SELECT ((:'fresh'::jsonb)->'draft'->>'id') AS fresh_id \gset
+SELECT t.expect((:'fresh'::jsonb)->>'outcome' = 'saved', 'a save written from the current sources succeeds');
+SELECT t.expect((SELECT status FROM public.company_narrative_drafts WHERE id = :'good_id') = 'superseded', 'only an accepted save retires the earlier draft');
+
+-- The business name changes AFTER the draft was written: it cannot be approved as it stands.
+RESET ROLE;
+UPDATE public.profiles SET company_name = 'Gamma Group' WHERE id = :gamma;
+SET ROLE service_role;
+SELECT t.expect(public.company_narrative_approve(:gamma, :'fresh_id', 'introduction', NULL, NULL)->>'outcome' = 'stale-answers', 'a draft naming the old business name cannot be approved after the name changes');
+SELECT t.expect((SELECT capability_statement IS NULL FROM public.profiles WHERE id = :gamma), 'and the old name is not written into the introduction');
+RESET ROLE;
+UPDATE public.profiles SET company_name = 'Gamma Roofing & Cladding Ltd' WHERE id = :gamma;
+SET ROLE service_role;
+SELECT t.expect(public.company_narrative_approve(:gamma, :'fresh_id', 'introduction', NULL, NULL)->>'outcome' = 'applied', 'with the sources as the draft was written from, it is approved');
+SELECT t.expect(public.company_narrative_approve(:gamma, :'fresh_id', 'accreditations', NULL, NULL)->>'outcome' = 'applied', 'and so is its fact');
+SELECT t.expect((SELECT capability_statement = 'Gamma Roofing & Cladding Ltd specialises in roofing and cladding.' AND accreditations = 'NICEIC approved contractor' FROM public.profiles WHERE id = :gamma), 'what was approved is the current text and the current fact');
+-- Changing the saved introduction is not a change of source.
+SELECT t.expect(public.company_interview_fingerprint(:gamma) = (SELECT answers_fingerprint FROM public.company_narrative_drafts WHERE id = :'fresh_id'), 'the saved introduction is not one of the sources');
+RESET ROLE;
+DELETE FROM public.company_interview_answers WHERE user_id = :gamma;
+DELETE FROM public.company_narrative_drafts WHERE user_id = :gamma;
+UPDATE public.profiles SET capability_statement = NULL, accreditations = NULL WHERE id = :gamma;
+SQL
+
+# ── The same race for real: the change and the save in separate sessions at once ──
+race() { # label, the SQL that changes a source inside an open transaction
+  local label="$1" change="$2" read result
+  "${PSQL[@]}" -q -c "SET ROLE service_role; SELECT public.company_interview_save_answer('cccccccc-0000-0000-0000-000000000003', 'trade', 'Roofing', false, coalesce((SELECT revision FROM public.company_interview_answers WHERE user_id = 'cccccccc-0000-0000-0000-000000000003' AND question_key = 'trade'), 0), 'interview-v1');" >/dev/null
+  read="$("${PSQL[@]}" -At -c "SELECT public.company_interview_fingerprint('cccccccc-0000-0000-0000-000000000003');")"
+  # Session A changes a source and holds its transaction open.
+  "${PSQL[@]}" -q -c "BEGIN; $change SELECT pg_sleep(1.5); COMMIT;" >/dev/null &
+  sleep 0.5
+  # Session B is the server's save, written from what it read before A. It has to wait for A, then be refused.
+  # A's change is invisible until it commits a second later. If B did not wait for A,
+  # B would still see the sources it read and would save; being refused proves it waited.
+  result="$("${PSQL[@]}" -At -c "SET ROLE service_role; SELECT public.company_narrative_save_draft('cccccccc-0000-0000-0000-000000000003', 'introduction', 'OLD TEXT', 'template', 'v', NULL, 'interview-v1', '[]', '[]', NULL, '$read')->>'outcome';" | tail -n 1)"
+  wait
+  if [[ "$result" != "stale-source" ]]; then
+    echo "FAILED: $label at the same moment as the save: expected the save to be refused, got '$result'." >&2
+    exit 1
+  fi
+  if [[ "$("${PSQL[@]}" -At -c "SELECT count(*) FROM public.company_narrative_drafts WHERE user_id = 'cccccccc-0000-0000-0000-000000000003';")" != "0" ]]; then
+    echo "FAILED: $label at the same moment as the save: a draft was stored." >&2
+    exit 1
+  fi
+}
+race "an answer saved" "SET LOCAL ROLE service_role; SELECT public.company_interview_save_answer('cccccccc-0000-0000-0000-000000000003', 'trade', 'Cladding', false, (SELECT revision FROM public.company_interview_answers WHERE user_id = 'cccccccc-0000-0000-0000-000000000003' AND question_key = 'trade'), 'interview-v1');"
+race "the business name changed" "UPDATE public.profiles SET company_name = 'Gamma ' || clock_timestamp()::text WHERE id = 'cccccccc-0000-0000-0000-000000000003';"
+"${PSQL[@]}" -q -c "DELETE FROM public.company_interview_answers WHERE user_id = 'cccccccc-0000-0000-0000-000000000003';" >/dev/null
+
 # ── Several first saves of the same answer at once ────────────────────────────
 for i in 1 2 3 4 5 6; do
   "${PSQL[@]}" -At -c "SET ROLE service_role; SELECT public.company_interview_save_answer('cccccccc-0000-0000-0000-000000000003', 'work', 'tab $i', false, 0, 'interview-v1')->>'outcome';" > "$TEST_DIR/save.$i" &
@@ -244,4 +377,4 @@ if [[ "$saved" != "1" || "$conflict" != "5" ]]; then
   exit 1
 fi
 
-echo "company interview: revisions, read-only boundary, atomic approval and tenant isolation hold"
+echo "company interview: revisions, source binding, read-only boundary, atomic approval and tenant isolation hold"

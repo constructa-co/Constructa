@@ -17,6 +17,7 @@
     "test:company-import-sql": "bash scripts/test-company-import-sql.sh",
     "test:company-interview-sql": "bash scripts/test-company-interview-sql.sh",
     "test:company-narrative-ai-sql": "bash scripts/test-company-narrative-ai-sql.sh",
+    "test:cohort-ai-features-sql": "bash scripts/test-cohort-ai-features-sql.sh",
     "test:cost-library-sql": "bash scripts/test-cost-library-rls-sql.sh",
     "test:definer-sql": "bash scripts/test-legacy-definer-sql.sh",
     "test:organization-sql": "bash scripts/test-organization-membership-sql.sh",
@@ -30,7 +31,8 @@
     "e2e:smoke": "playwright test --project=desktop --project=phone",
     "e2e:evidence": "E2E_EVIDENCE=1 playwright test",
     "e2e:import-fixture": "playwright test -c playwright.import-fixture.config.ts",
-    "eval:interview": "EVAL_WRITE=1 vitest run src/lib/company-interview/eval"
+    "eval:interview": "EVAL_WRITE=1 vitest run src/lib/company-interview/eval",
+    "eval:cohort-ai": "EVAL_WRITE=1 vitest run src/lib/cohort-ai/eval"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.4",

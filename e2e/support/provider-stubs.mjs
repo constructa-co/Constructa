@@ -46,8 +46,55 @@ function between(text, start, end) {
     return (to < 0 ? rest : rest.slice(0, to)).trim();
 }
 
+/**
+ * The budgeted features send their rules as a system message and the
+ * contractor's text as JSON in a user message, and expect JSON back. Each is
+ * recognised by its rules. The reply keeps the contractor's words and adds
+ * only the marker, which holds no figure, name or claim.
+ */
+function structuredReply(messages) {
+    const system = String(messages.find((message) => message?.role === "system")?.content ?? "");
+    let sent = {};
+    try { sent = JSON.parse(String(messages.find((message) => message?.role === "user")?.content ?? "{}")); } catch { /* reply to nothing */ }
+
+    if (system.includes("write up a job they have described")) {
+        log.ai.push({ feature: "brief.suggest" });
+        return {
+            scope: `${String(sent.description ?? "")} ${AI_MARKER}`,
+            clientType: "domestic",
+            suggestedTrades: ["Bathroom Installation", "Tiling"],
+            estimatedValue: 0,
+            startDate: null,
+            response: "I tidied the wording and kept your facts as you wrote them.",
+        };
+    }
+    if (system.includes("tidy the wording of a proposal")) {
+        log.ai.push({ feature: "proposal.wording" });
+        return { text: `${String(sent.text ?? "")} ${AI_MARKER}` };
+    }
+    if (system.includes("tidy the wording of a case study")) {
+        log.ai.push({ feature: "case-studies.enhance" });
+        const reply = {};
+        for (const key of ["whatWeDelivered", "valueAdded"]) if (typeof sent[key] === "string") reply[key] = sent[key];
+        return reply;
+    }
+    if (system.includes("taken from the contractor's programme")) {
+        log.ai.push({ feature: "schedule.programme-update" });
+        const stages = Array.isArray(sent.stages) ? sent.stages : [];
+        return { update: stages.map((stage) => `${stage.name}: ${stage.status}.`).join(" ") };
+    }
+    return null;
+}
+
 function aiReply(body) {
-    const prompt = String(body?.messages?.[0]?.content ?? "");
+    const messages = Array.isArray(body?.messages) ? body.messages : [];
+    if (messages.some((message) => message?.role === "system")) {
+        const reply = structuredReply(messages);
+        if (reply) return JSON.stringify(reply);
+    }
+
+    // Single-message prompts, as the unbudgeted paths still send them.
+    const prompt = String(messages[0]?.content ?? "");
     if (prompt.includes("Contractor's description:")) {
         let description = between(prompt, "Contractor's description:", "\n");
         try { description = JSON.parse(description); } catch { /* keep as sent */ }

@@ -9,7 +9,9 @@
 import { requireAuth, requireProjectAccess } from "@/lib/supabase/auth-utils";
 import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-access";
 import { revalidatePath } from "next/cache";
-import { generateText } from "@/lib/ai";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { PROGRAMME_NOT_SAVED, writeProgrammeUpdate } from "@/lib/cohort-ai/programme-update";
+import { COHORT_AI_UNAVAILABLE } from "@/lib/cohort-ai/shared";
 import { UpdatePhasesSchema, parseInput } from "@/lib/validation/schemas";
 
 export async function updateDependencyAction(formData: FormData) {
@@ -205,8 +207,19 @@ export async function saveProgrammePhasesAction(
 
 // ── Sprint 31: Live Programme Tracking ───────────────────────────────────────
 
+/**
+ * Writes a weekly progress update from the programme's own stage data, for
+ * the contractor to read, copy and send themselves. It is not sent anywhere.
+ *
+ * Returns the update, or throws with a plain message the screen shows. Order:
+ * access to the project is checked first; then the stages are read and
+ * bounded; then one call is made through the usage budget; then, only if the
+ * reply passed its checks, it is stored with the exact stages it was written
+ * from. Nothing is stored on a refusal, a failure or a rejected reply, and if
+ * storing fails the update is not returned as if it had been kept.
+ */
 export async function generateWeeklyUpdateAction(projectId: string): Promise<string> {
-    const { supabase } = await requireProjectAccess(projectId);
+    const { user, supabase } = await requireProjectAccess(projectId);
 
     const { data: project } = await supabase
         .from("projects")
@@ -216,49 +229,33 @@ export async function generateWeeklyUpdateAction(projectId: string): Promise<str
 
     if (!project) throw new Error("Project not found");
 
-    const phases: any[] = project.programme_phases || [];
-    const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+    // The stages as saved. This exact value is what is sent and, on success, what is stored beside the update.
+    const phases: unknown[] = Array.isArray(project.programme_phases) ? project.programme_phases : [];
 
-    const phaseLines = phases.map((p: any) => {
-        const pct = p.pct_complete ?? 0;
-        const status = pct === 100 ? "Complete" : pct > 0 ? `${pct}% complete` : "Not started";
-        const actual = p.actual_start_date ? `Started ${new Date(p.actual_start_date + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : "";
-        return `- ${p.name}: ${status}${actual ? ` (${actual})` : ""}${p.actual_finish_date ? `, finished ${new Date(p.actual_finish_date + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}`;
-    }).join("\n");
+    let admin;
+    try {
+        admin = createAdminClient();
+    } catch {
+        throw new Error(COHORT_AI_UNAVAILABLE);
+    }
+    const result = await writeProgrammeUpdate(
+        { admin, userId: user.id },
+        { projectName: project.name, clientName: project.client_name, phases, today: new Date() },
+    );
+    if (!result.ok) throw new Error(result.error);
 
-    const overallPct = phases.length > 0
-        ? Math.round(phases.reduce((s: number, p: any) => s + (p.pct_complete ?? 0), 0) / phases.length)
-        : 0;
-
-    const prompt = `You are a construction project manager writing a concise weekly progress update for a UK contractor.
-
-Project: ${project.name}
-Client: ${project.client_name || "Client"}
-Report date: ${today}
-Overall completion: ${overallPct}%
-
-Phase progress:
-${phaseLines}
-
-Write a professional weekly progress update in plain English (3–5 short paragraphs). Cover:
-1. Overall progress summary
-2. What was completed or is in progress this week
-3. Any phases not yet started and planned sequence
-4. A positive, professional closing note
-
-Keep it factual, concise and suitable to send directly to the client. Do not use bullet points. Use UK English spelling.`;
-
-    const narrative = await generateText(prompt);
-
-    // Store the narrative
-    await supabase.from("programme_updates").insert([{
+    const { error: storeError } = await supabase.from("programme_updates").insert([{
         project_id:      projectId,
-        narrative,
+        narrative:       result.narrative,
         phases_snapshot: phases,
     }]);
+    if (storeError) {
+        console.error("generateWeeklyUpdateAction could not store the update", { projectId, code: storeError.code });
+        throw new Error(PROGRAMME_NOT_SAVED);
+    }
 
     revalidatePath(`/dashboard/projects/schedule?projectId=${projectId}`);
-    return narrative;
+    return result.narrative;
 }
 
 export async function getProgrammeUpdatesAction(projectId: string) {

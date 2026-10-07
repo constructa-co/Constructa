@@ -1,16 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
     FIRST_PROJECT_STEPS,
-    NEW_PROJECT_PATH,
+    PROPOSAL_READINESS_PATH,
+    SETUP_LIMITS,
     SETUP_SAVE_FALLBACK_ERROR,
+    SETUP_WORK_SUGGESTIONS,
     buildSetupPatch,
     getHomePresentation,
+    hasWorkSuggestion,
     resolvePostSetupPath,
     resolveSetupSaveOutcome,
     resolveSetupStep,
     saveStateFromOutcome,
     shouldSendWelcomeEmail,
+    toggleWorkSuggestion,
 } from "./first-session";
+import { isDashboardPathAllowed } from "./launch-profile";
 
 describe("resolveSetupStep", () => {
     it("starts a new contractor on the trade question", () => {
@@ -30,6 +35,26 @@ describe("buildSetupPatch", () => {
             ok: true,
             step: "trade",
             patch: { business_type: "Bricklaying" },
+        });
+    });
+
+    it("keeps the contractor's own words, on one line", () => {
+        expect(buildSetupPatch({ step: "trade", businessType: "Kitchen fitting,\n  tiling   and small extensions" })).toEqual({
+            ok: true,
+            step: "trade",
+            patch: { business_type: "Kitchen fitting, tiling and small extensions" },
+        });
+        expect(buildSetupPatch({ step: "trade", businessType: "Dry stone walling" })).toMatchObject({
+            ok: true,
+            patch: { business_type: "Dry stone walling" },
+        });
+    });
+
+    it("accepts an answer at the limit and refuses one over it", () => {
+        expect(buildSetupPatch({ step: "trade", businessType: "x".repeat(SETUP_LIMITS.businessType) }).ok).toBe(true);
+        expect(buildSetupPatch({ step: "trade", businessType: "x".repeat(SETUP_LIMITS.businessType + 1) })).toEqual({
+            ok: false,
+            error: "That's a bit long. Please keep it under 200 characters.",
         });
     });
 
@@ -59,9 +84,10 @@ describe("buildSetupPatch", () => {
     });
 
     it("asks for the missing answer in plain language", () => {
+        expect(buildSetupPatch({ step: "trade", businessType: " \n " }).ok).toBe(false);
         expect(buildSetupPatch({ step: "trade", businessType: "" })).toEqual({
             ok: false,
-            error: "Choose the trade that best describes your work.",
+            error: "Tell us what kind of work your business does.",
         });
         expect(buildSetupPatch({ step: "business", companyName: "  " })).toEqual({
             ok: false,
@@ -87,15 +113,54 @@ describe("shouldSendWelcomeEmail", () => {
     });
 });
 
+describe("work suggestions", () => {
+    it("adds a suggestion to whatever the contractor typed", () => {
+        expect(toggleWorkSuggestion("", "Roofing")).toBe("Roofing");
+        expect(toggleWorkSuggestion("Lead work on listed buildings", "Roofing")).toBe("Lead work on listed buildings, Roofing");
+        expect(toggleWorkSuggestion("Roofing", "Cladding")).toBe("Roofing, Cladding");
+    });
+
+    it("takes a suggestion back out and leaves the rest alone", () => {
+        expect(toggleWorkSuggestion("Lead work, roofing, Cladding", "Roofing")).toBe("Lead work, Cladding");
+        expect(toggleWorkSuggestion("Roofing", "Roofing")).toBe("");
+    });
+
+    it("knows a suggestion is in the answer only as a whole entry", () => {
+        expect(hasWorkSuggestion("Plumbing & Heating, Roofing", "roofing")).toBe(true);
+        expect(hasWorkSuggestion("Roofing repairs", "Roofing")).toBe(false);
+        expect(hasWorkSuggestion("", "Roofing")).toBe(false);
+    });
+
+    it("does not add a suggestion that would take the answer past the limit", () => {
+        const nearlyFull = "x".repeat(SETUP_LIMITS.businessType - 3);
+        expect(toggleWorkSuggestion(nearlyFull, "Roofing")).toBe(nearlyFull);
+    });
+
+    it("offers suggestions that all fit and all save unchanged", () => {
+        expect(SETUP_WORK_SUGGESTIONS.length).toBeGreaterThan(0);
+        for (const suggestion of SETUP_WORK_SUGGESTIONS) {
+            expect(buildSetupPatch({ step: "trade", businessType: suggestion })).toMatchObject({
+                ok: true,
+                patch: { business_type: suggestion },
+            });
+        }
+    });
+});
+
 describe("resolvePostSetupPath", () => {
-    it("sends a contractor with no projects straight to New Project", () => {
-        expect(resolvePostSetupPath(0, "/dashboard")).toBe(NEW_PROJECT_PATH);
-        expect(resolvePostSetupPath(0, "/dashboard/home")).toBe("/dashboard/projects/new");
+    it("sends a contractor with no projects to proposal readiness", () => {
+        expect(resolvePostSetupPath(0, "/dashboard")).toBe(PROPOSAL_READINESS_PATH);
+        expect(resolvePostSetupPath(0, "/dashboard/home")).toBe("/dashboard/settings/profile/readiness");
     });
 
     it("keeps the normal landing page for contractors with projects", () => {
         expect(resolvePostSetupPath(1, "/dashboard")).toBe("/dashboard");
         expect(resolvePostSetupPath(12, "/dashboard/home")).toBe("/dashboard/home");
+    });
+
+    it("lands on a page every launch profile can open", () => {
+        expect(isDashboardPathAllowed(PROPOSAL_READINESS_PATH, "cohort")).toBe(true);
+        expect(isDashboardPathAllowed(PROPOSAL_READINESS_PATH, "full")).toBe(true);
     });
 });
 

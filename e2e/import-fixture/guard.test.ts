@@ -32,13 +32,19 @@ describe("website-import fixture harness", () => {
     });
 
     it("refuses to work unless explicitly switched on, at every entry point", () => {
-        for (const file of ["page.tsx", "actions.ts", "state/route.ts"]) {
+        for (const file of ["page.tsx", "actions.ts", "state/route.ts", "interview/page.tsx", "interview/actions.ts", "interview/state/route.ts"]) {
             expect(read(`e2e/import-fixture/app/${file}`), file).toContain('process.env.CONSTRUCTA_IMPORT_FIXTURE !== "1"');
         }
         const actions = read("e2e/import-fixture/app/actions.ts");
         const exported = Array.from(actions.matchAll(/export async function (\w+)\([^)]*\)[^{]*\{\n\s+(\w+)\(\);/g));
         expect(exported.map((match) => match[1]).sort()).toEqual(["fixtureApply", "fixtureDraft", "fixturePreview", "fixtureState"]);
         expect(exported.every((match) => match[2] === "guard")).toBe(true);
+
+        const interview = read("e2e/import-fixture/app/interview/actions.ts");
+        const interviewExports = Array.from(interview.matchAll(/export async function (\w+)\([^)]*\)[^{]*\{\n\s+(\w+)\(\);/g));
+        expect(interviewExports.map((match) => match[1]).sort()).toEqual(["fixtureApprove", "fixtureBuild", "fixtureControl", "fixtureInterview", "fixtureSave"]);
+        expect(interviewExports.every((match) => match[2] === "guard")).toBe(true);
+        expect(Array.from(interview.matchAll(/export async function/g))).toHaveLength(5);
     });
 
     it("will not be installed on a deployment, or anywhere a database or provider is configured", () => {

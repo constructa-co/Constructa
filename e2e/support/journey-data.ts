@@ -31,6 +31,7 @@ export const PRICE = {
     vatPct: 20,
 };
 
+/** What the "Deposit and balance" preset must produce, with no arithmetic by the contractor. */
 export const PAYMENT_STAGES = [
     { name: "Deposit", share: "30", when: "On booking" },
     { name: "Balance", share: "70", when: "On completion" },
@@ -53,7 +54,11 @@ export function expectedPrice() {
     const profit = (lines + overhead + risk) * (PRICE.profitPct / 100);
     const beforeVat = round2(lines + overhead + risk + profit);
     const vat = round2(beforeVat * (PRICE.vatPct / 100));
+    // The last payment stage takes the rounding, so the stages add up to the price.
+    const deposit = round2(beforeVat * (Number(PAYMENT_STAGES[0].share) / 100));
     return {
+        deposit: gbp(deposit),
+        balance: gbp(round2(beforeVat - deposit)),
         lines: gbp(lines),
         overhead: gbp(round2(overhead)),
         risk: gbp(round2(risk)),
@@ -89,12 +94,38 @@ function finishAfter(start: Date, workingDays: number): Date {
     return date;
 }
 
+const shortDate = (date: Date, withYear = true) =>
+    `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()].slice(0, 3)}${withYear ? ` ${date.getUTCFullYear()}` : ""}`;
+
+/** "2 Nov to 4 Nov 2026": the first year is stated only when it differs from the second. */
+function shortRange(start: Date, end: Date): string {
+    if (start.getTime() === end.getTime()) return shortDate(end);
+    return `${shortDate(start, start.getUTCFullYear() !== end.getUTCFullYear())} to ${shortDate(end)}`;
+}
+
+/** The first working day after `date`. */
+function nextWorkingDay(date: Date): Date {
+    const next = new Date(date);
+    do next.setUTCDate(next.getUTCDate() + 1); while (next.getUTCDay() === 0 || next.getUTCDay() === 6);
+    return next;
+}
+
 /** A Monday comfortably in the future, with the finish dates the programme must show. */
 export function expectedProgramme(today = new Date()) {
     const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 28));
     while (start.getUTCDay() !== 1) start.setUTCDate(start.getUTCDate() + 1);
     const stagedDays = STAGES.reduce((total, stage) => total + stage.workingDays, 0);
+    // Each stage starts on the working day after the one before it finishes.
+    let stageStart = new Date(start);
+    const stages = STAGES.map((stage) => {
+        const finish = finishAfter(stageStart, stage.workingDays);
+        const dated = { name: stage.name, dates: shortRange(stageStart, finish) };
+        stageStart = nextWorkingDay(finish);
+        return dated;
+    });
     return {
+        /** Every stage by name with the dates it must show, in order. */
+        stages,
         startIso: iso(start),
         start: longDate(start),
         /** Three weeks as one bar. */

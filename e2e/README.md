@@ -5,8 +5,9 @@ recorded client response, in a real browser, against the production build.
 
 ```
 sign up → sign in → company setup → first blank project → guided brief
-→ simple estimate (explicit Preliminaries, risk 7.5%) → programme
-→ review and send (acknowledgement) → anonymous public proposal and PDF
+→ simple estimate (explicit Preliminaries, risk 7.5%) → programme (three stages)
+→ review and send: payment preset, pre-send PDF, acknowledgement
+→ anonymous public proposal and PDF
 → client confirms receipt → contractor history and pipeline
 → second version asking for a non-binding intention to proceed
 ```
@@ -22,6 +23,7 @@ project `constructa-e2e-pr79`. This is enforced, not assumed:
 | Supabase URL | `support/env.ts` | Host is not the approved project |
 | Both API keys | `support/env.ts` | A key whose `ref` claim is another project, or whose role is wrong |
 | Base URL | `support/env.ts` | Anything but an `http` loopback address. The harness only tests a server it started itself |
+| Application guard | `next.config.mjs`, `scripts/verify-build-supabase-target.mjs` | The server is started in the `e2e` context, so the application itself refuses to build or start against any project but the one declared, and the compiled build is checked before the server starts. The same guard protects preview deployments (`DEVELOPMENT.md`) |
 | Compiled build | `support/global-setup.ts` | The build names any Supabase project other than the approved one |
 | Browser traffic | `phase1-journey.spec.ts` | Every request to a host other than the app and the approved project is aborted and recorded |
 | New account | `phase1-journey.spec.ts` | The sign-up request went to another host, or the account is not in the approved project |
@@ -67,7 +69,7 @@ E2E_SUPABASE_PROJECT_REF=<disposable ref> scripts/e2e-with-keychain.sh npm run e
 | Command | Projects | Use |
 | --- | --- | --- |
 | `npm run e2e:smoke` | `desktop` 1440×900, `phone` 390×844 | Routine and pull-request run |
-| `npm run e2e:evidence` | plus `tablet` 768×1024 and `desktop-keyboard` | Release run. Writes `docs/evidence/stage2-tranche-2e/` |
+| `npm run e2e:evidence` | plus `tablet` 768×1024 and `desktop-keyboard` | Release run. Writes `docs/evidence/stage2-tranche-2f/` |
 
 Both build the application first. They use the installed Google Chrome; no
 browser is downloaded. Screenshots and a trace are kept only for a failing
@@ -81,9 +83,23 @@ run, under `test-results/`, which is ignored by Git.
   response; no control offers binding acceptance; later modules redirect.
 - **Truth across boundaries**: the totals are worked out in
   `support/journey-data.ts` from the inputs, then required on the estimate,
-  the review screen, the client's preview, the public page and inside the PDF
-  text. The same goes for the programme dates and the response wording.
-  Overhead, risk and profit must not appear in anything the client sees.
+  the review screen, the client's preview, the pre-send PDF, the public page
+  and inside the sent PDF's text. The same goes for the programme: all three
+  stages by name, in order, each with its own dates, and never a stage the
+  contractor did not write. And for the payment stages and their amounts,
+  and the response wording. Overhead, risk and profit must not appear in
+  anything the client sees.
+- **The programme is the contractor's**: opening the detailed planner on a
+  job with no programme saves nothing; opening it on a saved programme
+  changes nothing; it is not opened over unsaved stages; a reload shows the
+  same stages.
+- **Readiness can be acted on**: beside the disabled tick box and Send
+  button, each missing item is named with a link to where it is fixed. A
+  payment preset is chosen without working out percentages, and readiness
+  answers before anything is saved.
+- **Reviewed is what is sent**: the pre-send PDF is downloaded and read
+  before publishing, and nothing is published by downloading it. Its check
+  code is the one shown when the version is published.
 - **Failure and retry**: a programme save whose connection is dropped keeps
   everything typed and saves on retry; a proposal email that fails leaves the
   publication standing and is sent on retry; a client response without a name

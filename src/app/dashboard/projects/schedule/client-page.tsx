@@ -5,21 +5,18 @@ import { updatePhasesAction, getEstimatePhasesAction, saveProgrammePhasesAction 
 import ProgrammeAiUpdate from "./programme-ai-update";
 import { toast } from "sonner";
 import { createLatestWriteQueue } from "@/lib/latest-write-queue";
+import {
+    estimateSuggestedPhases,
+    plannerCalendarDays as toCalendarDays,
+    plannerPhasesOnOpen,
+    savedPlannerPhases,
+    sequenceSuggestedPhases,
+    type PlannerPhase,
+} from "@/lib/planner-phases";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-interface Phase {
-    name: string;
-    calculatedDays: number;   // working days derived from manhours
-    manualDays: number | null; // working days user override
-    manhours: number;
-    startOffset: number;       // calendar days from project start (always multiple of 7)
-    color?: string;
-    dependsOn?: number[];      // indices of predecessor phases
-    // Sprint 31 — Live Tracking
-    pct_complete?: number;         // 0–100
-    actual_start_date?: string;    // YYYY-MM-DD
-    actual_finish_date?: string;   // YYYY-MM-DD
-}
+// Working days for lengths, calendar days from the project start for offsets.
+type Phase = PlannerPhase;
 
 interface EstimateLineComponent {
     component_type: string;
@@ -71,12 +68,6 @@ const DEFAULT_DPW = 5; // default working days per week
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** Convert working days → calendar days, rounded up to whole weeks. */
-function toCalendarDays(workingDays: number, daysPerWeek: number): number {
-    if (daysPerWeek >= 7) return workingDays;
-    return Math.ceil(workingDays / daysPerWeek) * 7;
-}
-
 /** Snap a date forward to the nearest Monday (stays if already Monday). */
 function snapToMonday(date: Date): Date {
     const d = new Date(date);
@@ -106,50 +97,6 @@ function toInputDate(date: Date): string {
     return date.toISOString().split("T")[0];
 }
 
-// ─── Build phases from estimate manhours ────────────────────────────────────
-function buildPhasesFromEstimate(
-    estimate: Estimate | null,
-    existingPhases?: Phase[],
-    daysPerWeek: number = DEFAULT_DPW
-): Phase[] {
-    if (!estimate) return existingPhases || [];
-
-    const sectionManhours: Record<string, number> = {};
-    (estimate.estimate_lines || []).forEach((line) => {
-        const section = line.trade_section || "General";
-        const lineManHours = (line.estimate_line_components || []).reduce(
-            (sum, c) => sum + (c.total_manhours || 0), 0
-        );
-        sectionManhours[section] = (sectionManhours[section] || 0) + lineManHours * (line.quantity || 1);
-    });
-
-    const existingMap = new Map<string, Phase>();
-    (existingPhases || []).forEach((p) => existingMap.set(p.name, p));
-
-    const sections = Object.keys(sectionManhours).filter((s) => sectionManhours[s] > 0);
-    if (sections.length === 0 && existingPhases && existingPhases.length > 0) return existingPhases;
-
-    let offset = 0;
-    return sections.map((section) => {
-        const manhours = sectionManhours[section];
-        const calculatedDays = Math.max(Math.ceil(manhours / 8), 1); // working days
-        const existing = existingMap.get(section);
-        const manualDays = existing?.manualDays ?? null;
-        const duration = manualDays ?? calculatedDays; // working days
-        const phase: Phase = {
-            name: section,
-            calculatedDays,
-            manualDays,
-            manhours,
-            startOffset: existing?.startOffset ?? offset,
-            color: existing?.color,
-            dependsOn: existing?.dependsOn,
-        };
-        offset += toCalendarDays(duration, daysPerWeek); // advance by calendar days
-        return phase;
-    });
-}
-
 // ─── Drag types ──────────────────────────────────────────────────────────────
 type DragType = "move" | "resize";
 interface DragState {
@@ -171,6 +118,8 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const ganttRef           = useRef<HTMLDivElement>(null);
     const dragStateRef       = useRef<DragState | null>(null);
     const isInitialMount     = useRef(true);
+    // Set just before a suggestion is put on screen, so showing it is not a save.
+    const skipNextAutoSave   = useRef(false);
     const autoSaveTimer      = useRef<NodeJS.Timeout | null>(null);
     const programmeStartRef  = useRef<Date | null>(null);
     const [persistPhases] = useState(() => createLatestWriteQueue(
@@ -214,22 +163,18 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     // entire Gantt render. (timeline_phases is a ghost column — no such
     // column exists on projects. Kept in the fallback chain so legacy
     // selects elsewhere don't regress silently.)
-    const rawPhases = (project.programme_phases ?? project.timeline_phases) as unknown;
-    const existingPhases: Phase[] = Array.isArray(rawPhases)
-        ? rawPhases.filter(
-              (p): p is Phase =>
-                  p !== null &&
-                  typeof p === "object" &&
-                  typeof (p as { name?: unknown }).name === "string",
-          )
-        : [];
+    const existingPhases = savedPlannerPhases((project.programme_phases ?? project.timeline_phases) as unknown);
 
-    const initialPhases = useMemo(
-        () => buildPhasesFromEstimate(estimate, existingPhases, daysPerWeek),
+    // The saved programme opens exactly as it was saved. Stages worked out
+    // from the estimate are only ever a starting point for a job that has
+    // no programme, and are not saved by being shown.
+    const opening = useMemo(
+        () => plannerPhasesOnOpen(existingPhases, estimate, daysPerWeek),
         // eslint-disable-next-line react-hooks/exhaustive-deps
         []
     );
-    const [phases, setPhases] = useState<Phase[]>(initialPhases);
+    const [phases, setPhases] = useState<Phase[]>(opening.phases);
+    const [isSuggestion, setIsSuggestion] = useState(opening.origin === "suggested");
     const phasesRef = useRef<Phase[]>(phases);
     useEffect(() => { phasesRef.current = phases; }, [phases]);
 
@@ -244,6 +189,12 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             isInitialMount.current = false;
             return;
         }
+        if (skipNextAutoSave.current) {
+            skipNextAutoSave.current = false;
+            return;
+        }
+        // From here the contractor has changed something, so it is theirs.
+        setIsSuggestion(false);
         if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
         autoSaveTimer.current = setTimeout(() => {
             autoSaveTimer.current = null;
@@ -287,15 +238,11 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
         if (phases.length === 0) {
             getEstimatePhasesAction(projectId).then((serverPhases) => {
                 if (serverPhases.length > 0) {
-                    // Re-sequence server phases with current daysPerWeek
-                    let offset = 0;
-                    const resequenced = serverPhases.map((p) => {
-                        const phase = { ...p, startOffset: offset };
-                        offset += toCalendarDays(p.manualDays ?? p.calculatedDays, daysPerWeek);
-                        return phase;
-                    });
-                    setPhases(resequenced);
-                    saveProgrammePhasesAction(projectId, resequenced);
+                    // A starting point only. It is shown, not saved: the
+                    // proposal has no programme until the contractor makes one.
+                    skipNextAutoSave.current = true;
+                    setIsSuggestion(true);
+                    setPhases(sequenceSuggestedPhases(serverPhases, daysPerWeek));
                 }
             });
         }
@@ -466,6 +413,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const handleSave = () => {
         // Cancel any pending auto-save so we don't double-fire
         if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+        setIsSuggestion(false);
         startTransition(async () => {
             setSaveStatus("saving");
             const startDateStr = toInputDate(programmeStart);
@@ -482,21 +430,20 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     };
 
     const handleRegenerate = () => {
+        // This replaces the programme, so the contractor's own stages are
+        // never swapped for estimate sections without them saying so.
+        if (phases.length > 0 && !isSuggestion && !window.confirm(
+            `Replace your ${phases.length} saved ${phases.length === 1 ? "stage" : "stages"} with stages worked out from the estimate?\n\nYour stage names, lengths and order will be lost.`,
+        )) return;
         startTransition(async () => {
             const serverPhases = await getEstimatePhasesAction(projectId);
             if (serverPhases.length > 0) {
-                // Re-sequence using current daysPerWeek
-                let offset = 0;
-                const resequenced = serverPhases.map((p) => {
-                    const phase = { ...p, startOffset: offset };
-                    offset += toCalendarDays(p.manualDays ?? p.calculatedDays, daysPerWeek);
-                    return phase;
-                });
+                const resequenced = sequenceSuggestedPhases(serverPhases, daysPerWeek);
                 setPhases(resequenced);
                 await saveProgrammePhasesAction(projectId, resequenced);
                 toast.success("Programme regenerated from estimate");
             } else {
-                const regenerated = buildPhasesFromEstimate(estimate, undefined, daysPerWeek);
+                const regenerated = estimateSuggestedPhases(estimate, daysPerWeek);
                 if (regenerated.length > 0) {
                     setPhases(regenerated);
                     toast.success("Programme regenerated");
@@ -624,6 +571,14 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         <span className="text-amber-500/70">⟶ Dependencies shown</span>
                     )}
                 </div>
+            )}
+
+            {/* ── A starting point that is not yet the programme ── */}
+            {isSuggestion && phases.length > 0 && (
+                <p role="note" data-planner-suggestion className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                    These stages are a starting point taken from your estimate. They are not saved, and your proposal does not
+                    use them, until you change one or press Save to Proposal.
+                </p>
             )}
 
             {/* ── Empty state ── */}

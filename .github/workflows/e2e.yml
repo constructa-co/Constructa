@@ -69,4 +69,4 @@ jobs:
             test-results/report.json
             test-results/phase1/*.json
             test-results/**/*.png
-            docs/evidence/stage2-tranche-2e/results-*.json
+            docs/evidence/stage2-tranche-2f/results-*.json

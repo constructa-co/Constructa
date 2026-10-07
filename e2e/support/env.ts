@@ -148,6 +148,10 @@ export function serverEnv(env: E2EEnv): Record<string, string> {
         NEXT_PUBLIC_APP_URL: env.baseUrl,
         NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE: "cohort",
         NEXT_TELEMETRY_DISABLED: "1",
+        // The application's own guard (src/lib/deployment/supabase-target.mjs)
+        // then refuses to build or start against any other project.
+        CONSTRUCTA_DEPLOY_CONTEXT: "e2e",
+        CONSTRUCTA_NONPROD_SUPABASE_PROJECT_REF: env.projectRef,
         OPENAI_API_KEY: "e2e-synthetic-key",
         OPENAI_BASE_URL: `${env.stubUrl}/openai/v1`,
         RESEND_API_KEY: "re_e2e_synthetic_key",

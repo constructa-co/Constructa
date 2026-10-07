@@ -5,7 +5,7 @@ import { findObscuredControls, measureLayout, scanAccessibility, type AxeFinding
 import type { FocusRecord } from "./driver";
 
 /** Committed evidence lives here; a smoke run writes to test-results instead. */
-export const EVIDENCE_DIR = path.resolve("docs/evidence/stage2-tranche-2e");
+export const EVIDENCE_DIR = path.resolve("docs/evidence/stage2-tranche-2f");
 
 export interface Checkpoint {
     name: string;

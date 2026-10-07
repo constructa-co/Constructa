@@ -76,13 +76,15 @@ describe("proposal publication snapshot", () => {
         expect(snapshot.commercial.vat_amount).toBe(2922.15);
         expect(snapshot.commercial.contract_sum_inc_vat).toBe(17532.9);
         expect(snapshot.commercial.fee_items.reduce((sum, item) => sum + item.amount_ex_vat, 0)).toBe(14610.75);
+        // The stage list is written from the canonical plan, so the two
+        // state the same programme: eight working days from 2 November.
         expect(snapshot.programme).toEqual([{
             id: null,
             name: "Groundworks",
-            duration_days: 10,
+            duration_days: 8,
             duration_unit: "Days",
             start_offset_days: 0,
-            start_date: null,
+            start_date: "2026-11-02",
         }]);
         expect(snapshot.terms.clauses[0].title).toBe("Payment");
         // The legacy timeline phase is ten calendar days from the project start.

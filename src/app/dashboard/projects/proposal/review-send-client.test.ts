@@ -98,7 +98,7 @@ describe("Review and Send", () => {
     it("offers exactly two responses with acknowledgement chosen, and says neither is acceptance", () => {
         const options = html.match(/data-response-option="[^"]+"/g);
         expect(options).toEqual(['data-response-option="acknowledgement"', 'data-response-option="non_binding_intent"']);
-        const radios = html.match(/<input[^>]*type="radio"[^>]*>/g) ?? [];
+        const radios = html.match(/<input[^>]*type="radio"[^>]*name="response-kind"[^>]*>/g) ?? [];
         expect(radios).toHaveLength(2);
         expect(radios[0]).toContain("checked");
         expect(radios[1]).not.toContain("checked");
@@ -138,6 +138,87 @@ describe("Review and Send", () => {
         expect(gaps).toContain('data-send-block="not-ready"');
         // The confirmation cannot be ticked while a required item is missing.
         expect(gaps.match(/<input[^>]*data-send-confirm[^>]*>/)![0]).toContain("disabled");
+    });
+
+    it("says beside the Send controls what is missing and gives the way to fix each thing", () => {
+        const gaps = review({ context: context({ programme_phases: [], payment_schedule: [] }) });
+        const send = gaps.slice(gaps.indexOf("data-review-send"));
+        const blocker = send.slice(send.indexOf('data-send-block="not-ready"'), send.indexOf("data-send-confirm"));
+
+        expect(blocker).toContain("You can't send yet. 2 things are still needed.");
+        // Programme: the reason, and a link straight to the programme.
+        expect(blocker).toMatch(/data-send-missing="programme"[\s\S]*Add the start date and how long the job takes in Programme\./);
+        expect(blocker).toContain('href="/dashboard/projects/schedule?projectId=22222222-2222-4222-8222-222222222222"');
+        expect(blocker).toContain(">Open Programme<");
+        // Payment: the reason, a link to the choice, and the two presets one press away.
+        expect(blocker).toMatch(/data-send-missing="payment"[\s\S]*Choose how you are paid/);
+        expect(blocker).toContain('href="#review-payments"');
+        expect(blocker).toContain('data-quick-payment="completion"');
+        expect(blocker).toContain('data-quick-payment="deposit_balance"');
+
+        // The disabled tick box and the disabled button both point at that explanation.
+        const confirm = send.match(/<input[^>]*data-send-confirm[^>]*>/)![0];
+        expect(confirm).toContain("disabled");
+        expect(confirm).toContain('aria-describedby="send-block-reason"');
+        const button = send.match(/<button[^>]*data-send-button[^>]*>/)![0];
+        expect(button).toContain("disabled");
+        expect(button).toContain('aria-describedby="send-block-reason"');
+        expect(send.match(/id="send-block-reason"/g)).toHaveLength(1);
+        // Where the links land exists on the page and can take focus.
+        expect(gaps).toMatch(/<div id="review-payments" tabindex="-1"/);
+    });
+
+    it("explains the tick box once everything needed is there, with nothing left to fix", () => {
+        const send = html.slice(html.indexOf("data-review-send"));
+        expect(send).not.toContain("data-send-missing");
+        expect(send).toContain("Tick the box to confirm this proposal is ready to go to your client.");
+        expect(send.match(/<input[^>]*data-send-confirm[^>]*>/)![0]).not.toContain("disabled");
+    });
+
+    it("offers payment on completion, a deposit and balance, or custom stages, and opens on what is saved", () => {
+        const presets = (markup: string) => (markup.match(/<input[^>]*name="payment-preset"[^>]*>/g) ?? []).map((radio) => radio.includes("checked"));
+        expect(html.match(/data-payment-preset="[^"]+"/g)).toEqual([
+            'data-payment-preset="completion"', 'data-payment-preset="deposit_balance"', 'data-payment-preset="custom"',
+        ]);
+        expect(html).toContain("Payment on completion");
+        expect(html).toContain("Deposit and balance");
+        expect(html).toContain("Custom stages");
+        // The fixture has three stages of its own: custom, with its editor open.
+        expect(presets(html)).toEqual([false, false, true]);
+        expect(html.match(/data-payment-stage/g)).toHaveLength(3);
+
+        const none = review({ context: context({ payment_schedule: [] }) });
+        expect(presets(none)).toEqual([false, false, false]);
+        expect(none).not.toContain("data-payment-stage");
+
+        const completion = review({ context: context({ payment_schedule: [{ id: "a", stage: "Payment on completion", description: "When the work is finished", percentage: 100 }] }) });
+        expect(presets(completion)).toEqual([true, false, false]);
+        expect(completion).not.toContain("data-payment-stage");
+        expect(completion).toMatch(/data-payment-summary[\s\S]*Payment on completion[\s\S]*100%[\s\S]*£7,552\.05/);
+
+        const deposit = review({ context: context({ payment_schedule: [
+            { id: "a", stage: "Deposit", description: "On booking", percentage: 30 },
+            { id: "b", stage: "Balance", description: "On completion", percentage: 70 },
+        ] }) });
+        expect(presets(deposit)).toEqual([false, true, false]);
+        expect(deposit).toMatch(/<input[^>]*id="payment-deposit"[^>]*value="30"/);
+        expect(deposit).toContain("The balance is 70%, due on completion. It is worked out for you.");
+        // The amounts the client will read, adding up to the price.
+        expect(deposit).toMatch(/data-payment-summary[\s\S]*Deposit[\s\S]*£2,265\.61[\s\S]*Balance[\s\S]*£5,286\.44/);
+    });
+
+    it("offers the draft PDF before anything is sent", () => {
+        const pdf = html.slice(html.indexOf("data-presend-pdf"), html.indexOf('id="review-preview"'));
+        const button = pdf.match(/<button[^>]*>/)![0];
+        expect(button).not.toContain('disabled=""');
+        expect(pdf).toContain("Download this draft as a PDF");
+        expect(pdf).toContain("The PDF your client will get, marked as a draft. Downloading it sends nothing.");
+        // It sits outside the collapsible preview, so it is there when the preview is closed.
+        expect(html.indexOf("data-presend-pdf")).toBeLessThan(html.indexOf('id="review-preview"'));
+        // With nothing to price there is nothing to draw, and the button says why.
+        const empty = review({ context: { ...context(), estimate: null } });
+        expect(empty.slice(empty.indexOf("data-presend-pdf")).match(/<button[^>]*>/)![0]).toContain('disabled=""');
+        expect(empty).toContain("The PDF is available once the job has a name and an estimate.");
     });
 
     it("tells the contractor that a sent version is fixed and edits are a new draft", () => {

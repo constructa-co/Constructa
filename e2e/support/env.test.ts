@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { checkSupabaseTarget } from "../../src/lib/deployment/supabase-target.mjs";
 import { APPROVED_DISPOSABLE_PROJECT, E2EConfigurationError, readE2EEnv, serverEnv } from "./env";
 
 /** A token shaped like a Supabase key. Not a real key: the signature is a placeholder. */
@@ -83,5 +84,14 @@ describe("E2E environment gate", () => {
         expect(server.NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE).toBe("cohort");
         expect(server.OPENAI_API_KEY).toMatch(/synthetic/);
         expect(server.RESEND_API_KEY).toMatch(/synthetic/);
+    });
+
+    it("starts the server in the E2E context, so the application's own guard binds it to the disposable project", () => {
+        const server = serverEnv(readE2EEnv(env()));
+        expect(server.CONSTRUCTA_DEPLOY_CONTEXT).toBe("e2e");
+        expect(server.CONSTRUCTA_NONPROD_SUPABASE_PROJECT_REF).toBe(approved);
+        expect(checkSupabaseTarget(server)).toMatchObject({ ok: true, guarded: true, context: "e2e" });
+        // The same server environment pointed anywhere else is refused by the application itself.
+        expect(checkSupabaseTarget({ ...server, NEXT_PUBLIC_SUPABASE_URL: `https://${other}.supabase.co` }).ok).toBe(false);
     });
 });

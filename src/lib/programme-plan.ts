@@ -269,6 +269,16 @@ export function computeProgrammePlan(
     };
 }
 
+/**
+ * True when the plan shows every saved phase: none was left out for want of
+ * a start or a length. A proposal is only sent when this holds, so a stage
+ * the contractor saved can never silently go missing from it.
+ */
+export function planCoversEveryPhase(plan: Pick<ProgrammePlan, "stages"> | null, phases: unknown[] | null | undefined): boolean {
+    const saved = Array.isArray(phases) ? Math.min(phases.length, 200) : 0;
+    return plan !== null && saved > 0 && plan.stages.length === saved;
+}
+
 /** Where a stage's bar sits on a timeline, as percentages of the whole. */
 export function stageBar(plan: Pick<ProgrammePlan, "calendar_days">, stage: Pick<ProgrammePlanStage, "offset_days" | "span_days">) {
     const total = Math.max(1, plan.calendar_days);

@@ -1,3 +1,12 @@
+import { assertSupabaseTarget } from "./src/lib/deployment/supabase-target.mjs";
+
+// A preview or E2E build, or a server started from one, stops here if it is
+// pointed at the production database or has no disposable project of its
+// own. This file is loaded by every `next build` and `next start`, so the
+// check cannot be skipped by changing the build command. Production is never
+// checked. See DEVELOPMENT.md, "Preview and E2E database isolation".
+assertSupabaseTarget(process.env);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,

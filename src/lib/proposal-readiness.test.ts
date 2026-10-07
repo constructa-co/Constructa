@@ -119,10 +119,40 @@ describe("evaluateProposalReadiness", () => {
         expect(missingKeys({ ...complete, programmePhases: [{ name: "Works on site", manualDays: 15, calculatedDays: 15, startOffset: 0 }] })).toEqual([]);
     });
 
-    it("passes when at least one phase is valid among invalid ones", () => {
-        expect(missingKeys({
+    it("blocks sending when any saved stage is unusable, rather than leaving it out of the proposal", () => {
+        const unnamed = evaluateProposalReadiness({
             ...complete,
             programmePhases: [{ name: "", calculatedDays: 5 }, { name: "Roof", manualDays: 3, startOffset: 7 }],
+        });
+        expect(unnamed.missing.map((item) => item.key)).toEqual(["programme"]);
+        expect(unnamed.missing[0].fix).toBe("One of your programme stages has no name or no length. Fix or remove it in Programme.");
+
+        const several = evaluateProposalReadiness({
+            ...complete,
+            programmePhases: [{ name: "Strip out", manualDays: 0, calculatedDays: 0 }, { name: " ", manualDays: 2 }, { name: "Roof", manualDays: 3, startOffset: 7 }],
+        });
+        expect(several.missing[0].fix).toBe("Some of your programme stages have no name or no length. Fix or remove them in Programme.");
+
+        // A stage with a start the programme cannot read is a blocker too, not a silent omission.
+        const undated = evaluateProposalReadiness({
+            ...complete,
+            projectStartDate: null,
+            programmePhases: [
+                { name: "Strip out", duration_days: 3, start_date: "2026-11-02" },
+                { name: "Roof", duration_days: 3, start_date: "2 November 2026" },
+            ],
+        });
+        expect(undated.missing.map((item) => item.key)).toEqual(["programme"]);
+        expect(undated.missing[0].fix).toBe("One of your programme stages cannot be dated. Check its start and length in Programme.");
+
+        // Every stage usable: all three are counted and none is dropped.
+        expect(missingKeys({
+            ...complete,
+            programmePhases: [
+                { name: "Strip out", manualDays: 3, startOffset: 0 },
+                { name: "First fix", manualDays: 10, startOffset: 3 },
+                { name: "Finish", manualDays: 4, startOffset: 17 },
+            ],
         })).toEqual([]);
     });
 

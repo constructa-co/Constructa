@@ -12,6 +12,7 @@ import { CASE_STUDIES_PATH, PROFILE_PATH } from "@/lib/first-session";
 export interface CompanyReadinessProfile {
     company_name?: string | null;
     business_type?: string | null;
+    /** Saved profile fields that are not currently published must not satisfy proposal readiness. */
     address?: string | null;
     phone?: string | null;
     sales_phone?: string | null;
@@ -53,13 +54,13 @@ const STATUS_LABELS: Record<CompanyReadinessStatus, string> = {
 
 const text = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
 
-/** Case studies with something in them; an empty placeholder row is not one. */
+/** Case studies the proposal builder can actually offer for selection. */
 export function countCaseStudies(value: unknown): number {
     if (!Array.isArray(value)) return 0;
     return value.filter((entry) => {
         if (!entry || typeof entry !== "object") return false;
         const study = entry as Record<string, unknown>;
-        return !!(text(study.projectName) || text(study.whatWeDelivered));
+        return !!text(study.projectName);
     }).length;
 }
 
@@ -79,11 +80,10 @@ export function buildCompanyReadiness(profile: CompanyReadinessProfile | null | 
 
     const missingBasics = [
         companyName ? null : "your business name",
-        text(profile?.address) ? null : "an address",
-        text(profile?.phone) || text(profile?.sales_phone) || text(profile?.sales_email) ? null : "a phone number or email",
+        text(profile?.phone) ? null : "a phone number",
     ].filter((entry): entry is string => entry !== null);
     const basics = missingBasics.length === 0
-        ? item("basics", "Company basics", "ready", "Your business name, address and contact details are saved.", { label: "Edit", href: PROFILE_PATH })
+        ? item("basics", "Company basics", "ready", "Your client-facing business name and phone number are saved.", { label: "Edit", href: PROFILE_PATH })
         : item(
             "basics",
             "Company basics",

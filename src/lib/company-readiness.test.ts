@@ -28,28 +28,27 @@ describe("buildCompanyReadiness", () => {
             buildCompanyReadiness(profile).items[0].detail;
 
         expect(detail({ company_name: "Smith Plumbing" }))
-            .toBe("Your business name is saved. Add an address and a phone number or email so clients know who you are and how to reach you.");
-        expect(detail({ company_name: "Smith Plumbing", address: "1 Example Road" })).toContain("Add a phone number or email so");
-        expect(detail({ company_name: "Smith Plumbing", sales_email: "hello@example.com" })).toContain("Add an address so");
+            .toBe("Your business name is saved. Add a phone number so clients know who you are and how to reach you.");
+        expect(detail({ company_name: "Smith Plumbing", phone: "01234 567890" }))
+            .toBe("Your client-facing business name and phone number are saved.");
     });
 
     it("marks each part ready only from what is saved", () => {
         const full = {
             company_name: "Smith Plumbing",
-            address: "1 Example Road",
             phone: "01234 567890",
             logo_url: "https://example.test/logo.png",
             capability_statement: "We fit bathrooms.",
-            case_studies: [{ projectName: "Example Road refit" }, { whatWeDelivered: "A wet room" }],
+            case_studies: [{ projectName: "Example Road refit" }, { projectName: "High Street wet room", whatWeDelivered: "A wet room" }],
         };
         expect(status(full)).toEqual({ basics: "ready", brand: "ready", story: "ready", "case-studies": "ready", terms: "included" });
         expect(buildCompanyReadiness(full).readyCount).toBe(5);
         expect(buildCompanyReadiness(full).items[3].detail).toBe("2 case studies saved.");
         expect(buildCompanyReadiness({ ...full, case_studies: [{ projectName: "One" }] }).items[3].detail).toBe("1 case study saved.");
 
-        for (const contact of ["phone", "sales_phone", "sales_email"]) {
-            expect(status({ company_name: "S", address: "A", [contact]: "x" }).basics).toBe("ready");
-        }
+        expect(status({ company_name: "S", phone: "x" }).basics).toBe("ready");
+        expect(status({ company_name: "S", sales_phone: "x" }).basics).toBe("started");
+        expect(status({ company_name: "S", sales_email: "x" }).basics).toBe("started");
     });
 
     it("does not count blank or malformed values as content", () => {
@@ -62,6 +61,7 @@ describe("buildCompanyReadiness", () => {
         })).toEqual({ basics: "started", brand: "todo", story: "todo", "case-studies": "todo", terms: "included" });
         expect(countCaseStudies("not a list")).toBe(0);
         expect(countCaseStudies(null)).toBe(0);
+        expect(countCaseStudies([{ whatWeDelivered: "A wet room" }])).toBe(0);
     });
 
     it("copes with a missing profile without inventing anything", () => {

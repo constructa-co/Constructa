@@ -23,6 +23,17 @@ export async function enhanceCaseStudyAction(
     projectName: string,
     projectType: string
 ): Promise<{ whatWeDelivered: string; valueAdded: string }> {
+    // Who is asking, first: before any input is read, trimmed or sent, and
+    // before either provider call. A signed-out caller gets their own words
+    // back unchanged and reaches no provider. (The dashboard proxy also
+    // redirects unsigned requests; this is the action's own check, the same
+    // defence-in-depth every other AI action carries.)
+    try {
+        await requireAuth();
+    } catch {
+        return { whatWeDelivered, valueAdded };
+    }
+
     const deliveredPrompt = `Rewrite this construction case study "What We Delivered" section to be more compelling and professional for a UK construction proposal PDF. Keep it to 3-4 sentences. Project: ${projectName} (${projectType}). Original: "${whatWeDelivered}"`;
     const valuePrompt = `Rewrite this construction case study "Value Added" section to be more compelling and highlight unique benefits for a UK construction proposal PDF. Keep it to 2-3 sentences. Project: ${projectName} (${projectType}). Original: "${valueAdded}"`;
 

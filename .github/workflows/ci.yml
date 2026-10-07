@@ -47,4 +47,6 @@ jobs:
         run: npm run test:supervisor-sql
       - name: Verify Storage tenant boundary
         run: npm run test:storage-sql
+      - name: Verify company import draft isolation
+        run: npm run test:company-import-sql
       - run: npm run build

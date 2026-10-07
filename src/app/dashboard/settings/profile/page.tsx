@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Toaster } from "sonner";
 import Link from "next/link";
 import { PROPOSAL_READINESS_PATH } from "@/lib/first-session";
+import { IMPORT_PATH } from "@/lib/company-import/draft";
 import ProfileForm from "./profile-form";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,9 @@ export default async function ProfilePage() {
                 </p>
                 <Link href={PROPOSAL_READINESS_PATH} className="mt-2 inline-flex items-center min-h-11 text-sm font-semibold text-blue-400 hover:text-blue-300">
                     See what your proposals can use so far
+                </Link>
+                <Link href={IMPORT_PATH} className="ml-6 mt-2 inline-flex items-center min-h-11 text-sm font-semibold text-blue-400 hover:text-blue-300">
+                    Bring in details from your website
                 </Link>
             </div>
             <ProfileForm profile={profile} userEmail={user.email || ""} />

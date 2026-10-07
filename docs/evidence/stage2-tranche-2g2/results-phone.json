@@ -1,0 +1,138 @@
+{
+  "project": "phone",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "input": "touch",
+  "startedAt": "2026-10-07T17:16:56.548Z",
+  "finishedAt": "2026-10-07T17:17:00.430Z",
+  "outcome": "passed",
+  "steps": [],
+  "checkpoints": [
+    {
+      "name": "import-start",
+      "path": "/admin-fixture-2g2",
+      "layout": {
+        "viewportWidth": 390,
+        "documentWidth": 390,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 4,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": "01-import-start-390x844.jpg"
+    },
+    {
+      "name": "import-website-unavailable",
+      "path": "/admin-fixture-2g2",
+      "layout": {
+        "viewportWidth": 390,
+        "documentWidth": 390,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 4,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": "02-import-website-unavailable-390x844.jpg"
+    },
+    {
+      "name": "import-preview",
+      "path": "/admin-fixture-2g2",
+      "layout": {
+        "viewportWidth": 390,
+        "documentWidth": 390,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 14,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": "03-import-preview-390x844.jpg"
+    },
+    {
+      "name": "import-preview-item",
+      "path": "/admin-fixture-2g2",
+      "layout": {
+        "viewportWidth": 390,
+        "documentWidth": 390,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 14,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": "04-import-preview-item-390x844.jpg"
+    },
+    {
+      "name": "import-stale-value-not-overwritten",
+      "path": "/admin-fixture-2g2",
+      "layout": {
+        "viewportWidth": 390,
+        "documentWidth": 390,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 13,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": "05-import-stale-value-not-overwritten-390x844.jpg"
+    },
+    {
+      "name": "import-save-failed",
+      "path": "/admin-fixture-2g2",
+      "layout": {
+        "viewportWidth": 390,
+        "documentWidth": 390,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 13,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "import-selected-saved",
+      "path": "/admin-fixture-2g2",
+      "layout": {
+        "viewportWidth": 390,
+        "documentWidth": 390,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 12,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": "06-import-selected-saved-390x844.jpg"
+    }
+  ],
+  "parity": {},
+  "keyboard": null,
+  "blockedThirdPartyHosts": [],
+  "provider": {},
+  "database": {}
+}

@@ -1,0 +1,82 @@
+{
+  "project": "desktop-keyboard",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "input": "keyboard",
+  "outcome": "passed",
+  "checkpoints": [
+    {
+      "name": "first-question",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "first-save-not-confirmed",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "kinds-of-work",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "several-unsaved",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "client-and-price",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "finished",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "summary",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "changed-elsewhere",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "before-you-go",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    }
+  ],
+  "keyboard": {
+    "controlsReached": 59,
+    "withoutVisibleFocus": []
+  },
+  "blockedThirdPartyHosts": [
+    "plausible.io",
+    "www.clarity.ms"
+  ]
+}

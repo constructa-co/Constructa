@@ -1,12 +1,12 @@
-// Fixture harness for the case-study library. TEST ONLY. See ../../../actions.ts.
+// Fixture harness for the case-study library. TEST ONLY. See ../../../../actions.ts.
 import { notFound } from "next/navigation";
-import CaseStudyEditor from "@/app/dashboard/settings/case-studies/library/case-study-editor";
-import { fixtureApprove, fixtureCheck, fixtureCreate, fixtureSave, fixtureSaveDiscipline, fixtureStudy } from "../../../actions";
+import GuidedCapture from "@/app/dashboard/settings/case-studies/library/guided-capture";
+import { fixtureCreate, fixtureSave, fixtureSaveDiscipline, fixtureStudy } from "../../../../actions";
 
 export const dynamic = "force-dynamic";
 
-/** `new` adds a case study; anything else edits that one. */
-export default async function EditorFixturePage(props: { params: Promise<{ run: string; id: string }> }) {
+/** The questions, for a new case study (`new`) or an existing one. Only the three actions the real screen uses are given to it. */
+export default async function GuidedFixturePage(props: { params: Promise<{ run: string; id: string }> }) {
     if (process.env.CONSTRUCTA_IMPORT_FIXTURE !== "1") notFound();
     const { run, id } = await props.params;
     const data = await fixtureStudy(run, id === "new" ? null : id);
@@ -14,16 +14,14 @@ export default async function EditorFixturePage(props: { params: Promise<{ run: 
     return (
         <main className="min-h-screen bg-slate-950">
             <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-                <CaseStudyEditor
+                <GuidedCapture
                     initial={data.study}
                     disciplines={data.disciplines}
+                    basePath={`/admin-e2e-import-fixture/case-library/${run}/study`}
                     listHref={`/admin-e2e-import-fixture/case-library/${run}`}
-                    guidedBase={`/admin-e2e-import-fixture/case-library/${run}/study`}
                     server={{
                         create: fixtureCreate.bind(null, run),
                         save: fixtureSave.bind(null, run),
-                        check: fixtureCheck.bind(null, run),
-                        approve: fixtureApprove.bind(null, run),
                         addDiscipline: fixtureSaveDiscipline.bind(null, run),
                     }}
                 />

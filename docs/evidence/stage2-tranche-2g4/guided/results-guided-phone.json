@@ -1,0 +1,78 @@
+{
+  "project": "phone",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "input": "touch",
+  "outcome": "passed",
+  "checkpoints": [
+    {
+      "name": "first-question",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "01-first-question-390x844.jpg"
+    },
+    {
+      "name": "first-save-not-confirmed",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "02-first-save-not-confirmed-390x844.jpg"
+    },
+    {
+      "name": "kinds-of-work",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "03-kinds-of-work-390x844.jpg"
+    },
+    {
+      "name": "several-unsaved",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "04-several-unsaved-390x844.jpg"
+    },
+    {
+      "name": "client-and-price",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "05-client-and-price-390x844.jpg"
+    },
+    {
+      "name": "finished",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "06-finished-390x844.jpg"
+    },
+    {
+      "name": "summary",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "07-summary-390x844.jpg"
+    },
+    {
+      "name": "changed-elsewhere",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "08-changed-elsewhere-390x844.jpg"
+    },
+    {
+      "name": "before-you-go",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "09-before-you-go-390x844.jpg"
+    }
+  ],
+  "blockedThirdPartyHosts": [
+    "plausible.io",
+    "www.clarity.ms"
+  ]
+}

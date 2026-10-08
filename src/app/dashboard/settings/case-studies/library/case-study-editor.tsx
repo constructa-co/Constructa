@@ -47,12 +47,14 @@ export function ApprovedPreview({ approved }: { approved: ApprovedCaseStudy }) {
     );
 }
 
-export default function CaseStudyEditor({ initial, disciplines: initialDisciplines, server = realServer, listHref, onCreated }: {
+export default function CaseStudyEditor({ initial, disciplines: initialDisciplines, server = realServer, listHref, guidedBase, onCreated }: {
     initial: StudyView | null;
     disciplines: StoredDiscipline[];
     /** Defaults to the real server actions; replaced only by tests and the fixture harness. */
     server?: EditorServer;
     listHref: string;
+    /** Where case studies live, so the questions for this one can be linked to. Without it no link is shown. */
+    guidedBase?: string;
     onCreated?: (id: string) => void;
 }) {
     const [state, dispatch] = useReducer(editorReducer, undefined, () => initialEditorState(initial, newDraft("")));
@@ -186,6 +188,9 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
             <div className="space-y-2">
                 <Link href={listHref} className="inline-flex items-center min-h-11 text-base font-semibold text-blue-200 underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">Back to case studies</Link>
                 <h1 className="text-2xl font-bold text-slate-50">{state.id ? "Edit this past job" : "Add a past job"}</h1>
+                {guidedBase && !dirty && state.saving === null && (
+                    <Link href={`${guidedBase}/${state.id ?? "new"}/guided`} data-guided-link className="inline-flex items-center min-h-11 text-base font-semibold text-blue-200 underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">{state.id ? "Go through the questions instead" : "Answer a few questions instead"}</Link>
+                )}
                 <p role="status" aria-live="polite" data-save-line className={`text-base font-semibold ${noticeTone}`}>{saveLine(state)}</p>
                 {approved && (
                     <p className="text-base text-slate-200" data-approval-line>

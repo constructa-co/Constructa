@@ -177,7 +177,7 @@ export async function fixturePublish(run: string, input: { responseKind: "acknow
 /** What the spec reads back, and the things it makes happen "somewhere else". */
 export async function fixtureLibraryControl(run: string, op: {
     failBefore?: string; failAfter?: string; unavailable?: boolean; delayMs?: number; libraryOff?: boolean; select?: string[];
-    editElsewhere?: { id: string; delivered: string }; archiveElsewhere?: string; renameElsewhere?: { from: string; to: string }; publish?: boolean;
+    editElsewhere?: { id: string; delivered: string }; archiveElsewhere?: string; renameElsewhere?: { from: string; to: string }; publish?: boolean; loseSaveAndLook?: boolean;
 }) {
     guard();
     const state = runFor(run);
@@ -185,6 +185,11 @@ export async function fixtureLibraryControl(run: string, op: {
     if (op.failBefore) db.failBefore(op.failBefore);
     if (op.failAfter) db.failAfter(op.failAfter);
     if (typeof op.unavailable === "boolean") db.setUnavailable(op.unavailable);
+    if (op.loseSaveAndLook) {
+        // The next save of the wording lands, its answer is lost, and the look straight afterwards fails too.
+        db.failAfter("case_study_save_draft");
+        db.beforeNext("case_study_save_draft", () => db.failRead("*"));
+    }
     if (typeof op.delayMs === "number") state.delayMs = op.delayMs;
     if (typeof op.libraryOff === "boolean") state.libraryOff = op.libraryOff;
     if (op.select) state.selected = op.select;
@@ -204,7 +209,7 @@ export async function fixtureLibraryControl(run: string, op: {
     if (op.publish) publish = await fixturePublish(run, { responseKind: "acknowledgement", reviewedContent: "0".repeat(64) });
     return {
         studies: db.studies.filter((study) => study.user_id === ME).map((study) => ({
-            id: study.id, revision: study.revision, title: study.draft.title, delivered: study.draft.delivered, clientDisplay: study.draft.client_display, clientNamedOk: study.draft.client_named_ok,
+            id: study.id, revision: study.revision, draft: study.draft, title: study.draft.title, delivered: study.draft.delivered, clientDisplay: study.draft.client_display, clientNamedOk: study.draft.client_named_ok,
             showValue: study.draft.show_value, approvedRevision: study.approved_revision, approved: study.approved as Record<string, unknown> | null, archived: study.archived, legacyIndex: study.legacy_index,
             tags: db.links.filter((link) => link.study === study.id).map((link) => db.disciplines.find((entry) => entry.id === link.discipline)!.label),
         })),

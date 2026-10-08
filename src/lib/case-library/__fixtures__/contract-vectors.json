@@ -1,0 +1,1549 @@
+{
+ "_about": "Shared by src/lib/case-library/contract.test.ts and scripts/test-case-library-sql.sh. Each rule set is run through the TypeScript and the SQL implementation; both must give the listed answer. Synthetic data only.",
+ "content": [
+  [
+   "a complete, ordinary draft",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   null
+  ],
+  [
+   "only a title",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "",
+    "place": "",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "",
+    "delivered": "",
+    "value_added": ""
+   },
+   null
+  ],
+  [
+   "not an object: text",
+   "hello",
+   "not-object"
+  ],
+  [
+   "not an object: a list",
+   [
+    {
+     "version": 1,
+     "title": "Kitchen at Example Road",
+     "work_type": "Kitchen Installation",
+     "place": "Leeds",
+     "client_display": "hidden",
+     "client_text": "",
+     "client_named_ok": false,
+     "value_text": "",
+     "show_value": false,
+     "duration_text": "3 weeks",
+     "delivered": "We refitted the kitchen.\nMoved the wall.",
+     "value_added": "The family stayed in the house."
+    }
+   ],
+   "not-object"
+  ],
+  [
+   "not an object: null",
+   null,
+   "not-object"
+  ],
+  [
+   "an unknown key is refused, not dropped",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "photos": []
+   },
+   "keys"
+  ],
+  [
+   "a key that looks internal is refused",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "approved": true
+   },
+   "keys"
+  ],
+  [
+   "a missing key",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "keys"
+  ],
+  [
+   "a missing version",
+   {
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "keys"
+  ],
+  [
+   "empty object",
+   {},
+   "keys"
+  ],
+  [
+   "version as text",
+   {
+    "version": "1",
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "version"
+  ],
+  [
+   "a later version",
+   {
+    "version": 2,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "version"
+  ],
+  [
+   "no title",
+   {
+    "version": 1,
+    "title": "",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "title"
+  ],
+  [
+   "a title of spaces",
+   {
+    "version": 1,
+    "title": "   ",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "title"
+  ],
+  [
+   "a title with a space before it",
+   {
+    "version": 1,
+    "title": " Kitchen",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "title"
+  ],
+  [
+   "a title that is not text",
+   {
+    "version": 1,
+    "title": 7,
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "title"
+  ],
+  [
+   "a title with a line break",
+   {
+    "version": 1,
+    "title": "Kitchen\nJob",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "title"
+  ],
+  [
+   "a title with a tab",
+   {
+    "version": 1,
+    "title": "Kitchen\tJob",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "title"
+  ],
+  [
+   "a title of exactly 200 characters",
+   {
+    "version": 1,
+    "title": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   null
+  ],
+  [
+   "a title of 201 characters",
+   {
+    "version": 1,
+    "title": "ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "title"
+  ],
+  [
+   "200 emoji is 200 characters, not 400",
+   {
+    "version": 1,
+    "title": "\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   null
+  ],
+  [
+   "201 emoji is too long",
+   {
+    "version": 1,
+    "title": "\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "title"
+  ],
+  [
+   "accents and other scripts are counted as characters",
+   {
+    "version": 1,
+    "title": "Caf\u00e9 \u6d74\u5ba4 \u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   null
+  ],
+  [
+   "work type too long",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "work_type"
+  ],
+  [
+   "work type with a control character",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "a\u0001b",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "work_type"
+  ],
+  [
+   "work type null",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": null,
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "work_type"
+  ],
+  [
+   "place too long",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "place"
+  ],
+  [
+   "place with a line break",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds\nLS1",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "place"
+  ],
+  [
+   "an unknown client display",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "public",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "client_display"
+  ],
+  [
+   "client display not text",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": true,
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "client_display"
+  ],
+  [
+   "client text too long",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "client_text"
+  ],
+  [
+   "client_named_ok as text",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": "true",
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "client_named_ok"
+  ],
+  [
+   "value text too long",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "111111111111111111111111111111111111111111111111111",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "value_text"
+  ],
+  [
+   "value text exactly 50",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "11111111111111111111111111111111111111111111111111",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   null
+  ],
+  [
+   "show_value as a number",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": 1,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "show_value"
+  ],
+  [
+   "duration too long",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "duration_text"
+  ],
+  [
+   "delivered exactly 5000 with line breaks and tabs",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\t",
+    "value_added": "The family stayed in the house."
+   },
+   null
+  ],
+  [
+   "delivered 5001",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "value_added": "The family stayed in the house."
+   },
+   "delivered"
+  ],
+  [
+   "delivered with a carriage return",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "a\r\nb",
+    "value_added": "The family stayed in the house."
+   },
+   "delivered"
+  ],
+  [
+   "delivered with an escape character",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "a\u001bb",
+    "value_added": "The family stayed in the house."
+   },
+   "delivered"
+  ],
+  [
+   "delivered with a delete character",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "a\u007fb",
+    "value_added": "The family stayed in the house."
+   },
+   "delivered"
+  ],
+  [
+   "delivered as a list",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": [
+     "a"
+    ],
+    "value_added": "The family stayed in the house."
+   },
+   "delivered"
+  ],
+  [
+   "value added 5001",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+   },
+   "value_added"
+  ],
+  [
+   "value added with a vertical tab",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "a\u000bb"
+   },
+   "value_added"
+  ],
+  [
+   "angle brackets and quotes are ordinary text",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "<2 weeks, \"on budget\" & tidy \\ done",
+    "value_added": "The family stayed in the house."
+   },
+   null
+  ],
+  [
+   "the first broken rule is the one reported",
+   {
+    "version": 1,
+    "title": "",
+    "work_type": "Kitchen Installation",
+    "place": "pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "title"
+  ],
+  [
+   "a draft may hold a client name while it is hidden",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "Mrs Private",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   null
+  ],
+  [
+   "a draft may ask to name the client before confirming",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "named",
+    "client_text": "Mrs Private",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   null
+  ]
+ ],
+ "approval": [
+  [
+   "hidden client, no figure",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   null
+  ],
+  [
+   "hidden client with a name typed is approvable: the name is not shown",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "Mrs Private",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   null
+  ],
+  [
+   "described, with a description",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "described",
+    "client_text": "a homeowner in Leeds",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   null
+  ],
+  [
+   "described, with nothing to describe them by",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "described",
+    "client_text": "  ",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "client_text_missing"
+  ],
+  [
+   "named without confirmation",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "named",
+    "client_text": "Mrs Patel",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "client_not_confirmed"
+  ],
+  [
+   "named, confirmed",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "named",
+    "client_text": "Mrs Patel",
+    "client_named_ok": true,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   null
+  ],
+  [
+   "named, confirmed, but no name",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "named",
+    "client_text": "",
+    "client_named_ok": true,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "client_text_missing"
+  ],
+  [
+   "a figure to show, but none given",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": true,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "value_text_missing"
+  ],
+  [
+   "a figure to show",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "\u00a318,500",
+    "show_value": true,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   null
+  ],
+  [
+   "confirmation without naming is harmless",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": true,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   null
+  ],
+  [
+   "content rules come first",
+   {
+    "version": 1,
+    "title": "",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "title"
+  ],
+  [
+   "not an object",
+   5,
+   "not-object"
+  ]
+ ],
+ "approvedValue": [
+  [
+   "hidden client and unshown figure are blanked",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "Mrs Private",
+    "client_named_ok": true,
+    "value_text": "\u00a318,500",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   [
+    "Kitchen Installation"
+   ],
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "disciplines": [
+     "Kitchen Installation"
+    ]
+   }
+  ],
+  [
+   "a named client and a shown figure are kept",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "named",
+    "client_text": "Mrs Patel",
+    "client_named_ok": true,
+    "value_text": "\u00a318,500",
+    "show_value": true,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   [
+    "Kitchen Installation",
+    "Bathrooms"
+   ],
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "named",
+    "client_text": "Mrs Patel",
+    "client_named_ok": true,
+    "value_text": "\u00a318,500",
+    "show_value": true,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "disciplines": [
+     "Kitchen Installation",
+     "Bathrooms"
+    ]
+   }
+  ],
+  [
+   "a described client is kept and is not 'named ok'",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "described",
+    "client_text": "a homeowner",
+    "client_named_ok": true,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   [],
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "described",
+    "client_text": "a homeowner",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "disciplines": []
+   }
+  ]
+ ],
+ "approved": [
+  [
+   "a well-formed approved copy",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "disciplines": [
+     "Kitchen Installation"
+    ]
+   },
+   null
+  ],
+  [
+   "no tags",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "disciplines": []
+   },
+   null
+  ],
+  [
+   "six tags",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "disciplines": [
+     "a",
+     "b",
+     "c",
+     "d",
+     "e",
+     "f"
+    ]
+   },
+   null
+  ],
+  [
+   "seven tags",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "disciplines": [
+     "a",
+     "b",
+     "c",
+     "d",
+     "e",
+     "f",
+     "g"
+    ]
+   },
+   "disciplines"
+  ],
+  [
+   "no tag list",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house."
+   },
+   "disciplines"
+  ],
+  [
+   "tags not a list",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "disciplines": "Kitchens"
+   },
+   "disciplines"
+  ],
+  [
+   "a tag that is not text",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "disciplines": [
+     7
+    ]
+   },
+   "disciplines"
+  ],
+  [
+   "an empty tag",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "disciplines": [
+     ""
+    ]
+   },
+   "disciplines"
+  ],
+  [
+   "a tag with outer spaces",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "disciplines": [
+     " Kitchens"
+    ]
+   },
+   "disciplines"
+  ],
+  [
+   "a tag of 81 characters",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "disciplines": [
+     "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+    ]
+   },
+   "disciplines"
+  ],
+  [
+   "a hidden client's name left in",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "Mrs Private",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "disciplines": [
+     "Kitchen Installation"
+    ]
+   },
+   "client_text_hidden"
+  ],
+  [
+   "an unshown figure left in",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "\u00a318,500",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "disciplines": [
+     "Kitchen Installation"
+    ]
+   },
+   "value_text_hidden"
+  ],
+  [
+   "named without confirmation",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "named",
+    "client_text": "Mrs Patel",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "disciplines": [
+     "Kitchen Installation"
+    ]
+   },
+   "client_not_confirmed"
+  ],
+  [
+   "an extra key",
+   {
+    "version": 1,
+    "title": "Kitchen at Example Road",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "disciplines": [
+     "Kitchen Installation"
+    ],
+    "assets": []
+   },
+   "keys"
+  ],
+  [
+   "broken content",
+   {
+    "version": 1,
+    "title": "",
+    "work_type": "Kitchen Installation",
+    "place": "Leeds",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "3 weeks",
+    "delivered": "We refitted the kitchen.\nMoved the wall.",
+    "value_added": "The family stayed in the house.",
+    "disciplines": [
+     "Kitchen Installation"
+    ]
+   },
+   "title"
+  ],
+  [
+   "not an object",
+   [],
+   "not-object"
+  ]
+ ],
+ "labels": [
+  [
+   "Kitchen Installation",
+   "kitchen installation",
+   null
+  ],
+  [
+   "KITCHEN   installation",
+   "kitchen installation",
+   "label"
+  ],
+  [
+   "  Kitchens ",
+   "kitchens",
+   "label"
+  ],
+  [
+   "Bathroom & Kitchen Fitting",
+   "bathroom & kitchen fitting",
+   null
+  ],
+  [
+   "\u00c9lan Joinery",
+   "\u00c9lan joinery",
+   null
+  ],
+  [
+   "\u00c9LAN JOINERY",
+   "\u00c9lan joinery",
+   null
+  ],
+  [
+   "",
+   "",
+   "label"
+  ],
+  [
+   " ",
+   "",
+   "label"
+  ],
+  [
+   "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+   "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+   null
+  ],
+  [
+   "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+   "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+   "label"
+  ],
+  [
+   "\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1",
+   "\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1",
+   null
+  ],
+  [
+   "Line\nbreak",
+   "line\nbreak",
+   "label"
+  ],
+  [
+   "Tab\there",
+   "tab\there",
+   "label"
+  ],
+  [
+   "Utilities \u2013 Water",
+   "utilities \u2013 water",
+   null
+  ]
+ ]
+}

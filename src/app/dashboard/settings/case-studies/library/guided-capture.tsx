@@ -7,7 +7,8 @@ import { isDirty, saveLine } from "@/lib/case-library/editor-state";
 import {
     GUIDED_MESSAGES, GUIDED_QUESTIONS, answered, characters, clientLines, firstUnanswered, questionAfter, questionBefore, questionDirty, questionForField, questionOf, summaryOf, unsavedNames,
 } from "@/lib/case-library/guided";
-import { guidedReducer, initialGuidedState, mayLeave, planSave, type AfterSave, type LeaveTo, type Screen } from "@/lib/case-library/guided-state";
+import { DEPTH_KEYS, DEPTH_MESSAGES, LEAD_IN, anyNote, canAdd, chars, depthAfter, depthBefore, depthOf, noteThere, notesWith, present, room } from "@/lib/case-library/guided-depth";
+import { guidedReducer, initialGuidedState, mayLeave, requestOf, unappliedNames, type AfterSave, type LeaveTo, type Screen } from "@/lib/case-library/guided-state";
 import { CANONICAL_WORK_NAMES } from "@/lib/case-library/labels";
 import type { LibraryResult, StudyView } from "@/lib/case-library/service";
 import type { StoredDiscipline } from "@/lib/case-library/store";
@@ -108,7 +109,7 @@ export default function GuidedCapture({ initial, disciplines: initialDisciplines
     const [addingKind, setAddingKind] = useState(false);
     const [leaving, setLeaving] = useState<LeaveTo | null>(null);
     const stateRef = useRef(state);
-    const requestRunning = useRef(false);
+    const sentToken = useRef(0);
     const heading = useRef<HTMLHeadingElement>(null);
     const firstScreen = useRef(true);
     useEffect(() => { stateRef.current = state; });
@@ -118,16 +119,22 @@ export default function GuidedCapture({ initial, disciplines: initialDisciplines
     const dirty = isDirty(editor);
     const saving = editor.saving !== null;
     const unsaved = unsavedNames(editor);
+    // Depth answers typed but not added to the text. They are not part of the draft and are never sent.
+    const { notes } = state;
+    const unapplied = anyNote(notes);
+    const waiting = unappliedNames(notes);
+    /** Anything that would be lost by going: an unsaved change, or a note not yet added. */
+    const guard = dirty || unapplied;
     const active = disciplines.filter((entry) => !entry.archived);
     const formHref = `${basePath}/${editor.id ?? "new"}`;
     const hrefOf = (to: LeaveTo) => (to === "form" ? formHref : listHref);
 
     // Reload, closing the tab, and any link on the page ask first. So does the browser's Back button.
-    useUnsavedGuard(dirty, GUIDED_MESSAGES.leaveConfirm);
-    const renameAddress = useBackGuard(dirty);
+    useUnsavedGuard(guard, GUIDED_MESSAGES.leaveConfirm);
+    const renameAddress = useBackGuard(guard);
 
     // Each new screen starts at its question, for a keyboard and for a screen reader.
-    const screenName = screen.kind === "question" ? screen.key : screen.kind;
+    const screenName = screen.kind === "question" ? screen.key : screen.kind === "depth" ? `depth-${screen.key}` : screen.kind;
     useEffect(() => {
         if (firstScreen.current) { firstScreen.current = false; return; }
         heading.current?.focus();
@@ -146,28 +153,33 @@ export default function GuidedCapture({ initial, disciplines: initialDisciplines
     const leavePanel = leaving ?? state.leaveHeld;
     const stay = () => { setLeaving(null); dispatch({ type: "leave/stay" }); };
 
-    const save = async (then: AfterSave, again = false) => {
-        // One request at a time, decided before anything is sent.
-        if (requestRunning.current) return;
-        const { plan } = planSave(stateRef.current, again);
-        dispatch({ type: "save/start", then, again });
-        if (!plan) return;
-        requestRunning.current = true;
-        let result: LibraryResult;
-        try {
-            result = plan.id
-                ? await server.save({ id: plan.id, revision: plan.revision, content: plan.sent.content, disciplineIds: plan.sent.disciplineIds })
-                : await server.create({ content: plan.sent.content, disciplineIds: plan.sent.disciplineIds });
-        } catch {
-            // The request itself failed. Whether it reached the server is not known.
-            result = { status: "unknown", message: plan.id ? GUIDED_MESSAGES.requestFailed : GUIDED_MESSAGES.createUnknown };
-        }
-        requestRunning.current = false;
-        dispatch({ type: "save/reply", token: plan.token, result });
-        if (result.disciplines) setDisciplines(result.disciplines);
-        // Now that it exists, this page's address becomes its own, so a reload comes back to it and not to a blank one.
-        if (!plan.id && result.id && (result.status === "saved" || result.status === "partial")) renameAddress(`${basePath}/${result.id}/guided`);
-    };
+    /**
+     * Asks the rules to start a save. The rules alone decide whether one starts; this screen does not plan one.
+     * If they refuse (a note is waiting and the save would be followed by leaving, for example), nothing is sent.
+     */
+    const save = (then: AfterSave, again = false) => dispatch({ type: "save/start", then, again });
+
+    // Sends the save the rules started: exactly what the state says was sent, once per save. Notes are not in it.
+    useEffect(() => {
+        const request = requestOf(state);
+        if (!request || sentToken.current === request.token) return;
+        sentToken.current = request.token;
+        void (async () => {
+            let result: LibraryResult;
+            try {
+                result = request.kind === "save"
+                    ? await server.save({ id: request.id, revision: request.revision, content: request.content, disciplineIds: request.disciplineIds })
+                    : await server.create({ content: request.content, disciplineIds: request.disciplineIds });
+            } catch {
+                // The request itself failed. Whether it reached the server is not known.
+                result = { status: "unknown", message: request.kind === "save" ? GUIDED_MESSAGES.requestFailed : GUIDED_MESSAGES.createUnknown };
+            }
+            dispatch({ type: "save/reply", token: request.token, result });
+            if (result.disciplines) setDisciplines(result.disciplines);
+            // Now that it exists, this page's address becomes its own, so a reload comes back to it and not to a blank one.
+            if (request.kind === "create" && result.id && (result.status === "saved" || result.status === "partial")) renameAddress(`${basePath}/${result.id}/guided`);
+        })();
+    });
 
     const go = (to: Screen) => dispatch({ type: "go", screen: to });
 
@@ -199,16 +211,17 @@ export default function GuidedCapture({ initial, disciplines: initialDisciplines
     };
 
     /** The full form and the list: a plain link when nothing would be lost, otherwise a choice. */
-    const leaveControl = (to: LeaveTo, text: string) => (dirty || saving
+    const leaveControl = (to: LeaveTo, text: string) => (guard || saving
         ? <button type="button" className={plain} onClick={() => setLeaving(to)}>{text}</button>
         : <Link href={hrefOf(to)} className={plain}>{text}</Link>);
 
     const noticeKind = editor.notice.kind;
-    const status = state.leave ? "Saved. Opening…"
-        : saving ? "Saving…"
+    const draftStatus = saving ? "Saving…"
         : noticeKind !== "none" && noticeKind !== "saved" ? saveLine(editor)
             : dirty ? (editor.id ? `Changes not saved: ${list(unsaved)}.` : "Not saved yet.")
                 : editor.id ? "Saved." : "Nothing saved yet.";
+    // "Saved" is about the draft. A note that has not been added is never covered by it, and the line always says so.
+    const status = state.leave ? "Saved. Opening…" : unapplied ? `${draftStatus} Typed but not added: ${list(waiting)}.` : draftStatus;
     const troubleField = noticeKind === "failed" ? questionForField(editor.notice.kind === "failed" ? editor.notice.field : null) : noticeKind === "partial" ? "kinds" : null;
     const current = screen.kind === "question" ? screen.key : null;
 
@@ -219,10 +232,38 @@ export default function GuidedCapture({ initial, disciplines: initialDisciplines
     const others = current ? unsaved.filter((name) => name !== questionOf(current).name) : unsaved;
     const mustSave = dirty || editor.id === null;
 
+    // The optional questions about this job.
+    const depthKey = screen.kind === "depth" ? screen.key : null;
+    const depth = depthKey ? depthOf(depthKey) : null;
+    const text = content.delivered;
+    const note = depthKey ? notes[depthKey] : "";
+    const addStatus = depthKey ? canAdd(text, depthKey, note) : "nothing";
+    const isPresent = depthKey ? present(text, depthKey) : false;
+    const notOffered = depthKey === "response" && !present(text, "challenge");
+    const roomLeft = depthKey ? room(text, depthKey) : 0;
+    const showBox = Boolean(depthKey) && (noteThere(note) || (!isPresent && !notOffered && roomLeft >= 1));
+    const afterDepth = depthKey ? depthAfter(text, notes, depthKey) : null;
+    const beforeDepth = depthKey ? depthBefore(text, notes, depthKey) : null;
+    const depthForward: Screen = afterDepth ? { kind: "depth", key: afterDepth } : { kind: "done" };
+    const depthBack: Screen = beforeDepth ? { kind: "depth", key: beforeDepth } : { kind: "done" };
+    const onDepthSubmit = (event: FormEvent) => {
+        event.preventDefault();
+        if (saving) return;
+        if (dirty) save(depthForward);
+        else go(depthForward);
+    };
+    /** The way in to the optional questions, from the summary and the finish screen. */
+    const depthEntry = (
+        <div className="space-y-2 border-t border-slate-700 pt-4" data-depth-entry>
+            <p className={hint}>Want to say more? Three optional questions: anything tricky, what you did about it, and what you do differently now. Each one you add goes on the end of &lsquo;What you did&rsquo;, in your own words.</p>
+            <button type="button" className={secondary} onClick={() => go({ kind: "depth", key: notesWith(notes)[0] ?? "challenge" })}>Add more about this job</button>
+        </div>
+    );
+
     const onSubmit = (event: FormEvent) => {
         event.preventDefault();
         if (saving || state.createUnknown) return;
-        if (mustSave) void save(forward);
+        if (mustSave) save(forward);
         else go(forward);
     };
 
@@ -234,7 +275,7 @@ export default function GuidedCapture({ initial, disciplines: initialDisciplines
                     {leaveControl("form", "Use the full form instead")}
                 </div>
                 <p role="status" aria-live="polite" data-save-line className={`text-base font-semibold ${noticeKind === "none" || noticeKind === "saved" ? "text-slate-100" : "text-amber-200"}`}>{status}</p>
-                {state.moveHeld && dirty && <p role="alert" data-move-held className="text-base font-semibold text-amber-200">{GUIDED_MESSAGES.moveHeld}</p>}
+                {state.moveHeld && guard && <p role="alert" data-move-held className="text-base font-semibold text-amber-200">{dirty ? GUIDED_MESSAGES.moveHeld : DEPTH_MESSAGES.moveHeldNotes(waiting)}</p>}
                 {state.local && <p role="alert" data-guided-refusal className="text-base font-semibold text-amber-200">{state.local.message}</p>}
                 {state.local && state.local.key && state.local.key !== current && (
                     <button type="button" className={secondary} onClick={() => go({ kind: "question", key: state.local!.key! })}>Go to that question</button>
@@ -248,10 +289,11 @@ export default function GuidedCapture({ initial, disciplines: initialDisciplines
             {leavePanel && !state.leave && (
                 <section className={`${card} border-amber-300`} aria-label="Before you go" data-leave>
                     <h2 className="text-lg font-bold text-slate-50">Before you go</h2>
-                    {state.leaveHeld && !leaving && <p role="alert" data-leave-held className="text-base font-semibold text-amber-200">{GUIDED_MESSAGES.leaveHeld}</p>}
+                    {state.leaveHeld && !leaving && <p role="alert" data-leave-held className="text-base font-semibold text-amber-200">{dirty || !unapplied ? GUIDED_MESSAGES.leaveHeld : DEPTH_MESSAGES.leaveHeldNotes(waiting)}</p>}
                     <p className={hint}>{saving ? "A save is still running." : `Not saved yet: ${list(unsaved) || "nothing"}.`}</p>
+                    {unapplied && <p className="text-base font-semibold text-amber-200" data-leave-notes>Typed but not added to your text: {list(waiting)}. A save doesn&apos;t include it. Add it or clear it first, or go without it.</p>}
                     <div className="flex flex-wrap gap-2">
-                        <button type="button" className={primary} disabled={saving || state.createUnknown} onClick={() => { const to = leavePanel; setLeaving(null); void save({ kind: "leave", to }); }}>Save, then go</button>
+                        <button type="button" className={primary} disabled={saving || state.createUnknown || unapplied} onClick={() => { const to = leavePanel; setLeaving(null); save({ kind: "leave", to }); }}>Save, then go</button>
                         <button type="button" className={secondary} onClick={() => router.push(hrefOf(leavePanel))}>Go without saving</button>
                         <button type="button" className={secondary} onClick={stay}>Stay here</button>
                     </div>
@@ -264,7 +306,7 @@ export default function GuidedCapture({ initial, disciplines: initialDisciplines
                     <p className={hint}>{GUIDED_MESSAGES.createAgainWarning}</p>
                     <div className="flex flex-wrap gap-2">
                         <a href={listHref} target="_blank" rel="noreferrer" className={secondary}>Check my case studies (opens a new tab)</a>
-                        <button type="button" className={secondary} disabled={saving} onClick={() => void save(forward, true)}>It isn&apos;t there. Add it again</button>
+                        <button type="button" className={secondary} disabled={saving} onClick={() => save(forward, true)}>It isn&apos;t there. Add it again</button>
                     </div>
                 </section>
             )}
@@ -282,6 +324,8 @@ export default function GuidedCapture({ initial, disciplines: initialDisciplines
                         <div><dt className="font-semibold inline">Client and price: </dt><dd className="inline break-words">{clientLines(editor.latest.content).join(" ")}</dd></div>
                     </dl>
                     <p className={hint}>Keeping your changes keeps only the answers you changed{unsaved.length > 0 ? ` (${list(unsaved)})` : ""}. Everything else will be the saved version. Nothing is saved until you press save.</p>
+                    {editor.draft.content.delivered !== editor.saved.content.delivered && <p className="text-base font-semibold text-amber-200" data-replace-warning>Keeping your changes will replace the saved &lsquo;What you did&rsquo; shown above with yours, the whole of it.</p>}
+                    {unapplied && <p className={hint}>What you&apos;ve typed but not added ({list(waiting)}) stays as it is, whichever you choose.</p>}
                     <div className="flex flex-wrap gap-2">
                         <button type="button" className={secondary} onClick={() => dispatch({ type: "latest/keep-mine" })}>Keep my changes</button>
                         <button type="button" className={secondary} onClick={() => dispatch({ type: "latest/use" })}>Use the saved version instead</button>
@@ -309,8 +353,9 @@ export default function GuidedCapture({ initial, disciplines: initialDisciplines
                         {firstUnanswered(editor.draft)
                             ? <button type="button" className={primary} onClick={() => go({ kind: "question", key: firstUnanswered(editor.draft)! })}>Carry on</button>
                             : <button type="button" className={primary} onClick={() => go({ kind: "done" })}>Finish</button>}
-                        {dirty && <button type="button" className={secondary} disabled={saving || state.createUnknown} onClick={() => void save(null)}>Save changes</button>}
+                        {dirty && <button type="button" className={secondary} disabled={saving || state.createUnknown} onClick={() => save(null)}>Save changes</button>}
                     </div>
+                    {depthEntry}
                 </section>
             )}
 
@@ -408,18 +453,67 @@ export default function GuidedCapture({ initial, disciplines: initialDisciplines
                 </form>
             )}
 
+            {depthKey && depth && (
+                <form className={card} onSubmit={onDepthSubmit} aria-labelledby="guided-heading" data-guided-screen={`depth-${depthKey}`} noValidate inert={state.leave !== null}>
+                    <p className="text-sm font-semibold uppercase tracking-wide text-slate-300">More about this job, {DEPTH_KEYS.indexOf(depthKey) + 1} of {DEPTH_KEYS.length} (optional)</p>
+                    <h1 id="guided-heading" ref={heading} tabIndex={-1} className="text-2xl font-bold text-slate-50 focus:outline-none">
+                        {showBox ? <label htmlFor="guided-note">{depth.title}</label> : depth.title}
+                    </h1>
+                    <p id="guided-note-help" className={hint}>{depth.help} Only what actually happened, in your own words.</p>
+
+                    {isPresent && (
+                        <p className="text-base text-slate-100" data-depth-present>&lsquo;What you did&rsquo; already has a paragraph starting &lsquo;{depth.said}&rsquo;.{noteThere(note) ? "" : " To change it, edit it there."}</p>
+                    )}
+                    {!isPresent && notOffered && !noteThere(note) && (
+                        <p className="text-base text-slate-100" data-depth-not-offered>This follows on from the last question. &lsquo;What you did&rsquo; has no paragraph starting &lsquo;{depthOf("challenge").said}&rsquo;, so there is nothing for it to follow.</p>
+                    )}
+                    {!isPresent && !notOffered && !noteThere(note) && roomLeft < 1 && (
+                        <p className="text-base text-slate-100" data-depth-no-room>There&apos;s no room left in &lsquo;What you did&rsquo;. Shorten it there first, or leave this out.</p>
+                    )}
+
+                    {showBox && (
+                        <textarea id="guided-note" className={input} rows={5} value={note} aria-describedby="guided-note-help" onChange={(event) => dispatch({ type: "note/type", key: depthKey, text: event.target.value })} />
+                    )}
+                    {showBox && !isPresent && !notOffered && (
+                        <p className={hint} data-depth-room>Room left in &lsquo;What you did&rsquo;: {Math.max(roomLeft, 0).toLocaleString("en-GB")} characters.</p>
+                    )}
+                    {noteThere(note) && addStatus === "nothing" && <p className="text-base font-semibold text-amber-200" data-depth-status="nothing">There&apos;s nothing to add yet: only spaces are typed here.</p>}
+                    {noteThere(note) && addStatus === "present" && <p className="text-base font-semibold text-amber-200" data-depth-status="present">What you typed here hasn&apos;t been added. Copy it into &lsquo;What you did&rsquo; yourself, or clear this box.</p>}
+                    {noteThere(note) && addStatus === "not-offered" && <p className="text-base font-semibold text-amber-200" data-depth-status="not-offered">This can&apos;t be added: &lsquo;What you did&rsquo; has no paragraph starting &lsquo;{depthOf("challenge").said}&rsquo; for it to follow. Copy it in yourself, or clear this box.</p>}
+                    {noteThere(note) && addStatus === "no-room" && <p className="text-base font-semibold text-amber-200" data-depth-status="no-room">That&apos;s too long to add: {chars(note).toLocaleString("en-GB")} characters, and there&apos;s room for {Math.max(roomLeft, 0).toLocaleString("en-GB")}. Nothing has been cut.</p>}
+                    {addStatus === "ok" && (
+                        <div className="space-y-2" data-depth-status="ok">
+                            <p className={hint}>This will be added to the end of &lsquo;What you did&rsquo;, exactly as it is here. It isn&apos;t saved until you save.</p>
+                            <p className="rounded-lg border border-slate-600 bg-slate-950 p-3 text-base text-slate-100 whitespace-pre-wrap break-words" data-depth-preview>{LEAD_IN[depthKey] + note}</p>
+                            <button type="button" className={primary} onClick={() => dispatch({ type: "note/add", key: depthKey })}>Add to &lsquo;What you did&rsquo;</button>
+                        </div>
+                    )}
+                    {noteThere(note) && <div><button type="button" className={secondary} onClick={() => dispatch({ type: "note/type", key: depthKey, text: "" })}>Clear this box</button></div>}
+
+                    {dirty && <p className={hint} data-also-saving>Saving will save your changes to: {list(unsaved)}.{unapplied ? " What you've typed but not added is not saved." : ""}</p>}
+                    <div className="flex flex-wrap gap-2 border-t border-slate-700 pt-4">
+                        <button type="submit" className={addStatus === "ok" ? secondary : primary} disabled={saving}>{saving ? "Saving…" : dirty ? "Save and next" : isPresent ? "Next" : "Skip"}</button>
+                        {dirty && <button type="button" className={secondary} onClick={() => go(depthForward)}>Skip for now</button>}
+                        <button type="button" className={secondary} onClick={() => go({ kind: "question", key: "delivered" })}>Edit &lsquo;What you did&rsquo;</button>
+                        <button type="button" className={secondary} onClick={() => go(depthBack)}>Back</button>
+                        <button type="button" className={secondary} onClick={() => go({ kind: "summary" })}>See all answers</button>
+                    </div>
+                </form>
+            )}
+
             {screen.kind === "done" && (
                 <section className={card} aria-labelledby="guided-heading" data-guided-screen="done">
                     <h1 id="guided-heading" ref={heading} tabIndex={-1} className="text-2xl font-bold text-slate-50 focus:outline-none">That&apos;s the basics</h1>
                     {dirty ? (
                         <>
                             <p className="text-base font-semibold text-amber-200">Not saved yet: {list(unsaved)}.</p>
-                            <button type="button" className={primary} disabled={saving || state.createUnknown} onClick={() => void save(null)}>{saving ? "Saving…" : "Save changes"}</button>
+                            <button type="button" className={primary} disabled={saving || state.createUnknown} onClick={() => save(null)}>{saving ? "Saving…" : "Save changes"}</button>
                         </>
                     ) : (
                         <p className="text-base text-slate-100">It&apos;s saved as a draft. Clients can&apos;t see it, and no proposal uses it, until you check and approve it on the full form.</p>
                     )}
                     <p className={hint}>This is your own wording, as you typed it. Pictures can&apos;t be added to new case studies yet.</p>
+                    {depthEntry}
                     <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-slate-700 pt-4">
                         {leaveControl("form", "Check and approve on the full form")}
                         <button type="button" className={plain} onClick={() => go({ kind: "summary" })}>See all answers</button>

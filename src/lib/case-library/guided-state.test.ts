@@ -3,7 +3,8 @@ import { fakeLibrary } from "./__fixtures__/fake-library";
 import { newDraft, type CaseStudyContent } from "./content";
 import { isDirty } from "./editor-state";
 import { GUIDED_MESSAGES, dirtyQuestions } from "./guided";
-import { guidedReducer, initialGuidedState, mayLeave, planSave, type AfterSave, type GuidedAction, type GuidedState, type LeaveTo } from "./guided-state";
+import { DEPTH_KEYS, DEPTH_MESSAGES, LEAD_IN, NOTE_MAX, NO_NOTES, add as addParagraph, canAdd, present, room, type DepthKey } from "./guided-depth";
+import { guidedReducer, initialGuidedState, mayLeave, planSave, requestOf, unappliedNames, unsavedOrUnapplied, type AfterSave, type GuidedAction, type GuidedState, type LeaveTo, type Screen } from "./guided-state";
 import { LIBRARY_MESSAGES as M } from "./messages";
 import { approveStudy, createStudy, loadForApproval, saveDiscipline, saveStudy, viewOf, type LibraryContext, type LibraryResult, type StudyView } from "./service";
 import { readStudyAtOneRevision } from "./store";
@@ -22,27 +23,33 @@ let me: LibraryContext;
 function session(view: StudyView | null) {
     let state = initialGuidedState(view);
     const requests: Array<"create" | "save"> = [];
+    /** Every body that was actually sent, for checking that a note never is. */
+    const sent: Array<{ content: CaseStudyContent; disciplineIds: string[] }> = [];
     const d = (action: GuidedAction) => { state = guidedReducer(state, action); };
-    const send = async (again: boolean) => {
-        const { plan } = planSave(state, again);
-        return plan;
-    };
     return {
         get state(): GuidedState { return state; },
         requests,
+        sent,
         d,
         type: (content: Partial<CaseStudyContent>) => d({ type: "edit", content }),
         tags: (disciplineIds: string[]) => d({ type: "edit", disciplineIds }),
-        /** Starts a save and returns a function that delivers the reply, so a test can do things in between. */
+        note: (key: DepthKey, text: string) => d({ type: "note/type", key, text }),
+        add: (key: DepthKey) => d({ type: "note/add", key }),
+        /**
+         * Starts a save and returns a function that delivers the reply, so a test can do things in between.
+         * As the screen does: it asks the rules to start one, and sends ONLY what the state then says was sent.
+         */
         begin: async (then: AfterSave, again = false) => {
-            const plan = await send(again);
+            const before = state.editor.saving?.token ?? null;
             d({ type: "save/start", then, again });
-            if (!plan) return null;
-            requests.push(plan.id ? "save" : "create");
-            const request: Promise<LibraryResult> = plan.id
-                ? saveStudy(me, { id: plan.id, revision: plan.revision, content: plan.sent.content, disciplineIds: plan.sent.disciplineIds })
-                : createStudy(me, { content: plan.sent.content, disciplineIds: plan.sent.disciplineIds });
-            return async () => { const result = await request; d({ type: "save/reply", token: plan.token, result }); return result; };
+            const request = requestOf(state);
+            if (!request || request.token === before) return null;
+            requests.push(request.kind);
+            sent.push(structuredClone({ content: request.content, disciplineIds: request.disciplineIds }));
+            const reply: Promise<LibraryResult> = request.kind === "save"
+                ? saveStudy(me, { id: request.id, revision: request.revision, content: request.content, disciplineIds: request.disciplineIds })
+                : createStudy(me, { content: request.content, disciplineIds: request.disciplineIds });
+            return async () => { const result = await reply; d({ type: "save/reply", token: request.token, result }); return result; };
         },
         async save(then: AfterSave, again = false) {
             const finish = await this.begin(then, again);
@@ -1021,7 +1028,7 @@ describe("coming back", () => {
         const read = await readStudyAtOneRevision(db.reader, ME, id);
         if (read.state !== "ok") throw new Error("could not read");
         const s = session(viewOf(read.study, read.disciplines));
-        expect(s.state).toMatchObject({ screen: { kind: "summary" }, createUnknown: false, after: null, leave: null, leaveHeld: null, moveHeld: false, local: null });
+        expect(s.state).toMatchObject({ screen: { kind: "summary" }, createUnknown: false, after: null, leave: null, leaveHeld: null, moveHeld: false, local: null, notes: NO_NOTES });
         expect(s.state.editor.draft.content).toEqual(stored(id).draft);
         expect(isDirty(s.state.editor)).toBe(false);
     });
@@ -1032,5 +1039,539 @@ describe("coming back", () => {
         const second = session(null);
         expect(second.state.editor.draft.content.title).toBe("");
         expect(initialGuidedState(null)).toEqual(initialGuidedState(null));
+    });
+});
+
+describe("depth notes: typed, added by an explicit press, and never sent as notes", () => {
+    const START: CaseStudyContent = { ...FULL, client_display: "named", client_text: "Mrs Example", client_named_ok: false };
+    const TARGETS: LeaveTo[] = ["form", "list"];
+    const depth = (key: DepthKey): Screen => ({ kind: "depth", key });
+
+    describe("Add", () => {
+        it("puts one paragraph on the end of the text exactly, empties only that note, and makes no request", async () => {
+            const { id, s } = await existing(START);
+            s.note("challenge", "  the stairwell was only 700mm wide \n");
+            s.note("lesson", "we measure access first");
+            s.add("challenge");
+            expect(s.state.editor.draft.content.delivered).toBe("We refitted it.\n\nThe tricky part:   the stairwell was only 700mm wide \n");
+            expect(s.state.notes).toEqual({ challenge: "", response: "", lesson: "we measure access first" });
+            expect(dirtyQuestions(s.state.editor)).toEqual(["delivered"]);
+            expect(s.requests).toEqual([]);
+            expect(db.rpcCalls).toEqual([]);
+            expect(stored(id).draft).toEqual(START);
+            // Every other answer on screen is as it was.
+            expect({ ...s.state.editor.draft.content, delivered: "" }).toEqual({ ...START, delivered: "" });
+        });
+
+        it.each([
+            ["nothing typed", "challenge", "", "Work."],
+            ["only spaces", "challenge", "   \n ", "Work."],
+            ["a paragraph with those words already there", "challenge", "another", "Work.\n\nThe tricky part: first"],
+            ["nothing for it to follow", "response", "we lifted it in", "Work."],
+            ["no room", "lesson", "x", "y".repeat(5000)],
+        ] as Array<[string, DepthKey, string, string]>)("is refused for %s: the very same state, note and text untouched", async (_name, key, note, text) => {
+            const { s } = await existing({ ...START, delivered: text });
+            s.note(key, note);
+            const before = s.state;
+            s.add(key);
+            expect(s.state).toBe(before);
+            expect(s.state.notes[key]).toBe(note);
+            expect(s.state.editor.draft.content.delivered).toBe(text);
+        });
+
+        it("then an ordinary save stores exactly that text; other fields, kinds of work, consent and the approved copy are as they were", async () => {
+            const k1 = await kind("Kitchens");
+            const { id, s } = await existing({ ...START, client_display: "hidden", client_text: "", client_named_ok: false }, [k1]);
+            const check = await loadForApproval(me, id);
+            if (check.status !== "ok") throw new Error("no check");
+            await approveStudy(me, { id, revision: check.check.study.revision, confirmed: true, shown: check.check.wouldApprove });
+            const approved = structuredClone(stored(id).approved);
+            const approvedRevision = stored(id).approved_revision;
+            const draftBefore = structuredClone(stored(id).draft);
+            db.rpcCalls.length = 0;
+
+            s.note("challenge", "access");
+            s.add("challenge");
+            expect((await s.save(depth("response")))!.status).toBe("saved");
+            expect(stored(id).draft).toEqual({ ...draftBefore, delivered: "We refitted it.\n\nThe tricky part: access" });
+            expect(names()).toEqual(["case_study_save_draft"]);
+            expect(tagsOf(id)).toEqual([k1]);
+            expect(stored(id).approved).toEqual(approved);
+            expect(stored(id).approved_revision).toBe(approvedRevision);
+            expect(s.state.screen).toEqual(depth("response"));
+        });
+
+        it("consecutive adds and saves: three paragraphs in the order added, each lead-in once, never offered twice", async () => {
+            const { id, s } = await existing(START);
+            s.note("challenge", "access");
+            s.add("challenge");
+            await s.save(null);
+            s.note("response", "lifted it in through the window");
+            s.add("response");
+            await s.save(null);
+            s.note("lesson", "measure first");
+            s.add("lesson");
+            await s.save(null);
+            const text = stored(id).draft.delivered;
+            expect(text).toBe("We refitted it.\n\nThe tricky part: access\n\nWhat we did about it: lifted it in through the window\n\nWhat we do differently now: measure first");
+            for (const key of DEPTH_KEYS) {
+                expect(text.split(LEAD_IN[key])).toHaveLength(2);
+                s.note(key, "again");
+                const before = s.state;
+                s.add(key);
+                expect(s.state, key).toBe(before);
+            }
+            expect(s.requests).toEqual(["save", "save", "save"]);
+            expect(stored(id).revision).toBe(4);
+        });
+
+        it("after the save is lost and found, trying again writes nothing more and adds nothing more", async () => {
+            const { id, s } = await existing(START);
+            s.note("challenge", "access");
+            s.add("challenge");
+            db.failAfter("case_study_save_draft");
+            db.beforeNext("case_study_save_draft", () => db.failRead("*"));
+            expect((await s.save(null))!.status).toBe("unknown");
+            expect(s.state.notes.challenge).toBe("");
+            expect((await s.save(null))!.status).toBe("unchanged");
+            expect(db.calls("case_study_save_draft")).toHaveLength(1);
+            expect(stored(id).draft.delivered).toBe("We refitted it.\n\nThe tricky part: access");
+        });
+
+        it("a text already at the limit: every depth screen can be visited and nothing changes or is sent", async () => {
+            const full = "y".repeat(5000);
+            const { id, s } = await existing({ ...START, delivered: full });
+            for (const key of DEPTH_KEYS) { s.d({ type: "go", screen: depth(key) }); s.add(key); }
+            expect(await s.save({ kind: "done" })).toBeNull();
+            expect(s.state.screen).toEqual({ kind: "done" });
+            expect(s.requests).toEqual([]);
+            expect(stored(id).draft.delivered).toBe(full);
+            expect(stored(id).revision).toBe(1);
+        });
+    });
+
+    describe("a note's own bound", () => {
+        it("exactly the bound is kept; one more is refused whole, with the note exactly as it was and nothing cut", async () => {
+            const { s } = await existing(START);
+            const most = "n".repeat(NOTE_MAX);
+            s.note("challenge", most);
+            expect(s.state.notes.challenge).toBe(most);
+            s.note("challenge", `${most}n`);
+            expect(s.state.notes.challenge).toBe(most);
+            expect(s.state.local).toEqual({ key: null, message: DEPTH_MESSAGES.noteTooLong });
+            s.note("lesson", "😀".repeat(NOTE_MAX));
+            expect(Array.from(s.state.notes.lesson)).toHaveLength(NOTE_MAX);
+        });
+
+        it("when the room shrinks after a note was typed, the note is left as it is and simply cannot be added", async () => {
+            const { s } = await existing({ ...START, delivered: "Work." });
+            const note = "n".repeat(4000);
+            s.note("challenge", note);
+            expect(canAdd(s.state.editor.draft.content.delivered, "challenge", note)).toBe("ok");
+            s.type({ delivered: "w".repeat(2000) });
+            expect(canAdd(s.state.editor.draft.content.delivered, "challenge", note)).toBe("no-room");
+            expect(room(s.state.editor.draft.content.delivered, "challenge")).toBe(2981);
+            expect(s.state.notes.challenge).toBe(note);
+            s.add("challenge");
+            expect(s.state.notes.challenge).toBe(note);
+            expect(s.state.editor.draft.content.delivered).toBe("w".repeat(2000));
+            // Cleared only by the contractor.
+            s.note("challenge", "");
+            expect(s.state.notes.challenge).toBe("");
+        });
+    });
+
+    describe("leaving with a note there (D1): refused at the start, by the rules, whichever way it was asked", () => {
+        const NOTES: Array<[string, string]> = [["real text", "access was tight"], ["only spaces", "   "], ["a line break", "\n"]];
+
+        describe.each(TARGETS)("to the %s", (to) => {
+            it.each(NOTES)("nothing to save, a note of %s: no leave, nothing locked, nothing sent, and the note can still be dealt with", async (_name, note) => {
+                const { id, s } = await existing(START);
+                s.note("challenge", note);
+                expect(isDirty(s.state.editor)).toBe(false);
+                expect(unsavedOrUnapplied(s.state)).toBe(true);
+
+                expect(await s.save({ kind: "leave", to })).toBeNull();
+                expect(s.state.leave, "the no-request shortcut must not be taken").toBeNull();
+                expect(mayLeave(s.state)).toBe(false);
+                expect(s.state.local).toEqual({ key: null, message: DEPTH_MESSAGES.notesBlockLeave(["the tricky part"]) });
+                expect(s.requests).toEqual([]);
+                expect(db.rpcCalls).toEqual([]);
+
+                // Not locked: typing, clearing and moving all still work.
+                s.note("lesson", "typed after the refusal");
+                expect(s.state.notes.lesson).toBe("typed after the refusal");
+                s.d({ type: "go", screen: depth("lesson") });
+                expect(s.state.screen).toEqual(depth("lesson"));
+                s.note("lesson", "");
+                s.note("challenge", "");
+                // With every note dealt with, it leaves.
+                expect(await s.save({ kind: "leave", to })).toBeNull();
+                expect(s.state.leave).toBe(to);
+                expect(mayLeave(s.state)).toBe(true);
+                expect(stored(id).draft).toEqual(START);
+            });
+
+            it("something to save AND a note already there: a named refusal and ZERO requests, not a save that goes without it", async () => {
+                const { id, s } = await existing(START);
+                s.type({ place: "York" });
+                s.note("lesson", "measure first");
+                expect(planSave(s.state, { kind: "leave", to }).refusal).toEqual({ key: null, message: DEPTH_MESSAGES.notesBlockLeave(["what you do differently now"]) });
+                expect(await s.save({ kind: "leave", to })).toBeNull();
+                expect(requestOf(s.state), "the rules started no save, so there is nothing for the screen to send").toBeNull();
+                expect(s.state.editor.saving).toBeNull();
+                expect(s.requests).toEqual([]);
+                expect(s.sent).toEqual([]);
+                expect(db.rpcCalls).toEqual([]);
+                expect(stored(id).draft.place).toBe("Leeds");
+                expect(s.state.leave).toBeNull();
+                expect(s.state.editor.draft.content.place).toBe("York");
+                expect(s.state.notes.lesson).toBe("measure first");
+            });
+
+            it.each(NOTES)("a note of %s typed WHILE a save-then-go runs: held, not left, not locked; clearing it and saving again leaves", async (_name, note) => {
+                for (const already of [false, true]) {
+                    db = fakeLibrary();
+                    me = { userId: ME, reader: db.reader, admin: () => db.admin };
+                    const { id, s } = await existing(START);
+                    s.type({ place: "York" });
+                    if (already) await saveStudy(me, { id, revision: 1, content: { ...START, place: "York" }, disciplineIds: [] });
+                    const finish = await s.begin({ kind: "leave", to });
+                    s.note("response", note);
+                    expect((await finish!())!.status).toBe(already ? "unchanged" : "saved");
+                    expect(s.state.leave).toBeNull();
+                    expect(s.state.leaveHeld).toBe(to);
+                    expect(mayLeave(s.state)).toBe(false);
+                    expect(isDirty(s.state.editor)).toBe(false);
+                    expect(s.state.notes.response).toBe(note);
+                    expect(s.state.editor.revision).toBe(2);
+                    expect(s.requests).toEqual(["save"]);
+                    // Held is not locked.
+                    s.d({ type: "leave/stay" });
+                    expect(s.state.leaveHeld).toBeNull();
+                    s.note("response", `${note}more`);
+                    expect(s.state.notes.response).toBe(`${note}more`);
+                    s.note("response", "");
+                    expect(await s.save({ kind: "leave", to })).toBeNull();
+                    expect(s.state.leave).toBe(to);
+                }
+            });
+
+            it("held by a note, then added: the text is now unsaved, so it saves and then leaves, with the paragraph stored", async () => {
+                const { id, s } = await existing(START);
+                s.type({ place: "York" });
+                const finish = await s.begin({ kind: "leave", to });
+                s.note("challenge", "access");
+                await finish!();
+                expect(s.state.leaveHeld).toBe(to);
+                s.add("challenge");
+                expect(s.state.notes.challenge).toBe("");
+                expect((await s.save({ kind: "leave", to }))!.status).toBe("saved");
+                expect(s.state.leave).toBe(to);
+                expect(stored(id).draft.delivered).toBe("We refitted it.\n\nThe tricky part: access");
+            });
+
+            it("a failed, unknown or conflicting save-then-go with a note typed during it: stays, and the note is untouched", async () => {
+                for (const arrange of [() => db.setUnavailable(true), () => { db.failAfter("case_study_save_draft"); db.beforeNext("case_study_save_draft", () => db.failRead("*")); }]) {
+                    db = fakeLibrary();
+                    me = { userId: ME, reader: db.reader, admin: () => db.admin };
+                    const { s } = await existing(START);
+                    s.type({ place: "York" });
+                    arrange();
+                    const finish = await s.begin({ kind: "leave", to });
+                    s.note("lesson", "typed during");
+                    await finish!();
+                    expect(s.state.leave).toBeNull();
+                    expect(s.state.leaveHeld).toBeNull();
+                    expect(s.state.notes.lesson).toBe("typed during");
+                    expect(s.state.editor.draft.content.place).toBe("York");
+                }
+            });
+        });
+
+        it("the terminal state is only ever entered with every note empty, and then takes no note either", async () => {
+            const { s } = await existing(START);
+            expect(await s.save({ kind: "leave", to: "form" })).toBeNull();
+            const going = s.state;
+            expect(going.leave).toBe("form");
+            expect(going.notes).toEqual(NO_NOTES);
+            s.note("challenge", "typed into a page that is already going");
+            s.add("challenge");
+            expect(s.state).toBe(going);
+        });
+
+        it("mayLeave is false whenever a note is there, whatever else the state says", () => {
+            const base = initialGuidedState({ id: "00000000-0000-4000-8000-000000000001", revision: 1, content: FULL, disciplineIds: [], approved: null, approvedRevision: null, archived: false, legacyIndex: null });
+            expect(mayLeave({ ...base, leave: "form" })).toBe(true);
+            for (const key of DEPTH_KEYS) for (const note of ["x", " ", "\n"]) expect(mayLeave({ ...base, leave: "form", notes: { ...NO_NOTES, [key]: note } })).toBe(false);
+        });
+    });
+
+    describe("an ordinary save with a note there", () => {
+        it("saves the draft; the note is not in what is sent or stored, is not changed, and is still named as not added", async () => {
+            const { id, s } = await existing(START);
+            s.d({ type: "go", screen: depth("challenge") });
+            s.note("challenge", "SENTINEL note never added");
+            s.type({ place: "York" });
+            expect((await s.save(null))!.status).toBe("saved");
+            expect(JSON.stringify(s.sent)).not.toContain("SENTINEL");
+            expect(JSON.stringify(db.rpcCalls)).not.toContain("SENTINEL");
+            expect(JSON.stringify(stored(id))).not.toContain("SENTINEL");
+            expect(s.state.notes.challenge).toBe("SENTINEL note never added");
+            expect(unappliedNames(s.state.notes)).toEqual(["the tricky part"]);
+            expect(unsavedOrUnapplied(s.state)).toBe(true);
+            expect(isDirty(s.state.editor)).toBe(false);
+        });
+
+        it("Save and next with a note that was ALREADY there moves on: the note is kept and still counts", async () => {
+            const { s } = await existing(START);
+            s.d({ type: "go", screen: depth("challenge") });
+            s.note("challenge", "typed before pressing");
+            s.type({ place: "York" });
+            await s.save(depth("lesson"));
+            expect(s.state.screen).toEqual(depth("lesson"));
+            expect(s.state.moveHeld).toBe(false);
+            expect(s.state.notes.challenge).toBe("typed before pressing");
+            expect(unsavedOrUnapplied(s.state)).toBe(true);
+        });
+
+        it.each([["saved", false], ["already saved", true]] as Array<[string, boolean]>)("Save and next with a note typed or changed WHILE it runs (%s): stays on the screen it was on", async (_name, already) => {
+            for (const change of [(s: ReturnType<typeof session>) => s.note("challenge", "typed during"), (s: ReturnType<typeof session>) => s.note("lesson", " "), (s: ReturnType<typeof session>) => s.note("response", "")]) {
+                db = fakeLibrary();
+                me = { userId: ME, reader: db.reader, admin: () => db.admin };
+                const { id, s } = await existing(START);
+                s.d({ type: "go", screen: depth("challenge") });
+                s.note("response", "there before");
+                s.type({ place: "York" });
+                if (already) await saveStudy(me, { id, revision: 1, content: { ...START, place: "York" }, disciplineIds: [] });
+                const finish = await s.begin(depth("lesson"));
+                change(s);
+                const notes = structuredClone(s.state.notes);
+                await finish!();
+                expect(s.state.screen).toEqual(depth("challenge"));
+                expect(s.state.moveHeld).toBe(true);
+                expect(s.state.notes).toEqual(notes);
+                expect(isDirty(s.state.editor)).toBe(false);
+                expect(s.requests).toEqual(["save"]);
+                // Pressed again with nothing to save: it simply moves, and the notes go with it.
+                expect(await s.save(depth("lesson"))).toBeNull();
+                expect(s.state.screen).toEqual(depth("lesson"));
+                expect(s.state.notes).toEqual(notes);
+            }
+        });
+
+        it("a note typed and put back exactly as it was while the save ran does not hold Next", async () => {
+            const { s } = await existing(START);
+            s.note("challenge", "as it was");
+            s.type({ place: "York" });
+            const finish = await s.begin(depth("lesson"));
+            s.note("challenge", "changed");
+            s.note("challenge", "as it was");
+            await finish!();
+            expect(s.state.screen).toEqual(depth("lesson"));
+        });
+
+        it("an Add made while a save runs leaves the text unsaved, so Next is held and nothing is sent again", async () => {
+            const { id, s } = await existing(START);
+            s.d({ type: "go", screen: depth("challenge") });
+            s.note("challenge", "access");
+            s.type({ place: "York" });
+            const finish = await s.begin(depth("lesson"));
+            s.add("challenge");
+            await finish!();
+            expect(s.state.screen).toEqual(depth("challenge"));
+            expect(s.state.moveHeld).toBe(true);
+            expect(stored(id).draft.delivered).toBe("We refitted it.");
+            expect(dirtyQuestions(s.state.editor)).toEqual(["delivered"]);
+            expect(s.requests).toEqual(["save"]);
+        });
+    });
+
+    describe("what does NOT change a note", () => {
+        it("Back, Skip, jumping, a save, any reply, and either conflict choice", async () => {
+            const k1 = await kind("Kitchens");
+            const { id, s } = await existing(START);
+            const typed = { challenge: "  one ", response: "\n", lesson: "three" };
+            for (const key of DEPTH_KEYS) s.note(key, typed[key]);
+            for (const screen of [depth("lesson"), { kind: "summary" }, { kind: "question", key: "place" }, { kind: "done" }, depth("challenge")] as Screen[]) s.d({ type: "go", screen });
+            expect(s.state.notes).toEqual(typed);
+
+            s.type({ place: "York" });
+            await s.save(null);
+            expect(s.state.notes).toEqual(typed);
+
+            s.type({ place: "Hull" });
+            s.tags([k1]);
+            db.failBefore("case_study_set_disciplines");
+            expect((await s.save(null))!.status).toBe("partial");
+            expect(s.state.notes).toEqual(typed);
+
+            s.d({ type: "save/reply", token: 99, result: { status: "saved", message: M.saved, revision: 50 } });
+            expect(s.state.notes).toEqual(typed);
+
+            await saveStudy(me, { id, revision: stored(id).revision, content: { ...stored(id).draft, value_added: "Elsewhere." }, disciplineIds: [] });
+            s.type({ duration_text: "5 weeks" });
+            expect((await s.save(null))!.status).toBe("conflict");
+            s.d({ type: "latest/keep-mine" });
+            expect(s.state.notes).toEqual(typed);
+            await saveStudy(me, { id, revision: stored(id).revision, content: { ...stored(id).draft, value_added: "Elsewhere again." }, disciplineIds: [] });
+            expect((await s.save(null))!.status).toBe("conflict");
+            s.d({ type: "latest/use" });
+            expect(s.state.notes).toEqual(typed);
+            expect(JSON.stringify(s.sent)).not.toContain("three");
+        });
+
+        it("moving by hand while a save runs still cancels the automatic move, with notes there or not", async () => {
+            const { s } = await existing(START);
+            s.d({ type: "go", screen: depth("challenge") });
+            s.note("challenge", "access");
+            s.type({ place: "York" });
+            const finish = await s.begin(depth("lesson"));
+            s.d({ type: "go", screen: { kind: "summary" } });
+            await finish!();
+            expect(s.state.screen).toEqual({ kind: "summary" });
+            expect(s.state.moveHeld).toBe(false);
+            expect(s.state.notes.challenge).toBe("access");
+        });
+
+        it("a new visit starts with no notes, whatever was typed or saved before", async () => {
+            const { id, s } = await existing(START);
+            s.note("challenge", "typed and never added");
+            const read = await readStudyAtOneRevision(db.reader, ME, id);
+            if (read.state !== "ok") throw new Error("could not read");
+            expect(session(viewOf(read.study, read.disciplines)).state.notes).toEqual(NO_NOTES);
+            expect(initialGuidedState(null).notes).toEqual(NO_NOTES);
+        });
+
+        it("the depth screens cannot be reached before the case study exists", () => {
+            const s = session(null);
+            s.d({ type: "go", screen: depth("challenge") });
+            expect(s.state.screen).toEqual({ kind: "question", key: "title" });
+        });
+    });
+
+    describe("changed somewhere else, with depth in play", () => {
+        const elsewhere = "Remote work.\n\nThe tricky part: remote challenge";
+
+        it("my words are still a note, the latest text already has that paragraph: no duplicate, nothing hidden, not called saved", async () => {
+            const { id, s } = await existing(START);
+            s.note("challenge", "my different challenge");
+            s.type({ place: "York" });
+            await saveStudy(me, { id, revision: 1, content: { ...START, delivered: elsewhere }, disciplineIds: [] });
+            expect((await s.save(null))!.status).toBe("conflict");
+            for (const choice of ["latest/keep-mine", "latest/use"] as const) {
+                const branch = guidedReducer(s.state, { type: choice });
+                expect(branch.editor.draft.content.delivered).toBe(elsewhere);
+                expect(branch.notes.challenge).toBe("my different challenge");
+                expect(canAdd(branch.editor.draft.content.delivered, "challenge", branch.notes.challenge)).toBe("present");
+                expect(guidedReducer(branch, { type: "note/add", key: "challenge" })).toBe(branch);
+                expect(unsavedOrUnapplied(branch)).toBe(true);
+                expect(branch.editor.draft.content.delivered.split(LEAD_IN.challenge)).toHaveLength(2);
+            }
+        });
+
+        it("my words were already added: keeping mine replaces the whole field with mine, and only that field", async () => {
+            const { id, s } = await existing(START);
+            s.note("challenge", "my different challenge");
+            s.add("challenge");
+            await saveStudy(me, { id, revision: 1, content: { ...START, delivered: elsewhere, client_named_ok: true, work_type: "Changed elsewhere" }, disciplineIds: [] });
+            expect((await s.save(null))!.status).toBe("conflict");
+            expect(db.calls("case_study_save_draft")).toHaveLength(1); // the other tab's
+            expect(s.state.editor.revision, "the held revision is not swapped for the newer one").toBe(1);
+            expect(s.state.editor.latest!.content.delivered).toBe(elsewhere);
+            const mine = "We refitted it.\n\nThe tricky part: my different challenge";
+            s.d({ type: "latest/keep-mine" });
+            expect(s.state.editor.draft.content).toEqual({ ...START, delivered: mine, client_named_ok: true, work_type: "Changed elsewhere" });
+            expect(stored(id).draft.delivered, "nothing is written by choosing").toBe(elsewhere);
+            expect((await s.save(null))!.status).toBe("saved");
+            expect(stored(id).draft).toEqual({ ...START, delivered: mine, client_named_ok: true, work_type: "Changed elsewhere" });
+            expect(stored(id).draft.delivered.split(LEAD_IN.challenge)).toHaveLength(2);
+        });
+
+        it("my words were already added, and I take the saved version: mine is given up by my choice, and nothing is written", async () => {
+            const { id, s } = await existing(START);
+            s.note("challenge", "my different challenge");
+            s.add("challenge");
+            await saveStudy(me, { id, revision: 1, content: { ...START, delivered: elsewhere }, disciplineIds: [] });
+            await s.save(null);
+            db.rpcCalls.length = 0;
+            s.d({ type: "latest/use" });
+            expect(s.state.editor.draft.content.delivered).toBe(elsewhere);
+            expect(isDirty(s.state.editor)).toBe(false);
+            expect(db.rpcCalls).toEqual([]);
+            expect(stored(id).draft.delivered).toBe(elsewhere);
+        });
+    });
+
+    it("a long random walk: a note is never sent or stored unless added, never changes except by typing or its own Add, and leaving is never decided with one there", async () => {
+        let state = 20261008;
+        const next = () => { state = (Math.imul(state, 1664525) + 1013904223) >>> 0; return state / 0x100000000; };
+        const pick = <T,>(items: readonly T[]): T => items[Math.floor(next() * items.length)];
+        const screens: Screen[] = [{ kind: "summary" }, { kind: "done" }, { kind: "question", key: "place" }, { kind: "question", key: "delivered" }, depth("challenge"), depth("response"), depth("lesson")];
+        const thens: AfterSave[] = [null, { kind: "done" }, depth("lesson"), { kind: "leave", to: "form" }, { kind: "leave", to: "list" }];
+
+        for (let walk = 0; walk < 12; walk += 1) {
+            db = fakeLibrary();
+            me = { userId: ME, reader: db.reader, admin: () => db.admin };
+            const { id, s } = await existing({ ...START, delivered: "Work." });
+            let serial = 0;
+            /** Note texts that were deliberately added to the text. Only these may ever be sent or stored. */
+            const added = new Set<string>();
+            /** A save on its way, to be answered a few steps later. */
+            let pending: (() => Promise<unknown>) | null = null;
+
+            for (let step = 0; step < 60 && s.state.leave === null; step += 1) {
+                const before = s.state;
+                const roll = next();
+                let acted: "type" | "clear" | "add" | "other" = "other";
+                const key: DepthKey = pick(DEPTH_KEYS);
+                if (roll < 0.22) { acted = "type"; s.note(key, pick([`NOTE${serial += 1} text`, " ", `NOTE${serial += 1}\nlines`])); }
+                else if (roll < 0.28) { acted = "clear"; s.note(key, ""); } // the contractor's own explicit clear: an intended change, not an exception to the rule
+                else if (roll < 0.42) { acted = "add"; if (canAdd(before.editor.draft.content.delivered, key, before.notes[key]) === "ok") added.add(before.notes[key]); s.add(key); }
+                else if (roll < 0.52) s.type({ place: `Place ${serial += 1}` });
+                else if (roll < 0.57) s.type({ delivered: `${before.editor.draft.content.delivered} more` });
+                else if (roll < 0.70) s.d({ type: "go", screen: pick(screens) });
+                else if (roll < 0.74) s.d({ type: "leave/stay" });
+                else if (roll < 0.78 && before.editor.latest) s.d({ type: pick(["latest/use", "latest/keep-mine"] as const) });
+                else if (roll < 0.82) { const row = stored(id); await saveStudy(me, { id, revision: row.revision, content: { ...row.draft, value_added: `Elsewhere ${serial += 1}` }, disciplineIds: [] }); }
+                else if (pending && roll < 0.92) { const finish = pending; pending = null; await finish(); }
+                else if (!pending) pending = await s.begin(pick(thens));
+                const after = s.state;
+
+                // Notes change only by typing (clearing included) and by the note's own Add.
+                for (const other of DEPTH_KEYS) {
+                    if (after.notes[other] === before.notes[other]) continue;
+                    expect(other, `step ${step}: only the note acted on may change`).toBe(key);
+                    if (acted === "add") expect(after.notes[other]).toBe("");
+                    else expect(["type", "clear"]).toContain(acted);
+                }
+                // Leaving is decided only with nothing unsaved and no note there.
+                if (after.leave !== null) {
+                    expect(unsavedOrUnapplied(after), `step ${step}`).toBe(false);
+                    expect(after.notes).toEqual(NO_NOTES);
+                    expect(mayLeave(after)).toBe(after.editor.saving === null);
+                }
+                // A held state is never the terminal one.
+                if (after.leaveHeld !== null || after.moveHeld) expect(after.leave).toBeNull();
+            }
+            if (pending) await pending();
+
+            // Nothing typed as a note reached a request or the stored row unless it was added.
+            const everywhere = `${JSON.stringify(s.sent)}${JSON.stringify(db.rpcCalls)}${JSON.stringify(stored(id))}`;
+            for (const marker of everywhere.match(/NOTE\d+/g) ?? []) {
+                expect([...added].some((text) => text.startsWith(marker) || text.includes(`${marker} `) || text.includes(`${marker}\n`)), `${marker} was sent or stored without being added`).toBe(true);
+            }
+            // Each lead-in appears at most once in the stored text: no path adds a second.
+            for (const key of DEPTH_KEYS) expect(stored(id).draft.delivered.split(LEAD_IN[key]).length).toBeLessThanOrEqual(2);
+        }
+    });
+
+    it("the paragraph functions the rules use are the pure ones: what Add writes is what `add` returns", async () => {
+        const { s } = await existing(START);
+        s.note("lesson", "measure first");
+        const expected = addParagraph(s.state.editor.draft.content.delivered, "lesson", "measure first");
+        s.add("lesson");
+        expect(s.state.editor.draft.content.delivered).toBe(expected);
+        expect(present(expected, "lesson")).toBe(true);
     });
 });

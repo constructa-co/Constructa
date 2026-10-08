@@ -217,18 +217,61 @@ describe("the guided questions", () => {
         expect(screen).toContain("inert={state.leave !== null}");
         const rules = code(path.join(SRC, LIB, "guided-state.ts"));
         // A confirmed save moves on, or leaves, only from the one line that has first found nothing unsaved.
-        expect(rules).toContain('if (isDirty(editor)) return then.kind === "leave" ? { ...next, leaveHeld: then.to } : { ...next, moveHeld: true };');
+        // and, for leaving, no note waiting; for moving on, no note typed while the save ran.
+        expect(rules).toContain('if (then.kind === "leave") return isDirty(editor) || anyNote(state.notes) ? { ...next, leaveHeld: then.to } : { ...next, leave: then.to };');
+        expect(rules).toContain("return isDirty(editor) || !sameNotes(notesAtStart, state.notes) ? { ...next, moveHeld: true } : { ...next, screen: then };");
         const reply = rules.slice(rules.indexOf('case "save/reply"'), rules.indexOf('case "leave/stay"'));
-        expect(reply.indexOf("if (isDirty(editor)) return")).toBeLessThan(reply.indexOf("{ ...next, leave: then.to }"));
-        expect(reply.indexOf("if (isDirty(editor)) return")).toBeLessThan(reply.indexOf("{ ...next, screen: then }"));
         expect(reply.match(/screen: then/g)).toHaveLength(1);
         expect(reply.match(/leave: then\.to/g)).toHaveLength(1);
         expect(rules).toContain("if (state.leave !== null) return state;");
+        // Everywhere "leave" can be set, a note has already been ruled out: the reply above, and the start of a save.
+        const start = rules.slice(rules.indexOf("export function planSave"), rules.indexOf("const CONFIRMED"));
+        expect(start.indexOf('if (then?.kind === "leave" && anyNote(state.notes)) return { plan: null')).toBeGreaterThan(0);
+        expect(start.indexOf('if (then?.kind === "leave" && anyNote(state.notes))')).toBeLessThan(start.indexOf('refusal: "nothing"'));
+        expect(rules.match(/leave: (action\.)?then\.to/g)).toHaveLength(2);
+        expect(rules).toContain("return state.leave !== null && !unsavedOrUnapplied(state) && state.editor.saving === null;");
+    });
+
+    it("the screen plans no save of its own: it sends only the save the rules started, as the state records it", () => {
+        expect(screen).not.toMatch(/planSave/);
+        expect(screen).toContain('const save = (then: AfterSave, again = false) => dispatch({ type: "save/start", then, again });');
+        expect(screen.match(/requestOf\(state\)/g)).toHaveLength(1);
+        expect(screen).toContain("if (!request || sentToken.current === request.token) return;");
+        // The only calls to the server's save and create are inside that one place, with the request's own contents.
+        expect(screen.match(/server\.save\(/g)).toHaveLength(1);
+        expect(screen.match(/server\.create\(/g)).toHaveLength(1);
+        expect(screen).toContain("server.save({ id: request.id, revision: request.revision, content: request.content, disciplineIds: request.disciplineIds })");
+        expect(screen).toContain("server.create({ content: request.content, disciplineIds: request.disciplineIds })");
+        // A request is built from what the rules recorded as sent. Notes are not in it.
+        const rules = code(path.join(SRC, LIB, "guided-state.ts"));
+        const request = rules.slice(rules.indexOf("export function requestOf"), rules.indexOf("export function guidedReducer"));
+        expect(request).toContain("content: saving.sent.content, disciplineIds: saving.sent.disciplineIds");
+        expect(request).not.toMatch(/notes/);
+    });
+
+    it("the depth questions add words and nothing else: no parser, no pattern over text, no rewriting, no model", () => {
+        const depth = code(path.join(SRC, LIB, "guided-depth.ts"));
+        expect(depth).not.toMatch(/RegExp|\.split\(|\.replace\(|\.replaceAll\(|\.normalize\(|\.slice\(|\.substring\(|\.match\(|\.toLowerCase\(|\.toUpperCase\(/);
+        expect(depth).not.toMatch(/\/[^/\n]+\/[gimsuy]*\.test\(/);
+        expect(depth).not.toMatch(/supabase|fetch\(|process\.env|"use server"|localStorage|sessionStorage|cohort-ai|company-interview|ai-budget|openai/i);
+        // The only use of trim is to ask whether a note is nothing but white space. Nothing trimmed is ever kept.
+        expect(depth.match(/\.trim\(\)/g)).toHaveLength(1);
+        expect(depth).toContain('if (note.trim() === "") return "nothing";');
+        expect(depth).toContain("return text + separator(text) + LEAD_IN[key] + note;");
+        // A note changes in the rules in exactly three ways: typed, cleared by typing nothing, emptied by its own Add.
+        const rules = code(path.join(SRC, LIB, "guided-state.ts"));
+        expect(rules.match(/notes: \{ \.\.\.state\.notes, \[action\.key\]:/g)).toHaveLength(2);
+        expect(rules.match(/notes:/g)!.length).toBe(rules.match(/notes: \{ \.\.\.state\.notes, \[action\.key\]:/g)!.length + rules.match(/notes: \{ \.\.\.(NO_NOTES|state\.notes) \}/g)!.length + rules.match(/notes: Notes/g)!.length);
+        // The screen types a note in exactly as it is.
+        expect(screen).toContain('dispatch({ type: "note/type", key: depthKey, text: event.target.value })');
     });
 
     it("warn before leaving by reload, by any link, and by the browser's Back button", () => {
-        expect(screen).toContain("useUnsavedGuard(dirty, GUIDED_MESSAGES.leaveConfirm)");
-        expect(screen).toContain("useBackGuard(dirty)");
+        // Both guards are given the one combined fact: something unsaved, or a note not yet added.
+        expect(screen).toContain("const guard = dirty || unapplied;");
+        expect(screen).toContain("useUnsavedGuard(guard, GUIDED_MESSAGES.leaveConfirm)");
+        expect(screen).toContain("useBackGuard(guard)");
+        expect(screen).toContain("(guard || saving");
         expect(screen).toContain('window.addEventListener("popstate", onBack)');
     });
 });

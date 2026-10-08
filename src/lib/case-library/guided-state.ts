@@ -36,9 +36,10 @@
 import { newDraft, trimSpaces, type CaseStudyContent } from "./content";
 import { editorReducer, initialEditorState, isDirty, type Copy, type EditorState } from "./editor-state";
 import { GUIDED_MESSAGES, problemBeforeSave, type GuidedKey } from "./guided";
+import { DEPTH_MESSAGES, NOTE_MAX, NO_NOTES, add, anyNote, canAdd, chars, depthOf, notesWith, sameNotes, type DepthKey, type Notes } from "./guided-depth";
 import { sameTags, type LibraryResult, type StudyView } from "./service";
 
-export type Screen = { kind: "summary" } | { kind: "question"; key: GuidedKey } | { kind: "done" };
+export type Screen = { kind: "summary" } | { kind: "question"; key: GuidedKey } | { kind: "depth"; key: DepthKey } | { kind: "done" };
 /** Where to leave to once a save is confirmed: the full form, or the list. */
 export type LeaveTo = "form" | "list";
 export type AfterSave = Screen | { kind: "leave"; to: LeaveTo } | null;
@@ -46,8 +47,16 @@ export type AfterSave = Screen | { kind: "leave"; to: LeaveTo } | null;
 export interface GuidedState {
     editor: EditorState;
     screen: Screen;
-    /** What a confirmed reply to the save now running leads to. Cleared if the contractor moves by hand meanwhile. */
-    after: { token: number; then: AfterSave } | null;
+    /**
+     * What a confirmed reply to the save now running leads to. Cleared if the contractor moves by hand meanwhile.
+     * `notes` is the notes as they were when that save started, so a note typed while it ran can be told from one already there.
+     */
+    after: { token: number; then: AfterSave; notes: Notes } | null;
+    /**
+     * Depth answers typed but NOT added to the text. Never part of the draft, never sent, never called saved.
+     * Changed only by typing in a depth box (including clearing it) and by Add, which empties the one it added.
+     */
+    notes: Notes;
     /** The first create got no answer. Whether the case study exists is not known. */
     createUnknown: boolean;
     /** A refusal made here, before any request. */
@@ -71,6 +80,10 @@ export interface GuidedState {
 
 export type GuidedAction =
     | { type: "edit"; content?: Partial<CaseStudyContent>; disciplineIds?: string[] }
+    /** Typing in a depth box. An empty `text` is the contractor clearing it. */
+    | { type: "note/type"; key: DepthKey; text: string }
+    /** Add the note to the end of "What you did" as one paragraph. No request is made. */
+    | { type: "note/add"; key: DepthKey }
     | { type: "go"; screen: Screen }
     | { type: "save/start"; then: AfterSave; again?: boolean }
     | { type: "save/reply"; token: number; result: LibraryResult }
@@ -85,6 +98,7 @@ export function initialGuidedState(view: StudyView | null): GuidedState {
         // Coming back to a saved case study opens on what is saved. A new one opens on the first question.
         screen: view ? { kind: "summary" } : { kind: "question", key: "title" },
         after: null,
+        notes: { ...NO_NOTES },
         createUnknown: false,
         local: null,
         leave: null,
@@ -108,15 +122,27 @@ const titleTidied = (editor: EditorState): EditorState => {
     return tidy === editor.draft.content.title ? editor : editorReducer(editor, { type: "edit", content: { title: tidy } });
 };
 
+/** Anything on the screen that is not saved: a change to the draft, or a note that has not been added. Spaces count. */
+export function unsavedOrUnapplied(state: GuidedState): boolean {
+    return isDirty(state.editor) || anyNote(state.notes);
+}
+
+export const unappliedNames = (notes: Notes): string[] => notesWith(notes).map((key) => depthOf(key).name);
+
 /**
- * What a save would send now, or why none can start. The screen calls this
- * to make the request; the reducer calls it to decide the same thing, so the
- * two cannot disagree.
+ * What a save started now would send, or why none can start. ONLY the
+ * reducer decides whether a save starts. The screen does not plan: it sends
+ * what `requestOf` reads back from the state once a save has started.
+ *
+ * A save that would be followed by leaving is refused while any note is
+ * there, whether or not there is anything to save: the note would not be
+ * sent, and the page must not go, or lock, with it on screen.
  */
-export function planSave(state: GuidedState, again = false): { plan: SavePlan; refusal: null } | { plan: null; refusal: GuidedState["local"] | "busy" | "nothing" | "create-unknown" | "leaving" } {
+export function planSave(state: GuidedState, then: AfterSave = null, again = false): { plan: SavePlan; refusal: null } | { plan: null; refusal: GuidedState["local"] | "busy" | "nothing" | "create-unknown" | "leaving" } {
     // Already on the way out with everything saved: nothing more is sent.
     if (state.leave !== null) return { plan: null, refusal: "leaving" };
     if (state.editor.saving) return { plan: null, refusal: "busy" };
+    if (then?.kind === "leave" && anyNote(state.notes)) return { plan: null, refusal: { key: null, message: DEPTH_MESSAGES.notesBlockLeave(unappliedNames(state.notes)) } };
     if (state.createUnknown && !again) return { plan: null, refusal: "create-unknown" };
     const editor = titleTidied(state.editor);
     const problem = problemBeforeSave(editor.draft.content);
@@ -127,9 +153,32 @@ export function planSave(state: GuidedState, again = false): { plan: SavePlan; r
 
 const CONFIRMED = new Set(["saved", "unchanged"]);
 
-/** Leaving is allowed only when there is nothing on the screen that is not saved, and no save still running. */
+/**
+ * Leaving is allowed only when nothing on the screen is unsaved, no note is waiting to be added,
+ * and no save is still running.
+ */
 export function mayLeave(state: GuidedState): boolean {
-    return state.leave !== null && !isDirty(state.editor) && state.editor.saving === null;
+    return state.leave !== null && !unsavedOrUnapplied(state) && state.editor.saving === null;
+}
+
+export interface SaveRequest {
+    token: number;
+    kind: "create" | "save";
+    id: string | null;
+    revision: number;
+    content: CaseStudyContent;
+    disciplineIds: string[];
+}
+
+/**
+ * The request for the save now running, read from the state the reducer made. Null when no save is running.
+ * This is the only source of what the screen sends, so the screen cannot send a save the rules refused.
+ * Notes are not in it.
+ */
+export function requestOf(state: GuidedState): SaveRequest | null {
+    const { saving, id, revision } = state.editor;
+    if (!saving) return null;
+    return { token: saving.token, kind: id === null ? "create" : "save", id, revision, content: saving.sent.content, disciplineIds: saving.sent.disciplineIds };
 }
 
 export function guidedReducer(state: GuidedState, action: GuidedAction): GuidedState {
@@ -139,6 +188,21 @@ export function guidedReducer(state: GuidedState, action: GuidedAction): GuidedS
     switch (action.type) {
         case "edit":
             return { ...state, editor: editorReducer(state.editor, action), local: null };
+
+        case "note/type": {
+            // A note is bounded on its own. An edit that would pass the bound is refused whole: the note stays as it was.
+            if (chars(action.text) > NOTE_MAX) return { ...state, local: { key: null, message: DEPTH_MESSAGES.noteTooLong } };
+            return { ...state, notes: { ...state.notes, [action.key]: action.text }, local: null };
+        }
+
+        case "note/add": {
+            const note = state.notes[action.key];
+            const text = state.editor.draft.content.delivered;
+            // Not allowed: nothing changes. The screen says why from the same check.
+            if (canAdd(text, action.key, note) !== "ok") return state;
+            // One edit to the one text, and that note alone is emptied. No request.
+            return { ...state, editor: editorReducer(state.editor, { type: "edit", content: { delivered: add(text, action.key, note) } }), notes: { ...state.notes, [action.key]: "" }, local: null };
+        }
 
         case "go": {
             // Until the case study exists there is only the first question: everything else needs somewhere to be saved.
@@ -150,18 +214,19 @@ export function guidedReducer(state: GuidedState, action: GuidedAction): GuidedS
         }
 
         case "save/start": {
-            const { plan, refusal } = planSave(state, action.again);
+            const { plan, refusal } = planSave(state, action.then, action.again);
             if (!plan) {
                 if (refusal === "nothing") {
                     // Nothing to save: going where the save would have led is safe and makes no request.
                     if (action.then === null) return state;
-                    // "Nothing to save" was decided from this very state, so nothing is unsaved.
+                    // "Nothing to save" was decided from this very state, and a leave with a note there was refused above,
+                    // so nothing is unsaved and no note is waiting.
                     return action.then.kind === "leave" ? { ...state, leave: action.then.to, leaveHeld: null, moveHeld: false } : { ...state, screen: action.then, after: null, local: null, leaveHeld: null, moveHeld: false };
                 }
                 return typeof refusal === "object" && refusal ? { ...state, local: refusal } : state;
             }
             const editor = editorReducer(titleTidied(state.editor), { type: "save/start" });
-            return { ...state, editor, after: { token: plan.token, then: action.then }, createUnknown: false, local: null, leaveHeld: null, moveHeld: false };
+            return { ...state, editor, after: { token: plan.token, then: action.then, notes: { ...state.notes } }, createUnknown: false, local: null, leaveHeld: null, moveHeld: false };
         }
 
         case "save/reply": {
@@ -169,6 +234,7 @@ export function guidedReducer(state: GuidedState, action: GuidedAction): GuidedS
             // Not the save now running: nothing changes, and nothing moves.
             if (editor === state.editor) return state;
             const then = state.after?.token === action.token ? state.after.then : null;
+            const notesAtStart = state.after?.token === action.token ? state.after.notes : state.notes;
             const next: GuidedState = {
                 ...state,
                 editor,
@@ -180,8 +246,10 @@ export function guidedReducer(state: GuidedState, action: GuidedAction): GuidedS
             if (!CONFIRMED.has(action.result.status) || then === null) return next;
             // What was SENT is saved. If anything typed since is not, the screen stays where it is and keeps it:
             // it neither moves on to another question nor leaves, and nothing is sent again by itself.
-            if (isDirty(editor)) return then.kind === "leave" ? { ...next, leaveHeld: then.to } : { ...next, moveHeld: true };
-            return then.kind === "leave" ? { ...next, leave: then.to } : { ...next, screen: then };
+            // A note is never part of what was sent. Leaving waits for every note. Moving on waits for a note typed or
+            // changed while this save ran; one that was already there when the contractor pressed is kept and still named.
+            if (then.kind === "leave") return isDirty(editor) || anyNote(state.notes) ? { ...next, leaveHeld: then.to } : { ...next, leave: then.to };
+            return isDirty(editor) || !sameNotes(notesAtStart, state.notes) ? { ...next, moveHeld: true } : { ...next, screen: then };
         }
 
         case "leave/stay":

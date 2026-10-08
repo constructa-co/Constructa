@@ -1,0 +1,84 @@
+{
+  "project": "desktop-keyboard",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "input": "keyboard",
+  "outcome": "passed",
+  "checkpoints": [
+    {
+      "name": "library-empty",
+      "scope": "[data-library]",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "editor-new",
+      "scope": "[data-case-study-editor]",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "editor-save-not-confirmed",
+      "scope": "[data-case-study-editor]",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "editor-conflict",
+      "scope": "[data-case-study-editor]",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "editor-check",
+      "scope": "[data-case-study-editor]",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "library-list",
+      "scope": "[data-library]",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "review-too-many",
+      "scope": "[data-past-jobs-extras]",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "review-cannot-send",
+      "scope": "[data-past-jobs-extras]",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    }
+  ],
+  "keyboard": {
+    "controlsReached": 41,
+    "withoutVisibleFocus": []
+  },
+  "blockedThirdPartyHosts": [
+    "plausible.io",
+    "www.clarity.ms",
+    "images.example.test"
+  ]
+}

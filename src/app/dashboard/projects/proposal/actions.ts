@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { caseLibraryEnabled } from "@/lib/case-library/gate";
+import { readProposalLibrary } from "@/lib/case-library/proposal-read";
+import { sessionReader } from "@/lib/case-library/store";
 import { requireProjectAccess } from "@/lib/supabase/auth-utils";
 import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-access";
 import { validatePublicImage } from "@/lib/storage/public-image";
@@ -326,6 +329,14 @@ export async function publishProposalAction(
         return { success: false, error: "Could not determine the next proposal version." };
     }
 
+    // The contractor's approved library case studies, read again now with
+    // their own session. With the library switched off or unreadable there
+    // are none, so a saved library tick stops this publication below: it is
+    // never sent without a past job the contractor chose.
+    const caseStudyLibrary = caseLibraryEnabled()
+        ? await readProposalLibrary(sessionReader(supabase), user.id, project.selected_case_study_ids)
+        : null;
+
     const publicationId = crypto.randomUUID();
     const versionNumber = (latestPublication?.version_number ?? 0) + 1;
     const sentAt = new Date().toISOString();
@@ -348,6 +359,7 @@ export async function publishProposalAction(
             resolvedTerms: terms,
             responseKind: input.responseKind,
             ...vatFor(project),
+            ...(caseStudyLibrary ? { caseStudyLibrary: { userId: user.id, rows: caseStudyLibrary.rows } } : {}),
         });
         [tokenHash, snapshotHash, contentHash] = await Promise.all([
             hashProposalAccessToken(token),

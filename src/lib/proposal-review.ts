@@ -16,6 +16,7 @@
  *    confirmed is fingerprinted and the server publishes only that content.
  */
 
+import { buildPastJobs, type ProposalLibrary } from "@/lib/case-library/past-jobs";
 import { computeContractSum, roundMoney } from "./financial";
 import { splitScope } from "./guided-brief";
 import { resolveProgrammeSource } from "./programme-plan";
@@ -111,6 +112,8 @@ export interface ReviewContext {
     estimate: ProposalPublicationEstimateInput | null;
     /** The version number the next publication would take. */
     nextVersion: number;
+    /** The contractor's approved case-study library, when it is in use. Never drafts. */
+    caseStudyLibrary?: ProposalLibrary;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -414,6 +417,7 @@ export function reviewReadiness(context: ReviewContext, draft: ProposalDraft): P
         aboutBusiness: context.profile.capability_statement,
         hasPhotos: draft.photos.some((photo) => photo.url),
         hasCaseStudies: draft.caseStudyIds.length > 0,
+        caseStudySelectionProblem: buildPastJobs({ olderStored: context.profile.case_studies, selected: draft.caseStudyIds, library: context.caseStudyLibrary }).blocked,
         exclusions: draft.exclusions,
         clarifications: draft.clarifications,
         closingStatement: draft.closing,
@@ -448,6 +452,7 @@ export function buildPreviewSnapshot(
             resolvedTerms: draftTerms(draft),
             responseKind,
             ...vatFor(context.project),
+            ...(context.caseStudyLibrary ? { caseStudyLibrary: { userId: context.caseStudyLibrary.userId, rows: context.caseStudyLibrary.rows } } : {}),
         }, { allowIncomplete: true });
     } catch {
         return null;

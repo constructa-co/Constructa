@@ -1,0 +1,80 @@
+{
+  "project": "phone",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "input": "touch",
+  "outcome": "passed",
+  "checkpoints": [
+    {
+      "name": "library-empty",
+      "scope": "[data-library]",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "01-library-empty-390x844.jpg"
+    },
+    {
+      "name": "editor-new",
+      "scope": "[data-case-study-editor]",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "02-editor-new-390x844.jpg"
+    },
+    {
+      "name": "editor-save-not-confirmed",
+      "scope": "[data-case-study-editor]",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "03-editor-save-not-confirmed-390x844.jpg"
+    },
+    {
+      "name": "editor-conflict",
+      "scope": "[data-case-study-editor]",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "04-editor-conflict-390x844.jpg"
+    },
+    {
+      "name": "editor-check",
+      "scope": "[data-case-study-editor]",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "05-editor-check-390x844.jpg"
+    },
+    {
+      "name": "library-list",
+      "scope": "[data-library]",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "06-library-list-390x844.jpg"
+    },
+    {
+      "name": "review-too-many",
+      "scope": "[data-past-jobs-extras]",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "07-review-too-many-390x844.jpg"
+    },
+    {
+      "name": "review-cannot-send",
+      "scope": "[data-past-jobs-extras]",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "08-review-cannot-send-390x844.jpg"
+    }
+  ],
+  "blockedThirdPartyHosts": [
+    "plausible.io",
+    "www.clarity.ms",
+    "images.example.test"
+  ]
+}

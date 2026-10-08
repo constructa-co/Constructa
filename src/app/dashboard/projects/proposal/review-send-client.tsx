@@ -64,6 +64,8 @@ import {
     uploadPhotoAction,
 } from "./actions";
 import PublicationHistoryPanel, { type ProposalPublicationHistoryRow } from "./publication-history-panel";
+import PastJobsExtras from "./past-jobs-extras";
+import { buildPastJobs } from "@/lib/case-library/past-jobs";
 
 export interface CaseStudyOption {
     /** The case study's own id, or its position when it has none. */
@@ -212,6 +214,8 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     }, [sendStatus, sendChanged, router]);
 
     const edit = (patch: Partial<ProposalDraft>) => store.dispatch({ type: "draft/change", patch });
+    // What the chosen past jobs really come to, by the same resolver publication uses.
+    const pastJobs = buildPastJobs({ olderStored: context.profile.case_studies, selected: draft.caseStudyIds, library: context.caseStudyLibrary });
     const handleSave = () => void saveDraft(store, api.save);
     const handleSend = () => void sendProposal(store, {
         save: api.save,
@@ -252,6 +256,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
         programme: { href: href("schedule"), label: "Open Programme" },
         payment: { href: "#review-payments", label: "Choose how you are paid" },
         terms: { href: "#review-terms", label: "Go to the terms" },
+        caseStudySelection: { href: "#review-experience", label: "Go to past jobs" },
     };
     const recommendedFix: Partial<Record<RecommendedKey, { href: string; label: string }>> = {
         introduction: { href: "#review-cover", label: "Go to the opening message" },
@@ -569,7 +574,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                     <section id="review-experience" className={sectionCard} aria-labelledby="review-experience-title">
                         {sectionTitle("review-experience", 3, "Relevant experience", "Choose the past jobs to show. Only the ones you tick are included.")}
                         {caseStudies.length === 0 ? (
-                            <p className={`text-base ${s.muted}`}>You have no past jobs saved, so this section is left out.</p>
+                            pastJobs.library.length === 0 && <p className={`text-base ${s.muted}`}>You have no past jobs saved, so this section is left out.</p>
                         ) : (
                             <ul className="space-y-1">
                                 {caseStudies.map((study) => {
@@ -598,6 +603,13 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                 })}
                             </ul>
                         )}
+                        <PastJobsExtras
+                            jobs={pastJobs}
+                            unapproved={context.caseStudyLibrary?.unapproved ?? 0}
+                            busy={busy}
+                            onToggle={(tick) => edit({ caseStudyIds: draft.caseStudyIds.includes(tick) ? draft.caseStudyIds.filter((id) => id !== tick) : [...draft.caseStudyIds, tick] })}
+                            classes={{ body: s.body, muted: s.muted, notice: s.noticeBox, button: s.secondaryButton }}
+                        />
                         {elsewhere("Past jobs are written once and reused.", "/dashboard/settings/case-studies", "Add or change past jobs")}
                     </section>
 

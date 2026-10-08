@@ -156,6 +156,26 @@ through `src/lib/supabase/extended-module-auth-utils.ts`; do not replace that
 adapter with the base auth helper unless the module is deliberately promoted
 into the cohort journey.
 
+## Case-Study Library Switch
+
+`CONSTRUCTA_CASE_LIBRARY=1` (server only, default off) turns on the case-study
+library: the library section of the Case Studies page, its edit pages and
+actions, and approved library case studies on Review and Send.
+
+- Off, every screen behaves as it did before. The new pages redirect to the
+  Case Studies page and the new actions refuse.
+- It needs the migration `20261012090000_case_library_foundation.sql`. If the
+  tables are missing the library says it is not available; it is never shown
+  as empty.
+- One check ignores the switch on purpose: a proposal with a saved library
+  tick (`lib:<uuid>`) that cannot be honoured is not published, whatever the
+  switch says. Turning the switch off never sends a proposal without a past
+  job the contractor chose.
+- The older case studies and their editor are unchanged either way.
+
+Turning it on anywhere real is an owner decision. See
+`docs/evidence/stage2-tranche-2g4/CLIENT-BUILDER-REPORT.md`.
+
 ## Proposal Document
 
 A proposal is published as an immutable snapshot (`proposal_publications`).

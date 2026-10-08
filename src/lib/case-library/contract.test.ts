@@ -1,5 +1,3 @@
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
 import vectors from "./__fixtures__/contract-vectors.json";
 import { approvalProblem, approvedProblem, approvedValue, contentFromInput, contentProblem, labelProblem, newDraft, type CaseStudyContent } from "./content";
@@ -78,35 +76,5 @@ describe("case study content: defaults and tidying", () => {
         expect(labelKey("Élan Joinery")).toBe(labelKey("ÉLAN JOINERY"));
         expect(labelKey("élan joinery")).not.toBe(labelKey("Élan joinery"));
         expect(labelKey("  Kitchen   Installation ")).toBe("kitchen installation");
-    });
-});
-
-describe("the foundation is not wired into the application", () => {
-    const SRC = path.resolve(import.meta.dirname, "../..");
-    const files = (dir: string): string[] => readdirSync(dir).flatMap((entry) => {
-        const full = path.join(dir, entry);
-        if (statSync(full).isDirectory()) return entry === "node_modules" ? [] : files(full);
-        return /\.(ts|tsx)$/.test(entry) ? [full] : [];
-    });
-    const outside = files(SRC).filter((file) => !file.startsWith(path.join(SRC, "lib/case-library") + path.sep));
-
-    it("nothing outside this folder imports it", () => {
-        for (const file of outside) expect(readFileSync(file, "utf8"), file).not.toMatch(/from\s+["'][^"']*case-library/);
-    });
-
-    it("no application code names the new tables or functions", () => {
-        for (const file of outside) {
-            const text = readFileSync(file, "utf8");
-            for (const name of ["contractor_disciplines", "case_study_disciplines", "case_study_create", "case_study_save_draft", "case_study_set_disciplines", "case_study_approve", "case_study_archive", "case_library_"]) expect(text, `${file} names ${name}`).not.toContain(name);
-            expect(text, file).not.toMatch(/from\(\s*["']case_studies["']\s*\)/);
-        }
-    });
-
-    it("this folder reaches no database, network or privileged client", () => {
-        for (const file of files(path.join(SRC, "lib/case-library"))) {
-            if (/\.test\.ts$/.test(file)) continue;
-            const code = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
-            expect(code, file).not.toMatch(/supabase|createAdminClient|fetch\(|"use server"|process\.env/);
-        }
     });
 });

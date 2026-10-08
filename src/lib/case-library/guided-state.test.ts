@@ -3,7 +3,7 @@ import { fakeLibrary } from "./__fixtures__/fake-library";
 import { newDraft, type CaseStudyContent } from "./content";
 import { isDirty } from "./editor-state";
 import { GUIDED_MESSAGES, dirtyQuestions } from "./guided";
-import { guidedReducer, initialGuidedState, planSave, type AfterSave, type GuidedAction, type GuidedState } from "./guided-state";
+import { guidedReducer, initialGuidedState, mayLeave, planSave, type AfterSave, type GuidedAction, type GuidedState, type LeaveTo } from "./guided-state";
 import { LIBRARY_MESSAGES as M } from "./messages";
 import { approveStudy, createStudy, loadForApproval, saveDiscipline, saveStudy, viewOf, type LibraryContext, type LibraryResult, type StudyView } from "./service";
 import { readStudyAtOneRevision } from "./store";
@@ -551,13 +551,236 @@ describe("one save at a time", () => {
     });
 });
 
+describe("save, then go: a confirmed save confirms what was SENT, not what is on the screen now", () => {
+    const TARGETS: LeaveTo[] = ["form", "list"];
+    const START: CaseStudyContent = { ...FULL, client_display: "named", client_text: "Mrs Example", client_named_ok: false };
+    /** Something typed, ticked or chosen while the save is on its way. */
+    const DURING: Array<[string, (s: ReturnType<typeof session>, kinds: string[]) => void, string[]]> = [
+        ["the job name", (s) => s.type({ title: "Renamed while saving" }), ["title"]],
+        ["wording", (s) => s.type({ delivered: "Typed while the save was running." }), ["delivered"]],
+        ["kinds of work", (s, kinds) => s.tags([kinds[0]]), ["kinds"]],
+        ["how the client is shown", (s) => s.type({ client_display: "described", client_named_ok: false }), ["client"]],
+        ["the client's agreement to be named", (s) => s.type({ client_named_ok: true }), ["client"]],
+        ["whether a price is shown", (s) => s.type({ show_value: false }), ["client"]],
+    ];
+
+    describe.each(TARGETS)("to the %s", (to) => {
+        it.each(DURING)("%s changed while the save was running: it does not leave, keeps the change as unsaved, and says so", async (_name, change, dirty) => {
+            const k1 = await kind("Kitchens");
+            const { id, s } = await existing(START);
+            s.type({ place: "York" });
+            const finish = await s.begin({ kind: "leave", to });
+            change(s, [k1]);
+            const typed = structuredClone(s.state.editor.draft);
+            const result = await finish!();
+
+            expect(result!.status).toBe("saved");
+            expect(s.state.leave, "it must not leave").toBeNull();
+            expect(mayLeave(s.state)).toBe(false);
+            expect(s.state.leaveHeld).toBe(to);
+            // What was sent is saved, and its revision is held. What was typed since is exactly as typed, and unsaved.
+            expect(stored(id).draft).toEqual({ ...START, place: "York" });
+            expect(tagsOf(id)).toEqual([]);
+            expect(s.state.editor.revision).toBe(2);
+            expect(s.state.editor.draft).toEqual(typed);
+            expect(dirtyQuestions(s.state.editor)).toEqual(dirty);
+            // No second save was started by itself, and nothing was discarded.
+            expect(s.requests).toEqual(["save"]);
+            expect(s.state.editor.saving).toBeNull();
+
+            // The contractor saves again, deliberately. With nothing typed meanwhile, it leaves.
+            expect((await s.save({ kind: "leave", to }))!.status).toBe("saved");
+            expect(s.state.leave).toBe(to);
+            expect(mayLeave(s.state)).toBe(true);
+            expect(s.state.leaveHeld).toBeNull();
+            expect(isDirty(s.state.editor)).toBe(false);
+        });
+
+        it("the same when the reply is 'already saved'", async () => {
+            const { id, s } = await existing(START);
+            s.type({ place: "York" });
+            // The same change lands from somewhere else first, so this save finds nothing new to write.
+            await saveStudy(me, { id, revision: 1, content: { ...START, place: "York" }, disciplineIds: [] });
+            const finish = await s.begin({ kind: "leave", to });
+            s.type({ delivered: "Typed while the save was running." });
+            const result = await finish!();
+            expect(result!.status).toBe("unchanged");
+            expect(s.state.leave).toBeNull();
+            expect(s.state.leaveHeld).toBe(to);
+            expect(s.state.editor.revision).toBe(2);
+            expect(s.state.editor.draft.content.delivered).toBe("Typed while the save was running.");
+            expect(stored(id).draft.delivered).toBe(START.delivered);
+        });
+
+        it("nothing typed meanwhile: it leaves, as before", async () => {
+            const { s } = await existing(START);
+            s.type({ place: "York" });
+            await s.save({ kind: "leave", to });
+            expect(s.state.leave).toBe(to);
+            expect(s.state.leaveHeld).toBeNull();
+            expect(mayLeave(s.state)).toBe(true);
+        });
+
+        it("typed and then put back before the reply: nothing is unsaved, so it leaves", async () => {
+            const { s } = await existing(START);
+            s.type({ place: "York" });
+            const finish = await s.begin({ kind: "leave", to });
+            s.type({ delivered: "Second thoughts" });
+            s.type({ delivered: START.delivered });
+            await finish!();
+            expect(s.state.leave).toBe(to);
+        });
+
+        it.each([
+            ["refused as changed elsewhere", async (id: string) => { await saveStudy(me, { id, revision: 1, content: { ...START, delivered: "Elsewhere." }, disciplineIds: [] }); }, "conflict"],
+            ["not known", async () => { db.failAfter("case_study_save_draft"); db.beforeNext("case_study_save_draft", () => db.failRead("*")); }, "unknown"],
+            ["not available", async () => { db.setUnavailable(true); }, "unavailable"],
+        ] as Array<[string, (id: string) => Promise<void>, string]>)("a save that is %s stays put, with or without new typing, and holds no leave", async (_name, arrange, status) => {
+            for (const typeMore of [false, true]) {
+                db = fakeLibrary();
+                me = { userId: ME, reader: db.reader, admin: () => db.admin };
+                const { id, s } = await existing(START);
+                s.type({ place: "York" });
+                await arrange(id);
+                const finish = await s.begin({ kind: "leave", to });
+                if (typeMore) s.type({ value_added: "More." });
+                expect((await finish!())!.status).toBe(status);
+                expect(s.state.leave).toBeNull();
+                expect(s.state.leaveHeld).toBeNull();
+                expect(s.state.editor.draft.content.place).toBe("York");
+                if (typeMore) expect(s.state.editor.draft.content.value_added).toBe("More.");
+            }
+        });
+
+        it("partly saved stays put and holds no leave", async () => {
+            const k1 = await kind("Kitchens");
+            const { s } = await existing(START);
+            s.type({ place: "York" });
+            s.tags([k1]);
+            db.failBefore("case_study_set_disciplines");
+            expect((await s.save({ kind: "leave", to }))!.status).toBe("partial");
+            expect(s.state.leave).toBeNull();
+            expect(s.state.leaveHeld).toBeNull();
+        });
+    });
+
+    it("the integrator's interleaving: renamed, save and open the full form, more typed, confirmed", async () => {
+        const { id, s } = await existing({ ...newDraft("Original job") });
+        s.type({ title: "Renamed job" });
+        const finish = await s.begin({ kind: "leave", to: "form" });
+        s.type({ delivered: "New typing after the request started" });
+        await finish!();
+        expect(isDirty(s.state.editor)).toBe(true);
+        expect(s.state.leave).toBeNull();
+        expect(s.state.leaveHeld).toBe("form");
+        expect(s.state.editor.draft.content.delivered).toBe("New typing after the request started");
+        expect(stored(id).draft).toEqual(newDraft("Renamed job"));
+    });
+
+    it("moving by hand while the save runs gives up the leave altogether: nothing is held, nothing leaves", async () => {
+        const { s } = await existing(START);
+        s.type({ place: "York" });
+        const finish = await s.begin({ kind: "leave", to: "list" });
+        s.d({ type: "go", screen: { kind: "question", key: "delivered" } });
+        await finish!();
+        expect(s.state.leave).toBeNull();
+        expect(s.state.leaveHeld).toBeNull();
+        expect(s.state.screen).toEqual({ kind: "question", key: "delivered" });
+    });
+
+    it("a held leave is put down by staying, by moving, and by starting another save; typing on does not put it down", async () => {
+        const held = async () => {
+            const { s } = await existing(START);
+            s.type({ place: "York" });
+            const finish = await s.begin({ kind: "leave", to: "form" });
+            s.type({ delivered: "More." });
+            await finish!();
+            expect(s.state.leaveHeld).toBe("form");
+            return s;
+        };
+        let s = await held();
+        s.type({ delivered: "More, and more." });
+        expect(s.state.leaveHeld).toBe("form");
+        s.d({ type: "leave/stay" });
+        expect(s.state.leaveHeld).toBeNull();
+        expect(s.state.editor.draft.content.delivered).toBe("More, and more.");
+
+        s = await held();
+        s.d({ type: "go", screen: { kind: "summary" } });
+        expect(s.state.leaveHeld).toBeNull();
+
+        s = await held();
+        const finish = await s.begin(null);
+        expect(s.state.leaveHeld).toBeNull();
+        await finish!();
+        expect(s.state.leave).toBeNull();
+    });
+
+    it("typing again during the second save holds it again: there is never an automatic save or discard", async () => {
+        const { id, s } = await existing(START);
+        s.type({ place: "York" });
+        let finish = await s.begin({ kind: "leave", to: "list" });
+        s.type({ delivered: "One." });
+        await finish!();
+        finish = await s.begin({ kind: "leave", to: "list" });
+        s.type({ delivered: "Two." });
+        await finish!();
+        expect(s.state.leave).toBeNull();
+        expect(s.state.leaveHeld).toBe("list");
+        expect(stored(id).draft.delivered).toBe("One.");
+        expect(s.state.editor.draft.content.delivered).toBe("Two.");
+        expect(s.requests).toEqual(["save", "save"]);
+        expect(s.state.editor.revision).toBe(3);
+    });
+
+    it("once leaving is decided with everything saved, the screen takes nothing more: no typing, move or save can follow it", async () => {
+        const { id, s } = await existing(START);
+        s.type({ place: "York" });
+        await s.save({ kind: "leave", to: "form" });
+        const going = s.state;
+        s.type({ delivered: "Typed into a page that is already going" });
+        s.tags(["anything"]);
+        s.d({ type: "go", screen: { kind: "summary" } });
+        s.d({ type: "latest/use" });
+        expect(await s.save(null)).toBeNull();
+        expect(s.state).toBe(going);
+        expect(planSave(s.state).refusal).toBe("leaving");
+        expect(stored(id).draft.delivered).toBe(START.delivered);
+    });
+
+    it("leaving is allowed only with nothing unsaved and no save running, whatever the state says was decided", () => {
+        const base = initialGuidedState({ id: "00000000-0000-4000-8000-000000000001", revision: 1, content: FULL, disciplineIds: [], approved: null, approvedRevision: null, archived: false, legacyIndex: null });
+        expect(mayLeave(base)).toBe(false);
+        expect(mayLeave({ ...base, leave: "form" })).toBe(true);
+        const dirty = guidedReducer(base, { type: "edit", content: { place: "York" } });
+        expect(mayLeave({ ...dirty, leave: "form" })).toBe(false);
+        const saving = guidedReducer(dirty, { type: "save/start", then: null });
+        expect(mayLeave({ ...saving, leave: "list" })).toBe(false);
+    });
+
+    it("a first save of a new case study, with more typed while it runs, does not leave either", async () => {
+        const s = session(null);
+        s.type({ title: "Loft" });
+        const finish = await s.begin({ kind: "leave", to: "form" });
+        s.type({ title: "Loft conversion" });
+        const result = await finish!();
+        expect(result!.status).toBe("saved");
+        expect(s.state.leave).toBeNull();
+        expect(s.state.leaveHeld).toBe("form");
+        expect(s.state.editor).toMatchObject({ id: result!.id, revision: 1 });
+        expect(db.studies[0].draft.title).toBe("Loft");
+        expect(s.state.editor.draft.content.title).toBe("Loft conversion");
+        expect(s.state.createUnknown).toBe(false);
+    });
+});
+
 describe("coming back", () => {
     it("opens on what is saved, and holds nothing else", async () => {
         const { id } = await existing({ ...newDraft("Kitchen refit"), delivered: "We refitted it." });
         const read = await readStudyAtOneRevision(db.reader, ME, id);
         if (read.state !== "ok") throw new Error("could not read");
         const s = session(viewOf(read.study, read.disciplines));
-        expect(s.state).toMatchObject({ screen: { kind: "summary" }, createUnknown: false, after: null, leave: null, local: null });
+        expect(s.state).toMatchObject({ screen: { kind: "summary" }, createUnknown: false, after: null, leave: null, leaveHeld: null, local: null });
         expect(s.state.editor.draft.content).toEqual(stored(id).draft);
         expect(isDirty(s.state.editor)).toBe(false);
     });

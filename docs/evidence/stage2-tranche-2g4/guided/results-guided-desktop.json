@@ -69,6 +69,13 @@
       "undersized": [],
       "blockingAccessibility": [],
       "screenshot": "09-before-you-go-1280x800.jpg"
+    },
+    {
+      "name": "leave-held",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "10-leave-held-1280x800.jpg"
     }
   ],
   "blockedThirdPartyHosts": [

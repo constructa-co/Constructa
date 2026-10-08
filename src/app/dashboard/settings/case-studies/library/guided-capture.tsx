@@ -7,7 +7,7 @@ import { isDirty, saveLine } from "@/lib/case-library/editor-state";
 import {
     GUIDED_MESSAGES, GUIDED_QUESTIONS, answered, characters, clientLines, firstUnanswered, questionAfter, questionBefore, questionDirty, questionForField, questionOf, summaryOf, unsavedNames,
 } from "@/lib/case-library/guided";
-import { guidedReducer, initialGuidedState, planSave, type AfterSave, type LeaveTo, type Screen } from "@/lib/case-library/guided-state";
+import { guidedReducer, initialGuidedState, mayLeave, planSave, type AfterSave, type LeaveTo, type Screen } from "@/lib/case-library/guided-state";
 import { CANONICAL_WORK_NAMES } from "@/lib/case-library/labels";
 import type { LibraryResult, StudyView } from "@/lib/case-library/service";
 import type { StoredDiscipline } from "@/lib/case-library/store";
@@ -133,10 +133,18 @@ export default function GuidedCapture({ initial, disciplines: initialDisciplines
         heading.current?.focus();
     }, [screenName]);
 
-    // A save that was confirmed, where the contractor had asked to leave afterwards.
+    // A save that was confirmed, where the contractor had asked to leave afterwards. It goes only if nothing
+    // on the screen is unsaved at this moment and no save is running, whatever was decided earlier.
+    const leaveNow = mayLeave(state) ? state.leave : null;
+    const going = useRef(false);
     useEffect(() => {
-        if (state.leave) router.push(state.leave === "form" ? `${basePath}/${state.editor.id ?? "new"}` : listHref);
-    }, [state.leave, state.editor.id, basePath, listHref, router]);
+        if (!leaveNow || going.current) return;
+        going.current = true;
+        router.push(leaveNow === "form" ? `${basePath}/${state.editor.id ?? "new"}` : listHref);
+    }, [leaveNow, state.editor.id, basePath, listHref, router]);
+    // Asked to leave, saved what was sent, but something typed since is not saved: the choice is put again.
+    const leavePanel = leaving ?? state.leaveHeld;
+    const stay = () => { setLeaving(null); dispatch({ type: "leave/stay" }); };
 
     const save = async (then: AfterSave, again = false) => {
         // One request at a time, decided before anything is sent.
@@ -196,7 +204,8 @@ export default function GuidedCapture({ initial, disciplines: initialDisciplines
         : <Link href={hrefOf(to)} className={plain}>{text}</Link>);
 
     const noticeKind = editor.notice.kind;
-    const status = saving ? "Saving…"
+    const status = state.leave ? "Saved. Opening…"
+        : saving ? "Saving…"
         : noticeKind !== "none" && noticeKind !== "saved" ? saveLine(editor)
             : dirty ? (editor.id ? `Changes not saved: ${list(unsaved)}.` : "Not saved yet.")
                 : editor.id ? "Saved." : "Nothing saved yet.";
@@ -235,14 +244,15 @@ export default function GuidedCapture({ initial, disciplines: initialDisciplines
                 {initial?.approved && <p className={hint} data-approval-line>Approved earlier. Proposals keep using the approved version until you approve again on the full form.</p>}
             </div>
 
-            {leaving && (
+            {leavePanel && !state.leave && (
                 <section className={`${card} border-amber-300`} aria-label="Before you go" data-leave>
                     <h2 className="text-lg font-bold text-slate-50">Before you go</h2>
+                    {state.leaveHeld && !leaving && <p role="alert" data-leave-held className="text-base font-semibold text-amber-200">{GUIDED_MESSAGES.leaveHeld}</p>}
                     <p className={hint}>{saving ? "A save is still running." : `Not saved yet: ${list(unsaved) || "nothing"}.`}</p>
                     <div className="flex flex-wrap gap-2">
-                        <button type="button" className={primary} disabled={saving || state.createUnknown} onClick={() => { const to = leaving; setLeaving(null); void save({ kind: "leave", to }); }}>Save, then go</button>
-                        <button type="button" className={secondary} onClick={() => router.push(hrefOf(leaving))}>Go without saving</button>
-                        <button type="button" className={secondary} onClick={() => setLeaving(null)}>Stay here</button>
+                        <button type="button" className={primary} disabled={saving || state.createUnknown} onClick={() => { const to = leavePanel; setLeaving(null); void save({ kind: "leave", to }); }}>Save, then go</button>
+                        <button type="button" className={secondary} onClick={() => router.push(hrefOf(leavePanel))}>Go without saving</button>
+                        <button type="button" className={secondary} onClick={stay}>Stay here</button>
                     </div>
                 </section>
             )}
@@ -304,7 +314,7 @@ export default function GuidedCapture({ initial, disciplines: initialDisciplines
             )}
 
             {question && current && (
-                <form className={card} onSubmit={onSubmit} aria-labelledby="guided-heading" data-guided-screen={current} noValidate>
+                <form className={card} onSubmit={onSubmit} aria-labelledby="guided-heading" data-guided-screen={current} noValidate inert={state.leave !== null}>
                     <p className="text-sm font-semibold uppercase tracking-wide text-slate-300">
                         {question.kind === "client" ? "Optional extra" : `Question ${BASICS.findIndex((entry) => entry.key === current) + 1} of ${BASICS.length}${question.required ? "" : " (optional)"}`}
                     </p>

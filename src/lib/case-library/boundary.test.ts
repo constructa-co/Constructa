@@ -204,6 +204,22 @@ describe("the guided questions", () => {
         expect(all.filter((file) => /CONSTRUCTA_CASE_LIBRARY_/.test(code(file)))).toEqual([]);
     });
 
+    it("the screen itself leaves only through the one check, and takes no input once it is going", () => {
+        // One place navigates after a save, and it asks the rules first.
+        expect(screen).toContain("const leaveNow = mayLeave(state) ? state.leave : null;");
+        expect(screen).not.toMatch(/if \(state\.leave\) router\.push/);
+        const effect = screen.slice(screen.indexOf("const leaveNow"), screen.indexOf("const leavePanel"));
+        expect(effect).toContain("if (!leaveNow || going.current) return;");
+        expect(effect.match(/router\.push\(/g)).toHaveLength(1);
+        // The only other navigation is the contractor's own explicit "go without saving".
+        expect(screen.match(/router\.push\(/g)).toHaveLength(2);
+        expect(screen).toContain(">Go without saving</button>");
+        expect(screen).toContain("inert={state.leave !== null}");
+        const rules = code(path.join(SRC, LIB, "guided-state.ts"));
+        expect(rules).toContain("return isDirty(editor) ? { ...next, leaveHeld: then.to } : { ...next, leave: then.to };");
+        expect(rules).toContain("if (state.leave !== null) return state;");
+    });
+
     it("warn before leaving by reload, by any link, and by the browser's Back button", () => {
         expect(screen).toContain("useUnsavedGuard(dirty, GUIDED_MESSAGES.leaveConfirm)");
         expect(screen).toContain("useBackGuard(dirty)");

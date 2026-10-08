@@ -105,6 +105,7 @@ export const GUIDED_MESSAGES = {
     leaveConfirm: "You have changes that aren't saved. Leave without saving them?",
     createUnknown: "We couldn't confirm whether this was added. Check your case studies before adding it again.",
     createAgainWarning: "If it's in your list, open it from there. If it isn't, you can add it again. We can't promise that won't make a second copy.",
+    leaveHeld: "Your earlier answers were saved. What you typed after that isn't saved yet, so you're still here.",
     requestFailed: "We couldn't confirm whether this was saved. Your answers are still here. Check your connection, then try again.",
 } as const;
 

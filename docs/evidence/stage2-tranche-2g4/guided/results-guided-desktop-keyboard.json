@@ -69,10 +69,17 @@
       "undersized": [],
       "blockingAccessibility": [],
       "screenshot": null
+    },
+    {
+      "name": "leave-held",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
     }
   ],
   "keyboard": {
-    "controlsReached": 59,
+    "controlsReached": 73,
     "withoutVisibleFocus": []
   },
   "blockedThirdPartyHosts": [

@@ -267,7 +267,59 @@ test("Guided basics: questions, skip and back, an unconfirmed first save, a lost
         await expect(page.getByRole("heading", { name: "Your case studies" })).toBeVisible();
         expect((await control()).studies[1].draft.duration_text).toBe("8 weeks");
 
+        // ── 10b. "Save, then go" with a slow answer: what is typed while it is on its way is not left behind ──
+        const HELD = "Your earlier answers were saved. What you typed after that isn't saved yet, so you're still here.";
+        await page.goto(`${ROOT}/${run}/study/${id}/guided`);
+        await use.activate(button("Change: Roughly where?"));
+        await use.fill(answer, "Sent before leaving");
+        await control({ delayMs: 5000 });
+        await use.activate(button("Back to case studies"));
+        await use.activate(button("Save, then go"));
+        await expect(saveLine).toHaveText("Saving…");
+        await use.fill(answer, "Sent before leaving, then more typed while saving");
+        const held = page.locator("[data-leave-held]");
+        await expect(held).toHaveText(HELD);
+        expect(page.url(), "it did not leave").toContain(`/study/${id}/guided`);
+        await expect(answer, "what was typed while saving is still there").toHaveValue("Sent before leaving, then more typed while saving");
+        await expect(saveLine).toHaveText("Changes not saved: the place.");
+        await expect(leave).toContainText("Not saved yet: the place.");
+        expect((await control()).studies[1].draft.place, "what was sent is what was saved").toBe("Sent before leaving");
+        await checkpoint("leave-held");
+        // Staying keeps it. Nothing saves or discards by itself.
+        before = await writes();
+        await use.activate(button("Stay here"));
+        await expect(leave).toHaveCount(0);
+        await expect(answer).toHaveValue("Sent before leaving, then more typed while saving");
+        expect(await writes()).toBe(before);
+        // Saving again, deliberately, with nothing typed meanwhile, does leave.
+        await control({ delayMs: 0 });
+        await use.activate(button("Back to case studies"));
+        await use.activate(button("Save, then go"));
+        await expect(page.getByRole("heading", { name: "Your case studies" })).toBeVisible();
+        expect((await control()).studies[1].draft.place).toBe("Sent before leaving, then more typed while saving");
+
+        // The same on the way to the full form; and choosing to go without saving is still the contractor's to choose.
+        await page.goto(`${ROOT}/${run}/study/${id}/guided`);
+        await use.activate(button("Change: How long did it take?"));
+        await use.fill(answer, "9 weeks");
+        await control({ delayMs: 5000 });
+        await use.activate(button("Use the full form instead"));
+        await use.activate(button("Save, then go"));
+        await expect(saveLine).toHaveText("Saving…");
+        await use.fill(answer, "9 weeks, typed over while saving");
+        await expect(held).toHaveText(HELD);
+        expect(page.url()).toContain(`/study/${id}/guided`);
+        await expect(answer).toHaveValue("9 weeks, typed over while saving");
+        await control({ delayMs: 0 });
+        before = await writes();
+        await use.activate(button("Go without saving"));
+        await expect(page.getByRole("heading", { level: 1, name: "Edit this past job" })).toBeVisible();
+        await expect(page.getByLabel(/How long did it take\?/)).toHaveValue("9 weeks");
+        expect(await writes(), "going without saving wrote nothing").toBe(before);
+        expect((await control()).studies[1].draft.duration_text).toBe("9 weeks");
+
         // ── 11. The browser's own Back button asks first too ──
+        await page.goto(`${ROOT}/${run}`);
         await page.goto(`${ROOT}/${run}/study/${id}/guided`);
         await use.activate(button("Change: Roughly where?"));
         await use.fill(answer, "Not saved, and not lost");
@@ -278,7 +330,7 @@ test("Guided basics: questions, skip and back, an unconfirmed first save, a lost
         page.once("dialog", (dialog) => void dialog.accept());
         await page.evaluate(() => window.history.back());
         await expect(page.getByRole("heading", { name: "Your case studies" })).toBeVisible();
-        expect((await control()).studies[1].draft.place, "leaving without saving saved nothing").toBe("Leeds 6");
+        expect((await control()).studies[1].draft.place, "leaving without saving saved nothing").toBe("Sent before leaving, then more typed while saving");
 
         // ── 12. An approved case study: the questions change the draft, not what proposals use ──
         await page.goto(`${ROOT}/${run}/study/${id}/guided`);

@@ -4,6 +4,8 @@ An optional, phone-first way to add or fill in a past job by answering six plain
 
 Written 8 October 2026 by the primary builder (Claude).
 
+> **Amended by `GUIDED-LEAVE-REPAIR-REPORT.md`.** After this candidate was frozen, the integrator showed that "Save, then go" could leave while something typed during the save was still unsaved. This report's statement that typing during a save "is kept and is unsaved afterwards" was true for "Save and next" and false for "Save, then go". The repair report is the current statement for leaving. The counts below are those of the first candidate.
+
 ## 1. Pins
 
 | | |

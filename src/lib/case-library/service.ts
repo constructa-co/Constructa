@@ -14,11 +14,11 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { approvalProblem, approvedValue, contentFromInput, contentProblem, labelProblem, type ApprovedCaseStudy, type CaseStudyContent } from "./content";
+import { approvalProblem, approvedProblem, approvedValue, contentFromInput, contentProblem, labelProblem, type ApprovedCaseStudy, type CaseStudyContent } from "./content";
 import { cleanLabel } from "./labels";
 import { draftFromLegacy } from "./legacy";
 import { LIBRARY_MESSAGES as M, fieldMessage, fieldOf } from "./messages";
-import type { LibraryReader, StoredDiscipline, StoredStudy } from "./store";
+import { readStudyAtOneRevision, type LibraryReader, type StoredDiscipline, type StoredStudy } from "./store";
 
 export interface LibraryContext {
     /** The contractor, from the authenticated session. Never from the request. */
@@ -106,11 +106,20 @@ async function call(context: LibraryContext, name: string, args: Record<string, 
 
 const unavailable = (): LibraryResult => ({ status: "unavailable", message: M.unavailable });
 
-async function current(context: LibraryContext, id: string): Promise<{ state: "ok"; study: StoredStudy | null; disciplines: StoredDiscipline[] } | { state: "unavailable" }> {
-    const [study, disciplines] = await Promise.all([context.reader.study(context.userId, id), context.reader.disciplines(context.userId)]);
-    if (study.state !== "ok" || disciplines.state !== "ok") return { state: "unavailable" };
-    return { state: "ok", study: study.value, disciplines: disciplines.value };
+/**
+ * The case study as saved now: its row, its tags and the kinds of work, all
+ * at one revision. Never a mixture of two (see `readStudyAtOneRevision`).
+ * "changing" means it could not be read at one revision; callers treat that
+ * as not knowing, never as a state to compare against or act on.
+ */
+async function current(context: LibraryContext, id: string): Promise<{ state: "ok"; study: StoredStudy | null; disciplines: StoredDiscipline[] } | { state: "unavailable" } | { state: "changing" }> {
+    const read = await readStudyAtOneRevision(context.reader, context.userId, id);
+    if (read.state === "ok") return { state: "ok", study: read.study, disciplines: read.disciplines };
+    if (read.state === "missing") return { state: "ok", study: null, disciplines: [] };
+    return { state: read.state };
 }
+
+const changing = (): LibraryResult => ({ status: "conflict", message: M.changing });
 
 function validTags(ids: unknown): ids is string[] {
     return Array.isArray(ids) && ids.length <= 6 && ids.every((id) => typeof id === "string" && UUID.test(id)) && new Set(ids).size === ids.length;
@@ -179,6 +188,8 @@ export async function saveStudy(context: LibraryContext, input: { id: unknown; r
     let revision = input.revision as number;
 
     const before = await current(context, id);
+    // Not read at one revision: there is nothing sound to compare with, so nothing is called and nothing is claimed.
+    if (before.state === "changing") return changing();
     if (before.state !== "ok") return unavailable();
     if (!before.study) return { status: "not-found", message: M.notFound };
     const saved = viewOf(before.study, before.disciplines);
@@ -237,6 +248,8 @@ export interface ApprovalCheck {
 export async function loadForApproval(context: LibraryContext, id: unknown): Promise<{ status: "ok"; check: ApprovalCheck } | LibraryResult> {
     if (typeof id !== "string" || !UUID.test(id)) return { status: "not-found", message: M.notFound };
     const now = await current(context, id);
+    // Shown only if the wording, the tags and their labels were all read at one revision. Otherwise nothing is shown.
+    if (now.state === "changing") return changing();
     if (now.state !== "ok") return unavailable();
     if (!now.study) return { status: "not-found", message: M.notFound };
     const study = viewOf(now.study, now.disciplines);
@@ -245,24 +258,71 @@ export async function loadForApproval(context: LibraryContext, id: unknown): Pro
     return { status: "ok", check: { study, labels, wouldApprove: approvedValue(study.content, labels), problem: problem ? fieldMessage(problem) : null, problemField: fieldOf(problem) } };
 }
 
-/** Approves exactly the revision the contractor was shown. */
-export async function approveStudy(context: LibraryContext, input: { id: unknown; revision: unknown; confirmed: unknown }): Promise<LibraryResult> {
+/** Whether two approved copies are the same in everything a client would see, and in the order of the tags. */
+export function sameApprovedCopy(a: ApprovedCaseStudy, b: ApprovedCaseStudy): boolean {
+    return CONTENT_KEYS.every((key) => a[key] === b[key])
+        && a.disciplines.length === b.disciplines.length
+        && a.disciplines.every((label, index) => label === b.disciplines[index]);
+}
+
+/**
+ * Approves exactly what the contractor was shown.
+ *
+ * Two bindings, both required:
+ *
+ *   1. `shown` is the approved copy the check screen displayed. Before any
+ *      write, the saved copy is read again at one revision and the copy an
+ *      approval would make from it is worked out. If that is not identical
+ *      to what was shown, or the revision is not the one named, nothing is
+ *      approved. So a check screen that somehow showed stale labels cannot
+ *      be used to approve different ones.
+ *   2. The database then approves only if the revision is still the one
+ *      named, so a change after that read is refused too.
+ */
+export async function approveStudy(context: LibraryContext, input: { id: unknown; revision: unknown; confirmed: unknown; shown: unknown }): Promise<LibraryResult> {
     if (typeof input?.id !== "string" || !UUID.test(input.id)) return { status: "not-found", message: M.notFound };
     if (input.confirmed !== true) return { status: "unconfirmed", message: M.unconfirmed };
     if (!Number.isInteger(input.revision)) return { status: "conflict", message: M.approveConflict };
+    // What was shown must come back, whole and well formed. Without it there is nothing to hold the approval to.
+    const shownProblem = approvedProblem(input.shown);
+    if (shownProblem !== null && ["client_text_missing", "client_not_confirmed", "value_text_missing"].includes(shownProblem)) {
+        // What was shown could not be approved in the first place, and the screen said why.
+        return { status: "not-approvable", message: fieldMessage(shownProblem), field: fieldOf(shownProblem) };
+    }
+    if (shownProblem !== null) return { status: "conflict", message: M.approveConflict };
     const { id } = input;
+    const shown = input.shown as ApprovedCaseStudy;
+
+    const before = await current(context, id);
+    if (before.state === "changing") return changing();
+    if (before.state !== "ok") return unavailable();
+    if (!before.study) return { status: "not-found", message: M.notFound };
+    const saved = viewOf(before.study, before.disciplines);
+    const savedNow = { latest: saved, revision: saved.revision, disciplines: before.disciplines };
+    if (saved.archived) return { status: "archived", message: M.archived, ...savedNow };
+    if (saved.revision !== input.revision) return { status: "conflict", message: M.approveConflict, ...savedNow };
+    const labels = before.disciplines.filter((entry) => !entry.archived && saved.disciplineIds.includes(entry.id)).map((entry) => entry.label);
+    // Not what was on the screen: refused before anything is written.
+    if (!sameApprovedCopy(approvedValue(saved.content, labels), shown)) return { status: "conflict", message: M.approveConflict, ...savedNow };
+
     const answer = await call(context, "case_study_approve", { p_id: id, p_expected_revision: input.revision, p_confirmed: true });
     if (answer.kind === "missing") return unavailable();
 
     const after = await current(context, id);
     const latest = after.state === "ok" && after.study ? { latest: viewOf(after.study, after.disciplines), revision: after.study.revision, disciplines: after.disciplines } : {};
+    // What is now stored as approved, if it can be read. It should be what was shown; if it is not, that is said.
+    const storedCopy = after.state === "ok" && after.study?.approvedRevision === input.revision ? (after.study.approved as ApprovedCaseStudy | null) : null;
+    const done = (): LibraryResult => (storedCopy && !sameApprovedCopy(storedCopy, shown)
+        ? { status: "approved", message: M.approvedDiffers, id, ...latest }
+        : { status: "approved", message: M.approved, id, ...latest });
+
     if (answer.kind === "no-answer") {
         // Approved only if the saved copy now says this very revision is the approved one.
         const confirmed = after.state === "ok" && after.study?.approvedRevision === input.revision && after.study?.revision === input.revision;
-        return confirmed ? { status: "approved", message: M.approved, id, ...latest } : { status: "unknown", message: M.unknown, ...latest };
+        return confirmed ? done() : { status: "unknown", message: M.unknown, ...latest };
     }
     switch (answer.data.outcome) {
-        case "approved": return { status: "approved", message: M.approved, id, ...latest };
+        case "approved": return done();
         case "unconfirmed": return { status: "unconfirmed", message: M.unconfirmed };
         case "not-found": return { status: "not-found", message: M.notFound };
         case "archived": return { status: "archived", message: M.archived, ...latest };

@@ -14,7 +14,7 @@ export interface EditorServer {
     create: (input: { content: unknown; disciplineIds: unknown }) => Promise<LibraryResult>;
     save: (input: { id: unknown; revision: unknown; content: unknown; disciplineIds: unknown }) => Promise<LibraryResult>;
     check: (id: string) => Promise<{ status: "ok"; check: ApprovalCheck } | LibraryResult>;
-    approve: (input: { id: unknown; revision: unknown; confirmed: unknown }) => Promise<LibraryResult>;
+    approve: (input: { id: unknown; revision: unknown; confirmed: unknown; shown: unknown }) => Promise<LibraryResult>;
     addDiscipline: (input: { id: null; revision: 0; label: unknown }) => Promise<LibraryResult>;
 }
 
@@ -145,8 +145,9 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
         setWorking(true);
         setCheckNotice(null);
         try {
-            // The revision named is the one this check was loaded at, not whatever the screen holds now.
-            const result = await server.approve({ id: check.study.id, revision: check.study.revision, confirmed });
+            // The revision named is the one this check was loaded at, and what was shown goes with it:
+            // the server approves only if that is exactly what it would approve.
+            const result = await server.approve({ id: check.study.id, revision: check.study.revision, confirmed, shown: check.wouldApprove });
             if (result.status === "approved") {
                 setApproved({ copy: result.latest?.approved ?? check.wouldApprove, revision: check.study.revision });
                 setCheck(null);

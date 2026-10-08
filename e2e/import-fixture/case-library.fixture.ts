@@ -143,6 +143,22 @@ test("Case-study library: add, save, fail and retry, conflict, approve, rename a
         await use.activate(button("Approve"));
         await expect(page.locator("[data-check-notice]")).toContainText("Tick the box");
         expect((await control()).studies[0].approvedRevision, "not approved without the tick").toBeNull();
+        // A kind of work is renamed somewhere else after the check was loaded. What is on this screen is
+        // no longer what would be approved, so the approval is refused and the check is loaded again.
+        await control({ renameElsewhere: { from: "Kitchen Installation", to: "Kitchen fitting" } });
+        await use.check(page.getByLabel("This is accurate and I'm happy for clients to see it"));
+        await use.activate(button("Approve"));
+        await expect(page.locator("[data-check-notice]")).toContainText("This changed after you opened this check. Nothing was approved.");
+        await expect(facts).toContainText("Kinds of work, in this order: Kitchen fitting.");
+        await expect(page.getByLabel("This is accurate and I'm happy for clients to see it"), "the tick does not carry over to a different version").not.toBeChecked();
+        expect((await control()).studies[0].approvedRevision, "nothing was approved from the out-of-date check").toBeNull();
+        await checkpoint("editor-check-refused", "[data-case-study-editor]");
+        await control({ renameElsewhere: { from: "Kitchen fitting", to: "Kitchen Installation" } });
+        // Renamed back elsewhere: this screen is out of date again, and is refused again.
+        await use.check(page.getByLabel("This is accurate and I'm happy for clients to see it"));
+        await use.activate(button("Approve"));
+        await expect(facts).toContainText("Kinds of work, in this order: Kitchen Installation.");
+        expect((await control()).studies[0].approvedRevision).toBeNull();
         await use.check(page.getByLabel("This is accurate and I'm happy for clients to see it"));
         await use.activate(button("Approve"));
         await expect(page.locator("[data-check-notice]")).toHaveText("Approved. Proposals can now use this version.");

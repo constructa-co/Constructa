@@ -190,6 +190,7 @@ export function fakeLibrary(options: { olderByUser?: Record<string, unknown[]> }
             studies: studies.filter((study) => study.user_id === userId).sort((a, b) => a.created - b.created).map(stored),
             disciplines: disciplines.filter((entry) => entry.user_id === userId).sort((a, b) => a.position - b.position || (a.label_key < b.label_key ? -1 : 1)).map(storedDiscipline),
         })),
+        revision: async (userId, id) => read("revision", () => studies.find((study) => study.id === id && study.user_id === userId)?.revision ?? null),
         study: async (userId, id) => read("study", () => { const row = studies.find((study) => study.id === id && study.user_id === userId); return row ? stored(row) : null; }),
         disciplines: async (userId) => read("disciplines", () => disciplines.filter((entry) => entry.user_id === userId).sort((a, b) => a.position - b.position || (a.label_key < b.label_key ? -1 : 1)).map(storedDiscipline)),
         forProposal: async (userId, tickedIds) => read("forProposal", () => {

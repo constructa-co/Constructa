@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { caseLibraryEnabled } from "@/lib/case-library/gate";
 import { LIBRARY_MESSAGES } from "@/lib/case-library/messages";
 import { viewOf } from "@/lib/case-library/service";
-import { sessionReader } from "@/lib/case-library/store";
+import { readStudyAtOneRevision, sessionReader } from "@/lib/case-library/store";
 import { CASE_STUDIES_PATH } from "@/lib/first-session";
 import { createClient } from "@/lib/supabase/server";
 import EditorHost from "../editor-host";
@@ -19,19 +19,20 @@ export default async function CaseStudyPage(props: { params: Promise<{ id: strin
     if (!caseLibraryEnabled()) redirect(CASE_STUDIES_PATH);
 
     const { id } = await props.params;
-    const reader = sessionReader(supabase);
-    const [study, disciplines] = await Promise.all([reader.study(user.id, id), reader.disciplines(user.id)]);
-    const problem = study.state !== "ok" || disciplines.state !== "ok" ? LIBRARY_MESSAGES.unavailable : !study.value ? LIBRARY_MESSAGES.notFound : null;
+    // The editor starts from the wording, tags and revision as they stood together, so a save from it
+    // cannot put back tags that were changed elsewhere while the page was loading.
+    const read = await readStudyAtOneRevision(sessionReader(supabase), user.id, id);
+    const problem = read.state === "ok" ? null : read.state === "missing" ? LIBRARY_MESSAGES.notFound : read.state === "changing" ? LIBRARY_MESSAGES.changingOnOpen : LIBRARY_MESSAGES.unavailable;
 
     return (
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-            {problem || study.state !== "ok" || disciplines.state !== "ok" || !study.value ? (
+            {read.state !== "ok" ? (
                 <div className="space-y-3">
                     <p role="status" className="text-base text-amber-200">{problem}</p>
                     <Link href={CASE_STUDIES_PATH} className="inline-flex items-center min-h-11 text-base font-semibold text-blue-200 underline underline-offset-4">Back to case studies</Link>
                 </div>
             ) : (
-                <EditorHost initial={viewOf(study.value, disciplines.value)} disciplines={disciplines.value} />
+                <EditorHost initial={viewOf(read.study, read.disciplines)} disciplines={read.disciplines} />
             )}
         </div>
     );

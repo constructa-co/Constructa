@@ -7,7 +7,7 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("@/lib/case-library/store", async (original) => ({ ...(await original<typeof import("@/lib/case-library/store")>()), sessionReader: mocks.sessionReader }));
 
 import { fakeLibrary } from "@/lib/case-library/__fixtures__/fake-library";
-import { newDraft } from "@/lib/case-library/content";
+import { approvedValue, newDraft } from "@/lib/case-library/content";
 import { CASE_LIBRARY_VARIABLE } from "@/lib/case-library/gate";
 import { LIBRARY_MESSAGES as M } from "@/lib/case-library/messages";
 import {
@@ -26,7 +26,7 @@ const ACTIONS: Array<[string, () => Promise<{ status: string }>]> = [
     ["create", () => createCaseStudyAction({ content: good, disciplineIds: [] })],
     ["save", () => saveCaseStudyAction({ id: ID, revision: 1, content: good, disciplineIds: [] })],
     ["check", () => checkCaseStudyAction(ID)],
-    ["approve", () => approveCaseStudyAction({ id: ID, revision: 1, confirmed: true })],
+    ["approve", () => approveCaseStudyAction({ id: ID, revision: 1, confirmed: true, shown: approvedValue(good, []) })],
     ["archive", () => archiveCaseStudyAction({ id: ID, revision: 1, archived: true })],
     ["save a kind of work", () => saveDisciplineAction({ id: null, revision: 0, label: "Kitchens" })],
     ["archive a kind of work", () => archiveDisciplineAction({ id: ID, revision: 1, archived: true })],
@@ -82,7 +82,9 @@ describe("with the library switched on", () => {
         ["create with nonsense", () => createCaseStudyAction(null as never)],
         ["save with a bad id", () => saveCaseStudyAction({ id: "../../etc", revision: 1, content: good, disciplineIds: [] })],
         ["save with too many kinds of work", () => saveCaseStudyAction({ id: ID, revision: 1, content: good, disciplineIds: Array.from({ length: 7 }, () => ID) })],
-        ["approve without the tick", () => approveCaseStudyAction({ id: ID, revision: 1, confirmed: false })],
+        ["approve without the tick", () => approveCaseStudyAction({ id: ID, revision: 1, confirmed: false, shown: approvedValue(good, []) })],
+        ["approve without what was shown", () => approveCaseStudyAction({ id: ID, revision: 1, confirmed: true, shown: null })],
+        ["approve with something that is not an approved copy", () => approveCaseStudyAction({ id: ID, revision: 1, confirmed: true, shown: { title: "x" } })],
         ["archive with a bad id", () => archiveCaseStudyAction({ id: 7, revision: 1, archived: true })],
         ["a kind of work with no name", () => saveDisciplineAction({ id: null, revision: 0, label: "" })],
         ["archive a kind of work with a bad id", () => archiveDisciplineAction({ id: "x", revision: 1, archived: true })],
@@ -110,14 +112,14 @@ describe("with the library switched on", () => {
         expect(saved).toMatchObject({ status: "saved", revision: 2 });
         const check = await checkCaseStudyAction(created.id);
         expect(check.status).toBe("ok");
-        const approved = await approveCaseStudyAction({ id: created.id, revision: 2, confirmed: true });
+        const approved = await approveCaseStudyAction({ id: created.id, revision: 2, confirmed: true, shown: check.status === "ok" ? check.check.wouldApprove : null });
         expect(approved).toMatchObject({ status: "approved", message: M.approved });
         expect(db.studies[0].approved).toMatchObject({ delivered: "Edited.", client_display: "hidden", disciplines: [] });
         expect(mocks.revalidatePath).toHaveBeenCalledWith("/dashboard/settings/case-studies");
     });
 
     it("something unforeseen is 'not known', never 'nothing changed'", async () => {
-        mocks.sessionReader.mockImplementation(() => ({ ...db.reader, study: async () => { throw new Error("boom"); }, disciplines: async () => { throw new Error("boom"); } }));
+        mocks.sessionReader.mockImplementation(() => ({ ...db.reader, revision: async () => { throw new Error("boom"); }, study: async () => { throw new Error("boom"); }, disciplines: async () => { throw new Error("boom"); } }));
         const result = await saveCaseStudyAction({ id: ID, revision: 1, content: good, disciplineIds: [] });
         expect(result).toEqual({ status: "unknown", message: M.unknown });
     });

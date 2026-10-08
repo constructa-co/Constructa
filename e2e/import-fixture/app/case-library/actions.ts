@@ -27,7 +27,7 @@ import {
     approveStudy, archiveDiscipline, archiveStudy, createStudy, loadForApproval, saveDiscipline, saveStudy, startFromOlder, viewOf,
     type LibraryContext, type StudyView,
 } from "@/lib/case-library/service";
-import type { StoredDiscipline } from "@/lib/case-library/store";
+import { readStudyAtOneRevision, type StoredDiscipline } from "@/lib/case-library/store";
 import { buildProposalPublicationSnapshot, hashProposalContent } from "@/lib/proposal-publication";
 import { REVIEW_CHANGED_ERROR, type ReviewContext } from "@/lib/proposal-review";
 
@@ -70,10 +70,13 @@ export async function fixtureLibrary(run: string): Promise<LibraryPageData> {
 export async function fixtureStudy(run: string, id: string | null): Promise<EditorPageData> {
     guard();
     const state = runFor(run);
+    if (id) {
+        // As the real page reads it: wording, tags and revision as they stood together.
+        const read = await readStudyAtOneRevision(state.db.reader, ME, id);
+        if (read.state === "ok") return { study: viewOf(read.study, read.disciplines), disciplines: read.disciplines };
+    }
     const disciplines = await state.db.reader.disciplines(ME);
-    const study = id ? await state.db.reader.study(ME, id) : null;
-    const list = disciplines.state === "ok" ? disciplines.value : [];
-    return { study: study && study.state === "ok" && study.value ? viewOf(study.value, list) : null, disciplines: list };
+    return { study: null, disciplines: disciplines.state === "ok" ? disciplines.value : [] };
 }
 
 export async function fixtureCreate(run: string, input: { content: unknown; disciplineIds: unknown }) {
@@ -91,7 +94,7 @@ export async function fixtureCheck(run: string, id: string) {
     return loadForApproval(await contextFor(run), id);
 }
 
-export async function fixtureApprove(run: string, input: { id: unknown; revision: unknown; confirmed: unknown }) {
+export async function fixtureApprove(run: string, input: { id: unknown; revision: unknown; confirmed: unknown; shown: unknown }) {
     guard();
     return approveStudy(await contextFor(run), input);
 }
@@ -174,7 +177,7 @@ export async function fixturePublish(run: string, input: { responseKind: "acknow
 /** What the spec reads back, and the things it makes happen "somewhere else". */
 export async function fixtureLibraryControl(run: string, op: {
     failBefore?: string; failAfter?: string; unavailable?: boolean; delayMs?: number; libraryOff?: boolean; select?: string[];
-    editElsewhere?: { id: string; delivered: string }; archiveElsewhere?: string; publish?: boolean;
+    editElsewhere?: { id: string; delivered: string }; archiveElsewhere?: string; renameElsewhere?: { from: string; to: string }; publish?: boolean;
 }) {
     guard();
     const state = runFor(run);
@@ -188,6 +191,10 @@ export async function fixtureLibraryControl(run: string, op: {
     if (op.editElsewhere) {
         const row = db.studies.find((study) => study.id === op.editElsewhere!.id)!;
         await db.admin.rpc("case_study_save_draft", { p_user_id: ME, p_id: row.id, p_expected_revision: row.revision, p_content: { ...row.draft, delivered: op.editElsewhere.delivered } });
+    }
+    if (op.renameElsewhere) {
+        const row = db.disciplines.find((entry) => entry.user_id === ME && entry.label === op.renameElsewhere!.from)!;
+        await db.admin.rpc("case_library_discipline_save", { p_user_id: ME, p_id: row.id, p_expected_revision: row.revision, p_label: op.renameElsewhere.to, p_position: row.position });
     }
     if (op.archiveElsewhere) {
         const row = db.studies.find((study) => study.id === op.archiveElsewhere)!;

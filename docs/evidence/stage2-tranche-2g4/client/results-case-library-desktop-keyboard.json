@@ -48,6 +48,14 @@
       "screenshot": null
     },
     {
+      "name": "editor-check-refused",
+      "scope": "[data-case-study-editor]",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
       "name": "library-list",
       "scope": "[data-library]",
       "sidewaysOverflowPx": 0,
@@ -73,7 +81,7 @@
     }
   ],
   "keyboard": {
-    "controlsReached": 41,
+    "controlsReached": 45,
     "withoutVisibleFocus": []
   },
   "blockedThirdPartyHosts": [

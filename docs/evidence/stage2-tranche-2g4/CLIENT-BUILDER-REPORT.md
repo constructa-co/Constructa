@@ -4,6 +4,8 @@ One candidate holding both halves: the library screens and actions, and their us
 
 Written 8 October 2026 by the primary builder (Claude). The reconciled design this was built to is `STAGE2G4A2-CLAUDE-CLIENT-DESIGN-RECONCILED.md`, outside this repository.
 
+> **Amended by `APPROVAL-READ-REPAIR-REPORT.md`.** After this candidate was reviewed, the integrator showed that the approval check could pair one revision's number with another revision's labels. The check, the save and the edit page now read a case study at one revision, and an approval must send back the copy it was shown. Where this report describes how approval is bound, the repair report is the current statement. The counts below are those of the first candidate.
+
 ## 1. Pins
 
 | | |

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readProposalLibrary } from "./proposal-read";
 import { libraryTick } from "./resolve";
-import { sessionReader } from "./store";
+import { COHERENT_READ_ATTEMPTS, readStudyAtOneRevision, sessionReader } from "./store";
 
 const ME = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -13,6 +13,11 @@ type Row = Record<string, unknown>;
  */
 function session(tables: Record<string, Row[] | { error: { code: string } }>) {
     const queries: Array<{ table: string; columns: string; filters: string[]; head: boolean }> = [];
+    /** Things committed "somewhere else" just before the n-th query is answered (1 is the first). */
+    const beforeAnswer = new Map<number, () => void>();
+    /** Queries, by number, that fail as a dropped connection would. */
+    const failAnswer = new Set<number>();
+    let answered = 0;
     const from = (table: string) => {
         const query = { table, columns: "", filters: [] as string[], head: false };
         queries.push(query);
@@ -28,7 +33,14 @@ function session(tables: Record<string, Row[] | { error: { code: string } }>) {
                 return true;
             }));
         };
-        const result = () => (Array.isArray(source) ? { data: query.head ? null : rows(), error: null, count: rows().length } : { data: null, error: source?.error ?? { code: "PGRST205" }, count: null });
+        const result = () => {
+            answered += 1;
+            beforeAnswer.get(answered)?.();
+            if (failAnswer.has(answered)) return { data: null, error: { code: "08006" }, count: null };
+            // A copy, as a database returns: what was read does not change afterwards.
+            return structuredClone(answer());
+        };
+        const answer = () => (Array.isArray(source) ? { data: query.head ? null : rows(), error: null, count: rows().length } : { data: null, error: source?.error ?? { code: "PGRST205" }, count: null });
         const builder: Record<string, unknown> = {
             select: (columns: string, options?: { head?: boolean }) => { query.columns = columns; query.head = options?.head === true; return builder; },
             eq: (column: string, value: unknown) => { query.filters.push(`eq|${column}|${value}`); return builder; },
@@ -41,7 +53,7 @@ function session(tables: Record<string, Row[] | { error: { code: string } }>) {
         };
         return builder;
     };
-    return { client: { from } as never, queries };
+    return { client: { from } as never, queries, beforeAnswer, failAnswer, answeredSoFar: () => answered };
 }
 
 const study = (n: number, extra: Row = {}): Row => ({ id: uuid(n), user_id: ME, revision: 2, draft: { title: `Draft ${n}`, client_text: "Mrs Private" }, approved: null, approved_revision: null, approved_at: null, legacy_index: null, archived_at: null, ...extra });
@@ -132,5 +144,82 @@ describe("what a proposal is handed", () => {
         expect(await readProposalLibrary(sessionReader(client), ME, [libraryTick(uuid(1))])).toEqual({ userId: ME, rows: [], legacyIndexById: {}, available: false, unapproved: 0 });
         const broken = { forProposal: async () => { throw new Error("boom"); }, counts: async () => { throw new Error("boom"); } } as never;
         expect(await readProposalLibrary(broken, ME, [])).toMatchObject({ available: false, rows: [] });
+    });
+});
+
+describe("one case study read at one revision, through the real queries", () => {
+    const K_OLD = uuid(9);
+    const K_OTHER = uuid(10);
+    const tables = () => ({
+        case_studies: [study(1, { revision: 2 })],
+        contractor_disciplines: [
+            { id: K_OLD, user_id: ME, label: "Old label", position: 0, revision: 1, archived_at: null },
+            { id: K_OTHER, user_id: ME, label: "Other label", position: 1, revision: 1, archived_at: null },
+        ] as Row[],
+        case_study_disciplines: [{ case_study_id: uuid(1), discipline_id: K_OLD, user_id: ME }] as Row[],
+        profiles: [],
+    });
+    type Tables = ReturnType<typeof tables>;
+    /** Each is what the database does in ONE transaction: the change, and the case study's revision going up. */
+    const COMMITS: Record<string, (t: Tables) => void> = {
+        "a rename": (t) => { t.contractor_disciplines[0].label = "New label"; t.case_studies[0].revision = 3; },
+        "an archive": (t) => { t.contractor_disciplines[0].archived_at = "2026-10-08T00:00:00Z"; t.case_studies[0].revision = 3; },
+        "a tag replacement": (t) => { t.case_study_disciplines.splice(0, 1, { case_study_id: uuid(1), discipline_id: K_OTHER, user_id: ME }); t.case_studies[0].revision = 3; },
+    };
+    /** What a contractor would be shown from a read: the revision, and the labels of the active tags. */
+    const picture = (read: Awaited<ReturnType<typeof readStudyAtOneRevision>>) => {
+        if (read.state !== "ok") return read.state;
+        const active = read.disciplines.filter((entry) => !entry.archived);
+        return `${read.study.revision}:${read.study.disciplineIds.map((id) => active.find((entry) => entry.id === id)?.label ?? "(archived)").join("+")}`;
+    };
+    const BEFORE = "2:Old label";
+    const AFTER: Record<string, string> = { "a rename": "3:New label", "an archive": "3:(archived)", "a tag replacement": "3:Other label" };
+
+    it("asks for the revision alone, first and last, with the row, tags and kinds of work in between", async () => {
+        const { client, queries } = session(tables());
+        expect(picture(await readStudyAtOneRevision(sessionReader(client), ME, uuid(1)))).toBe(BEFORE);
+        expect(queries.map((query) => `${query.table}:${query.columns === "revision" ? "revision" : "…"}`)).toEqual([
+            "case_studies:revision", "case_studies:…", "case_study_disciplines:…", "contractor_disciplines:…", "case_studies:revision",
+        ]);
+        for (const query of queries) expect(query.filters).toContain(`eq|user_id|${ME}`);
+    });
+
+    it.each(Object.keys(COMMITS))("%s committed before any one of the queries never produces a mixture", async (name) => {
+        // Before each of the five queries of the first attempt, and of the second.
+        for (let position = 1; position <= 10; position += 1) {
+            const t = tables();
+            const { client, beforeAnswer } = session(t);
+            beforeAnswer.set(position, () => COMMITS[name](t));
+            const seen = picture(await readStudyAtOneRevision(sessionReader(client), ME, uuid(1)));
+            // Either everything as it was before the change, or everything as it is after it. Never old labels with the new revision.
+            expect([BEFORE, AFTER[name]], `committed before query ${position}`).toContain(seen);
+            // Committed during the first attempt, it is noticed and read again; committed after, the first read stands.
+            expect(seen, `committed before query ${position}`).toBe(position <= 5 ? AFTER[name] : BEFORE);
+        }
+    });
+
+    it("the row and its tags are separate queries: on their own they CAN disagree, which is why the bracket is needed", async () => {
+        const t = tables();
+        const { client, beforeAnswer } = session(t);
+        // The row is answered, then the tags are replaced, then the tags are answered.
+        beforeAnswer.set(2, () => COMMITS["a tag replacement"](t));
+        const alone = await sessionReader(client).study(ME, uuid(1));
+        expect(alone.state === "ok" && alone.value && `${alone.value.revision}:${alone.value.disciplineIds.join()}`, "the old revision with the new tags").toBe(`2:${K_OTHER}`);
+    });
+
+    it("a case study that changes during every attempt is 'changing' after a fixed number of queries", async () => {
+        const t = tables();
+        const { client, beforeAnswer, answeredSoFar } = session(t);
+        for (let attempt = 0; attempt < 10; attempt += 1) beforeAnswer.set(attempt * 5 + 3, () => { t.case_studies[0].revision = Number(t.case_studies[0].revision) + 1; });
+        expect(await readStudyAtOneRevision(sessionReader(client), ME, uuid(1))).toEqual({ state: "changing" });
+        expect(answeredSoFar()).toBe(COHERENT_READ_ATTEMPTS * 5);
+    });
+
+    it.each([1, 2, 3, 4, 5])("query %i failing is 'unavailable', never a partial picture", async (position) => {
+        const { client, failAnswer, answeredSoFar } = session(tables());
+        failAnswer.add(position);
+        expect(await readStudyAtOneRevision(sessionReader(client), ME, uuid(1))).toEqual({ state: "unavailable" });
+        // It stops there: it does not carry on and retry around a failed read.
+        expect(answeredSoFar()).toBeLessThanOrEqual(5);
     });
 });

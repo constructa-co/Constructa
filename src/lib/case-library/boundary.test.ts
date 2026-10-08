@@ -115,6 +115,38 @@ describe("writes", () => {
         expect(counts.match(/head: true/g)).toHaveLength(2);
     });
 
+    it("anything that relies on a case study's revision reads it at one revision, never side by side", () => {
+        const service = code(path.join(SRC, "lib/case-library/service.ts"));
+        // The one place the service reads a case study for comparison or display.
+        expect(service.match(/readStudyAtOneRevision\(/g)).toHaveLength(1);
+        expect(service).not.toMatch(/reader\.study\(/);
+        expect(service).not.toMatch(/Promise\.all\(\[[^\]]*reader\.(study|disciplines)/);
+        // The edit page starts the editor from the same kind of read.
+        const page = code(path.join(SRC, "app/dashboard/settings/case-studies/library/[id]/page.tsx"));
+        expect(page).toContain("readStudyAtOneRevision(sessionReader(supabase), user.id, id)");
+        expect(page).not.toMatch(/reader\.study\(|\.study\(user\.id/);
+        // In the bracket itself: revision, then the rest, then revision again, each awaited before the next begins.
+        const store = code(path.join(SRC, "lib/case-library/store.ts"));
+        const bracket = store.slice(store.indexOf("export async function readStudyAtOneRevision"));
+        const first = bracket.indexOf("const before = await reader.revision(");
+        const middle = bracket.indexOf("await Promise.all([reader.study(userId, id), reader.disciplines(userId)])");
+        const last = bracket.indexOf("const after = await reader.revision(");
+        expect(first).toBeGreaterThan(0);
+        expect(middle).toBeGreaterThan(first);
+        expect(last).toBeGreaterThan(middle);
+        expect(bracket).toContain("for (let attempt = 0; attempt < COHERENT_READ_ATTEMPTS; attempt += 1)");
+    });
+
+    it("an approval must send back what was shown, and the action passes it through", () => {
+        const service = code(path.join(SRC, "lib/case-library/service.ts"));
+        const approve = service.slice(service.indexOf("export async function approveStudy"), service.indexOf("export async function archiveStudy"));
+        // Read and compared before the database is asked.
+        expect(approve.indexOf("sameApprovedCopy(approvedValue(saved.content, labels), shown)")).toBeGreaterThan(0);
+        expect(approve.indexOf("sameApprovedCopy(approvedValue(saved.content, labels), shown)")).toBeLessThan(approve.indexOf('"case_study_approve"'));
+        const editor = code(path.join(SRC, "app/dashboard/settings/case-studies/library/case-study-editor.tsx"));
+        expect(editor).toContain("shown: check.wouldApprove");
+    });
+
     it("the older editor and its save are not touched", () => {
         const client = readFileSync(path.join(SRC, "app/dashboard/settings/case-studies/case-studies-client.tsx"), "utf8");
         const actions = readFileSync(path.join(SRC, "app/dashboard/settings/case-studies/actions.ts"), "utf8");

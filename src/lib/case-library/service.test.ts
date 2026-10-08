@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeLibrary } from "./__fixtures__/fake-library";
-import { newDraft, type CaseStudyContent } from "./content";
+import { approvedValue, newDraft, type CaseStudyContent } from "./content";
 import { LIBRARY_MESSAGES as M } from "./messages";
 import { approveStudy, archiveDiscipline, archiveStudy, createStudy, loadForApproval, saveDiscipline, saveStudy, startFromOlder, type LibraryContext } from "./service";
 
@@ -24,6 +24,13 @@ async function study(title = "Kitchen", tags: string[] = []): Promise<{ id: stri
     return { id: result.id, revision: result.revision! };
 }
 const stored = (id: string) => db.studies.find((row) => row.id === id)!;
+/** Approves as the screen does: loads the check, then sends back what it showed with the revision it was loaded at. */
+async function approve(id: string, context: LibraryContext = me) {
+    const shown = await loadForApproval(context, id);
+    if (shown.status !== "ok") throw new Error(`the check could not be loaded: ${shown.status}`);
+    return approveStudy(context, { id, revision: shown.check.study.revision, confirmed: true, shown: shown.check.wouldApprove });
+}
+const SOME_COPY = approvedValue({ ...newDraft("Any"), delivered: "Any." }, []);
 const tagsOf = (id: string) => db.links.filter((link) => link.study === id).map((link) => link.discipline);
 
 beforeEach(() => {
@@ -40,8 +47,8 @@ describe("validation happens before anything privileged", () => {
         ["seven kinds of work", () => createStudy(me, { content: content("Job"), disciplineIds: Array.from({ length: 7 }, (_, n) => `00000000-0000-4000-8000-00000000000${n}`) }), "invalid"],
         ["a tag that is not an id", () => createStudy(me, { content: content("Job"), disciplineIds: ["kitchens"] }), "invalid"],
         ["a save with a malformed id", () => saveStudy(me, { id: "1 OR 1=1", revision: 1, content: content("Job"), disciplineIds: [] }), "not-found"],
-        ["an approval without the tick", () => approveStudy(me, { id: "00000000-0000-4000-8000-000000000001", revision: 1, confirmed: false }), "unconfirmed"],
-        ["an approval with a truthy non-boolean tick", () => approveStudy(me, { id: "00000000-0000-4000-8000-000000000001", revision: 1, confirmed: "yes" }), "unconfirmed"],
+        ["an approval without the tick", () => approveStudy(me, { id: "00000000-0000-4000-8000-000000000001", revision: 1, confirmed: false, shown: SOME_COPY }), "unconfirmed"],
+        ["an approval with a truthy non-boolean tick", () => approveStudy(me, { id: "00000000-0000-4000-8000-000000000001", revision: 1, confirmed: "yes", shown: SOME_COPY }), "unconfirmed"],
         ["a kind of work with no name", () => saveDiscipline(me, { id: null, revision: 0, label: "   " }), "invalid"],
         ["a kind of work that is too long", () => saveDiscipline(me, { id: null, revision: 0, label: "k".repeat(81) }), "invalid"],
         ["an archive with a malformed id", () => archiveStudy(me, { id: "x", revision: 1, archived: true }), "not-found"],
@@ -64,7 +71,7 @@ describe("validation happens before anything privileged", () => {
         const tag = await kind("Kitchens");
         const { id } = await study("Job", [tag]);
         await saveStudy(me, { id, revision: 2, content: content("Job two"), disciplineIds: [] });
-        await approveStudy(me, { id, revision: 4, confirmed: true });
+        expect((await approve(id)).status).toBe("approved");
         expect(db.rpcCalls.length).toBeGreaterThan(4);
         for (const call of db.rpcCalls) expect(call.args.p_user_id, call.name).toBe(ME);
     });
@@ -122,7 +129,7 @@ describe("saving wording and kinds of work", () => {
 
     it("a save with nothing new calls nothing, so an approved case study is not marked as changed", async () => {
         const { id } = await study("Job");
-        await approveStudy(me, { id, revision: 1, confirmed: true });
+        expect((await approve(id)).status).toBe("approved");
         db.rpcCalls.length = 0;
         const result = await saveStudy(me, { id, revision: 1, content: content("Job"), disciplineIds: [] });
         expect(result).toMatchObject({ status: "unchanged", message: M.unchanged, revision: 1 });
@@ -268,7 +275,7 @@ describe("another contractor's rows", () => {
 
         const attempts = [
             await saveStudy(me, { id, revision: 2, content: content("Mine now"), disciplineIds: [] }),
-            await approveStudy(me, { id, revision: 2, confirmed: true }),
+            await approveStudy(me, { id, revision: 2, confirmed: true, shown: SOME_COPY }),
             await archiveStudy(me, { id, revision: 2, archived: true }),
             await loadForApproval(me, id),
             await saveDiscipline(me, { id: theirTag, revision: 1, label: "Renamed" }),
@@ -306,7 +313,7 @@ describe("check and approve", () => {
         const { id } = await study("Job", [tag]);
         const shown = await loadForApproval(me, id);
         if (shown.status !== "ok") throw new Error("expected a check");
-        const result = await approveStudy(me, { id, revision: shown.check.study.revision, confirmed: true });
+        const result = await approveStudy(me, { id, revision: shown.check.study.revision, confirmed: true, shown: shown.check.wouldApprove });
         expect(result).toMatchObject({ status: "approved", message: M.approved });
         expect(stored(id).approved).toEqual(shown.check.wouldApprove);
         expect(result.latest?.approved).toEqual(shown.check.wouldApprove);
@@ -318,7 +325,7 @@ describe("check and approve", () => {
         const shown = await loadForApproval(me, id);
         if (shown.status !== "ok") throw new Error("expected a check");
         await saveDiscipline(me, { id: tag, revision: 1, label: "Kitchen Installation" });
-        const result = await approveStudy(me, { id, revision: shown.check.study.revision, confirmed: true });
+        const result = await approveStudy(me, { id, revision: shown.check.study.revision, confirmed: true, shown: shown.check.wouldApprove });
         expect(result).toMatchObject({ status: "conflict", message: M.approveConflict });
         expect(stored(id).approved).toBeNull();
     });
@@ -327,23 +334,28 @@ describe("check and approve", () => {
         const created = await createStudy(me, { content: content("Job", { client_display: "named", client_text: "Mrs Patel" }), disciplineIds: [] });
         const check = await loadForApproval(me, created.id!);
         expect(check.status === "ok" && check.check.problem).toContain("confirm that they've agreed");
-        expect(await approveStudy(me, { id: created.id!, revision: 1, confirmed: true })).toMatchObject({ status: "not-approvable", field: "client_text" });
+        if (check.status !== "ok") throw new Error("expected a check");
+        expect(await approveStudy(me, { id: created.id!, revision: 1, confirmed: true, shown: check.check.wouldApprove })).toMatchObject({ status: "not-approvable", field: "client_text" });
+        // Whatever is sent back, the agreement is read from what is saved, by the database. Nothing is approved without it.
+        expect(await approveStudy(me, { id: created.id!, revision: 1, confirmed: true, shown: { ...check.check.wouldApprove, client_named_ok: true } })).toMatchObject({ status: "not-approvable" });
+        expect(stored(created.id!).approved).toBeNull();
     });
 
     it("an approval with no answer is 'approved' only if the saved copy says so", async () => {
         const first = await study("Landed");
         db.failAfter("case_study_approve");
-        expect(await approveStudy(me, { id: first.id, revision: 1, confirmed: true })).toMatchObject({ status: "approved" });
+        expect(await approve(first.id)).toMatchObject({ status: "approved" });
         const second = await study("Lost");
         db.failBefore("case_study_approve");
-        expect(await approveStudy(me, { id: second.id, revision: 1, confirmed: true })).toMatchObject({ status: "unknown", message: M.unknown });
+        expect(await approve(second.id)).toMatchObject({ status: "unknown", message: M.unknown });
         expect(stored(second.id).approved).toBeNull();
     });
 
     it("an archived case study cannot be approved", async () => {
         const { id } = await study("Job");
         expect(await archiveStudy(me, { id, revision: 1, archived: true })).toMatchObject({ status: "saved", revision: 2, message: M.archivedOk });
-        expect(await approveStudy(me, { id, revision: 2, confirmed: true })).toMatchObject({ status: "archived" });
+        expect(await approve(id)).toMatchObject({ status: "archived" });
+        expect(db.calls("case_study_approve"), "refused before the database is asked").toEqual([]);
     });
 });
 

@@ -67,7 +67,7 @@ export async function checkCaseStudyAction(id: unknown): Promise<{ status: "ok";
     }
 }
 
-export async function approveCaseStudyAction(input: { id: unknown; revision: unknown; confirmed: unknown }): Promise<LibraryResult> {
+export async function approveCaseStudyAction(input: { id: unknown; revision: unknown; confirmed: unknown; shown: unknown }): Promise<LibraryResult> {
     return run((context) => approveStudy(context, input));
 }
 

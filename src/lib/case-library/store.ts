@@ -41,7 +41,14 @@ export type Loaded<T> = { state: "ok"; value: T } | { state: "unavailable" };
 /** What the pages and the save need to read. Implemented over Supabase here, and in memory for tests and fixtures. */
 export interface LibraryReader {
     library(userId: string): Promise<Loaded<LibrarySnapshot>>;
+    /**
+     * One case study with its tags. The row and its tags are separate reads,
+     * so on its own this is NOT a consistent picture of one revision. Anything
+     * that relies on the revision uses `readStudyAtOneRevision` below.
+     */
     study(userId: string, id: string): Promise<Loaded<StoredStudy | null>>;
+    /** Just the case study's current revision, or null if there is no such case study. One small read. */
+    revision(userId: string, id: string): Promise<Loaded<number | null>>;
     disciplines(userId: string): Promise<Loaded<StoredDiscipline[]>>;
     /**
      * For a proposal: the contractor's APPROVED, unarchived case studies with
@@ -93,6 +100,12 @@ export function sessionReader(supabase: Pick<SupabaseClient, "from">): LibraryRe
 
     return {
         disciplines,
+        revision: async (userId, id) => {
+            if (!UUID.test(id)) return { state: "ok", value: null };
+            const { data, error } = await supabase.from("case_studies").select("revision").eq("user_id", userId).eq("id", id).maybeSingle();
+            if (error) return unavailable;
+            return { state: "ok", value: data ? Number((data as Row).revision) : null };
+        },
         library: async (userId) => {
             const [studies, tags, kinds] = await Promise.all([
                 supabase.from("case_studies").select(STUDY_COLUMNS).eq("user_id", userId).order("created_at"),
@@ -147,4 +160,70 @@ export function sessionReader(supabase: Pick<SupabaseClient, "from">): LibraryRe
             return { state: "ok", value: Array.isArray(stored) ? stored[index] : undefined };
         },
     };
+}
+
+/** How many times the read below is tried before it gives up and says so. */
+export const COHERENT_READ_ATTEMPTS = 3;
+
+export type CoherentStudy =
+    | { state: "ok"; study: StoredStudy; disciplines: StoredDiscipline[] }
+    | { state: "missing" }
+    /** A read could not be made. */
+    | { state: "unavailable" }
+    /** The case study kept changing while it was being read. Nothing is returned rather than a mixture. */
+    | { state: "changing" };
+
+/**
+ * A case study, its tags and the contractor's kinds of work, all as they
+ * stood at ONE revision.
+ *
+ * The row, the tags and the kinds of work are separate reads, each seeing
+ * the database at its own moment. Read side by side they can disagree: the
+ * row can show a new revision while the labels are still the old ones. An
+ * approval check built from that would show one thing and approve another.
+ *
+ * So the reads are bracketed:
+ *
+ *   1. read the revision, and WAIT for the answer;
+ *   2. only then read the row, its tags and the kinds of work;
+ *   3. only when those have all answered, read the revision again.
+ *
+ * Every change that an approval would capture (the draft, the tags, a tag's
+ * label, place or archived state) raises the case study's revision in the
+ * same database transaction, and a revision only ever goes up. So if the
+ * revision at step 3 equals the one at step 1, and the row read in between
+ * shows that same revision, no such change was committed between steps 1 and
+ * 3, and everything read in step 2 is as it stood at that revision.
+ *
+ * If they differ, the whole thing is read again, at most
+ * `COHERENT_READ_ATTEMPTS` times. If it never settles, or any read fails,
+ * nothing is returned. A change that lands after step 3 is not seen here; it
+ * is caught when the contractor acts, because every write names the revision.
+ *
+ * This relies on each later read seeing everything committed before an
+ * earlier read answered, which holds when all reads go to the same database.
+ */
+export async function readStudyAtOneRevision(reader: LibraryReader, userId: string, id: string): Promise<CoherentStudy> {
+    for (let attempt = 0; attempt < COHERENT_READ_ATTEMPTS; attempt += 1) {
+        const before = await reader.revision(userId, id);
+        if (before.state !== "ok") return { state: "unavailable" };
+        if (before.value === null) return { state: "missing" };
+
+        // Started only now that the revision is known. Their order among themselves does not matter.
+        const [study, disciplines] = await Promise.all([reader.study(userId, id), reader.disciplines(userId)]);
+        if (study.state !== "ok" || disciplines.state !== "ok") return { state: "unavailable" };
+
+        // Started only now that all of those have answered.
+        const after = await reader.revision(userId, id);
+        if (after.state !== "ok") return { state: "unavailable" };
+        if (after.value === null || !study.value) {
+            // Gone, or going, between the reads.
+            if (after.value === null && !study.value) return { state: "missing" };
+            continue;
+        }
+        if (after.value === before.value && study.value.revision === before.value) {
+            return { state: "ok", study: study.value, disciplines: disciplines.value };
+        }
+    }
+    return { state: "changing" };
 }

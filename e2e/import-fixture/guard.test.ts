@@ -32,7 +32,7 @@ describe("website-import fixture harness", () => {
     });
 
     it("refuses to work unless explicitly switched on, at every entry point", () => {
-        for (const file of ["page.tsx", "actions.ts", "state/route.ts", "interview/page.tsx", "interview/actions.ts", "interview/state/route.ts", "case-study/page.tsx", "case-study/actions.ts", "case-study/state/route.ts", "profile/page.tsx", "profile/actions.ts", "profile/state/route.ts"]) {
+        for (const file of ["page.tsx", "actions.ts", "state/route.ts", "interview/page.tsx", "interview/actions.ts", "interview/state/route.ts", "case-study/page.tsx", "case-study/actions.ts", "case-study/state/route.ts", "profile/page.tsx", "profile/actions.ts", "profile/state/route.ts", "case-library/actions.ts", "case-library/[run]/page.tsx", "case-library/[run]/study/[id]/page.tsx", "case-library/[run]/review/page.tsx", "case-library/[run]/state/route.ts"]) {
             expect(read(`e2e/import-fixture/app/${file}`), file).toContain('process.env.CONSTRUCTA_IMPORT_FIXTURE !== "1"');
         }
         const actions = read("e2e/import-fixture/app/actions.ts");
@@ -62,6 +62,19 @@ describe("website-import fixture harness", () => {
         // The profile harness saves through the application's own payload builder, to memory only.
         expect(profile).toContain("profileUpdateFromForm(String(state.row.id), formData)");
         expect(profile).not.toMatch(/createAdminClient|@\/lib\/supabase|from ["']openai["']/);
+
+        const library = read("e2e/import-fixture/app/case-library/actions.ts");
+        const libraryExports = Array.from(library.matchAll(/export async function (\w+)\([^)]*\)[^{]*\{\n\s+(\w+)\(\);/g));
+        expect(libraryExports.map((match) => match[1]).sort()).toEqual([
+            "fixtureApprove", "fixtureArchiveDiscipline", "fixtureArchiveStudy", "fixtureCheck", "fixtureCreate", "fixtureLibrary", "fixtureLibraryControl", "fixturePublish",
+            "fixtureReview", "fixtureSave", "fixtureSaveDiscipline", "fixtureSaveDraft", "fixtureStartFromOlder", "fixtureStudy",
+        ]);
+        expect(libraryExports.every((match) => match[2] === "guard")).toBe(true);
+        expect(Array.from(library.matchAll(/export async function/g))).toHaveLength(14);
+        // The library harness runs the real service over an in-memory library. It has no database, sign-in or privileged client, and says it is not hosted proof.
+        expect(library).toContain("fakeLibrary(");
+        expect(library).toContain("NOT evidence of an authenticated");
+        expect(library).not.toMatch(/createAdminClient|@\/lib\/supabase|requireAuth|from ["']openai["']/);
 
         // AI wording is off in the harness unless a run asks for it by name; the harness cannot change the application's setting.
         expect(interview).toContain('wordingRig({ enabled: run.startsWith("ai-") })');

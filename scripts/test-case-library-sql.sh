@@ -25,7 +25,9 @@
 #     refused if anything moved since the contractor was shown it, also when
 #     the change and the approval arrive together;
 #   - an adopted older entry is fingerprinted by the database from what is
-#     stored, and the older entry is not changed.
+#     stored, and the older entry is not changed;
+#   - the reads the application's pages make return only the signed-in
+#     contractor's rows, in the shape asked for, and nothing to anyone else.
 #
 # It ends with a role matrix for a POSSIBLE later trigger. No trigger is
 # installed by the migration; the matrix only records what a trigger would be
@@ -408,8 +410,20 @@ SELECT t.expect(t.denied($q$ SELECT public.case_library_discipline_archive('aaaa
 SELECT t.expect(t.denied($q$ SELECT public.case_library_lock('aaaaaaaa-0000-0000-0000-000000000001') $q$), 'or take another contractor''s lock, or their own');
 SELECT t.expect(t.denied($q$ SELECT public.case_library_content_problem('{}'::jsonb) $q$) AND t.denied($q$ SELECT public.case_library_approved_value('{}'::jsonb, ARRAY[]::text[]) $q$), 'or run the rule functions');
 
+-- ── The reads the application's pages make, as the contractor's own role ────
+-- (src/lib/case-library/store.ts). Still signed in as the first contractor.
+SELECT t.expect((SELECT array_agg(id::text) FROM (SELECT id, user_id, approved, approved_revision, archived_at, legacy_index FROM public.case_studies WHERE user_id = 'aaaaaaaa-0000-0000-0000-000000000001' AND archived_at IS NULL AND approved IS NOT NULL) AS for_proposal) = ARRAY[:'study'], 'the proposal read returns exactly the contractor''s approved, unarchived case studies');
+SELECT t.expect((SELECT count(*) FROM public.case_studies WHERE user_id = 'aaaaaaaa-0000-0000-0000-000000000001' AND archived_at IS NULL AND approved IS NOT NULL) = 1 AND (SELECT count(*) FROM public.case_studies WHERE user_id = 'aaaaaaaa-0000-0000-0000-000000000001' AND archived_at IS NULL AND approved IS NULL) = 1, 'the two counts: one approved, one not, with the archived one in neither');
+SELECT t.expect((SELECT count(*) FROM (SELECT id, user_id, approved_revision, archived_at FROM public.case_studies WHERE user_id = 'aaaaaaaa-0000-0000-0000-000000000001' AND id IN (:'adopted_id', :'adopted_again')) AS status_only) = 2, 'the status of a ticked case study that cannot be sent is readable without its content');
+SELECT t.expect((SELECT count(*) FROM (SELECT id, label, position, revision, archived_at FROM public.contractor_disciplines WHERE user_id = 'aaaaaaaa-0000-0000-0000-000000000001' ORDER BY position, label_key) AS kinds) > 0 AND (SELECT count(*) FROM (SELECT case_study_id, discipline_id FROM public.case_study_disciplines WHERE user_id = 'aaaaaaaa-0000-0000-0000-000000000001' AND case_study_id = :'study') AS tags) = 3, 'kinds of work and a case study''s tags are readable in the shape the pages ask for');
+SELECT t.expect((SELECT jsonb_typeof(case_studies) FROM public.profiles WHERE id = 'aaaaaaaa-0000-0000-0000-000000000001') = 'array', 'the contractor''s older case studies are readable for starting a new version');
+
 SELECT set_config('request.jwt.claim.sub', 'bbbbbbbb-0000-0000-0000-000000000002', false);
 SELECT t.expect((SELECT count(*) FROM public.case_studies) = 0 AND (SELECT count(*) FROM public.case_study_disciplines) = 0 AND (SELECT count(*) FROM public.contractor_disciplines) = 1, 'another contractor sees none of it, only their own discipline');
+-- The same reads, asked for the first contractor's rows by a different contractor: nothing comes back.
+SELECT t.expect((SELECT count(*) FROM public.case_studies WHERE user_id = 'aaaaaaaa-0000-0000-0000-000000000001') = 0 AND (SELECT count(*) FROM public.case_studies WHERE id = :'study') = 0, 'asking by another contractor''s id, or by a case study''s id, returns nothing to someone else');
+SELECT t.expect((SELECT count(*) FROM public.contractor_disciplines WHERE user_id = 'aaaaaaaa-0000-0000-0000-000000000001') = 0 AND (SELECT count(*) FROM public.case_study_disciplines WHERE case_study_id = :'study') = 0, 'nor their kinds of work or tags');
+SELECT t.expect((SELECT count(*) FROM public.profiles WHERE id = 'aaaaaaaa-0000-0000-0000-000000000001') = 0, 'nor their older case studies');
 
 RESET ROLE;
 SET ROLE anon;

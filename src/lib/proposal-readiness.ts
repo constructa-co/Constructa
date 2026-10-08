@@ -20,7 +20,8 @@ export type ReadinessKey =
     | "contractValue"
     | "programme"
     | "payment"
-    | "terms";
+    | "terms"
+    | "caseStudySelection";
 
 export type RecommendedKey =
     | "introduction"
@@ -59,6 +60,11 @@ export interface ProposalReadinessInput {
     aboutBusiness?: string | null;
     hasPhotos?: boolean;
     hasCaseStudies?: boolean;
+    /**
+     * Why the chosen past jobs cannot be sent as they stand, if they cannot.
+     * Having no past jobs is fine; having chosen one that cannot be sent is not.
+     */
+    caseStudySelectionProblem?: string | null;
     exclusions?: string | null;
     clarifications?: string | null;
     closingStatement?: string | null;
@@ -222,6 +228,11 @@ export function evaluateProposalReadiness(input: ProposalReadinessInput): Propos
             fix: `Your payment stages cover ${coverage ?? 0}% of the price. Add stages until they reach 100%.`,
         },
     ];
+
+    // Only present when something chosen cannot be sent, so nothing changes for a proposal without that problem.
+    if (hasText(input.caseStudySelectionProblem)) {
+        mandatory.push({ key: "caseStudySelection", label: "Past jobs you chose", ok: false, fix: String(input.caseStudySelectionProblem) });
+    }
 
     const missing = mandatory.filter((item) => !item.ok);
     return { ready: missing.length === 0, mandatory, missing, recommended };

@@ -74,7 +74,12 @@ function item(
     return { key, title, status, statusLabel: STATUS_LABELS[status], detail, ...(action ? { action } : {}) };
 }
 
-export function buildCompanyReadiness(profile: CompanyReadinessProfile | null | undefined): CompanyReadiness {
+/**
+ * `library` is given only when the case-study library is switched on and
+ * could be read: how many of its case studies are approved, and how many are
+ * not. Only approved ones count. A draft is never "ready".
+ */
+export function buildCompanyReadiness(profile: CompanyReadinessProfile | null | undefined, library?: { approved: number; unapproved: number } | null): CompanyReadiness {
     const companyName = text(profile?.company_name);
     const workType = text(profile?.business_type);
 
@@ -100,10 +105,14 @@ export function buildCompanyReadiness(profile: CompanyReadinessProfile | null | 
         ? item("story", "Company story", "ready", "Your company introduction is saved.", { label: "Edit", href: PROFILE_PATH })
         : item("story", "Company story", "todo", "Nothing written yet. Add a short introduction to your business in your own words.", { label: "Add story", href: PROFILE_PATH });
 
-    const studies = countCaseStudies(profile?.case_studies);
+    const studies = countCaseStudies(profile?.case_studies) + Math.max(0, library?.approved ?? 0);
+    const drafts = Math.max(0, library?.unapproved ?? 0);
+    const draftsNote = drafts > 0 ? ` ${drafts} more ${drafts === 1 ? "is" : "are"} not approved yet, so ${drafts === 1 ? "it" : "they"} can't be used.` : "";
     const caseStudies = studies > 0
-        ? item("case-studies", "Case studies", "ready", `${studies} case ${studies === 1 ? "study" : "studies"} saved.`, { label: "Edit", href: CASE_STUDIES_PATH })
-        : item("case-studies", "Case studies", "todo", "None yet. Add past jobs you are happy to show clients.", { label: "Add case study", href: CASE_STUDIES_PATH });
+        ? item("case-studies", "Case studies", "ready", `${studies} case ${studies === 1 ? "study" : "studies"} ${library ? "ready to use" : "saved"}.${draftsNote}`, { label: "Edit", href: CASE_STUDIES_PATH })
+        : drafts > 0
+            ? item("case-studies", "Case studies", "started", `${drafts} case ${drafts === 1 ? "study is" : "studies are"} not approved yet. Approve ${drafts === 1 ? "it" : "one"} so proposals can use it.`, { label: "Approve", href: CASE_STUDIES_PATH })
+            : item("case-studies", "Case studies", "todo", "None yet. Add past jobs you are happy to show clients.", { label: "Add case study", href: CASE_STUDIES_PATH });
 
     const terms = item(
         "terms",

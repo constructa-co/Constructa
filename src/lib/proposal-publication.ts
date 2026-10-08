@@ -1,6 +1,10 @@
 import { computeContractSum, roundMoney, toNumber } from "@/lib/financial";
 import { computeProgrammePlan, planCoversEveryPhase, resolveProgrammeSource, type ProgrammePlan } from "@/lib/programme-plan";
 import { isProposalResponseKind, responseWording, type ProposalResponseKind } from "@/lib/proposal-response";
+import { resolveSelectedCaseStudies, type LibraryRow } from "@/lib/case-library/resolve";
+
+/** Said when a chosen past job cannot be sent. The proposal is not published short of it. */
+export const CASE_STUDY_UNSENDABLE_ERROR = "One of the past jobs you chose can't be sent. Untick it under Relevant experience, or fix it in Case Studies, then check the proposal again.";
 
 /**
  * The response mode the database enforces. Every new publication is
@@ -87,6 +91,12 @@ export interface BuildProposalPublicationInput {
     vatRate?: number;
     /** Why the rate is what it is. A reverse charge always publishes at 0%. */
     vatTreatment?: ProposalVatTreatment;
+    /**
+     * The contractor's own case-study library rows, when the library is in
+     * use. Left out, there are none: older case studies are chosen exactly
+     * as before, and a saved library tick cannot be honoured.
+     */
+    caseStudyLibrary?: { userId: string; rows: readonly LibraryRow[] };
 }
 
 export type ProposalVatTreatment = "standard" | "domestic_reverse_charge";
@@ -420,6 +430,17 @@ export function buildProposalPublicationSnapshot(
     if (!Number.isInteger(input.versionNumber) || input.versionNumber < 1) {
         throw new Error("Publication version must be a positive integer.");
     }
+
+    // Always through the one resolver, with or without a library. With no
+    // library tick saved this is exactly the older selection. A library tick
+    // that cannot be honoured stops a real publication; it is never dropped.
+    const chosenCaseStudies = resolveSelectedCaseStudies({
+        userId: input.caseStudyLibrary?.userId ?? "",
+        olderStored: input.profile.case_studies,
+        libraryRows: input.caseStudyLibrary?.rows ?? [],
+        selected: input.project.selected_case_study_ids,
+    });
+    if (!chosenCaseStudies.sendable && !options.allowIncomplete) throw new Error(CASE_STUDY_UNSENDABLE_ERROR);
     if (!Number.isInteger(input.validityDays) || input.validityDays < 1 || input.validityDays > 365) {
         throw new Error("Proposal validity must be between 1 and 365 days.");
     }
@@ -517,7 +538,7 @@ export function buildProposalPublicationSnapshot(
             kind: input.responseKind,
             notice: responseWording(input.responseKind).notice,
         },
-        case_studies: selectCaseStudies(input.profile.case_studies, input.project.selected_case_study_ids),
+        case_studies: chosenCaseStudies.studies,
         photos: sanitisePhotos(input.project.site_photos),
     };
 

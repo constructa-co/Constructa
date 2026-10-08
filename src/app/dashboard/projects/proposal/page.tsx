@@ -5,6 +5,9 @@ import ProjectPicker from "@/components/project-picker";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import type { ProposalPublicationEstimateInput } from "@/lib/proposal-publication";
 import ReviewSendClient, { type CaseStudyOption } from "./review-send-client";
+import { caseLibraryEnabled } from "@/lib/case-library/gate";
+import { readProposalLibrary } from "@/lib/case-library/proposal-read";
+import { sessionReader } from "@/lib/case-library/store";
 import type { ProposalPublicationHistoryRow } from "./publication-history-panel";
 
 export const dynamic = "force-dynamic";
@@ -88,6 +91,14 @@ export default async function ProposalPage(props: { searchParams: Promise<{ proj
 
     const history = (publications ?? []) as unknown as ProposalPublicationHistoryRow[];
 
+    // The contractor's approved library case studies, read with their own
+    // session, only when the library is switched on. Never drafts. Switched
+    // off or unreadable, there are none, and a saved library tick is shown as
+    // one that cannot be sent.
+    const caseStudyLibrary = caseLibraryEnabled()
+        ? await readProposalLibrary(sessionReader(supabase), user.id, project.selected_case_study_ids)
+        : undefined;
+
     return (
         <div className="max-w-5xl mx-auto px-4 sm:px-8 pt-4 sm:pt-8 pb-16">
             <ProjectNavBar projectId={projectId} activeTab="proposal" />
@@ -97,6 +108,7 @@ export default async function ProposalPage(props: { searchParams: Promise<{ proj
                     profile: profile ?? {},
                     estimate,
                     nextVersion: (history[0]?.version_number ?? 0) + 1,
+                    ...(caseStudyLibrary ? { caseStudyLibrary } : {}),
                 }}
                 caseStudies={caseStudies}
                 lockReason={getPrecontractEditLockReason(project)}

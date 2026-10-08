@@ -113,6 +113,17 @@ describe("the questions", () => {
         expect(html).toContain("Saved.");
     });
 
+    it("the optional questions are offered from what is saved, never as part of the six, and say whose words they are", () => {
+        const html = guided(view());
+        expect(html).toContain("data-depth-entry");
+        expect(html).toContain("Add more about this job");
+        expect(html).toContain("Three optional questions");
+        expect(html).toContain("in your own words");
+        // A new case study, not yet saved, is not offered them.
+        expect(guided(null)).not.toContain("Add more about this job");
+        expect(guided(null)).toContain("Question 1 of 6");
+    });
+
     it("an approved one says proposals keep the approved version, and offers no approval here", () => {
         const html = guided(view({ approved: approvedValue(draft, ["Kitchen Installation"]), approvedRevision: 2 }));
         expect(html).toContain("Approved earlier. Proposals keep using the approved version until you approve again on the full form.");

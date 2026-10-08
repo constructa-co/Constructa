@@ -15,7 +15,11 @@
 #   - limits (12 disciplines, 50 case studies, 6 tags, one adoption per older
 #     entry) hold when several writers arrive at once;
 #   - a save names the revision it replaces; every change to the draft, the
-#     tags, a tag's label or its archived state moves the revision;
+#     tags, a tag's label, its place in the list or its archived state moves
+#     the case study's revision;
+#   - a discipline has its own revision: a rename, a move or an archive must
+#     name the one it replaces, a stale or missing one is refused and changes
+#     nothing, also when six arrive at once; there is no unversioned form;
 #   - approval copies the draft and the active tag labels by value, blanks a
 #     hidden client and an unshown figure, changes nothing else, and is
 #     refused if anything moved since the contractor was shown it, also when
@@ -52,6 +56,7 @@ PSQL=("$PG_BIN/psql" -X -v ON_ERROR_STOP=1 -h "$TEST_DIR" -p "$PORT" -d postgres
 ALPHA='aaaaaaaa-0000-0000-0000-000000000001'
 BETA='bbbbbbbb-0000-0000-0000-000000000002'
 GAMMA='cccccccc-0000-0000-0000-000000000003'
+DELTA='dddddddd-0000-0000-0000-000000000004'
 
 "${PSQL[@]}" >/dev/null <<'SQL'
 CREATE ROLE anon NOLOGIN;
@@ -82,11 +87,13 @@ GRANT ALL ON public.profiles TO service_role;
 INSERT INTO auth.users VALUES
   ('aaaaaaaa-0000-0000-0000-000000000001'),
   ('bbbbbbbb-0000-0000-0000-000000000002'),
-  ('cccccccc-0000-0000-0000-000000000003');
+  ('cccccccc-0000-0000-0000-000000000003'),
+  ('dddddddd-0000-0000-0000-000000000004');
 INSERT INTO public.profiles (id, company_name, case_studies) VALUES
   ('aaaaaaaa-0000-0000-0000-000000000001', 'Alpha Builders', '[{"id":"cs-a","projectName":"Kitchen","client":"Mrs Older"},{"projectName":"Loft"},"not an object"]'),
   ('bbbbbbbb-0000-0000-0000-000000000002', 'Beta Joinery', '[{"projectName":"Stairs"}]'),
-  ('cccccccc-0000-0000-0000-000000000003', 'Gamma Roofing', '[{"projectName":"Roof"}]');
+  ('cccccccc-0000-0000-0000-000000000003', 'Gamma Roofing', '[{"projectName":"Roof"}]'),
+  ('dddddddd-0000-0000-0000-000000000004', 'Delta Tiling', '[]');
 
 CREATE SCHEMA t;
 GRANT USAGE ON SCHEMA t TO anon, authenticated, service_role;
@@ -170,39 +177,46 @@ SELECT t.expect(NOT EXISTS (
          OR NOT has_function_privilege('service_role', p.oid, 'EXECUTE'))
 ), 'none is SECURITY DEFINER, all have an empty search path, none can be run by a browser role or PUBLIC, all by the service role');
 
+SELECT t.expect((SELECT array_agg(p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' ORDER BY p.proname) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.proname LIKE 'case\_library\_discipline\_%')
+  = ARRAY['case_library_discipline_archive(p_user_id uuid, p_id uuid, p_expected_revision integer, p_archived boolean)', 'case_library_discipline_save(p_user_id uuid, p_id uuid, p_expected_revision integer, p_label text, p_position integer)'],
+  'each discipline writer exists once, and only in the form that names a revision');
+SELECT t.expect(t.fails($q$ SELECT public.case_library_discipline_save('aaaaaaaa-0000-0000-0000-000000000001'::uuid, NULL::uuid, 'Unversioned'::text, 0) $q$) AND t.fails($q$ SELECT public.case_library_discipline_archive('aaaaaaaa-0000-0000-0000-000000000001'::uuid, gen_random_uuid(), true) $q$), 'there is no way to call either without a revision');
+SELECT t.expect((SELECT count(*) FROM public.contractor_disciplines) = 0, 'and those attempts created nothing');
+
 -- ── Disciplines ──────────────────────────────────────────────────────────────
 SET ROLE service_role;
-SELECT public.case_library_discipline_save(:alpha, NULL, 'Kitchen Installation', 0) AS d1 \gset
-SELECT t.expect((:'d1'::jsonb) ->> 'outcome' = 'saved', 'a discipline is saved');
+SELECT public.case_library_discipline_save(:alpha, NULL, 0, 'Kitchen Installation', 0) AS d1 \gset
+SELECT t.expect((:'d1'::jsonb) ->> 'outcome' = 'saved' AND (:'d1'::jsonb) ->> 'revision' = '1', 'a discipline is saved, at revision 1');
 SELECT (:'d1'::jsonb) ->> 'id' AS kitchen \gset
-SELECT t.expect(public.case_library_discipline_save(:alpha, NULL, 'KITCHEN installation', 1) ->> 'outcome' = 'duplicate', 'the same label in other capitals is a duplicate');
-SELECT t.expect(public.case_library_discipline_save(:alpha, NULL, ' Kitchens', 1) ->> 'outcome' = 'invalid', 'a label with a space before it is refused, not tidied behind the caller''s back');
-SELECT t.expect(public.case_library_discipline_save(:alpha, NULL, repeat('k', 81), 1) ->> 'outcome' = 'invalid', 'an over-long label is refused');
-SELECT t.expect(public.case_library_discipline_save(:alpha, NULL, E'Two\nlines', 1) ->> 'outcome' = 'invalid', 'a label with a line break is refused');
-SELECT t.expect(public.case_library_discipline_save(:alpha, NULL, 'Tiling', 5000) ->> 'outcome' = 'invalid', 'a position out of range is refused');
-SELECT t.expect(t.fails($q$ SELECT public.case_library_discipline_save(NULL, NULL, 'Tiling', 0) $q$), 'a contractor is required');
-SELECT (public.case_library_discipline_save(:alpha, NULL, 'Tiling', 1)) ->> 'id' AS tiling \gset
-SELECT (public.case_library_discipline_save(:alpha, NULL, 'Roofing', 2)) ->> 'id' AS roofing \gset
-SELECT (public.case_library_discipline_save(:beta, NULL, 'Kitchen Installation', 0)) ->> 'id' AS beta_kitchen \gset
+SELECT t.expect(public.case_library_discipline_save(:alpha, NULL, 0, 'KITCHEN installation', 1) ->> 'outcome' = 'duplicate', 'the same label in other capitals is a duplicate');
+SELECT t.expect(public.case_library_discipline_save(:alpha, NULL, 0, ' Kitchens', 1) ->> 'outcome' = 'invalid', 'a label with a space before it is refused, not tidied behind the caller''s back');
+SELECT t.expect(public.case_library_discipline_save(:alpha, NULL, 0, repeat('k', 81), 1) ->> 'outcome' = 'invalid', 'an over-long label is refused');
+SELECT t.expect(public.case_library_discipline_save(:alpha, NULL, 0, E'Two\nlines', 1) ->> 'outcome' = 'invalid', 'a label with a line break is refused');
+SELECT t.expect(public.case_library_discipline_save(:alpha, NULL, 0, 'Tiling', 5000) ->> 'outcome' = 'invalid', 'a position out of range is refused');
+SELECT t.expect(t.fails($q$ SELECT public.case_library_discipline_save(NULL, NULL, 0, 'Tiling', 0) $q$), 'a contractor is required');
+SELECT (public.case_library_discipline_save(:alpha, NULL, 0, 'Tiling', 1)) ->> 'id' AS tiling \gset
+SELECT (public.case_library_discipline_save(:alpha, NULL, 0, 'Roofing', 2)) ->> 'id' AS roofing \gset
+SELECT (public.case_library_discipline_save(:beta, NULL, 0, 'Kitchen Installation', 0)) ->> 'id' AS beta_kitchen \gset
 SELECT t.expect(:'beta_kitchen' IS NOT NULL, 'another contractor may use the same label');
-SELECT t.expect(public.case_library_discipline_save(:alpha, :'beta_kitchen', 'Stolen', 0) ->> 'outcome' = 'not-found', 'one contractor cannot rename another''s discipline');
-SELECT t.expect(public.case_library_discipline_archive(:alpha, :'beta_kitchen', true) ->> 'outcome' = 'not-found', 'or archive it');
-SELECT t.expect(public.case_library_discipline_save(:alpha, :'tiling', 'Kitchen Installation', 1) ->> 'outcome' = 'duplicate', 'a rename onto an existing label is a duplicate');
+SELECT t.expect(public.case_library_discipline_save(:alpha, :'beta_kitchen', 1, 'Stolen', 0) ->> 'outcome' = 'not-found', 'one contractor cannot rename another''s discipline');
+SELECT t.expect(public.case_library_discipline_archive(:alpha, :'beta_kitchen', 1, true) ->> 'outcome' = 'not-found', 'or archive it');
+SELECT t.expect(public.case_library_discipline_save(:alpha, :'tiling', 1, 'Kitchen Installation', 1) ->> 'outcome' = 'duplicate', 'a rename onto an existing label is a duplicate');
 SELECT t.expect((SELECT label FROM public.contractor_disciplines WHERE id = :'tiling') = 'Tiling', 'and changed nothing');
 
 -- Twelve active, no more.
-SELECT public.case_library_discipline_save(:alpha, NULL, 'Extra ' || n, 10 + n) FROM generate_series(4, 12) AS n;
+SELECT public.case_library_discipline_save(:alpha, NULL, 0, 'Extra ' || n, 10 + n) FROM generate_series(4, 12) AS n;
 SELECT t.expect((SELECT count(*) FROM public.contractor_disciplines WHERE user_id = :alpha AND archived_at IS NULL) = 12, 'twelve disciplines are active');
-SELECT t.expect(public.case_library_discipline_save(:alpha, NULL, 'Thirteenth', 0) ->> 'outcome' = 'limit', 'a thirteenth is refused');
+SELECT t.expect(public.case_library_discipline_save(:alpha, NULL, 0, 'Thirteenth', 0) ->> 'outcome' = 'limit', 'a thirteenth is refused');
 SELECT id AS extra12 FROM public.contractor_disciplines WHERE user_id = :alpha AND label = 'Extra 12' \gset
-SELECT t.expect(public.case_library_discipline_archive(:alpha, :'extra12', true) ->> 'outcome' = 'saved', 'archiving one');
-SELECT (public.case_library_discipline_save(:alpha, NULL, 'Thirteenth', 0)) ->> 'id' AS thirteenth \gset
+SELECT t.expect(public.case_library_discipline_archive(:alpha, :'extra12', 1, true) = jsonb_build_object('outcome', 'saved', 'id', :'extra12', 'revision', 2), 'archiving one');
+SELECT (public.case_library_discipline_save(:alpha, NULL, 0, 'Thirteenth', 0)) ->> 'id' AS thirteenth \gset
 SELECT t.expect(:'thirteenth' IS NOT NULL, 'makes room for another');
-SELECT t.expect(public.case_library_discipline_archive(:alpha, :'extra12', false) ->> 'outcome' = 'limit', 'bringing the archived one back is refused while twelve are active');
-SELECT public.case_library_discipline_archive(:alpha, :'thirteenth', true);
-SELECT (public.case_library_discipline_save(:alpha, NULL, 'Extra 12', 0)) ->> 'id' AS extra12_again \gset
-SELECT t.expect(public.case_library_discipline_archive(:alpha, :'extra12', false) ->> 'outcome' = 'duplicate', 'an archived discipline cannot come back onto a label now in use');
-SELECT public.case_library_discipline_archive(:alpha, :'extra12_again', true);
+SELECT t.expect(public.case_library_discipline_archive(:alpha, :'extra12', 2, false) ->> 'outcome' = 'limit', 'bringing the archived one back is refused while twelve are active');
+SELECT public.case_library_discipline_archive(:alpha, :'thirteenth', 1, true);
+SELECT (public.case_library_discipline_save(:alpha, NULL, 0, 'Extra 12', 0)) ->> 'id' AS extra12_again \gset
+SELECT t.expect(public.case_library_discipline_archive(:alpha, :'extra12', 2, false) ->> 'outcome' = 'duplicate', 'an archived discipline cannot come back onto a label now in use');
+SELECT public.case_library_discipline_archive(:alpha, :'extra12_again', 1, true);
+SELECT t.expect((SELECT revision FROM public.contractor_disciplines WHERE id = :'extra12') = 2, 'a refused return from the archive does not move the discipline''s revision');
 
 -- ── Case studies and drafts ──────────────────────────────────────────────────
 \set draft '''{"version":1,"title":"Kitchen at Example Road","work_type":"Kitchen Installation","place":"Leeds","client_display":"hidden","client_text":"Mrs Private","client_named_ok":false,"value_text":"£18,500","show_value":false,"duration_text":"3 weeks","delivered":"We refitted the kitchen.","value_added":"The family stayed in the house."}'''
@@ -267,11 +281,11 @@ SELECT public.case_study_save_draft(:alpha, :'study', 3, jsonb_set(:draft::jsonb
 SELECT t.expect((SELECT approved::text = :'approved_v1' AND revision = 4 AND approved_revision = 3 FROM public.case_studies WHERE id = :'study'), 'editing the draft: approved copy unchanged, revision ahead of it');
 SELECT public.case_study_set_disciplines(:alpha, :'study', 4, ARRAY[:'kitchen', :'tiling', :'roofing']::uuid[]);
 SELECT t.expect((SELECT approved::text = :'approved_v1' AND revision = 5 FROM public.case_studies WHERE id = :'study'), 'changing the tags: approved copy unchanged, revision moved');
-SELECT public.case_library_discipline_save(:alpha, :'tiling', 'Wall and floor tiling', 1);
+SELECT t.expect(public.case_library_discipline_save(:alpha, :'tiling', 1, 'Wall and floor tiling', 1) ->> 'revision' = '2', 'the rename names the revision it replaces');
 SELECT t.expect((SELECT approved::text = :'approved_v1' AND revision = 6 FROM public.case_studies WHERE id = :'study'), 'renaming a tag: approved copy keeps the old words, revision moved');
-SELECT public.case_library_discipline_save(:alpha, :'tiling', 'Wall and floor tiling', 7);
-SELECT t.expect((SELECT revision FROM public.case_studies WHERE id = :'study') = 6, 'moving a tag in the list without renaming it does not move the revision');
-SELECT public.case_library_discipline_archive(:alpha, :'roofing', true);
+SELECT t.expect(public.case_library_discipline_save(:alpha, :'tiling', 2, 'Wall and floor tiling', 1) ->> 'revision' = '2', 'saving a tag exactly as it already is changes nothing');
+SELECT t.expect((SELECT revision FROM public.case_studies WHERE id = :'study') = 6, 'and does not move the case study''s revision');
+SELECT public.case_library_discipline_archive(:alpha, :'roofing', 1, true);
 SELECT t.expect((SELECT approved::text = :'approved_v1' AND revision = 7 FROM public.case_studies WHERE id = :'study'), 'archiving a tag: approved copy unchanged, revision moved');
 SELECT t.expect((SELECT count(*) FROM public.case_study_disciplines WHERE case_study_id = :'study') = 3, 'archiving a discipline keeps its links');
 -- The contractor was shown revision 5 (before the rename and the archive). Their approval is refused.
@@ -295,6 +309,64 @@ SELECT t.expect(public.case_study_approve(:alpha, :'study', 10, true) ->> 'outco
 SELECT t.expect((SELECT approved IS NOT NULL FROM public.case_studies WHERE id = :'study'), 'archiving keeps the row and its approved copy');
 SELECT t.expect(public.case_study_archive(:alpha, :'study', 10, false) ->> 'outcome' = 'saved', 'and it can be brought back');
 SELECT t.expect(public.case_study_archive(:beta, :'study', 11, true) ->> 'outcome' = 'not-found', 'another contractor cannot archive it');
+
+-- ── A discipline's own revision ──────────────────────────────────────────────
+\set delta '''dddddddd-0000-0000-0000-000000000004'''
+SET ROLE service_role;
+SELECT t.expect(public.case_library_discipline_save(:delta, NULL, NULL, 'Kitchens', 0) ->> 'outcome' = 'invalid', 'adding must say there is nothing to replace: no revision is not accepted');
+SELECT t.expect(public.case_library_discipline_save(:delta, NULL, 1, 'Kitchens', 0) ->> 'outcome' = 'invalid', 'nor is adding while naming a revision');
+SELECT t.expect((SELECT count(*) FROM public.contractor_disciplines WHERE user_id = :delta) = 0, 'neither added anything');
+SELECT (public.case_library_discipline_save(:delta, NULL, 0, 'Kitchens', 0)) ->> 'id' AS dk \gset
+SELECT (public.case_library_discipline_save(:delta, NULL, 0, 'Tiling', 1)) ->> 'id' AS dt \gset
+
+-- No revision, the adding convention, or a wrong one: a conflict that says where things stand, and no change.
+SELECT t.expect(public.case_library_discipline_save(:delta, :'dt', NULL, 'Changed', 1) = '{"outcome":"conflict","revision":1}'::jsonb, 'a change that names no revision is a conflict');
+SELECT t.expect(public.case_library_discipline_save(:delta, :'dt', 0, 'Changed', 1) = '{"outcome":"conflict","revision":1}'::jsonb, 'so is a change that uses the adding convention');
+SELECT t.expect(public.case_library_discipline_save(:delta, :'dt', 9, 'Changed', 1) = '{"outcome":"conflict","revision":1}'::jsonb, 'and one that names a revision that never existed');
+SELECT t.expect(public.case_library_discipline_archive(:delta, :'dt', NULL, true) = '{"outcome":"conflict","revision":1}'::jsonb AND public.case_library_discipline_archive(:delta, :'dt', 0, true) = '{"outcome":"conflict","revision":1}'::jsonb, 'archiving without the current revision is a conflict too');
+SELECT t.expect((SELECT label = 'Tiling' AND position = 1 AND revision = 1 AND archived_at IS NULL FROM public.contractor_disciplines WHERE id = :'dt'), 'none of those changed anything');
+
+-- Two tabs both loaded revision 1. The first renames; the second, unaware, is refused.
+SELECT t.expect(public.case_library_discipline_save(:delta, :'dt', 1, 'Wall tiling', 1) = jsonb_build_object('outcome', 'saved', 'id', :'dt', 'revision', 2), 'the first rename is saved as revision 2');
+SELECT t.expect(public.case_library_discipline_save(:delta, :'dt', 1, 'Floor tiling', 1) = '{"outcome":"conflict","revision":2}'::jsonb, 'the second rename, from a stale tab, is refused and told the current revision');
+SELECT t.expect(public.case_library_discipline_archive(:delta, :'dt', 1, true) = '{"outcome":"conflict","revision":2}'::jsonb, 'as is a stale archive');
+SELECT t.expect(public.case_library_discipline_save(:delta, :'dt', 1, 'Wall tiling', 9) = '{"outcome":"conflict","revision":2}'::jsonb, 'and a stale move');
+SELECT t.expect((SELECT label = 'Wall tiling' AND position = 1 AND revision = 2 AND archived_at IS NULL FROM public.contractor_disciplines WHERE id = :'dt'), 'the first rename stands');
+
+-- Saving what is already there changes nothing and moves nothing. A stale caller is still told.
+SELECT t.expect(public.case_library_discipline_save(:delta, :'dt', 2, 'Wall tiling', 1) = jsonb_build_object('outcome', 'saved', 'id', :'dt', 'revision', 2), 'saving it as it is succeeds at the same revision');
+SELECT t.expect(public.case_library_discipline_save(:delta, :'dt', 1, 'Wall tiling', 1) = '{"outcome":"conflict","revision":2}'::jsonb, 'but not for a caller that has not seen the current revision');
+SELECT t.expect(public.case_library_discipline_archive(:delta, :'dt', 2, false) = jsonb_build_object('outcome', 'saved', 'id', :'dt', 'revision', 2), 'asking for the archived state it already has also changes nothing');
+
+-- Each real change moves the discipline's revision by one.
+SELECT t.expect(public.case_library_discipline_save(:delta, :'dt', 2, 'Wall tiling', 4) ->> 'revision' = '3', 'a move alone is revision 3');
+SELECT t.expect(public.case_library_discipline_save(:delta, :'dt', 3, ' bad', 4) ->> 'outcome' = 'invalid' AND public.case_library_discipline_save(:delta, :'dt', 3, 'Kitchens', 4) ->> 'outcome' = 'duplicate', 'a refused label or a duplicate, at the right revision');
+SELECT t.expect((SELECT revision FROM public.contractor_disciplines WHERE id = :'dt') = 3, 'moves nothing');
+SELECT t.expect(public.case_library_discipline_archive(:delta, :'dt', 3, true) ->> 'revision' = '4', 'archiving is revision 4');
+SELECT t.expect(public.case_library_discipline_archive(:delta, :'dt', 4, true) ->> 'revision' = '4', 'archiving again changes nothing');
+SELECT t.expect(public.case_library_discipline_archive(:delta, :'dt', 3, true) = '{"outcome":"conflict","revision":4}'::jsonb, 'and a stale caller asking for the same state is still a conflict');
+SELECT t.expect(public.case_library_discipline_archive(:delta, :'dt', 4, false) ->> 'revision' = '5', 'bringing it back is revision 5');
+SELECT t.expect(public.case_library_discipline_archive(:delta, NULL, 0, true) ->> 'outcome' = 'invalid', 'there is no archiving without saying which');
+
+-- Another contractor learns nothing, not even the revision.
+SELECT t.expect(public.case_library_discipline_save(:alpha, :'dt', 5, 'Stolen', 0) = '{"outcome":"not-found"}'::jsonb AND public.case_library_discipline_save(:alpha, :'dt', 1, 'Stolen', 0) = '{"outcome":"not-found"}'::jsonb AND public.case_library_discipline_archive(:alpha, :'dt', 5, true) = '{"outcome":"not-found"}'::jsonb, 'another contractor is told "not found" whatever revision they name');
+
+-- ── A tag's place in the list is part of what an approval captures ───────────
+SELECT public.case_library_discipline_save(:delta, :'dt', 5, 'Tiling', 1) \g /dev/null
+SELECT (public.case_study_create(:delta, :draft::jsonb, NULL)) ->> 'id' AS ds \gset
+SELECT (public.case_study_create(:delta, :draft::jsonb, NULL)) ->> 'id' AS untagged \gset
+SELECT public.case_study_set_disciplines(:delta, :'ds', 1, ARRAY[:'dk', :'dt']::uuid[]) \g /dev/null
+-- The contractor is shown revision 2: Kitchens, then Tiling. Elsewhere, Kitchens is moved below Tiling.
+SELECT t.expect(public.case_library_discipline_save(:delta, :'dk', 1, 'Kitchens', 5) ->> 'revision' = '2', 'a tag is moved down the list');
+SELECT t.expect((SELECT revision FROM public.case_studies WHERE id = :'ds') = 3, 'moving a tag moves the revision of a case study tagged with it');
+SELECT t.expect((SELECT revision FROM public.case_studies WHERE id = :'untagged') = 1, 'and of no other case study');
+SELECT t.expect(public.case_study_approve(:delta, :'ds', 2, true) = '{"outcome":"conflict","revision":3}'::jsonb, 'approval of the order the contractor was shown is refused once the order has changed');
+SELECT t.expect((SELECT approved IS NULL FROM public.case_studies WHERE id = :'ds'), 'and nothing is approved in an order nobody was shown');
+SELECT t.expect(public.case_study_approve(:delta, :'ds', 3, true) ->> 'outcome' = 'approved', 'approving the current revision goes through');
+SELECT t.expect((SELECT approved -> 'disciplines' = '["Tiling","Kitchens"]'::jsonb FROM public.case_studies WHERE id = :'ds'), 'in the order now saved');
+-- Moving it back afterwards does not reach into the approved copy.
+SELECT public.case_library_discipline_save(:delta, :'dk', 2, 'Kitchens', 0) \g /dev/null
+SELECT t.expect((SELECT approved -> 'disciplines' = '["Tiling","Kitchens"]'::jsonb AND approved_revision = 3 AND revision = 4 FROM public.case_studies WHERE id = :'ds'), 'a later move leaves the approved order as approved, and shows as a change since');
 
 -- ── Starting from an older case study ────────────────────────────────────────
 SELECT md5(p::text) AS profile_before FROM public.profiles p WHERE id = :alpha \gset
@@ -331,8 +403,8 @@ SELECT t.expect(t.denied($q$ SELECT public.case_study_save_draft('aaaaaaaa-0000-
 SELECT t.expect(t.denied($q$ SELECT public.case_study_set_disciplines('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), 1, ARRAY[]::uuid[]) $q$), 'or set_disciplines');
 SELECT t.expect(t.denied($q$ SELECT public.case_study_approve('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), 1, true) $q$), 'or approve');
 SELECT t.expect(t.denied($q$ SELECT public.case_study_archive('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), 1, true) $q$), 'or archive');
-SELECT t.expect(t.denied($q$ SELECT public.case_library_discipline_save('aaaaaaaa-0000-0000-0000-000000000001', NULL, 'X', 0) $q$), 'or discipline_save');
-SELECT t.expect(t.denied($q$ SELECT public.case_library_discipline_archive('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), true) $q$), 'or discipline_archive');
+SELECT t.expect(t.denied($q$ SELECT public.case_library_discipline_save('aaaaaaaa-0000-0000-0000-000000000001', NULL, 0, 'X', 0) $q$), 'or discipline_save');
+SELECT t.expect(t.denied($q$ SELECT public.case_library_discipline_archive('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), 1, true) $q$), 'or discipline_archive');
 SELECT t.expect(t.denied($q$ SELECT public.case_library_lock('aaaaaaaa-0000-0000-0000-000000000001') $q$), 'or take another contractor''s lock, or their own');
 SELECT t.expect(t.denied($q$ SELECT public.case_library_content_problem('{}'::jsonb) $q$) AND t.denied($q$ SELECT public.case_library_approved_value('{}'::jsonb, ARRAY[]::text[]) $q$), 'or run the rule functions');
 
@@ -354,15 +426,15 @@ fail() { echo "FAILED: $1" >&2; exit 1; }
 DRAFT='{"version":1,"title":"Roof","work_type":"","place":"","client_display":"hidden","client_text":"","client_named_ok":false,"value_text":"","show_value":false,"duration_text":"","delivered":"","value_added":""}'
 
 # Eleven active disciplines, then eight different ones at once: one fits.
-svc "SELECT public.case_library_discipline_save('$GAMMA', NULL, 'Seed ' || n, n) FROM generate_series(1, 11) AS n;" >/dev/null
-for i in 1 2 3 4 5 6 7 8; do svc "SELECT public.case_library_discipline_save('$GAMMA', NULL, 'Racer $i', 0)->>'outcome';" > "$TEST_DIR/disc.$i" & done
+svc "SELECT public.case_library_discipline_save('$GAMMA', NULL, 0, 'Seed ' || n, n) FROM generate_series(1, 11) AS n;" >/dev/null
+for i in 1 2 3 4 5 6 7 8; do svc "SELECT public.case_library_discipline_save('$GAMMA', NULL, 0, 'Racer $i', 0)->>'outcome';" > "$TEST_DIR/disc.$i" & done
 wait
 [[ "$(tally disc)" == "7 limit;1 saved;" ]] || fail "eight simultaneous disciplines at the limit gave $(tally disc); expected 7 limit and 1 saved."
 [[ "$(svc "SELECT count(*) FROM public.contractor_disciplines WHERE user_id = '$GAMMA' AND archived_at IS NULL;")" == "12" ]] || fail "more than twelve disciplines are active after the race."
 
 # The same new label eight times at once, with room for it: one is saved.
-svc "SELECT public.case_library_discipline_archive('$GAMMA', id, true) FROM public.contractor_disciplines WHERE user_id = '$GAMMA' AND label LIKE 'Seed%' AND position > 5;" >/dev/null
-for i in 1 2 3 4 5 6 7 8; do svc "SELECT public.case_library_discipline_save('$GAMMA', NULL, 'Same Label', 0)->>'outcome';" > "$TEST_DIR/dup.$i" & done
+svc "SELECT public.case_library_discipline_archive('$GAMMA', id, revision, true) FROM public.contractor_disciplines WHERE user_id = '$GAMMA' AND label LIKE 'Seed%' AND position > 5;" >/dev/null
+for i in 1 2 3 4 5 6 7 8; do svc "SELECT public.case_library_discipline_save('$GAMMA', NULL, 0, 'Same Label', 0)->>'outcome';" > "$TEST_DIR/dup.$i" & done
 wait
 [[ "$(tally dup)" == "7 duplicate;1 saved;" ]] || fail "eight simultaneous identical labels gave $(tally dup); expected 7 duplicate and 1 saved."
 
@@ -438,6 +510,55 @@ IFS='|' read -r F_TAG F_APPROVE F_REVISION F_APPROVED_REV F_LABELS F_REV F_BEFOR
 IFS='|' read -r F_TAG F_APPROVE F_REVISION F_APPROVED_REV F_LABELS F_REV F_BEFORE <<< "$(forced approve)"
 [[ "$F_TAG" == "saved" && "$F_APPROVE" == "approved" && "$F_REVISION" == "$((F_REV + 1))" && "$F_APPROVED_REV" == "$F_REV" && "$F_LABELS" == '["Seed 1"]' ]] \
   || fail "approval queued first: expected it approved at revision $F_REV with the old tag, then the tag saved; got tag=$F_TAG approve=$F_APPROVE revision=$F_REVISION approved_revision=$F_APPROVED_REV labels=$F_LABELS."
+
+# Six tabs all loaded the same discipline at the same revision, and each
+# changes it differently at once: two renames, two moves, two archives.
+D_ID="$(svc "SELECT (public.case_library_discipline_save('$DELTA', NULL, 0, 'Raced', 3))->>'id';")"
+D_REV=1
+svc "SELECT public.case_library_discipline_save('$DELTA', '$D_ID', $D_REV, 'Raced one', 3)->>'outcome';" > "$TEST_DIR/drace.1" &
+svc "SELECT public.case_library_discipline_save('$DELTA', '$D_ID', $D_REV, 'Raced two', 3)->>'outcome';" > "$TEST_DIR/drace.2" &
+svc "SELECT public.case_library_discipline_save('$DELTA', '$D_ID', $D_REV, 'Raced', 7)->>'outcome';" > "$TEST_DIR/drace.3" &
+svc "SELECT public.case_library_discipline_save('$DELTA', '$D_ID', $D_REV, 'Raced', 8)->>'outcome';" > "$TEST_DIR/drace.4" &
+svc "SELECT public.case_library_discipline_archive('$DELTA', '$D_ID', $D_REV, true)->>'outcome';" > "$TEST_DIR/drace.5" &
+svc "SELECT public.case_library_discipline_archive('$DELTA', '$D_ID', $D_REV, true)->>'outcome';" > "$TEST_DIR/drace.6" &
+wait
+[[ "$(tally drace)" == "5 conflict;1 saved;" ]] || fail "six simultaneous changes to one discipline revision gave $(tally drace); expected 5 conflict and 1 saved."
+[[ "$(svc "SELECT revision FROM public.contractor_disciplines WHERE id = '$D_ID';")" == "2" ]] || fail "the discipline's revision moved more than once."
+# Exactly one of the three kinds of change is what is stored.
+[[ "$(svc "SELECT ((label <> 'Raced')::int + (position <> 3)::int + (archived_at IS NOT NULL)::int) FROM public.contractor_disciplines WHERE id = '$D_ID';")" == "1" ]] || fail "more than one of the simultaneous changes was applied."
+
+# A move that changes the approved order, and an approval naming the revision
+# shown before it, queued behind a held lock in each order.
+PK="$(svc "SELECT id FROM public.contractor_disciplines WHERE user_id = '$DELTA' AND label = 'Kitchens';")"
+PS="$(svc "SELECT id FROM public.case_studies WHERE user_id = '$DELTA' AND revision > 1 ORDER BY revision DESC LIMIT 1;")"
+forced_move() { # $1 = which goes first: move | approve ; $2 = position to move Kitchens to
+  local rev drev before
+  rev="$(svc "SELECT revision FROM public.case_studies WHERE id = '$PS';")"
+  drev="$(svc "SELECT revision FROM public.contractor_disciplines WHERE id = '$PK';")"
+  before="$(svc "SELECT (approved->'disciplines')::text || '@' || approved_revision FROM public.case_studies WHERE id = '$PS';")"
+  "${PSQL[@]}" -At -c "SET ROLE service_role; BEGIN; SELECT public.case_library_lock('$DELTA'); SELECT pg_sleep(1.5); COMMIT;" >/dev/null &
+  sleep 0.4
+  local move="SELECT public.case_library_discipline_save('$DELTA', '$PK', $drev, 'Kitchens', $2)->>'outcome';"
+  local approve="SELECT public.case_study_approve('$DELTA', '$PS', $rev, true)->>'outcome';"
+  if [[ "$1" == "move" ]]; then
+    svc "$move" > "$TEST_DIR/fm.move" & sleep 0.4; svc "$approve" > "$TEST_DIR/fm.approve" &
+  else
+    svc "$approve" > "$TEST_DIR/fm.approve" & sleep 0.4; svc "$move" > "$TEST_DIR/fm.move" &
+  fi
+  wait
+  echo "$(cat "$TEST_DIR/fm.move")|$(cat "$TEST_DIR/fm.approve")|$(svc "SELECT revision || '|' || (approved->'disciplines')::text || '@' || approved_revision FROM public.case_studies WHERE id = '$PS';")|$rev|$before"
+}
+# Kitchens is at 0 (above Tiling at 1); the approved copy says Tiling, Kitchens.
+IFS='|' read -r M_MOVE M_APPROVE M_REVISION M_APPROVED M_REV M_BEFORE <<< "$(forced_move move 6)"
+[[ "$M_MOVE" == "saved" && "$M_APPROVE" == "conflict" && "$M_REVISION" == "$((M_REV + 1))" && "$M_APPROVED" == "$M_BEFORE" ]] \
+  || fail "move queued first: expected the move saved, the approval refused and the approved copy untouched; got move=$M_MOVE approve=$M_APPROVE revision=$M_REVISION approved=$M_APPROVED (was $M_BEFORE)."
+# Kitchens is now at 6 (below Tiling). Approval first captures Tiling, Kitchens at the revision shown; the move back to 0 then shows as a change since.
+IFS='|' read -r M_MOVE M_APPROVE M_REVISION M_APPROVED M_REV M_BEFORE <<< "$(forced_move approve 0)"
+[[ "$M_MOVE" == "saved" && "$M_APPROVE" == "approved" && "$M_REVISION" == "$((M_REV + 1))" && "$M_APPROVED" == "[\"Tiling\", \"Kitchens\"]@$M_REV" ]] \
+  || fail "approval queued first: expected it approved at revision $M_REV in the order saved then, and the move saved after; got move=$M_MOVE approve=$M_APPROVE revision=$M_REVISION approved=$M_APPROVED."
+# And once more with the order the other way round at approval, so the captured order is seen to follow what was saved.
+svc "SELECT public.case_study_approve('$DELTA', '$PS', (SELECT revision FROM public.case_studies WHERE id = '$PS'), true);" >/dev/null
+[[ "$(svc "SELECT (approved->'disciplines')::text FROM public.case_studies WHERE id = '$PS';")" == '["Kitchens", "Tiling"]' ]] || fail "after the move back, re-approval did not capture Kitchens before Tiling."
 
 # ── What a LATER trigger could see (no trigger is installed by the migration) ─
 #
@@ -517,4 +638,5 @@ SQL
 echo "role matrix for a possible later trigger (nothing is installed):"
 grep -E ' \| trigger |^switching' "$TEST_DIR/matrix.txt" | sed 's/^/  /'
 echo "approval race: free-running, tag change first in $tag_first rounds and approval first in $approve_first rounds; each order also forced once; consistent every time"
+echo "discipline revisions: stale and unversioned changes refused; six simultaneous changes to one revision gave one winner; a move that reorders approved labels is bound to approval in both orders"
 echo "case library foundation: rules agree with the application, isolation holds, limits hold under simultaneous writers, approval is bound to its revision, nothing existing was changed"

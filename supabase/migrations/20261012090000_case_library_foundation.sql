@@ -28,8 +28,10 @@
 -- that does not use the functions.
 --
 -- Every change to what an approval would capture (the draft, the tags, a
--- tag's label or whether it is archived) raises the case study's revision.
--- Approval names the revision it was shown and is refused if it has moved.
+-- tag's label, its place in the list, or whether it is archived) raises the
+-- case study's revision. Approval names the revision it was shown and is
+-- refused if it has moved. A discipline has its own revision too, and a
+-- change to one must name the revision it replaces.
 
 BEGIN;
 
@@ -175,13 +177,17 @@ CREATE TABLE public.contractor_disciplines (
     label text NOT NULL,
     label_key text NOT NULL,
     position integer NOT NULL DEFAULT 0,
+    -- Goes up by one whenever the label, the position or the archived state
+    -- changes. A change must name the revision it replaces.
+    revision integer NOT NULL DEFAULT 1,
     archived_at timestamptz,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT contractor_disciplines_owner UNIQUE (id, user_id),
     CONSTRAINT contractor_disciplines_label CHECK (public.case_library_label_problem(label) IS NULL),
     CONSTRAINT contractor_disciplines_label_key CHECK (label_key = public.case_library_label_key(label)),
-    CONSTRAINT contractor_disciplines_position CHECK (position BETWEEN 0 AND 1000)
+    CONSTRAINT contractor_disciplines_position CHECK (position BETWEEN 0 AND 1000),
+    CONSTRAINT contractor_disciplines_revision CHECK (revision >= 1)
 );
 
 -- One active discipline per label, however it is capitalised or spaced.
@@ -282,10 +288,24 @@ BEGIN
 END;
 $$;
 
--- Adds a discipline (p_id NULL) or changes one's label and position.
--- At most 12 active. Changing a label raises the revision of every case study
--- tagged with it, because the next approval would capture the new words.
-CREATE FUNCTION public.case_library_discipline_save(p_user_id uuid, p_id uuid, p_label text, p_position integer)
+-- Adds a discipline, or changes one's label and position.
+--
+-- Which of the two is said twice, and the two must agree:
+--   to ADD:    p_id NULL and p_expected_revision 0  (there is nothing to replace);
+--   to CHANGE: p_id set and p_expected_revision the revision the caller was shown.
+-- Anything else (an id with revision 0 or none, no id with a revision) is not
+-- guessed at. A change that names no revision, or a stale one, is refused as
+-- a conflict and told the current revision; it is never applied.
+--
+-- At most 12 active. A new discipline starts at revision 1. A change that
+-- really alters the label or the position moves the discipline's revision by
+-- one. A "change" to what is already saved alters nothing: it succeeds, and
+-- no revision moves.
+--
+-- Tagged case studies move to a new revision when the label changes, and
+-- also when the position changes: labels are approved in list order, so
+-- moving a discipline can change what the next approval would capture.
+CREATE FUNCTION public.case_library_discipline_save(p_user_id uuid, p_id uuid, p_expected_revision integer, p_label text, p_position integer)
 RETURNS jsonb
 LANGUAGE plpgsql
 SET search_path = ''
@@ -301,6 +321,9 @@ BEGIN
     END IF;
 
     IF p_id IS NULL THEN
+        IF p_expected_revision IS DISTINCT FROM 0 THEN
+            RETURN jsonb_build_object('outcome', 'invalid');
+        END IF;
         IF EXISTS (SELECT 1 FROM public.contractor_disciplines WHERE user_id = p_user_id AND label_key = v_key AND archived_at IS NULL) THEN
             RETURN jsonb_build_object('outcome', 'duplicate');
         END IF;
@@ -310,12 +333,19 @@ BEGIN
         INSERT INTO public.contractor_disciplines (user_id, label, label_key, position)
         VALUES (p_user_id, p_label, v_key, v_position)
         RETURNING * INTO v_row;
-        RETURN jsonb_build_object('outcome', 'saved', 'id', v_row.id);
+        RETURN jsonb_build_object('outcome', 'saved', 'id', v_row.id, 'revision', v_row.revision);
     END IF;
 
     SELECT * INTO v_row FROM public.contractor_disciplines WHERE id = p_id AND user_id = p_user_id FOR UPDATE;
     IF NOT FOUND THEN
         RETURN jsonb_build_object('outcome', 'not-found');
+    END IF;
+    -- Before anything about the row is relied on: has the caller seen it as it is now?
+    IF v_row.revision IS DISTINCT FROM p_expected_revision THEN
+        RETURN jsonb_build_object('outcome', 'conflict', 'revision', v_row.revision);
+    END IF;
+    IF v_row.label = p_label AND v_row.position = v_position THEN
+        RETURN jsonb_build_object('outcome', 'saved', 'id', p_id, 'revision', v_row.revision);
     END IF;
     IF v_row.archived_at IS NULL AND EXISTS (
         SELECT 1 FROM public.contractor_disciplines WHERE user_id = p_user_id AND label_key = v_key AND archived_at IS NULL AND id <> p_id
@@ -323,21 +353,21 @@ BEGIN
         RETURN jsonb_build_object('outcome', 'duplicate');
     END IF;
 
-    IF v_row.label IS DISTINCT FROM p_label THEN
-        UPDATE public.case_studies SET revision = revision + 1, updated_at = now()
-        WHERE user_id = p_user_id
-          AND id IN (SELECT case_study_id FROM public.case_study_disciplines WHERE discipline_id = p_id AND user_id = p_user_id);
-    END IF;
-    UPDATE public.contractor_disciplines SET label = p_label, label_key = v_key, position = v_position, updated_at = now()
+    UPDATE public.case_studies SET revision = revision + 1, updated_at = now()
+    WHERE user_id = p_user_id
+      AND id IN (SELECT case_study_id FROM public.case_study_disciplines WHERE discipline_id = p_id AND user_id = p_user_id);
+    UPDATE public.contractor_disciplines SET label = p_label, label_key = v_key, position = v_position, revision = revision + 1, updated_at = now()
     WHERE id = p_id AND user_id = p_user_id;
-    RETURN jsonb_build_object('outcome', 'saved', 'id', p_id);
+    RETURN jsonb_build_object('outcome', 'saved', 'id', p_id, 'revision', v_row.revision + 1);
 END;
 $$;
 
--- Archives a discipline, or brings it back. Tags are kept. Either way the
--- labels the next approval would capture change, so tagged case studies move
--- to a new revision.
-CREATE FUNCTION public.case_library_discipline_archive(p_user_id uuid, p_id uuid, p_archived boolean)
+-- Archives a discipline, or brings it back. Tags are kept. The caller names
+-- the revision it was shown; none, or a stale one, is a conflict. A real
+-- change moves the discipline's revision and that of every tagged case study,
+-- because the labels the next approval would capture change. Asking for the
+-- state it is already in alters nothing: it succeeds, and no revision moves.
+CREATE FUNCTION public.case_library_discipline_archive(p_user_id uuid, p_id uuid, p_expected_revision integer, p_archived boolean)
 RETURNS jsonb
 LANGUAGE plpgsql
 SET search_path = ''
@@ -346,15 +376,19 @@ DECLARE
     v_row public.contractor_disciplines%ROWTYPE;
 BEGIN
     PERFORM public.case_library_lock(p_user_id);
-    IF p_archived IS NULL THEN
+    IF p_archived IS NULL OR p_id IS NULL THEN
         RETURN jsonb_build_object('outcome', 'invalid');
     END IF;
     SELECT * INTO v_row FROM public.contractor_disciplines WHERE id = p_id AND user_id = p_user_id FOR UPDATE;
     IF NOT FOUND THEN
         RETURN jsonb_build_object('outcome', 'not-found');
     END IF;
+    -- Before anything about the row is relied on: has the caller seen it as it is now?
+    IF v_row.revision IS DISTINCT FROM p_expected_revision THEN
+        RETURN jsonb_build_object('outcome', 'conflict', 'revision', v_row.revision);
+    END IF;
     IF (v_row.archived_at IS NOT NULL) = p_archived THEN
-        RETURN jsonb_build_object('outcome', 'saved', 'id', p_id);
+        RETURN jsonb_build_object('outcome', 'saved', 'id', p_id, 'revision', v_row.revision);
     END IF;
 
     IF NOT p_archived THEN
@@ -369,9 +403,9 @@ BEGIN
     UPDATE public.case_studies SET revision = revision + 1, updated_at = now()
     WHERE user_id = p_user_id
       AND id IN (SELECT case_study_id FROM public.case_study_disciplines WHERE discipline_id = p_id AND user_id = p_user_id);
-    UPDATE public.contractor_disciplines SET archived_at = CASE WHEN p_archived THEN now() ELSE NULL END, updated_at = now()
+    UPDATE public.contractor_disciplines SET archived_at = CASE WHEN p_archived THEN now() ELSE NULL END, revision = revision + 1, updated_at = now()
     WHERE id = p_id AND user_id = p_user_id;
-    RETURN jsonb_build_object('outcome', 'saved', 'id', p_id);
+    RETURN jsonb_build_object('outcome', 'saved', 'id', p_id, 'revision', v_row.revision + 1);
 END;
 $$;
 
@@ -588,8 +622,8 @@ REVOKE ALL ON FUNCTION public.case_library_approval_problem(jsonb) FROM PUBLIC, 
 REVOKE ALL ON FUNCTION public.case_library_approved_value(jsonb, text[]) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.case_library_approved_problem(jsonb) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.case_library_lock(uuid) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.case_library_discipline_save(uuid, uuid, text, integer) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.case_library_discipline_archive(uuid, uuid, boolean) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.case_library_discipline_save(uuid, uuid, integer, text, integer) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.case_library_discipline_archive(uuid, uuid, integer, boolean) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.case_study_create(uuid, jsonb, integer) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.case_study_save_draft(uuid, uuid, integer, jsonb) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.case_study_set_disciplines(uuid, uuid, integer, uuid[]) FROM PUBLIC, anon, authenticated;
@@ -604,8 +638,8 @@ GRANT EXECUTE ON FUNCTION public.case_library_approval_problem(jsonb) TO service
 GRANT EXECUTE ON FUNCTION public.case_library_approved_value(jsonb, text[]) TO service_role;
 GRANT EXECUTE ON FUNCTION public.case_library_approved_problem(jsonb) TO service_role;
 GRANT EXECUTE ON FUNCTION public.case_library_lock(uuid) TO service_role;
-GRANT EXECUTE ON FUNCTION public.case_library_discipline_save(uuid, uuid, text, integer) TO service_role;
-GRANT EXECUTE ON FUNCTION public.case_library_discipline_archive(uuid, uuid, boolean) TO service_role;
+GRANT EXECUTE ON FUNCTION public.case_library_discipline_save(uuid, uuid, integer, text, integer) TO service_role;
+GRANT EXECUTE ON FUNCTION public.case_library_discipline_archive(uuid, uuid, integer, boolean) TO service_role;
 GRANT EXECUTE ON FUNCTION public.case_study_create(uuid, jsonb, integer) TO service_role;
 GRANT EXECUTE ON FUNCTION public.case_study_save_draft(uuid, uuid, integer, jsonb) TO service_role;
 GRANT EXECUTE ON FUNCTION public.case_study_set_disciplines(uuid, uuid, integer, uuid[]) TO service_role;

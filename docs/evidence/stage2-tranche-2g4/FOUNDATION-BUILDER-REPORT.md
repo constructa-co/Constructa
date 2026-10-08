@@ -4,6 +4,8 @@ An **inactive** schema and pure-domain foundation for the case-study library. It
 
 Written 8 October 2026 by the primary builder (Claude). The final design text is a separate document, `STAGE2G4-CLAUDE-DESIGN-FINAL.md`, outside this repository.
 
+> **Superseded in two places by `DISCIPLINE-CAS-REPAIR-REPORT.md`.** After review, the two discipline writers now take an expected revision, and moving a tag in the list now moves the revision of case studies tagged with it. Where this report describes those functions' arguments or says which changes move a revision, the repair report is the current statement. The test counts below are those of the first candidate.
+
 ## 1. Pins
 
 | | |

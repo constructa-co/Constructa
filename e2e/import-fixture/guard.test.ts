@@ -32,7 +32,7 @@ describe("website-import fixture harness", () => {
     });
 
     it("refuses to work unless explicitly switched on, at every entry point", () => {
-        for (const file of ["page.tsx", "actions.ts", "state/route.ts", "interview/page.tsx", "interview/actions.ts", "interview/state/route.ts", "case-study/page.tsx", "case-study/actions.ts", "case-study/state/route.ts", "profile/page.tsx", "profile/actions.ts", "profile/state/route.ts", "case-library/actions.ts", "case-library/[run]/page.tsx", "case-library/[run]/study/[id]/page.tsx", "case-library/[run]/review/page.tsx", "case-library/[run]/state/route.ts"]) {
+        for (const file of ["page.tsx", "actions.ts", "state/route.ts", "interview/page.tsx", "interview/actions.ts", "interview/state/route.ts", "case-study/page.tsx", "case-study/actions.ts", "case-study/state/route.ts", "profile/page.tsx", "profile/actions.ts", "profile/state/route.ts", "case-library/actions.ts", "case-library/[run]/page.tsx", "case-library/[run]/study/[id]/page.tsx", "case-library/[run]/study/[id]/guided/page.tsx", "case-library/[run]/review/page.tsx", "case-library/[run]/state/route.ts"]) {
             expect(read(`e2e/import-fixture/app/${file}`), file).toContain('process.env.CONSTRUCTA_IMPORT_FIXTURE !== "1"');
         }
         const actions = read("e2e/import-fixture/app/actions.ts");

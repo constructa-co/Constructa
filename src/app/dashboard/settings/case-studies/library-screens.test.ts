@@ -14,6 +14,7 @@ import type { StudyView } from "@/lib/case-library/service";
 import PastJobsExtras from "../../projects/proposal/past-jobs-extras";
 import CaseStudyEditor, { ApprovedPreview } from "./library/case-study-editor";
 import LibraryPanel from "./library-panel";
+import GuidedCapture from "./library/guided-capture";
 
 const kinds = [{ id: "k1", label: "Kitchen Installation", position: 0, revision: 1, archived: false }, { id: "k2", label: "Old trade", position: 1, revision: 3, archived: true }];
 const draft = { ...newDraft("Kitchen at Example Road"), delivered: "We refitted it.", client_text: "Mrs Private", value_text: "£9,000" };
@@ -78,6 +79,61 @@ describe("the editor", () => {
             expect(html, id).toContain(`for="${id}"`);
             expect(html, id).toContain(`id="${id}"`);
         }
+    });
+});
+
+describe("the questions", () => {
+    const guided = (initial: StudyView | null) => renderToStaticMarkup(createElement(GuidedCapture, { initial, disciplines: kinds, basePath: "/base", listHref: "/list" } as never));
+
+    it("a new one opens on the job name alone, with the full form one press away and nothing claimed as saved", () => {
+        const html = guided(null);
+        expect(html).toContain("Question 1 of 6");
+        expect(html).toContain("What was the job?");
+        expect(html).toContain('for="guided-answer"');
+        expect(html).toContain('id="guided-answer"');
+        expect(html).toContain("Nothing saved yet.");
+        expect(html).toContain('href="/base/new"');
+        expect(html).toContain("Use the full form instead");
+        expect(html).toContain("Save and next");
+        expect(html).not.toContain("Skip");
+        expect(html).not.toContain("See all answers");
+        expect(html).not.toMatch(/Approve<|approved/i);
+    });
+
+    it("an existing one opens on what is saved, says what is not remembered, and shows consent as it stands", () => {
+        const html = guided(view({ content: { ...draft, client_display: "named", client_named_ok: false } }));
+        expect(html).toContain('data-guided-screen="summary"');
+        expect(html).toContain("Anything you typed but didn&#x27;t save isn&#x27;t here, and we don&#x27;t keep track of questions you skipped.");
+        expect(html).toContain("We refitted it.");
+        expect(html).toContain("Kitchen Installation");
+        expect(html).not.toContain("Old trade");
+        expect(html).toContain("The client is named: Mrs Private. You haven&#x27;t said they&#x27;ve agreed to it.");
+        expect(html).toContain("Carry on");
+        expect(html).toContain('href="/base/s1"');
+        expect(html).toContain("Saved.");
+    });
+
+    it("an approved one says proposals keep the approved version, and offers no approval here", () => {
+        const html = guided(view({ approved: approvedValue(draft, ["Kitchen Installation"]), approvedRevision: 2 }));
+        expect(html).toContain("Approved earlier. Proposals keep using the approved version until you approve again on the full form.");
+        expect(html).not.toMatch(/>Approve</);
+    });
+});
+
+describe("the ways in to the questions", () => {
+    it("the list offers them beside the full form", () => {
+        const html = panel({});
+        expect(html).toContain('href="/base/new"');
+        expect(html).toContain('href="/base/new/guided"');
+        expect(html).toContain("Answer a few questions instead");
+        expect(panel({ available: false })).not.toContain("Answer a few questions instead");
+    });
+
+    it("the full form links to them only when it is told where they are", () => {
+        const withLink = renderToStaticMarkup(createElement(CaseStudyEditor, { initial: view(), disciplines: kinds, listHref: "/list", guidedBase: "/base" } as never));
+        expect(withLink).toContain('href="/base/s1/guided"');
+        const without = renderToStaticMarkup(createElement(CaseStudyEditor, { initial: view(), disciplines: kinds, listHref: "/list" } as never));
+        expect(without).not.toContain("/guided");
     });
 });
 

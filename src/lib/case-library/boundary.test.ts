@@ -41,7 +41,10 @@ describe("new pages", () => {
     const pages = all.filter((file) => rel(file).startsWith("app/dashboard/settings/case-studies/library/") && file.endsWith("page.tsx"));
 
     it("check who is signed in, then the switch, before reading anything", () => {
-        expect(pages.map(rel).sort()).toEqual(["app/dashboard/settings/case-studies/library/[id]/page.tsx", "app/dashboard/settings/case-studies/library/new/page.tsx"]);
+        expect(pages.map(rel).sort()).toEqual([
+            "app/dashboard/settings/case-studies/library/[id]/guided/page.tsx", "app/dashboard/settings/case-studies/library/[id]/page.tsx",
+            "app/dashboard/settings/case-studies/library/new/guided/page.tsx", "app/dashboard/settings/case-studies/library/new/page.tsx",
+        ]);
         for (const page of pages) {
             const text = code(page);
             const auth = text.indexOf('if (!user) redirect("/login")');
@@ -57,6 +60,8 @@ describe("new pages", () => {
     it("sit inside a route the cohort profile already allows, so the switch, not the link, is what closes them", () => {
         expect(isDashboardPathAllowed("/dashboard/settings/case-studies/library/new", "cohort")).toBe(true);
         expect(isDashboardPathAllowed("/dashboard/settings/case-studies/library/00000000-0000-4000-8000-000000000001", "cohort")).toBe(true);
+        expect(isDashboardPathAllowed("/dashboard/settings/case-studies/library/new/guided", "cohort")).toBe(true);
+        expect(isDashboardPathAllowed("/dashboard/settings/case-studies/library/00000000-0000-4000-8000-000000000001/guided", "cohort")).toBe(true);
     });
 
     it("the existing pages read the library only behind the switch, with the contractor's own session", () => {
@@ -122,9 +127,11 @@ describe("writes", () => {
         expect(service).not.toMatch(/reader\.study\(/);
         expect(service).not.toMatch(/Promise\.all\(\[[^\]]*reader\.(study|disciplines)/);
         // The edit page starts the editor from the same kind of read.
-        const page = code(path.join(SRC, "app/dashboard/settings/case-studies/library/[id]/page.tsx"));
-        expect(page).toContain("readStudyAtOneRevision(sessionReader(supabase), user.id, id)");
-        expect(page).not.toMatch(/reader\.study\(|\.study\(user\.id/);
+        for (const route of ["[id]/page.tsx", "[id]/guided/page.tsx"]) {
+            const page = code(path.join(SRC, "app/dashboard/settings/case-studies/library", route));
+            expect(page, route).toContain("readStudyAtOneRevision(sessionReader(supabase), user.id, id)");
+            expect(page, route).not.toMatch(/reader\.study\(|\.study\(user\.id/);
+        }
         // In the bracket itself: revision, then the rest, then revision again, each awaited before the next begins.
         const store = code(path.join(SRC, "lib/case-library/store.ts"));
         const bracket = store.slice(store.indexOf("export async function readStudyAtOneRevision"));
@@ -154,6 +161,75 @@ describe("writes", () => {
         expect(actions).toContain(".update({ case_studies: caseStudies })");
         expect(client).not.toMatch(/case-library|library-actions/);
         expect(actions).not.toMatch(/case-library/);
+    });
+});
+
+describe("the guided questions", () => {
+    const screen = code(path.join(SRC, "app/dashboard/settings/case-studies/library/guided-capture.tsx"));
+    const rules = ["guided.ts", "guided-state.ts"].map((name) => code(path.join(SRC, LIB, name)));
+
+    it("can add a case study, save it and add a kind of work, and nothing else: no approval, archive, older-version or proposal action", () => {
+        const imported = Array.from(screen.matchAll(/import \{([^}]*)\} from "\.\.\/library-actions"/g)).flatMap((match) => match[1].split(",").map((name) => name.trim()).filter(Boolean));
+        expect(imported.sort()).toEqual(["createCaseStudyAction", "saveCaseStudyAction", "saveDisciplineAction"]);
+        expect(screen.match(/library-actions/g)).toHaveLength(1);
+        for (const text of [screen, ...rules]) {
+            expect(text).not.toMatch(/approveCaseStudyAction|checkCaseStudyAction|archiveCaseStudyAction|archiveDisciplineAction|startFromOlder|approveStudy|loadForApproval|archiveStudy/);
+            expect(text).not.toMatch(/selected_case_study_ids|caseStudyIds|proposal-review|proposal-publication/);
+            expect(text).not.toMatch(/createAdminClient|supabase|\.rpc\(|fetch\(|process\.env|"use server"/);
+        }
+        const server = screen.slice(screen.indexOf("export interface GuidedServer"), screen.indexOf("const realServer"));
+        expect(Array.from(server.matchAll(/^\s+(\w+):/gm)).map((match) => match[1])).toEqual(["create", "save", "addDiscipline"]);
+    });
+
+    it("keep nothing in the browser between visits, and reach no model or provider", () => {
+        for (const text of [screen, ...rules]) {
+            expect(text).not.toMatch(/localStorage|sessionStorage|indexedDB|document\.cookie/);
+            expect(text).not.toMatch(/cohort-ai|company-interview|ai-budget|@\/lib\/ai|openai/i);
+        }
+    });
+
+    it("do no joining, splitting or inferring of text: an answer is a draft field, as typed", () => {
+        for (const text of rules) {
+            expect(text).not.toMatch(/\.split\(|\.replace\(|\.slice\(|\.normalize\(|lead-?in|The tricky part|What we did about it/i);
+        }
+        // The screen writes a box's value straight into its field.
+        expect(screen.match(/content: \{ \[question\.field!\]: event\.target\.value \}/g)).toHaveLength(2);
+        expect(screen).not.toMatch(/maxLength/);
+        expect(screen).not.toMatch(/\.trim\(\)\s*\}\s*\)/);
+    });
+
+    it("use the existing switch and no other, and are behind it on both routes", () => {
+        const gate = code(path.join(SRC, LIB, "gate.ts"));
+        expect(gate.match(/CONSTRUCTA_[A-Z_]+/g)).toEqual(["CONSTRUCTA_CASE_LIBRARY"]);
+        expect(all.filter((file) => /CONSTRUCTA_CASE_LIBRARY_/.test(code(file)))).toEqual([]);
+    });
+
+    it("the screen itself leaves only through the one check, and takes no input once it is going", () => {
+        // One place navigates after a save, and it asks the rules first.
+        expect(screen).toContain("const leaveNow = mayLeave(state) ? state.leave : null;");
+        expect(screen).not.toMatch(/if \(state\.leave\) router\.push/);
+        const effect = screen.slice(screen.indexOf("const leaveNow"), screen.indexOf("const leavePanel"));
+        expect(effect).toContain("if (!leaveNow || going.current) return;");
+        expect(effect.match(/router\.push\(/g)).toHaveLength(1);
+        // The only other navigation is the contractor's own explicit "go without saving".
+        expect(screen.match(/router\.push\(/g)).toHaveLength(2);
+        expect(screen).toContain(">Go without saving</button>");
+        expect(screen).toContain("inert={state.leave !== null}");
+        const rules = code(path.join(SRC, LIB, "guided-state.ts"));
+        // A confirmed save moves on, or leaves, only from the one line that has first found nothing unsaved.
+        expect(rules).toContain('if (isDirty(editor)) return then.kind === "leave" ? { ...next, leaveHeld: then.to } : { ...next, moveHeld: true };');
+        const reply = rules.slice(rules.indexOf('case "save/reply"'), rules.indexOf('case "leave/stay"'));
+        expect(reply.indexOf("if (isDirty(editor)) return")).toBeLessThan(reply.indexOf("{ ...next, leave: then.to }"));
+        expect(reply.indexOf("if (isDirty(editor)) return")).toBeLessThan(reply.indexOf("{ ...next, screen: then }"));
+        expect(reply.match(/screen: then/g)).toHaveLength(1);
+        expect(reply.match(/leave: then\.to/g)).toHaveLength(1);
+        expect(rules).toContain("if (state.leave !== null) return state;");
+    });
+
+    it("warn before leaving by reload, by any link, and by the browser's Back button", () => {
+        expect(screen).toContain("useUnsavedGuard(dirty, GUIDED_MESSAGES.leaveConfirm)");
+        expect(screen).toContain("useBackGuard(dirty)");
+        expect(screen).toContain('window.addEventListener("popstate", onBack)');
     });
 });
 

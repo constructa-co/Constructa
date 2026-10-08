@@ -85,7 +85,10 @@ export default function LibraryPanel({ available, studies, disciplines: loadedDi
             <section className={card} aria-label="Your case studies">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <h2 className="text-xl font-bold text-slate-50">Your case studies</h2>
-                    <Link href={`${basePath}/new`} className={primary}>Add a past job</Link>
+                    <div className="flex flex-wrap gap-2">
+                        <Link href={`${basePath}/new`} className={primary}>Add a past job</Link>
+                        <Link href={`${basePath}/new/guided`} className={secondary}>Answer a few questions instead</Link>
+                    </div>
                 </div>
                 <p className={hint}>Write a past job once, approve it, and choose it for any proposal. Pictures can&apos;t be added to these yet.</p>
                 <p role="status" aria-live="polite" data-library-notice className={notice ? "text-base font-semibold text-slate-100" : "sr-only"}>{notice ?? ""}</p>

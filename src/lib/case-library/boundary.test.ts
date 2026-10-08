@@ -216,7 +216,13 @@ describe("the guided questions", () => {
         expect(screen).toContain(">Go without saving</button>");
         expect(screen).toContain("inert={state.leave !== null}");
         const rules = code(path.join(SRC, LIB, "guided-state.ts"));
-        expect(rules).toContain("return isDirty(editor) ? { ...next, leaveHeld: then.to } : { ...next, leave: then.to };");
+        // A confirmed save moves on, or leaves, only from the one line that has first found nothing unsaved.
+        expect(rules).toContain('if (isDirty(editor)) return then.kind === "leave" ? { ...next, leaveHeld: then.to } : { ...next, moveHeld: true };');
+        const reply = rules.slice(rules.indexOf('case "save/reply"'), rules.indexOf('case "leave/stay"'));
+        expect(reply.indexOf("if (isDirty(editor)) return")).toBeLessThan(reply.indexOf("{ ...next, leave: then.to }"));
+        expect(reply.indexOf("if (isDirty(editor)) return")).toBeLessThan(reply.indexOf("{ ...next, screen: then }"));
+        expect(reply.match(/screen: then/g)).toHaveLength(1);
+        expect(reply.match(/leave: then\.to/g)).toHaveLength(1);
         expect(rules).toContain("if (state.leave !== null) return state;");
     });
 

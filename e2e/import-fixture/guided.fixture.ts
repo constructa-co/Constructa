@@ -318,6 +318,32 @@ test("Guided basics: questions, skip and back, an unconfirmed first save, a lost
         expect(await writes(), "going without saving wrote nothing").toBe(before);
         expect((await control()).studies[1].draft.duration_text).toBe("9 weeks");
 
+        // ── 10c. "Save and next" with a slow answer: it does not move on and put newer typing out of sight ──
+        await page.goto(`${ROOT}/${run}/study/${id}/guided`);
+        await use.activate(button("Change: What did it mean for the client?"));
+        await use.fill(answer, "Sent before moving on.");
+        await control({ delayMs: 5000 });
+        await use.activate(next);
+        await expect(saveLine).toHaveText("Saving…");
+        await use.fill(answer, "Sent before moving on. Then more, typed while saving.");
+        const moveHeld = page.locator("[data-move-held]");
+        await expect(moveHeld).toHaveText("Your earlier answers were saved. What you typed after that isn't saved yet, so this question is still open.");
+        await expect(question("What did it mean for the client?"), "still on the question it was typed in").toBeVisible();
+        await expect(question("Roughly where?")).toHaveCount(0);
+        await expect(answer).toHaveValue("Sent before moving on. Then more, typed while saving.");
+        await expect(saveLine).toHaveText("Changes not saved: what it meant for the client.");
+        await control({ delayMs: 0 });
+        state = await control();
+        expect(state.studies[1].draft.value_added, "what was sent is what was saved; nothing was sent again by itself").toBe("Sent before moving on.");
+        before = await writes();
+        await checkpoint("next-held");
+        // Pressed again, deliberately, with nothing typed meanwhile: it moves on.
+        await use.activate(next);
+        await expect(question("Roughly where?")).toBeVisible();
+        await expect(moveHeld).toHaveCount(0);
+        expect(await writes()).toBe(before + 1);
+        expect((await control()).studies[1].draft.value_added).toBe("Sent before moving on. Then more, typed while saving.");
+
         // ── 11. The browser's own Back button asks first too ──
         await page.goto(`${ROOT}/${run}`);
         await page.goto(`${ROOT}/${run}/study/${id}/guided`);

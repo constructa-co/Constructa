@@ -76,10 +76,17 @@
       "undersized": [],
       "blockingAccessibility": [],
       "screenshot": null
+    },
+    {
+      "name": "next-held",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
     }
   ],
   "keyboard": {
-    "controlsReached": 73,
+    "controlsReached": 78,
     "withoutVisibleFocus": []
   },
   "blockedThirdPartyHosts": [

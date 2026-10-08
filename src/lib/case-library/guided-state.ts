@@ -20,6 +20,10 @@
  *  - a first create that got no answer cannot be retried safely, because
  *    there is no id to look for. It stops until the contractor says to add
  *    it again;
+ *  - "save and next" moves on only if NOTHING is unsaved when the reply
+ *    arrives, for the same reason as the next rule. Moving on would put
+ *    still-unsaved typing out of sight on another screen. It is not lost,
+ *    but the screen stays where it is so the contractor can see it;
  *  - "save, then go" leaves only if NOTHING is unsaved when the reply
  *    arrives. A confirmed save confirms the copy that was sent, not what is
  *    on the screen now: anything typed while it was running is still
@@ -58,6 +62,11 @@ export interface GuidedState {
      * The screen stayed. This is where the contractor had asked to go, so they can be asked again.
      */
     leaveHeld: LeaveTo | null;
+    /**
+     * A save-and-next was confirmed, but something was typed while it was running and is not saved.
+     * The screen stayed on the question it was on, instead of moving that typing out of sight.
+     */
+    moveHeld: boolean;
 }
 
 export type GuidedAction =
@@ -80,6 +89,7 @@ export function initialGuidedState(view: StudyView | null): GuidedState {
         local: null,
         leave: null,
         leaveHeld: null,
+        moveHeld: false,
     };
 }
 
@@ -136,7 +146,7 @@ export function guidedReducer(state: GuidedState, action: GuidedAction): GuidedS
                 return { ...state, local: { key: "title", message: GUIDED_MESSAGES.titleNeeded } };
             }
             // Moving by hand: a reply still on its way no longer moves the screen.
-            return { ...state, screen: action.screen, after: null, local: null, leaveHeld: null };
+            return { ...state, screen: action.screen, after: null, local: null, leaveHeld: null, moveHeld: false };
         }
 
         case "save/start": {
@@ -146,12 +156,12 @@ export function guidedReducer(state: GuidedState, action: GuidedAction): GuidedS
                     // Nothing to save: going where the save would have led is safe and makes no request.
                     if (action.then === null) return state;
                     // "Nothing to save" was decided from this very state, so nothing is unsaved.
-                    return action.then.kind === "leave" ? { ...state, leave: action.then.to, leaveHeld: null } : { ...state, screen: action.then, after: null, local: null, leaveHeld: null };
+                    return action.then.kind === "leave" ? { ...state, leave: action.then.to, leaveHeld: null, moveHeld: false } : { ...state, screen: action.then, after: null, local: null, leaveHeld: null, moveHeld: false };
                 }
                 return typeof refusal === "object" && refusal ? { ...state, local: refusal } : state;
             }
             const editor = editorReducer(titleTidied(state.editor), { type: "save/start" });
-            return { ...state, editor, after: { token: plan.token, then: action.then }, createUnknown: false, local: null, leaveHeld: null };
+            return { ...state, editor, after: { token: plan.token, then: action.then }, createUnknown: false, local: null, leaveHeld: null, moveHeld: false };
         }
 
         case "save/reply": {
@@ -168,16 +178,17 @@ export function guidedReducer(state: GuidedState, action: GuidedAction): GuidedS
                 createUnknown: state.editor.id === null && editor.id === null && action.result.status === "unknown",
             };
             if (!CONFIRMED.has(action.result.status) || then === null) return next;
-            if (then.kind !== "leave") return { ...next, screen: then };
-            // What was SENT is saved. If anything typed since is not, the screen stays and keeps it.
-            return isDirty(editor) ? { ...next, leaveHeld: then.to } : { ...next, leave: then.to };
+            // What was SENT is saved. If anything typed since is not, the screen stays where it is and keeps it:
+            // it neither moves on to another question nor leaves, and nothing is sent again by itself.
+            if (isDirty(editor)) return then.kind === "leave" ? { ...next, leaveHeld: then.to } : { ...next, moveHeld: true };
+            return then.kind === "leave" ? { ...next, leave: then.to } : { ...next, screen: then };
         }
 
         case "leave/stay":
             return { ...state, leaveHeld: null };
 
         case "latest/use":
-            return { ...state, editor: editorReducer(state.editor, action), local: null };
+            return { ...state, editor: editorReducer(state.editor, action), local: null, moveHeld: false };
 
         case "latest/keep-mine": {
             const { editor } = state;

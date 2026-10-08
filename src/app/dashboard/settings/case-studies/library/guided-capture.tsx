@@ -234,6 +234,7 @@ export default function GuidedCapture({ initial, disciplines: initialDisciplines
                     {leaveControl("form", "Use the full form instead")}
                 </div>
                 <p role="status" aria-live="polite" data-save-line className={`text-base font-semibold ${noticeKind === "none" || noticeKind === "saved" ? "text-slate-100" : "text-amber-200"}`}>{status}</p>
+                {state.moveHeld && dirty && <p role="alert" data-move-held className="text-base font-semibold text-amber-200">{GUIDED_MESSAGES.moveHeld}</p>}
                 {state.local && <p role="alert" data-guided-refusal className="text-base font-semibold text-amber-200">{state.local.message}</p>}
                 {state.local && state.local.key && state.local.key !== current && (
                     <button type="button" className={secondary} onClick={() => go({ kind: "question", key: state.local!.key! })}>Go to that question</button>

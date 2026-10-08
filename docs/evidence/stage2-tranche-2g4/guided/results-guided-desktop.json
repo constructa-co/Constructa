@@ -76,6 +76,13 @@
       "undersized": [],
       "blockingAccessibility": [],
       "screenshot": "10-leave-held-1280x800.jpg"
+    },
+    {
+      "name": "next-held",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "11-next-held-1280x800.jpg"
     }
   ],
   "blockedThirdPartyHosts": [

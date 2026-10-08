@@ -6,6 +6,8 @@ Kimi's first code review of the original candidate had not arrived when this was
 
 Written 8 October 2026 by the primary builder (Claude).
 
+> **Followed by `GUIDED-ADVANCE-REPAIR-REPORT.md`.** This report says "Save and next" was looked at and left as it was, and that Kimi's first review was not yet reconciled. Both are superseded: the first review is reconciled there, and a confirmed "Save and next" now stays on its question when newer typing is unsaved.
+
 ## 1. Pins
 
 | | |

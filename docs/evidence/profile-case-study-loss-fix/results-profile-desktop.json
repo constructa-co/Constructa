@@ -1,0 +1,43 @@
+{
+  "project": "desktop",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "input": "pointer",
+  "outcome": "passed",
+  "saves": 2,
+  "caseStudiesAfter": [
+    "Kitchen at Example Road",
+    "Loft at Sample Street",
+    "Bathroom at Test Lane"
+  ],
+  "postedFields": [
+    "accounts_email",
+    "accreditations",
+    "address",
+    "business_type",
+    "capability_statement",
+    "company_name",
+    "company_number",
+    "financial_year_start_month",
+    "full_name",
+    "insurance_details",
+    "logo_url",
+    "md_message",
+    "md_name",
+    "pdf_theme",
+    "phone",
+    "preferred_trades",
+    "sales_email",
+    "sales_phone",
+    "specialisms",
+    "vat_number",
+    "website",
+    "years_trading"
+  ],
+  "blockedThirdPartyHosts": [
+    "plausible.io",
+    "www.clarity.ms"
+  ]
+}

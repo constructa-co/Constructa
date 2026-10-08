@@ -32,7 +32,7 @@ describe("website-import fixture harness", () => {
     });
 
     it("refuses to work unless explicitly switched on, at every entry point", () => {
-        for (const file of ["page.tsx", "actions.ts", "state/route.ts", "interview/page.tsx", "interview/actions.ts", "interview/state/route.ts", "case-study/page.tsx", "case-study/actions.ts", "case-study/state/route.ts"]) {
+        for (const file of ["page.tsx", "actions.ts", "state/route.ts", "interview/page.tsx", "interview/actions.ts", "interview/state/route.ts", "case-study/page.tsx", "case-study/actions.ts", "case-study/state/route.ts", "profile/page.tsx", "profile/actions.ts", "profile/state/route.ts"]) {
             expect(read(`e2e/import-fixture/app/${file}`), file).toContain('process.env.CONSTRUCTA_IMPORT_FIXTURE !== "1"');
         }
         const actions = read("e2e/import-fixture/app/actions.ts");
@@ -53,6 +53,15 @@ describe("website-import fixture harness", () => {
         // The case-study harness uses a canned generator and an in-memory budget, and can show the feature switched off as shipped.
         expect(caseStudy).toContain('cohortRig({ enabled: !run.startsWith("off-") })');
         expect(caseStudy).not.toMatch(/createAdminClient|@\/lib\/supabase|from ["']openai["']/);
+
+        const profile = read("e2e/import-fixture/app/profile/actions.ts");
+        const profileExports = Array.from(profile.matchAll(/export async function (\w+)\([^)]*\)[^{]*\{\n\s+(\w+)\(\);/g));
+        expect(profileExports.map((match) => match[1]).sort()).toEqual(["fixtureProfile", "fixtureProfileControl", "fixtureSaveProfile"]);
+        expect(profileExports.every((match) => match[2] === "guard")).toBe(true);
+        expect(Array.from(profile.matchAll(/export async function/g))).toHaveLength(3);
+        // The profile harness saves through the application's own payload builder, to memory only.
+        expect(profile).toContain("profileUpdateFromForm(String(state.row.id), formData)");
+        expect(profile).not.toMatch(/createAdminClient|@\/lib\/supabase|from ["']openai["']/);
 
         // AI wording is off in the harness unless a run asks for it by name; the harness cannot change the application's setting.
         expect(interview).toContain('wordingRig({ enabled: run.startsWith("ai-") })');

@@ -154,13 +154,29 @@ describe("writes", () => {
         expect(editor).toContain("shown: check.wouldApprove");
     });
 
-    it("the older editor and its save are not touched", () => {
-        const client = readFileSync(path.join(SRC, "app/dashboard/settings/case-studies/case-studies-client.tsx"), "utf8");
-        const actions = readFileSync(path.join(SRC, "app/dashboard/settings/case-studies/actions.ts"), "utf8");
-        expect(client).toContain("saveCaseStudiesAction(caseStudies)");
-        expect(actions).toContain(".update({ case_studies: caseStudies })");
-        expect(client).not.toMatch(/case-library|library-actions/);
-        expect(actions).not.toMatch(/case-library/);
+    it("the older editor and its save stay separate from the library, and its save is still one write of the whole list to the contractor's own profile", () => {
+        const folder = "app/dashboard/settings/case-studies";
+        const client = readFileSync(path.join(SRC, folder, "case-studies-client.tsx"), "utf8");
+        const actions = readFileSync(path.join(SRC, folder, "actions.ts"), "utf8");
+        const rules = readFileSync(path.join(SRC, folder, "save-state.ts"), "utf8");
+        // Separation, as before: nothing of the older editor reaches the library, in either direction of this folder.
+        for (const text of [client, actions, rules]) expect(text).not.toMatch(/case-library|library-actions/);
+        // The save is still the same single write, with the contractor's own session: the whole list, one column, their own row.
+        // It now also asks for the changed row's id back. It has gained no condition on what it replaces.
+        const save = code(path.join(SRC, folder, "actions.ts"));
+        const body = save.slice(save.indexOf("export async function saveCaseStudiesAction"), save.indexOf("export async function enhanceCaseStudyAction"));
+        expect(body).toContain(".update({ case_studies: caseStudies })");
+        expect(body).toContain('.eq("id", user.id)');
+        expect(body).toContain('.select("id")');
+        expect(body.match(/\.from\(/g)).toHaveLength(1);
+        expect(body.match(/\.eq\(/g)).toHaveLength(1);
+        expect(body).not.toMatch(/createAdminClient|\.rpc\(|\.insert\(|\.upsert\(|\.delete\(|\.single\(|\.maybeSingle\(/);
+        // The editor sends only the copy its rules recorded, through the injected save (the real action by default).
+        expect(client).toContain("save = saveCaseStudiesAction");
+        expect(client.match(/await save\(request\.sent\)/g)).toHaveLength(1);
+        expect(client.match(/saveCaseStudiesAction/g)).toHaveLength(2);
+        // Its rules are pure: no database, network, storage or framework.
+        expect(code(path.join(SRC, folder, "save-state.ts"))).not.toMatch(/supabase|fetch\(|process\.env|"use server"|"use client"|localStorage|sessionStorage|from "react"|from "next/);
     });
 });
 

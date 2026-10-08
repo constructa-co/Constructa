@@ -57,6 +57,8 @@ jobs:
         run: npm run test:company-narrative-ai-sql
       - name: Verify the four cohort AI features are added switched off and share one allowance
         run: npm run test:cohort-ai-features-sql
+      - name: Verify the inactive case-study library foundation
+        run: npm run test:case-library-sql
       - run: npm run build
 
   # The company-website import, in a real browser, with no database: the real

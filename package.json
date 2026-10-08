@@ -18,6 +18,7 @@
     "test:company-interview-sql": "bash scripts/test-company-interview-sql.sh",
     "test:company-narrative-ai-sql": "bash scripts/test-company-narrative-ai-sql.sh",
     "test:cohort-ai-features-sql": "bash scripts/test-cohort-ai-features-sql.sh",
+    "test:case-library-sql": "bash scripts/test-case-library-sql.sh",
     "test:cost-library-sql": "bash scripts/test-cost-library-rls-sql.sh",
     "test:definer-sql": "bash scripts/test-legacy-definer-sql.sh",
     "test:organization-sql": "bash scripts/test-organization-membership-sql.sh",

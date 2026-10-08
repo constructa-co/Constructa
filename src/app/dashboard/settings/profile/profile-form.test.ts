@@ -60,11 +60,16 @@ describe("the Company Profile form no longer edits case studies", () => {
         expect(html).toContain('value="Example Builders Ltd"');
     });
 
-    it("the dedicated case-study editor and its save are untouched by this change", () => {
+    it("the dedicated case-study editor is still the one place that saves case studies, by one write of the whole list", () => {
+        // What this guards is unchanged: case studies are saved by their own editor through its own action, not by the
+        // profile form. How that editor calls the action changed later (it now sends the copy its rules recorded and
+        // reads a result); the write itself is the same single update of the one column.
         const editor = readFileSync(path.join(SRC, "app/dashboard/settings/case-studies/case-studies-client.tsx"), "utf8");
         const actions = readFileSync(path.join(SRC, "app/dashboard/settings/case-studies/actions.ts"), "utf8");
-        expect(editor).toContain("saveCaseStudiesAction(caseStudies)");
+        expect(editor).toContain("save = saveCaseStudiesAction");
+        expect(editor).toContain("await save(request.sent)");
         expect(actions).toContain(".update({ case_studies: caseStudies })");
+        expect(actions.match(/case_studies:/g)).toHaveLength(1);
     });
 });
 

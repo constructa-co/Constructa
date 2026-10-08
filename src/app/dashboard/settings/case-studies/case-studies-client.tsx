@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useReducer, useRef, useState, type Reducer } from "react";
 import { toast } from "sonner";
 import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Loader2, MapPin, Briefcase, Calendar, PoundSterling, Sparkles } from "lucide-react";
 import { saveCaseStudiesAction, enhanceCaseStudyAction } from "./actions";
 import type { CaseStudyResult, CaseStudySection } from "@/lib/cohort-ai/case-study-enhance";
 import { pendingFrom, sectionState, settle, type PendingCaseStudySuggestion } from "@/lib/cohort-ai/case-study-suggestion";
 import { uploadProfileImageAction } from "@/app/storage/actions";
+import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
+import { SAVE_MESSAGES, initialSaveState, needsLeaveWarning, requestOf, saveReducer, statusLine, type SaveAction, type SaveCaseStudiesResult, type SaveState } from "./save-state";
 
 type Enhance = (whatWeDelivered: string, valueAdded: string, projectName: string, projectType: string) => Promise<CaseStudyResult>;
+type Save = (caseStudies: unknown) => Promise<SaveCaseStudiesResult>;
 
 interface CaseStudy {
     id: string;
@@ -23,14 +26,51 @@ interface CaseStudy {
     photos: string[];
 }
 
-export default function CaseStudiesClient({ initialCaseStudies, userId, enhance = enhanceCaseStudyAction }: {
+/**
+ * The older case-study editor. Saving here replaces the whole stored list and
+ * is NOT protected against another tab: a tab that loaded an older list still
+ * overwrites a newer one. What this screen does guarantee is narrower: it
+ * says "saved" only when a save was confirmed, it never clears what was typed
+ * because a save failed, was slow or was not confirmed, and it warns before
+ * leaving by reload or by a link. It does not cover navigation made by code
+ * or the browser's Back and Forward buttons.
+ */
+export default function CaseStudiesClient({ initialCaseStudies, userId, enhance = enhanceCaseStudyAction, save = saveCaseStudiesAction }: {
     initialCaseStudies: CaseStudy[];
     userId: string;
     /** Defaults to the real server action; replaced only by tests and the fixture harness. */
     enhance?: Enhance;
+    /** Defaults to the real server action; replaced only by tests and the fixture harness. */
+    save?: Save;
 }) {
-    const [caseStudies, setCaseStudies] = useState<CaseStudy[]>(initialCaseStudies);
-    const [isPending, startTransition] = useTransition();
+    const [state, dispatch] = useReducer(saveReducer as Reducer<SaveState<CaseStudy>, SaveAction<CaseStudy>>, initialCaseStudies, initialSaveState<CaseStudy>);
+    const caseStudies = state.draft;
+    const isPending = state.saving !== null;
+    const sentToken = useRef(0);
+    /** Every change to the list goes through here: it changes what is on screen and nothing else. */
+    const setCaseStudies = (change: (previous: CaseStudy[]) => CaseStudy[]) => dispatch({ type: "edit", change });
+
+    // Reload, closing the tab and plain links ask first. Navigation made by code, and Back and Forward, are not covered.
+    useUnsavedGuard(needsLeaveWarning(state), SAVE_MESSAGES.leaveConfirm);
+
+    // Sends the save the rules started: exactly the copy they recorded, once, however often this runs or the button is pressed.
+    useEffect(() => {
+        const request = requestOf(state);
+        if (!request || sentToken.current === request.token) return;
+        sentToken.current = request.token;
+        void (async () => {
+            let result: SaveCaseStudiesResult;
+            try {
+                result = await save(request.sent);
+            } catch {
+                // The request itself failed. Whether it reached the server is not known.
+                result = { status: "unknown", message: SAVE_MESSAGES.unknown };
+            }
+            dispatch({ type: "save/reply", token: request.token, result });
+            // A success message only with evidence of a save.
+            if (result.status === "saved") toast.success("Case studies saved");
+        })();
+    });
 
     const addCaseStudy = () => {
         setCaseStudies(prev => [...prev, {
@@ -55,12 +95,10 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
         setCaseStudies(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleSave = () => {
-        startTransition(async () => {
-            await saveCaseStudiesAction(caseStudies);
-            toast.success("Case studies saved");
-        });
-    };
+    /** Asks the rules to start a save. They decide whether one starts; with nothing to save, nothing is sent. */
+    const handleSave = () => dispatch({ type: "save/start" });
+    const status = statusLine(state);
+    const trouble = state.notice.kind === "failed" || state.notice.kind === "unknown" || state.uncertain;
 
     const handlePhotoUpload = async (csIndex: number, slot: number, file: File) => {
         const cs = caseStudies[csIndex];
@@ -121,9 +159,10 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
                     disabled={isPending}
                     className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-xl font-bold text-sm transition-all"
                 >
-                    {isPending ? "Saving..." : "Save All Case Studies"}
+                    {isPending ? "Saving..." : state.notice.kind === "failed" || state.notice.kind === "unknown" ? "Try again" : "Save All Case Studies"}
                 </button>
             </div>
+            <p role="status" aria-live="polite" data-case-studies-save-status className={status ? `text-sm font-semibold text-right ${trouble ? "text-amber-200" : "text-slate-100"}` : "sr-only"}>{status}</p>
         </div>
     );
 }

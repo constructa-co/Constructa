@@ -47,9 +47,9 @@ describe("website-import fixture harness", () => {
         expect(Array.from(interview.matchAll(/export async function/g))).toHaveLength(7);
         const caseStudy = read("e2e/import-fixture/app/case-study/actions.ts");
         const caseStudyExports = Array.from(caseStudy.matchAll(/export async function (\w+)\([^)]*\)[^{]*\{\n\s+(\w+)\(\);/g));
-        expect(caseStudyExports.map((match) => match[1]).sort()).toEqual(["fixtureCaseStudyControl", "fixtureEnhance"]);
+        expect(caseStudyExports.map((match) => match[1]).sort()).toEqual(["fixtureCaseStudies", "fixtureCaseStudyControl", "fixtureEnhance", "fixtureSaveCaseStudies"]);
         expect(caseStudyExports.every((match) => match[2] === "guard")).toBe(true);
-        expect(Array.from(caseStudy.matchAll(/export async function/g))).toHaveLength(2);
+        expect(Array.from(caseStudy.matchAll(/export async function/g))).toHaveLength(4);
         // The case-study harness uses a canned generator and an in-memory budget, and can show the feature switched off as shipped.
         expect(caseStudy).toContain('cohortRig({ enabled: !run.startsWith("off-") })');
         expect(caseStudy).not.toMatch(/createAdminClient|@\/lib\/supabase|from ["']openai["']/);

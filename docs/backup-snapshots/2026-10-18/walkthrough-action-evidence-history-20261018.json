@@ -1,0 +1,708 @@
+{
+  "createdAt": "2026-10-18T12:16:00Z",
+  "purpose": "Prior per-action evidence links retained when the live register was capped at three citations. This is a reference archive, not removal of evidence or failed results.",
+  "actions": [
+    {
+      "id": "A001",
+      "evidence": [
+        "marketing-integration-3.json",
+        "marketing-integration-4.json",
+        "marketing-integration-scope.json"
+      ]
+    },
+    {
+      "id": "A002",
+      "evidence": [
+        "marketing-integration-3.json",
+        "marketing-integration-4.json",
+        "marketing-integration-scope.json"
+      ]
+    },
+    {
+      "id": "A003",
+      "evidence": []
+    },
+    {
+      "id": "A004",
+      "evidence": []
+    },
+    {
+      "id": "A005",
+      "evidence": [
+        "marketing-integration-3.json",
+        "marketing-integration-4.json",
+        "marketing-integration-scope.json"
+      ]
+    },
+    {
+      "id": "A006",
+      "evidence": [
+        "walkthrough-discipline-research.json"
+      ]
+    },
+    {
+      "id": "A007",
+      "evidence": [
+        "setup-review-final.json",
+        "marketing-integration-3.json"
+      ]
+    },
+    {
+      "id": "A008",
+      "evidence": []
+    },
+    {
+      "id": "A009",
+      "evidence": [
+        "setup-review-final.json",
+        "marketing-integration-3.json"
+      ]
+    },
+    {
+      "id": "A010",
+      "evidence": [
+        "welcome-routing-before.json",
+        "welcome-routing-after.json",
+        "welcome-routing-contract.json",
+        "welcome-routing-summary.json"
+      ]
+    },
+    {
+      "id": "A011",
+      "evidence": [
+        "welcome-paths-before.json",
+        "welcome-paths-after.json",
+        "welcome-paths-final.json",
+        "welcome-paths-contract.json",
+        "welcome-paths-native.json",
+        "welcome-paths-summary.json",
+        "welcome-paths-native-desktop.png",
+        "welcome-paths-native-mobile.png"
+      ]
+    },
+    {
+      "id": "A012",
+      "evidence": [
+        "welcome-paths-before.json",
+        "welcome-paths-after.json",
+        "welcome-paths-final.json",
+        "welcome-paths-contract.json",
+        "welcome-paths-native.json",
+        "welcome-paths-summary.json",
+        "welcome-paths-native-desktop.png",
+        "welcome-paths-native-mobile.png"
+      ]
+    },
+    {
+      "id": "A013",
+      "evidence": [
+        "welcome-paths-before.json",
+        "welcome-paths-after.json",
+        "welcome-paths-final.json",
+        "welcome-paths-contract.json",
+        "welcome-paths-native.json",
+        "welcome-paths-summary.json",
+        "welcome-paths-native-desktop.png",
+        "welcome-paths-native-mobile.png"
+      ]
+    },
+    {
+      "id": "A014",
+      "evidence": [
+        "welcome-paths-before.json",
+        "welcome-paths-after.json",
+        "welcome-paths-final.json",
+        "welcome-paths-contract.json",
+        "welcome-paths-native.json",
+        "welcome-paths-summary.json",
+        "welcome-paths-native-desktop.png",
+        "welcome-paths-native-mobile.png"
+      ]
+    },
+    {
+      "id": "A015",
+      "evidence": []
+    },
+    {
+      "id": "A016",
+      "evidence": []
+    },
+    {
+      "id": "A017",
+      "evidence": []
+    },
+    {
+      "id": "A018",
+      "evidence": []
+    },
+    {
+      "id": "A019",
+      "evidence": []
+    },
+    {
+      "id": "A020",
+      "evidence": []
+    },
+    {
+      "id": "A021",
+      "evidence": []
+    },
+    {
+      "id": "A022",
+      "evidence": []
+    },
+    {
+      "id": "A023",
+      "evidence": []
+    },
+    {
+      "id": "A024",
+      "evidence": []
+    },
+    {
+      "id": "A025",
+      "evidence": []
+    },
+    {
+      "id": "A026",
+      "evidence": []
+    },
+    {
+      "id": "A027",
+      "evidence": []
+    },
+    {
+      "id": "A028",
+      "evidence": [
+        "walkthrough-profile-feedback.json"
+      ]
+    },
+    {
+      "id": "A029",
+      "evidence": []
+    },
+    {
+      "id": "A030",
+      "evidence": []
+    },
+    {
+      "id": "A031",
+      "evidence": []
+    },
+    {
+      "id": "A032",
+      "evidence": []
+    },
+    {
+      "id": "A033",
+      "evidence": []
+    },
+    {
+      "id": "A034",
+      "evidence": []
+    },
+    {
+      "id": "A035",
+      "evidence": []
+    },
+    {
+      "id": "A036",
+      "evidence": []
+    },
+    {
+      "id": "A037",
+      "evidence": []
+    },
+    {
+      "id": "A038",
+      "evidence": [
+        "walkthrough-case-studies-feedback.json"
+      ]
+    },
+    {
+      "id": "A039",
+      "evidence": []
+    },
+    {
+      "id": "A040",
+      "evidence": []
+    },
+    {
+      "id": "A041",
+      "evidence": []
+    },
+    {
+      "id": "A042",
+      "evidence": []
+    },
+    {
+      "id": "A043",
+      "evidence": []
+    },
+    {
+      "id": "A044",
+      "evidence": []
+    },
+    {
+      "id": "A045",
+      "evidence": []
+    },
+    {
+      "id": "A046",
+      "evidence": []
+    },
+    {
+      "id": "A047",
+      "evidence": [
+        "walkthrough-estimating-feedback.json"
+      ]
+    },
+    {
+      "id": "A048",
+      "evidence": [
+        "resource-entry-before.json",
+        "resource-entry-after.json",
+        "resource-entry-final.json",
+        "resource-opening-before.json",
+        "resource-opening-after.json",
+        "resource-opening-native-final.json",
+        "resource-opening-style-final.json",
+        "resource-opening-lint-parity.json",
+        "resource-entry-final-contract.json",
+        "resource-entry-native.json",
+        "resource-entry-native-final.png",
+        "resource-entry-summary.json",
+        "activity-entry-before.json",
+        "activity-entry-after.json",
+        "activity-entry-final.json",
+        "activity-entry-contract.json",
+        "activity-entry-native.json",
+        "activity-entry-native.png",
+        "activity-entry-summary.json",
+        "price-workspace-before.json",
+        "price-workspace-after.json",
+        "price-workspace-final.json",
+        "price-workspace-style-final.json",
+        "price-workspace-contract.json",
+        "price-workspace-native.json",
+        "price-workspace-summary.json",
+        "price-workspace-desktop.png",
+        "price-workspace-phone-before.png",
+        "price-workspace-phone-final.png"
+      ]
+    },
+    {
+      "id": "A049",
+      "evidence": [
+        "resource-entry-before.json",
+        "resource-entry-after.json",
+        "resource-entry-final.json",
+        "resource-opening-before.json",
+        "resource-opening-after.json",
+        "resource-opening-native-final.json",
+        "resource-opening-style-final.json",
+        "resource-opening-lint-parity.json",
+        "resource-entry-final-contract.json",
+        "resource-entry-native.json",
+        "resource-entry-native-final.png",
+        "resource-entry-summary.json",
+        "resource-rate-before.json",
+        "resource-rate-after.json",
+        "resource-rate-final.json",
+        "resource-rate-contract.json",
+        "resource-rate-summary.json"
+      ]
+    },
+    {
+      "id": "A050",
+      "evidence": [
+        "resource-entry-before.json",
+        "resource-entry-after.json",
+        "resource-entry-final.json",
+        "resource-opening-before.json",
+        "resource-opening-after.json",
+        "resource-opening-native-final.json",
+        "resource-opening-style-final.json",
+        "resource-opening-lint-parity.json",
+        "resource-entry-final-contract.json",
+        "resource-entry-native.json",
+        "resource-entry-native-final.png",
+        "resource-entry-summary.json",
+        "resource-rate-before.json",
+        "resource-rate-after.json",
+        "resource-rate-final.json",
+        "resource-rate-contract.json",
+        "resource-rate-summary.json"
+      ]
+    },
+    {
+      "id": "A051",
+      "evidence": [
+        "activity-entry-before.json",
+        "activity-entry-after.json",
+        "activity-entry-final.json",
+        "activity-entry-contract.json",
+        "activity-entry-native.json",
+        "activity-entry-native.png",
+        "activity-entry-summary.json",
+        "pricing-review-before.json",
+        "pricing-review-after.json",
+        "pricing-review-final.json",
+        "pricing-review-style-final.json",
+        "pricing-review-contract.json",
+        "pricing-review-native.json",
+        "pricing-review-native.png",
+        "pricing-review-summary.json"
+      ]
+    },
+    {
+      "id": "A052",
+      "evidence": []
+    },
+    {
+      "id": "A053",
+      "evidence": [
+        "area-quantity-before.json",
+        "area-quantity-after.json",
+        "area-quantity-final.json",
+        "area-quantity-contract.json",
+        "area-quantity-native.json",
+        "area-quantity-summary.json",
+        "area-quantity-native.png",
+        "area-quantity-phone-detail.png"
+      ]
+    },
+    {
+      "id": "A054",
+      "evidence": [
+        "running-total-check-final.json"
+      ]
+    },
+    {
+      "id": "A055",
+      "evidence": [
+        "pricing-review-before.json",
+        "pricing-review-after.json",
+        "pricing-review-final.json",
+        "pricing-review-style-final.json",
+        "pricing-review-contract.json",
+        "pricing-review-native.json",
+        "pricing-review-native.png",
+        "pricing-review-summary.json"
+      ]
+    },
+    {
+      "id": "A056",
+      "evidence": []
+    },
+    {
+      "id": "A057",
+      "evidence": []
+    },
+    {
+      "id": "A058",
+      "evidence": [
+        "programme-axis-summary.json",
+        "programme-axis-contract.json",
+        "programme-dates-before.json",
+        "programme-dates-after.json",
+        "programme-dates-contract.json",
+        "programme-dates-summary.json",
+        "programme-opening-before.json",
+        "programme-opening-before-serialization.json",
+        "programme-opening-after.json",
+        "programme-opening-contract.json",
+        "programme-opening-native.json",
+        "programme-opening-summary.json",
+        "programme-local-date-before.json",
+        "programme-local-date-after.json",
+        "programme-local-date-invalid-before.json",
+        "programme-local-date-final.json",
+        "programme-local-date-contract.json",
+        "programme-local-date-native.json",
+        "programme-local-date-summary.json"
+      ]
+    },
+    {
+      "id": "A059",
+      "evidence": [
+        "programme-axis-before.json",
+        "programme-axis-after.json",
+        "programme-axis-contract.json",
+        "programme-axis-summary.json",
+        "programme-dates-summary.json",
+        "programme-opening-summary.json",
+        "programme-opening-native.json",
+        "programme-local-date-summary.json"
+      ]
+    },
+    {
+      "id": "A060",
+      "evidence": []
+    },
+    {
+      "id": "A061",
+      "evidence": []
+    },
+    {
+      "id": "A062",
+      "evidence": []
+    },
+    {
+      "id": "A063",
+      "evidence": []
+    },
+    {
+      "id": "A064",
+      "evidence": []
+    },
+    {
+      "id": "A065",
+      "evidence": []
+    },
+    {
+      "id": "A066",
+      "evidence": []
+    },
+    {
+      "id": "A067",
+      "evidence": []
+    },
+    {
+      "id": "A068",
+      "evidence": []
+    },
+    {
+      "id": "A069",
+      "evidence": []
+    },
+    {
+      "id": "A070",
+      "evidence": []
+    },
+    {
+      "id": "A071",
+      "evidence": []
+    },
+    {
+      "id": "A072",
+      "evidence": []
+    },
+    {
+      "id": "A073",
+      "evidence": []
+    },
+    {
+      "id": "A074",
+      "evidence": []
+    },
+    {
+      "id": "A075",
+      "evidence": [
+        "walkthrough-proposal-feedback.json"
+      ]
+    },
+    {
+      "id": "A076",
+      "evidence": []
+    },
+    {
+      "id": "A077",
+      "evidence": [
+        "preservation-20261018-2/manifest.json",
+        "marketing-preservation-readback-2.json"
+      ]
+    },
+    {
+      "id": "A078",
+      "evidence": [
+        "marketing-preservation-readback-2.json",
+        "marketing-integration-scope.json"
+      ]
+    },
+    {
+      "id": "A079",
+      "evidence": [
+        "marketing-deployed-landing-baseline.json",
+        "marketing-integration-scope.json",
+        "deployed-landing-preservation-summary.json",
+        "preservation-landing-20261018/manifest.json",
+        "app-deployed-source-baseline-20261018.json",
+        "deployed-app-preservation-summary.json",
+        "preservation-app-20261018/manifest.json"
+      ]
+    },
+    {
+      "id": "A080",
+      "evidence": []
+    },
+    {
+      "id": "A081",
+      "evidence": [
+        "marketing-integration-3.json",
+        "marketing-integration-4.json",
+        "marketing-integration-scope.json"
+      ]
+    },
+    {
+      "id": "A082",
+      "evidence": [
+        "marketing-integration-3.json",
+        "marketing-integration-4.json",
+        "marketing-integration-scope.json"
+      ]
+    },
+    {
+      "id": "A083",
+      "evidence": [
+        "marketing-integration-3.json",
+        "marketing-integration-4.json",
+        "marketing-integration-scope.json"
+      ]
+    },
+    {
+      "id": "A084",
+      "evidence": [
+        "marketing-integration-3.json",
+        "marketing-integration-4.json",
+        "marketing-integration-scope.json"
+      ]
+    },
+    {
+      "id": "A085",
+      "evidence": [
+        "marketing-integration-3.json",
+        "marketing-integration-4.json",
+        "marketing-integration-scope.json"
+      ]
+    },
+    {
+      "id": "A086",
+      "evidence": [
+        "marketing-integration-scope.json"
+      ]
+    },
+    {
+      "id": "A087",
+      "evidence": [
+        "generated-lint-summary.json",
+        "marketing-integration-4.json"
+      ]
+    },
+    {
+      "id": "A088",
+      "evidence": [
+        "safe-fetch-loopback-summary.json"
+      ]
+    },
+    {
+      "id": "A089",
+      "evidence": []
+    },
+    {
+      "id": "A090",
+      "evidence": []
+    },
+    {
+      "id": "A091",
+      "evidence": [
+        "marketing-integration-3.json",
+        "marketing-integration-4.json",
+        "marketing-integration-scope.json",
+        "current-integration-tests.json"
+      ]
+    },
+    {
+      "id": "A092",
+      "evidence": []
+    },
+    {
+      "id": "A093",
+      "evidence": [
+        "marketing-integration-scope.json"
+      ]
+    },
+    {
+      "id": "A094",
+      "evidence": [
+        "action-register-validation.json"
+      ]
+    },
+    {
+      "id": "A095",
+      "evidence": [
+        "estimating-programme-benchmarks-20261018.md"
+      ]
+    },
+    {
+      "id": "A096",
+      "evidence": [
+        "marketing-analytics-content-plan-20261018.md"
+      ]
+    },
+    {
+      "id": "A097",
+      "evidence": []
+    },
+    {
+      "id": "A098",
+      "evidence": []
+    },
+    {
+      "id": "A099",
+      "evidence": []
+    },
+    {
+      "id": "A100",
+      "evidence": []
+    },
+    {
+      "id": "A101",
+      "evidence": []
+    },
+    {
+      "id": "A102",
+      "evidence": []
+    },
+    {
+      "id": "A103",
+      "evidence": []
+    },
+    {
+      "id": "A104",
+      "evidence": []
+    },
+    {
+      "id": "A105",
+      "evidence": [
+        "credential-exposure-review-20261018.json",
+        "credential-guard-check.json",
+        "credential-guard-check-final.json",
+        "credential-guard-range-before.json",
+        "credential-guard-scaffold-failure.json"
+      ]
+    },
+    {
+      "id": "A106",
+      "evidence": [
+        "credential-exposure-review-20261018.json"
+      ]
+    },
+    {
+      "id": "A107",
+      "evidence": [
+        "credential-exposure-review-20261018.json",
+        "credential-guard-check.json",
+        "credential-guard-check-final.json",
+        "credential-guard-range-before.json",
+        "credential-guard-scaffold-failure.json"
+      ]
+    },
+    {
+      "id": "A108",
+      "evidence": [
+        "credential-exposure-review-20261018.json"
+      ]
+    }
+  ]
+}

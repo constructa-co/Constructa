@@ -1,0 +1,30 @@
+{
+  "authority": "Robert completed the walkthrough and directly requested phase-one marketing integration on18October2026, preserving all phase2/3 work before any replacement.",
+  "delivery": "One preservation-first local marketing increment, not completion of the full walkthrough backlog.",
+  "sourcePreservation": {
+    "archive": "preservation-20261018-2/current-source-and-assets.tar",
+    "manifest": "preservation-20261018-2/manifest.json",
+    "files": 1417,
+    "bytes": 207931830,
+    "verified": "Archive member order and aggregate extracted contents match pre-edit source; source readback matched. Includes uncommitted source/assets. No repository restored or reset.",
+    "limits": "Not a full Git-history, primary-checkout, hosted service/database/credentials or off-machine backup. Git bundle timed out20seconds; no repair/retry. Original Vercel link metadata read stalled, interrupted130. First archiver invocation failed encoding before archive; original failure evidence retained."
+  },
+  "preservedApplication": "All existing later-phase application modules retained unchanged. Original five marketing page bodies remain in full-* components under the existing full launch profile, with only an import/function name adjustment and added EOF newline. All other pre-existing source/assets outside10allowed marketing/shell/config paths match archive manifest. Initial strict EOF comparator failure retained; bounded archive comparison proved the newline-only differences.",
+  "phaseOne": "Homepage and landing/product/features/access routes use charcoal/mint, company-price-programme-proposal content and existing local imagery. All account CTAs use existing /login. No add-on purchase, invented commercial plans/free trial or chatbot-ready claim. Rejected wordmark dot removed. Root-only domain rewrites preserve login/auth/dashboard URLs instead of masking all paths.",
+  "nativeRepair": "Browser roundtrip found server-request pathname retained wrong chrome after account-entry navigation. PublicChrome uses actual client pathname; native homepage->login->homepage now restores header/footer while login has only account chrome. Auth/proxy/capability/action code unchanged.",
+  "verification": "64focused current-source tests passed/5files, standalone typecheck pass, changed-file lint0errors12preserved warnings. Final full lint572files0errors486warnings exit0 includes PublicChrome. Prior full-unit2269pass4skip10fail and focusedtransport33pass1fail remain failures, not erased. No production build attempted.",
+  "native": "Same Edge3/tab1514108337 and3933runtime, no restart/newtab/fixture. Current homepage/signin/return/keyboardAccess route checked. 320/768 root and controls fit without horizontal overflow; viewport reset. Screenshots viewed. Initial Page.navigate timeout settled to actual homepage without retry. Initial phone screenshots showed retained wrong chrome and are not final acceptance. No credential entry/auth submit or customer data writes.",
+  "vercel": {
+    "inspectionOnly": true,
+    "runtimePrerequisite": "Both inspected Vercel projects report Node22.x; this checkout package requires >=24.19 <25. Establish a compatible isolated preview runtime without changing either current production project. This is an observed configuration mismatch, not a diagnosed cause of any historical deployment failure.",
+    "team": "team_wANaJiVrRNAsnnMMmrCSaOCS",
+    "project": "constructa/prj_Wh2LiojiueBHFrBgfZlQ6AKYaECb",
+    "latestReadyProduction": "dpl_FasboJebtyYUsDznikCKukM8YjHV",
+    "sourceRevision": "9405c2fca87174d51b7d1fb480aec73d2ba3c839",
+    "immutableUrl": "https://constructa-43as85gcc-robert-smiths-projects-fbd0dcc3.vercel.app",
+    "landingProject": "constructa-landing/prj_2holQVBL2mKR12Wk9BNb4s3Sf66k servesconstructa.co/www.constructa.co;productiondpl_9Yddb4x5hZxRC2i8naJsXZFuZLaG/revision95322690f47fd37ef38142492dabbadff7672115 in distinctconstructa-co/constructa-landing repo. Canonical70filetree+landingfile readthroughGitHub,recordedmarketing-deployed-landing-baseline.json,notfullbackup.",
+    "limits": "Read-only API metadata, not backed up deployment source or proof this checkout equals production. No project/domain/alias/environment/protection/deployment changes. Existing production untouched by agent. Publicsite webread inaccessible; authenticated repository read used instead."
+  },
+  "next": "Complete preservation of exact deployed source/history independently of the live app before any replacement. Resolve build generated-output isolation and exact font-only egress, then a separate protected phase-one share preview with verified test-target/provider controls; never point it at production data by default. Continue company-first welcome/setup workflow improvements and substantive estimating/programme/chatbot redesign from all recorded feedback, in verifiable increments.",
+  "holds": "No source checkout switching/copying/frozen integration, Git repair, migrations, real account changes, provider activation/paidAI, billing, send/publication or production deployment. A separate phase2 URL is a preservation option, not itself a backup. Next-weekend review is the requested target, not a delivery/release guarantee."
+}

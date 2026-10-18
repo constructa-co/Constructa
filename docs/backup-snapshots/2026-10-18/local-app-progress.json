@@ -1,0 +1,133 @@
+{
+  "backupExtractOnly": true,
+  "canonical": "/Users/robertsmith/.codex/worktrees/welcome-first-slice/verification/local-app-progress.json",
+  "walkthrough": {
+    "feedback": [
+      {
+        "source": "Robert's direct walkthrough feedback, 18 October 2026",
+        "stage": "Account signup/signin opening page",
+        "approved": [
+          "Clean account-entry presentation",
+          "Charcoal/black and green palette as the main brand direction",
+          "Left-hand signup/login form with right-hand explanatory prompts"
+        ],
+        "followUp": "Roll consistent branding across the application and revisit the existing marketing site's look and feel later. Do not redesign screens during this walkthrough.",
+        "qualification": "Visual approval of this page, not Auth/email/persistence/release acceptance."
+      },
+      {
+        "source": "Robert's direct walkthrough feedback18October2026",
+        "stage": "Setup Step1 workdescription",
+        "positive": "Overall look/feel and prepopulatedworkdescription approved; optionalness appropriate.",
+        "requested": [
+          "Replace irregular pill-shaped suggestion wrapping with symmetrical aligned spacing and more refined controlshape.",
+          "Research10-15UKSMEconstructiondisciplines coveringdomesticandcommercial, nothousehold-onlycategories.",
+          "Keep rightpanel layout/style/bullets but give setup a differentheading/message/benefits fromaccountentry."
+        ],
+        "status": "Recorded for follow-up, not implemented duringwalkthrough. InitialONS/FISresearch/proposedshortlist notfrequency-ranked; owner askedforbuilderview beforemovingon.",
+        "research": "walkthrough-discipline-research.json"
+      },
+      {
+        "stage": "Setupworkchoicesandbranding",
+        "source": "Robertdirectfollow-up18October2026",
+        "requested": [
+          "Stopimplementingduringwalkthrough; keepquicktourandrecordfollow-upsforafterRobertreleasesagent.",
+          "Removefullstopafterconstructawordmark.",
+          "Broaderdisciplinesgenerallylookbetter,butreducecontrols/listheightsoframecloselymatchesshortopeningpage. Avoidshort-long-shortpagejumps."
+        ],
+        "status": "Recordedonly; no logo/compactionchangesmade. Implementationandremainingchecksdeferreduntilaftertour."
+      },
+      {
+        "source": "Robertdirectwalkthroughfeedback18October2026",
+        "stage": "SetupStep2businessdetails",
+        "approved": [
+          "Simplebusinessdetailspageandleft-handform; noleft-panelchangesrequested.",
+          "Useconsistentcompactstep-throughlayoutasstandardonboardingtemplate."
+        ],
+        "requested": [
+          "Rightpanelmustretainlook/feel,typography,bullets/connectinglinesandlinenumbersacrosseverystep.",
+          "Changecallouts,heading/supportingcopyandstepbenefitsforeachindividualstage,includingworkdescriptionversusbusinessdetails,notsimplyonceperroute.",
+          "Usecontextualrightpaneltoshowwhatcontractorwillachieve.",
+          "Businessdetailspagestillrequiresverticalscroll; addressviewport/frameheightconsistencyafterwalkthrough."
+        ],
+        "status": "Recordedonly, no code/layoutchange ornavigation/save. CurrentStep2remainspopulatedforreview."
+      },
+      {
+        "source": "Robertdirectdashboardreview18October2026",
+        "stage": "Operationaldashboard/pipeline",
+        "summary": "Brand/typeface/palette mismatch; dashboard/kanban clutter; unclear stage-guide/filter/action distinction; customer-versus-job flow unclear. Separatewelcome-first foursetup/outcometilesrequested. Keepusefulrangecontrols/search/opportunitycapture; improveprofessionalwordingandintegrationofresource/financefutureareas.",
+        "record": "walkthrough-dashboard-feedback.json",
+        "status": "Recordedonly,nocode/tests/diagnostics. Newwelcome/defaultsdesignnotimplemented."
+      },
+      {
+        "source": "Robertdirectcompany-startreview18October2026",
+        "stage": "Existingwelcome/readinesspage",
+        "summary": "Useexistingpageaspostinitialsetupwelcome,improvecompactfourlandscapetiles/profile-pastworkbenchmarks-proposaldefaults-firstproposal. Nestedcompanychoicesbehindprofiletile; clearerpricing/proposaloutcome. Mainpaletteapproved/sidebarbrandwrong; topdeadspace/checklistplacementneedsrevision. Website/LinkedIn/Facebookdesiredsources.",
+        "record": "walkthrough-company-start-feedback.json",
+        "status": "Recordedonly; noimplementation/provideractivation. Currentpastworkisnotproofbenchmarksfeatureexists."
+      },
+      {
+        "source": "Robert direct website-import review18October2026",
+        "stage": "Website import and platform data terms",
+        "summary": "Replace heading; symmetric balanced layout; consistent sidebar. Retain right explanation and import concept. Platform signup terms/checkbox/accessibility and future regional/discipline pricing/programme benchmarking requested, separate from proposal terms. Existing benchmark checkbox unchecked and its claims unverified.",
+        "record": "walkthrough-import-privacy-feedback.json",
+        "status": "Recorded only; no agreement accepted, data use enabled or compliance guarantee."
+      },
+      {
+        "source": "Robert direct manual-profile review18October2026",
+        "stage": "Introduce your business / company profile",
+        "summary": "Compact balanced header; persistent section navigation with one content panel at a time, not long scroll. Move insurance/accreditations/logo into company basics, repeatable free-text accreditations. Relevant trades informed by earlier work description, not unrelated exhaustive checklist. Proposal style/MD message in proposal-defaults path; case studies separate. Preserve specialisms/capability; sidebar brand correction.",
+        "record": "walkthrough-profile-feedback.json",
+        "status": "Recorded only, no UI or persistence policy changed."
+      },
+      {
+        "source": "Robert direct case-study review18October2026",
+        "stage": "Show what you've built",
+        "summary": "Heading/overall page approved. Stronger right-column sales purpose, keep all existing information/3photos/AI concept. Equal delivered/value boxes; challenge-and-solution narrative. Broad discipline/sector tags per case study, not unrelated repeated company trade checklist.",
+        "record": "walkthrough-case-studies-feedback.json",
+        "status": "Recorded only, no schema/product/AI/save changes."
+      },
+      {
+        "source": "Robert direct setup-navigation/new-project review18October2026",
+        "stage": "Setup sequence, welcome and new project",
+        "summary": "Show sequential setup steps/sidebar position; preserve header/consistent branding. Welcome was passed too quickly and remains unreviewed. New project: postcode address selection/manual fallback, business-relevant custom job types, reduce dead space/polish. Rough value wording and pre-pricing purpose questioned, not final removal policy.",
+        "record": "walkthrough-new-project-feedback.json",
+        "status": "Recorded only; no creation/provider/schema/layout change."
+      },
+      {
+        "source": "Robert direct Job brief Step1 review18October2026",
+        "stage": "The job",
+        "summary": "Duplicated top/sidebar module navigation does not flow; focus hierarchy on Job brief. Blue sidebar/client selection/Next clash with approved green. Cleaner intro/copy and polished, less vanilla presentation. Job description/client categories/AI tidy concept generally acceptable.",
+        "record": "walkthrough-brief-step1-feedback.json",
+        "status": "Recorded only; next Step2 already active at observation, no agent step click/edit."
+      },
+      {
+        "source": "Robert direct brief Steps2-4 review18October2026",
+        "stage": "Work included / Site and assumptions / Review",
+        "summary": "Contractor-led elemental activities, not irrelevant exhaustive trade list. Remove repeated site address/postcode/start-date entry; retain access/assumptions. Explicit Rough value removal from capture flow; direct pricing instead of separate Review step. Improve clunky tiles/fonts and remove blue. Robert did not click Step2; transition cause unknown.",
+        "record": "walkthrough-brief-steps2-4-feedback.json",
+        "status": "Recorded only; no data deletion/validation/save-policy changes. Existing estimate opened read-only."
+      },
+      {
+        "source": "Robert direct estimating review18October2026",
+        "stage": "Build the price / Advanced estimating",
+        "summary": "Major workflow/capability shortfall. Brief-led elemental work and relevant sections, fewer forms, spreadsheet-style continuity, genuine contextual AI, meaningful labour/plant/material/subcontract/consultancy build-ups. Estimate v1/name/New Estimate confusing inside current task. Candy/Excel/Primavera reference expectations; not feature parity claim.",
+        "record": "walkthrough-estimating-feedback.json",
+        "status": "Recorded only; current Advanced/editor preserved. No agent save/navigation/provider/tests."
+      },
+      {
+        "source": "Robert direct programme/estimating review18October2026",
+        "stage": "Programme and detailed planner",
+        "summary": "Core product rethink. Professional tabular estimating/CandyExcel build-ups, use desktop width. Clean baseline/detailed Gantts with purposeful colour, consistent branding incladvancedblues; investigate3weeks6Nov versus21d4calendarweeks9Nov/baralignment without assuming cause or7day workpolicy. AI milestones/lead-times/clientrequirements; P6/MSProject/Asta research references.",
+        "record": "walkthrough-programme-feedback.json",
+        "status": "Recorded only; existing proposal opened, no planner/estimate change or provideractivation."
+      },
+      {
+        "source": "Robert direct proposal review18October2026",
+        "stage": "Final proposal workflow and suppliedPDF",
+        "summary": "Move payment/content/exclusions/clarifications/terms/response choices earlier, finalstagefinishedproduct; MDclosingprefillwithoverride. Stronger consistentbrand/width/heading/optionalcopy; separate page-aware document preview, cover imagery. Reconcile original suppliedterms. DownloadedPDF tidy/professionalbaseline approved as direction, notfinalacceptance.",
+        "record": "walkthrough-proposal-feedback.json",
+        "status": "Recorded only. LocalPDF4pages actuallyviewed; no generation/send/legal/provider change. Endofflow,nofurtherpagewithoutsend."
+      }
+    ]
+  }
+}

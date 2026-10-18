@@ -1,0 +1,29 @@
+{
+  "at": "2026-10-18T12:19:00Z",
+  "actions": 108,
+  "originalActions": 108,
+  "stableIdsAndOrderUnchanged": true,
+  "requestedTextUnchanged": true,
+  "productStatusesUnchanged": true,
+  "allPhasesValid": true,
+  "maximumEvidenceFiles": 3,
+  "originalEvidenceReferencesRetainedInSeparateArchive": true,
+  "notStartedQueueExact": true,
+  "phaseStatusCounts": {
+    "P1-Jan2027": {
+      "Complete": 12,
+      "Partial": 26,
+      "In progress": 0,
+      "Not started": 47,
+      "Blocked": 2
+    },
+    "Later": {
+      "Complete": 0,
+      "Partial": 4,
+      "In progress": 0,
+      "Not started": 17,
+      "Blocked": 0
+    }
+  },
+  "applicationChecksRun": false
+}

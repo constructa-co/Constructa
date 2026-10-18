@@ -1,0 +1,11 @@
+{
+  "source": "Robert's direct Job brief Step1 walkthrough feedback, 18 October 2026",
+  "status": "Recorded only; implementation after explicit walkthrough release.",
+  "referenceImage": "/var/folders/s4/vpj4tgcj0p7_x1vc2nm46h500000gn/T/codex-clipboard-3f6a00b0-6a46-4884-b074-e9cd3e70f7b0.png",
+  "navigation": "Dislikes top Brief/Estimating/Programme/Proposal navigation duplicating left-hand module menu. It does not flow; design a clearer hierarchy focused on Job brief, not two competing navigation bars. No route removals chosen.",
+  "brand": "Sidebar blue, blue selected client type and blue Next button clash with approved charcoal/green palette; apply consistent visual language throughout.",
+  "copy": "Clean up Describe the work, check the trades and timing, then review before pricing and general introductory wording. Current experience feels too vanilla; make it more polished, engaging and confident while remaining professional. Exact copy not selected.",
+  "retain": "Basic job-description content, homeowner/business/public-sector distinction and optional Tidy this up concept are acceptable. AI not exercised, no functionality acceptance.",
+  "journey": "This is intended next step after new project. Current tour uses existing saved jobA, not evidence of successful creation/handoff.",
+  "execution": "At first live observation page was already Work included Step2; cause unknown. Robert subsequently confirmed he did not click Step2. No agent Next click made in that turn; do not attribute the transition to Robert. Current DOM and screenshot verified. No typing/client/trade selection/save/AI/provider/tests or implementation."
+}

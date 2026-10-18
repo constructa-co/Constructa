@@ -1,0 +1,49 @@
+{
+  "source": "Robert's direct manual company-profile walkthrough feedback, 18 October 2026",
+  "status": "Recorded only; no implementation or tests until Robert explicitly releases the agent.",
+  "presentation": {
+    "retain": "Introduce your business heading approved.",
+    "repair": "Reduce dead space in top-right green area. Balance heading/introduction/dividers across the available width; current two-thirds divider and empty right area feel unfinished. Align sidebar blue/typeface with approved charcoal/green branding."
+  },
+  "navigation": {
+    "problem": "Section anchor navigation scrolls the section choices/header out of view.",
+    "direction": "Prefer one compact content panel at a time (Company basics, Work & story, Your people, etc.), with section choices remaining available at the top rather than a long stacked form. Sticky navigation was suggested before clarifying panel-by-panel preference.",
+    "bounds": "Preserve unsaved edits and existing save semantics while designing panels. No new autosave, per-panel persistence, hidden-field omission or mandatory-step policy selected."
+  },
+  "companyBasics": {
+    "approved": [
+      "Prepopulated company name and work description from initial setup",
+      "Company registration number",
+      "VAT number",
+      "Trading address",
+      "Website",
+      "Years trading",
+      "Financial year start"
+    ],
+    "moveHere": [
+      "Insurance details",
+      "Accreditations",
+      "Company logo"
+    ],
+    "accreditations": "Free-text repeatable entries: type an accreditation, add it to a list, then add another. Not a restrictive dropdown. Examples of specialist fire, testing, gas/utility accreditation motivate the requirement; no statutory list or verified accreditation/eligibility claim selected.",
+    "openQuestion": "Robert asked whether further company information is needed; review gaps after the tour without inventing required fields."
+  },
+  "workAndStory": {
+    "retain": [
+      "Specialisms",
+      "Capability statement and optional rewrite affordance"
+    ],
+    "tradeProblem": "The exhaustive trade checklist repeats initial discovery and presents unrelated works (piling/asbestos/utilities/RC) to an already-identified kitchen business.",
+    "direction": "Keep useful broader classification internally, but make the visible journey coherent with the contractor's earlier description. Avoid asking unrelated categories again. Exact mapping/selection/adaptive behaviour still to design; no silent inference of capabilities or overwriting selections."
+  },
+  "moveToOtherPaths": {
+    "proposalDefaults": [
+      "Proposal theme/style",
+      "Managing director message"
+    ],
+    "caseStudies": "Past projects/case studies belong in their own welcome tile/path, not embedded profile content. Existing page is available.",
+    "clarification": "Keep operational estimation and proposal stages distinct despite a clearer common first-proposal entry."
+  },
+  "benchmarking": "Robert said Industry Benchmarking is fine in this review. This is not verification of current anonymisation/withdrawal claims or permission to enable data collection; platform terms/privacy workstream remains separate. Existing checkbox left unchecked.",
+  "execution": "Profile read-only, confirmed No unsaved changes; used existing Go to case studies link. No profile save/edit/theme/consent selection, AI, upload, provider, test or implementation."
+}

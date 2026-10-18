@@ -16,16 +16,17 @@ import {
     type SavedAnswer,
 } from "@/lib/company-interview/questions";
 import { FACT_LABELS, INTRODUCTION_MAX, answersUsed, type OfferedFact } from "@/lib/company-interview/template";
-import {
-    INTERVIEW_LOAD_ERROR,
-    INTERVIEW_SAVE_ERROR,
-    type ApproveResult,
-    type DraftResult,
-    type InterviewState,
-    type SaveAnswerResult,
+import { INTERVIEW_LOAD_ERROR, INTERVIEW_SAVE_ERROR } from "@/lib/company-interview/messages";
+import type {
+    ApproveResult,
+    DraftResult,
+    InterviewState,
+    SaveAnswerResult,
 } from "@/lib/company-interview/service";
 import type { PlainReason, WordingResult } from "@/lib/company-interview/ai-wording";
 import { approveInterviewAction, buildInterviewDraftAction, rewordInterviewDraftAction, saveInterviewAnswerAction } from "./actions";
+import CompanyInterviewFrame from "@/components/company-interview-frame";
+import ui from "@/components/company-interview.module.css";
 
 interface Props {
     initialState: InterviewState | null;
@@ -80,6 +81,8 @@ export default function InterviewClient({
     const [error, setError] = useState<string | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
     const inFlight = useRef(false);
+    // In-page navigation only: never persisted, submitted implicitly or used as saved progress.
+    const localAnswers = useRef<Partial<Record<QuestionKey, string>>>({});
 
     if (!state) {
         return (
@@ -92,6 +95,7 @@ export default function InterviewClient({
 
     const draft = state.draft;
     const progress = interviewProgress(state.answers);
+    const progressSummary = `Saved progress: ${progress.answered} answered, ${progress.skipped} skipped. ${progress.total - progress.answered - progress.skipped} still to decide.`;
 
     const adopt = (next: InterviewState) => {
         setState(next);
@@ -100,9 +104,16 @@ export default function InterviewClient({
 
     const goTo = (next: number, from: InterviewState = state) => {
         setIndex(next);
-        setValue(answerAt(next, from).answer);
+        const target = QUESTIONS[next];
+        setValue(target ? localAnswers.current[target.key] ?? answerAt(next, from).answer : "");
         setError(null);
         setNotice(null);
+    };
+
+    const changeAnswer = (text: string) => {
+        localAnswers.current[QUESTIONS[index].key] = text;
+        setValue(text);
+        setError(null);
     };
 
     /** Runs one server call at a time, and turns a thrown error into a message. */
@@ -158,6 +169,7 @@ export default function InterviewClient({
                     // Another tab saved this question. Show what is saved; nothing of ours was written.
                     next = { ...state, answers: { ...state.answers, [question.key]: result.conflict } };
                     setState(next);
+                    delete localAnswers.current[question.key];
                     setValue(result.conflict.answer);
                 }
                 setError(result.error);
@@ -167,6 +179,7 @@ export default function InterviewClient({
             setState(next);
         }
 
+        delete localAnswers.current[question.key];
         if (index + 1 < REVIEW) return goTo(index + 1, next);
         // Finishing the interview is the one moment a reworded draft is asked for without a button.
         await makeDraft("reword");
@@ -212,19 +225,25 @@ export default function InterviewClient({
         const question = QUESTIONS[index];
         const saved = answerAt(index);
         const disabled = busy !== null;
+        const answerStatus = busy === "answer" ? "Saving this answer..."
+            : value !== saved.answer ? "Changes not confirmed saved. Back keeps them on this page; leaving or reloading may lose them."
+            : saved.revision > 0 ? saved.skipped ? "Skip saved. You can answer this question later." : "This answer is saved."
+            : "Not saved yet. Choose Save and continue or Skip.";
         return (
+            <CompanyInterviewFrame dark={theme === "dark"} reviewing={false} questionIndex={index}>
             <div className={shell}>
                 <section aria-labelledby="interview-question" className={`${s.card} p-5 sm:p-8`}>
                     <p className={`text-sm font-semibold ${s.muted}`} aria-live="polite">Question {index + 1} of {QUESTIONS.length}</p>
-                    <div className="mt-2 flex gap-1.5" aria-hidden>
+                    <p className={`mt-2 text-sm ${s.muted}`}>{progressSummary}</p>
+                    <div className={ui.progress} aria-hidden>
                         {QUESTIONS.map((entry, at) => (
-                            <div key={entry.key} className={`h-1.5 flex-1 rounded-full ${at <= index ? "bg-blue-600" : hasAnswer(state.answers[entry.key]) ? "bg-blue-300" : "bg-slate-300"}`} />
+                            <div key={entry.key} data-current={at === index} data-answered={hasAnswer(state.answers[entry.key])} data-skipped={!!state.answers[entry.key]?.skipped} />
                         ))}
                     </div>
 
                     <form noValidate onSubmit={(event) => { event.preventDefault(); submitAnswer(false); }} className="mt-6 space-y-4">
                         <div>
-                            <label id="interview-question" htmlFor="interview-answer" className={`block text-xl sm:text-2xl font-bold ${s.heading}`}>{question.title}</label>
+                            <label id="interview-question" htmlFor="interview-answer" tabIndex={-1} className={`block text-xl sm:text-2xl font-bold ${s.heading}`}>{question.title}</label>
                             <p id="interview-help" className={`mt-2 text-base ${s.muted}`}>{question.help}</p>
                             {question.kind === "year" ? (
                                 <input
@@ -233,9 +252,9 @@ export default function InterviewClient({
                                     autoComplete="off"
                                     maxLength={4}
                                     value={value}
-                                    onChange={(event) => { setValue(event.target.value); setError(null); }}
+                                    onChange={(event) => changeAnswer(event.target.value)}
                                     placeholder={`e.g. ${question.example}`}
-                                    aria-describedby="interview-help"
+                                    aria-describedby="interview-help interview-save-status"
                                     disabled={disabled}
                                     className={`${s.input} mt-4 max-w-[10rem]`}
                                 />
@@ -245,13 +264,14 @@ export default function InterviewClient({
                                     rows={4}
                                     maxLength={ANSWER_MAX}
                                     value={value}
-                                    onChange={(event) => { setValue(event.target.value); setError(null); }}
+                                    onChange={(event) => changeAnswer(event.target.value)}
                                     placeholder={`e.g. ${question.example}`}
-                                    aria-describedby="interview-help"
+                                    aria-describedby="interview-help interview-save-status"
                                     disabled={disabled}
                                     className={`${s.textarea} mt-4 resize-none`}
                                 />
                             )}
+                            <p id="interview-save-status" role="status" className={`mt-2 text-sm ${s.muted}`}>{answerStatus}</p>
                             {saved.skipped && <p className={`mt-2 text-sm ${s.muted}`}>You skipped this one. Answer it now if you like.</p>}
                         </div>
 
@@ -262,7 +282,7 @@ export default function InterviewClient({
                                 <button type="button" onClick={() => goTo(index - 1)} disabled={disabled} className={s.secondaryButton}>Back</button>
                             )}
                             <button type="button" onClick={() => submitAnswer(true)} disabled={disabled} className={s.secondaryButton}>Skip</button>
-                            <button type="submit" disabled={disabled} className={`${s.primaryButton} flex-1`}>
+                            <button type="submit" disabled={disabled} className={`${ui.primary} flex-1`}>
                                 {busy ? (<><Loader2 className="w-5 h-5 animate-spin" aria-hidden /> {busy === "answer" ? "Saving…" : "Putting it together…"}</>) : error ? "Try again" : "Save and continue"}
                             </button>
                         </div>
@@ -270,6 +290,7 @@ export default function InterviewClient({
                 </section>
                 {footer}
             </div>
+            </CompanyInterviewFrame>
         );
     }
 
@@ -279,12 +300,16 @@ export default function InterviewClient({
     const edited = !!draft && introduction.trim() !== draft.text.trim();
 
     return (
+        <CompanyInterviewFrame dark={theme === "dark"} reviewing questionIndex={index}>
         <div className={shell}>
             <section aria-labelledby="interview-review" className={`${s.card} p-5 sm:p-8 space-y-4`}>
                 <div>
-                    <h1 id="interview-review" className={`text-2xl sm:text-3xl font-bold ${s.heading}`}>Your introduction</h1>
+                    <h1 id="interview-review" tabIndex={-1} className={`text-2xl sm:text-3xl font-bold ${s.heading}`}>Your introduction</h1>
                     <p className={`mt-2 text-base ${s.muted}`}>
-                        {progress.answered} of {progress.total} questions answered. This goes at the top of “About {state.companyName || "your business"}” on your proposals, once you save it.
+                        {progressSummary} Skipped questions can be answered later.
+                    </p>
+                    <p className={`mt-2 text-base ${s.muted}`}>
+                        Your saved introduction can be used when a proposal includes an About section.
                     </p>
                 </div>
 
@@ -366,11 +391,11 @@ export default function InterviewClient({
             {draft && !draft.stale && draft.facts.length > 0 && (
                 <section aria-labelledby="interview-facts" className={`${s.card} p-5 sm:p-8`}>
                     <h2 id="interview-facts" className={`text-lg font-bold ${s.heading}`}>Details you gave us</h2>
-                    <p className={`mt-1 text-sm ${s.muted}`}>These are your own words, used exactly. Save only the ones you want on your proposals. Each is saved on its own.</p>
+                    <p className={`mt-1 text-sm ${s.muted}`}>Review the details from your answers. Years trading is calculated from the start year; memberships and insurance keep your wording. Choose which details to save. Each is saved separately.</p>
                     <ul className="mt-4 space-y-3">
                         {draft.facts.map((fact) => (
                             <li key={fact.field} data-interview-fact={fact.field} data-status={fact.status} className={`${s.inset} p-4 space-y-3`}>
-                                <h3 className={`text-base font-semibold ${s.heading}`}>{FACT_LABELS[fact.field]}</h3>
+                                <h3 tabIndex={-1} className={`text-base font-semibold ${s.heading}`}>{FACT_LABELS[fact.field]}</h3>
                                 <dl className="grid gap-3 sm:grid-cols-2">
                                     <div className="min-w-0">
                                         <dt className={`text-xs font-semibold ${s.muted}`}>Saved now</dt>
@@ -408,5 +433,6 @@ export default function InterviewClient({
             </div>
             {footer}
         </div>
+        </CompanyInterviewFrame>
     );
 }

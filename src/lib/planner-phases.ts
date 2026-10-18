@@ -14,6 +14,7 @@
 
 import { SIMPLE_LINE_SECTION } from "./simple-estimate";
 import { WHOLE_JOB_NAME } from "./simple-programme";
+import { computeProgrammePlan, WORKING_DAYS_PER_WEEK, type ProgrammePlan } from "./programme-plan";
 
 export interface PlannerPhase {
     name: string;
@@ -43,6 +44,13 @@ export interface PlannerEstimate {
 export function plannerCalendarDays(workingDays: number, daysPerWeek: number): number {
     if (daysPerWeek >= 7) return workingDays;
     return Math.ceil(workingDays / daysPerWeek) * 7;
+}
+
+/** Display-only dates; never show a partial plan that silently leaves stages out. */
+export function plannerDisplayPlan(startDate: string, phases: PlannerPhase[], daysPerWeek: number): ProgrammePlan | null {
+    if (daysPerWeek !== WORKING_DAYS_PER_WEEK) return null;
+    const plan = computeProgrammePlan(startDate, phases);
+    return plan && plan.stages.length === phases.length ? plan : null;
 }
 
 /**

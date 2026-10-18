@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useReducer, useRef, useState, type Reducer } from "react";
+import { useEffect, useId, useReducer, useRef, useState, type Reducer } from "react";
+import ui from "@/components/past-work.module.css";
 import { toast } from "sonner";
 import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Loader2, MapPin, Briefcase, Calendar, PoundSterling, Sparkles } from "lucide-react";
 import { saveCaseStudiesAction, enhanceCaseStudyAction } from "./actions";
@@ -118,15 +119,32 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
 
     const inputCls = "w-full h-10 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600";
     const labelCls = "text-xs font-medium text-slate-400 block mb-1";
+    const editor = useRef<HTMLDivElement>(null);
+    const previousCount = useRef(caseStudies.length);
+    const focusedCard = useRef<number | null>(null);
+    useEffect(() => {
+        if (previousCount.current !== caseStudies.length && document.activeElement === document.body) {
+            const cards = editor.current?.querySelectorAll<HTMLElement>("[data-past-work-card]");
+            const index = caseStudies.length > previousCount.current ? caseStudies.length - 1 : Math.min(focusedCard.current ?? 0, caseStudies.length - 1);
+            const target = index >= 0 ? cards?.[index]?.querySelector<HTMLElement>("[data-past-work-heading]")
+                : editor.current?.querySelector<HTMLElement>("[data-add-example]");
+            target?.focus();
+        }
+        previousCount.current = caseStudies.length;
+    }, [caseStudies.length]);
 
     return (
-        <div className="space-y-6">
+        <div ref={editor} className={`${ui.editor} space-y-6`} onFocusCapture={(event) => {
+            const index = event.target.closest<HTMLElement>("[data-work-index]")?.dataset.workIndex;
+            focusedCard.current = index === undefined ? null : Number(index);
+        }}>
             {caseStudies.length === 0 && (
-                <div className="text-center py-16 border-2 border-dashed border-slate-700 rounded-xl">
-                    <Briefcase className="w-10 h-10 mx-auto text-slate-600 mb-3" />
-                    <p className="text-slate-500 text-sm mb-3">No case studies yet. Add your first to showcase past work in proposals.</p>
-                    <button onClick={addCaseStudy} className="text-sm font-semibold text-blue-400 hover:text-blue-300">
-                        + Add Case Study
+                <div className={ui.empty}>
+                    <Briefcase className="w-10 h-10" aria-hidden />
+                    <h2>Your next client hasn&apos;t seen your best work yet.</h2>
+                    <p>Start with one past project. Explain the work and the difference you made.</p>
+                    <button onClick={addCaseStudy} className={ui.primary}>
+                        Add your first example
                     </button>
                 </div>
             )}
@@ -145,24 +163,26 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
                 />
             ))}
 
-            <div className="flex items-center justify-between pt-2">
+            <div className={ui.saveBar}>
                 <button
                     onClick={addCaseStudy}
+                    data-add-example
                     className="flex items-center gap-2 text-sm font-semibold text-blue-400 hover:text-blue-300 bg-blue-900/20 hover:bg-blue-900/40 border border-blue-700/40 rounded-lg px-4 py-2.5 transition-colors"
                 >
                     <Plus className="w-4 h-4" />
-                    Add Case Study
+                    Add another example
                 </button>
 
                 <button
                     onClick={handleSave}
                     disabled={isPending}
-                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-xl font-bold text-sm transition-all"
+                    className={ui.primary}
                 >
-                    {isPending ? "Saving..." : state.notice.kind === "failed" || state.notice.kind === "unknown" ? "Try again" : "Save All Case Studies"}
+                    {isPending ? "Saving..." : state.notice.kind === "failed" || state.notice.kind === "unknown" ? "Try again" : "Save all past work"}
                 </button>
             </div>
-            <p role="status" aria-live="polite" data-case-studies-save-status className={status ? `text-sm font-semibold text-right ${trouble ? "text-amber-200" : "text-slate-100"}` : "sr-only"}>{status}</p>
+            <p className={ui.saveNote}>Your changes stay on this page until you save. This button saves the whole list, not just the open example.</p>
+            <p role="status" aria-live="polite" data-case-studies-save-status data-trouble={trouble} className={status ? ui.status : "sr-only"}>{status}</p>
         </div>
     );
 }
@@ -244,15 +264,17 @@ function CaseStudyCard({
         );
     };
 
+    const fieldId = useId();
+
     return (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div className={ui.card} data-past-work-card data-work-index={index}>
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 bg-slate-800/60 border-b border-slate-700">
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Case Study {index + 1}</span>
-                    {cs.projectName && <span className="text-sm font-semibold text-slate-200">— {cs.projectName}</span>}
-                </div>
-                <div className="flex items-center gap-2">
+            <div className={ui.cardHeader}>
+                <h2 className={ui.cardTitle} data-past-work-heading tabIndex={-1}>
+                    <span>Past work {index + 1}</span>
+                    {cs.projectName && <span className="text-sm font-semibold">{cs.projectName}</span>}
+                </h2>
+                <div className={ui.cardActions}>
                     {(cs.whatWeDelivered || cs.valueAdded) && (
                         <button
                             onClick={handleEnhance}
@@ -263,10 +285,10 @@ function CaseStudyCard({
                             {enhancing ? "Enhancing..." : "AI Enhance"}
                         </button>
                     )}
-                    <button onClick={() => setExpanded(!expanded)} className="p-1 text-slate-400 hover:text-white">
+                    <button onClick={() => setExpanded(!expanded)} aria-expanded={expanded} aria-controls={`${fieldId}-fields`} aria-label={`${expanded ? "Collapse" : "Expand"} past work ${index + 1}`}>
                         {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
-                    <button onClick={onRemove} className="p-1 text-red-400 hover:text-red-300">
+                    <button onClick={onRemove} aria-label={`Remove past work ${index + 1}`} className={ui.danger}>
                         <Trash2 className="w-4 h-4" />
                     </button>
                 </div>
@@ -278,37 +300,38 @@ function CaseStudyCard({
             </p>
 
             {expanded && (
-                <div className="p-5 space-y-4">
+                <div id={`${fieldId}-fields`} className="p-5 space-y-4">
                     <div className="grid sm:grid-cols-2 gap-4">
                         <div>
-                            <label className={labelCls}>Project Name</label>
-                            <input className={inputCls} value={cs.projectName} onChange={e => onChange("projectName", e.target.value)} placeholder="e.g. Smith Residence Extension" />
+                            <label htmlFor={`${fieldId}-name`} className={labelCls}>Project Name</label>
+                            <input id={`${fieldId}-name`} className={inputCls} value={cs.projectName} onChange={e => onChange("projectName", e.target.value)} placeholder="e.g. Smith Residence Extension" />
                         </div>
                         <div>
-                            <label className={labelCls}>Project Type</label>
-                            <input className={inputCls} value={cs.projectType} onChange={e => onChange("projectType", e.target.value)} placeholder="e.g. Residential Extension" />
+                            <label htmlFor={`${fieldId}-type`} className={labelCls}>Project Type</label>
+                            <input id={`${fieldId}-type`} className={inputCls} value={cs.projectType} onChange={e => onChange("projectType", e.target.value)} placeholder="e.g. Residential Extension" />
                         </div>
                         <div>
-                            <label className={labelCls}>Contract Value</label>
-                            <input className={inputCls} value={cs.contractValue} onChange={e => onChange("contractValue", e.target.value)} placeholder="e.g. £85,000" />
+                            <label htmlFor={`${fieldId}-value`} className={labelCls}>Contract Value</label>
+                            <input id={`${fieldId}-value`} className={inputCls} value={cs.contractValue} onChange={e => onChange("contractValue", e.target.value)} placeholder="e.g. £85,000" />
                         </div>
                         <div>
-                            <label className={labelCls}>Programme Duration</label>
-                            <input className={inputCls} value={cs.programmeDuration} onChange={e => onChange("programmeDuration", e.target.value)} placeholder="e.g. 12 weeks" />
+                            <label htmlFor={`${fieldId}-duration`} className={labelCls}>Programme Duration</label>
+                            <input id={`${fieldId}-duration`} className={inputCls} value={cs.programmeDuration} onChange={e => onChange("programmeDuration", e.target.value)} placeholder="e.g. 12 weeks" />
                         </div>
                         <div>
-                            <label className={labelCls}>Client Name</label>
-                            <input className={inputCls} value={cs.client} onChange={e => onChange("client", e.target.value)} placeholder="e.g. Mr & Mrs Smith" />
+                            <label htmlFor={`${fieldId}-client`} className={labelCls}>Client Name</label>
+                            <input id={`${fieldId}-client`} className={inputCls} value={cs.client} onChange={e => onChange("client", e.target.value)} placeholder="e.g. Mr & Mrs Smith" />
                         </div>
                         <div>
-                            <label className={labelCls}>Location</label>
-                            <input className={inputCls} value={cs.location} onChange={e => onChange("location", e.target.value)} placeholder="e.g. Surrey" />
+                            <label htmlFor={`${fieldId}-location`} className={labelCls}>Location</label>
+                            <input id={`${fieldId}-location`} className={inputCls} value={cs.location} onChange={e => onChange("location", e.target.value)} placeholder="e.g. Surrey" />
                         </div>
                     </div>
 
                     <div>
-                        <label className={labelCls}>What We Delivered</label>
+                        <label htmlFor={`${fieldId}-delivered`} className={labelCls}>What We Delivered</label>
                         <textarea
+                            id={`${fieldId}-delivered`}
                             className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
                             rows={3}
                             aria-label="What We Delivered"
@@ -320,8 +343,9 @@ function CaseStudyCard({
                     </div>
 
                     <div>
-                        <label className={labelCls}>Value Added</label>
+                        <label htmlFor={`${fieldId}-added`} className={labelCls}>Value Added</label>
                         <textarea
+                            id={`${fieldId}-added`}
                             className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
                             rows={2}
                             aria-label="Value Added"
@@ -335,23 +359,23 @@ function CaseStudyCard({
                     {/* Photos */}
                     <div>
                         <label className={labelCls}>Photos (up to 3)</label>
-                        <div className="flex gap-3">
+                        <div className={ui.photos}>
                             {[0, 1, 2].map(slot => (
-                                <div key={slot} className="w-32 h-24 border border-slate-700 rounded-lg overflow-hidden bg-slate-800 relative group">
+                                <div key={slot} className={`${ui.photoSlot} border rounded-lg overflow-hidden relative group`}>
                                     {(cs.photos || [])[slot] ? (
                                         <>
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img src={cs.photos[slot]} alt={`Photo ${slot + 1}`} className="w-full h-full object-cover" />
                                             <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
                                                 <Upload className="w-5 h-5 text-white" />
-                                                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
+                                                <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Replace photo ${slot + 1} for past work ${index + 1}`} className="sr-only" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
                                             </label>
                                         </>
                                     ) : (
                                         <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-700 transition-colors">
                                             <Upload className="w-5 h-5 text-slate-500 mb-1" />
                                             <span className="text-[10px] text-slate-500">Upload</span>
-                                            <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
+                                            <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Upload photo ${slot + 1} for past work ${index + 1}`} className="sr-only" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
                                         </label>
                                     )}
                                 </div>

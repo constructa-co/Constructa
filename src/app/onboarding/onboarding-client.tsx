@@ -19,6 +19,8 @@ import {
     type SetupStepInput,
 } from "@/lib/first-session";
 import { saveSetupStepAction } from "./actions";
+import { FirstSessionPanel } from "@/components/first-session-frame";
+import ui from "@/components/first-session.module.css";
 
 interface Props {
     initialStep: SetupStep;
@@ -34,7 +36,7 @@ interface Props {
 }
 
 const inputCls =
-    "w-full h-12 px-3 rounded-lg border border-slate-600 bg-slate-900 text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500";
+    ui.input;
 
 export default function OnboardingClient({
     initialStep,
@@ -130,13 +132,13 @@ export default function OnboardingClient({
     };
 
     return (
-        <div className="max-w-xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-            <p className="text-sm font-semibold text-blue-400" aria-live="polite">
+        <FirstSessionPanel step={1}>
+            <p className={ui.eyebrow} aria-live="polite">
                 Step {stepNumber} of {SETUP_STEPS.length}
             </p>
             <div className="mt-2 flex gap-2" aria-hidden>
                 {SETUP_STEPS.map((key, i) => (
-                    <div key={key} className={`h-1.5 flex-1 rounded-full ${i < stepNumber ? "bg-blue-500" : "bg-slate-700"}`} />
+                    <div key={key} className={`h-1.5 flex-1 rounded-full ${i < stepNumber ? "bg-[#c9efcf]" : "bg-slate-700"}`} />
                 ))}
             </div>
 
@@ -147,10 +149,10 @@ export default function OnboardingClient({
             >
                 {step === "trade" && (
                     <fieldset disabled={saving} className="min-w-0">
-                        <legend className="text-2xl sm:text-3xl font-bold text-white">
-                            <label htmlFor="setup-work">What kind of work does your business do?</label>
+                        <legend className={ui.heading}>
+                            <h1><label htmlFor="setup-work">What kind of work do you do?</label></h1>
                         </legend>
-                        <p id="setup-work-help" className="mt-2 text-base text-slate-400">
+                        <p id="setup-work-help" className={ui.lede}>
                             Say it in your own words, as you would to a customer. You can change it later.
                         </p>
 
@@ -169,7 +171,7 @@ export default function OnboardingClient({
                         <p id="setup-work-suggestions" className="mt-5 text-sm font-semibold text-slate-200">
                             Or tap any that fit <span className="font-normal text-slate-400">(optional)</span>
                         </p>
-                        <div className="mt-2.5 flex flex-wrap gap-2" role="group" aria-labelledby="setup-work-suggestions">
+                        <div className={ui.workSuggestions} role="group" aria-labelledby="setup-work-suggestions">
                             {SETUP_WORK_SUGGESTIONS.map((suggestion) => {
                                 const selected = hasWorkSuggestion(businessType, suggestion);
                                 return (
@@ -178,13 +180,9 @@ export default function OnboardingClient({
                                         type="button"
                                         aria-pressed={selected}
                                         onClick={() => toggleSuggestion(suggestion)}
-                                        className={`min-h-11 px-3.5 rounded-full border text-sm font-medium inline-flex items-center gap-1.5 transition-colors ${
-                                            selected
-                                                ? "border-blue-500 bg-blue-600/20 text-white"
-                                                : "border-slate-700 bg-slate-900 text-slate-200 hover:border-slate-500"
-                                        }`}
+                                        className={ui.workSuggestion}
                                     >
-                                        {selected && <Check className="w-4 h-4 flex-shrink-0 text-blue-400" />}
+                                        {selected && <Check className="w-4 h-4 flex-shrink-0" aria-hidden="true" />}
                                         {suggestion}
                                     </button>
                                 );
@@ -195,13 +193,13 @@ export default function OnboardingClient({
 
                 {step === "business" && (
                     <fieldset disabled={saving} className="min-w-0">
-                        <legend className="text-2xl sm:text-3xl font-bold text-white">What&apos;s your business called?</legend>
-                        <p className="mt-2 text-base text-slate-400">
+                        <legend className={ui.heading}><h1>Let&apos;s make it yours.</h1></legend>
+                        <p className={ui.lede}>
                             Clients see this name on your proposals. You can change it later from Profile.
                         </p>
 
                         {tradeSaved && businessType && (
-                            <p className="mt-4 flex items-start gap-2 text-sm text-emerald-400">
+                            <p className={ui.saved}>
                                 <Check className="w-4 h-4 flex-shrink-0 mt-0.5" />
                                 <span className="min-w-0 break-words">Saved: {businessType}</span>
                             </p>
@@ -240,7 +238,7 @@ export default function OnboardingClient({
 
                 {/* Pinned to the bottom of a phone screen so the action and any
                     failure message stay in view under the suggestions. */}
-                <div className="sticky bottom-0 z-10 -mx-4 px-4 mt-6 pt-3 pb-4 bg-[#0d0d0d] border-t border-white/10 sm:static sm:mx-0 sm:px-0 sm:pt-0 sm:pb-0 sm:border-0">
+                <div className={ui.saveBar}>
                 {saveState.status === "failed" && (
                     <div role="alert" className="mb-3 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 flex items-start gap-3 text-red-200">
                         <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
@@ -254,7 +252,7 @@ export default function OnboardingClient({
                             type="button"
                             onClick={goBackToTrade}
                             disabled={saving}
-                            className="min-h-12 px-5 rounded-xl border border-slate-600 text-base font-semibold text-slate-200 hover:bg-white/5 disabled:opacity-50 transition-colors"
+                            className={ui.secondary}
                         >
                             Back
                         </button>
@@ -262,7 +260,7 @@ export default function OnboardingClient({
                     <button
                         type="submit"
                         disabled={saving}
-                        className="flex-1 min-h-12 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed text-white text-base font-bold transition-colors flex items-center justify-center gap-2"
+                        className={`${ui.primary} flex-1`}
                     >
                         {saving ? (
                             <>
@@ -281,7 +279,7 @@ export default function OnboardingClient({
                 </div>
             </form>
 
-            <p className="mt-6 sm:mt-8 text-sm text-slate-400">
+            <p className={ui.footnote}>
                 That&apos;s all we need to get you started. Your logo, company story, case studies and other details are optional, and you can add them whenever you like.
             </p>
 
@@ -292,6 +290,6 @@ export default function OnboardingClient({
                     </Link>
                 </p>
             )}
-        </div>
+        </FirstSessionPanel>
     );
 }

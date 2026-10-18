@@ -48,6 +48,7 @@ export default async function BriefPage(props: { searchParams: Promise<{ project
             <ProjectNavBar projectId={activeProjectId} activeTab="brief" />
 
             <BriefClient
+                key={project.id}
                 project={{
                     id: project.id,
                     name: project.name || "",

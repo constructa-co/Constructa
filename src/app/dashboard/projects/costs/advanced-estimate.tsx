@@ -4,7 +4,7 @@
 // drawing take-off. It is opened from the Advanced estimating disclosure on
 // the simple pricing screen, which owns the estimates and the running total.
 
-import { useState, useTransition, useRef, useCallback } from "react";
+import { useState, useTransition, useRef, useCallback, useId } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -26,6 +26,7 @@ import BoQImport from "./boq-import";
 import { exportBoQToExcel } from "./boq-excel-export";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
 import { formatGBP } from "@/lib/simple-estimate";
+import ui from "@/components/estimating.module.css";
 import type { EstimateLineComponent, EstimateLine, Estimate, CostLibraryItem, LabourRate, RateBuildup } from "./types";
 
 interface Props {
@@ -464,7 +465,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
         setPricingModeAction(lineId, newMode as "simple" | "buildup").catch(console.error);
     };
 
-    const handleComponentsChanged = (lineId: string, components: EstimateLineComponent[], newUnitRate: number) => {
+    const handleComponentsChanged = (lineId: string, components: EstimateLineComponent[]) => {
         setEstimates((prev) =>
             prev.map((e) => {
                 if (e.id !== currentEstimate?.id) return e;
@@ -475,8 +476,6 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                         return {
                             ...l,
                             estimate_line_components: components,
-                            unit_rate: newUnitRate,
-                            line_total: l.quantity * newUnitRate,
                         };
                     }),
                 };
@@ -484,12 +483,23 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
         );
     };
 
+    const handleRateApplied = (lineId: string, unitRate: number) => {
+        setEstimates(previous => previous.map(estimate => {
+            if (estimate.id !== currentEstimate?.id) return estimate;
+            const updatedLines = estimate.estimate_lines.map(line => line.id === lineId
+                ? { ...line, unit_rate: unitRate, line_total: line.quantity * unitRate }
+                : line);
+            return { ...estimate, estimate_lines: updatedLines, total_cost: updatedLines.reduce((sum, line) => sum + (line.line_total || 0), 0) };
+        }));
+    };
+
     const lines = currentEstimate?.estimate_lines || [];
     // Filter out blank lines for display
     const displayLines = lines.filter(l => l.description && l.description !== "" && l.description !== "\u2014");
 
     // Group lines by trade section (only display lines with descriptions)
-    const sectionGroups: Record<string, EstimateLine[]> = {};
+    // Contractor names must not collide with inherited object keys.
+    const sectionGroups: Record<string, EstimateLine[]> = Object.create(null);
     lines.forEach((l) => {
         const sec = l.trade_section || "General";
         if (!sectionGroups[sec]) sectionGroups[sec] = [];
@@ -766,28 +776,12 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                         </div>
                     )}
 
-                    {/* ADD SECTION */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Add Section:</span>
-                        {TRADE_SECTIONS.map((section) => {
-                            const isActive = !!sectionGroups[section]?.length;
-                            return (
-                                <button
-                                    type="button"
-                                    key={section}
-                                    onClick={() => { if (!isActive) handleAddLine(section); }}
-                                    disabled={isActive}
-                                    className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
-                                        isActive
-                                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500 cursor-default"
-                                            : "bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 hover:border-slate-600"
-                                    }`}
-                                >
-                                    {isActive ? "✓" : "+"} {section}
-                                </button>
-                            );
-                        })}
-                    </div>
+                    <EstimateActivityEntry
+                        key={currentEstimate.id}
+                        activeSections={activeSections}
+                        commonNames={TRADE_SECTIONS}
+                        onAddActivity={handleAddLine}
+                    />
 
                     {/* TRADE SECTIONS */}
                     {activeSections.map((section) => {
@@ -837,11 +831,18 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                                 <div className="flex items-center px-2 border-b border-slate-700/30">
                                                     <button
                                                         type="button"
-                                                        onClick={() => handleTogglePricingMode(line.id, line.pricing_mode)}
-                                                        title={line.pricing_mode === "buildup" ? "Switch to simple rate" : "Build up from first principles"}
+                                                        data-resource-disclosure={line.id}
+                                                        aria-label={`View resources: ${line.description || "unnamed line"}`}
+                                                        aria-expanded={openBuildUpPanels.has(line.id)}
+                                                        onClick={() => setOpenBuildUpPanels(previous => {
+                                                            const next = new Set(previous);
+                                                            if (next.has(line.id)) next.delete(line.id); else next.add(line.id);
+                                                            return next;
+                                                        })}
+                                                        title={openBuildUpPanels.has(line.id) ? "Close resources" : "View resources"}
                                                         className={`flex-shrink-0 w-5 h-5 rounded text-xs font-bold border transition-colors ${
-                                                            line.pricing_mode === "buildup"
-                                                                ? "bg-blue-600 text-white border-blue-600"
+                                                            openBuildUpPanels.has(line.id)
+                                                                ? "bg-emerald-200 text-emerald-950 border-emerald-200"
                                                                 : "bg-slate-700 text-slate-400 border-slate-600 hover:border-blue-500 hover:text-slate-200"
                                                         }`}
                                                     >
@@ -864,6 +865,16 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                         </div>
                                         {/* Build-up panel — only shown when explicitly toggled, not on page load */}
                                         {openBuildUpPanels.has(line.id) && (
+                                            <div>
+                                                <div className="flex flex-wrap items-center gap-3 px-3 py-2 text-xs text-slate-300">
+                                                    <button type="button"
+                                                        onClick={() => handleTogglePricingMode(line.id, line.pricing_mode)}
+                                                        title={line.pricing_mode === "buildup" ? "Switch to simple rate" : "Build up from first principles"}
+                                                        className="rounded border border-emerald-700 px-3 py-2 text-emerald-200">
+                                                        {line.pricing_mode === "buildup" ? "Use an all-in rate" : "Use a built-up rate"}
+                                                    </button>
+                                                    <span>Viewing resources does not change pricing mode. Resource edits and Apply rate keep their existing save actions.</span>
+                                                </div>
                                             <BuildUpPanel
                                                 line={line}
                                                 orgId={orgId}
@@ -872,7 +883,9 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                                 materialLibrary={costLibrary}
                                                 preferredTrades={preferredTrades}
                                                 onComponentsChanged={handleComponentsChanged}
+                                                onRateApplied={handleRateApplied}
                                             />
+                                            </div>
                                         )}
                                     </div>
                                 ))}
@@ -902,6 +915,49 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
             />
         )}
         </>
+    );
+}
+
+export function EstimateActivityEntry({ activeSections, commonNames, onAddActivity }: {
+    activeSections: string[];
+    commonNames: readonly string[];
+    onAddActivity: (name: string) => Promise<void>;
+}) {
+    const [name, setName] = useState("");
+    const id = useId();
+    const activity = name.trim();
+    const alreadyPresent = activeSections.includes(activity);
+
+    return (
+        <form className={ui.activityEntry} onSubmit={event => {
+            event.preventDefault();
+            if (!activity || alreadyPresent) return;
+            void onAddActivity(activity);
+        }}>
+            <div className={ui.activityFields}>
+                <label htmlFor={id}>Add a work activity</label>
+                <p id={`${id}-help`}>Name the work for this job, then price its items below. Only add activities you need.</p>
+                <div className={ui.activityInputRow}>
+                    <input id={id} value={name} onChange={event => setName(event.target.value)}
+                        aria-describedby={`${id}-help ${id}-status`} required
+                        placeholder="e.g. Preparation and protection" />
+                    <button type="submit" disabled={!activity || alreadyPresent}>Add activity</button>
+                </div>
+                <p id={`${id}-status`} role="status">{alreadyPresent
+                    ? "This activity is already below. Use Add line item in that activity."
+                    : "Adding creates a blank price line. Enter its description, quantity and rate; Constructa calculates the amount."}</p>
+            </div>
+            <details>
+                <summary>Choose a common activity name</summary>
+                <label>
+                    Common names are optional, not a list of required work.
+                    <select aria-label="Common activity name" value="" onChange={event => setName(event.target.value)}>
+                        <option value="" disabled>Choose a name</option>
+                        {commonNames.map(common => <option key={common} value={common} disabled={activeSections.includes(common)}>{common}</option>)}
+                    </select>
+                </label>
+            </details>
+        </form>
     );
 }
 

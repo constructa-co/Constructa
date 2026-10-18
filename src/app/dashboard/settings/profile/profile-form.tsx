@@ -6,7 +6,10 @@ import { updateProfileAction, rewriteWithAIAction, rewriteMdMessageAction } from
 import { uploadProfileImageAction } from "@/app/storage/actions";
 import Link from "next/link";
 import { CASE_STUDIES_PATH, SETUP_LIMITS } from "@/lib/first-session";
+import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
+import { attemptProfileSave, profileFormSignature, PROFILE_LEAVE_WARNING, PROFILE_SAVE_UNCONFIRMED } from "./profile-form-state";
 import { Upload, Loader2, Sparkles } from "lucide-react";
+import ui from "@/components/company-profile.module.css";
 
 interface Profile {
     full_name?: string | null;
@@ -83,6 +86,25 @@ const ALL_TRADES = [
     'Scaffolding & Access',
 ];
 
+function ProfileSuggestion({ id, suggestion, onUse, onDiscard }: {
+    id: string;
+    suggestion: string | null;
+    onUse: () => void;
+    onDiscard: () => void;
+}) {
+    if (!suggestion) return null;
+    return (
+        <div id={id} role="status" className="rounded-lg border border-dashed border-violet-400/60 bg-violet-500/10 p-3 space-y-2">
+            <p className="text-xs font-semibold text-violet-200">Suggested wording. Check it says only what you wrote. Nothing changes unless you use it.</p>
+            <p className="text-sm text-slate-100 whitespace-pre-wrap break-words">{suggestion}</p>
+            <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={onUse} className="min-h-11 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-sm font-semibold text-white">Use this wording</button>
+                <button type="button" onClick={onDiscard} className="min-h-11 px-3 rounded-lg border border-slate-600 text-sm font-semibold text-slate-200 hover:bg-white/5">Keep my own</button>
+            </div>
+        </div>
+    );
+}
+
 export default function ProfileForm({ profile, userEmail, save = updateProfileAction }: {
     profile: Profile | null;
     userEmail: string;
@@ -90,6 +112,13 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
     save?: typeof updateProfileAction;
 }) {
     const [saving, setSaving] = useState(false);
+    const [dirty, setDirty] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const [saveNotice, setSaveNotice] = useState<string | null>(null);
+    const formRef = useRef<HTMLFormElement | null>(null);
+    const confirmedSignature = useRef<string | null>(null);
+    const savingRef = useRef(false);
+    useUnsavedGuard(dirty || saving || saveError !== null, PROFILE_LEAVE_WARNING);
     const [pdfTheme, setPdfTheme] = useState(profile?.pdf_theme || 'slate');
     const [logoUrl, setLogoUrl] = useState(profile?.logo_url || '');
     const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -103,6 +132,20 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
     // A reply is held here as a suggestion. It replaces nothing until the contractor chooses it.
     const [capabilitySuggestion, setCapabilitySuggestion] = useState<string | null>(null);
     const [mdMessageSuggestion, setMdMessageSuggestion] = useState<string | null>(null);
+
+    // State-only choices are mirrored on the form, so async replies compare the live DOM,
+    // not an older render's values. Overrides cover a choice before React commits it.
+    const snapshot = (form: HTMLFormElement, overrides: Record<string, string> = {}) => {
+        const data = new FormData(form);
+        data.set("pdf_theme", form.dataset.pdfTheme ?? "slate");
+        data.set("preferred_trades", form.dataset.preferredTrades ?? "[]");
+        for (const [name, value] of Object.entries(overrides)) data.set(name, value);
+        return profileFormSignature(data);
+    };
+    const trackChanges = (overrides: Record<string, string> = {}) => {
+        if (formRef.current) setDirty(snapshot(formRef.current, overrides) !== confirmedSignature.current);
+        setSaveNotice(null);
+    };
 
     const handleRewriteMdMessage = async () => {
         if (!mdMessage.trim()) return;
@@ -132,17 +175,6 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
         setRewritingCapability(false);
     };
 
-    const suggestionPanel = (id: string, suggestion: string | null, use: () => void, discard: () => void) => suggestion && (
-        <div id={id} role="status" className="rounded-lg border border-dashed border-violet-400/60 bg-violet-500/10 p-3 space-y-2">
-            <p className="text-xs font-semibold text-violet-200">Suggested wording. Check it says only what you wrote. Nothing changes unless you use it.</p>
-            <p className="text-sm text-slate-100 whitespace-pre-wrap break-words">{suggestion}</p>
-            <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={use} className="min-h-11 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-sm font-semibold text-white">Use this wording</button>
-                <button type="button" onClick={discard} className="min-h-11 px-3 rounded-lg border border-slate-600 text-sm font-semibold text-slate-200 hover:bg-white/5">Keep my own</button>
-            </div>
-        </div>
-    );
-
     const handleLogoUpload = async (file: File) => {
         setUploadingLogo(true);
         try {
@@ -152,6 +184,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
             const result = await uploadProfileImageAction(formData);
             if (!result.url) { toast.error(result.error || "Upload failed"); return; }
             setLogoUrl(result.url);
+            trackChanges({ logo_url: result.url });
             toast.success("Logo uploaded");
         } finally {
             setUploadingLogo(false);
@@ -160,90 +193,61 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (savingRef.current) return;
+        savingRef.current = true;
         setSaving(true);
-        const fd = new FormData(e.currentTarget);
-        fd.set("pdf_theme", pdfTheme);
-        fd.set("preferred_trades", JSON.stringify(preferredTrades));
-        const result = await save(fd);
-        setSaving(false);
-        if (result?.success) {
-            toast.success("Profile saved ✓");
-        } else {
-            toast.error("Save failed: " + (result?.error || "Unknown error"));
+        setSaveError(null);
+        setSaveNotice(null);
+        const form = e.currentTarget;
+        try {
+            const fd = new FormData(form);
+            fd.set("pdf_theme", pdfTheme);
+            fd.set("preferred_trades", JSON.stringify(preferredTrades));
+            const submitted = profileFormSignature(fd);
+            const result = await attemptProfileSave(save, fd);
+            if (result.success) {
+                confirmedSignature.current = submitted;
+                const newerEdits = snapshot(form) !== submitted;
+                setDirty(newerEdits);
+                setSaveNotice(newerEdits ? "Submitted profile saved. Newer edits still need saving." : "Profile saved.");
+                toast.success(newerEdits ? "Submitted profile saved. Newer edits still need saving." : "Profile saved ✓");
+            } else {
+                setSaveError(result.error || PROFILE_SAVE_UNCONFIRMED);
+                toast.error("Save failed: " + (result.error || PROFILE_SAVE_UNCONFIRMED));
+            }
+        } catch {
+            setSaveError(PROFILE_SAVE_UNCONFIRMED);
+            toast.error(PROFILE_SAVE_UNCONFIRMED);
+        } finally {
+            savingRef.current = false;
+            setSaving(false);
         }
     };
 
+    const statusMessage = saving ? "Saving the submitted profile..." : saveNotice || (saveError ? "Profile save not confirmed. Your current edits remain on this page." : dirty ? "Unsaved changes. Save before leaving this profile." : "No unsaved changes on this page.");
+
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Section A — Personal Details */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">
-                <h2 className="text-lg font-bold text-slate-100">Personal Details</h2>
-                <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-400">Full Name</label>
-                        <input
-                            name="full_name"
-                            defaultValue={profile?.full_name || ""}
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                            placeholder="John Smith"
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-400">Email</label>
-                        <input
-                            value={userEmail}
-                            readOnly
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm text-slate-500 cursor-not-allowed"
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-400">Phone</label>
-                        <input
-                            name="phone"
-                            defaultValue={profile?.phone || ""}
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                            placeholder="07700 900123"
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-400">Sales Contact Email</label>
-                        <input
-                            name="sales_email"
-                            type="email"
-                            defaultValue={profile?.sales_email || ""}
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                            placeholder="sales@example.co.uk"
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-400">Sales Contact Phone</label>
-                        <input
-                            name="sales_phone"
-                            defaultValue={profile?.sales_phone || ""}
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                            placeholder="07700 900456"
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-400">Accounts / Credit Control Email</label>
-                        <input
-                            name="accounts_email"
-                            type="email"
-                            defaultValue={profile?.accounts_email || ""}
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                            placeholder="accounts@example.co.uk"
-                        />
-                    </div>
-                </div>
-            </div>
+        <form onSubmit={handleSubmit} onChange={() => trackChanges()} className={ui.form} aria-busy={saving}
+            data-pdf-theme={pdfTheme} data-preferred-trades={JSON.stringify(preferredTrades)}
+            ref={(form) => {
+                formRef.current = form;
+                if (form && confirmedSignature.current === null) confirmedSignature.current = snapshot(form);
+            }}>
+
+            <p id="profile-save-status" role="status" aria-live="polite" className={ui.saveStatus}>
+                {statusMessage}
+            </p>
+            {saveError && <p role="alert" className={ui.saveError}>{saveError}</p>}
 
             {/* Section B — Company Profile */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">
-                <h2 className="text-lg font-bold text-slate-100">Company Profile</h2>
-                <div className="grid md:grid-cols-2 gap-4">
+            <section id="company-basics" tabIndex={-1} className={ui.section}>
+                <h2 className="text-lg font-bold text-slate-100">Company basics</h2>
+                <p>Begin with who you are and the kind of work you do. Keep the other details for when you need them.</p>
+                <div className={ui.fields}>
                     <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-400">Company Name</label>
+                        <label htmlFor="company-company_name" className="text-sm font-medium text-slate-400">Company Name</label>
                         <input
+                            id="company-company_name"
                             name="company_name"
                             defaultValue={profile?.company_name || ""}
                             className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
@@ -252,8 +256,21 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-400">Company Registration Number</label>
+                        <label htmlFor="profile-business-type" className="text-sm font-medium text-slate-400">What kind of work your business does</label>
+                        {/* Free text, as in setup. A fixed list here would blank an answer it did not contain. */}
                         <input
+                            id="profile-business-type"
+                            name="business_type"
+                            defaultValue={profile?.business_type || ""}
+                            maxLength={SETUP_LIMITS.businessType}
+                            placeholder="e.g. Kitchen and bathroom fitting, tiling and small extensions"
+                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label htmlFor="company-company_number" className="text-sm font-medium text-slate-400">Company Registration Number</label>
+                        <input
+                            id="company-company_number"
                             name="company_number"
                             defaultValue={profile?.company_number || ""}
                             className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
@@ -261,8 +278,9 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-400">VAT Number</label>
+                        <label htmlFor="company-vat_number" className="text-sm font-medium text-slate-400">VAT Number</label>
                         <input
+                            id="company-vat_number"
                             name="vat_number"
                             defaultValue={profile?.vat_number || ""}
                             className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
@@ -270,8 +288,9 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-400">Trading Address</label>
+                        <label htmlFor="company-address" className="text-sm font-medium text-slate-400">Trading Address</label>
                         <input
+                            id="company-address"
                             name="address"
                             defaultValue={profile?.address || ""}
                             className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
@@ -279,8 +298,9 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-400">Website</label>
+                        <label htmlFor="company-website" className="text-sm font-medium text-slate-400">Website</label>
                         <input
+                            id="company-website"
                             name="website"
                             defaultValue={profile?.website || ""}
                             className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
@@ -288,19 +308,21 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-400">Years Trading</label>
+                        <label htmlFor="company-years_trading" className="text-sm font-medium text-slate-400">Years Trading</label>
                         <input
+                            id="company-years_trading"
                             name="years_trading"
                             type="number"
                             min={0}
-                            defaultValue={profile?.years_trading || ""}
+                            defaultValue={profile?.years_trading ?? ""}
                             className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
                             placeholder="15"
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-400">Financial Year Start</label>
+                        <label htmlFor="company-financial_year_start_month" className="text-sm font-medium text-slate-400">Financial Year Start</label>
                         <select
+                            id="company-financial_year_start_month"
                             name="financial_year_start_month"
                             defaultValue={profile?.financial_year_start_month ?? 4}
                             className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
@@ -317,35 +339,27 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                     </div>
                 </div>
 
-                <div className="space-y-1.5">
-                    <label htmlFor="profile-business-type" className="text-sm font-medium text-slate-400">What kind of work your business does</label>
-                    {/* Free text, as in setup. A fixed list here would blank an answer it did not contain. */}
-                    <input
-                        id="profile-business-type"
-                        name="business_type"
-                        defaultValue={profile?.business_type || ""}
-                        maxLength={SETUP_LIMITS.businessType}
-                        placeholder="e.g. Kitchen and bathroom fitting, tiling and small extensions"
-                        className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                    />
-                </div>
 
+            </section>
+
+            <section id="company-work" tabIndex={-1} className={ui.section}>
+                <h2>Your work &amp; story</h2>
+                <p>Choose your trades and introduce the experience behind your business.</p>
                 <div>
-                    <label className="block text-sm font-semibold text-slate-100 mb-1">Your Trades</label>
+                    <p className="block text-sm font-semibold text-slate-100 mb-1">Your Trades</p>
                     <p className="text-xs text-slate-500 mb-3">Select the trades your company works in. These appear first in the estimating tool.</p>
-                    <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto border border-slate-700 rounded-lg p-3">
+                    <div className={ui.trades}>
                         {ALL_TRADES.map(trade => {
                             const isSelected = preferredTrades.includes(trade);
                             return (
                                 <button
                                     key={trade}
                                     type="button"
+                                    aria-pressed={isSelected}
                                     onClick={() => {
-                                        setPreferredTrades(prev =>
-                                            isSelected
-                                                ? prev.filter(t => t !== trade)
-                                                : [...prev, trade]
-                                        );
+                                        const next = isSelected ? preferredTrades.filter(t => t !== trade) : [...preferredTrades, trade];
+                                        setPreferredTrades(next);
+                                        trackChanges({ preferred_trades: JSON.stringify(next) });
                                     }}
                                     className={`text-xs px-2 py-1.5 rounded-md border text-left transition-colors ${
                                         isSelected
@@ -361,9 +375,10 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                 </div>
 
                 <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-400">Specialisms</label>
+                    <label htmlFor="company-specialisms" className="text-sm font-medium text-slate-400">Specialisms</label>
                     <input
-                        name="specialisms"
+                        id="company-specialisms"
+                            name="specialisms"
                         defaultValue={profile?.specialisms || ""}
                         className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
                         placeholder="Brickwork, Extensions, Groundworks"
@@ -372,9 +387,10 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                 </div>
 
                 <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-400">Insurance Details</label>
+                    <label htmlFor="company-insurance_details" className="text-sm font-medium text-slate-400">Insurance Details</label>
                     <textarea
-                        name="insurance_details"
+                        id="company-insurance_details"
+                            name="insurance_details"
                         defaultValue={profile?.insurance_details || ""}
                         rows={2}
                         className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
@@ -383,9 +399,10 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                 </div>
 
                 <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-400">Accreditations</label>
+                    <label htmlFor="company-accreditations" className="text-sm font-medium text-slate-400">Accreditations</label>
                     <input
-                        name="accreditations"
+                        id="company-accreditations"
+                            name="accreditations"
                         defaultValue={profile?.accreditations || ""}
                         className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
                         placeholder="CITB, FMB Member, NHBC Registered"
@@ -394,7 +411,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
 
                 <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-slate-400">Capability Statement</label>
+                        <label htmlFor="company-capability_statement" className="text-sm font-medium text-slate-400">Capability Statement</label>
                         {capabilityStatement.trim().length > 20 && (
                             <button
                                 type="button"
@@ -408,21 +425,24 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                         )}
                     </div>
                     <textarea
-                        name="capability_statement"
+                        id="company-capability_statement"
+                            name="capability_statement"
                         value={capabilityStatement}
                         onChange={(e) => setCapabilityStatement(e.target.value)}
                         rows={5}
                         className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
                         placeholder="We are a family-run business with over 20 years of experience in residential and commercial construction across the South East..."
                     />
-                    {suggestionPanel("capability-suggestion", capabilitySuggestion, () => { setCapabilityStatement(capabilitySuggestion ?? ""); setCapabilitySuggestion(null); }, () => setCapabilitySuggestion(null))}
+                    <ProfileSuggestion id="capability-suggestion" suggestion={capabilitySuggestion}
+                        onUse={() => { const text = capabilitySuggestion ?? ""; setCapabilityStatement(text); trackChanges({ capability_statement: text }); setCapabilitySuggestion(null); }}
+                        onDiscard={() => setCapabilitySuggestion(null)} />
                     <p className="text-xs text-slate-500">
-                        This is your &ldquo;About Us&rdquo; paragraph — it appears on every proposal PDF.
+                        This can provide your &ldquo;About Us&rdquo; paragraph in proposals. Review each proposal before sending.
                     </p>
                 </div>
 
                 <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-400">Company Logo</label>
+                    <label htmlFor="company-logo-input" className="text-sm font-medium text-slate-400">Company Logo</label>
                     <input name="logo_url" type="hidden" value={logoUrl} />
                     <div className="flex items-start gap-4">
                         {logoUrl && (
@@ -442,6 +462,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                                 {uploadingLogo ? "Uploading..." : "Upload Logo"}
                             </button>
                             <input
+                                id="company-logo-input"
                                 ref={logoInputRef}
                                 type="file"
                                 accept="image/jpeg,image/png,image/webp"
@@ -455,20 +476,95 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
+
+            {/* Section A — Personal Details */}
+            <section id="company-contacts" tabIndex={-1} className={ui.section}>
+                <h2 className="text-lg font-bold text-slate-100">Personal Details</h2>
+                <p>Your people and the contacts you use for sales and accounts.</p>
+                <div className={ui.fields}>
+                    <div className="space-y-1.5">
+                        <label htmlFor="company-full_name" className="text-sm font-medium text-slate-400">Full Name</label>
+                        <input
+                            id="company-full_name"
+                            name="full_name"
+                            defaultValue={profile?.full_name || ""}
+                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            placeholder="John Smith"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label htmlFor="company-account-email" className="text-sm font-medium text-slate-400">Email</label>
+                        <input
+                            id="company-account-email"
+                            value={userEmail}
+                            readOnly
+                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm text-slate-500 cursor-not-allowed"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label htmlFor="company-phone" className="text-sm font-medium text-slate-400">Phone</label>
+                        <input
+                            id="company-phone"
+                            name="phone"
+                            defaultValue={profile?.phone || ""}
+                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            placeholder="07700 900123"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label htmlFor="company-sales_email" className="text-sm font-medium text-slate-400">Sales Contact Email</label>
+                        <input
+                            id="company-sales_email"
+                            name="sales_email"
+                            type="email"
+                            defaultValue={profile?.sales_email || ""}
+                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            placeholder="sales@example.co.uk"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label htmlFor="company-sales_phone" className="text-sm font-medium text-slate-400">Sales Contact Phone</label>
+                        <input
+                            id="company-sales_phone"
+                            name="sales_phone"
+                            defaultValue={profile?.sales_phone || ""}
+                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            placeholder="07700 900456"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label htmlFor="company-accounts_email" className="text-sm font-medium text-slate-400">Accounts / Credit Control Email</label>
+                        <input
+                            id="company-accounts_email"
+                            name="accounts_email"
+                            type="email"
+                            defaultValue={profile?.accounts_email || ""}
+                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            placeholder="accounts@example.co.uk"
+                        />
+                    </div>
+                </div>
+            </section>
 
             {/* Section C — Proposal Theme */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">
+            <section id="company-style" tabIndex={-1} className={ui.section}>
                 <div>
                     <h2 className="text-lg font-bold text-slate-100">Proposal Theme</h2>
                     <p className="text-xs text-slate-500 mt-0.5">Choose the colour scheme for your PDF proposals.</p>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                {!THEMES.some(theme => theme.id === pdfTheme) && (
+                    <p data-profile-saved-theme>
+                        Saved theme: <strong>{pdfTheme}</strong>. This value is not one of the choices below. It is kept when you save unless you choose another theme.
+                    </p>
+                )}
+                <div className={ui.themes}>
                     {THEMES.map(theme => (
                         <button
                             key={theme.id}
                             type="button"
-                            onClick={() => setPdfTheme(theme.id)}
+                            aria-pressed={pdfTheme === theme.id}
+                            onClick={() => { setPdfTheme(theme.id); trackChanges({ pdf_theme: theme.id }); }}
                             className={`relative flex items-stretch rounded-xl border transition-all text-left overflow-hidden ${
                                 pdfTheme === theme.id
                                     ? 'ring-2 ring-gray-900 border-slate-500'
@@ -486,10 +582,10 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                         </button>
                     ))}
                 </div>
-            </div>
+            </section>
 
             {/* Section D — Past Projects & Case Studies. Edited on their own page; this form does not save them. */}
-            <div data-profile-case-studies className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-3">
+            <section data-profile-case-studies className={ui.section}>
                 <h2 className="text-lg font-bold text-slate-100">Past Projects &amp; Case Studies</h2>
                 <p className="text-sm text-slate-300">
                     Case studies are added and changed on their own page. Saving this profile does not change them.
@@ -500,16 +596,17 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                 >
                     Go to case studies
                 </Link>
-            </div>
+            </section>
 
             {/* Section — MD Message (for PDF proposals) */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">
+            <section id="company-director" tabIndex={-1} className={ui.section}>
                 <h2 className="text-lg font-bold text-slate-100">Managing Director Message</h2>
                 <p className="text-sm text-slate-400">This message appears in your PDF proposals as a personal note from the MD.</p>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className={ui.fields}>
                     <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-400">MD / Director Name</label>
+                        <label htmlFor="company-md_name" className="text-sm font-medium text-slate-400">MD / Director Name</label>
                         <input
+                            id="company-md_name"
                             name="md_name"
                             defaultValue={profile?.md_name || ""}
                             className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
@@ -519,7 +616,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                 </div>
                 <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-slate-400">Personal Message</label>
+                        <label htmlFor="company-md_message" className="text-sm font-medium text-slate-400">Personal Message</label>
                         {mdMessage.trim().length > 20 && (
                             <button
                                 type="button"
@@ -533,19 +630,22 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                         )}
                     </div>
                     <textarea
-                        name="md_message"
+                        id="company-md_message"
+                            name="md_message"
                         value={mdMessage}
                         onChange={(e) => setMdMessage(e.target.value)}
                         rows={4}
                         className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
                         placeholder="Thank you for considering us for this project. We pride ourselves on delivering quality work on time and within budget..."
                     />
-                    {suggestionPanel("md-message-suggestion", mdMessageSuggestion, () => { setMdMessage(mdMessageSuggestion ?? ""); setMdMessageSuggestion(null); }, () => setMdMessageSuggestion(null))}
+                    <ProfileSuggestion id="md-message-suggestion" suggestion={mdMessageSuggestion}
+                        onUse={() => { const text = mdMessageSuggestion ?? ""; setMdMessage(text); trackChanges({ md_message: text }); setMdMessageSuggestion(null); }}
+                        onDiscard={() => setMdMessageSuggestion(null)} />
                 </div>
-            </div>
+            </section>
 
             {/* ── Data Consent ──────────────────────────────────────────────── */}
-            <div className="rounded-xl border border-slate-700 bg-slate-900 p-6 space-y-3">
+            <section id="company-consent" tabIndex={-1} className={ui.section}>
                 <h2 className="text-base font-semibold text-white">Industry Benchmarking</h2>
                 <p className="text-sm text-slate-400">
                     Help improve Constructa&apos;s industry benchmarks by contributing anonymised data from your closed projects.
@@ -568,15 +668,19 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                     You can withdraw consent at any time by unchecking this box. Previously contributed data
                     cannot be retroactively removed as it is fully anonymised with no link back to your account.
                 </p>
-            </div>
+            </section>
 
-            <button
-                type="submit"
-                disabled={saving}
-                className="w-full h-14 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-xl font-bold text-lg transition-all active:scale-[0.98]"
-            >
-                {saving ? "Saving..." : "Save Company Profile"}
-            </button>
+            <div className={ui.saveBar}>
+                <p>Save applies to all sections of this profile, not just the section you are viewing.</p>
+                {saveError ? <p className={ui.saveError}>{saveError}</p> : <p>{statusMessage}</p>}
+                <button
+                    type="submit"
+                    disabled={saving}
+                    className="w-full h-14 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-xl font-bold text-lg transition-all active:scale-[0.98]"
+                >
+                    {saving ? "Saving..." : "Save Company Profile"}
+                </button>
+            </div>
         </form>
     );
 }

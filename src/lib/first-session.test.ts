@@ -145,6 +145,20 @@ describe("work suggestions", () => {
             });
         }
     });
+
+    it("keeps bespoke and older work descriptions independent of the suggestion list", () => {
+        for (const answer of ["Bathroom & Kitchen Fitting", "General Builder / Extensions", "Commercial laboratory refurbishment"]) {
+            expect(buildSetupPatch({ step: "trade", businessType: answer })).toMatchObject({
+                ok: true, patch: { business_type: answer },
+            });
+        }
+        const answer = "Kitchen fitting and small extensions";
+        for (const suggestion of SETUP_WORK_SUGGESTIONS) {
+            const added = toggleWorkSuggestion(answer, suggestion);
+            expect(hasWorkSuggestion(added, suggestion)).toBe(true);
+            expect(toggleWorkSuggestion(added, suggestion)).toBe(answer);
+        }
+    });
 });
 
 describe("resolvePostSetupPath", () => {

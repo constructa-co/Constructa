@@ -1,0 +1,153 @@
+.root {
+    --price-text: #17231b;
+    --price-muted: #536356;
+    --price-line: #c9d3c7;
+    --price-accent: #203d2b;
+    --price-accent-text: #f3fff2;
+    max-width: 1440px;
+    margin: 24px auto;
+    padding: clamp(20px, 4vw, 48px);
+    border: 1px solid var(--price-line);
+    border-radius: 24px;
+    color: var(--price-text);
+    background: radial-gradient(ellipse at top right, #e1eddc, transparent 60%), #f5f7f2;
+    font-family: "Avenir Next", Avenir, "Trebuchet MS", sans-serif;
+    container: pricing / inline-size;
+}
+.root[data-theme="dark"] {
+    --price-text: #f1f5ed;
+    --price-muted: #b5c4b4;
+    --price-line: #475449;
+    --price-accent: #c9efcf;
+    --price-accent-text: #13251a;
+    background: radial-gradient(ellipse at top right, #2b3c2b, transparent 60%), #111812;
+}
+.header { border-bottom: 1px solid var(--price-line); padding-bottom: 24px; }
+.eyebrow { color: var(--price-accent); font-size: 11px; letter-spacing: .15em; text-transform: uppercase; font-weight: 800; }
+.root .title { color: var(--price-text); font-size: clamp(32px, 4vw, 52px); line-height: 1.1; letter-spacing: -.045em; margin: 12px 0; }
+.intro { max-width: 640px; margin-top: 16px; color: var(--price-muted); font-size: 15px; line-height: 1.65; }
+.root :is(input, textarea, select) { font-size: 16px; }
+.root form [class~="grid-cols-2"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.root form [class~="grid-cols-3"] { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.root form [class~="col-span-3"] { grid-column: 1 / -1; }
+.root form button, .root [data-price-line] button { min-height: 44px; }
+.root [data-price-line] button { padding: 6px 10px; }
+.root button[class~="bg-blue-600"], .root a[class~="bg-blue-600"] {
+    color: var(--price-accent-text);
+    background: var(--price-accent);
+    border-color: var(--price-accent);
+}
+.root :is(button, a, input, textarea, select, [tabindex="-1"]):focus-visible { outline: 3px solid var(--price-accent); outline-offset: 4px; }
+.root :is(button, a, input, textarea, select) { scroll-margin-top: 5rem; scroll-margin-bottom: 10rem; }
+.totalDock {
+    position: sticky;
+    bottom: max(3.5rem, env(safe-area-inset-bottom));
+    z-index: 20;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 4px 12px;
+    padding: 12px 16px;
+    border: 1px solid var(--price-line);
+    border-radius: 16px;
+    background: var(--price-accent);
+    color: var(--price-accent-text);
+    box-shadow: 0 -8px 24px #0002;
+}
+.totalDock > span { font-size: 14px; font-weight: 700; }
+.totalDock > strong { font-size: 22px; line-height: 1.2; white-space: nowrap; }
+.totalDock > p { grid-column: 1 / -1; font-size: 12px; line-height: 1.4; }
+@media (max-width: 540px) {
+    .root { margin: 0; padding: 24px 12px; border-radius: 0; border: 0; }
+    .root form [class~="grid-cols-3"] { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .root :is(button, a) { transition: none; } }
+
+/* Scoped resource editor, loaded with the existing estimating workspace. */
+.resourcePanel {
+    --resource-text: #eef4ec;
+    --resource-muted: #b2c4b1;
+    --resource-border: #405044;
+    --resource-accent: #b5e5bf;
+    margin: 12px 0;
+    border: 1px solid var(--resource-border);
+    border-radius: 12px;
+    background: radial-gradient(ellipse at top right, #25362b, transparent 65%), #151c17;
+    color: var(--resource-text);
+}
+.resourceHeader, .resourceFooter { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; }
+.resourceHeader { border-bottom: 1px solid var(--resource-border); }
+.resourceTitle { font-size: 15px; font-weight: 700; }
+.resourceTotals { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.resourceContext, .resourceNote { padding: 12px 16px 0; font-size: 13px; line-height: 1.6; color: var(--resource-muted); }
+.resourceNote { padding-bottom: 16px; }
+.resourceBasis { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 16px 0; font-size: 13px; }
+.resourcePanel .resourceBasis button { min-height: 40px; padding: 8px 12px; border: 1px solid var(--resource-border); border-radius: 8px; color: var(--resource-text); }
+.resourcePanel .resourceBasis button[aria-pressed="true"] { background: var(--resource-accent); color: #14251a; border-color: var(--resource-accent); }
+.resourcePanel button:disabled { opacity: .5; cursor: not-allowed; }
+.resourcePanel button { color: var(--resource-text); border-color: var(--resource-border); }
+.resourcePanel button:not([aria-pressed]):hover { background: #263a2c; }
+.resourceViewport { max-width: 100%; overflow-x: auto; border-block: 1px solid var(--resource-border); }
+.resourceTable { width: 100%; min-width: 980px; border-collapse: collapse; table-layout: auto; font-size: 13px; }
+.resourceTable caption { text-align: left; padding: 12px 16px; color: var(--resource-muted); }
+.resourceTable th { text-align: left; color: var(--resource-muted); background: #101813; font-size: 11px; letter-spacing: .04em; }
+.resourceTable :is(th, td) { padding: 10px 8px; border-bottom: 1px solid var(--resource-border); vertical-align: top; }
+.resourceTable :is(th, td):first-child { padding-left: 16px; }
+.resourceTable th:nth-child(3), .resourceTable th:nth-child(5), .resourceTable th:nth-child(6), .resourceTable th:nth-child(7) { text-align: right; }
+.resourceDescription { min-width: 240px; width: 32%; }
+.resourcePanel .resourceTable :is(input, select) { min-height: 36px; width: 100%; min-width: 68px; border: 1px solid var(--resource-border); border-radius: 5px; padding: 6px; color: var(--resource-text); background: #0d1510; font-size: 16px; }
+.resourcePanel .resourceTable input[type="number"] { text-align: right; min-width: 92px; font-variant-numeric: tabular-nums; }
+.resourcePanel .resourceTable span { color: inherit; }
+.resourcePanel .resourceTable td:first-child span { color: #d2e6d4; background: #263a2c; }
+.resourceTable .resourceNumeric { white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
+.resourcePanel .resourceTable p[role="alert"] { max-width: 180px; color: #ffbfb4; margin-top: 8px; }
+.resourcePanel :is(button, input, select):focus-visible, .resourceViewport:focus-visible { outline: 3px solid var(--resource-accent); outline-offset: 3px; }
+.resourceFooter { border-top: 1px solid var(--resource-border); }
+.resourcePanel .resourceFooter button { color: var(--resource-accent); }
+.resourcePanel .resourceFooter button:last-child { background: var(--resource-accent); color: #14251a; }
+@media (max-width: 600px) { .resourceHeader, .resourceFooter { align-items: flex-start; } }
+
+.activityEntry {
+    padding: 20px;
+    border: 1px solid var(--price-line, #475449);
+    border-radius: 14px;
+    color: var(--price-text, #f1f5ed);
+    background: linear-gradient(115deg, #89ae8a12, transparent);
+}
+.activityFields { display: grid; gap: 8px; }
+.activityEntry label { font-size: 15px; font-weight: 700; }
+.activityEntry p { color: var(--price-muted, #b5c4b4); font-size: 13px; line-height: 1.6; }
+.activityInputRow { display: flex; flex-wrap: wrap; gap: 10px; margin-block: 4px; }
+.activityInputRow input { flex: 1 1 240px; min-width: 0; }
+.activityEntry :is(input, select) { min-height: 44px; border: 1px solid var(--price-line, #475449); border-radius: 8px; padding: 10px 12px; font-size: 16px; color: var(--price-text, #f1f5ed); background: color-mix(in srgb, var(--price-accent-text, #13251a) 94%, var(--price-accent, #c9efcf)); }
+.activityEntry button { min-height: 44px; border-radius: 8px; padding: 10px 18px; font-size: 14px; font-weight: 700; color: var(--price-accent-text, #13251a); background: var(--price-accent, #c9efcf); }
+.activityEntry button:disabled { opacity: .5; cursor: not-allowed; }
+.activityEntry details { margin-top: 16px; border-top: 1px solid var(--price-line, #475449); }
+.activityEntry summary { padding-block: 12px; cursor: pointer; font-size: 13px; font-weight: 700; }
+.activityEntry details label { display: grid; gap: 8px; color: var(--price-muted, #b5c4b4); font-size: 13px; font-weight: 400; }
+.activityEntry select { width: 100%; }
+.activityEntry :is(input, button, summary, select):focus-visible { outline: 3px solid var(--price-accent, #c9efcf); outline-offset: 3px; }
+@media (max-width: 540px) { .activityInputRow button { width: 100%; } }
+
+.priceLinesHeader { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.priceLinesTable { width: 100%; border-collapse: collapse; margin-top: 12px; color: var(--price-text); }
+.priceTableCaption { text-align: left; color: var(--price-muted); font-size: 12px; line-height: 1.6; padding-bottom: 12px; }
+.priceLinesTable th { text-align: left; padding: 10px 8px; border-block: 1px solid var(--price-line); font-size: 12px; font-weight: 700; color: var(--price-muted); }
+.priceLinesTable td { padding: 14px 8px; border-bottom: 1px solid var(--price-line); vertical-align: top; }
+.priceLinesTable th:first-child, .priceLinesTable td:first-child { padding-left: 0; }
+.priceLineDescription { width: 100%; min-width: 160px; overflow-wrap: anywhere; }
+.priceLineNumber, .priceLineAmount { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.priceLineAmount { font-weight: 700; }
+.priceOneAmount { color: var(--price-muted); text-align: center; white-space: nowrap; }
+.priceLineUnit { overflow-wrap: anywhere; }
+.priceLineActions { min-width: 220px; }
+.priceLinesTable .priceFormRow td { padding: 16px 0; }
+@container pricing (max-width: 760px) {
+    .priceLinesTable, .priceLinesTable tbody { display: block; }
+    .priceLinesTable .priceTableCaption { display: block; width: 100%; }
+    .priceLinesTable thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .priceLinesTable tbody > tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; padding-block: 16px; border-bottom: 1px solid var(--price-line); }
+    .priceLinesTable td { display: block; padding: 0; border: 0; min-width: 0; width: auto; text-align: left; white-space: normal; }
+    .priceLinesTable .priceLineDescription, .priceLinesTable .priceLineActions, .priceLinesTable .priceOneAmount, .priceLinesTable .priceFormRow td { grid-column: 1 / -1; }
+    .priceLinesTable td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: 12px; font-weight: 400; color: var(--price-muted); }
+}

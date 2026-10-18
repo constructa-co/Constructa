@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 import { FIRST_PROJECT_STEPS, NEW_PROJECT_PATH } from "@/lib/first-session";
+import ui from "@/components/first-project.module.css";
 
 /**
  * What Home and Pipeline show before a contractor has any projects: one
@@ -22,7 +23,8 @@ export default function FirstProjectStart({ companyName, forceDark = false }: {
     return (
         <section
             aria-labelledby="first-project-heading"
-            className={`rounded-2xl border p-5 sm:p-8 ${
+            data-dark={isDark}
+            className={`${ui.frame} rounded-2xl border p-5 sm:p-8 ${
                 isDark ? "bg-[#1a1a1a] border-[#2a2a2a]" : "bg-white border-gray-200 shadow-sm"
             }`}
         >
@@ -54,6 +56,7 @@ export default function FirstProjectStart({ companyName, forceDark = false }: {
                     >
                         <span
                             aria-hidden
+                            data-step-number
                             className={`w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-sm font-bold ${
                                 isDark ? "bg-blue-500/20 text-blue-300" : "bg-blue-100 text-blue-700"
                             }`}

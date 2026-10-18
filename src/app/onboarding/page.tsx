@@ -46,7 +46,7 @@ export default async function OnboardingPage(
             initialBusinessType={profile?.business_type || ""}
             initialCompanyName={profile?.company_name || ""}
             initialFullName={profile?.full_name || ""}
-            completionPath={resolvePostSetupPath(projectCount, getLaunchLandingPath())}
+            completionPath={resolvePostSetupPath(projectCount, getLaunchLandingPath(), !alreadySetUp)}
             exitPath={alreadySetUp ? getLaunchLandingPath() : null}
         />
     );

@@ -7,6 +7,8 @@ import { AlertTriangle, Check, ChevronDown, Circle, FileDown, Loader2, Plus, Sen
 import ProgrammeTimeline from "@/components/programme-timeline";
 import ProposalDocumentView from "@/components/proposal/proposal-document-view";
 import SaveStatus from "@/components/save-status";
+import ProposalWorkspaceHeading from "@/components/proposal-workspace-heading";
+import ui from "@/components/proposal-workspace.module.css";
 import { newClientId } from "@/lib/client-id";
 import { copyTextWithFallback } from "@/lib/clipboard-copy";
 import { programmePlanForProject } from "@/lib/programme-plan";
@@ -54,6 +56,7 @@ import {
 import { useTheme } from "@/lib/theme-context";
 import { useReducerStore } from "@/lib/use-reducer-store";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
+import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
 import { workspaceStyles, type WorkspaceStyles } from "@/lib/workspace-styles";
 import {
     getProposalPublicationAction,
@@ -124,6 +127,9 @@ const FIELD_LABEL: Record<WordingField, string> = {
     closing: "Closing message",
 };
 
+const PROPOSAL_LEAVE_WARNING =
+    "Your proposal has changes that are not saved yet.\n\nPress Cancel to stay here and save them, or OK to leave without saving.";
+
 export default function ReviewSendClient({ context, caseStudies, lockReason, estimateIssue, publications, server, now }: Props) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
@@ -189,10 +195,16 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     }, [preview]);
     const checkCode = preview && contentCheck?.of === preview ? contentCheck.code : null;
 
-    useUnsavedGuard(
-        !locked && (status === "unsaved" || status === "failed" || status === "saving"),
-        "Your proposal has changes that are not saved yet.\n\nPress Cancel to stay here and save them, or OK to leave without saving.",
-    );
+    const unsaved = !locked && (status === "unsaved" || status === "failed" || status === "saving");
+    useUnsavedGuard(unsaved, PROPOSAL_LEAVE_WARNING);
+    useEffect(() => {
+        if (!unsaved) return;
+        const confirmProjectChange = (event: Event) => {
+            if (!window.confirm(PROPOSAL_LEAVE_WARNING)) event.preventDefault();
+        };
+        window.addEventListener(BEFORE_PROJECT_NAVIGATION, confirmProjectChange);
+        return () => window.removeEventListener(BEFORE_PROJECT_NAVIGATION, confirmProjectChange);
+    }, [unsaved]);
 
     // A save or a send can be started from the bottom of a long page. Bring
     // the outcome into view. "nearest" moves the page's own scroller only as
@@ -442,17 +454,17 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     );
 
     return (
-        <div className="space-y-5">
+        <div className={`${ui.workspace} space-y-5`} data-dark={isDark}>
             {/* Title and save state */}
-            <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                    <h1 className={`text-2xl sm:text-3xl font-bold break-words ${s.heading}`}>Review and send</h1>
-                    <p className={`mt-1 text-base break-words ${s.muted}`}>
-                        {project.name}{project.client_name ? ` for ${project.client_name}` : ""}
-                    </p>
-                </div>
+            <ProposalWorkspaceHeading
+                projectName={project.name}
+                clientName={project.client_name}
+                locked={locked}
+                isDark={isDark}
+                classes={{ header: ui.header, eyebrow: ui.eyebrow, title: ui.title, project: ui.project, guide: ui.guide }}
+            >
                 {!locked && <SaveStatus status={status} label={REVIEW_STATUS_LABEL[status]} isDark={isDark} />}
-            </div>
+            </ProposalWorkspaceHeading>
 
             {locked && <p role="status" className={`${s.noticeBox} text-sm`} data-review-locked>{lockReason}</p>}
 
@@ -554,7 +566,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                 </div>
                             ))}
                         </dl>
-                        {elsewhere("These come from the project.", href("settings"), "Change project details")}
+                        {elsewhere("Job, client and site come from the project. Your company name comes from your profile.", href("settings"), "Change project details")}
                         {wordingField("introduction", {
                             rows: 4,
                             help: "A few lines in your own words: why you want the job and what matters about it.",
@@ -566,7 +578,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                         {sectionTitle("review-about", 2, "About your business", "Shown as you wrote it in your company profile. Nothing is added.")}
                         {context.profile.capability_statement?.trim()
                             ? <p className={`text-base whitespace-pre-wrap break-words ${s.body}`}>{context.profile.capability_statement}</p>
-                            : <p className={`text-base ${s.muted}`}>You have not described your business yet, so this section is left out.</p>}
+                            : <p className={`text-base ${s.muted}`}>No company introduction is saved. Other company details may still appear in the draft preview below.</p>}
                         {elsewhere("Years trading, accreditations, insurance and your logo also come from the profile.", "/dashboard/settings/profile", "Change company profile")}
                     </section>
 
@@ -669,8 +681,11 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                             )}
                         </div>
 
-                        {wordingField("exclusions", { rows: 4, help: "One item per line." })}
-                        {wordingField("clarifications", { rows: 4, help: "One item per line: assumptions, access, anything the price depends on." })}
+                        <section aria-labelledby="review-scope-notes-title" data-review-scope-notes className={`${s.inset} p-4 sm:p-5 space-y-5`}>
+                            <h3 id="review-scope-notes-title" className={`text-lg font-bold ${s.heading}`}>Exclusions and clarifications</h3>
+                            {wordingField("exclusions", { rows: 4, help: "One item per line." })}
+                            {wordingField("clarifications", { rows: 4, help: "One item per line: assumptions, access, anything the price depends on." })}
+                        </section>
                     </section>
 
                     {/* 5. Price */}

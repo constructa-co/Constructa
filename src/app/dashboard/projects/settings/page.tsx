@@ -3,7 +3,8 @@ import ClientProjectSettings from "./client-page";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProjectSettingsPage() {
+export default async function ProjectSettingsPage(props: { searchParams: Promise<{ projectId?: string }> }) {
+    const { projectId } = await props.searchParams;
     const supabase = await createClient();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
@@ -12,11 +13,14 @@ export default async function ProjectSettingsPage() {
         return <div>Please log in.</div>;
     }
 
-    // Get Latest Project
-    const { data: project } = await supabase
+    let query = supabase
         .from("projects")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", user.id);
+
+    if (projectId) query = query.eq("id", projectId);
+
+    const { data: project } = await query
         .order("created_at", { ascending: false })
         .limit(1)
         .single();
@@ -25,7 +29,7 @@ export default async function ProjectSettingsPage() {
         return <div className="p-8 text-slate-500">No active project found. Please create an estimate first.</div>;
     }
 
-    return <ClientProjectSettings project={project} />;
+    return <ClientProjectSettings key={project.id} project={project} />;
 }
 
 

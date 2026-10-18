@@ -6,7 +6,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, ChevronDown, Loader2, Plus, Trash2 } from "lucide-react";
 import ProgrammeTimeline from "@/components/programme-timeline";
+import ProgrammeStageFocus from "@/components/programme-stage-focus";
 import SaveStatus from "@/components/save-status";
+import ui from "@/components/programme.module.css";
 import { newClientId } from "@/lib/client-id";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
 import { formatPlanDate, formatWorkingDuration, PROGRAMME_BASIS_NOTE } from "@/lib/programme-plan";
@@ -33,8 +35,12 @@ import {
 import { useTheme } from "@/lib/theme-context";
 import { useReducerStore } from "@/lib/use-reducer-store";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
+import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
 import { workspaceStyles, type WorkspaceStyles } from "@/lib/workspace-styles";
 import { saveSimpleProgrammeAction } from "./simple-actions";
+
+const PROGRAMME_LEAVE_WARNING =
+    "Your programme has changes that are not saved yet.\n\nPress Cancel to stay here and save them, or OK to leave without saving.";
 
 // The drag-and-drop planner is only downloaded when it is opened.
 const DetailedPlanner = dynamic(() => import("./client-page"), {
@@ -128,8 +134,8 @@ export default function SimpleProgrammeClient({ project, lockReason, estimate, s
                         This workspace is laid out for a wide screen.
                     </p>
                     <p className={`text-sm ${s.muted}`}>
-                        The planner lays stages out on a grid of whole weeks. The proposal states dates by working days, Monday to Friday,
-                        so its finish date can be a few days earlier than the planner&apos;s summary. Close the planner to see the programme as the proposal shows it.
+                        Stages are positioned on a grid of whole weeks. For a complete five-day programme, dates use the proposal&apos;s Monday-to-Friday calculation.
+                        Other working-week choices remain planner-only; the proposal&apos;s calendar does not change.
                     </p>
                     {view.kind === "simple" && !view.hasSaved && (
                         <p role="note" className={`text-sm ${s.noticeBox}`}>
@@ -157,7 +163,7 @@ export default function SimpleProgrammeClient({ project, lockReason, estimate, s
     );
 
     return (
-        <div className="space-y-5">
+        <div className={`${ui.root} space-y-5`} data-dark={isDark ? "true" : "false"}>
             {detailedOpen ? (
                 <>
                     <Heading project={project} s={s} />
@@ -203,12 +209,14 @@ export default function SimpleProgrammeClient({ project, lockReason, estimate, s
 
 function Heading({ project, s, children }: { project: ProgrammeProject; s: WorkspaceStyles; children?: React.ReactNode }) {
     return (
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className={`${ui.header} flex flex-wrap items-start justify-between gap-3`}>
             <div className="min-w-0">
-                <h1 className={`text-2xl sm:text-3xl font-bold break-words ${s.heading}`}>Programme</h1>
+                <p className={ui.eyebrow}>From a start date to a clear plan</p>
+                <h1 className={`${ui.title} text-2xl sm:text-3xl font-bold break-words ${s.heading}`}>Programme</h1>
                 <p className={`mt-1 text-base break-words ${s.muted}`}>
                     {project.name}{project.client_name ? ` for ${project.client_name}` : ""}
                 </p>
+                <p className={ui.guide}>Set the start and length, then add optional stages. Check the preview before saving or moving to the proposal.</p>
             </div>
             {children}
         </div>
@@ -286,10 +294,15 @@ function ProgrammeEditor({
     const alertRef = useRef<HTMLDivElement>(null);
 
     const unsaved = status === "unsaved" || status === "failed" || status === "saving";
-    useUnsavedGuard(
-        !leaving && unsaved,
-        "Your programme has changes that are not saved yet.\n\nPress Cancel to stay here and save them, or OK to leave without saving.",
-    );
+    useUnsavedGuard(!leaving && unsaved, PROGRAMME_LEAVE_WARNING);
+    useEffect(() => {
+        if (leaving || !unsaved) return;
+        const confirmProjectChange = (event: Event) => {
+            if (!window.confirm(PROGRAMME_LEAVE_WARNING)) event.preventDefault();
+        };
+        window.addEventListener(BEFORE_PROJECT_NAVIGATION, confirmProjectChange);
+        return () => window.removeEventListener(BEFORE_PROJECT_NAVIGATION, confirmProjectChange);
+    }, [leaving, unsaved]);
     useEffect(() => {
         onUnsavedChange?.(unsaved);
         return () => onUnsavedChange?.(false);
@@ -331,6 +344,7 @@ function ProgrammeEditor({
 
     return (
         <>
+            <ProgrammeStageFocus revision={state} />
             <Heading project={project} s={s}>
                 <SaveStatus status={status} label={PROGRAMME_STATUS_LABEL[status]} isDark={isDark} />
             </Heading>
@@ -353,7 +367,7 @@ function ProgrammeEditor({
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" data-programme-timing>
                         <div>
                             <label htmlFor="programme-start" className={s.label}>Start on site</label>
                             <input
@@ -379,7 +393,7 @@ function ProgrammeEditor({
                         ) : (
                             <div>
                                 <label htmlFor="programme-duration" className={s.label}>How long it takes</label>
-                                <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-2">
+                                <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-2" data-programme-duration>
                                     <input
                                         id="programme-duration"
                                         inputMode="numeric"
@@ -434,7 +448,7 @@ function ProgrammeEditor({
                                     const label = stage.name.trim() || `stage ${index + 1}`;
                                     return (
                                         <li key={stage.key} className={`${s.inset} p-3 sm:p-4`} data-programme-stage>
-                                            <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-3" data-programme-stage-fields>
                                                 <div>
                                                     <label htmlFor={`stage-${stage.key}-name`} className={s.label}>Stage {index + 1}</label>
                                                     <input
@@ -453,7 +467,7 @@ function ProgrammeEditor({
                                                 </div>
                                                 <div>
                                                     <label htmlFor={`stage-${stage.key}-duration`} className={s.label}>How long</label>
-                                                    <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-2">
+                                                    <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-2" data-programme-duration>
                                                         <input
                                                             id={`stage-${stage.key}-duration`}
                                                             inputMode="numeric"

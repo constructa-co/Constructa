@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
+import ui from "@/components/project-board.module.css";
 
 const COLUMNS = [
     { id: "Lead",          label: "Leads",         icon: Users,        color: "bg-slate-50",      darkColor: "bg-white/5",        text: "text-slate-600",  darkText: "text-slate-300",  border: "border-slate-200",  darkBorder: "border-[#2a2a2a]" },
@@ -108,7 +109,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
     };
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 h-full items-start md:min-w-[900px]">
+        <div className={`${ui.board} grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 h-full items-start md:min-w-[900px]`} data-dark={isDark}>
             {COLUMNS.map(col => {
                 const items = projects.filter(p => getStatus(p) === col.id);
                 // P1-4 — prefer the canonical contract sum from the active
@@ -285,7 +286,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
 
                                             {/* SECONDARY: Pull Back + Mark as Lost */}
                                             {(prevStage || showLost) && (
-                                                <div className="flex items-center justify-between pt-0.5">
+                                                <div data-board-secondary className="flex items-center justify-between pt-0.5">
                                                     {prevStage ? (
                                                         <button
                                                             onClick={() => move(p.id, prevStage)}
@@ -312,7 +313,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                             )}
 
                                             {/* QUICK LINKS */}
-                                            <div className={`flex items-center gap-3 pt-1 border-t ${isDark ? "border-[#2a2a2a]" : "border-gray-50"}`}>
+                                            <div data-board-links className={`flex items-center gap-3 pt-1 border-t ${isDark ? "border-[#2a2a2a]" : "border-gray-50"}`}>
                                                 <Link href={`/dashboard/projects/proposal?projectId=${p.id}`} className="inline-flex items-center justify-center min-w-11 min-h-11 lg:min-w-0 lg:min-h-0 text-[9px] font-black uppercase text-purple-600 hover:underline tracking-widest">
                                                     Proposal
                                                 </Link>

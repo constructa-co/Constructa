@@ -1,0 +1,116 @@
+.frame {
+    --first-ink: #152419;
+    --first-muted: #526455;
+    --first-border: #cbd8ca;
+    --first-card: #ffffff;
+    --first-number: #e1f3d8;
+    max-width: 100%;
+    padding: clamp(20px, 4vw, 36px);
+    border: 1px solid var(--first-border);
+    border-radius: 24px;
+    background: radial-gradient(ellipse at top right, #e8f4e1 0, transparent 60%), #f8faf5;
+    color: var(--first-ink);
+    box-shadow: 0 16px 48px #15241908;
+}
+
+.frame[data-dark="true"] {
+    --first-ink: #f2f7ef;
+    --first-muted: #b4c3b1;
+    --first-border: #354833;
+    --first-card: #131c15;
+    --first-number: #29452b;
+    background: radial-gradient(ellipse at top right, #243e26 0, transparent 60%), #101812;
+    box-shadow: none;
+}
+
+.frame h1 {
+    color: var(--first-ink);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(32px, 4vw, 46px);
+    font-weight: 400;
+    line-height: 1.12;
+    letter-spacing: -0.035em;
+    overflow-wrap: anywhere;
+}
+
+.frame > p {
+    max-width: 42ch;
+    margin-top: 16px;
+    color: var(--first-muted);
+    font-size: 16px;
+    line-height: 1.65;
+}
+
+.frame > a {
+    min-height: 52px;
+    margin-top: 24px;
+    padding: 12px 20px;
+    border-radius: 12px;
+    background: #b9f6a5;
+    color: #152419;
+}
+
+.frame > a:hover {
+    background: #a5e98e;
+}
+
+.frame > a:focus-visible {
+    outline: 3px solid #77c66e;
+    outline-offset: 4px;
+}
+
+.frame h2 {
+    margin-top: 36px;
+    color: var(--first-muted);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.frame ol {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.frame li {
+    min-width: 0;
+    gap: 14px;
+    padding: 18px;
+    border: 1px solid var(--first-border);
+    border-radius: 14px;
+    background: var(--first-card);
+}
+
+.frame [data-step-number] {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--first-number);
+    color: var(--first-ink);
+}
+
+.frame li > span:last-child > span:first-child {
+    color: var(--first-ink);
+    line-height: 1.4;
+}
+
+.frame li > span:last-child > span:last-child {
+    color: var(--first-muted);
+    line-height: 1.6;
+}
+
+@media (max-width: 539px) {
+    .frame > a {
+        width: 100%;
+    }
+
+    .frame ol {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .frame li {
+        padding: 16px;
+    }
+}

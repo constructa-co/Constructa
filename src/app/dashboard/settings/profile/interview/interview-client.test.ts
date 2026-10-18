@@ -37,6 +37,9 @@ describe("InterviewClient", () => {
         expect(html).not.toContain(">Back<");
         expect(html).toMatch(/href="\/dashboard\/settings\/profile"[^>]*>Enter details by hand instead/);
         expect(html).toContain("Every question is optional and none of this holds up a job.");
+        expect(html).toContain("Saved progress: 0 answered, 0 skipped. 8 still to decide.");
+        expect(html).toContain("Not saved yet. Choose Save and continue or Skip.");
+        expect(html).toContain('aria-describedby="interview-help interview-save-status"');
     });
 
     it("resumes on the first undecided question with its saved answer, and asks for the year as a short field", () => {
@@ -54,18 +57,37 @@ describe("InterviewClient", () => {
         expect(html).not.toContain("Question 1 of 8");
     });
 
+    it("counts saved skips separately and resumes at the first undecided question", () => {
+        const html = render(state({ work: a("Roofing"), business_started: skipped }));
+        expect(html).toContain("Question 3 of 8");
+        expect(html).toContain("Saved progress: 1 answered, 1 skipped. 6 still to decide.");
+        expect(html.match(/data-current="true"/g)).toHaveLength(1);
+        expect(html.match(/data-skipped="true"/g)).toHaveLength(1);
+        expect(html).toContain("Not saved yet.");
+    });
+
+    it("keeps all-skipped resume on review without calling it answered or approved", () => {
+        const answers = Object.fromEntries(Object.keys(ALL).map((key) => [key, skipped]));
+        const html = render(state(answers));
+        expect(html).toContain("Saved progress: 0 answered, 8 skipped. 0 still to decide.");
+        expect(html).toContain("Skipped questions can be answered later.");
+        expect(html).toContain("Put my introduction together");
+        expect(html).not.toContain("Question 1 of 8");
+        expect(html).not.toContain("Saved to your profile");
+    });
+
     it("shows the draft beside what is saved, says how it was made, and saves nothing by itself", () => {
         const html = render(state(ALL, draft({ savedIntroduction: "Old words" })));
         expect(html).toContain("Your introduction");
-        expect(html).toContain("5 of 8 questions answered");
+        expect(html).toContain("Saved progress: 5 answered, 3 skipped. 0 still to decide.");
         expect(html).toContain("Saved on your profile now");
         expect(html).toContain("Old words");
         expect(html).toContain("Smith Builders specialises in roofing. We cover Leeds.");
         expect(html).toContain("Built by fixed rules from your answers to questions 1, 4, 6. Nothing has been added.");
         expect(html).toContain("If you change the wording, it is saved as your own words.");
         expect(html).toContain("Replace my introduction with this");
-        // No claim that anything was verified or written by AI.
-        expect(html).not.toMatch(/\bAI\b|verified|checked for accuracy|generated/i);
+        expect(html).toContain("This is a guided questionnaire, not a live AI conversation.");
+        expect(html).not.toMatch(/Worded by our writing assistant|verified|checked for accuracy|generated/i);
     });
 
     it("offers each fact for its own approval, in the contractor's words, naming the question it came from", () => {
@@ -73,7 +95,9 @@ describe("InterviewClient", () => {
         expect(html).toContain("Memberships and qualifications");
         expect(html).toContain("From your answer to question 7");
         expect(html).toContain("Gas Safe registered");
-        expect(html).toContain("These are your own words, used exactly.");
+        expect(html).toContain("Years trading is calculated from the start year; memberships and insurance keep your wording.");
+        expect(html).toContain("Choose which details to save. Each is saved separately.");
+        expect(html).not.toContain("These are your own words, used exactly.");
         expect(html).toContain("Save this to my profile");
         expect(html).toContain("Save as my introduction");
     });
@@ -160,5 +184,23 @@ describe("InterviewClient", () => {
         expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
         const hrefs = Array.from(html.matchAll(/href="([^"]+)"/g)).map((match) => match[1]);
         expect(new Set(hrefs)).toEqual(new Set(["/dashboard/settings/profile", "/dashboard/settings/profile/readiness"]));
+    });
+
+    it("keeps the server-only interview service out of the client runtime imports", async () => {
+        const { readFileSync } = await import("node:fs");
+        const ts = await import("typescript");
+        const source = ts.createSourceFile("interview-client.tsx", readFileSync(new URL("./interview-client.tsx", import.meta.url), "utf8"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+        const serviceImports = source.statements.filter(ts.isImportDeclaration)
+            .filter((entry) => ts.isStringLiteral(entry.moduleSpecifier) && entry.moduleSpecifier.text === "@/lib/company-interview/service");
+        expect(serviceImports).toHaveLength(1);
+        expect(serviceImports[0].importClause?.isTypeOnly).toBe(true);
+        const messages = ts.createSourceFile("messages.ts", readFileSync(new URL("../../../../../lib/company-interview/messages.ts", import.meta.url), "utf8"), ts.ScriptTarget.Latest, true);
+        expect(messages.statements.filter(ts.isImportDeclaration)).toHaveLength(0);
+    });
+
+    it("does not present an unknown save result as proof of no change", async () => {
+        const { INTERVIEW_SAVE_ERROR } = await import("@/lib/company-interview/messages");
+        expect(INTERVIEW_SAVE_ERROR).toContain("couldn't confirm");
+        expect(INTERVIEW_SAVE_ERROR).not.toMatch(/nothing was changed|nothing was saved/i);
     });
 });

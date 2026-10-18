@@ -23,6 +23,8 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { INTERVIEW_LOAD_ERROR, INTERVIEW_SAVE_ERROR } from "./messages";
+export { INTERVIEW_LOAD_ERROR, INTERVIEW_SAVE_ERROR } from "./messages";
 import { plainTextProblem } from "./guard";
 import {
     QUESTION_KEYS,
@@ -74,8 +76,6 @@ export interface InterviewState {
     draft: NarrativeDraft | null;
 }
 
-export const INTERVIEW_SAVE_ERROR = "We couldn't save that. Nothing was changed. Check your connection and try again.";
-export const INTERVIEW_LOAD_ERROR = "We couldn't load your answers. Check your connection and try again.";
 export const INTERVIEW_NOTHING_TO_DRAFT = "Answer at least one of the first six questions and we'll put an introduction together.";
 export const INTERVIEW_STALE_ANSWERS = "Your answers or business name changed after this was put together, so nothing was saved. Here is a new version from your latest details.";
 export const INTERVIEW_DRAFT_GONE = "That draft is no longer available. Here is the latest version.";

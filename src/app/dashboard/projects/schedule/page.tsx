@@ -53,6 +53,7 @@ export default async function SchedulePage(props: { searchParams: Promise<{ proj
             <ProjectNavBar projectId={activeProjectId} activeTab="programme" />
 
             <SimpleProgrammeClient
+                key={project.id}
                 project={project}
                 lockReason={getPrecontractEditLockReason(project)}
                 estimate={activeEstimate}

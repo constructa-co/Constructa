@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next-company-first/
 /out/
 
 # production
@@ -32,6 +33,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+
+# local MCP connection configuration
+/.mcp.json
 
 # vercel
 .vercel

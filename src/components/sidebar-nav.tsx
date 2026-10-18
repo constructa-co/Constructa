@@ -48,7 +48,9 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
+import { requestProjectNavigation } from "@/lib/project-navigation";
 import { buildPhoneNav, getPhoneNavTitle, isPhoneNavItemActive, type PhoneNavKey } from "@/lib/phone-nav";
+import PhoneMenuFocus from "./phone-menu-focus";
 
 interface Project {
     id: string;
@@ -148,6 +150,44 @@ const PHONE_NAV_ICONS: Record<PhoneNavKey, any> = {
 
 const SECTION_KEYS = ["company-profile", "work-winning", "pre-construction", "live-projects", "closed-projects"];
 
+export function ProjectPickerControls({ selected, name, open, onToggle, onClear }: {
+    selected: boolean;
+    name: string | null;
+    open: boolean;
+    onToggle: () => void;
+    onClear: (event: React.MouseEvent<HTMLButtonElement>) => void;
+}) {
+    return (
+        <div className={`w-full flex items-stretch rounded-lg text-xs transition-all border ${
+            selected
+                ? "bg-blue-600/15 border-blue-500/30 text-blue-300 hover:bg-blue-600/25"
+                : "bg-white/5 border-white/8 text-slate-400 hover:bg-white/10 hover:text-slate-200"
+        }`}>
+            <button
+                type="button"
+                aria-expanded={open}
+                onClick={onToggle}
+                className="min-h-11 min-w-0 flex-1 flex items-center gap-2 px-2.5 py-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-inset"
+            >
+                <FolderKanban aria-hidden="true" className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="flex-1 text-left truncate font-medium">{name ?? "Select a project…"}</span>
+                {!selected && <ChevronDown aria-hidden="true" className={`w-3 h-3 flex-shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />}
+            </button>
+            {selected && (
+                <button
+                    type="button"
+                    aria-label="Deselect project"
+                    title="Deselect project"
+                    onClick={onClear}
+                    className="w-11 min-h-11 flex-shrink-0 flex items-center justify-center rounded-r-lg hover:bg-blue-600/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-inset"
+                >
+                    <X aria-hidden="true" className="w-3 h-3" />
+                </button>
+            )}
+        </div>
+    );
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function SidebarNav({ user, projects, isAdmin = false }: SidebarNavProps) {
     const pathname = usePathname();
@@ -164,6 +204,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
     const [pickerOpen, setPickerOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const pickerRef = useRef<HTMLDivElement>(null);
+    const clearingProject = useRef(false);
 
     // Phone menu — the desktop sidebar is hidden below md.
     const [phoneMenuOpen, setPhoneMenuOpen] = useState(false);
@@ -208,7 +249,12 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
     // it exists. Fall back to localStorage for non-project pages.
     useEffect(() => {
         const urlProjectId = searchParams?.get("projectId");
-        if (!urlProjectId) return;
+        if (!urlProjectId) {
+            clearingProject.current = false;
+            return;
+        }
+        // The old URL must not undo a clear while pipeline navigation commits.
+        if (clearingProject.current) return;
         // Only update if the URL param differs from current state AND
         // the project exists in the sidebar's known list (guards against
         // stale IDs that no longer map to a visible project).
@@ -276,6 +322,8 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
     };
 
     const selectProject = (id: string, name: string) => {
+        if (pathname?.startsWith("/dashboard/projects/") && searchParams?.get("projectId") !== id && !requestProjectNavigation()) return;
+        clearingProject.current = false;
         setSelectedProjectId(id);
         setSelectedProjectName(name);
         localStorage.setItem("constructa_selected_project_id", id);
@@ -301,6 +349,9 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
 
     const clearProject = (e?: React.MouseEvent) => {
         e?.stopPropagation();
+        const leavingProject = Boolean(pathname?.startsWith("/dashboard/projects/") && searchParams?.get("projectId"));
+        if (leavingProject && !requestProjectNavigation()) return;
+        clearingProject.current = leavingProject;
         setSelectedProjectId(null);
         setSelectedProjectName(null);
         localStorage.removeItem("constructa_selected_project_id");
@@ -308,7 +359,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
         // P2-1 — if the current page is scoped to a project, deselecting
         // would strand the user on a broken page. Send them to the pipeline
         // where they can pick a different project.
-        if (pathname?.startsWith("/dashboard/projects/") && searchParams?.get("projectId")) {
+        if (leavingProject) {
             router.push("/dashboard");
         }
     };
@@ -355,6 +406,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
 
         {phoneMenuOpen && (
             <div className="md:hidden fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Menu" id="phone-menu">
+                <PhoneMenuFocus />
                 <button
                     type="button"
                     aria-label="Close menu"
@@ -461,23 +513,13 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                         Active Project
                     </div>
                     <div ref={pickerRef} className="relative px-1">
-                        <button
-                            onClick={() => setPickerOpen(!pickerOpen)}
-                            className={`w-full min-h-11 lg:min-h-0 flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-all border ${
-                                selectedProjectId
-                                    ? "bg-blue-600/15 border-blue-500/30 text-blue-300 hover:bg-blue-600/25"
-                                    : "bg-white/5 border-white/8 text-slate-400 hover:bg-white/10 hover:text-slate-200"
-                            }`}
-                        >
-                            <FolderKanban className="w-3.5 h-3.5 flex-shrink-0" />
-                            <span className="flex-1 text-left truncate font-medium">
-                                {selectedProjectName ?? "Select a project…"}
-                            </span>
-                            {selectedProjectId
-                                ? <X className="w-3 h-3 flex-shrink-0 hover:text-white transition-colors" onClick={clearProject} />
-                                : <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform duration-200 ${pickerOpen ? "rotate-180" : ""}`} />
-                            }
-                        </button>
+                        <ProjectPickerControls
+                            selected={Boolean(selectedProjectId)}
+                            name={selectedProjectName}
+                            open={pickerOpen}
+                            onToggle={() => setPickerOpen(!pickerOpen)}
+                            onClear={clearProject}
+                        />
 
                         {pickerOpen && (
                             <div className="absolute left-0 right-0 top-full mt-1 bg-[#1a1a1a] border border-white/10 rounded-lg shadow-2xl z-50 overflow-hidden">

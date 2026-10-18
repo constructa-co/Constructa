@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
     addComponentAction,
@@ -10,6 +10,7 @@ import {
     saveRateBuildupAction,
 } from "./actions";
 import type { EstimateLine, EstimateLineComponent, LabourRate, RateBuildup, CostLibraryItem } from "./types";
+import ui from "@/components/estimating.module.css";
 
 const PLANT_RATES = [
     { name: "5t excavator (day)", rate: 380, unit: "day" },
@@ -46,7 +47,8 @@ interface BuildUpPanelProps {
     rateBuildups: RateBuildup[];
     materialLibrary: CostLibraryItem[];
     preferredTrades: string[];
-    onComponentsChanged: (lineId: string, components: EstimateLineComponent[], newUnitRate: number) => void;
+    onComponentsChanged: (lineId: string, components: EstimateLineComponent[], previewUnitRate: number) => void;
+    onRateApplied: (lineId: string, unitRate: number) => void;
 }
 
 export default function BuildUpPanel({
@@ -57,9 +59,18 @@ export default function BuildUpPanel({
     materialLibrary,
     preferredTrades,
     onComponentsChanged,
+    onRateApplied,
 }: BuildUpPanelProps) {
     const [components, setComponents] = useState<EstimateLineComponent[]>(line.estimate_line_components || []);
     const [isPending, startTransition] = useTransition();
+    const applyingRef = useRef(false);
+    const [applyStatus, setApplyStatus] = useState<"idle" | "applying" | "applied" | "error">("idle");
+    const [appliedSnapshot, setAppliedSnapshot] = useState<string | null>(null);
+    const [perUnitEntry, setPerUnitEntry] = useState(false);
+    const [quantityErrors, setQuantityErrors] = useState<Record<string, string>>({});
+    const canEnterPerUnit = Number.isFinite(line.quantity) && line.quantity > 0;
+    const showPerUnit = perUnitEntry && canEnterPerUnit;
+    const hasQuantityErrors = showPerUnit && Object.values(quantityErrors).some(Boolean);
 
     // Per-component description state for controlled material inputs
     const [descInputs, setDescInputs] = useState<Record<string, string>>(() => {
@@ -104,6 +115,7 @@ export default function BuildUpPanel({
 
     const componentTotal = components.reduce((s, c) => s + c.quantity * c.unit_rate, 0);
     const ratePerUnit = line.quantity > 0 ? componentTotal / line.quantity : 0;
+    const resourceSnapshot = JSON.stringify({ quantity: line.quantity, rate: ratePerUnit });
     const totalManhours = components
         .filter((c) => c.component_type === "labour")
         .reduce((s, c) => s + c.quantity * c.manhours_per_unit, 0);
@@ -193,10 +205,22 @@ export default function BuildUpPanel({
     };
 
     const handleApplyRate = () => {
+        if (applyingRef.current || isPending || hasQuantityErrors) return;
+        applyingRef.current = true;
+        setApplyStatus("applying");
         startTransition(async () => {
-            await updateLineBuiltUpRateAction(line.id, ratePerUnit);
+            try {
+                await updateLineBuiltUpRateAction(line.id, ratePerUnit);
+                onRateApplied(line.id, ratePerUnit);
+                setAppliedSnapshot(resourceSnapshot);
+                setApplyStatus("applied");
+            } catch {
+                // The line update can commit before aggregate recalculation fails.
+                setApplyStatus("error");
+            } finally {
+                applyingRef.current = false;
+            }
         });
-        onComponentsChanged(line.id, components, ratePerUnit);
     };
 
     const handleSaveToLibrary = () => {
@@ -263,18 +287,31 @@ export default function BuildUpPanel({
     };
 
     return (
-        <div className="ml-10 mr-5 mb-3 border border-blue-200 rounded-lg bg-blue-50/30">
+        <div className={ui.resourcePanel}>
             {/* Header */}
-            <div className="flex items-center justify-between px-3 py-2 bg-blue-50 border-b border-blue-200">
-                <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Rate Build-Up</span>
-                <div className="flex items-center gap-3 text-xs text-blue-600">
+            <div className={ui.resourceHeader}>
+                <h4 className={ui.resourceTitle}>Resource build-up</h4>
+                <div className={ui.resourceTotals}>
                     <span>Components total: <strong>{formatGBP(componentTotal)}</strong></span>
                     <span>Built-up rate: <strong>{formatGBP(ratePerUnit)}/unit</strong></span>
+                    <span>Current line rate: <strong>{formatGBP(line.unit_rate)}/{line.unit}</strong></span>
                     {totalManhours > 0 && <span>Total manhours: <strong>{totalManhours.toFixed(1)}h</strong></span>}
                 </div>
             </div>
-            <p className="px-3 py-1 text-xs text-blue-500 bg-blue-50/50 border-b border-blue-100">
-                Building up cost for: <strong>{line.description || 'this item'}</strong> ({line.quantity} {line.unit}) — enter costs per component. For labour, &quot;hrs/unit&quot; = manhours to complete one unit of the parent item.
+            <p className={ui.resourceContext}>
+                Resources for <strong>{line.description || "this item"}</strong>: {line.quantity} {line.unit} of priced work.
+                Each resource amount is quantity multiplied by its rate; their total is divided by the priced quantity to give the built-up unit rate.
+            </p>
+            <div className={ui.resourceBasis} role="group" aria-label="Resource quantity entry basis">
+                <span>Enter quantities:</span>
+                <button type="button" aria-pressed={!showPerUnit} onClick={() => setPerUnitEntry(false)}>Total for this line</button>
+                <button type="button" aria-label="Enter resource quantities per priced unit" aria-pressed={showPerUnit}
+                    disabled={!canEnterPerUnit} onClick={() => setPerUnitEntry(true)}>Per 1 {line.unit}</button>
+            </div>
+            <p className={ui.resourceNote}>
+                Quantities are stored as totals for this line; recheck the build-up if the priced quantity changes.
+                Per-unit edits save on leaving the quantity cell. Changing this view does not save or apply a rate.
+                {!canEnterPerUnit && " A positive finite priced quantity is needed for per-unit entry."}
             </p>
 
             {/* Load from library */}
@@ -298,10 +335,25 @@ export default function BuildUpPanel({
             )}
 
             {/* Component rows */}
+            {components.length === 0 && <p className={ui.resourceNote}>No resource rows yet. Current line rate: {formatGBP(line.unit_rate)} per {line.unit}. Add only the resources you need.</p>}
             {components.length > 0 && (
-                <div className="divide-y divide-blue-100">
+                <div className={ui.resourceViewport} tabIndex={0} role="region" aria-label="Scrollable resource build-up">
+                    <table className={ui.resourceTable}>
+                        <caption>Resources for {line.description || "this item"} ({line.quantity} {line.unit})</caption>
+                        <thead><tr>
+                            <th scope="col">Type</th>
+                            <th scope="col">Resource</th>
+                            <th scope="col">{showPerUnit ? `Quantity per 1 ${line.unit}` : "Total quantity"}</th>
+                            <th scope="col">Unit</th>
+                            <th scope="col">Resource rate</th>
+                            <th scope="col">Hours / resource unit</th>
+                            <th scope="col">Resource total</th>
+                            <th scope="col"><span className="sr-only">Remove</span></th>
+                        </tr></thead>
+                        <tbody>
                     {components.map((comp) => (
-                        <div key={comp.id} className="flex items-center gap-2 px-3 py-1.5 text-xs">
+                        <tr key={comp.id} data-resource-row={comp.id}>
+                            <td>
                             {/* Type badge */}
                             <span
                                 className={`px-1.5 py-0.5 rounded text-xs font-medium capitalize flex-shrink-0 w-20 text-center ${
@@ -311,11 +363,14 @@ export default function BuildUpPanel({
                                 {comp.component_type.replace("_", " ")}
                             </span>
 
+                            </td>
+                            <td className={ui.resourceDescription}>
                             {/* Description — type-specific picker */}
                             {comp.component_type === "labour" ? (
                                 <div className="flex-1 flex flex-col gap-1">
                                     {/* Trade filter */}
                                     <select
+                                        aria-label={`Trade filter: ${comp.description || "labour"}`}
                                         className="w-full border border-gray-200 rounded px-1 py-0.5 bg-white text-xs text-gray-600"
                                         value={labourTradeFilter[comp.id] || ''}
                                         onChange={e => setLabourTradeFilter(prev => ({ ...prev, [comp.id]: e.target.value }))}
@@ -339,6 +394,7 @@ export default function BuildUpPanel({
                                     </select>
                                     {/* Role picker — filtered by selected trade */}
                                     <select
+                                        aria-label={`Labour role: ${comp.description || "labour"}`}
                                         className="w-full border border-gray-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
                                         value={comp.description || ''}
                                         onChange={e => {
@@ -367,6 +423,7 @@ export default function BuildUpPanel({
                                     {(comp.description === '__custom__' ||
                                         (!labourRates.some(lr => lr.role === comp.description) && comp.description && comp.description !== '__custom__')) && (
                                         <input
+                                            aria-label={`Labour description: ${comp.description || "labour"}`}
                                             className="w-full border border-blue-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
                                             value={comp.description === '__custom__' ? '' : comp.description}
                                             onChange={e => handleUpdate(comp.id, { description: e.target.value })}
@@ -378,6 +435,7 @@ export default function BuildUpPanel({
                             ) : comp.component_type === "plant" ? (
                                 <div className="flex-1 flex items-center gap-1">
                                     <select
+                                        aria-label={`Plant resource: ${comp.description || "plant"}`}
                                         className="flex-1 border border-gray-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
                                         value={comp.description || ""}
                                         onChange={(e) => {
@@ -408,6 +466,7 @@ export default function BuildUpPanel({
                                     {(comp.description === "__custom__" ||
                                         (!allPlantItems.some((p) => p.name === comp.description) && comp.description)) && (
                                         <input
+                                            aria-label={`Plant description: ${comp.description || "plant"}`}
                                             className="w-32 border border-blue-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
                                             value={comp.description === "__custom__" ? "" : comp.description}
                                             onChange={(e) => handleUpdate(comp.id, { description: e.target.value })}
@@ -420,6 +479,7 @@ export default function BuildUpPanel({
                                 <div className="flex-1 flex flex-col gap-1">
                                     {/* Category filter */}
                                     <select
+                                        aria-label={`Material category: ${comp.description || "material"}`}
                                         className="w-full border border-gray-200 rounded px-1 py-0.5 bg-white text-xs text-gray-600"
                                         value={materialCategoryFilter[comp.id] || ''}
                                         onChange={e => setMaterialCategoryFilter(prev => ({ ...prev, [comp.id]: e.target.value }))}
@@ -443,6 +503,7 @@ export default function BuildUpPanel({
                                     </select>
                                     {/* Material input with datalist */}
                                     <input
+                                        aria-label={`Material description: ${comp.description || "material"}`}
                                         list={`mat-${comp.id}`}
                                         className="w-full border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900 text-xs"
                                         value={descInputs[comp.id] ?? comp.description}
@@ -483,6 +544,7 @@ export default function BuildUpPanel({
                             ) : comp.component_type === "consumable" ? (
                                 <div className="flex-1 flex flex-col gap-1">
                                     <input
+                                        aria-label={`Consumable description: ${comp.description || "consumable"}`}
                                         list={`cons-${comp.id}`}
                                         className="flex-1 border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900 text-xs"
                                         value={descInputs[comp.id] ?? comp.description}
@@ -506,6 +568,7 @@ export default function BuildUpPanel({
                             ) : comp.component_type === "subcontract" ? (
                                 <div className="flex-1 flex flex-col gap-1">
                                     <input
+                                        aria-label={`Subcontract description: ${comp.description || "subcontract"}`}
                                         className="flex-1 border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900 text-xs"
                                         value={descInputs[comp.id] ?? comp.description}
                                         onChange={e => {
@@ -518,6 +581,7 @@ export default function BuildUpPanel({
                                 </div>
                             ) : (
                                 <input
+                                    aria-label={`Resource description: ${comp.description || comp.component_type}`}
                                     className="flex-1 border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900 text-xs"
                                     defaultValue={comp.description}
                                     onBlur={(e) => handleUpdate(comp.id, { description: e.target.value })}
@@ -525,16 +589,45 @@ export default function BuildUpPanel({
                                 />
                             )}
 
-                            {/* Qty */}
-                            <input
-                                type="number"
-                                className="w-14 text-right text-xs border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900"
-                                value={comp.quantity}
-                                onChange={(e) => handleUpdate(comp.id, { quantity: Number(e.target.value) || 0 })}
-                            />
-
+                            </td>
+                            <td>
+                            {showPerUnit ? (
+                                <input
+                                    key={`per-unit-${comp.id}-${line.quantity}-${comp.quantity}`}
+                                    type="number" step="any"
+                                    aria-label={`Quantity per 1 ${line.unit}: ${comp.description || comp.component_type}`}
+                                    aria-invalid={!!quantityErrors[comp.id]}
+                                    aria-describedby={quantityErrors[comp.id] ? `quantity-error-${comp.id}` : undefined}
+                                    defaultValue={comp.quantity / line.quantity}
+                                    onBlur={(event) => {
+                                        const raw = event.target.value.trim();
+                                        setQuantityErrors(previous => ({ ...previous, [comp.id]: "" }));
+                                        // Do not round-trip an unchanged displayed division into a write.
+                                        if (raw === String(comp.quantity / line.quantity)) return;
+                                        const quantity = Number(raw) * line.quantity;
+                                        const decimal = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(raw);
+                                        if (!decimal || !Number.isFinite(quantity) || !Number.isFinite(quantity * comp.unit_rate)) {
+                                            setQuantityErrors(previous => ({ ...previous, [comp.id]: "Enter a finite resource quantity; this change has not been saved." }));
+                                            return;
+                                        }
+                                        handleUpdate(comp.id, { quantity });
+                                    }}
+                                />
+                            ) : (
+                                <input
+                                    type="number"
+                                    aria-label={`Total resource quantity: ${comp.description || comp.component_type}`}
+                                    className="w-14 text-right text-xs border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900"
+                                    value={comp.quantity}
+                                    onChange={(e) => handleUpdate(comp.id, { quantity: Number(e.target.value) || 0 })}
+                                />
+                            )}
+                            {showPerUnit && quantityErrors[comp.id] && <p role="alert" id={`quantity-error-${comp.id}`}>{quantityErrors[comp.id]}</p>}
+                            </td>
+                            <td>
                             {/* Unit */}
                             <select
+                                aria-label={`Resource unit: ${comp.description || comp.component_type}`}
                                 className="w-14 text-xs border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900"
                                 value={comp.unit}
                                 onChange={(e) => {
@@ -564,21 +657,27 @@ export default function BuildUpPanel({
                                 ))}
                             </select>
 
+                            </td>
+                            <td>
                             {/* Rate — controlled input */}
                             <input
                                 type="number"
                                 className="w-20 text-right text-xs border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900"
+                                aria-label={`Resource rate: ${comp.description || comp.component_type}`}
                                 value={comp.unit_rate === 0 ? '' : comp.unit_rate}
                                 onChange={(e) => handleUpdate(comp.id, { unit_rate: Number(e.target.value) || 0 })}
                             />
 
+                            </td>
+                            <td>
                             {/* Manhours (labour only) */}
                             {comp.component_type === "labour" && (
                                 <div className="flex flex-col items-end">
-                                    <span className="text-[9px] text-blue-500 font-medium mb-0.5">hrs/unit</span>
+                                    <span className="sr-only">Hours per resource unit</span>
                                     <input
                                         type="number"
-                                        title="Manhours per unit of the parent line item (e.g. 0.4 hrs per m³ of concrete placed)"
+                                        aria-label={`Hours per resource unit: ${comp.description || "labour"}`}
+                                        title="Hours for one resource unit; multiplied by total resource quantity to calculate labour hours"
                                         className="w-16 text-right text-xs border border-blue-300 rounded px-1 py-0.5 bg-blue-100 text-gray-900"
                                         value={comp.manhours_per_unit}
                                         onChange={(e) => handleUpdate(comp.id, { manhours_per_unit: Number(e.target.value) || 0 })}
@@ -586,21 +685,29 @@ export default function BuildUpPanel({
                                 </div>
                             )}
 
+                            </td>
+                            <td className={ui.resourceNumeric}>
                             {/* Total */}
                             <span className="w-20 text-right text-xs font-medium text-gray-700">
                                 {formatGBP(comp.quantity * comp.unit_rate)}
                             </span>
 
+                            </td>
+                            <td>
                             {/* Delete */}
                             <button
                                 type="button"
+                                aria-label={`Remove resource: ${comp.description || comp.component_type}`}
                                 onClick={() => handleDelete(comp.id)}
                                 className="text-red-400 hover:text-red-600 text-sm flex-shrink-0"
                             >
                                 ×
                             </button>
-                        </div>
+                            </td>
+                        </tr>
                     ))}
+                        </tbody>
+                    </table>
                 </div>
             )}
 
@@ -620,9 +727,22 @@ export default function BuildUpPanel({
                 ))}
             </div>
 
+            {components.length > 0 && (
+                <p className={ui.resourceNote}>
+                    Resource changes update the build-up, not the line price. Apply rate when you want to update the line price.
+                </p>
+            )}
+            {applyStatus === "error" && (
+                <p className={ui.resourceNote} role="alert"><strong>Rate not confirmed.</strong> It may have been saved. Check the line price or retry Apply rate.</p>
+            )}
+            {applyStatus === "applied" && (
+                <p className={ui.resourceNote} role="status">
+                    {appliedSnapshot === resourceSnapshot ? "Rate applied to the line price." : "Resource changes need applying. The earlier rate was applied, not these newer changes."}
+                </p>
+            )}
             {/* Footer */}
             {components.length > 0 && (
-                <div className="flex items-center justify-between px-3 py-2 bg-blue-50 border-t border-blue-200">
+                <div className={ui.resourceFooter}>
                     <button
                         type="button"
                         onClick={handleSaveToLibrary}
@@ -633,9 +753,12 @@ export default function BuildUpPanel({
                     <button
                         type="button"
                         onClick={handleApplyRate}
+                        aria-label="Apply resource rate"
+                        aria-busy={applyStatus === "applying"}
+                        disabled={isPending || applyStatus === "applying" || hasQuantityErrors}
                         className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded hover:bg-blue-700 font-medium"
                     >
-                        Apply rate ({formatGBP(ratePerUnit)}/unit) →
+                        {applyStatus === "applying" ? "Applying rate..." : `${applyStatus === "error" ? "Retry Apply rate" : "Apply rate"} (${formatGBP(ratePerUnit)}/unit)`} →
                     </button>
                 </div>
             )}

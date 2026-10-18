@@ -5,6 +5,10 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getLaunchLandingPath } from '@/lib/launch-profile';
+import { ArrowRight } from 'lucide-react';
+import { FirstSessionFrame, FirstSessionPanel } from '@/components/first-session-frame';
+import AccountConfirmation from '@/components/account-confirmation';
+import ui from '@/components/first-session.module.css';
 
 // P2-3 — sign-up UX overhaul.
 // Previously "Sign up" was a button below the sign-in form that
@@ -95,19 +99,27 @@ export default function LoginPage() {
     const isSignUp = mode === "signup";
 
     return (
-        <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
-            <div className="w-full max-w-md space-y-8">
-                <div className="text-center">
-                    <Link href="/" className="text-3xl font-bold tracking-tight">CONSTRUCTA</Link>
-                    <h2 className="mt-6 text-xl font-medium text-gray-400">
-                        {isSignUp ? "Create your account" : "Sign in to your account"}
-                    </h2>
-                </div>
+        <FirstSessionFrame>
+            <FirstSessionPanel step={0}>
+                <p className={ui.eyebrow}>{isSignUp ? "Your next chapter starts here" : "Good to see you again"}</p>
+                <h1 className={ui.heading}>
+                    {successMessage ? "Check your inbox." : isSignUp ? <>Get started.<br />Make it yours.</> : <>Welcome back.<br />Let&apos;s get to work.</>}
+                </h1>
+                <p className={ui.lede}>
+                    {successMessage ? "Confirm your email, then sign in to get started." : isSignUp ? "A few simple steps. Then shape your company profile and your first job." : "Pick up where you left off."}
+                </p>
 
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8 backdrop-blur-sm">
-                    <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-6">
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-400">Email address</label>
+                {successMessage ? (
+                    <AccountConfirmation message={successMessage} onSignIn={() => switchMode("signin")} />
+                ) : (
+                    <>
+                    <div className={ui.modeToggle} role="group" aria-label="Account mode">
+                        <button type="button" disabled={loading} aria-pressed={isSignUp} onClick={() => switchMode("signup")}>Get started</button>
+                        <button type="button" disabled={loading} aria-pressed={!isSignUp} onClick={() => switchMode("signin")}>Sign in</button>
+                    </div>
+                    <form onSubmit={isSignUp ? handleSignUp : handleSignIn} aria-busy={loading}>
+                        <div className={ui.field}>
+                            <label htmlFor="email" className={ui.label}>Email address</label>
                             <input
                                 id="email"
                                 type="email"
@@ -115,18 +127,19 @@ export default function LoginPage() {
                                 autoComplete="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="mt-2 w-full min-h-12 px-4 py-2 bg-black border border-zinc-800 rounded-lg focus:ring-2 focus:ring-white focus:border-transparent outline-none transition-all text-white"
+                                disabled={loading}
+                                className={ui.input}
                                 placeholder="you@example.com"
                             />
                         </div>
 
-                        <div>
-                            <div className="flex items-center justify-between">
-                                <label htmlFor="password" className="block text-sm font-medium text-gray-400">Password</label>
+                        <div className={ui.field}>
+                            <div className={ui.fieldHeading}>
+                                <label htmlFor="password" className={ui.label}>Password</label>
                                 {!isSignUp && (
                                     <Link
                                         href="/auth/forgot-password"
-                                        className="inline-flex items-center min-h-11 text-xs text-gray-400 hover:text-white transition-colors"
+                                        className={ui.textButton}
                                     >
                                         Forgot password?
                                     </Link>
@@ -139,17 +152,19 @@ export default function LoginPage() {
                                 autoComplete={isSignUp ? "new-password" : "current-password"}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="mt-2 w-full min-h-12 px-4 py-2 bg-black border border-zinc-800 rounded-lg focus:ring-2 focus:ring-white focus:border-transparent outline-none transition-all text-white"
+                                disabled={loading}
+                                aria-describedby={isSignUp ? "password-help" : undefined}
+                                className={ui.input}
                                 placeholder="••••••••"
                             />
                             {isSignUp && (
-                                <p className="mt-1.5 text-xs text-gray-400">At least 8 characters.</p>
+                                <p id="password-help" className={ui.help}>At least 8 characters.</p>
                             )}
                         </div>
 
                         {isSignUp && (
-                            <div>
-                                <label htmlFor="confirm" className="block text-sm font-medium text-gray-400">Confirm password</label>
+                            <div className={ui.field}>
+                                <label htmlFor="confirm" className={ui.label}>Confirm password</label>
                                 <input
                                     id="confirm"
                                     type="password"
@@ -157,56 +172,53 @@ export default function LoginPage() {
                                     autoComplete="new-password"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className="mt-2 w-full min-h-12 px-4 py-2 bg-black border border-zinc-800 rounded-lg focus:ring-2 focus:ring-white focus:border-transparent outline-none transition-all text-white"
+                                    disabled={loading}
+                                    className={ui.input}
                                     placeholder="••••••••"
                                 />
                             </div>
                         )}
 
                         {errorMessage && (
-                            <div className="p-3 bg-red-900/20 border border-red-900/50 rounded-lg text-red-200 text-sm">
+                            <div role="alert" className={ui.error}>
                                 {errorMessage}
-                            </div>
-                        )}
-
-                        {successMessage && (
-                            <div className="p-3 bg-emerald-900/20 border border-emerald-900/50 rounded-lg text-emerald-200 text-sm">
-                                {successMessage}
                             </div>
                         )}
 
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full min-h-12 flex items-center justify-center py-2.5 px-4 border border-transparent rounded-lg text-sm font-medium text-black bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className={`${ui.primary} ${ui.block}`}
                         >
                             {loading
                                 ? 'Processing...'
                                 : isSignUp
                                     ? 'Create account'
                                     : 'Sign in'}
+                            <ArrowRight size={18} aria-hidden="true" />
                         </button>
 
-                        <div className="text-center text-sm">
+                        <div className={ui.footnote}>
                             {isSignUp ? (
                                 <>
                                     <span className="text-gray-400">Already have an account? </span>
-                                    <button type="button" onClick={() => switchMode("signin")} className="inline-flex items-center min-h-11 px-2 text-white hover:underline">
+                                    <button type="button" disabled={loading} onClick={() => switchMode("signin")} className={`${ui.textButton} ml-2`}>
                                         Sign in
                                     </button>
                                 </>
                             ) : (
                                 <>
                                     <span className="text-gray-400">Don&apos;t have an account? </span>
-                                    <button type="button" onClick={() => switchMode("signup")} className="inline-flex items-center min-h-11 px-2 text-white hover:underline">
-                                        Sign up
+                                    <button type="button" disabled={loading} onClick={() => switchMode("signup")} className={`${ui.textButton} ml-2`}>
+                                        Get started
                                     </button>
                                 </>
                             )}
                         </div>
                     </form>
-                </div>
-            </div>
-        </div>
+                    </>
+                )}
+            </FirstSessionPanel>
+        </FirstSessionFrame>
     );
 }

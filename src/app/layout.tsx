@@ -2,9 +2,7 @@ import './globals.css';
 import { Inter } from "next/font/google";
 import type { Metadata } from "next";
 import Script from 'next/script';
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import { headers } from 'next/headers';
+import PublicChrome from '@/components/public-chrome';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,18 +27,6 @@ export default async function RootLayout(
     children: React.ReactNode;
   }>
 ) {
-  const headersList = await headers();
-  const pathname = headersList.get('x-pathname') || '';
-  const isLandingPage = pathname === '/landing';
-  const isPublicProposal = pathname.startsWith('/proposal/');
-  // Hide marketing header/footer on all app routes (dashboard, onboarding, auth flows, admin, login)
-  const isDashboardRoute =
-    pathname.startsWith('/dashboard') ||
-    pathname.startsWith('/onboarding') ||
-    pathname.startsWith('/auth/') ||
-    pathname.startsWith('/admin') ||
-    pathname === '/login';
-
   return (
     <html lang="en">
       <head>
@@ -74,9 +60,7 @@ export default async function RootLayout(
         </Script>
       </head>
       <body className={`${inter.className} bg-black text-white antialiased`}>
-        {!isPublicProposal && !isDashboardRoute && <Header />}
-        <main>{children}</main>
-        {!isLandingPage && !isPublicProposal && !isDashboardRoute && <Footer />}
+        <PublicChrome>{children}</PublicChrome>
       </body>
     </html>
   );

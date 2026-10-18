@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import FeatureDropdown from './FeatureDropdown';
+import { getLaunchProfile } from '@/lib/launch-profile';
+import { MarketingHeader } from './marketing/phase-one';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -11,6 +13,7 @@ const Header = () => {
   const isDashboard = pathname?.startsWith('/dashboard');
 
   if (isDashboard) return null;
+  if (getLaunchProfile() !== 'full') return <MarketingHeader />;
 
   if (isLandingPage) {
     return (

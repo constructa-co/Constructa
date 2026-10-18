@@ -1,7 +1,11 @@
 "use client";
 
 import { updateProjectAction } from "./actions";
-import { useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { useTheme } from "@/lib/theme-context";
+import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
+import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
+import { SETTINGS_LEAVE_WARNING, settingsFormSignature } from "./form-state";
 
 // --- Inline UI Components ---
 function Card({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -26,7 +30,7 @@ function Input({ ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
     return (
         <input
             {...props}
-            className={`flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-50 ${props.className || ""}`}
+            className={`flex h-12 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-50 ${props.className || ""}`}
         />
     );
 }
@@ -34,7 +38,7 @@ function Textarea({ ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement
     return (
         <textarea
             {...props}
-            className={`flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none disabled:opacity-50 ${props.className || ""}`}
+            className={`flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none disabled:opacity-50 ${props.className || ""}`}
         />
     );
 }
@@ -42,7 +46,7 @@ function Select({ children, ...props }: React.SelectHTMLAttributes<HTMLSelectEle
     return (
         <select
             {...props}
-            className={`flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 ${props.className || ""}`}
+            className={`flex h-12 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 ${props.className || ""}`}
         >
             {children}
         </select>
@@ -54,26 +58,72 @@ const PAYMENT_TERMS = ["14 days", "21 days", "28 days", "30 days", "Stage paymen
 
 export default function ClientProjectSettings({ project }: { project: any }) {
     const [isPending, startTransition] = useTransition();
+    const [dirty, setDirty] = useState(false);
+    const [feedback, setFeedback] = useState<"idle" | "saved" | "error">("idle");
+    const formRef = useRef<HTMLFormElement | null>(null);
+    const confirmedSignature = useRef<string | null>(null);
+    const mustWarn = dirty || isPending;
+    useUnsavedGuard(mustWarn, SETTINGS_LEAVE_WARNING);
+    useEffect(() => {
+        if (!mustWarn) return;
+        const confirmProjectChange = (event: Event) => {
+            if (!window.confirm(SETTINGS_LEAVE_WARNING)) event.preventDefault();
+        };
+        window.addEventListener(BEFORE_PROJECT_NAVIGATION, confirmProjectChange);
+        return () => window.removeEventListener(BEFORE_PROJECT_NAVIGATION, confirmProjectChange);
+    }, [mustWarn]);
+    const { theme } = useTheme();
+    const isDark = theme === "dark";
 
     const handleSubmit = (formData: FormData) => {
+        const submittedSignature = settingsFormSignature(formData);
+        setFeedback("idle");
         startTransition(async () => {
-            await updateProjectAction(formData);
+            try {
+                const result = await updateProjectAction(formData);
+                if (!result.success) {
+                    setFeedback("error");
+                    return;
+                }
+                if (formRef.current) {
+                    confirmedSignature.current = submittedSignature;
+                    setDirty(settingsFormSignature(new FormData(formRef.current)) !== submittedSignature);
+                }
+                setFeedback("saved");
+            } catch {
+                setFeedback("error");
+            }
         });
     };
+    const statusText = isPending ? "Saving..." : feedback === "saved"
+        ? dirty ? "Submitted changes saved. Newer edits are still unsaved." : "Saved"
+        : dirty ? "Unsaved changes" : "";
 
     return (
         <div className="max-w-4xl mx-auto p-8 space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">Project Settings</h1>
-                    <p className="text-slate-500 text-sm mt-0.5">Manage the details for {project.name}</p>
+                    <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "text-slate-100" : "text-slate-900"}`}>Project Settings</h1>
+                    <p className={`text-sm mt-0.5 ${isDark ? "text-slate-300" : "text-slate-600"}`}>Manage the details for {project.name}</p>
                 </div>
                 <div className="bg-slate-100 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-700">
                     {project.status || "Draft"}
                 </div>
             </div>
 
-            <form action={handleSubmit} className="space-y-5">
+            <form
+                ref={form => {
+                    formRef.current = form;
+                    if (form && confirmedSignature.current === null) confirmedSignature.current = settingsFormSignature(new FormData(form));
+                }}
+                onChange={event => setDirty(settingsFormSignature(new FormData(event.currentTarget)) !== confirmedSignature.current)}
+                onSubmit={event => {
+                    // A returned action failure must not reset uncontrolled inputs.
+                    event.preventDefault();
+                    handleSubmit(new FormData(event.currentTarget));
+                }}
+                className="space-y-5"
+            >
                 <input type="hidden" name="projectId" value={project.id} />
 
                 {/* 1. Project Basics */}
@@ -83,7 +133,7 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                         <CardDescription>Core project information.</CardDescription>
                     </CardHeader>
                     <CardContent className="grid gap-5">
-                        <div className="grid sm:grid-cols-2 gap-4">
+                        <div className="grid lg:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                                 <Label htmlFor="name">Project Name</Label>
                                 <Input id="name" name="name" defaultValue={project.name} required />
@@ -91,6 +141,9 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                             <div className="space-y-1.5">
                                 <Label htmlFor="status">Status</Label>
                                 <Select id="status" name="status" defaultValue={project.status || "Draft"}>
+                                    {project.status && !["Draft", "Review", "Sent", "Won", "Lost"].includes(project.status) && (
+                                        <option value={project.status}>{project.status}</option>
+                                    )}
                                     <option value="Draft">Draft</option>
                                     <option value="Review">Under Review</option>
                                     <option value="Sent">Proposal Sent</option>
@@ -101,6 +154,9 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                             <div className="space-y-1.5">
                                 <Label htmlFor="project_type">Project Type</Label>
                                 <Select id="project_type" name="project_type" defaultValue={project.project_type || "Extension"}>
+                                    {project.project_type && !PROJECT_TYPES.includes(project.project_type) && (
+                                        <option value={project.project_type}>{project.project_type}</option>
+                                    )}
                                     {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                                 </Select>
                             </div>
@@ -131,7 +187,7 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                         </div>
 
                         {/* P1-1 — VAT Domestic Reverse Charge toggle (HMRC VAT Notice 735). */}
-                        <div className="mt-5 p-4 rounded-lg border border-slate-700/40 bg-slate-900/30">
+                        <div className="mt-5 p-4 rounded-lg border border-slate-200 bg-slate-50">
                             <label className="flex items-start gap-3 cursor-pointer">
                                 <input
                                     type="checkbox"
@@ -140,10 +196,10 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                                     className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-2 focus:ring-blue-600"
                                 />
                                 <div className="flex-1">
-                                    <div className="text-sm font-medium text-slate-200">
+                                    <div className="text-sm font-medium text-slate-900">
                                         VAT Domestic Reverse Charge applies
                                     </div>
-                                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                                         Turn this on if both you and your client are CIS-registered and these services are within the scope of CIS.
                                         Under HMRC VAT Notice 735 (effective 1 March 2021), VAT is not charged on the invoice — your customer
                                         accounts for it on their own return. Leave off for domestic end-user clients.
@@ -201,11 +257,12 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                 {/* 3. Scope Description */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Scope Description</CardTitle>
+                        <CardTitle><label htmlFor="project-scope">Scope Description</label></CardTitle>
                         <CardDescription>Brief executive summary (also editable in the Proposal Editor).</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Textarea
+                            id="project-scope"
                             name="scope"
                             placeholder="e.g. Construction of a single-storey rear extension including strip foundations..."
                             defaultValue={project.scope_description || ""}
@@ -214,11 +271,18 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                     </CardContent>
                 </Card>
 
+                {feedback === "error" ? (
+                    <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                        Saving could not be confirmed. Your edits are still here. Try again.
+                    </p>
+                ) : statusText && (
+                    <p role="status" className={`text-sm ${isDark ? "text-slate-300" : "text-slate-600"}`}>{statusText}</p>
+                )}
                 <div className="flex justify-end gap-3">
                     <button
                         type="submit"
                         disabled={isPending}
-                        className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-lg disabled:opacity-60 transition-all"
+                        className="min-h-12 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-base font-bold rounded-lg disabled:opacity-60 transition-all"
                     >
                         {isPending ? "Saving..." : "Save Changes"}
                     </button>

@@ -1,10 +1,10 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { buildCompanyReadiness } from "@/lib/company-readiness";
+import { buildCompanyReadiness, type CompanyReadinessProfile } from "@/lib/company-readiness";
 import ReadinessClient from "./readiness-client";
 
-const render = (hasProjects: boolean, profile = { company_name: "Smith Plumbing", business_type: "Boilers and bathrooms" }) =>
+const render = (hasProjects: boolean, profile: CompanyReadinessProfile = { company_name: "Smith Plumbing", business_type: "Boilers and bathrooms" }) =>
     renderToStaticMarkup(createElement(ReadinessClient, { readiness: buildCompanyReadiness(profile), hasProjects }));
 
 describe("ReadinessClient", () => {
@@ -12,13 +12,15 @@ describe("ReadinessClient", () => {
         const html = render(false);
         expect(html).toContain("Smith Plumbing");
         expect(html).toContain("Boilers and bathrooms");
-        expect(html).toMatch(/href="\/dashboard\/projects\/new"[^>]*>Create first project/);
-        expect(html).toMatch(/href="\/dashboard\/settings\/profile"[^>]*>\s*Build company profile/);
+        expect(html).toContain("Build your first proposal");
+        const companyPath = html.match(/<details[^>]*data-welcome-step="company"[\s\S]*?<\/details>/)?.[0];
+        expect(companyPath).toMatch(/href="\/dashboard\/settings\/profile"/);
+        expect(companyPath).toContain("Fill it in yourself");
     });
 
     it("never disables or hides project creation, however little is filled in", () => {
         const html = render(false, { company_name: "Smith Plumbing", business_type: "" });
-        expect(html).toContain("Create first project");
+        expect(html).toContain("Build your first proposal");
         expect(html).not.toMatch(/\sdisabled[=\s>]|aria-disabled/);
         expect(html).toContain("optional");
     });
@@ -34,8 +36,8 @@ describe("ReadinessClient", () => {
 
     it("drops the first-time wording for a contractor who already has projects", () => {
         const html = render(true);
-        expect(html).toContain("Create a project");
-        expect(html).not.toContain("Create first project");
+        expect(html).toContain("Build your next proposal");
+        expect(html).not.toContain("Build your first proposal");
         expect(html).not.toContain("You&#x27;re set up");
     });
 
@@ -44,8 +46,33 @@ describe("ReadinessClient", () => {
         expect(new Set(hrefs)).toEqual(new Set([
             "/dashboard/projects/new",
             "/dashboard/settings/profile",
+            "/dashboard/settings/profile/interview",
+            "/dashboard/settings/profile/import",
             "/dashboard/settings/case-studies",
+            "/dashboard/settings/profile#company-style",
+            "/dashboard/settings/profile#company-director",
         ]));
+    });
+
+    it("offers three optional company paths without hiding project creation", () => {
+        const html = render(false);
+        for (const label of ["Answer a few questions", "Fill it in yourself", "Bring in details from your own website"]) {
+            expect(html).toContain(label);
+        }
+        expect(html).toContain("not a live AI chat");
+        expect(html).toContain("Opening this page does not fetch your site");
+        expect(html).toContain("Build your first proposal");
+        expect(html).toMatch(/<details[^>]*data-welcome-step="company"/);
+        expect(html).not.toContain("<form");
+        expect(html).not.toContain("<input");
+    });
+
+    it("adds guided entry beside a missing story but keeps saved stories as Edit", () => {
+        const storyRow = (profile: CompanyReadinessProfile) => render(true, profile).match(/<li[^>]*data-readiness="story"[\s\S]*?<\/li>/)?.[0];
+        expect(storyRow({ capability_statement: "   " })).toContain("Add story");
+        expect(storyRow({ capability_statement: "   " })).toContain("Use guided questions");
+        expect(storyRow({ capability_statement: "We build extensions." })).toContain("Edit");
+        expect(storyRow({ capability_statement: "We build extensions." })).not.toContain("Use guided questions");
     });
 });
 

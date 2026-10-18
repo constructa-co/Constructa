@@ -59,9 +59,10 @@ describe("ImportClient", () => {
         expect(html).toContain("2 left to decide");
     });
 
-    it("says which values clients see on proposals", () => {
+    it("qualifies which values can be used in proposals without promising placement", () => {
         const html = render(draft([base("phone", "0113 496 0000", null), base("sales_email", "hello@smithbuilders.co.uk", null)]));
-        expect(html.match(/Shown on your proposals/g)).toHaveLength(1);
+        expect(html.match(/Can be used in proposals/g)).toHaveLength(1);
+        expect(html).not.toContain("Shown on your proposals");
     });
 
     it("offers no tick box for a value that already matches or is already saved", () => {

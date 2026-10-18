@@ -8,6 +8,7 @@ import { createLatestWriteQueue } from "@/lib/latest-write-queue";
 import {
     estimateSuggestedPhases,
     plannerCalendarDays as toCalendarDays,
+    plannerDisplayPlan,
     plannerPhasesOnOpen,
     savedPlannerPhases,
     sequenceSuggestedPhases,
@@ -93,8 +94,12 @@ function fmtDateFull(date: Date): string {
 }
 
 function toInputDate(date: Date): string {
-    // YYYY-MM-DD for <input type="date">
-    return date.toISOString().split("T")[0];
+    if (Number.isNaN(date.getTime())) throw new RangeError("Invalid time value");
+    // A date-only field uses the local calendar day, not its UTC timestamp day.
+    const year = String(date.getFullYear()).padStart(4, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
 }
 
 // ─── Drag types ──────────────────────────────────────────────────────────────
@@ -117,7 +122,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
     const ganttRef           = useRef<HTMLDivElement>(null);
     const dragStateRef       = useRef<DragState | null>(null);
-    const isInitialMount     = useRef(true);
+    const lastAutoSaveInputs = useRef<{ phases: Phase[]; programmeStart: Date } | null>(null);
     // Set just before a suggestion is put on screen, so showing it is not a save.
     const skipNextAutoSave   = useRef(false);
     const autoSaveTimer      = useRef<NodeJS.Timeout | null>(null);
@@ -183,10 +188,11 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
     // ── Auto-save phases whenever they change (debounced 500ms) ──────────
     // 500ms is fast enough that normal navigation won't lose changes.
-    // Skips the initial mount so we don't save on first render.
+    // Only changed inputs save; mount-effect replay is still just opening the planner.
     useEffect(() => {
-        if (isInitialMount.current) {
-            isInitialMount.current = false;
+        const previous = lastAutoSaveInputs.current;
+        lastAutoSaveInputs.current = { phases, programmeStart };
+        if (!previous || (previous.phases === phases && previous.programmeStart === programmeStart)) {
             return;
         }
         if (skipNextAutoSave.current) {
@@ -258,12 +264,16 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
         return Math.max(max, 7);
     }, [phases, daysPerWeek]);
 
-    const totalDaysRef = useRef(totalDays);
-    useEffect(() => { totalDaysRef.current = totalDays; }, [totalDays]);
-
     const totalWeeks    = Math.max(Math.ceil(totalDays / 7), 4);
+    // Bars, headers, arrows and pointer input share the displayed calendar span.
+    const axisDays = totalWeeks * 7;
+    const axisDaysRef = useRef(axisDays);
+    useEffect(() => { axisDaysRef.current = axisDays; }, [axisDays]);
+
     const totalManhours = phases.reduce((s, p) => s + p.manhours, 0);
-    const projectEnd    = addDays(programmeStart, totalDays);
+    const displayPlan = plannerDisplayPlan(toInputDate(programmeStart), phases, daysPerWeek);
+    const displayedStart = displayPlan ? new Date(displayPlan.start_date + "T00:00:00") : programmeStart;
+    const projectEnd    = displayPlan ? new Date(displayPlan.end_date + "T00:00:00") : addDays(programmeStart, totalDays);
     const totalHeight   = phases.length * ROW_H;
 
     // Critical path: phases ending within the last calendar week
@@ -301,7 +311,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 ? phase.startOffset
                 : (phase.manualDays ?? phase.calculatedDays),
             trackWidth: rect.width,
-            capturedTotalDays: totalDaysRef.current,
+            capturedTotalDays: axisDaysRef.current,
         };
         setIsDragging(true);
     }, []);
@@ -544,8 +554,8 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             {phases.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {[
-                        { label: "Duration",    value: `${totalDays}d`, sub: `${totalWeeks} calendar weeks` },
-                        { label: "Start",       value: fmtDateFull(programmeStart), sub: `Monday WC` },
+                        { label: "Duration",    value: displayPlan?.duration_label ?? `${totalDays}d`, sub: displayPlan ? `${displayPlan.working_days} working days / ${displayPlan.calendar_days} calendar days` : `${totalWeeks} calendar weeks` },
+                        { label: "Start",       value: fmtDateFull(displayedStart), sub: displayPlan ? "First working day" : "Monday WC" },
                         { label: "Completion",  value: fmtDateFull(projectEnd), sub: "Estimated" },
                         {
                             label: "Manhours",
@@ -624,7 +634,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         </div>
                         <div className="flex-1 flex">
                             {weekHeaders.map((wk, i) => (
-                                <div key={i} className="flex-1 text-center py-1.5 border-r border-slate-700/20 last:border-0" style={{ minWidth: 28 }}>
+                                <div key={i} className="shrink-0 text-center py-1.5 border-r border-slate-700/20 last:border-0" style={{ width: `${100 / totalWeeks}%` }}>
                                     <div className="text-[9px] font-bold text-slate-500 leading-tight">{wk.label}</div>
                                     <div className="text-[8px] text-slate-600 leading-tight hidden md:block">{wk.date}</div>
                                 </div>
@@ -640,8 +650,9 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                             {phases.map((phase, idx) => {
                                 const workingDur = phase.manualDays ?? phase.calculatedDays;
                                 const calDur     = toCalendarDays(workingDur, daysPerWeek);
-                                const phaseStart = addDays(programmeStart, phase.startOffset);
-                                const phaseEnd   = addDays(programmeStart, phase.startOffset + calDur);
+                                const displayStage = displayPlan?.stages[idx];
+                                const phaseStart = displayStage ? new Date(displayStage.start_date + "T00:00:00") : addDays(programmeStart, phase.startOffset);
+                                const phaseEnd   = displayStage ? new Date(displayStage.end_date + "T00:00:00") : addDays(programmeStart, phase.startOffset + calDur);
                                 const isCritical = criticalSet.has(idx);
                                 const colorDef   = PHASE_COLORS[idx % PHASE_COLORS.length];
                                 const predIdx    = phase.dependsOn?.[0];
@@ -748,9 +759,9 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                             if (pIdx < 0 || pIdx >= phases.length || pIdx === sIdx) return null;
                                             const pred    = phases[pIdx];
                                             const predDur = toCalendarDays(pred.manualDays ?? pred.calculatedDays, daysPerWeek);
-                                            const x1 = Math.min(((pred.startOffset + predDur) / totalDays) * 1000, 995);
+                                            const x1 = Math.min(((pred.startOffset + predDur) / axisDays) * 1000, 995);
                                             const y1 = (pIdx + 0.5) * ROW_H;
-                                            const x2 = Math.max((phase.startOffset / totalDays) * 1000, 5);
+                                            const x2 = Math.max((phase.startOffset / axisDays) * 1000, 5);
                                             const y2 = (sIdx + 0.5) * ROW_H;
                                             const cx = (x1 + x2) / 2;
                                             return (
@@ -770,8 +781,8 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                             {phases.map((phase, idx) => {
                                 const workingDur  = phase.manualDays ?? phase.calculatedDays;
                                 const calDur      = toCalendarDays(workingDur, daysPerWeek);
-                                const barLeftPct  = (phase.startOffset / totalDays) * 100;
-                                const barWidthPct = Math.max((calDur / totalDays) * 100, 1.5);
+                                const barLeftPct  = (phase.startOffset / axisDays) * 100;
+                                const barWidthPct = Math.max((calDur / axisDays) * 100, 1.5);
                                 const colorDef    = PHASE_COLORS[idx % PHASE_COLORS.length];
                                 const isCritical  = criticalSet.has(idx);
                                 const isActive    = isDragging && dragStateRef.current?.phaseIndex === idx;

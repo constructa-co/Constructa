@@ -30,7 +30,16 @@ export default function ProjectNavBar({ projectId, activeTab }: Props) {
 
   return (
     <div className={`border-b mb-6 ${isDark ? "border-slate-700/50" : "border-gray-200"}`}>
-      <nav className="flex gap-0 -mb-px overflow-x-auto">
+      <nav className="flex gap-0 -mb-px overflow-x-auto" onFocusCapture={(event) => {
+        const link = event.target;
+        if (!(link instanceof HTMLAnchorElement)) return;
+        const nav = event.currentTarget;
+        const bounds = nav.getBoundingClientRect();
+        const focused = link.getBoundingClientRect();
+        // Reveal the focused tab without scrolling the page vertically.
+        if (focused.left < bounds.left) nav.scrollLeft += focused.left - bounds.left;
+        else if (focused.right > bounds.right) nav.scrollLeft += focused.right - bounds.right;
+      }}>
         {TABS.filter(({ capability }) => isCapabilityEnabled(capability as LaunchCapability)).map(({ key, label, icon: Icon, href }) => {
           const isActive = activeTab === key;
           return (

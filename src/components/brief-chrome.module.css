@@ -1,0 +1,47 @@
+.root {
+    --brief-text: #17231b;
+    --brief-muted: #536356;
+    --brief-panel: #fff;
+    --brief-line: #c9d3c7;
+    --brief-accent: #203d2b;
+    --brief-accent-text: #f3fff2;
+    max-width: 1100px;
+    margin: 24px auto;
+    padding: clamp(20px, 4vw, 48px);
+    border: 1px solid var(--brief-line);
+    border-radius: 24px;
+    color: var(--brief-text);
+    background: radial-gradient(ellipse at top right, #e1eddc, transparent 60%), #f5f7f2;
+    font-family: "Avenir Next", Avenir, "Trebuchet MS", sans-serif;
+}
+.root[data-theme="dark"] {
+    --brief-text: #f1f5ed;
+    --brief-muted: #b5c4b4;
+    --brief-panel: #1a231c;
+    --brief-line: #475449;
+    --brief-accent: #c9efcf;
+    --brief-accent-text: #13251a;
+    background: radial-gradient(ellipse at top right, #2b3c2b, transparent 60%), #111812;
+}
+.header { padding-bottom: 12px; }
+.header > div:first-child { flex: 1 1 360px; }
+.eyebrow { color: var(--brief-accent); font-size: 11px; letter-spacing: .15em; text-transform: uppercase; font-weight: 800; }
+.root .title { color: var(--brief-text); font-size: clamp(32px, 4vw, 52px); line-height: 1.1; letter-spacing: -.045em; margin: 12px 0; }
+.intro { max-width: 620px; margin-top: 16px; color: var(--brief-muted); font-size: 15px; line-height: 1.65; }
+.steps ol { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.steps li { min-width: 0; }
+.root .stepButton { width: 100%; min-height: 64px; padding: 10px 6px; border: 1px solid var(--brief-line); border-radius: 12px; color: var(--brief-text); background: var(--brief-panel); overflow-wrap: anywhere; }
+.root .stepButton[aria-current="step"] { color: var(--brief-accent-text); background: var(--brief-accent); border-color: var(--brief-accent); }
+.root .stepButton:hover:not([aria-current="step"]) { border-color: var(--brief-accent); }
+.root :is(button, [tabindex="-1"]):focus-visible { outline: 3px solid var(--brief-accent); outline-offset: 4px; }
+@media (max-width: 540px) {
+    .root { margin: 0; padding: 24px 12px; border-radius: 0; border: 0; }
+    .header > div:first-child { flex-basis: 100%; }
+    .steps ol { gap: 5px; }
+    .root .stepButton { padding: 10px 3px; }
+}
+@media (prefers-reduced-motion: reduce) { .root .stepButton { transition: none; } }
+.root { container: job-brief / inline-size; }
+@container job-brief (max-width: 480px) {
+    .steps ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

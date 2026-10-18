@@ -21,6 +21,7 @@ import { useTheme } from "@/lib/theme-context";
 import { isActiveProject } from "@/lib/project-helpers";
 import { getHomePresentation } from "@/lib/first-session";
 import FirstProjectStart from "@/components/first-project-start";
+import ui from "@/components/project-chooser.module.css";
 
 type Period = "week" | "month" | "quarter" | "year";
 
@@ -274,12 +275,12 @@ export default function DashboardClient({ projects, financials, metrics: serverM
     }
 
     return (
-        <div className={`pt-8 px-8 pb-12 space-y-8 ${isDark ? "bg-[#0d0d0d] text-white" : "bg-white text-gray-900"}`}>
+        <div className={`${ui.workspace} pt-8 px-8 pb-12 space-y-8 ${isDark ? "bg-[#0d0d0d] text-white" : "bg-white text-gray-900"}`} data-dark={isDark}>
 
             {launchNoticeBanner}
 
             {/* SECTION A — Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between" data-project-header>
                 <div>
                     <h1 className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
                         {getGreeting()}, {companyName}
@@ -345,7 +346,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             {/* SECTION B — KPI Strip with period selector */}
             <div className="space-y-3">
                 {/* Period selector header */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between" data-project-period>
                     <h2 className={`text-sm font-semibold ${isDark ? "text-[#a0a0a0]" : "text-gray-500"}`}>
                         Performance — <span className={isDark ? "text-white" : "text-gray-900"}>{periodLabel}</span>
                     </h2>
@@ -407,12 +408,12 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             </div>
 
             {/* SECTION C — Search & Filter Bar */}
-            <div className={`rounded-xl border p-4 ${
+            <div data-project-filters className={`rounded-xl border p-4 ${
                 isDark
                     ? "bg-[#1a1a1a] border-[#2a2a2a]"
                     : "bg-white border-gray-200 shadow-sm"
             }`}>
-                <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+                <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3" data-project-toolbar>
                     {/* Search */}
                     <div className="relative flex-1">
                         <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`} />
@@ -465,7 +466,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     </select>
 
                     {/* View Toggle */}
-                    <div className={`flex items-center gap-1 rounded-lg p-1 ${isDark ? "bg-[#0d0d0d]" : "bg-gray-100"}`}>
+                    <div data-project-views className={`flex items-center gap-1 rounded-lg p-1 ${isDark ? "bg-[#0d0d0d]" : "bg-gray-100"}`}>
                         <button
                             onClick={() => setView("board")}
                             className={`inline-flex items-center gap-1.5 min-h-11 lg:min-h-0 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${

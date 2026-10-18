@@ -43,6 +43,13 @@ import {
     type AdvancedEstimatingData,
 } from "./simple-actions";
 import type { Estimate, EstimateLine } from "./types";
+import ui from "@/components/estimating.module.css";
+import PricingFocus from "@/components/pricing-focus";
+import AreaQuantityAid from "@/components/area-quantity-aid";
+import { buildPricingReviewContext, prepareReviewedPriceDraft, reviewPricingSuggestion, PRICING_REVIEW_OPEN } from "@/lib/pricing-review";
+import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
+import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
+import { ESTIMATE_LEAVE_WARNING, hasOpenEstimateWork } from "./estimate-navigation";
 
 // The full BoQ workspace and its import, take-off and build-up tools are only
 // downloaded when Advanced estimating is opened.
@@ -96,8 +103,20 @@ export default function EstimateClient({
     const lines = useMemo(() => estimate?.estimate_lines ?? [], [estimate]);
     const summary = useMemo(() => summarisePrice(estimate, lines), [estimate, lines]);
     const newOp = state.ops[NEW_LINE_KEY];
+    const hasOpenWork = hasOpenEstimateWork(state);
+    useUnsavedGuard(hasOpenWork, ESTIMATE_LEAVE_WARNING);
+    useEffect(() => {
+        if (!hasOpenWork) return;
+        const confirmProjectChange = (event: Event) => {
+            if (!window.confirm(ESTIMATE_LEAVE_WARNING)) event.preventDefault();
+        };
+        window.addEventListener(BEFORE_PROJECT_NAVIGATION, confirmProjectChange);
+        return () => window.removeEventListener(BEFORE_PROJECT_NAVIGATION, confirmProjectChange);
+    }, [hasOpenWork]);
 
     const [showFullScope, setShowFullScope] = useState(false);
+    const [showLineDetails, setShowLineDetails] = useState(false);
+    const [briefDraftError, setBriefDraftError] = useState("");
     const [advanced, setAdvanced] = useState<{ status: "idle" | "loading" | "failed" | "ready"; data: AdvancedEstimatingData | null; error: string }>(
         { status: "idle", data: null, error: "" },
     );
@@ -142,10 +161,31 @@ export default function EstimateClient({
     const { work } = splitScope(project.brief_scope);
     const scope = work.trim();
     const scopeIsLong = scope.length > SCOPE_PREVIEW_LENGTH;
+    const pricingContext = buildPricingReviewContext(project, estimate);
+    const briefReview = pricingContext.ok ? reviewPricingSuggestion(pricingContext.value, {
+        message: "", suggestions: [{ source: "briefWork", start: 0, end: pricingContext.value.work.length }],
+    }) : null;
+    const briefDraftBlocked = !pricingContext.ok || !briefReview?.ok || hasOpenWork || state.advancedOpen || pricingContext.value.clientBoQ;
+    const briefDraftHelp = !pricingContext.ok ? pricingContext.error
+        : !briefReview?.ok ? briefReview?.error
+        : hasOpenWork || state.advancedOpen ? PRICING_REVIEW_OPEN
+        : pricingContext.value.clientBoQ ? "Use the existing client BoQ workflow for this estimate."
+        : "Copies only your work wording into an unsaved price-line draft. Review it before entering a price; no quantities or prices are filled.";
+    const startBriefPriceDraft = () => {
+        if (!briefReview?.ok) { setBriefDraftError(briefDraftHelp ?? "Review the work description first."); return; }
+        const freshState = store.getState();
+        const freshContext = buildPricingReviewContext(project, currentEstimate(freshState));
+        if (!freshContext.ok) { setBriefDraftError(freshContext.error); return; }
+        const prepared = prepareReviewedPriceDraft(briefReview.value, 0, freshContext.value, hasOpenEstimateWork(freshState) || freshState.advancedOpen);
+        if (!prepared.ok) { setBriefDraftError(prepared.error); return; }
+        setBriefDraftError("");
+        store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: prepared.value, lineId: newClientId() });
+    };
     const briefHref = `/dashboard/projects/brief?projectId=${encodeURIComponent(project.id)}`;
     const programmeHref = `/dashboard/projects/schedule?projectId=${encodeURIComponent(project.id)}`;
     const hasLines = lines.length > 0;
     const capabilities = advancedCapabilities();
+    const showAdvancedLineWarning = !state.advancedOpen && Object.keys(state.ops).length > 0;
 
     const advancedSection = (
             <section className={`${s.card}`} aria-labelledby="advanced-estimating-title">
@@ -154,6 +194,7 @@ export default function EstimateClient({
                     onClick={toggleAdvanced}
                     aria-expanded={state.advancedOpen}
                     aria-controls="advanced-estimating"
+                    aria-describedby={showAdvancedLineWarning ? "advanced-line-warning" : undefined}
                     className={`w-full min-h-14 px-4 sm:px-5 py-3 flex items-center justify-between gap-3 text-left ${s.body}`}
                 >
                     <span>
@@ -164,6 +205,12 @@ export default function EstimateClient({
                     </span>
                     <ChevronDown className={`w-5 h-5 flex-shrink-0 transition-transform ${state.advancedOpen ? "rotate-180" : ""}`} aria-hidden="true" />
                 </button>
+
+                {showAdvancedLineWarning && (
+                    <p id="advanced-line-warning" className={`${s.noticeBox} mx-4 sm:mx-5 mb-4 p-3 text-sm`}>
+                        Opening Advanced estimating closes open price-line forms without saving their changes. Save or cancel your line first.
+                    </p>
+                )}
 
                 {state.advancedOpen && (
                     <div id="advanced-estimating" className="px-3 sm:px-5 pb-5 space-y-4">
@@ -210,12 +257,15 @@ export default function EstimateClient({
     );
 
     return (
-        <div className="space-y-5">
-            <div>
-                <h1 className={`text-2xl sm:text-3xl font-bold ${s.heading}`}>Build the price</h1>
+        <div className={`${ui.root} space-y-5`} data-theme={isDark ? "dark" : "light"}>
+            <PricingFocus revision={state} />
+            <div className={ui.header}>
+                <p className={ui.eyebrow}>From a clear brief to a considered price</p>
+                <h1 className={`${ui.title} text-2xl sm:text-3xl font-bold ${s.heading}`}>Build the price</h1>
                 <p className={`mt-1 text-base break-words ${s.muted}`}>
                     {project.name}{project.client_name ? ` for ${project.client_name}` : ""}
                 </p>
+                <p className={ui.intro}>Add your price lines, then check the total and any adjustments below. Start simple and add detail as you need it.</p>
             </div>
 
             {/* What is being priced */}
@@ -237,6 +287,16 @@ export default function EstimateClient({
                     </>
                 ) : (
                     <p className={`mt-1 text-base ${s.muted}`}>No job description yet. Add one in the brief so the price has something to refer to.</p>
+                )}
+                {scope && (
+                    <div className="mt-3">
+                        <button type="button" data-brief-price-draft aria-describedby="brief-price-draft-help"
+                            disabled={briefDraftBlocked} onClick={startBriefPriceDraft} className={s.secondaryButton}>
+                            Start a price line from this brief
+                        </button>
+                        <p id="brief-price-draft-help" className={`mt-2 text-sm ${s.muted}`}>{briefDraftHelp}</p>
+                        {briefDraftError && <p role="alert" className={`mt-2 text-sm ${s.errorText}`}>{briefDraftError}</p>}
+                    </div>
                 )}
             </section>
 
@@ -274,7 +334,15 @@ export default function EstimateClient({
             {/* Price lines */}
             {!state.advancedOpen && (
                 <section className={`${s.card} p-4 sm:p-6`} aria-labelledby="price-lines-title">
-                    <h2 id="price-lines-title" className={`text-lg font-bold ${s.heading}`}>Price lines</h2>
+                    <div className={ui.priceLinesHeader}>
+                        <h2 id="price-lines-title" tabIndex={-1} className={`text-lg font-bold ${s.heading}`}>Price lines</h2>
+                        {hasLines && (
+                            <button type="button" aria-controls="price-line-table" aria-pressed={showLineDetails}
+                                onClick={() => setShowLineDetails(value => !value)} className={s.quietButton}>
+                                {showLineDetails ? "Hide quantities and rates" : "Show quantities and rates"}
+                            </button>
+                        )}
+                    </div>
 
                     {!hasLines && !newOp ? (
                         <div className="py-8 text-center" data-empty-estimate>
@@ -288,7 +356,21 @@ export default function EstimateClient({
                         </div>
                     ) : (
                         <>
-                            <ul className={`mt-3 divide-y ${isDark ? "divide-[#2a2a2a]" : "divide-gray-200"}`}>
+                            {hasLines && <table id="price-line-table" className={ui.priceLinesTable}>
+                                <caption className={ui.priceTableCaption}>Change a line to edit it. Totals update after a confirmed save.</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Work</th>
+                                        {showLineDetails && <>
+                                            <th scope="col">Quantity</th>
+                                            <th scope="col">Unit</th>
+                                            <th scope="col">Rate</th>
+                                        </>}
+                                        <th scope="col">Price</th>
+                                        <th scope="col">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
                                 {lines.map((line) => (
                                     <PriceLineRow
                                         key={line.id}
@@ -298,6 +380,7 @@ export default function EstimateClient({
                                         op={state.ops[line.id]}
                                         s={s}
                                         isDark={isDark}
+                                        showDetails={showLineDetails}
                                         onEdit={() => openEdit(line)}
                                         onDelete={() => openDelete(line)}
                                         onChange={(patch) => store.dispatch({ type: "op/change", key: line.id, patch })}
@@ -306,7 +389,8 @@ export default function EstimateClient({
                                         onConfirmDelete={() => void removePriceLine(store, server, line.id)}
                                     />
                                 ))}
-                            </ul>
+                                </tbody>
+                            </table>}
 
                             {newOp ? (
                                 <div className={`mt-4 ${s.inset} p-4`}>
@@ -355,6 +439,12 @@ export default function EstimateClient({
 
             {/* Offered last while closed, so it does not compete with the simple list. */}
             {!state.advancedOpen && advancedSection}
+
+            <aside className={ui.totalDock} aria-label="Estimate total kept in view" data-running-total>
+                <span>Total before VAT</span>
+                <strong data-in-view-contract-sum>{formatGBP(summary.contractSum)}</strong>
+                <p>May include changes not yet confirmed.</p>
+            </aside>
         </div>
     );
 }
@@ -362,7 +452,7 @@ export default function EstimateClient({
 // ─── One price line ──────────────────────────────────────
 
 function PriceLineRow({
-    line, editable, isClientBoQ, op, s, isDark, onEdit, onDelete, onChange, onCancel, onSave, onConfirmDelete,
+    line, editable, isClientBoQ, op, s, isDark, showDetails, onEdit, onDelete, onChange, onCancel, onSave, onConfirmDelete,
 }: {
     line: EstimateLine;
     editable: boolean;
@@ -370,6 +460,7 @@ function PriceLineRow({
     op: LineOp | undefined;
     s: WorkspaceStyles;
     isDark: boolean;
+    showDetails: boolean;
     onEdit: () => void;
     onDelete: () => void;
     onChange: (patch: Partial<PriceLineDraft>) => void;
@@ -383,9 +474,9 @@ function PriceLineRow({
 
     if (op && op.kind === "edit") {
         return (
-            <li className="py-4">
+            <tr className={ui.priceFormRow} data-price-line={line.id}><td colSpan={showDetails ? 6 : 3}>
                 <LineForm idPrefix={`line-${line.id}`} title="Change this line" op={op} s={s} isDark={isDark} onChange={onChange} onCancel={onCancel} onSave={onSave} />
-            </li>
+            </td></tr>
         );
     }
 
@@ -394,14 +485,14 @@ function PriceLineRow({
     }`;
 
     return (
-        <li className="py-3" data-price-line={line.id}>
-            <div className="flex items-start gap-2">
-                <div className="min-w-0 flex-1">
+        <>
+        <tr data-price-line={line.id}>
+                <td className={ui.priceLineDescription}>
                     <p className={`text-base font-semibold break-words ${line.description?.trim() ? s.body : s.muted}`}>{name}</p>
                     <p className={`text-sm ${s.muted}`}>
                         {[
                             section,
-                            isAmount ? "" : `${Number(line.quantity)} ${line.unit} × ${formatGBP(Number(line.unit_rate) || 0)}`,
+                            isAmount || showDetails ? "" : `${Number(line.quantity)} ${line.unit} × ${formatGBP(Number(line.unit_rate) || 0)}`,
                             line.pricing_mode === "buildup" ? "Rate build-up" : "",
                             isClientBoQ ? "Client BoQ" : "",
                         ].filter(Boolean).join(" · ")}
@@ -409,11 +500,31 @@ function PriceLineRow({
                     {!editable && (
                         <p className={`text-sm ${s.muted}`}>Change this line in Advanced estimating.</p>
                     )}
-                </div>
-                <p className={`text-base font-bold whitespace-nowrap pt-0.5 ${s.heading}`}>{formatGBP(Number(line.line_total) || 0)}</p>
-            </div>
+                </td>
+                {showDetails && (isAmount
+                    ? <td colSpan={3} className={ui.priceOneAmount}>One price</td>
+                    : <>
+                        <td data-label="Quantity" className={ui.priceLineNumber}>{Number(line.quantity)}</td>
+                        <td data-label="Unit" className={ui.priceLineUnit}>{line.unit}</td>
+                        <td data-label="Rate" className={ui.priceLineNumber}>{formatGBP(Number(line.unit_rate) || 0)}</td>
+                    </>)}
+                <td data-label="Price" className={ui.priceLineAmount}>{formatGBP(Number(line.line_total) || 0)}</td>
+                <td className={ui.priceLineActions}>
+                    {!(op && op.kind === "delete") && editable && (
+                        <div className="flex flex-wrap gap-1">
+                            <button type="button" onClick={onEdit} aria-label={`Change ${name}`} className={`${iconButton} px-2 gap-1.5 text-sm font-semibold`}>
+                                <Pencil className="w-4 h-4" aria-hidden="true" /> Change
+                            </button>
+                            <button type="button" onClick={onDelete} aria-label={`Remove ${name}`} className={`${iconButton} px-2 gap-1.5 text-sm font-semibold`}>
+                                <Trash2 className="w-4 h-4" aria-hidden="true" /> Remove
+                            </button>
+                        </div>
+                    )}
+                </td>
+        </tr>
 
-            {op && op.kind === "delete" ? (
+            {op && op.kind === "delete" && (
+                <tr className={ui.priceFormRow}><td colSpan={showDetails ? 6 : 3}>
                 <div role={op.status === "failed" ? "alert" : undefined} className={`mt-3 ${op.status === "failed" ? s.errorBox : s.noticeBox} space-y-3`}>
                     <p className="text-sm font-medium">
                         {op.status === "failed"
@@ -431,17 +542,9 @@ function PriceLineRow({
                         </button>
                     </div>
                 </div>
-            ) : editable && (
-                <div className="mt-1 -ml-2 flex gap-1">
-                    <button type="button" onClick={onEdit} aria-label={`Change ${name}`} className={`${iconButton} px-2 gap-1.5 text-sm font-semibold`}>
-                        <Pencil className="w-4 h-4" aria-hidden="true" /> Change
-                    </button>
-                    <button type="button" onClick={onDelete} aria-label={`Remove ${name}`} className={`${iconButton} px-2 gap-1.5 text-sm font-semibold`}>
-                        <Trash2 className="w-4 h-4" aria-hidden="true" /> Remove
-                    </button>
-                </div>
+                </td></tr>
             )}
-        </li>
+        </>
     );
 }
 
@@ -567,6 +670,10 @@ function LineForm({
                         {fieldError("quantity")}
                         {fieldError("unit")}
                         {fieldError("rate")}
+                    </div>
+                    <div className="col-span-3">
+                        <AreaQuantityAid key={draft.unit} idPrefix={idPrefix} unit={draft.unit} disabled={saving}
+                            onUse={quantity => onChange({ quantity })} />
                     </div>
                 </div>
             )}

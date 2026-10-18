@@ -25,7 +25,7 @@ function fakeSupabase(options: { profile: Row; projectCount?: number | null; fai
         if (table === "projects") {
             return {
                 select: () => ({
-                    eq: async () => ({ count: options.projectCount ?? 0, error: null }),
+                    eq: async () => ({ count: options.projectCount === undefined ? 0 : options.projectCount, error: null }),
                 }),
             };
         }
@@ -127,6 +127,24 @@ describe("saveSetupStepAction", () => {
             fullName: "Sam Smith",
         }));
         expect(db.profile.company_name).toBe("Smith Brickwork Ltd");
+    });
+
+    it.each([2, null])("welcomes a first company introduction when project count is %s", async projectCount => {
+        const db = fakeSupabase({ profile: { company_name: null, business_type: "Bricklaying", ...EXISTING_OPTIONAL }, projectCount });
+        signIn(db);
+        await expect(saveSetupStepAction({ step: "business", companyName: "Smith Brickwork" }))
+            .rejects.toThrow("NEXT_REDIRECT:/dashboard/settings/profile/readiness");
+        expect(db.updates).toEqual([{ company_name: "Smith Brickwork" }]);
+        expect(db.profile).toMatchObject({ business_type: "Bricklaying", ...EXISTING_OPTIONAL });
+        expect(mocks.sendWelcomeEmail).toHaveBeenCalledTimes(1);
+    });
+
+    it("retains the normal landing fallback for a returning company's unavailable count", async () => {
+        const db = fakeSupabase({ profile: { company_name: "Smith Brickwork" }, projectCount: null });
+        signIn(db);
+        await expect(saveSetupStepAction({ step: "business", companyName: "Smith Brickwork" }))
+            .rejects.toThrow("NEXT_REDIRECT:/dashboard");
+        expect(mocks.sendWelcomeEmail).not.toHaveBeenCalled();
     });
 
     it("keeps the normal landing page for a contractor who already has projects", async () => {

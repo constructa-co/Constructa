@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Check, Circle, CircleDashed } from "lucide-react";
+import { Check, Circle, CircleDashed } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 import { workspaceStyles } from "@/lib/workspace-styles";
-import { NEW_PROJECT_PATH, PROFILE_PATH } from "@/lib/first-session";
+import { INTERVIEW_PATH } from "@/lib/company-interview/questions";
 import type { CompanyReadiness, CompanyReadinessStatus } from "@/lib/company-readiness";
+import WelcomeNextSteps from "@/components/welcome-next-steps";
+import ui from "@/components/first-session.module.css";
 
 /**
  * Where a contractor lands after setup, and where they come back to while
@@ -34,32 +36,25 @@ export default function ReadinessClient({ readiness, hasProjects }: {
     };
 
     return (
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-5">
-            <section aria-labelledby="readiness-heading" className={`${s.card} p-5 sm:p-8`}>
-                <p className={`text-sm font-semibold ${isDark ? "text-emerald-300" : "text-emerald-800"}`}>
+        <div className={`${ui.welcome} ${isDark ? "" : ui.light}`}>
+            <section aria-labelledby="readiness-heading" className={ui.welcomeHeader}>
+                <p className={ui.eyebrow}>
                     {hasProjects ? "Your company" : "You're set up"}
                 </p>
-                <h1 id="readiness-heading" className={`mt-1 text-2xl sm:text-3xl font-bold break-words ${s.heading}`}>
+                <h1 id="readiness-heading" className={ui.heading}>
                     {readiness.companyName || "Your business"}
                 </h1>
                 {readiness.workType && (
                     <p className={`mt-2 text-base break-words ${s.body}`}>{readiness.workType}</p>
                 )}
-                <p className={`mt-4 text-base ${s.muted}`}>
-                    You can price a job and send a proposal now. Everything below is optional and makes your proposals look more complete.
+                <p className={ui.lede}>
+                    Start with one useful step. Extra company details are optional; each proposal still has its own checks before sending.
                 </p>
 
-                <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                    <Link href={NEW_PROJECT_PATH} className={`${s.primaryButton} w-full sm:w-auto`}>
-                        {hasProjects ? "Create a project" : "Create first project"}
-                        <ArrowRight className="w-5 h-5" />
-                    </Link>
-                    <Link href={PROFILE_PATH} className={`${s.secondaryButton} w-full sm:w-auto`}>
-                        Build company profile
-                    </Link>
-                </div>
+
             </section>
 
+            <WelcomeNextSteps hasProjects={hasProjects} companyReadiness={(
             <section aria-labelledby="readiness-list-heading" className={`${s.card} p-5 sm:p-8`}>
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                     <h2 id="readiness-list-heading" className={`text-lg font-bold ${s.heading}`}>What your proposals can use</h2>
@@ -80,18 +75,26 @@ export default function ReadinessClient({ readiness, hasProjects }: {
                                 <p className={`mt-1.5 text-sm ${s.muted}`}>{entry.detail}</p>
                             </div>
                             {entry.action && (
-                                <Link
-                                    href={entry.action.href}
-                                    aria-label={`${entry.action.label}: ${entry.title}`}
-                                    className={`${s.quietButton} self-start sm:self-center flex-shrink-0 border ${isDark ? "border-[#3a3a3a]" : "border-gray-300"}`}
-                                >
-                                    {entry.action.label}
-                                </Link>
+                                <div className="flex flex-wrap gap-2 self-start sm:self-center">
+                                    <Link
+                                        href={entry.action.href}
+                                        aria-label={`${entry.action.label}: ${entry.title}`}
+                                        className={`${s.quietButton} self-start sm:self-center flex-shrink-0 border ${isDark ? "border-[#3a3a3a]" : "border-gray-300"}`}
+                                    >
+                                        {entry.action.label}
+                                    </Link>
+                                    {entry.key === "story" && entry.status === "todo" && (
+                                        <Link href={INTERVIEW_PATH} className={`${s.quietButton} border ${isDark ? "border-[#3a3a3a]" : "border-gray-300"}`}>
+                                            Use guided questions
+                                        </Link>
+                                    )}
+                                </div>
                             )}
                         </li>
                     ))}
                 </ul>
             </section>
+            )} />
         </div>
     );
 }

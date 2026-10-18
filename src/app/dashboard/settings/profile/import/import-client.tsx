@@ -20,6 +20,8 @@ import {
 import type { ImportField } from "@/lib/company-import/extract";
 import type { ApplyResult, PreviewResult } from "@/lib/company-import/service";
 import { applyWebsiteImportAction, previewWebsiteImportAction } from "./actions";
+import CompanyImportFrame from "@/components/company-import-frame";
+import ui from "@/components/company-import.module.css";
 
 interface Props {
     initialDraft: ImportDraft | null;
@@ -142,8 +144,8 @@ export default function ImportClient({
         return (
             <li key={item.field} data-import-field={item.field} data-status={item.status} className={`${s.inset} p-4 space-y-3`}>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <h3 className={`text-base font-semibold ${s.heading}`}>{spec.label}</h3>
-                    {spec.onProposals && <span className={`text-xs ${s.muted}`}>Shown on your proposals</span>}
+                    <h3 tabIndex={-1} className={`text-base font-semibold ${s.heading}`}>{spec.label}</h3>
+                    {spec.onProposals && <span className={`text-xs ${s.muted}`}>Can be used in proposals</span>}
                 </div>
 
                 <dl className="grid gap-3 sm:grid-cols-2">
@@ -194,11 +196,11 @@ export default function ImportClient({
     };
 
     return (
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-5">
+        <CompanyImportFrame dark={isDark} draftId={draft?.id ?? null}>
+        <div className={ui.sections}>
             <section aria-labelledby="import-heading" className={`${s.card} p-5 sm:p-8`}>
-                <h1 id="import-heading" className={`text-2xl sm:text-3xl font-bold ${s.heading}`}>Bring in details from your website</h1>
                 <p className={`mt-2 text-base ${s.muted}`}>
-                    We read a few pages of your own website and show you what we found. Nothing is saved until you choose it, and you can always type your details in by hand instead.
+                    Choose to check your own business website, then review what was found beside what is saved. You can enter the same details by hand instead.
                 </p>
 
                 <form noValidate onSubmit={(event) => { event.preventDefault(); check(); }} className="mt-6 space-y-4">
@@ -253,7 +255,7 @@ export default function ImportClient({
 
             {draft && (
                 <section aria-labelledby="import-results-heading" className={`${s.card} p-5 sm:p-8`}>
-                    <h2 id="import-results-heading" className={`text-lg font-bold ${s.heading}`}>What we found</h2>
+                    <h2 id="import-results-heading" tabIndex={-1} className={`text-lg font-bold ${s.heading}`}>What we found</h2>
                     <p className={`mt-1 text-sm break-words ${s.muted}`}>
                         Read from {draft.website} on {when(draft.fetchedAt)}. {draft.pages.length} {draft.pages.length === 1 ? "page" : "pages"} read.
                     </p>
@@ -294,13 +296,13 @@ export default function ImportClient({
                             {saveError && (
                                 <div role="alert" className={`mt-5 ${s.errorBox} flex items-start gap-3`}>
                                     <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" aria-hidden />
-                                    <p className="min-w-0 text-sm">{saveError}</p>
+                                    <p className="min-w-0 text-sm">{saveError === IMPORT_SAVE_ERROR ? "We couldn't confirm that save. Check your profile before retrying; a missing reply does not prove nothing changed." : saveError}</p>
                                 </div>
                             )}
 
                             <div className="mt-5 flex flex-col sm:flex-row sm:items-center gap-3">
                                 {pending.length > 0 && (
-                                    <button type="button" onClick={save} disabled={busy !== "idle"} className={`${s.primaryButton} w-full sm:w-auto`}>
+                                    <button type="button" onClick={save} data-import-save disabled={busy !== "idle"} className={`${s.primaryButton} w-full sm:w-auto`}>
                                         {busy === "saving" ? (<><Loader2 className="w-5 h-5 animate-spin" aria-hidden /> Saving…</>)
                                             : saveError && chosen.length > 0 ? "Try again"
                                             : `Save ${chosen.length} ticked ${chosen.length === 1 ? "change" : "changes"}`}
@@ -318,5 +320,6 @@ export default function ImportClient({
                 </section>
             )}
         </div>
+        </CompanyImportFrame>
     );
 }

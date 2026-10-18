@@ -8,9 +8,12 @@ import { AlertTriangle, ArrowLeft, ArrowRight, Check, ChevronDown, Loader2, Spar
 import { useTheme } from "@/lib/theme-context";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
 import { newClientId } from "@/lib/client-id";
+import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
 import { useReducerStore } from "@/lib/use-reducer-store";
 import { workspaceStyles, type WorkspaceStyles } from "@/lib/workspace-styles";
 import SaveStatus from "@/components/save-status";
+import BriefSaveFocus from "@/components/brief-save-focus";
+import ui from "@/components/brief-chrome.module.css";
 import {
     BRIEF_STAGES,
     BRIEF_TRADES,
@@ -109,9 +112,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
     useEffect(() => {
         if (!dirty) return;
         const warnOnUnload = (event: BeforeUnloadEvent) => event.preventDefault();
-        const confirmOnLink = (event: MouseEvent) => {
-            const link = (event.target as HTMLElement | null)?.closest?.("a[href]");
-            if (!link || link.getAttribute("target") === "_blank") return;
+        const confirmLeave = (event: Event) => {
             const stay = !window.confirm(
                 "Your brief has changes that are not saved yet.\n\nPress Cancel to stay here and save them, or OK to leave without saving.",
             );
@@ -120,10 +121,17 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                 event.stopPropagation();
             }
         };
+        const confirmOnLink = (event: MouseEvent) => {
+            const link = (event.target as HTMLElement | null)?.closest?.("a[href]");
+            if (!link || link.getAttribute("target") === "_blank") return;
+            confirmLeave(event);
+        };
         window.addEventListener("beforeunload", warnOnUnload);
+        window.addEventListener(BEFORE_PROJECT_NAVIGATION, confirmLeave);
         document.addEventListener("click", confirmOnLink, true);
         return () => {
             window.removeEventListener("beforeunload", warnOnUnload);
+            window.removeEventListener(BEFORE_PROJECT_NAVIGATION, confirmLeave);
             document.removeEventListener("click", confirmOnLink, true);
         };
     }, [dirty]);
@@ -203,13 +211,18 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
     const siteAddress = project.site_address;
 
     return (
-        <div className="space-y-5">
+        <div className={`${ui.root} space-y-5`} data-theme={isDark ? "dark" : "light"} data-brief-root>
+            <BriefSaveFocus status={status} heading={headingRef} />
             {/* Title and save state */}
-            <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className={`${ui.header} flex flex-wrap items-start justify-between gap-3`}>
                 <div className="min-w-0">
-                    <h1 className={`text-2xl sm:text-3xl font-bold break-words ${s.heading}`}>Job brief</h1>
+                    <p className={ui.eyebrow}>From notes to a clear brief</p>
+                    <h1 className={`${ui.title} text-2xl sm:text-3xl font-bold break-words ${s.heading}`}>Job brief</h1>
                     <p className={`mt-1 text-base break-words ${s.muted}`}>
                         {project.name}{project.client_name ? ` for ${project.client_name}` : ""}
+                    </p>
+                    <p className={ui.intro}>
+                        Describe the work, check the trades and timing, then review before pricing. Use Save to keep a draft.
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -237,7 +250,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
             )}
 
             {/* Stages */}
-            <nav aria-label="Brief steps">
+            <nav className={ui.steps} aria-label="Brief steps">
                 <ol className="grid grid-cols-4 gap-1.5 sm:gap-2">
                     {BRIEF_STAGES.map((item, index) => {
                         const active = item.key === stage;
@@ -247,7 +260,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                                     type="button"
                                     onClick={() => goTo(item.key)}
                                     aria-current={active ? "step" : undefined}
-                                    className={`w-full min-h-14 px-1 py-1.5 rounded-xl border text-center transition-colors ${
+                                    className={`${ui.stepButton} w-full min-h-14 px-1 py-1.5 rounded-xl border text-center transition-colors ${
                                         active
                                             ? "border-blue-500 bg-blue-600 text-white"
                                             : isDark
@@ -437,7 +450,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                         <div className={`${s.inset} px-4 py-3`}>
                             <p className={`text-sm font-semibold ${s.body}`}>Site address</p>
                             <p className={`mt-0.5 text-base break-words ${siteAddress ? s.body : s.muted}`}>
-                                {siteAddress || "No site address has been added to this project."}
+                                {siteAddress || "No site address on this job yet. You can continue this brief without one."}
                             </p>
                         </div>
 
@@ -462,11 +475,15 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                                 <label htmlFor="brief-start-date" className={s.label}>Likely start date</label>
                                 <input
                                     id="brief-start-date"
+                                    aria-describedby="brief-start-date-help"
                                     type="date"
                                     value={draft.startDate}
                                     onChange={(e) => edit({ startDate: e.target.value })}
                                     className={`${s.input} mt-2`}
                                 />
+                                <p id="brief-start-date-help" className={`mt-1 text-sm ${s.muted}`}>
+                                    Optional. This job&apos;s likely start date. Change it here if it has moved.
+                                </p>
                             </div>
                             <div>
                                 <label htmlFor="brief-rough-value" className={s.label}>Rough value (£)</label>
@@ -484,7 +501,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
 
                         <div>
                             <label htmlFor="brief-postcode" className={s.label}>Site postcode</label>
-                            <p id="brief-postcode-help" className={`mt-1 text-sm ${s.muted}`}>Optional. Used to find the region.</p>
+                            <p id="brief-postcode-help" className={`mt-1 text-sm ${s.muted}`}>Optional. Used to find the region. Editing this box does not change the job&apos;s saved postcode.</p>
                             <input
                                 id="brief-postcode"
                                 aria-describedby="brief-postcode-help"

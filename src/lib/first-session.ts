@@ -31,18 +31,22 @@ export const SETUP_STEPS: readonly SetupStep[] = ["trade", "business"];
  * answer; none of them has to be used.
  */
 export const SETUP_WORK_SUGGESTIONS: readonly string[] = [
-    "General Builder / Extensions",
-    "Plumbing & Heating",
-    "Electrical",
-    "Bricklaying",
-    "Groundworks & Civils",
+    "General building",
+    "Refurbishment & fit-out",
+    "Groundworks & civils",
+    "Demolition & site preparation",
+    "Brickwork & blockwork",
+    "Carpentry & joinery",
+    "Electrical installation",
+    "Plumbing & heating",
+    "Ventilation & air conditioning",
     "Roofing",
-    "Cladding",
-    "Joinery & Carpentry",
-    "Plastering",
-    "Painting & Decorating",
-    "Bathroom & Kitchen Fitting",
-    "Landscaping & Fencing",
+    "Cladding & facades",
+    "Plastering & drylining",
+    "Flooring & tiling",
+    "Painting & decorating",
+    "Glazing & window installation",
+    "Landscaping & fencing",
 ];
 
 export const SETUP_LIMITS = {
@@ -144,10 +148,12 @@ export function shouldSendWelcomeEmail(args: {
 }
 
 /**
- * A contractor with no projects lands on proposal readiness, where the first
- * project is one tap away and the rest of the company profile is optional.
+ * A first company introduction lands on welcome even if projects already
+ * exist. Returning setup edits keep their existing project-based destination.
  */
-export function resolvePostSetupPath(projectCount: number, landingPath: string): string {
+export function resolvePostSetupPath(projectCount: number | null, landingPath: string, firstCompanyIntroduction = false): string {
+    if (firstCompanyIntroduction) return PROPOSAL_READINESS_PATH;
+    if (projectCount === null) return landingPath;
     return projectCount > 0 ? landingPath : PROPOSAL_READINESS_PATH;
 }
 

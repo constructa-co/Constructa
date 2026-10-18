@@ -46,10 +46,11 @@ export default async function EstimatingPage(props: { searchParams: Promise<{ pr
         .order("created_at");
 
     return (
-        <div className="max-w-5xl mx-auto px-4 sm:px-8 pt-4 sm:pt-8 pb-16">
+        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-8 pt-4 sm:pt-8 pb-16">
             <ProjectNavBar projectId={activeProjectId} activeTab="estimating" />
 
             <EstimateClient
+                key={project.id}
                 defaultTabId={searchParams.tab}
                 estimates={(estimates || []).map(toEstimate)}
                 project={{

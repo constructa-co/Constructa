@@ -9,6 +9,7 @@ vi.mock("@/app/storage/actions", () => ({ uploadProfileImageAction: vi.fn() }));
 
 import { CASE_STUDIES_PATH } from "@/lib/first-session";
 import { isDashboardPathAllowed } from "@/lib/launch-profile";
+import { profileUpdateFromForm } from "@/lib/profile-update";
 import ProfileForm from "./profile-form";
 
 const SRC = path.resolve(import.meta.dirname, "../../../..");
@@ -21,6 +22,65 @@ const PROFILE = {
     case_studies: [{ id: "cs-1", projectName: "Kitchen at Example Road", client: "Mrs Private", whatWeDelivered: "We refitted the kitchen.", valueAdded: "", photos: [] }],
 };
 const html = renderToStaticMarkup(createElement(ProfileForm, { profile: PROFILE as never, userEmail: "sam@example.com" }));
+
+describe("years trading initial value", () => {
+    const control = (years_trading: number | null | undefined) => {
+        const rendered = renderToStaticMarkup(createElement(ProfileForm, {
+            profile: { ...PROFILE, years_trading }, userEmail: "sam@example.com",
+        }));
+        return rendered.match(/<input[^>]*id="company-years_trading"[^>]*>/)![0];
+    };
+
+    it("keeps a valid stored zero instead of rendering a blank that would post as null", () => {
+        const input = control(0);
+        expect(input).toContain('value="0"');
+        expect(input).toContain('type="number"');
+        expect(input).toContain('min="0"');
+        const data = new FormData();
+        data.set("years_trading", input.match(/\bvalue="([^"]*)"/)![1]);
+        // Model the rendered field's posted value; this is not a browser save.
+        expect(profileUpdateFromForm("test-user", data).years_trading).toBe(0);
+    });
+
+    it.each([null, undefined])("keeps %s absent rather than inventing a year count", years => {
+        expect(control(years)).toContain('value=""');
+    });
+
+    it("keeps the existing positive value unchanged", () => {
+        expect(control(8)).toContain('value="8"');
+    });
+});
+
+describe("saved proposal theme visibility", () => {
+    const render = (pdf_theme: string | null) => renderToStaticMarkup(createElement(ProfileForm, {
+        profile: { ...PROFILE, pdf_theme }, userEmail: "sam@example.com",
+    }));
+
+    it("shows an unmatched saved value without selecting a replacement", () => {
+        const legacy = render("classic");
+        expect(legacy).toContain('data-pdf-theme="classic"');
+        expect(legacy).toContain('data-profile-saved-theme');
+        expect(legacy).toContain("Saved theme: <strong>classic</strong>");
+        expect(legacy).toContain("It is kept when you save unless you choose another theme.");
+        const style = legacy.slice(legacy.indexOf('id="company-style"'), legacy.indexOf('data-profile-case-studies'));
+        expect(style.match(/aria-pressed="false"/g)).toHaveLength(3);
+        expect(style).not.toContain('aria-pressed="true"');
+        expect(style.match(/<button/g)).toHaveLength(3);
+    });
+
+    it.each([null, "", "slate", "navy", "forest"])("keeps existing default/known theme %s without an unmatched-value note", value => {
+        const known = render(value);
+        expect(known).not.toContain('data-profile-saved-theme');
+        const style = known.slice(known.indexOf('id="company-style"'), known.indexOf('data-profile-case-studies'));
+        expect(style.match(/aria-pressed="true"/g)).toHaveLength(1);
+    });
+
+    it("renders an unmatched value as text, not markup", () => {
+        const legacy = render("<legacy & custom>");
+        expect(legacy).toContain("<strong>&lt;legacy &amp; custom&gt;</strong>");
+        expect(legacy).not.toContain("<strong><legacy");
+    });
+});
 
 describe("the Company Profile form no longer edits case studies", () => {
     it("shows no case-study editor: no add button, no fields, and none of the stored text", () => {
@@ -58,6 +118,9 @@ describe("the Company Profile form no longer edits case studies", () => {
     it("the rest of the form is still there", () => {
         for (const expected of ['name="company_name"', 'name="business_type"', 'name="phone"', "Managing Director Message", "Save"]) expect(html, expected).toContain(expected);
         expect(html).toContain('value="Example Builders Ltd"');
+        expect(html).toContain('id="profile-save-status"');
+        expect(html).toContain("No unsaved changes on this page.");
+        expect(html).toContain('aria-busy="false"');
     });
 
     it("the dedicated case-study editor is still the one place that saves case studies, by one write of the whole list", () => {

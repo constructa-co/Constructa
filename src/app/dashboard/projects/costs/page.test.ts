@@ -46,9 +46,9 @@ describe("estimating project identity boundary", () => {
         expect((await editor("job-b")).props.estimates).toEqual([]);
     });
 
-    it("keys the fallback editor by the actual loaded job", async () => {
-        const first = await editor();
-        expect(first.key).toBe("job-a");
-        expect(first.props.project.id).toBe("job-a");
+    it("defers the no-ID editor until browser project memory has been resolved", async () => {
+        const entry = await EstimatingPage({ searchParams: Promise.resolve({}) });
+        expect(entry.props.path).toBe("/dashboard/projects/costs");
+        expect(entry.props.projects).toEqual(projects);
     });
 });

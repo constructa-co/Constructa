@@ -46,6 +46,9 @@ import type { Estimate, EstimateLine } from "./types";
 import ui from "@/components/estimating.module.css";
 import PricingFocus from "@/components/pricing-focus";
 import AreaQuantityAid from "@/components/area-quantity-aid";
+import PricingAssistantPanel from "@/components/pricing-assistant-panel";
+import { createPricingAssistantSession } from "@/lib/pricing-assistant-session";
+import type { PricingConversationGenerator } from "@/lib/pricing-conversation";
 import { buildPricingReviewContext, prepareReviewedPriceDraft, reviewPricingSuggestion, PRICING_REVIEW_OPEN } from "@/lib/pricing-review";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
@@ -74,6 +77,8 @@ interface Props {
     /** Default to the real server actions; replaced only by tests and evidence capture. */
     server?: EstimatingServer;
     loadAdvancedData?: LoadAdvancedData;
+    /** No default transport. A future adapter needs separate server auth, budget and data approval. */
+    pricingGenerator?: PricingConversationGenerator;
 }
 
 const REAL_SERVER: EstimatingServer = {
@@ -91,6 +96,7 @@ export default function EstimateClient({
     defaultTabId,
     server = REAL_SERVER,
     loadAdvancedData = loadAdvancedEstimatingDataAction,
+    pricingGenerator,
 }: Props) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
@@ -121,6 +127,25 @@ export default function EstimateClient({
         { status: "idle", data: null, error: "" },
     );
 
+    // Local conversation/review only: no default provider or persistence.
+    const pricingAssistant = useMemo(() => createPricingAssistantSession(
+        () => {
+            const fresh = store.getState();
+            return { project: { id: project.id, brief_scope: project.brief_scope }, estimate: currentEstimate(fresh), hasOpenWork: hasOpenEstimateWork(fresh) || fresh.advancedOpen };
+        },
+        (pending, index, contractorMessage) => {
+            const fresh = store.getState();
+            const context = buildPricingReviewContext({ id: project.id, brief_scope: project.brief_scope }, currentEstimate(fresh), contractorMessage);
+            if (!context.ok) return context;
+            const draft = prepareReviewedPriceDraft(pending, index, context.value, hasOpenEstimateWork(fresh) || fresh.advancedOpen);
+            if (!draft.ok) return draft;
+            store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: draft.value, lineId: newClientId() });
+            return { ok: true };
+        }, pricingGenerator,
+    ), [project.id, project.brief_scope, store, pricingGenerator]);
+    useEffect(() => () => pricingAssistant.detach(), [pricingAssistant]);
+    useEffect(() => { pricingAssistant.refresh(); }, [pricingAssistant, state]);
+
     // Keep the chosen estimate version when moving between project tabs.
     const tabKey = `constructa_tab_${project.id}`;
     useEffect(() => {
@@ -129,6 +154,8 @@ export default function EstimateClient({
         if (saved) store.dispatch({ type: "estimate/select", estimateId: saved });
     }, [defaultTabId, store, tabKey]);
     const selectEstimate = (estimateId: string) => {
+        const freshState = store.getState();
+        if (freshState.activeEstimateId === estimateId || !freshState.estimates.some(item => item.id === estimateId) || hasOpenEstimateWork(freshState)) return;
         store.dispatch({ type: "estimate/select", estimateId });
         if (estimateId) window.sessionStorage.setItem(tabKey, estimateId);
     };
@@ -300,27 +327,14 @@ export default function EstimateClient({
                 )}
             </section>
 
-            {state.estimates.length > 1 && (
-                <div className={`${s.card} p-4 sm:p-5`}>
-                    <label htmlFor="estimate-version" className={s.label}>Estimate version</label>
-                    <select
-                        id="estimate-version"
-                        value={estimate?.id ?? ""}
-                        onChange={(e) => selectEstimate(e.target.value)}
-                        className={`${s.input} mt-2`}
-                    >
-                        {state.estimates.map((e) => (
-                            <option key={e.id} value={e.id}>
-                                {e.version_name || "Estimate"}{e.is_active ? " (used in the proposal)" : ""}
-                            </option>
-                        ))}
-                    </select>
-                    {estimate && !estimate.is_active && (
-                        <p className={`mt-2 text-sm ${s.muted}`}>
-                            This version is not the one used in the proposal. Change which one is used under Advanced estimating.
-                        </p>
-                    )}
-                </div>
+            <PricingAssistantPanel session={pricingAssistant} blocked={hasOpenWork || state.advancedOpen || !!estimate?.is_client_boq} />
+
+            {/* Current version stays visible without competing with price entry. */}
+            {estimate && (state.estimates.length > 1 || !estimate.is_active) && (
+                <p className={ui.versionCurrent} data-current-estimate>
+                    Pricing: <strong>{estimate.version_name || "Estimate"}</strong>.{" "}
+                    {estimate.is_active ? "Used in the proposal." : "Alternative; not used in the proposal."}
+                </p>
             )}
 
             {state.notice && (
@@ -386,6 +400,7 @@ export default function EstimateClient({
                                         onChange={(patch) => store.dispatch({ type: "op/change", key: line.id, patch })}
                                         onCancel={() => store.dispatch({ type: "op/cancel", key: line.id })}
                                         onSave={() => void submitPriceLine(store, server, project.id, line.id)}
+                                        onFullForm={() => setShowLineDetails(false)}
                                         onConfirmDelete={() => void removePriceLine(store, server, line.id)}
                                     />
                                 ))}
@@ -395,6 +410,7 @@ export default function EstimateClient({
                             {newOp ? (
                                 <div className={`mt-4 ${s.inset} p-4`}>
                                     <LineForm
+                                        key={newOp.lineId}
                                         idPrefix="new-line"
                                         title={hasLines ? "New price line" : "First price line"}
                                         op={newOp}
@@ -403,6 +419,7 @@ export default function EstimateClient({
                                         onChange={(patch) => store.dispatch({ type: "op/change", key: NEW_LINE_KEY, patch })}
                                         onCancel={() => store.dispatch({ type: "op/cancel", key: NEW_LINE_KEY })}
                                         onSave={() => void submitPriceLine(store, server, project.id, NEW_LINE_KEY)}
+                                        onSaveNext={() => submitPriceLine(store, server, project.id, NEW_LINE_KEY, { nextLineId: newClientId() })}
                                     />
                                 </div>
                             ) : (
@@ -437,6 +454,34 @@ export default function EstimateClient({
                 </div>
             )}
 
+            {/* Optional version selection stays out of the first-price task. */}
+            {state.estimates.length > 1 && (
+                <details className={ui.versionDisclosure} data-estimate-versions>
+                    <summary className={ui.versionSummary}>Estimate versions</summary>
+                    <div className={ui.versionBody}>
+                        <p id="estimate-version-help">
+                            Switch between saved versions. Save or cancel any open changes before switching. This only changes what you are viewing.
+                        </p>
+                        <label htmlFor="estimate-version" className={s.label}>View a saved version</label>
+                        <select
+                            id="estimate-version"
+                            value={estimate?.id ?? ""}
+                            onChange={(e) => selectEstimate(e.target.value)}
+                            disabled={hasOpenWork}
+                            aria-describedby="estimate-version-help"
+                            className={s.input}
+                        >
+                            {state.estimates.map((e) => (
+                                <option key={e.id} value={e.id}>
+                                    {e.version_name || "Estimate"}{e.is_active ? " (used in the proposal)" : ""}
+                                </option>
+                            ))}
+                        </select>
+                        <p>To add an alternative or change which version is used in the proposal, open Advanced estimating, then Estimate versions and alternatives.</p>
+                    </div>
+                </details>
+            )}
+
             {/* Offered last while closed, so it does not compete with the simple list. */}
             {!state.advancedOpen && advancedSection}
 
@@ -452,7 +497,7 @@ export default function EstimateClient({
 // ─── One price line ──────────────────────────────────────
 
 function PriceLineRow({
-    line, editable, isClientBoQ, op, s, isDark, showDetails, onEdit, onDelete, onChange, onCancel, onSave, onConfirmDelete,
+    line, editable, isClientBoQ, op, s, isDark, showDetails, onEdit, onDelete, onChange, onCancel, onSave, onFullForm, onConfirmDelete,
 }: {
     line: EstimateLine;
     editable: boolean;
@@ -466,6 +511,7 @@ function PriceLineRow({
     onChange: (patch: Partial<PriceLineDraft>) => void;
     onCancel: () => void;
     onSave: () => void;
+    onFullForm: () => void;
     onConfirmDelete: () => void;
 }) {
     const name = line.description?.trim() || "No description yet";
@@ -473,6 +519,10 @@ function PriceLineRow({
     const section = line.trade_section && line.trade_section !== "General" ? line.trade_section : "";
 
     if (op && op.kind === "edit") {
+        if (editable && showDetails && op.draft.mode === "rate") {
+            return <InlineRateEditor data-inline-editor={line.id} line={line} op={op} s={s}
+                onChange={onChange} onCancel={onCancel} onSave={onSave} onFullForm={onFullForm} />;
+        }
         return (
             <tr className={ui.priceFormRow} data-price-line={line.id}><td colSpan={showDetails ? 6 : 3}>
                 <LineForm idPrefix={`line-${line.id}`} title="Change this line" op={op} s={s} isDark={isDark} onChange={onChange} onCancel={onCancel} onSave={onSave} />
@@ -548,10 +598,78 @@ function PriceLineRow({
     );
 }
 
+function InlineRateEditor({ line, op, s, onChange, onCancel, onSave, onFullForm }: {
+    "data-inline-editor": string;
+    line: EstimateLine;
+    op: LineOp;
+    s: WorkspaceStyles;
+    onChange: (patch: Partial<PriceLineDraft>) => void;
+    onCancel: () => void;
+    onSave: () => void;
+    onFullForm: () => void;
+}) {
+    const { draft, fieldErrors } = op;
+    const saving = op.status === "saving";
+    const prefix = `line-${line.id}`;
+    const formId = `${prefix}-inline-form`;
+    const total = draftLineTotal(draft);
+    const field = (name: "description" | "quantity" | "unit" | "rate", label: string) => ({
+        id: `${prefix}-${name}`, form: formId, disabled: saving, "aria-label": `${label} for ${line.description || "this line"}`,
+        "aria-invalid": fieldErrors[name] ? true : undefined,
+        "aria-describedby": fieldErrors[name] ? `${prefix}-${name}-error` : undefined,
+    });
+    const error = (name: keyof typeof fieldErrors) => fieldErrors[name]
+        ? <p id={`${prefix}-${name}-error`} className={`mt-1 text-sm ${s.errorText}`}>{fieldErrors[name]}</p> : null;
+
+    return <tr className={ui.priceInlineEditor} data-price-line={line.id}>
+        <td className={ui.priceLineDescription}>
+            <form id={formId} noValidate aria-label={`Change quantity and rate for ${line.description || "this line"}`}
+                aria-busy={saving} onSubmit={event => { event.preventDefault(); onSave(); }}>
+                <input {...field("description", "Work description")} value={draft.description} maxLength={500} autoComplete="off"
+                    className={s.input} onChange={event => onChange({ description: event.target.value })} />
+                {error("description")}
+            </form>
+            <p className={`mt-2 text-sm ${s.muted}`}>Draft only until Save line. Use Tab to move between fields.</p>
+            {op.status === "failed" && <p role="alert" className={`mt-2 text-sm ${s.errorText}`}>{op.error}</p>}
+        </td>
+        <td data-label="Quantity" className={ui.priceLineNumber}>
+            <input {...field("quantity", "Quantity")} value={draft.quantity} inputMode="decimal" autoComplete="off"
+                className={s.input} onChange={event => onChange({ quantity: event.target.value })} />
+            {error("quantity")}
+        </td>
+        <td data-label="Unit" className={ui.priceLineUnit}>
+            <select {...field("unit", "Unit")} value={draft.unit} className={s.input}
+                onChange={event => onChange({ unit: event.target.value })}>
+                {unitOptions(draft.unit).map(unit => <option key={unit} value={unit}>{unit}</option>)}
+            </select>
+            {error("unit")}
+        </td>
+        <td data-label="Rate" className={ui.priceLineNumber}>
+            <input {...field("rate", "Rate in pounds")} value={draft.rate} inputMode="decimal" autoComplete="off"
+                className={s.input} onChange={event => onChange({ rate: event.target.value })} />
+            {error("rate")}
+        </td>
+        <td data-label="Price" className={ui.priceLineAmount}>
+            <p aria-live="polite" className={s.body}>Draft <strong>{total === null ? "Check entries" : formatGBP(total)}</strong></p>
+            <p className={`mt-2 text-sm ${s.muted}`}>Saved {formatGBP(Number(line.line_total) || 0)}</p>
+        </td>
+        <td className={ui.priceLineActions}>
+            <div className="flex flex-wrap gap-2">
+                <button type="submit" form={formId} disabled={saving} className={s.primaryButton}>
+                    {saving ? "Saving..." : op.status === "failed" ? "Try again" : "Save line"}
+                </button>
+                <button type="button" disabled={saving} onClick={onCancel} className={s.secondaryButton}>Cancel</button>
+                <button type="button" disabled={saving} onClick={onFullForm} className={s.quietButton}>Full line form</button>
+            </div>
+            <p className={`mt-2 text-sm ${s.muted}`}>Full form includes one-price entry and measurements.</p>
+        </td>
+    </tr>;
+}
+
 // ─── Add / change form ───────────────────────────────────
 
 function LineForm({
-    idPrefix, title, op, s, isDark, onChange, onCancel, onSave,
+    idPrefix, title, op, s, isDark, onChange, onCancel, onSave, onSaveNext,
 }: {
     idPrefix: string;
     title: string;
@@ -561,6 +679,7 @@ function LineForm({
     onChange: (patch: Partial<PriceLineDraft>) => void;
     onCancel: () => void;
     onSave: () => void;
+    onSaveNext?: () => void;
 }) {
     const { draft, fieldErrors } = op;
     const saving = op.status === "saving";
@@ -592,7 +711,15 @@ function LineForm({
     );
 
     return (
-        <form noValidate onSubmit={(e) => { e.preventDefault(); onSave(); }} className="space-y-4" aria-label={title}>
+        <form noValidate onSubmit={(e) => { e.preventDefault(); onSave(); }}
+            onKeyDown={event => {
+                const fieldId = (event.target as HTMLElement).id;
+                if (!onSaveNext || saving || event.defaultPrevented || event.repeat || event.nativeEvent.isComposing
+                    || event.key !== "Enter" || !(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey
+                    || !["description", "amount", "quantity", "unit", "rate"].some(name => fieldId === `${idPrefix}-${name}`)) return;
+                event.preventDefault();
+                onSaveNext();
+            }} className="space-y-4" aria-label={title}>
             <p className={`text-base font-bold ${s.heading}`}>{title}</p>
 
             <div>
@@ -603,6 +730,7 @@ function LineForm({
                     onChange={(e) => onChange({ description: e.target.value })}
                     placeholder="e.g. Bathroom refit, labour and materials"
                     autoComplete="off"
+                    autoFocus={op.kind === "add"}
                     maxLength={500}
                     className={`${s.input} mt-1.5`}
                 />
@@ -695,8 +823,14 @@ function LineForm({
                         ? <><Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> Saving…</>
                         : op.status === "failed" ? "Try again" : "Save line"}
                 </button>
+                {onSaveNext && <button type="button" onClick={onSaveNext} disabled={saving} className={s.secondaryButton}>
+                    Save and add next
+                </button>}
                 <button type="button" onClick={onCancel} disabled={saving} className={s.secondaryButton}>Cancel</button>
             </div>
+            {onSaveNext && <p className={`text-sm ${s.muted}`}>
+                Ctrl+Enter or Command+Enter saves this line and opens the next unpriced draft. Pricing method and unit stay selected; description, quantity and price are cleared.
+            </p>}
         </form>
     );
 }

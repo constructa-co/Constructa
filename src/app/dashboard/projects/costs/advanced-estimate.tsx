@@ -516,12 +516,24 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     return (
         <>
         <div className="space-y-6">
-            {/* TABS */}
-            <div className="flex items-center gap-2 flex-wrap">
+            {/* VERSION MANAGEMENT */}
+            {currentEstimate && (
+                <p className={ui.versionCurrent} data-advanced-current-estimate>
+                    {estimates.length > 1 ? <>Pricing: <strong>{currentEstimate.version_name || "Estimate"}</strong>.{" "}</> : "Current estimate. "}
+                    {currentEstimate.is_active ? "Used in the proposal." : "Alternative; not used in the proposal."}
+                </p>
+            )}
+            {estimates.length > 0 && (
+                <details className={ui.versionDisclosure} data-advanced-estimate-versions>
+                    <summary className={ui.versionSummary}>Estimate versions and alternatives</summary>
+                    <div className={ui.versionBody}>
+                        <p>Optional. Keep a separate price for another option. Adding an alternative starts an empty estimate; it does not copy or replace this one.</p>
+                        <div className={ui.versionTabs}>
                 {estimates.map((est) => (
                     <button
                         type="button"
                         key={est.id}
+                        aria-pressed={activeTab === est.id}
                         onClick={() => setActiveTab(est.id)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
                             activeTab === est.id
@@ -533,13 +545,57 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                         {est.is_active && <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
                     </button>
                 ))}
-                <button
-                    type="button"
-                    onClick={handleCreateEstimate}
-                    className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-500 transition-colors flex items-center gap-1.5"
-                >
-                    <Plus className="w-4 h-4" /> New Estimate
-                </button>
+                            <button
+                                type="button"
+                                onClick={handleCreateEstimate}
+                                className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-500 transition-colors flex items-center gap-1.5"
+                            >
+                                <Plus className="w-4 h-4" /> Add an alternative
+                            </button>
+                        </div>
+                        {currentEstimate && (
+                            <div className="space-y-3">
+                            <div className={ui.versionName}>
+                                <label htmlFor={`estimate-name-${currentEstimate.id}`} className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1">Version name</label>
+                                <input
+                                    key={currentEstimate.id}
+                                    id={`estimate-name-${currentEstimate.id}`}
+                                    aria-label="Estimate Name"
+                                    type="text"
+                                    defaultValue={currentEstimate.version_name}
+                                    onBlur={(e) => handleNameBlur(e.target.value)}
+                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                                />
+                            </div>
+                                <p>Changing the name saves when you leave the field. Selecting a version to view does not change which one is used in the proposal.</p>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => handleSetActive(currentEstimate.id)}
+                                    className={`h-10 px-4 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
+                                        currentEstimate.is_active
+                                            ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                                            : "bg-slate-700/50 text-slate-400 hover:bg-amber-500/10 hover:text-amber-400 border border-slate-600"
+                                    }`}
+                                >
+                                    <Star className={`w-3.5 h-3.5 ${currentEstimate.is_active ? "fill-amber-400" : ""}`} />
+                                    {currentEstimate.is_active ? "Active" : "Use in Proposal"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleDeleteEstimate(currentEstimate.id)}
+                                    aria-label="Delete this estimate"
+                                    className="h-10 px-3 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-slate-700 transition-colors"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                            </div>
+                        )}
+                    </div>
+                </details>
+            )}
+            <div className="flex items-center gap-2 flex-wrap">
                 {showClientBoQImport && (
                     <button
                         type="button"
@@ -575,7 +631,8 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                             <Plus className="h-6 w-6 text-slate-500" />
                         </div>
                         <p className="text-sm text-slate-500">No estimates yet</p>
-                        <p className="text-xs text-slate-600">Click &quot;New Estimate&quot; to create your first Bill of Quantities.</p>
+                        <p className="text-xs text-slate-600">Start detailed pricing to build a bill of quantities, or close Advanced estimating to return to simple price lines.</p>
+                        <button type="button" onClick={handleCreateEstimate} className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white">Start detailed pricing</button>
                     </div>
                 </div>
             ) : (
@@ -625,16 +682,6 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                     {/* ESTIMATE HEADER */}
                     <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 space-y-4">
                         <div className="flex flex-wrap items-end gap-4">
-                            <div className="flex-1 min-w-[200px]">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1">Estimate Name</label>
-                                <input
-                                    aria-label="Estimate Name"
-                                    type="text"
-                                    defaultValue={currentEstimate.version_name}
-                                    onBlur={(e) => handleNameBlur(e.target.value)}
-                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50"
-                                />
-                            </div>
                             <div className="w-24">
                                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1">Prelims %</label>
                                 <input
@@ -712,28 +759,6 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                     }}
                                     className="w-full h-10 px-3 border border-emerald-700/50 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
                                 />
-                            </div>
-                            <div className="flex gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => handleSetActive(currentEstimate.id)}
-                                    className={`h-10 px-4 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
-                                        currentEstimate.is_active
-                                            ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
-                                            : "bg-slate-700/50 text-slate-400 hover:bg-amber-500/10 hover:text-amber-400 border border-slate-600"
-                                    }`}
-                                >
-                                    <Star className={`w-3.5 h-3.5 ${currentEstimate.is_active ? "fill-amber-400" : ""}`} />
-                                    {currentEstimate.is_active ? "Active" : "Use in Proposal"}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => handleDeleteEstimate(currentEstimate.id)}
-                                    aria-label="Delete this estimate"
-                                    className="h-10 px-3 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-slate-700 transition-colors"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
                             </div>
                         </div>
                         {currentEstimate.discount_pct > 0 && (

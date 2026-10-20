@@ -142,6 +142,12 @@
 .priceLineUnit { overflow-wrap: anywhere; }
 .priceLineActions { min-width: 220px; }
 .priceLinesTable .priceFormRow td { padding: 16px 0; }
+.priceInlineEditor :is(input, select) { width: 100%; min-width: 0; font-size: 16px; }
+.priceInlineEditor .priceLineAmount { white-space: normal; }
+@container pricing (min-width: 761px) {
+    .priceInlineEditor .priceLineNumber { min-width: 96px; }
+    .priceInlineEditor .priceLineUnit { min-width: 76px; }
+}
 @container pricing (max-width: 760px) {
     .priceLinesTable, .priceLinesTable tbody { display: block; }
     .priceLinesTable .priceTableCaption { display: block; width: 100%; }
@@ -151,3 +157,43 @@
     .priceLinesTable .priceLineDescription, .priceLinesTable .priceLineActions, .priceLinesTable .priceOneAmount, .priceLinesTable .priceFormRow td { grid-column: 1 / -1; }
     .priceLinesTable td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: 12px; font-weight: 400; color: var(--price-muted); }
 }
+
+/* Optional estimate versions: native disclosure, no mutation on open/close. */
+.versionDisclosure {
+    border: 1px solid var(--price-line, #475449);
+    border-radius: 14px;
+    color: var(--price-text, #f1f5ed);
+    background: var(--price-accent-text, #13251a);
+    min-width: 0;
+}
+.versionSummary { padding: 16px; cursor: pointer; font-size: 14px; line-height: 1.6; font-weight: 700; overflow-wrap: anywhere; }
+.versionSummary:focus-visible { outline: 3px solid var(--price-accent, #c9efcf); outline-offset: 3px; }
+.versionBody { display: grid; gap: 14px; padding: 0 16px 16px; min-width: 0; }
+.versionBody > p, .versionBody .versionName + p { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.versionBody :is(input, select) { max-width: 100%; min-width: 0; font-size: 16px; }
+.versionBody select { width: 100%; }
+.versionBody button { min-height: 44px; }
+.versionTabs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.versionTabs button { max-width: 100%; overflow-wrap: anywhere; text-align: left; }
+.versionName { width: 100%; min-width: 0; }
+.versionCurrent { margin-block: 12px; font-size: 14px; line-height: 1.6; color: var(--price-muted, #b5c4b4); overflow-wrap: anywhere; }
+.versionName label { color: var(--price-muted, #b5c4b4); }
+
+/* Pricing assistant review: local transcript, source choices and explicit drafts. */
+.assistantPanel { border: 1px solid var(--price-line); border-radius: 14px; color: var(--price-text); background: color-mix(in srgb, var(--price-accent-text) 94%, var(--price-accent)); min-width: 0; }
+.assistantSummary { padding: 16px; cursor: pointer; font-size: 15px; line-height: 1.6; font-weight: 700; }
+.assistantSummary span { margin-left: 8px; font-size: 13px; font-weight: 400; color: var(--price-muted); }
+.assistantBody { padding: 0 16px 16px; display: grid; gap: 16px; min-width: 0; }
+.assistantBody p, .assistantBody blockquote { font-size: 14px; line-height: 1.65; overflow-wrap: anywhere; white-space: pre-wrap; }
+.assistantBody form { display: grid; gap: 10px; }
+.assistantBody label, .assistantBody h3 { font-weight: 700; }
+.assistantBody textarea { width: 100%; min-width: 0; min-height: 100px; padding: 12px; border: 1px solid var(--price-line); border-radius: 8px; background: var(--price-accent-text); color: var(--price-text); font-size: 16px; }
+.assistantActions { display: flex; flex-wrap: wrap; gap: 10px; }
+.assistantBody button { min-height: 44px; max-width: 100%; padding: 10px 14px; border: 1px solid var(--price-line); border-radius: 8px; font-size: 14px; color: var(--price-accent-text); background: var(--price-accent); overflow-wrap: anywhere; }
+.assistantBody button:disabled { opacity: .5; cursor: not-allowed; }
+.assistantPanel :is(summary, textarea, button):focus-visible { outline: 3px solid var(--price-accent); outline-offset: 3px; }
+.assistantMessages, .assistantChoices { display: grid; gap: 14px; min-width: 0; }
+.assistantMessages { max-height: 28rem; overflow-y: auto; }
+.assistantMessages li, .assistantChoices li { padding: 12px; border: 1px solid var(--price-line); border-radius: 8px; }
+.assistantChoices blockquote { margin-block: 8px 12px; }
+.assistantBody [role="alert"] { font-weight: 600; }

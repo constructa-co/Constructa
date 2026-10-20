@@ -376,7 +376,7 @@ export type EstimatingAction =
     | { type: "op/cancel"; key: string }
     | { type: "op/saving"; key: string }
     | { type: "op/failed"; key: string; error: string | null; fieldErrors?: PriceLineFieldErrors }
-    | { type: "line/saved"; key: string; estimateId: string; createdEstimate: Estimate | null; line: EstimateLine; notice?: string | null }
+    | { type: "line/saved"; key: string; estimateId: string; createdEstimate: Estimate | null; line: EstimateLine; notice?: string | null; nextLine?: { lineId: string; draft: PriceLineDraft } }
     | { type: "line/removed"; key: string; estimateId: string; lineId: string; notice?: string | null }
     | { type: "estimate/select"; estimateId: string }
     | { type: "estimates/replace"; update: (estimates: Estimate[]) => Estimate[] }
@@ -460,11 +460,21 @@ export function estimatingReducer(state: EstimatingState, action: EstimatingActi
                     : [...e.estimate_lines, action.line];
                 return { ...e, estimate_lines: lines, total_cost: storedTotal(lines) };
             });
+            const op = state.ops[action.key];
+            const nextLine = action.nextLine;
+            const continueEntry = nextLine && action.key === NEW_LINE_KEY && op?.kind === "add"
+                && op.status === "saving" && op.lineId === action.line.id && !state.advancedOpen
+                && (!state.activeEstimateId || state.activeEstimateId === action.estimateId)
+                && nextLine.lineId !== action.line.id && !estimates.some(e => e.estimate_lines.some(line => line.id === nextLine.lineId));
+            const ops = withoutOp(state.ops, action.key);
+            if (continueEntry) ops[NEW_LINE_KEY] = {
+                kind: "add", status: "editing", draft: nextLine.draft, lineId: nextLine.lineId, error: null, fieldErrors: {},
+            };
             return {
                 ...state,
                 estimates,
                 activeEstimateId: state.activeEstimateId || action.estimateId,
-                ops: withoutOp(state.ops, action.key),
+                ops,
                 notice: action.notice ?? null,
             };
         }
@@ -575,6 +585,7 @@ export async function submitPriceLine(
     server: Pick<EstimatingServer, "saveLine" | "updateLine">,
     projectId: string,
     key: string,
+    options?: { nextLineId: string },
 ): Promise<boolean> {
     const state = store.getState();
     const op = state.ops[key];
@@ -608,6 +619,8 @@ export async function submitPriceLine(
                 createdEstimate: result.createdEstimate,
                 line: result.line,
                 notice: result.warning ?? null,
+                // Continue only after confirmation; never carry a description, quantity or price forward.
+                nextLine: options ? { lineId: options.nextLineId, draft: { ...EMPTY_PRICE_LINE_DRAFT, mode: op.draft.mode, unit: op.draft.unit } } : undefined,
             });
             return true;
         }

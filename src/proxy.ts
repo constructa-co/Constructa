@@ -1,8 +1,16 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { getLaunchProfile, getLaunchRedirectPath, isDashboardPathAllowed } from '@/lib/launch-profile'
+import { reviewEnabled, reviewPageAllowed, REVIEW_CSP, REVIEW_USER } from '@/lib/deployment/review-policy'
+import { editableReview, editablePage } from '@/lib/deployment/review-editable'
 
 export async function proxy(request: NextRequest) {
+  const review = reviewEnabled();
+  if (review && !reviewPageAllowed(request.method, request.nextUrl.pathname) && !(editableReview() && editablePage(request.method, request.nextUrl.pathname))) {
+    return new NextResponse('This protected review is read-only. Saved data and external actions are disabled.', {
+      status: 403, headers: { 'Content-Security-Policy': REVIEW_CSP, 'Cache-Control': 'no-store' },
+    });
+  }
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-pathname', request.nextUrl.pathname);
 
@@ -67,6 +75,9 @@ export async function proxy(request: NextRequest) {
 
     const { data: authData } = await supabase.auth.getUser()
     const user = authData?.user
+    if (review && user && user.id !== REVIEW_USER) {
+      return new NextResponse('Only the existing labelled test account is available in this review.', { status: 403 });
+    }
     const pathname = request.nextUrl.pathname
 
     // Protect /dashboard routes
@@ -103,7 +114,7 @@ export async function proxy(request: NextRequest) {
 
     // Country capture: if user is authenticated and on any route, try to update country in profiles
     // CF-IPCountry or x-vercel-ip-country header is set by Vercel edge network
-    if (user && !pathname.startsWith('/api/')) {
+    if (!review && user && !pathname.startsWith('/api/')) {
         const country = request.headers.get('x-vercel-ip-country') ||
                         request.headers.get('cf-ipcountry') ||
                         null;
@@ -121,6 +132,11 @@ export async function proxy(request: NextRequest) {
     console.error('Middleware Supabase error:', error);
   }
 
+  if (review) {
+    response.headers.set('Content-Security-Policy', REVIEW_CSP);
+    response.headers.set('Cache-Control', 'no-store');
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  }
   return response
 }
 

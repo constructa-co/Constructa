@@ -76,27 +76,36 @@ export function pinnedRequest({ url, address, timeoutMs, maxBytes }: PinnedReque
             else resolve(value as FetchedResponse);
         };
 
-        const request = client.request({
-            protocol: url.protocol,
-            hostname: url.hostname,
-            port: url.port || (url.protocol === "https:" ? 443 : 80),
-            path: `${url.pathname}${url.search}`,
-            method: "GET",
-            // A fresh socket every time: a pooled one could belong to another address.
-            agent: false,
-            ...(transport.ca ? { ca: transport.ca } : {}),
-            headers: {
-                "user-agent": `${IMPORT_USER_AGENT}/1.0`,
-                accept: "text/html,text/plain;q=0.8",
-                "accept-encoding": "identity",
-            },
-            // The name was resolved and checked already. This is the pin.
-            lookup: (_hostname, options, callback) => {
-                const done = callback as (error: Error | null, address: unknown, family?: number) => void;
-                if (typeof options === "object" && options?.all) done(null, [{ address: address.address, family: address.family }]);
-                else done(null, address.address, address.family);
-            },
-        });
+        let request: http.ClientRequest;
+        try {
+            request = client.request({
+                protocol: url.protocol,
+                hostname: url.hostname,
+                port: url.port || (url.protocol === "https:" ? 443 : 80),
+                path: `${url.pathname}${url.search}`,
+                method: "GET",
+                // A fresh socket every time: a pooled one could belong to another address.
+                agent: false,
+                ...(transport.ca ? { ca: transport.ca } : {}),
+                headers: {
+                    "user-agent": `${IMPORT_USER_AGENT}/1.0`,
+                    accept: "text/html,text/plain;q=0.8",
+                    "accept-encoding": "identity",
+                },
+                // The name was resolved and checked already. This is the pin.
+                lookup: (_hostname, options, callback) => {
+                    const done = callback as (error: Error | null, address: unknown, family?: number) => void;
+                    // Match resolver timing so request error handlers exist before connecting.
+                    queueMicrotask(() => {
+                        if (typeof options === "object" && options?.all) done(null, [{ address: address.address, family: address.family }]);
+                        else done(null, address.address, address.family);
+                    });
+                },
+            });
+        } catch {
+            reject(new ImportFetchError("unavailable", "The website could not be reached."));
+            return;
+        }
 
         const timer = setTimeout(() => finish(new ImportFetchError("timeout", "The website took too long to answer.")), timeoutMs);
 

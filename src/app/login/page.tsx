@@ -100,7 +100,7 @@ export default function LoginPage() {
 
     return (
         <FirstSessionFrame>
-            <FirstSessionPanel step={0}>
+            <FirstSessionPanel step={isSignUp ? 0 : undefined}>
                 <p className={ui.eyebrow}>{isSignUp ? "Your next chapter starts here" : "Good to see you again"}</p>
                 <h1 className={ui.heading}>
                     {successMessage ? "Check your inbox." : isSignUp ? <>Get started.<br />Make it yours.</> : <>Welcome back.<br />Let&apos;s get to work.</>}

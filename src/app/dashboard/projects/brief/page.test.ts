@@ -51,9 +51,9 @@ describe("brief project identity boundary", () => {
         }
     });
 
-    it("uses the resolved first project's identity when no query ID is supplied", async () => {
-        const first = await editor();
-        expect(first.key).toBe("project-a");
-        expect(first.props.project.id).toBe("project-a");
+    it("defers the no-ID editor until browser project memory has been resolved", async () => {
+        const entry = await BriefPage({ searchParams: Promise.resolve({}) });
+        expect(entry.props.path).toBe("/dashboard/projects/brief");
+        expect(entry.props.projects).toEqual(Object.values(projects));
     });
 });

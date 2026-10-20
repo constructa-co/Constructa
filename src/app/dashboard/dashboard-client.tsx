@@ -22,6 +22,7 @@ import { isActiveProject } from "@/lib/project-helpers";
 import { getHomePresentation } from "@/lib/first-session";
 import FirstProjectStart from "@/components/first-project-start";
 import ui from "@/components/project-chooser.module.css";
+import { isCapabilityEnabled } from "@/lib/launch-profile";
 
 type Period = "week" | "month" | "quarter" | "year";
 
@@ -533,6 +534,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             </div>
 
             {/* SECTION E — Bottom Placeholder Panels */}
+            {isCapabilityEnabled("extended-modules") && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Resource Management */}
                 <div className={`rounded-xl border-2 border-dashed p-8 flex flex-col items-center justify-center text-center gap-4 ${
@@ -592,6 +594,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     </button>
                 </div>
             </div>
+            )}
         </div>
     );
 }

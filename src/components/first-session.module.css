@@ -33,12 +33,12 @@
 .lede { color: var(--session-muted); font-size: 15px; line-height: 1.65; margin: 0 0 28px; }
 .overview { list-style: none; position: relative; margin: 0; padding: 0 0 0 26px; }
 .overview::before { content: ""; position: absolute; top: 20px; bottom: 25px; left: 5px; width: 1px; background: #475c4a; }
-.overview li { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px 0; border-bottom: 1px solid #2d382f; }
+.overview li { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; column-gap: 20px; row-gap: 5px; padding: 16px 0; border-bottom: 1px solid #2d382f; }
 .overview li:last-child { border-bottom: 0; }
-.overview li::before { content: ""; position: absolute; left: -25px; width: 9px; height: 9px; border-radius: 50%; background: #5e7561; }
+.overview li::before { content: ""; position: absolute; left: -25px; top: 22px; width: 9px; height: 9px; border-radius: 50%; background: #5e7561; }
 .overview li:first-child::before { background: var(--session-accent); }
 .overview strong { font-size: 14px; font-weight: 550; }
-.overview p { color: #a3b2a5; margin: 5px 0 0; font-size: 12px; }
+.overview p { grid-column: 1; color: #a3b2a5; margin: 0; font-size: 12px; }
 .overview li > span { font-size: 12px; color: #a3b2a5; }
 .modeToggle { display: flex; gap: 24px; border-bottom: 1px solid var(--session-line); margin: 0 0 25px; }
 .modeToggle button { min-height: 44px; border-bottom: 2px solid transparent; padding: 8px 0 14px; color: var(--session-muted); font-size: 14px; }

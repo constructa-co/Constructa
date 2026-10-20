@@ -117,15 +117,17 @@ function SidebarSection({
     return (
         <div>
             <button
+                type="button"
+                aria-expanded={!collapsed}
                 onClick={() => onToggle(sectionKey)}
-                className="w-full min-h-11 lg:min-h-0 flex items-center justify-between px-3 py-2 group"
+                className="w-full min-h-11 flex items-center justify-between px-3 py-2 group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c9efcf]"
             >
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 group-hover:text-slate-400 transition-colors">
+                <span className="text-xs leading-5 font-semibold uppercase tracking-wider text-[#b7c8bb] group-hover:text-[#d6ded7] transition-colors">
                     {label}
                 </span>
                 {collapsed
-                    ? <ChevronRight className="w-3 h-3 text-slate-600 group-hover:text-slate-400 transition-colors" />
-                    : <ChevronDown className="w-3 h-3 text-slate-600 group-hover:text-slate-400 transition-colors" />
+                    ? <ChevronRight aria-hidden={true} className="w-4 h-4 text-[#b7c8bb] group-hover:text-[#d6ded7] transition-colors" />
+                    : <ChevronDown aria-hidden={true} className="w-4 h-4 text-[#b7c8bb] group-hover:text-[#d6ded7] transition-colors" />
                 }
             </button>
             {!collapsed && (
@@ -220,11 +222,11 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
 
     // Load localStorage on mount
     useEffect(() => {
-        const savedId   = localStorage.getItem("constructa_selected_project_id");
-        const savedName = localStorage.getItem("constructa_selected_project_name");
-        if (savedId && savedName && projects.some(p => p.id === savedId)) {
-            setSelectedProjectId(savedId);
-            setSelectedProjectName(savedName);
+        const savedId = localStorage.getItem("constructa_selected_project_id");
+        const savedProject = projects.find(p => p.id === savedId);
+        if (savedProject) {
+            setSelectedProjectId(savedProject.id);
+            setSelectedProjectName(savedProject.name);
         } else {
             localStorage.removeItem("constructa_selected_project_id");
             localStorage.removeItem("constructa_selected_project_name");
@@ -428,7 +430,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
 
                     <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
                         <div>
-                            <label htmlFor="phone-active-project" className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-1 pb-1.5">
+                            <label htmlFor="phone-active-project" className="block text-xs leading-5 font-semibold uppercase tracking-wider text-[#b7c8bb] px-1 pb-1.5">
                                 Active Project
                             </label>
                             <select
@@ -450,7 +452,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
 
                         {phoneNav.map((group) => (
                             <div key={group.key}>
-                                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-1 pb-1">{group.label}</div>
+                                <div className="text-xs leading-5 font-semibold uppercase tracking-wider text-[#b7c8bb] px-1 pb-1">{group.label}</div>
                                 <div className="space-y-0.5">
                                     {group.items.map((item) => {
                                         const Icon = PHONE_NAV_ICONS[item.key];
@@ -509,7 +511,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
 
                 {/* ── Active Project Selector — always visible, at top ─── */}
                 <div className="pb-3">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 pb-1.5">
+                    <div className="text-xs leading-5 font-semibold uppercase tracking-wider text-[#b7c8bb] px-3 pb-1.5">
                         Active Project
                     </div>
                     <div ref={pickerRef} className="relative px-1">
@@ -616,14 +618,14 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
 
                     {/* Resources — direct links, no accordion */}
                     <div className="pt-1">
-                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 pb-1.5">Resources</div>
+                        <div className="text-xs leading-5 font-semibold uppercase tracking-wider text-[#b7c8bb] px-3 pb-1.5">Resources</div>
                         <NavItem href="/dashboard/resources/portfolio" icon={PieChart} label="Resource Portfolio" active={is("/dashboard/resources/portfolio")} />
                         <NavItem href="/dashboard/accounting" icon={Receipt} label="Accounting" active={is("/dashboard/accounting")} />
                     </div>
 
                     {/* Reporting — direct links, no accordion */}
                     <div className="pt-1">
-                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 pb-1.5">Reporting</div>
+                        <div className="text-xs leading-5 font-semibold uppercase tracking-wider text-[#b7c8bb] px-3 pb-1.5">Reporting</div>
                         <NavItem href="/dashboard/reporting" icon={FileText} label="Reports & Photos" active={is("/dashboard/reporting")} />
                         <NavItem href="/dashboard/management-accounts" icon={BarChart2} label="Management Accounts" active={is("/dashboard/management-accounts")} />
                         <NavItem href="/dashboard/cis" icon={HardHat} label="CIS Compliance" active={is("/dashboard/cis")} />

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition, useState } from "react";
+import { useTransition, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { updateStatusAction, markAsWonAction } from "./board-actions";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +29,7 @@ import {
 import { useTheme } from "@/lib/theme-context";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
 import ui from "@/components/project-board.module.css";
+import { PIPELINE_CHANGE_UNCONFIRMED, PIPELINE_REFRESH_UNCONFIRMED } from "@/lib/pipeline-feedback";
 
 const COLUMNS = [
     { id: "Lead",          label: "Leads",         icon: Users,        color: "bg-slate-50",      darkColor: "bg-white/5",        text: "text-slate-600",  darkText: "text-slate-300",  border: "border-slate-200",  darkBorder: "border-[#2a2a2a]" },
@@ -92,23 +93,48 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
     const showExtendedModules = isCapabilityEnabled("extended-modules");
 
     // Optimistic status: cards move instantly without waiting for server
-    const [optimisticStatus, setOptimisticStatus] = useState<Record<string, string>>({});
+    const [optimisticStatus, setOptimisticStatus] = useState<{ source: typeof projects; stages: Record<string, string> }>({ source: projects, stages: {} });
+    const [moveNotice, setMoveNotice] = useState<{ kind: "error" | "warning"; text: string } | null>(null);
+    const moveInFlight = useRef(false);
 
-    const getStatus = (p: any): string => optimisticStatus[p.id] ?? p.status ?? "Lead";
+    const getStatus = (p: any): string => (optimisticStatus.source === projects ? optimisticStatus.stages[p.id] : undefined) ?? p.status ?? "Lead";
 
     const move = (projectId: string, newStatus: string) => {
-        setOptimisticStatus(prev => ({ ...prev, [projectId]: newStatus }));
+        if (moveInFlight.current) return;
+        moveInFlight.current = true;
+        setMoveNotice(null);
+        setOptimisticStatus(prev => ({ source: projects, stages: { ...(prev.source === projects ? prev.stages : {}), [projectId]: newStatus } }));
+        const restore = () => setOptimisticStatus(prev => {
+            const stages = { ...prev.stages };
+            delete stages[projectId];
+            return { ...prev, stages };
+        });
         startTransition(async () => {
-            if (newStatus === "Active") {
-                await markAsWonAction(projectId); // sets proposal_status + accepted_at too
-            } else {
-                await updateStatusAction(projectId, newStatus);
+            let confirmed = false;
+            try {
+                const result = newStatus === "Active"
+                    ? await markAsWonAction(projectId)
+                    : await updateStatusAction(projectId, newStatus);
+                if (!result?.success) {
+                    restore();
+                    setMoveNotice({ kind: "error", text: result?.error || PIPELINE_CHANGE_UNCONFIRMED });
+                    return;
+                }
+                confirmed = true;
+                if (result.warning) setMoveNotice({ kind: "warning", text: result.warning });
+                router.refresh();
+            } catch {
+                if (!confirmed) restore();
+                setMoveNotice({ kind: confirmed ? "warning" : "error", text: confirmed ? PIPELINE_REFRESH_UNCONFIRMED : PIPELINE_CHANGE_UNCONFIRMED });
+            } finally {
+                moveInFlight.current = false;
             }
-            router.refresh();
         });
     };
 
     return (
+        <>
+        {moveNotice && <p role={moveNotice.kind === "error" ? "alert" : "status"} className="mb-3 max-w-3xl rounded-lg border border-amber-500/40 bg-amber-950 px-4 py-3 text-sm leading-relaxed text-amber-100">{moveNotice.text}</p>}
         <div className={`${ui.board} grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 h-full items-start md:min-w-[900px]`} data-dark={isDark}>
             {COLUMNS.map(col => {
                 const items = projects.filter(p => getStatus(p) === col.id);
@@ -344,5 +370,6 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                 );
             })}
         </div>
+        </>
     );
 }

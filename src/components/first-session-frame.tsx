@@ -36,11 +36,12 @@ export function FirstSessionFrame({ children, signOut = false }: { children: Rea
     );
 }
 
-export function FirstSessionPanel({ children, step }: { children: ReactNode; step: 0 | 1 }) {
+export function FirstSessionPanel({ children, step }: { children: ReactNode; step?: 0 | 1 }) {
     const isSetup = step === 1;
     return (
         <div className={ui.panel}>
             <section className={ui.formSide}>
+                {step !== undefined && (
                 <ol className={ui.steps} aria-label="Getting started">
                     {["Account", "The essentials", "Your workspace"].map((label, index) => (
                         <li key={label} aria-current={step === index ? "step" : undefined}>
@@ -48,6 +49,7 @@ export function FirstSessionPanel({ children, step }: { children: ReactNode; ste
                         </li>
                     ))}
                 </ol>
+                )}
                 {children}
             </section>
             <aside className={ui.storySide} aria-label={isSetup ? "Getting your business ready" : "A quick introduction to Constructa"}>
@@ -59,8 +61,9 @@ export function FirstSessionPanel({ children, step }: { children: ReactNode; ste
                 <ol className={ui.overview}>
                     {(isSetup ? setupOverview : overview).map(([title, detail], index) => (
                         <li key={title}>
-                            <div><strong>{title}</strong><p>{detail}</p></div>
+                            <strong>{title}</strong>
                             <span aria-hidden="true">0{index + 1}</span>
+                            <p>{detail}</p>
                         </li>
                     ))}
                 </ol>

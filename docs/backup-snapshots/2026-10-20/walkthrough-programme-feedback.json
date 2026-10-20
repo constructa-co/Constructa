@@ -1,0 +1,31 @@
+{
+  "source": "Robert's direct estimating and programme walkthrough feedback,18October2026, including follow-up advanced-blue comment",
+  "status": "Record-only until explicit release. Estimating and programme are core product capabilities requiring substantive rethink, not cosmetic tweaks.",
+  "estimating": {
+    "requirement": "Professional line-item tabular estimating, comparable in usefulness to Candy/Excel build-ups. Robust detail for contractors, not serial one-word forms or oversimplified consumer workflow.",
+    "desktop": "Use desktop width meaningfully; current narrow central layout and large margins waste workspace. User estimates about40% width, not instrumented geometry proof."
+  },
+  "programmePresentation": {
+    "problem": "Black backdrop/green block, blue sidebar and duplicate top navigation inconsistent with brand; advanced planner reverts to blue as well.",
+    "gantt": "Redesign clean readable baseline/proposal mini-Gantt and professional detailed planner. Use restrained purposeful colour/shading for activities and proposal diagrams; this is not approval for arbitrary blue UI chrome.",
+    "weekends": "User dislikes gaps and weekend presentation making sequential weeks look disconnected. Review display of calendar span/non-working days clearly. Do not infer all jobs must work7days or change actual working-week policy without explicit design.",
+    "save": "User initially could not find Save programme, then found it; improve discoverability. Do not add autosave or alter save semantics implicitly."
+  },
+  "reportedMismatch": {
+    "baseline": "Attached simple preview: demo19-23Oct, Install26-30Oct, Finishing works2-6Nov2026,1weekeach,summary3weeks/finish6Nov.",
+    "detailed": "Attached detailed planner: working week5d, each task5d, dates19-26Oct/26Oct-2Nov/2-9Nov,summary21d/4calendarweeks/completion9Nov. Inputstart18Oct,normalisedMonday19Oct.",
+    "visual": "User reports bar positions do not align with week/day grid and duration. Treat screenshot-supported baseline/planner inconsistency and alignment as verification targets, not resolved arithmetic diagnosis.",
+    "currentDOM": "Same detailed summary/three5drows observed in live DOM. Existing explanatory copy distinguishes whole-week grid and working-day proposal dates; explanatory copy is not acceptance or resolution.",
+    "bounds": "Investigate actual calendar/date mapping, bar scale/position/width, inclusive/exclusive finish and rounding after tour. No silent date/workweek/duration normalisation or assertion suppression."
+  },
+  "capability": {
+    "positive": "Detailed planner first impression somewhat better, and Regenerate from estimate concept useful.",
+    "bar": "Aim for credible planning capability; P6/Primavera, Microsoft Project and Asta named as research references, not literal engineering-heavy UI or feature-parity acceptance.",
+    "AI": "Contextual assistant should identify and discuss key milestones, procurement lead times and client-supplied requirements/decisions alongside activities. Suggestions must be reviewed; no invented commitments/provider activation."
+  },
+  "attachments": [
+    "/var/folders/s4/vpj4tgcj0p7_x1vc2nm46h500000gn/T/codex-clipboard-a99cee5f-4ca2-4195-ac92-9c3a32147922.png",
+    "/var/folders/s4/vpj4tgcj0p7_x1vc2nm46h500000gn/T/codex-clipboard-1abd9850-b18f-434c-ae73-407f0a5a91dd.png"
+  ],
+  "execution": "Human reports entering demo/install/finishing stages and locating Save. Agent did not edit/save/auto-sequence/regenerate/drag or activate detailed planner. Agent observed planner already open, then used existing Proposals link at request. No assertion about backend writes from human interactions. No implementation/tests/diagnostics."
+}

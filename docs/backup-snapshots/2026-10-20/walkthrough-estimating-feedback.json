@@ -1,0 +1,16 @@
+{
+  "source": "Robert's direct simple and advanced estimating walkthrough feedback, 18 October 2026",
+  "status": "Record-only until explicit walkthrough release. Major product/workflow redesign requirement, not cosmetic acceptance.",
+  "assessment": "Current simple/advanced estimating is too rudimentary, fragmented and form-heavy to meet contractor expectations. It may perform basic arithmetic but is not an acceptable professional estimating experience.",
+  "briefCarryThrough": "What you're pricing should start from the previously supplied brief and contractor-defined elemental activities, avoiding re-entry. Current demo text does appear in the context panel; no fresh omission/data-loss reproduced. Structured activity carry-through remains a design requirement, not proof of generated lines.",
+  "workflow": "Reduce serial forms and duplicate decisions. Provide one coherent estimating workspace that feels natural to Excel users and supports pricing a real job efficiently. Keep fast one-price/quantity-rate entry without making advanced capability a disconnected generic form.",
+  "contextualAI": "A genuine contextual AI/chat assistant should help organise and build the estimate from the job context, rather than simply presenting more forms. Desired capability only; no provider/model activation, automatic invented scope/rates or unreviewed mutation authorised. Preserve user review/control and honest capability limits.",
+  "advanced": {
+    "relevance": "Avoid generic Add Section sprawl unrelated to described work (e.g. structural steel/roofing/HVAC for a kitchen job unless relevant). Contractor's actual activities drive structure, not an imposed full construction taxonomy.",
+    "resources": "Clearly distinguish general/all-in items, labour, plant, materials, subcontract and consultancy. A type dropdown alone is not sufficient advanced rate build-up. Meaningful resource build-ups are required; existing approved per-unit multiple-resource-row direction retained.",
+    "versions": "Estimate v1, Estimate Name and nested New Estimate are confusing while already building an estimate. Keep versioning/alternatives out of the core first-estimate task or explain them clearly; exact retention/version/persistence design not chosen, no deletion authorised.",
+    "benchmarks": "Candy and Excel are reference expectations for professional pricing capability; Primavera is also named by Robert for the wider planning experience. Research/design after tour, no claimed feature parity or copied implementation."
+  },
+  "visual": "Cleaner, more refined, coherent table/workspace design and flow required; not just relabel current forms. Existing universal charcoal/green branding feedback still applies.",
+  "execution": "Agent only read current UI and marked handoff. Advanced already expanded at observation, line type General, quantity1, rate1100 and before-VAT total1100. No agent expansion/collapse, typing, selection, save, add/remove, navigation, AI, provider action or tests this turn. No claim about backend writes caused by prior human interactions. Preserve current editor/state."
+}

@@ -1,0 +1,34 @@
+{
+  "source": "Robert's direct dashboard walkthrough feedback, 18 October 2026",
+  "status": "Recorded for after the walkthrough. No implementation or acceptance claim.",
+  "welcomeBeforeDashboard": {
+    "request": "A separate welcome/next-steps landing page after initial company introduction. Do not land a new company straight in the live-customer pipeline dashboard.",
+    "tiles": [
+      "Build the detailed company profile",
+      "Build case studies and bring in the contractor's benchmarks",
+      "Set proposal defaults/outcomes: appearance, programme or schedule presentation, suitable standard terms and conditions",
+      "Build the first proposal"
+    ],
+    "intent": "Help establish company identity and intended proposal outcomes before producing a proposal. Keep the dashboard for ongoing operational work once the company is set up.",
+    "bounds": "Do not silently invent a mandatory completion gate requiring all four tiles, new financial/legal defaults, schema or provider authority. Exact defaults and welcome/resume routing need a source-grounded implementation slice after release. Existing readiness page overlaps this direction but does not implement the requested four-tile structure, especially proposal defaults/benchmarks."
+  },
+  "brandAndVisuals": [
+    "Dashboard wordmark has a different typeface/colour treatment from approved account/setup branding. Use one consistent Constructa identity, without the trailing dot already requested elsewhere.",
+    "Dashboard palette is too loud and messy: black blocks over green plus blue, purple, orange, red and bright greens. Align with restrained charcoal/green onboarding palette and cleaner surfaces.",
+    "General dashboard and Kanban layout need simplification, better hierarchy and less visual clutter."
+  ],
+  "positiveElements": [
+    "Week/month/quarter/year range controls are useful, provided actual project metrics genuinely recalculate with the selected range.",
+    "Project/client-name search is useful.",
+    "Lead/opportunity capture, pipeline and operational metrics are useful core capabilities; the objection is flow, clarity and presentation, not their wholesale removal."
+  ],
+  "filtersAndStages": [
+    "Pipeline/Lead/Estimating/Proposal Sent/Active/Completed/Lost row looks like buttons or filters but its purpose is unclear.",
+    "Consider a Dashboard sidebar section with expandable filters, consistent with the existing navigation pattern, rather than scattered controls. This is a design suggestion, not a selected navigation or state policy.",
+    "Card stage dropdowns and progression controls are clunky and unclear about what happens when selected. Make filtering versus changing a job's stage unambiguous.",
+    "Clarify that current pipeline cards represent jobs/opportunities rather than silently treating a customer as moving through every job stage. Do not change the domain/status model without an explicit bounded specification.",
+    "Use more engaging but clear, professional opportunity language instead of vanilla Leads wording; no final replacement labels chosen."
+  ],
+  "resourcesAndFinance": "Bottom Resource Management and Financial Dashboard areas feel detached/blank. Integrate useful operational information more purposefully when functional. Current UI calls these future features; do not fabricate metrics or imply presentation closes those functional gaps.",
+  "nextWalkthroughStop": "Show existing company-start/readiness page for comparison, explicitly not the newly requested design. Continue record-only; no code/tests/diagnostics or provider operations."
+}

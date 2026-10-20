@@ -1,0 +1,59 @@
+{
+  "recordedAt": "2026-10-18T04:40:58Z",
+  "authority": "Robert's direct approval in this chat on 18 October 2026. This records product direction and bounded verification authority, not migrations/provider activation/deployment permission.",
+  "verification": {
+    "tooling": "Narrow test/config repairs: exclude generated Next outputs from lint, diagnose local transport and Git-check timeout, isolate build-generated files. No skipped assertions, threshold inflation, Git repair or live-preview disruption.",
+    "fonts": "Credential-free build-only requests to fonts.googleapis.com and fonts.gstatic.com permitted only if exact egress restrictions and output isolation can be enforced. All application providers remain blocked; stop rather than broaden access.",
+    "browser": "Short designated local QA session with Robert operating Cancel/Leave when automated checks are ready. No unrelated tabs or foreground interference."
+  },
+  "programme": {
+    "baseline": "Proposal should offer a high-level elemental timeline/mini Gantt by default, expandable to more detailed contractor planning. Examples are examples, not automatic templates or invented activities.",
+    "timeBasis": "Support a target commencement date when known; otherwise relative Day 1 to Day N with duration. Do not invent a calendar start date.",
+    "optional": "Contractor can explicitly remove the programme. This is not approval to silently omit an absent/invalid saved programme or simply relabel the existing mandatory readiness row.",
+    "remainingSpecification": "Explicit include/omit intent, minimum programme validity, date-versus-relative rendering and storage/readiness/document integration need a source-grounded slice. No minimum fixed activity count, work calendar, automatic template or schema migration selected.",
+    "experienceDirection": {
+      "recordedAt": "2026-10-18T10:05:49Z",
+      "record": "programme-benchmark-direction-20261018.json",
+      "reference": "TeamGantt overall, especially Robert's supplied simplified timeline illustrations.",
+      "advanced": "Optional cleaner advanced grid; Smartsheet secondary cue, not overall dependency-interface approval.",
+      "default": "Simple labelled visual activities and milestones, restrained purposeful colours, professional depth progressively revealed.",
+      "tracking": "Current/baseline comparison and day variances are later design references, not implemented tracking or a chosen calculation policy.",
+      "limits": "Existing date/relative/include-omit/calendar decisions and execution gates unchanged; screenshots do not authorise sharing, provider actions or migrations."
+    }
+  },
+  "jobTypes": {
+    "approved": "Custom contractor-written types alongside a small set of examples; same choices across create/settings and chosen wording on proposal as recommended.",
+    "direction": "Learn from the contractor's prior job types and trade, such as extensions or plumbing work. Suggestions should help, not impose inaccurate categories.",
+    "limits": "No AI/provider activation, new history/profile query or discipline mapping silently authorised. First increment can add custom entry with existing save paths after current-source compatibility checks."
+  },
+  "measurement": {
+    "approved": "Result-only length x width aid for the no-schema increment; explicit use to fill quantity, dimensions not retained on reopening. Durable editable measurements remain separate remaining work.",
+    "precision": "Exact decimal multiplication. Fill existing quantity only when exact product has no more than three decimal places; otherwise explain refusal. No silent rounding, unit conversion, waste or deductions."
+  },
+  "pricing": {
+    "approved": "Retain simple lump-sum pricing, all-in unit rate and optional component rate build-up accessible from the line-editing journey. Encourage but do not require detailed pricing.",
+    "components": "Multiple named labour, plant, material and subcontract rows, with quantities per unit of priced work as recommended, producing a unit rate. Existing arithmetic/persistence requires source-grounded design and tests before alteration.",
+    "direction": "Support contractor learning over time; no automated recommendations/provider activation implied.",
+    "experienceDirection": {
+      "recordedAt": "2026-10-18T09:53:01.561Z",
+      "record": "estimating-benchmark-direction-20261018.json",
+      "reference": "STACK's clean presentation, not a literal worksheet clone.",
+      "default": "Streamlined everyday pricing; advanced worksheet/resource detail optional.",
+      "calculations": "Software performs the mathematics. Contractors enter quantities/rates/assumptions rather than formulas.",
+      "guidance": "Genuine job-aware chatbot guides the process; reviewed user-controlled changes. Provider/model/data/cost activation remains separately gated."
+    }
+  },
+  "address": {
+    "approved": "Preserve existing free text untouched unless deliberately edited. Opt-in fresh structured site/client entry, unstructured fallback for unusual sites; no guess-conversion or silent client-as-site fallback as recommended.",
+    "desiredIntegration": "Address search/autocomplete that supplies postcode/location is desired. Provider, geography, cost, credentials, privacy and activation are not chosen or authorised. No lookup calls in this increment.",
+    "remainingSpecification": "Field set, joining/save rules, limits and compatibility with existing addresses must be specified before source implementation; no migration permission."
+  },
+  "unchangedLimits": "Only sibling constructa checkout; preserve all uncommitted work/live outputs/unsaved tabs. No migration, hosted write expansion, provider activation, secrets, account reset, push/PR/CI/workflow/deployment or publication. Earlier failed receipts remain issued; product direction is not acceptance evidence.",
+  "platformVision": {
+    "recordedAt": "2026-10-18T10:05:49Z",
+    "record": "programme-benchmark-direction-20261018.json",
+    "action": "A104",
+    "direction": "Constructa should become the integrated place contractors run projects: estimating, planning and project delivery together, rather than separate schedule-only or estimate-only products. Preserve existing phase-two/three work and stage the broader platform around a dependable phase-one workflow.",
+    "delivery": "A clean visual foundation can be delivered incrementally. A dependable integrated project-running platform is substantial staged product work; the screenshots do not prove full capability is easy or already built."
+  }
+}

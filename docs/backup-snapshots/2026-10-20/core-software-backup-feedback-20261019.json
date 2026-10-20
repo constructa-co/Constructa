@@ -1,0 +1,19 @@
+{
+  "recordedAt": "2026-10-19T18:36:58.611Z",
+  "source": "Robert's direct request in this chat on 19 October 2026",
+  "direction": {
+    "backup": "Make source,GitHub,Supabase/database and other essential state recoverable; a same-disk snapshot or hosted site alone is not complete backup.",
+    "priority": "Core estimating and programme software/output take priority over further appearance-only work; continue substantive existing P1 delivery.",
+    "imagery": "Website is generally liked; existing homepage render looks dated and unsuitable. Improve imagery later, without displacing core software."
+  },
+  "mappedActions": [
+    "A079",
+    "A048",
+    "A049",
+    "A050",
+    "A056",
+    "A057",
+    "A084"
+  ],
+  "limits": "No production deployment, settings/token/paid changes, restoration over live projects, public upload of database/private evidence or invented provider/calendar policy. Exact private off-machine destination and authenticated Supabase backup access remain unresolved."
+}

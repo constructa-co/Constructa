@@ -1,0 +1,99 @@
+{
+  "startedAt": "2026-10-20T19:40:11.260Z",
+  "command": "npm ci --no-audit --no-fund (normal lifecycle scripts, no shared cache)",
+  "workspace": "/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/github-status-clean-install-20261020-final",
+  "preserved": "/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/preserved-node-modules-20261020",
+  "baseline": {
+    "package.json": "28d0d6a6bf117cc227b5b7288eedb48c45ab7a29c96b4a1466846b34aa90060c",
+    "package-lock.json": "277c3449d53aeca2afa990b13e0f4d60ea36312621611b81f7021fd55337621f"
+  },
+  "registries": [
+    "registry.npmjs.org"
+  ],
+  "controls": "Empty private HOME/config/cache; no credentials; external network only through exact public registry CONNECT proxy; existing dependencies retained until successful install",
+  "finishedAt": "2026-10-20T19:40:24.081Z",
+  "exitCode": 0,
+  "signal": null,
+  "events": [
+    {
+      "kind": "connect",
+      "host": "registry.npmjs.org",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "registry.npmjs.org",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "registry.npmjs.org",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "registry.npmjs.org",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "registry.npmjs.org",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "registry.npmjs.org",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "registry.npmjs.org",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "registry.npmjs.org",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "registry.npmjs.org",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "registry.npmjs.org",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "registry.npmjs.org",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "registry.npmjs.org",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "registry.npmjs.org",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "registry.npmjs.org",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "registry.npmjs.org",
+      "port": 443
+    }
+  ],
+  "protectedReadback": {
+    "package.json": true,
+    "package-lock.json": true
+  },
+  "freshDependenciesActivated": true
+}

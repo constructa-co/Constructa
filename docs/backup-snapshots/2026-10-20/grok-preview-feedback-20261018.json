@@ -1,0 +1,130 @@
+{
+  "receivedAt": "2026-10-18T17:19:30Z",
+  "source": "Robert relayed Grok Bot's marketing and backend preview review in this chat,18October2026.",
+  "authority": "Review and add to the same comments register only. Third-party recommendations are feedback, not instructions, accepted product policy, deployment/provider authority or permission to send/publish/change statuses.",
+  "previewVersion": "Reviewer did not supply a deployment URL or timestamp. Ambient URL is old read-only review; current editable QA Preview is separate. Do not assume every observation concerns the latest deployment.",
+  "positives": {
+    "marketing": "Home/product/access/sign-in/terms/privacy reportedly look premium and honest. Charcoal/green consistent within reviewed pages; convincing Oak & Stone illustrative proposal; careful scope and preview banner. These are reviewer observations, not global branding/accessibility acceptance.",
+    "backend": "Reviewer reports brief wizard,1000beforeVAT/1200includingVAT,20Oct-2Nov programme/timeline, clean proposal/12terms/PDFbutton and helpful checklist. Job1 reportedly lacks onlypayment stages; job2 lacks3items. This is view-only reviewer evidence, not an independently repeated save/reload/PDF/legal/financial/calendar acceptance test."
+  },
+  "comments": [
+    {
+      "id": "M01",
+      "reported": "Every Open Constructa button goes to sign-in. Gate 9 wants one Apply to the founding cohort button; no way for a contractor to raise their hand for 7 Dec.",
+      "actions": [
+        "A109"
+      ],
+      "assessment": "Confirmed CTA routing/capture gap in phase-one source. Exact Gate9 document and7December commitment not supplied or located in the scoped records; retain as reported governance reference, not verified launch authority.",
+      "classification": "Confirmed source gap; governance/date unverified"
+    },
+    {
+      "id": "M02",
+      "reported": "Product and access pages mostly repeat the home page, without real product screenshots beyond the mock-up.",
+      "actions": [
+        "A110",
+        "A084"
+      ],
+      "assessment": "Confirmed shared Journey/Scope/Questions/Invitation reuse and illustrative proposal, not real product screenshot coverage. Existing construction photo is not a product screenshot. Different page purpose and synthetic/anonymised captures are appropriate; richer imagery remains Later under existing phase tagging.",
+      "classification": "Confirmed content/design overlap"
+    },
+    {
+      "id": "M03",
+      "reported": "Small grey-on-charcoal text is hard to read and will probably fail accessibility contrast checks.",
+      "actions": [
+        "A111"
+      ],
+      "assessment": "Small type is confirmed, including10-12px and smaller illustration labels. Blanket contrast-failure claim not confirmed: sampled declared foreground/background pairs exceed4.5:1. Actual rendered gradients, opacity, focus/disabled states and complete interface still require measured audit.",
+      "classification": "Readability issue confirmed; blanket contrast claim not established"
+    },
+    {
+      "id": "M04",
+      "reported": "Sign-in's01-04 numbers sit one row off their labels, and a3-step onboarding progress bar shows while signing in.",
+      "actions": [
+        "A112",
+        "A009"
+      ],
+      "assessment": "Confirmed shared FirstSessionPanel always renders Account/Essentials/Workspace progress for step0 sign-in. Right-panel numbers use vertical centering beside combined title/detail blocks, consistent with reported alignment concern; exact rendered geometry not independently rechecked.",
+      "classification": "Progress mismatch confirmed; alignment reported/source-supported"
+    },
+    {
+      "id": "M05",
+      "reported": "March terms/privacy placeholders overclaim manage projects and signup for updates, and say nothing about UK GDPR; A023/A024 are critical-path.",
+      "actions": [
+        "A023",
+        "A024"
+      ],
+      "assessment": "Confirmed March2026 wording, broad manage-projects purpose, signup-for-updates claim and absolute third-party-sharing/security assurances. Privacy content omits substantive purposes/lawful bases/retention/recipients/transfers/rights/complaint information. A UK GDPR label alone is not a remedy. Review actual processing and obtain appropriate legal review; platform terms/privacy remain separate from proposal terms A067/A068.",
+      "classification": "Confirmed incomplete content; not a legal compliance certification"
+    },
+    {
+      "id": "M06",
+      "reported": "The/pricing route is labelled Access without prices; About preview access links to the page already open; how-it-works card arrows do not go anywhere.",
+      "actions": [
+        "A113"
+      ],
+      "assessment": "Confirmed route/label mismatch and Scope self-link on PhaseOnePricing. Journey arrows are aria-hidden decorative SVGs, not broken anchors. Clarify visual affordance or provide genuine destinations; do not make decoration focusable or invent subscription prices.",
+      "classification": "Self-link/label inconsistency confirmed; arrows decorative"
+    },
+    {
+      "id": "B01",
+      "reported": "Flow stops after proposal: nowhere for client response or Mark as Won; Won only in filter, with Mark as Lost and Pull Back controls.",
+      "actions": [
+        "A114",
+        "A071",
+        "A091"
+      ],
+      "assessment": "Not correct as a blanket implementation-absence claim. Public /proposal/[token] page/response-client/action and board Mark as Won on Proposal Sent exist. Client response intentionally records non-binding receipt/intent, not contractual acceptance. Preview blocks public proposal, publication/send, dashboard POST and accepted-status writes. End-to-end finish line remains unverified; do not enable sending/acceptance or assume response means Won.",
+      "classification": "Preview restriction plus unverified lifecycle; existing capability confirmed in source"
+    },
+    {
+      "id": "B02",
+      "reported": "Job2 is Estimating with a Proposal Sent button despite nothing sent and3missing items; job1 remains Lead after brief/estimate/programme are done.",
+      "actions": [
+        "A115",
+        "A017"
+      ],
+      "assessment": "Confirmed Estimating card shows a next-action labelled Proposal Sent; it is not itself proof the saved status is sent. More serious: board updateStatusAction accepts lifecycle status without readiness/publication verification; markAsWonAction writes Active/accepted/accepted_at; both ignore database errors before success, and client is optimistic without rollback. QA guard blocks dashboard mutations and accepts only narrowly scoped saved-job edits. Exact reported job state was not reread and fixture state is not new automatic-transition evidence. Trace all save/status paths before defining automatic stage policy.",
+      "classification": "Confirmed action/lifecycle risk; reported saved-state behaviour unverified"
+    },
+    {
+      "id": "B03",
+      "reported": "Opening Brief without selecting a job silently loads job2 while sidebar says Select a project; sidebar then retains whichever job was last opened.",
+      "actions": [
+        "A116",
+        "A004"
+      ],
+      "assessment": "Confirmed source mismatch: brief page independently falls back to newest allProjects[0] when no projectId; sidebar uses URL projectId and localStorage, and does not adopt that server fallback. Remembering a valid last selection is intentional; silent fallback and contradictory loaded-job indication need a shared resolution contract. Do not regress existing dirty-editor guards or replace invalid requested IDs with another job.",
+      "classification": "Confirmed source-level context inconsistency"
+    },
+    {
+      "id": "B04",
+      "reported": "Admin Dashboard sidebar link opens a bare403 page with no way back.",
+      "actions": [
+        "A117"
+      ],
+      "assessment": "Source confirms isAdmin can expose link from ADMIN_EMAIL while review proxy refuses/admin before styled layout. Protected-route refusal is intended; visible forbidden entry/poor fallback is a presentation defect, not permission to open admin or weaken authentication.",
+      "classification": "Confirmed preview navigation-policy mismatch"
+    },
+    {
+      "id": "B05",
+      "reported": "Resource Management and Financial Dashboard are future-update placeholders; hide them for cohort.",
+      "actions": [
+        "A118",
+        "A020"
+      ],
+      "assessment": "Confirmed dashboard bottom placeholder panels are unconditionally rendered. Cohort-only hiding fits phase-one scope; preserve full-profile/later-phase implementation and do not fabricate metrics.",
+      "classification": "Confirmed cohort presentation gap"
+    },
+    {
+      "id": "B06",
+      "reported": "Sidebar section labels are small grey text on black and hard to read.",
+      "actions": [
+        "A111",
+        "A003"
+      ],
+      "assessment": "Confirmed10px uppercase section labels. Nominal slate400/black contrast is8.19:1, so small size/weight/readability should not be mislabelled a proven contrast failure. Chevron slate600/black sample2.77:1 needs actual background/control-state assessment.",
+      "classification": "Confirmed small type; full contrast audit pending"
+    }
+  ],
+  "consoleAndConduct": "Reviewer reports only Vercel preview-feedback-script CSP refusal and no other errors/broken pages within their tour; no changes, sends or generation. Retain CSP/provider restrictions. This is not proof of universal console health or complete side-effect telemetry."
+}

@@ -214,6 +214,23 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
         const cleaned = pdfText(text);
         return cleaned ? (pdf.splitTextToSize(cleaned, width) as string[]) : [];
     };
+    /**
+     * Term bodies only. Stored CR/LF breaks are split before the existing
+     * per-line sanitizer, so adjacent words are not joined. A line with no
+     * break still goes through `wrap` unchanged. The leading "x" is removed
+     * after sanitizing so `pdfText` trim does not eat that line's indent.
+     */
+    const termBodyLines = (body: string, width: number): string[] => {
+        if (!/[\r\n]/.test(body)) return wrap(body, width, STYLES.term);
+        const lines: string[] = [];
+        for (const part of body.split(/\r\n|\n|\r/)) {
+            apply(STYLES.term);
+            const cleaned = pdfText(`x${part}`).slice(1);
+            const wrapped = cleaned ? (pdf.splitTextToSize(cleaned, width) as string[]) : [];
+            lines.push(...(wrapped.length > 0 ? wrapped : [""]));
+        }
+        return lines;
+    };
     /** Baseline offset so `top` is the top of the first line. */
     const ascent = (style: TextStyle) => style.size * PT_TO_MM * 0.8;
 
@@ -324,7 +341,7 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
                 if (!first) return 0;
                 const columnWidth = (PAGE.contentWidth - 8) / 2;
                 return wrap(`${first.number}. ${first.title}`, columnWidth, STYLES.termTitle).length * STYLES.termTitle.lineHeight
-                    + Math.min(wrap(first.body, columnWidth, STYLES.term).length, 12) * STYLES.term.lineHeight;
+                    + Math.min(termBodyLines(first.body, columnWidth).length, 12) * STYLES.term.lineHeight;
             }
             case "caseStudy":
                 return 14 + (block.facts.length > 0 ? factRowHeight(block.facts.slice(0, 2), PAGE.contentWidth / 2 - 6) : 12);
@@ -646,7 +663,7 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
         const units: TermUnit[] = [];
         block.clauses.forEach((clause) => {
             const title = wrap(`${clause.number}. ${clause.title}`, termWidth, STYLES.termTitle);
-            const body = wrap(clause.body, termWidth, STYLES.term);
+            const body = termBodyLines(clause.body, termWidth);
             for (let start = 0; start === 0 || start < body.length; start += TERM_CHUNK) {
                 let end = Math.min(body.length, start + TERM_CHUNK);
                 // Never leave a single line of a clause for the next unit.

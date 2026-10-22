@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProjectNavBar from "@/components/project-navbar";
-import ProjectPicker from "@/components/project-picker";
+import ProjectEntry from "@/components/project-entry";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import type { ProposalPublicationEstimateInput } from "@/lib/proposal-publication";
 import ReviewSendClient, { type CaseStudyOption } from "./review-send-client";
@@ -12,7 +12,7 @@ import type { ProposalPublicationHistoryRow } from "./publication-history-panel"
 
 export const dynamic = "force-dynamic";
 
-export default async function ProposalPage(props: { searchParams: Promise<{ projectId: string }> }) {
+export default async function ProposalPage(props: { searchParams: Promise<{ projectId?: string }> }) {
     const searchParams = await props.searchParams;
     const supabase = await createClient();
 
@@ -23,19 +23,17 @@ export default async function ProposalPage(props: { searchParams: Promise<{ proj
 
     const { projectId } = searchParams;
 
-    if (!projectId) {
+    // Canonicalise the project identity before mounting any editable job state.
+    if (projectId === undefined) {
         const { data: projects } = await supabase
             .from("projects")
-            .select("id, name, client_name, project_type, proposal_status, potential_value, created_at")
+            .select("id, name")
             .eq("user_id", user.id)
-            .order("created_at", { ascending: false })
-            .limit(25);
+            .order("created_at", { ascending: false });
         return (
-            <ProjectPicker
+            <ProjectEntry
                 projects={projects ?? []}
-                targetPath="/dashboard/projects/proposal"
-                title="Proposal"
-                description="Select a project to review and send its proposal"
+                path="/dashboard/projects/proposal"
             />
         );
     }

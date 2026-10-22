@@ -13,6 +13,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { PROGRAMME_NOT_SAVED, writeProgrammeUpdate } from "@/lib/cohort-ai/programme-update";
 import { COHORT_AI_UNAVAILABLE } from "@/lib/cohort-ai/shared";
 import { UpdatePhasesSchema, parseInput } from "@/lib/validation/schemas";
+import { writeProgrammeStorage } from "@/lib/server/programme-storage";
 
 export async function updateDependencyAction(formData: FormData) {
     // The form only carries estimate ids; resolve the owning project first,
@@ -98,19 +99,9 @@ export async function updatePhasesAction(
     const { user, supabase } = await requireProjectAccess(input.projectId);
     // Note: projects has no `timeline_phases` column — writing it used to cause the
     // whole UPDATE to fail silently, meaning programme edits weren't saved.
-    const payload: Record<string, unknown> = {
-        programme_phases: input.phases,
-    };
-    if (input.startDate) payload.start_date = input.startDate;
-
-    const { error } = await supabase
-        .from("projects")
-        .update(payload)
-        .eq("id", input.projectId)
-        .eq("user_id", user.id);
-
-    if (error) {
-        console.error("updatePhasesAction failed", { projectId: input.projectId, code: error.code });
+    try {
+        await writeProgrammeStorage(supabase, user.id, input.projectId, { phases: input.phases, startDate: input.startDate });
+    } catch {
         return { success: false, error: "Could not save the programme. Your changes remain on screen; please retry." };
     }
     revalidatePath("/dashboard/projects/schedule");
@@ -195,13 +186,7 @@ export async function saveProgrammePhasesAction(
     phases: any[]
 ): Promise<void> {
     const { user, supabase } = await requireEditableProjectAccess(projectId);
-    const { error } = await supabase
-        .from("projects")
-        .update({ programme_phases: phases })
-        .eq("id", projectId)
-        .eq("user_id", user.id);
-
-    if (error) console.error("Save programme phases error:", error);
+    await writeProgrammeStorage(supabase, user.id, projectId, { phases });
     revalidatePath("/dashboard/projects/schedule");
 }
 

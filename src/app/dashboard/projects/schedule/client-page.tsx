@@ -18,6 +18,19 @@ import {
 // ─── Types ──────────────────────────────────────────────────────────────────
 // Working days for lengths, calendar days from the project start for offsets.
 type Phase = PlannerPhase;
+type ProgrammeWrite = {
+    phases: Phase[];
+    startDate: string;
+    kind: "manual" | "auto";
+    operation: symbol;
+    context: string;
+};
+type ProgrammeSaveStatus = {
+    state: "idle" | "saving" | "saved" | "error" | "uncertain";
+    kind: ProgrammeWrite["kind"];
+    operation: symbol | null;
+    context: string;
+};
 
 interface EstimateLineComponent {
     component_type: string;
@@ -116,7 +129,6 @@ interface DragState {
 // ─── Main Component ──────────────────────────────────────────────────────────
 export default function ClientSchedulePage({ project, estimate, projectId }: Props) {
     const [isPending, startTransition] = useTransition();
-    const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
     const [isDragging, setIsDragging] = useState(false);
     const [showLiveTracking, setShowLiveTracking] = useState(false);
 
@@ -127,9 +139,22 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const skipNextAutoSave   = useRef(false);
     const autoSaveTimer      = useRef<NodeJS.Timeout | null>(null);
     const programmeStartRef  = useRef<Date | null>(null);
+    // Regeneration and the existing coalesced autosave must not race each other.
+    const [serializeProgrammeWrite] = useState(() => {
+        let tail: Promise<unknown> | null = null;
+        return <T,>(write: () => Promise<T>): Promise<T> => {
+            const result = tail ? tail.then(write, write) : write();
+            const settled = result.then(() => undefined, () => undefined);
+            tail = settled;
+            void settled.then(() => { if (tail === settled) tail = null; });
+            return result;
+        };
+    });
     const [persistPhases] = useState(() => createLatestWriteQueue(
-        ({ phases: nextPhases, startDate }: { phases: Phase[]; startDate: string }) =>
-            updatePhasesAction(project.id, nextPhases, startDate),
+        (input: ProgrammeWrite) => serializeProgrammeWrite(async () => ({
+            input,
+            result: await updatePhasesAction(project.id, input.phases, input.startDate),
+        })),
     ));
 
     // ── Working week (persisted in localStorage per project) ──────────────
@@ -186,6 +211,71 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     // Keep programmeStartRef current so unmount flush can read it
     useEffect(() => { programmeStartRef.current = programmeStart; }, [programmeStart]);
 
+    const regenerationContext = JSON.stringify([projectId, project, estimate, daysPerWeek, programmeStart, phases]);
+    const regenerationContextRef = useRef(regenerationContext);
+    const regenerationRequest = useRef<symbol | null>(null);
+    const regenerationMounted = useRef(false);
+    const regenerationProject = useRef(projectId);
+    const confirmedRegeneration = useRef<{ phases: Phase[]; programmeStart: Date } | null>(null);
+    const regenerationUncertain = useRef(false);
+    const [regenerationNotice, setRegenerationNotice] = useState("");
+    const [regenerationBlocked, setRegenerationBlocked] = useState(false);
+    useEffect(() => { regenerationContextRef.current = regenerationContext; }, [regenerationContext]);
+    useEffect(() => {
+        regenerationMounted.current = true;
+        regenerationProject.current = projectId;
+        return () => { regenerationMounted.current = false; regenerationRequest.current = null; };
+    }, [projectId]);
+
+    const saveContext = JSON.stringify([projectId, project.id, phases, toInputDate(programmeStart)]);
+    const saveContextRef = useRef(saveContext);
+    const latestSaveOperation = useRef<symbol | null>(null);
+    const manualSaveRequest = useRef<symbol | null>(null);
+    const [saveStatus, setSaveStatus] = useState<ProgrammeSaveStatus>(() => ({
+        state: "idle", kind: "auto", operation: null, context: saveContext,
+    }));
+    useEffect(() => { saveContextRef.current = saveContext; }, [saveContext]);
+
+    const saveProgramme = async (kind: ProgrammeWrite["kind"], snapshot: Phase[], startDate: string) => {
+        const input: ProgrammeWrite = {
+            phases: snapshot, startDate, kind, operation: Symbol(kind),
+            context: JSON.stringify([projectId, project.id, snapshot, startDate]),
+        };
+        latestSaveOperation.current = input.operation;
+        setSaveStatus({ ...input, state: "saving" });
+        const isCurrent = () => regenerationMounted.current && regenerationProject.current === projectId &&
+            latestSaveOperation.current === input.operation && saveContextRef.current === input.context;
+        try {
+            const receipt = await persistPhases(input);
+            // Coalesced callers receive the last attempted write, not necessarily their own.
+            if (!isCurrent() || receipt.input.operation !== input.operation) return;
+            if (!receipt.result.success) {
+                setSaveStatus({ ...input, state: "error" });
+                toast.error(receipt.result.error);
+                return;
+            }
+            setSaveStatus({ ...input, state: "saved" });
+            if (kind === "manual") toast.success("Programme saved to proposal");
+            setTimeout(() => {
+                if (!isCurrent()) return;
+                setSaveStatus(previous => previous.operation === input.operation && previous.state === "saved"
+                    ? { ...previous, state: "idle" } : previous);
+            }, kind === "manual" ? 2500 : 2000);
+        } catch {
+            if (!isCurrent()) return;
+            setSaveStatus({ ...input, state: "uncertain" });
+            toast.error("Programme save was not confirmed and may already have completed. Your current stages remain on screen; review before retrying.");
+        }
+    };
+    const currentSaveState = saveStatus.context === saveContext ? saveStatus.state : "changed";
+    const saveMessage = currentSaveState === "saving"
+        ? (saveStatus.kind === "manual" ? "Saving programme to proposal..." : "Auto-saving changes...")
+        : currentSaveState === "saved"
+            ? (saveStatus.kind === "manual" ? "Programme saved to proposal" : "Changes auto-saved")
+            : currentSaveState === "error" ? "Save not confirmed. Current stages remain on screen."
+                : currentSaveState === "uncertain" ? "Save uncertain: it may already have completed. Review before retrying."
+                    : currentSaveState === "changed" ? "Current changes are not yet confirmed saved." : "";
+
     // ── Auto-save phases whenever they change (debounced 500ms) ──────────
     // 500ms is fast enough that normal navigation won't lose changes.
     // Only changed inputs save; mount-effect replay is still just opening the planner.
@@ -199,28 +289,18 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             skipNextAutoSave.current = false;
             return;
         }
+        const confirmed = confirmedRegeneration.current;
+        confirmedRegeneration.current = null;
+        if (confirmed?.phases === phases && confirmed.programmeStart === programmeStart) {
+            return;
+        }
         // From here the contractor has changed something, so it is theirs.
         setIsSuggestion(false);
         if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
         autoSaveTimer.current = setTimeout(() => {
             autoSaveTimer.current = null;
             const startDateStr = toInputDate(programmeStartRef.current || programmeStart);
-            setSaveStatus("saving");
-            persistPhases({ phases: phasesRef.current, startDate: startDateStr })
-                .then((result) => {
-                    if (!result.success) {
-                        setSaveStatus("error");
-                        toast.error(result.error);
-                        return;
-                    }
-                    setSaveStatus("saved");
-                    setTimeout(() => setSaveStatus("idle"), 2000);
-                })
-                .catch((error) => {
-                    console.error(error);
-                    setSaveStatus("error");
-                    toast.error("Could not save the programme. Please retry.");
-                });
+            void saveProgramme("auto", phasesRef.current, startDateStr);
         }, 500);
         return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -234,7 +314,10 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 autoSaveTimer.current = null;
                 const startDateStr = toInputDate(programmeStartRef.current || new Date());
                 // Fire-and-forget — best-effort save on unmount
-                persistPhases({ phases: phasesRef.current, startDate: startDateStr }).catch(console.error);
+                persistPhases({
+                    phases: phasesRef.current, startDate: startDateStr, kind: "auto",
+                    operation: Symbol("unmount"), context: "unmount",
+                }).catch(console.error);
             }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -243,6 +326,8 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     useEffect(() => {
         if (phases.length === 0) {
             getEstimatePhasesAction(projectId).then((serverPhases) => {
+                if (!regenerationMounted.current || regenerationRequest.current ||
+                    regenerationContextRef.current !== regenerationContext || confirmedRegeneration.current) return;
                 if (serverPhases.length > 0) {
                     // A starting point only. It is shown, not saved: the
                     // proposal has no programme until the contractor makes one.
@@ -272,6 +357,20 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
     const totalManhours = phases.reduce((s, p) => s + p.manhours, 0);
     const displayPlan = plannerDisplayPlan(toInputDate(programmeStart), phases, daysPerWeek);
+    // Stage offsets are relative to the plan's first activity, not the weekly axis.
+    const planAxisOffset = displayPlan
+        ? (Date.parse(displayPlan.start_date) - Date.parse(toInputDate(programmeStart))) / 86_400_000
+        : 0;
+    const datedSpans = displayPlan?.stages.map(stage => ({
+        startOffset: planAxisOffset + stage.offset_days,
+        calendarDays: stage.span_days,
+    }));
+    // Legacy dates outside this axis keep the existing geometry rather than being clipped or rewritten.
+    const useDatedSpans = datedSpans?.every(span => span.startOffset >= 0 && span.startOffset + span.calendarDays <= axisDays);
+    const barSpans = phases.map((phase, index) => useDatedSpans ? datedSpans![index] : {
+        startOffset: phase.startOffset,
+        calendarDays: toCalendarDays(phase.manualDays ?? phase.calculatedDays, daysPerWeek),
+    });
     const displayedStart = displayPlan ? new Date(displayPlan.start_date + "T00:00:00") : programmeStart;
     const projectEnd    = displayPlan ? new Date(displayPlan.end_date + "T00:00:00") : addDays(programmeStart, totalDays);
     const totalHeight   = phases.length * ROW_H;
@@ -286,12 +385,21 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
         return s;
     }, [phases, totalDays, daysPerWeek]);
 
-    // Week headers — always Monday dates
+    // Label the whole axis with bounded calendar-week groups, always starting Monday.
     const weekHeaders = useMemo(
-        () => Array.from({ length: Math.min(totalWeeks, 52) }, (_, i) => {
-            const weekMon = addDays(programmeStart, i * 7);
-            return { label: `W${i + 1}`, date: fmtDate(weekMon) };
-        }),
+        () => {
+            const weeksPerHeader = Math.max(1, Math.ceil(totalWeeks / 12));
+            return Array.from({ length: Math.ceil(totalWeeks / weeksPerHeader) }, (_, i) => {
+                const weekIndex = i * weeksPerHeader;
+                const weeks = Math.min(weeksPerHeader, totalWeeks - weekIndex);
+                const weekMon = addDays(programmeStart, weekIndex * 7);
+                const label = weeks === 1 ? `W${weekIndex + 1}` : `W${weekIndex + 1}-W${weekIndex + weeks}`;
+                return {
+                    weekIndex, weeks, label, date: fmtDate(weekMon),
+                    range: `${label}: ${toInputDate(weekMon)} to ${toInputDate(addDays(weekMon, weeks * 7 - 1))}`,
+                };
+            });
+        },
         [totalWeeks, programmeStart]
     );
 
@@ -421,45 +529,89 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
     // ── Save / Regenerate ─────────────────────────────────────────────────
     const handleSave = () => {
+        if (isPending || manualSaveRequest.current || regenerationRequest.current ||
+            !regenerationMounted.current || project.id !== projectId || saveContextRef.current !== saveContext) return;
         // Cancel any pending auto-save so we don't double-fire
-        if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+        if (autoSaveTimer.current) {
+            clearTimeout(autoSaveTimer.current);
+            autoSaveTimer.current = null;
+        }
         setIsSuggestion(false);
+        const request = Symbol("manual save");
+        manualSaveRequest.current = request;
         startTransition(async () => {
-            setSaveStatus("saving");
-            const startDateStr = toInputDate(programmeStart);
-            const result = await persistPhases({ phases, startDate: startDateStr });
-            if (!result.success) {
-                setSaveStatus("error");
-                toast.error(result.error);
-                return;
+            try {
+                await saveProgramme("manual", phases, toInputDate(programmeStart));
+            } finally {
+                if (manualSaveRequest.current === request) manualSaveRequest.current = null;
             }
-            setSaveStatus("saved");
-            setTimeout(() => setSaveStatus("idle"), 2500);
-            toast.success("Programme saved to proposal");
         });
     };
 
     const handleRegenerate = () => {
+        if (isPending || regenerationRequest.current || regenerationUncertain.current ||
+            !regenerationMounted.current || regenerationContextRef.current !== regenerationContext) return;
         // This replaces the programme, so the contractor's own stages are
         // never swapped for estimate sections without them saying so.
         if (phases.length > 0 && !isSuggestion && !window.confirm(
             `Replace your ${phases.length} saved ${phases.length === 1 ? "stage" : "stages"} with stages worked out from the estimate?\n\nYour stage names, lengths and order will be lost.`,
         )) return;
+        const request = Symbol("regenerate");
+        regenerationRequest.current = request;
+        setRegenerationNotice("");
+        const isCurrent = () => regenerationMounted.current && regenerationRequest.current === request &&
+            regenerationContextRef.current === regenerationContext;
         startTransition(async () => {
-            const serverPhases = await getEstimatePhasesAction(projectId);
-            if (serverPhases.length > 0) {
-                const resequenced = sequenceSuggestedPhases(serverPhases, daysPerWeek);
-                setPhases(resequenced);
-                await saveProgrammePhasesAction(projectId, resequenced);
-                toast.success("Programme regenerated from estimate");
-            } else {
-                const regenerated = estimateSuggestedPhases(estimate, daysPerWeek);
-                if (regenerated.length > 0) {
-                    setPhases(regenerated);
-                    toast.success("Programme regenerated");
+            let attemptedSave = false;
+            try {
+                const serverPhases = await getEstimatePhasesAction(projectId);
+                if (!isCurrent()) return;
+                if (serverPhases.length > 0) {
+                    const resequenced = sequenceSuggestedPhases(serverPhases, daysPerWeek);
+                    const saved = await serializeProgrammeWrite(async () => {
+                        if (!isCurrent()) return false;
+                        attemptedSave = true;
+                        // This existing action resolves only after its guarded write; refusals throw.
+                        await saveProgrammePhasesAction(projectId, resequenced);
+                        return true;
+                    });
+                    if (!saved) return;
+                    if (!isCurrent()) {
+                        if (regenerationMounted.current && regenerationProject.current === projectId) {
+                            setRegenerationNotice("The earlier regeneration save completed, but the programme changed meanwhile. Your newer stages remain on screen; this does not confirm they are saved.");
+                        }
+                        return;
+                    }
+                    confirmedRegeneration.current = { phases: resequenced, programmeStart };
+                    setSaveStatus({
+                        state: "idle", kind: "manual", operation: null,
+                        context: JSON.stringify([projectId, project.id, resequenced, toInputDate(programmeStart)]),
+                    });
+                    setPhases(previous => previous === phases ? resequenced : previous);
+                    setIsSuggestion(false);
+                    toast.success("Programme regenerated from estimate and saved");
                 } else {
-                    toast.error("No manhours found — add labour components to the estimate first");
+                    const regenerated = estimateSuggestedPhases(estimate, daysPerWeek);
+                    if (regenerated.length > 0) {
+                        setPhases(previous => previous === phases ? regenerated : previous);
+                        toast.success("Estimate stages prepared; existing programme autosave will save them");
+                    } else {
+                        toast.error("No manhours found — add labour components to the estimate first");
+                    }
                 }
+            } catch {
+                if (!regenerationMounted.current || regenerationProject.current !== projectId) return;
+                if (attemptedSave) {
+                    regenerationUncertain.current = true;
+                    setRegenerationBlocked(true);
+                }
+                const message = attemptedSave
+                    ? "Regeneration save was not confirmed and may already have saved. Your current stages remain on screen. Reload Programme before regenerating again."
+                    : "Could not read estimate stages. Your current programme is unchanged.";
+                setRegenerationNotice(message);
+                toast.error(message);
+            } finally {
+                if (regenerationRequest.current === request) regenerationRequest.current = null;
             }
         });
     };
@@ -484,25 +636,29 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                     </div>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                    {saveStatus === "saving" && <span className="text-xs text-slate-400 animate-pulse">Saving…</span>}
-                    {saveStatus === "error" && <span className="text-xs text-red-400">Save failed — retry</span>}
-                    {saveStatus === "saved"  && <span className="text-xs text-emerald-400">✓ Auto-saved</span>}
+                    {saveMessage && <span role="status" aria-live="polite" data-programme-save-state={currentSaveState}
+                        className={currentSaveState === "saved" ? "text-xs text-emerald-400" : "text-xs text-slate-400"}>
+                        {saveMessage}
+                    </span>}
                     {phases.length > 1 && (
                         <button type="button" onClick={sequencePhases}
                             className="px-3 py-2 rounded-lg text-xs font-medium bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">
                             Auto-sequence
                         </button>
                     )}
-                    <button type="button" onClick={handleRegenerate} disabled={isPending}
+                    <button type="button" onClick={handleRegenerate} disabled={isPending || regenerationBlocked}
                         className="px-3 py-2 rounded-lg text-xs font-medium bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50">
                         Regenerate from estimate
                     </button>
-                    <button type="button" onClick={handleSave} disabled={isPending}
+                    <button type="button" onClick={handleSave} disabled={isPending} aria-label="Save programme to proposal"
+                        title="Save this programme to the proposal. Edited stages also use the existing automatic save."
                         className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 transition-colors">
                         Save to Proposal
                     </button>
                 </div>
             </div>
+
+            {regenerationNotice && <p role="status" className="text-sm text-amber-400">{regenerationNotice}</p>}
 
             {/* ── Programme settings (start date + working week) ── */}
             <div className="flex items-center gap-4 flex-wrap bg-slate-800/40 border border-slate-700/50 rounded-xl px-4 py-3">
@@ -576,6 +732,9 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             {phases.length > 0 && (
                 <div className="flex items-center gap-4 text-[11px] text-slate-500 flex-wrap">
                     <span>Drag bar to move · Drag right edge to resize · Snaps to week</span>
+                    {weekHeaders[0].weeks > 1 && (
+                        <span>Grid columns group up to {weekHeaders[0].weeks} calendar weeks; the last column may be shorter. Weekly move and resize snapping is unchanged.</span>
+                    )}
                     {criticalSet.size > 0 && <span className="text-yellow-500/80">★ Critical path</span>}
                     {phases.some((p) => (p.dependsOn || []).length > 0) && (
                         <span className="text-amber-500/70">⟶ Dependencies shown</span>
@@ -633,10 +792,12 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Starts After</span>
                         </div>
                         <div className="flex-1 flex">
-                            {weekHeaders.map((wk, i) => (
-                                <div key={i} className="shrink-0 text-center py-1.5 border-r border-slate-700/20 last:border-0" style={{ width: `${100 / totalWeeks}%` }}>
-                                    <div className="text-[9px] font-bold text-slate-500 leading-tight">{wk.label}</div>
-                                    <div className="text-[8px] text-slate-600 leading-tight hidden md:block">{wk.date}</div>
+                            {weekHeaders.map(wk => (
+                                <div key={wk.weekIndex} data-planner-week-start={wk.weekIndex + 1} data-planner-week-span={wk.weeks}
+                                    title={wk.range} aria-label={wk.range}
+                                    className="shrink-0 min-w-0 text-center py-1.5 border-r border-slate-700/20 last:border-0" style={{ width: `${wk.weeks / totalWeeks * 100}%` }}>
+                                    <div className="text-[9px] font-bold text-slate-500 leading-tight truncate">{wk.label}</div>
+                                    <div className="text-[8px] text-slate-600 leading-tight truncate hidden md:block">{wk.date}</div>
                                 </div>
                             ))}
                         </div>
@@ -735,10 +896,10 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                             ))}
 
                             {/* Vertical week grid lines */}
-                            {weekHeaders.map((_, w) => (
-                                <div key={w}
+                            {weekHeaders.map(wk => (
+                                <div key={wk.weekIndex} data-planner-grid-week={wk.weekIndex + 1}
                                     className="absolute top-0 bottom-0 border-l border-slate-700/20"
-                                    style={{ left: `${(w / totalWeeks) * 100}%` }}
+                                    style={{ left: `${(wk.weekIndex / totalWeeks) * 100}%` }}
                                 />
                             ))}
 
@@ -750,18 +911,17 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                     style={{ width: "100%", height: "100%" }}>
                                     <defs>
                                         <marker id="dep-arrow" markerWidth="7" markerHeight="7"
-                                            refX="3.5" refY="3.5" orient="auto" markerUnits="userSpaceOnUse">
+                                            refX="6" refY="3.5" orient="auto" markerUnits="userSpaceOnUse">
                                             <path d="M 0 1 L 6 3.5 L 0 6 Z" fill="#f59e0b" opacity="0.85" />
                                         </marker>
                                     </defs>
                                     {phases.map((phase, sIdx) =>
                                         (phase.dependsOn || []).map((pIdx) => {
                                             if (pIdx < 0 || pIdx >= phases.length || pIdx === sIdx) return null;
-                                            const pred    = phases[pIdx];
-                                            const predDur = toCalendarDays(pred.manualDays ?? pred.calculatedDays, daysPerWeek);
-                                            const x1 = Math.min(((pred.startOffset + predDur) / axisDays) * 1000, 995);
+                                            const predSpan = barSpans[pIdx];
+                                            const x1 = ((predSpan.startOffset + predSpan.calendarDays) / axisDays) * 1000;
                                             const y1 = (pIdx + 0.5) * ROW_H;
-                                            const x2 = Math.max((phase.startOffset / axisDays) * 1000, 5);
+                                            const x2 = (barSpans[sIdx].startOffset / axisDays) * 1000;
                                             const y2 = (sIdx + 0.5) * ROW_H;
                                             const cx = (x1 + x2) / 2;
                                             return (
@@ -780,9 +940,8 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                             {/* Phase bars */}
                             {phases.map((phase, idx) => {
                                 const workingDur  = phase.manualDays ?? phase.calculatedDays;
-                                const calDur      = toCalendarDays(workingDur, daysPerWeek);
-                                const barLeftPct  = (phase.startOffset / axisDays) * 100;
-                                const barWidthPct = Math.max((calDur / axisDays) * 100, 1.5);
+                                const barLeftPct  = (barSpans[idx].startOffset / axisDays) * 100;
+                                const barWidthPct = (barSpans[idx].calendarDays / axisDays) * 100;
                                 const colorDef    = PHASE_COLORS[idx % PHASE_COLORS.length];
                                 const isCritical  = criticalSet.has(idx);
                                 const isActive    = isDragging && dragStateRef.current?.phaseIndex === idx;
@@ -795,12 +954,11 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                             height: BAR_H,
                                             left: `${barLeftPct}%`,
                                             width: `${barWidthPct}%`,
-                                            minWidth: 24,
                                         }}
                                         onMouseDown={(e) => handleBarMouseDown(e, idx, "move")}
                                     >
-                                        <div className={[
-                                            "relative h-full w-full rounded-md flex items-center pl-2 pr-4 overflow-hidden",
+                                        <div data-planner-duration={idx} className={[
+                                            "relative h-full w-full min-w-0 rounded-md overflow-hidden",
                                             colorDef.bg,
                                             isCritical ? "ring-2 ring-yellow-400 ring-offset-1 ring-offset-slate-900" : "",
                                             isActive ? "opacity-80 shadow-xl" : "opacity-90 hover:opacity-100 shadow-sm",
@@ -812,20 +970,28 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                                     style={{ width: `${phase.pct_complete}%` }}
                                                 />
                                             )}
-                                            <span className="text-white text-[10px] font-semibold truncate select-none">
+                                            <span className="absolute inset-0 flex items-center pl-2 pr-4 text-white text-[10px] font-semibold truncate select-none pointer-events-none">
                                                 {(phase.pct_complete ?? 0) > 0 ? `${phase.pct_complete}%` : `${workingDur}d`}
                                             </span>
-                                            {/* Resize handle */}
-                                            <div
-                                                className="absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize flex items-center justify-center gap-px hover:bg-black/20 rounded-r-md"
-                                                onMouseDown={(e) => {
-                                                    e.stopPropagation();
-                                                    handleBarMouseDown(e as unknown as React.MouseEvent, idx, "resize");
-                                                }}
-                                            >
-                                                <div className="w-px h-3 bg-white/50 rounded-full" />
-                                                <div className="w-px h-3 bg-white/50 rounded-full" />
-                                            </div>
+                                        </div>
+                                        {/* Interaction area and start tick never stretch the duration fill. */}
+                                        <div data-planner-start-marker={idx} aria-hidden="true"
+                                            className="absolute left-0 top-0 bottom-0 border-l border-white/80 pointer-events-none" />
+                                        <div data-planner-move-target={idx}
+                                            className="absolute inset-0 z-10"
+                                            style={{ minWidth: 24 }}
+                                            title={`${phase.name}: ${workingDur} working days. Drag to move; this target is not extra duration.`}
+                                        />
+                                        <div data-planner-resize-target={idx}
+                                            className="absolute right-0 top-0 bottom-0 z-20 w-3 cursor-ew-resize flex items-center justify-center gap-px hover:outline hover:outline-1 hover:outline-slate-300 rounded-r-md"
+                                            title={`Resize ${phase.name}; grip width is not duration`}
+                                            onMouseDown={(e) => {
+                                                e.stopPropagation();
+                                                handleBarMouseDown(e as unknown as React.MouseEvent, idx, "resize");
+                                            }}
+                                        >
+                                            <div className="w-px h-3 bg-white/50 rounded-full" />
+                                            <div className="w-px h-3 bg-white/50 rounded-full" />
                                         </div>
                                     </div>
                                 );
@@ -844,7 +1010,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                     </button>
                     <div className="flex items-center gap-3">
                         <p className="text-[11px] text-slate-500">
-                            Days = working days ({daysPerWeek}d/wk). Bar width = calendar span. ★ = critical path.
+                            Days = working days ({daysPerWeek}d/wk). Coloured bar = calendar span; ticks and grips are controls, not extra days. ★ = critical path.
                         </p>
                         <button
                             type="button"
@@ -861,6 +1027,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             {showLiveTracking && phases.length > 0 && (
                 <LiveTrackingPanel
                     phases={phases}
+                    displayPlan={displayPlan}
                     programmeStart={programmeStart}
                     daysPerWeek={daysPerWeek}
                     projectId={projectId}
@@ -874,9 +1041,10 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
 // ─── Live Tracking Panel ──────────────────────────────────────────────────────
 function LiveTrackingPanel({
-    phases, programmeStart, daysPerWeek, projectId, project, onPhasesChange,
+    phases, displayPlan, programmeStart, daysPerWeek, projectId, project, onPhasesChange,
 }: {
     phases: Phase[];
+    displayPlan: ReturnType<typeof plannerDisplayPlan>;
     programmeStart: Date;
     daysPerWeek: number;
     projectId: string;
@@ -891,10 +1059,24 @@ function LiveTrackingPanel({
         : 0;
     const complete = phases.filter(p => (p.pct_complete ?? 0) === 100).length;
     const inProgress = phases.filter(p => (p.pct_complete ?? 0) > 0 && (p.pct_complete ?? 0) < 100).length;
-    const delayed = phases.filter(p => {
-        const calDur = Math.ceil((p.manualDays ?? p.calculatedDays) / daysPerWeek) * 7;
-        const plannedEnd = new Date(programmeStart);
-        plannedEnd.setDate(plannedEnd.getDate() + p.startOffset + calDur);
+    // Use the same complete five-day plan as the chart, including its inclusive finish.
+    // Other working weeks and invalid/partial plans keep the existing tracking fallback.
+    const plannedDates = phases.map((phase, index) => {
+        const stage = displayPlan?.stages[index];
+        if (stage) return { start: new Date(stage.start_date + "T00:00:00"), end: new Date(stage.end_date + "T00:00:00") };
+        const calDur = Math.ceil((phase.manualDays ?? phase.calculatedDays) / daysPerWeek) * 7;
+        const plannedStart = new Date(programmeStart);
+        plannedStart.setDate(plannedStart.getDate() + phase.startOffset);
+        const plannedEnd = new Date(plannedStart);
+        plannedEnd.setDate(plannedEnd.getDate() + calDur);
+        return { start: plannedStart, end: plannedEnd };
+    });
+    const delayed = phases.filter((p, index) => {
+        const plannedEnd = displayPlan ? plannedDates[index].end : new Date(programmeStart);
+        if (!displayPlan) {
+            const calDur = Math.ceil((p.manualDays ?? p.calculatedDays) / daysPerWeek) * 7;
+            plannedEnd.setDate(plannedEnd.getDate() + p.startOffset + calDur);
+        }
         return plannedEnd < today && (p.pct_complete ?? 0) < 100;
     }).length;
 
@@ -957,11 +1139,7 @@ function LiveTrackingPanel({
                 </thead>
                 <tbody>
                     {phases.map((phase, idx) => {
-                        const calDur = Math.ceil((phase.manualDays ?? phase.calculatedDays) / daysPerWeek) * 7;
-                        const plannedStart = new Date(programmeStart);
-                        plannedStart.setDate(plannedStart.getDate() + phase.startOffset);
-                        const plannedEnd = new Date(plannedStart);
-                        plannedEnd.setDate(plannedEnd.getDate() + calDur);
+                        const { start: plannedStart, end: plannedEnd } = plannedDates[idx];
                         const pct = phase.pct_complete ?? 0;
                         const isDelayed = plannedEnd < today && pct < 100;
                         const isComplete = pct === 100;

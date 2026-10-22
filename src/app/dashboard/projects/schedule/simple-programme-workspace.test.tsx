@@ -1,0 +1,144 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
+import type { ReactElement } from "react";
+import { emptyProgrammeDraft, initialProgrammeState, programmeReducer, viewForProject, type ProgrammeState } from "@/lib/simple-programme";
+
+const hooks = vi.hoisted(() => ({ state: null as ProgrammeState | null, slots: [] as unknown[], cursor: 0, save: vi.fn(), dispatch: vi.fn(), theme: "dark" }));
+vi.mock("react", async original => ({ ...await original<typeof import("react")>(),
+    useMemo: (read: () => unknown) => read(), useEffect: () => undefined,
+    useRef: (initial: unknown) => ({ current: initial }), useTransition: () => [false, (fn: () => void) => fn()],
+    useState: (initial: unknown) => { const i = hooks.cursor++; if (!(i in hooks.slots)) hooks.slots[i] = typeof initial === "function" ? initial() : initial;
+        return [hooks.slots[i], (next: unknown) => { hooks.slots[i] = typeof next === "function" ? next(hooks.slots[i]) : next; }]; },
+}));
+vi.mock("@/lib/theme-context", () => ({ useTheme: () => ({ theme: hooks.theme }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
+vi.mock("@/lib/use-unsaved-guard", () => ({ useUnsavedGuard: vi.fn() }));
+vi.mock("@/lib/use-reducer-store", () => ({ useReducerStore: () => [hooks.state, { getState: () => hooks.state, dispatch: hooks.dispatch }] }));
+vi.mock("./simple-actions", () => ({ saveSimpleProgrammeAction: hooks.save }));
+import SimpleProgrammeClient from "./simple-programme-client";
+
+type Element = ReactElement<Record<string, unknown>>;
+const project = { id: "11111111-1111-4111-8111-111111111111", name: "Replace kitchen", start_date: "2026-10-19", programme_phases: [] as unknown[] };
+function nodes(value: unknown): Element[] {
+    if (Array.isArray(value)) return value.flatMap(nodes);
+    if (!value || typeof value !== "object" || !("props" in value)) return [];
+    const node = value as Element; return [node, ...nodes(node.props.children)];
+}
+function parent(overrides: Partial<Parameters<typeof SimpleProgrammeClient>[0]> = {}) {
+    hooks.cursor = 0;
+    return SimpleProgrammeClient({ project, lockReason: null, estimate: null, save: hooks.save, ...overrides });
+}
+function editor() {
+    const entry = nodes(parent()).find(n => typeof n.type === "function" && n.props.initial);
+    expect(entry).toBeDefined(); return (entry!.type as (props: unknown) => Element)(entry!.props);
+}
+function two() {
+    const phases = [{ name: "Remove old kitchen", manualDays: 3, startOffset: 0 }, { name: "Fit new kitchen", manualDays: 5, startOffset: 3 }];
+    let key = 0; const view = viewForProject({ ...project, programme_phases: phases }, () => `saved-${key++}`);
+    expect(view.kind).toBe("simple"); if (view.kind === "simple") hooks.state = initialProgrammeState(view.draft, true);
+}
+beforeEach(() => {
+    hooks.state = initialProgrammeState(emptyProgrammeDraft(project.start_date), false);
+    hooks.slots = []; hooks.cursor = 0; hooks.theme = "dark"; hooks.save.mockReset(); hooks.dispatch.mockReset();
+    hooks.dispatch.mockImplementation(action => { hooks.state = programmeReducer(hooks.state!, action); });
+    hooks.save.mockResolvedValue({ success: true });
+});
+
+describe("timeline-first simple programme workspace", () => {
+    it("switches to relative days without saving or losing the entered date, then submits only explicit relative intent", async () => {
+        two();
+        const select = nodes(editor()).find(n => n.type === "select" && n.props.id === "programme-time-basis")!;
+        (select.props.onChange as (event: unknown) => void)({ target: { value: "relative" } });
+        expect(hooks.state!.draft.startDate).toBe(project.start_date);
+        expect(hooks.save).not.toHaveBeenCalled();
+        const html = renderToStaticMarkup(editor());
+        expect(html).toContain("Day 4 to Day 8"); expect(html).not.toContain('id="programme-start"');
+        const form = nodes(editor()).find(n => n.type === "form")!;
+        (form.props.onSubmit as (event: unknown) => void)({ preventDefault: vi.fn() });
+        await vi.waitFor(() => expect(hooks.state!.save.status).toBe("idle"));
+        expect(hooks.save).toHaveBeenCalledExactlyOnceWith({ timeBasis: "relative", startDate: "", stages: [
+            { name: "Remove old kitchen", workingDays: 3, unit: "days", source: 0 },
+            { name: "Fit new kitchen", workingDays: 5, unit: "weeks", source: 1 },
+        ] });
+        (nodes(editor()).find(n => n.type === "select" && n.props.id === "programme-time-basis")!.props.onChange as (event: unknown) => void)({ target: { value: "dated" } });
+        expect(hooks.state!.draft.startDate).toBe(project.start_date);
+        expect(renderToStaticMarkup(editor())).toContain('id="programme-start"');
+        expect(hooks.save).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not open the legacy dated planner over a saved relative programme", () => {
+        const html = renderToStaticMarkup(parent({ project: { ...project, programme_phases: [
+            { name: "Fit door", manualDays: 1, timeBasis: "relative_working_days", workingDayOffset: 0 },
+        ] } }));
+        expect(html).toContain("data-relative-planner-note");
+        expect(html).not.toContain("Detailed programme planner");
+        expect(hooks.save).not.toHaveBeenCalled();
+    });
+
+    it.each(["light", "dark"])("shows the preview before timing/activity fields in %s without writes", theme => {
+        hooks.theme = theme;
+        const html = renderToStaticMarkup(editor());
+        expect(html.indexOf('data-programme-preview')).toBeGreaterThan(-1);
+        expect(html.indexOf('data-programme-preview')).toBeLessThan(html.indexOf('id="programme-when-title"'));
+        expect(html).toContain("Programme at a glance");
+        expect(hooks.save).not.toHaveBeenCalled(); expect(hooks.dispatch).not.toHaveBeenCalled();
+    });
+
+    it("adds just one blank activity on explicit choice, without saving", () => {
+        const button = nodes(editor()).find(n => n.type === "button" && renderToStaticMarkup(n).includes("Break the job into stages"))!;
+        (button.props.onClick as () => void)();
+        expect(hooks.state!.draft.stages).toHaveLength(1);
+        expect(hooks.state!.draft.stages[0]).toMatchObject({ name: "", duration: "" });
+        expect(hooks.save).not.toHaveBeenCalled();
+    });
+
+    it("previews named two-stage edits but only submits through the existing explicit save", async () => {
+        two();
+        const before = JSON.stringify(hooks.state!.saved);
+        const unit = nodes(editor()).find(n => n.type === "select" && n.props.id === "stage-saved-1-unit")!;
+        (unit.props.onChange as (event: unknown) => void)({ target: { value: "days" } });
+        const field = nodes(editor()).find(n => n.type === "input" && n.props.id === "stage-saved-1-duration")!;
+        (field.props.onChange as (event: unknown) => void)({ target: { value: "2" } });
+        expect(JSON.stringify(hooks.state!.saved)).toBe(before); expect(hooks.save).not.toHaveBeenCalled();
+        const html = renderToStaticMarkup(editor());
+        expect(html).toContain("data-programme-overview"); expect(html).toContain("Not saved yet");
+        const form = nodes(editor()).find(n => n.type === "form")!;
+        (form.props.onSubmit as (event: unknown) => void)({ preventDefault: vi.fn() });
+        await vi.waitFor(() => expect(hooks.state!.save.status).toBe("idle"));
+        expect(hooks.save).toHaveBeenCalledExactlyOnceWith({ startDate: "2026-10-19", stages: [
+            { name: "Remove old kitchen", workingDays: 3, unit: "days", source: 0 },
+            { name: "Fit new kitchen", workingDays: 2, unit: "days", source: 1 },
+        ] });
+    });
+
+    it("retains two activities and shows a retry after an unconfirmed save", async () => {
+        two(); hooks.save.mockResolvedValueOnce({ success: false, error: "Save not confirmed" });
+        const form = nodes(editor()).find(n => n.type === "form")!;
+        (form.props.onSubmit as (event: unknown) => void)({ preventDefault: vi.fn() });
+        await vi.waitFor(() => expect(hooks.state!.save.status).toBe("failed"));
+        expect(hooks.state!.draft.stages).toHaveLength(2);
+        expect(renderToStaticMarkup(editor())).toContain("Save not confirmed");
+        expect(renderToStaticMarkup(editor())).toContain("Try again");
+    });
+
+    it("keeps a locked programme read-only and detailed planning closed", () => {
+        const html = renderToStaticMarkup(parent({ project: { ...project, programme_phases: [{ name: "Replace door", manualDays: 1, startOffset: 0 }] }, lockReason: "This project is locked." }));
+        expect(html).toContain("This project is locked.");
+        expect(html).toContain("data-programme-overview"); expect(html).toContain("Replace door");
+        expect(html).not.toContain("Save programme"); expect(html).not.toContain("Detailed programme planner");
+        expect(hooks.save).not.toHaveBeenCalled();
+    });
+
+    it("fences repeated submits from either Save button while the existing action is pending", async () => {
+        two(); let release!: () => void;
+        const pending = new Promise<void>(resolve => { release = resolve; });
+        hooks.save.mockImplementation(async () => { await pending; return { success: true }; });
+        const form = nodes(editor()).find(n => n.type === "form")!;
+        const submit = form.props.onSubmit as (event: unknown) => void;
+        submit({ preventDefault: vi.fn() }); submit({ preventDefault: vi.fn() });
+        expect(hooks.save).toHaveBeenCalledTimes(1);
+        const buttons = nodes(editor()).filter(n => n.type === "button" && n.props.type === "submit");
+        expect(buttons).toHaveLength(2); expect(buttons.every(n => n.props.disabled)).toBe(true);
+        release(); await vi.waitFor(() => expect(hooks.state!.save.status).toBe("idle"));
+    });
+});

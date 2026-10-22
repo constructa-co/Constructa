@@ -3,7 +3,7 @@
     --programme-muted: #566257;
     --programme-rule: #d5ded2;
     --programme-accent: #176d49;
-    max-width: 1100px;
+    max-width: 1440px;
     margin: 24px auto;
     padding: clamp(20px, 4vw, 48px);
     border: 1px solid var(--programme-rule);
@@ -97,7 +97,7 @@
     gap: 16px;
 }
 
-.root [data-programme-timeline] li > div[aria-hidden="true"] {
+.root [data-programme-timeline]:not([data-programme-overview]) li > div[aria-hidden="true"] {
     width: 100%;
     height: 12px;
     margin-top: 6px;
@@ -106,7 +106,7 @@
     background: var(--programme-rule);
 }
 
-.root [data-programme-timeline] li > div[aria-hidden="true"] > div {
+.root [data-programme-timeline]:not([data-programme-overview]) li > div[aria-hidden="true"] > div {
     height: 100%;
     border-radius: inherit;
     background: var(--programme-accent);
@@ -122,5 +122,169 @@
     .root [data-programme-stage-fields],
     .root [data-programme-timeline] dl {
         grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.overviewHeader {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.overview {
+    --overview-surface: #f0f3ed;
+    --overview-rule: #d5ded2;
+    --overview-bar: #315c49;
+    --overview-bar-ink: #ffffff;
+    --overview-ink: #18221a;
+    --overview-muted: #566257;
+    color: var(--overview-ink);
+    min-width: 0;
+}
+
+.overview[data-dark="true"] {
+    --overview-surface: #1d2a22;
+    --overview-rule: #3b4b3c;
+    --overview-bar: #83b89a;
+    --overview-bar-ink: #10291b;
+    --overview-ink: #f2f7ef;
+    --overview-muted: #b8c5b5;
+}
+
+.overviewFacts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin: 0 0 24px;
+}
+
+.overviewFacts dt,
+.overviewBasis {
+    color: var(--overview-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.overviewFacts dd {
+    margin: 4px 0 0;
+    font-size: 18px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.overviewAxis,
+.overviewRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 24px;
+    align-items: center;
+}
+
+.overviewAxis {
+    color: var(--overview-muted);
+    font-size: 13px;
+    padding: 0 0 10px;
+    border-bottom: 1px solid var(--overview-rule);
+}
+
+.overviewAxis > div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.overviewRows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.overviewRow {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--overview-rule);
+    break-inside: avoid;
+}
+
+.overviewLabel {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.overviewLabel strong,
+.overviewLabel > span {
+    display: block;
+}
+
+.overviewLabel strong {
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+.overviewLabel > span {
+    margin-top: 4px;
+    color: var(--overview-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.overviewTrack {
+    position: relative;
+    min-width: 0;
+    height: 38px;
+    background-color: var(--overview-surface);
+    background-image: linear-gradient(to right, var(--overview-rule) 1px, transparent 1px);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.overviewBar {
+    position: absolute;
+    inset-block: 4px;
+    display: flex;
+    align-items: center;
+    border-radius: 5px;
+    background: var(--overview-bar);
+    color: var(--overview-bar-ink);
+    overflow: hidden;
+}
+
+.overviewBar > span {
+    padding: 0 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.overviewStartMarker {
+    position: absolute;
+    inset-block: 4px;
+    inline-size: 1px;
+    background: var(--overview-bar);
+    pointer-events: none;
+}
+
+.overviewBasis {
+    margin: 14px 0 0;
+}
+
+@media (max-width: 639px) {
+    .overviewRow,
+    .overviewFacts {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+    }
+
+    .overviewAxis {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .overviewAxis > span {
+        display: none;
     }
 }

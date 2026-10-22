@@ -239,6 +239,8 @@ export function computeProgrammePlan(
     phases: unknown[] | null | undefined,
 ): ProgrammePlan | null {
     if (!Array.isArray(phases) || phases.length === 0) return null;
+    // An explicitly undated programme must never acquire dates from a legacy reader.
+    if (phases.some(phase => asRecord(phase).timeBasis != null || asRecord(phase).workingDayOffset != null || Object.hasOwn(asRecord(phase), "programmeIntent"))) return null;
     const programmeStartMs = parseIsoDate(startDate);
 
     const read = phases
@@ -274,16 +276,16 @@ export function computeProgrammePlan(
  * a start or a length. A proposal is only sent when this holds, so a stage
  * the contractor saved can never silently go missing from it.
  */
-export function planCoversEveryPhase(plan: Pick<ProgrammePlan, "stages"> | null, phases: unknown[] | null | undefined): boolean {
+export function planCoversEveryPhase(plan: { stages: readonly unknown[] } | null, phases: unknown[] | null | undefined): boolean {
     const saved = Array.isArray(phases) ? Math.min(phases.length, 200) : 0;
     return plan !== null && saved > 0 && plan.stages.length === saved;
 }
 
 /** Where a stage's bar sits on a timeline, as percentages of the whole. */
-export function stageBar(plan: Pick<ProgrammePlan, "calendar_days">, stage: Pick<ProgrammePlanStage, "offset_days" | "span_days">) {
+export function stageBar(plan: Pick<ProgrammePlan, "calendar_days">, stage: Pick<ProgrammePlanStage, "offset_days" | "span_days">, minimumPct = 1) {
     const total = Math.max(1, plan.calendar_days);
     const left = Math.min(100, Math.max(0, (stage.offset_days / total) * 100));
-    const width = Math.min(100 - left, Math.max(1, (stage.span_days / total) * 100));
+    const width = Math.min(100 - left, Math.max(minimumPct, (stage.span_days / total) * 100));
     return { leftPct: Math.round(left * 100) / 100, widthPct: Math.round(width * 100) / 100 };
 }
 

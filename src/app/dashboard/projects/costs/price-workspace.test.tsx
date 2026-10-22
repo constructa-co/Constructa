@@ -7,6 +7,11 @@ import { EMPTY_PRICE_LINE_DRAFT, estimatingReducer, initialEstimatingState, type
 const current = vi.hoisted(() => ({ state: null as EstimatingState | null, slots: [] as unknown[], cursor: 0, dispatch: vi.fn(), action: vi.fn(), theme: "dark" }));
 vi.mock("react", async original => ({
     ...await original<typeof import("react")>(),
+    useRef: (initial: unknown) => {
+        const index = current.cursor++;
+        if (!(index in current.slots)) current.slots[index] = { current: initial };
+        return current.slots[index];
+    },
     useEffect: () => undefined,
     useMemo: (calculate: () => unknown) => calculate(),
     useState: (initial: unknown) => {
@@ -38,6 +43,13 @@ function toggle() {
     (button!.props.onClick as () => void)();
 }
 function table(markup = html()) { return markup.match(/<table[^>]*id="price-line-table"[\s\S]*?<\/table>/)?.[0] ?? ""; }
+function openFullLineForm() {
+    const row = nodes(view()).find(node => typeof node.type === "function" && (node.props.line as { id?: string } | undefined)?.id === "line")!;
+    const output = (row.type as (props: unknown) => Element)(row.props);
+    const editor = nodes(output).find(node => node.props["data-inline-amount-editor"] === "line")!;
+    const controls = nodes((editor.type as (props: unknown) => Element)(editor.props));
+    (controls.find(node => node.type === "button" && node.props.children === "Full line form")!.props.onClick as () => void)();
+}
 beforeEach(() => {
     current.slots = []; current.cursor = 0; current.dispatch.mockReset(); current.action.mockReset(); current.theme = "dark";
     const estimate: Estimate = { id: "estimate", project_id: "job", version_name: "Estimate", is_active: true, overhead_pct: 0, profit_pct: 0, risk_pct: 0, prelims_pct: 0, discount_pct: 0, discount_reason: "", total_cost: 0, estimate_lines: [{ id: "line", estimate_id: "estimate", description: "Fit cupboards", quantity: 1, unit: "item", unit_rate: 1100, line_total: 1100, trade_section: "Kitchen fitting", line_type: "general", pricing_mode: "simple", estimate_line_components: [] }] };
@@ -86,6 +98,7 @@ describe("simple-first estimating table", () => {
     it.each([false, true])("keeps the unchanged edit form inside one spanning cell; detail=%s", detail => {
         current.state = estimatingReducer(current.state!, { type: "op/open", key: "line", kind: "edit", lineId: "line", draft: { ...EMPTY_PRICE_LINE_DRAFT, description: "New description", amount: "1200" } });
         if (detail) toggle();
+        openFullLineForm();
         const markup = table();
         expect(markup).toContain(`colSpan="${detail ? 6 : 3}"`);
         expect(markup).toContain('aria-label="Change this line"');

@@ -5,6 +5,8 @@
  * operation. No network and no database.
  */
 
+import { isDeepStrictEqual } from "node:util";
+
 export type Row = Record<string, unknown>;
 type Op = "select" | "update" | "insert" | "delete" | "rpc";
 interface Failure { target: string; op: Op; code: string; message?: string; times: number }
@@ -31,13 +33,20 @@ export function fakeSupabase(seed: Record<string, Row[]>) {
         let limit: number | null = null;
         let order: { column: string; ascending: boolean } | null = null;
         const filters: Row = {};
+        const nullFilters = new Set<string>();
 
         const run = () => {
             log.push(`${op}:${table}`);
             const injected = takeFailure(table, op);
             if (injected) return { data: null, error: injected };
             const rows = tables[table] ?? [];
-            const hit = rows.filter((row) => Object.entries(filters).every(([column, value]) => row[column] === value));
+            const hit = rows.filter((row) => Object.entries(filters).every(([column, value]) => {
+                if (nullFilters.has(column)) return row[column] == null;
+                if ((column === "programme_phases" || column === "payment_schedule" || column === "selected_case_study_ids") && typeof value === "string") {
+                    try { return isDeepStrictEqual(row[column], JSON.parse(value)); } catch { return false; }
+                }
+                return row[column] === value;
+            }));
             if (op === "update") {
                 updates.push({ table, values: { ...values! }, filters: { ...filters } });
                 hit.forEach((row) => Object.assign(row, values));
@@ -64,6 +73,7 @@ export function fakeSupabase(seed: Record<string, Row[]>) {
             select: () => builder,
             update: (row: Row) => { op = "update"; values = row; return builder; },
             eq: (column: string, value: unknown) => { filters[column] = value; return builder; },
+            is: (column: string, value: null) => { filters[column] = value; nullFilters.add(column); return builder; },
             order: (column: string, options?: { ascending?: boolean }) => { order = { column, ascending: options?.ascending !== false }; return builder; },
             limit: (count: number) => { limit = count; return builder; },
             single: async () => one(true),

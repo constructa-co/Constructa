@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("server-only", () => ({}));
 import type { ReactElement } from "react";
 
 const mock = vi.hoisted(() => ({ createClient: vi.fn(), reads: [] as { table: string; filters: Record<string, string> }[], signedIn: true, empty: false }));

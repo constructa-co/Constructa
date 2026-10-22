@@ -16,6 +16,7 @@ vi.mock("react", async original => ({
         return replay.slots[i];
     },
     useId: () => "versions-test", useCallback: (callback: unknown) => callback,
+    useEffect: () => undefined,
     useTransition: () => [false, (callback: () => unknown) => { replay.tasks.push(Promise.resolve(callback())); }],
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));

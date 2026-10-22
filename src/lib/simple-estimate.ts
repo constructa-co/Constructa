@@ -33,11 +33,14 @@ export const MAX_LINE_AMOUNT = 100_000_000;
 export const MAX_LINE_QUANTITY = 1_000_000;
 export const MAX_DESCRIPTION_LENGTH = 500;
 export const MAX_UNIT_LENGTH = 20;
+export const MAX_PRICE_ACTIVITY_LENGTH = 100;
 
 export type PriceLineMode = "amount" | "rate";
 
 export interface PriceLineDraft {
     description: string;
+    /** Optional contractor activity for a new line; existing-line edits keep their saved section. */
+    activity?: string;
     mode: PriceLineMode;
     /** One figure for the whole line. */
     amount: string;
@@ -55,7 +58,7 @@ export const EMPTY_PRICE_LINE_DRAFT: PriceLineDraft = {
     rate: "",
 };
 
-export type PriceLineField = "description" | "amount" | "quantity" | "unit" | "rate";
+export type PriceLineField = "description" | "amount" | "quantity" | "unit" | "rate" | "activity";
 export type PriceLineFieldErrors = Partial<Record<PriceLineField, string>>;
 
 /** What is sent to the server for one line. */
@@ -552,6 +555,8 @@ export function estimatingReducer(state: EstimatingState, action: EstimatingActi
 
 export interface SavePriceLineRequest {
     projectId: string;
+    /** Absent means the existing General default. Not part of a financial line edit. */
+    activity?: string;
     /** Null when the project has no estimate yet. */
     estimateId: string | null;
     /** Id to create the first estimate under. */
@@ -598,11 +603,20 @@ export async function submitPriceLine(
     }
 
     const estimate = currentEstimate(state);
+    const activity = op.kind === "add" ? op.draft.activity?.trim() : undefined;
+    if (activity && (activity.length > MAX_PRICE_ACTIVITY_LENGTH || activity === "Preliminaries" || estimate?.is_client_boq)) {
+        store.dispatch({ type: "op/failed", key, error: null, fieldErrors: { activity: estimate?.is_client_boq
+            ? "Keep the client BoQ structure in Advanced estimating."
+            : activity === "Preliminaries" ? "Manage Preliminaries in Advanced estimating; it affects price calculations."
+                : "Keep the activity name to 100 characters." } });
+        return false;
+    }
     store.dispatch({ type: "op/saving", key });
     try {
         if (op.kind === "add") {
             const result = await server.saveLine({
                 projectId,
+                ...(activity ? { activity } : {}),
                 estimateId: estimate?.id ?? null,
                 newEstimateId: state.pendingEstimateId,
                 lineId: op.lineId,
@@ -610,6 +624,10 @@ export async function submitPriceLine(
             });
             if (!result.ok) {
                 store.dispatch({ type: "op/failed", key, error: result.error || LINE_SAVE_ERROR });
+                return false;
+            }
+            if (activity && result.line.trade_section !== activity) {
+                store.dispatch({ type: "op/failed", key, error: "The line activity is not confirmed and may have saved. Your draft is still here. Reload to reconcile it." });
                 return false;
             }
             store.dispatch({

@@ -17,6 +17,7 @@ vi.mock("react", async original => ({
     },
     useId: () => "activity-entry-test",
     useCallback: (callback: unknown) => callback,
+    useEffect: (effect: () => void) => { effect(); },
     useTransition: () => [false, (callback: () => unknown) => callback()],
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
@@ -130,5 +131,15 @@ describe("job-led activity entry", () => {
         expect(form(props).find(e => e.type === "button" && e.props.type === "submit")!.props.disabled).toBe(true);
         submit(form(props))({ preventDefault: vi.fn() });
         expect(replay.add).not.toHaveBeenCalled();
+    });
+});
+
+describe("activity add acknowledgement gates", () => {
+    it.each(["Preparation", " Decoration "])("retains raw activity input but refuses submit while its add is pending/unconfirmed: %s", name => {
+        const props = { activeSections: [], commonNames: [], onAddActivity: replay.add, blockedNames: [name.trim()] };
+        (input(form(props)).onChange as (e: unknown) => void)({ target: { value: name } });
+        const elements = form(props); expect(input(elements).value).toBe(name);
+        expect(elements.find(e => e.type === "button" && e.props.type === "submit")!.props.disabled).toBe(true);
+        submit(elements)({ preventDefault: vi.fn() }); expect(replay.add).not.toHaveBeenCalled();
     });
 });

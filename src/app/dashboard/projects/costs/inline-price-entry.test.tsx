@@ -2,10 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { ReactElement } from "react";
 import type { Estimate, EstimateLine } from "./types";
-import { currentSummary, draftFromLine, estimatingReducer, initialEstimatingState, type EstimatingState } from "@/lib/simple-estimate";
+import { EMPTY_PRICE_LINE_DRAFT, NEW_LINE_KEY, currentSummary, draftFromLine, estimatingReducer, initialEstimatingState, type EstimatingState } from "@/lib/simple-estimate";
 
 const current = vi.hoisted(() => ({ state: null as EstimatingState | null, slots: [] as unknown[], cursor: 0, dispatch: vi.fn(), update: vi.fn(), other: vi.fn(), theme: "dark" }));
 vi.mock("react", async original => ({ ...await original<typeof import("react")>(), useEffect: () => undefined,
+    useRef: (initial: unknown) => {
+        const index = current.cursor++;
+        if (!(index in current.slots)) current.slots[index] = { current: initial };
+        return current.slots[index];
+    },
     useMemo: (calculate: () => unknown) => calculate(),
     useState: (initial: unknown) => {
         const index = current.cursor++;
@@ -50,7 +55,173 @@ beforeEach(() => {
     current.update.mockImplementation(async (_estimateId, id, input) => ({ ok: true, line: { id, ...input, line_total: input.quantity * input.unit_rate } }));
 });
 
+function newRow() {
+    const component = nodes(view()).find(node => node.props["data-inline-add"]);
+    expect(component, "the new draft should be inside the actual price table").toBeDefined();
+    return (component!.type as (props: unknown) => Element)(component!.props);
+}
+function newField(name: string) { return nodes(newRow()).find(node => node.props.id === `new-line-${name}`)!; }
+function newChange(name: string, value: string) { (newField(name).props.onChange as (event: unknown) => void)({ target: { value } }); }
+function newButton(label: string) { return nodes(newRow()).find(node => node.type === "button" && node.props.children === label)!; }
+
+describe("inline new price lines", () => {
+    beforeEach(() => {
+        current.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", lineId: "new-item", draft: { ...EMPTY_PRICE_LINE_DRAFT, description: "Fit panels", amount: "100" } });
+        current.other.mockImplementation(async request => ({ ok: true, estimateId: "estimate", line: { id: request.lineId, estimate_id: "estimate", ...request.line, line_total: request.line.quantity * request.line.unit_rate } }));
+    });
+
+    it.each(["dark", "light"])("uses a three-cell one-price row in %s with no render/change/blur write", theme => {
+        current.theme = theme;
+        const tree = newRow();
+        expect(tree.type).toBe("tr"); expect(nodes(tree).filter(n => n.type === "td")).toHaveLength(3);
+        const form = nodes(tree).find(n => n.type === "form")!;
+        for (const name of ["description", "amount"]) expect(newField(name).props.form).toBe(form.props.id);
+        expect(newField("description").props.autoFocus).toBe(true);
+        newChange("description", "Fit different panels"); newChange("amount", "250");
+        expect(newField("amount").props.onBlur).toBeUndefined();
+        expect(currentSummary(current.state!).contractSum).toBe(400);
+        expect(current.other).not.toHaveBeenCalled();
+        const html = renderToStaticMarkup(<table><tbody>{newRow()}</tbody></table>);
+        expect(html).toContain("Not saved"); expect(html).toContain("£250.00");
+    });
+
+    it("puts the first draft in a table before an estimate or saved line exists", () => {
+        current.state = initialEstimatingState([], { pendingEstimateId: "pending" });
+        current.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", lineId: "first", draft: EMPTY_PRICE_LINE_DRAFT });
+        expect(nodes(view()).find(n => n.type === "table" && n.props.id === "price-line-table")).toBeDefined();
+        expect(newRow().type).toBe("tr"); expect(current.other).not.toHaveBeenCalled();
+    });
+
+    it("opens aligned rate columns deliberately without losing the one-price draft", () => {
+        (newButton("Quantity and rate").props.onClick as () => void)();
+        expect(current.state!.ops.new.draft).toMatchObject({ mode: "rate", amount: "100" });
+        expect(nodes(newRow()).filter(n => n.type === "td")).toHaveLength(6);
+        for (const name of ["quantity", "unit", "rate"]) expect(newField(name).props["aria-label"]).toBeTypeOf("string");
+        newChange("quantity", "2.5"); newChange("rate", "40");
+        expect(renderToStaticMarkup(<table><tbody>{newRow()}</tbody></table>)).toContain("£100.00");
+        expect(current.other).not.toHaveBeenCalled();
+    });
+
+    it("retains draft fields through the full form and back to the row", () => {
+        (newButton("Quantity and rate").props.onClick as () => void)();
+        newChange("quantity", "2.5"); newChange("rate", "40");
+        const draft = { ...current.state!.ops.new.draft };
+        (newButton("Full line form").props.onClick as () => void)();
+        expect(nodes(view()).find(n => n.props["data-inline-add"])).toBeUndefined();
+        const form = nodes(view()).find(n => n.props.idPrefix === "new-line")!;
+        expect((form.props.op as { draft: unknown }).draft).toEqual(draft);
+        (nodes(view()).find(n => n.type === "button" && n.props.children === "Back to table row")!.props.onClick as () => void)();
+        expect(newField("quantity").props.value).toBe("2.5");
+        expect(current.other).not.toHaveBeenCalled();
+    });
+
+    it("saves consecutive mixed lines through the same explicit controller, not bulk writes", async () => {
+        await (newButton("Save and add next").props.onClick as () => Promise<unknown>)();
+        expect(current.other).toHaveBeenCalledTimes(1);
+        expect(currentSummary(current.state!).contractSum).toBe(500);
+        expect(current.state!.ops.new.draft).toEqual(EMPTY_PRICE_LINE_DRAFT);
+        expect(current.state!.ops.new.lineId).not.toBe("new-item");
+        (newButton("Quantity and rate").props.onClick as () => void)();
+        newChange("description", "Paint panels"); newChange("quantity", "2"); newChange("rate", "30");
+        await (newButton("Save and add next").props.onClick as () => Promise<unknown>)();
+        expect(current.other).toHaveBeenCalledTimes(2);
+        expect(currentSummary(current.state!).contractSum).toBe(560);
+        expect(current.state!.ops.new.draft).toMatchObject({ description: "", quantity: "", rate: "", mode: "rate", unit: "m2" });
+    });
+
+    it("keeps invalid/failed rows open and retries with the same line id", async () => {
+        newChange("amount", "bad");
+        await (newButton("Save and add next").props.onClick as () => Promise<unknown>)();
+        expect(newField("amount").props["aria-invalid"]).toBe(true);
+        expect(current.other).not.toHaveBeenCalled();
+        newChange("amount", "100"); current.other.mockResolvedValueOnce({ ok: false, error: "Not confirmed" });
+        await (newButton("Save and add next").props.onClick as () => Promise<unknown>)();
+        expect(current.state!.ops.new.lineId).toBe("new-item");
+        expect(renderToStaticMarkup(<table><tbody>{newRow()}</tbody></table>)).toContain("Not confirmed");
+        await (newButton("Save and add next").props.onClick as () => Promise<unknown>)();
+        expect(current.other.mock.calls.map(call => call[0].lineId)).toEqual(["new-item", "new-item"]);
+    });
+
+    it("fences duplicate submits and fields while waiting for confirmation", async () => {
+        let release!: () => void; const wait = new Promise<void>(resolve => { release = resolve; });
+        current.other.mockImplementation(async request => { await wait; return { ok: true, estimateId: "estimate", line: { id: request.lineId, ...request.line, line_total: 100 } }; });
+        const next = newButton("Save and add next").props.onClick as () => Promise<unknown>;
+        const first = next(); await next();
+        expect(current.other).toHaveBeenCalledTimes(1);
+        for (const input of nodes(newRow()).filter(n => ["input", "select", "button"].includes(String(n.type)))) expect(input.props.disabled).toBe(true);
+        newChange("amount", "999"); expect(current.state!.ops.new.draft.amount).toBe("100");
+        release(); await first;
+        expect(currentSummary(current.state!).contractSum).toBe(500);
+    });
+
+    it("cancels only the unsaved new row and leaves saved totals untouched", () => {
+        (newButton("Cancel").props.onClick as () => void)();
+        expect(current.state!.ops.new).toBeUndefined();
+        expect(currentSummary(current.state!).contractSum).toBe(400);
+        expect(current.other).not.toHaveBeenCalled();
+    });
+});
+
 describe("expanded estimating table inline rate editing", () => {
+    it("keeps an unsaved resource draft in Advanced and blocks estimate switching without calling it a save", async () => {
+        current.state!.estimates.push({ ...current.state!.estimates[0], id: "other", estimate_lines: [] });
+        current.other.mockResolvedValueOnce({ ok: true, data: { costLibrary: [], orgId: "org", rateBuildups: [], labourRates: [], preferredTrades: [] } });
+        const toggle = () => nodes(view()).find(node => node.props["aria-controls"] === "advanced-estimating")!;
+        (toggle().props.onClick as () => void)(); await Promise.resolve(); await Promise.resolve();
+        const panel = () => nodes(view()).find(node => node.props.onResourceSaveStateChanged)!;
+        const originalClose = toggle().props.onClick as () => void;
+        const update = panel().props.onResourceSaveStateChanged as (id: string, state: string) => void;
+        update("draft:one", "draft"); originalClose();
+        (panel().props.setActiveTab as (id: string) => void)("other");
+        expect(current.state!.advancedOpen).toBe(true); expect(current.state!.activeEstimateId).toBe("estimate");
+        expect(panel().props.resourceSaveStates).toEqual({ "draft:one": "draft" });
+        update("draft:one", "confirmed"); originalClose(); expect(current.state!.advancedOpen).toBe(false);
+    });
+    it("keeps unconfirmed line totals labelled after Advanced is closed", async () => {
+        current.other.mockResolvedValueOnce({ ok: true, data: { costLibrary: [], orgId: "org", rateBuildups: [], labourRates: [], preferredTrades: [] } });
+        const toggle = () => nodes(view()).find(node => node.props["aria-controls"] === "advanced-estimating")!;
+        (toggle().props.onClick as () => void)();
+        await Promise.resolve(); await Promise.resolve();
+        const advanced = nodes(view()).find(node => node.props.onLineSaveStateChanged)!;
+        (advanced.props.onLineSaveStateChanged as (id: string, state: string) => void)("one", "uncertain");
+        (toggle().props.onClick as () => void)();
+        expect(current.state!.advancedOpen).toBe(false);
+        const warning = nodes(view()).find(node => node.props["data-line-save-warning"]);
+        expect(warning?.props.role).toBe("alert");
+        expect(JSON.stringify(warning?.props.children)).toContain("Displayed totals include unconfirmed line edits");
+    });
+
+    it("keeps pending resource work open and retains uncertainty across Advanced close/reopen", async () => {
+        current.other.mockResolvedValueOnce({ ok: true, data: { costLibrary: [], orgId: "org", rateBuildups: [], labourRates: [], preferredTrades: [] } });
+        const toggle = () => nodes(view()).find(node => node.props["aria-controls"] === "advanced-estimating")!;
+        (toggle().props.onClick as () => void)();
+        await Promise.resolve(); await Promise.resolve();
+        const panel = () => nodes(view()).find(node => node.props.onResourceSaveStateChanged)!;
+        expect(panel()).toBeDefined();
+        const originalClose = toggle().props.onClick as () => void;
+        const update = panel().props.onResourceSaveStateChanged as (id: string, state: string) => void;
+        update("one", "saving");
+        originalClose();
+        expect(current.state!.advancedOpen).toBe(true);
+        expect(toggle().props.disabled).toBe(true);
+        update("one", "uncertain");
+        (toggle().props.onClick as () => void)();
+        expect(current.state!.advancedOpen).toBe(false);
+        (toggle().props.onClick as () => void)();
+        expect(panel().props.resourceSaveStates).toEqual({ one: "uncertain" });
+    });
+
+    it("does not switch estimates while resource confirmation is pending", async () => {
+        current.state!.estimates.push({ ...current.state!.estimates[0], id: "other", estimate_lines: [] });
+        current.other.mockResolvedValueOnce({ ok: true, data: { costLibrary: [], orgId: "org", rateBuildups: [], labourRates: [], preferredTrades: [] } });
+        (nodes(view()).find(node => node.props["aria-controls"] === "advanced-estimating")!.props.onClick as () => void)();
+        await Promise.resolve(); await Promise.resolve();
+        const panel = nodes(view()).find(node => node.props.onResourceSaveStateChanged)!;
+        (panel.props.onResourceSaveStateChanged as (id: string, state: string) => void)("one", "saving");
+        (panel.props.setActiveTab as (id: string) => void)("other");
+        expect(current.state!.activeEstimateId).toBe("estimate");
+    });
+
     it.each(["dark", "light"])("provides six aligned cells and labelled form-associated fields in %s theme without writes", theme => {
         current.theme = theme; open(); details();
         const snapshot = JSON.stringify(current.state);

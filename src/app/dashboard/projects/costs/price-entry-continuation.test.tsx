@@ -4,6 +4,7 @@ import { EMPTY_PRICE_LINE_DRAFT, NEW_LINE_KEY, estimatingReducer, initialEstimat
 
 const current = vi.hoisted(() => ({ state: null as EstimatingState | null, dispatch: vi.fn(), action: vi.fn() }));
 vi.mock("react", async original => ({ ...await original<typeof import("react")>(), useEffect: () => undefined,
+    useRef: (initial: unknown) => ({ current: initial }),
     useMemo: (calculate: () => unknown) => calculate(), useState: (initial: unknown) => [initial, vi.fn()] }));
 vi.mock("@/lib/use-reducer-store", () => ({ useReducerStore: () => [current.state, { getState: () => current.state, dispatch: current.dispatch }] }));
 vi.mock("@/lib/theme-context", () => ({ useTheme: () => ({ theme: "dark" }) }));

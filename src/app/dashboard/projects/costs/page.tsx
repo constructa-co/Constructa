@@ -4,6 +4,8 @@ import ProjectNavBar from "@/components/project-navbar";
 import ProjectEntry from "@/components/project-entry";
 import EstimateClient from "./estimate-client";
 import { toEstimate } from "./estimate-mapping";
+import { getPrecontractEditLockReason } from "@/lib/project-editability";
+import { loadPricingExperienceSource } from "@/lib/server/pricing-experience";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // BoQ import (GPT-4o Vision PDF / Excel AI parse) can take 20-40s
@@ -33,7 +35,7 @@ export default async function EstimatingPage(props: { searchParams: Promise<{ pr
     // Fetch active project
     const { data: project } = await supabase
         .from("projects")
-        .select("id, name, client_name, brief_scope")
+        .select("id, name, client_name, brief_scope, payment_schedule, status, is_archived, proposal_status, proposal_accepted_at, exclusions_text, clarifications_text, contract_exclusions, contract_clarifications, proposal_introduction, scope_text, selected_case_study_ids")
         .eq("id", activeProjectId)
         .single();
 
@@ -51,6 +53,8 @@ export default async function EstimatingPage(props: { searchParams: Promise<{ pr
         .eq("project_id", project.id)
         .order("created_at");
 
+    const experience = await loadPricingExperienceSource(supabase, user.id, project.selected_case_study_ids);
+
     return (
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-8 pt-4 sm:pt-8 pb-16">
             <ProjectNavBar projectId={activeProjectId} activeTab="estimating" />
@@ -64,6 +68,15 @@ export default async function EstimatingPage(props: { searchParams: Promise<{ pr
                     name: project.name || "",
                     client_name: project.client_name || "",
                     brief_scope: project.brief_scope || "",
+                    payment_schedule: project.payment_schedule ?? null,
+                    proposal_introduction: project.proposal_introduction ?? null,
+                    experience,
+                    full_scope: { scope_text: project.scope_text ?? null, brief_scope: project.brief_scope ?? null },
+                    payment_lock_reason: getPrecontractEditLockReason(project),
+                    scope_notes: {
+                        exclusions_text: project.exclusions_text ?? null, clarifications_text: project.clarifications_text ?? null,
+                        contract_exclusions: project.contract_exclusions ?? null, contract_clarifications: project.contract_clarifications ?? null,
+                    },
                 }}
             />
         </div>

@@ -81,6 +81,24 @@
 .resourceTotals { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; font-variant-numeric: tabular-nums; }
 .resourceContext, .resourceNote { padding: 12px 16px 0; font-size: 13px; line-height: 1.6; color: var(--resource-muted); }
 .resourceNote { padding-bottom: 16px; }
+.resourceLibrary summary { min-height: 44px; cursor: pointer; font-weight: 700; }
+.resourceLibrary p { margin-block: 10px; overflow-wrap: anywhere; }
+.resourceLibrary select { width: 100%; max-width: 100%; min-height: 44px; padding: 8px; border: 1px solid var(--resource-border); border-radius: 8px; background: #0d1510; color: var(--resource-text); font-size: 16px; }
+.resourceLibrary ol { display: grid; gap: 12px; margin-block: 12px; }
+.resourceLibrary li { padding: 12px; border: 1px solid var(--resource-border); border-radius: 8px; overflow-wrap: anywhere; }
+.resourcePanel .resourceLibrary button { min-height: 44px; padding: 8px 12px; border: 1px solid var(--resource-border); border-radius: 8px; }
+.resourceLibrary summary:focus-visible { outline: 3px solid var(--resource-accent); outline-offset: 3px; }
+.resourceDraft { margin: 12px 16px; padding: 16px; border: 1px solid var(--resource-accent); border-radius: 10px; color: var(--resource-text); }
+.resourceDraft h5 { font-size: 15px; font-weight: 700; }
+.resourceDraft h5 span, .resourceDraft p { color: var(--resource-muted); font-size: 13px; line-height: 1.6; }
+.resourceDraft p { margin-block: 12px; }
+.resourceDraft fieldset { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; border: 0; padding: 0; }
+.resourceDraft label { display: grid; gap: 6px; font-size: 13px; }
+.resourceDraft :is(input, select) { width: 100%; min-width: 0; min-height: 44px; padding: 8px; border: 1px solid var(--resource-border); border-radius: 8px; color: var(--resource-text); background: #0d1510; font-size: 16px; }
+.resourceDraft button { min-height: 44px; padding: 8px 12px; border: 1px solid var(--resource-border); border-radius: 8px; margin-right: 8px; }
+.resourceRateDraft { min-width: 180px; max-width: 260px; font-size: 13px; line-height: 1.6; }
+.resourceRateDraft p { margin-block: 8px; color: var(--resource-muted); }
+.resourcePanel .resourceRateDraft button { min-height: 44px; border: 1px solid var(--resource-border); border-radius: 8px; padding: 8px; margin: 4px 6px 4px 0; }
 .resourceBasis { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 16px 0; font-size: 13px; }
 .resourcePanel .resourceBasis button { min-height: 40px; padding: 8px 12px; border: 1px solid var(--resource-border); border-radius: 8px; color: var(--resource-text); }
 .resourcePanel .resourceBasis button[aria-pressed="true"] { background: var(--resource-accent); color: #14251a; border-color: var(--resource-accent); }
@@ -144,6 +162,10 @@
 .priceLinesTable .priceFormRow td { padding: 16px 0; }
 .priceInlineEditor :is(input, select) { width: 100%; min-width: 0; font-size: 16px; }
 .priceInlineEditor .priceLineAmount { white-space: normal; }
+.newPriceMethods { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.newPriceMethods button { min-height: 44px; padding: 8px 10px; border: 1px solid var(--price-line); border-radius: 8px; font-size: 13px; color: var(--price-text); }
+.newPriceMethods button[aria-pressed="true"] { color: var(--price-accent-text); background: var(--price-accent); border-color: var(--price-accent); }
+.newPriceMethods button:focus-visible { outline: 3px solid var(--price-accent); outline-offset: 3px; }
 @container pricing (min-width: 761px) {
     .priceInlineEditor .priceLineNumber { min-width: 96px; }
     .priceInlineEditor .priceLineUnit { min-width: 76px; }
@@ -155,6 +177,7 @@
     .priceLinesTable tbody > tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; padding-block: 16px; border-bottom: 1px solid var(--price-line); }
     .priceLinesTable td { display: block; padding: 0; border: 0; min-width: 0; width: auto; text-align: left; white-space: normal; }
     .priceLinesTable .priceLineDescription, .priceLinesTable .priceLineActions, .priceLinesTable .priceOneAmount, .priceLinesTable .priceFormRow td { grid-column: 1 / -1; }
+    .priceInlineNew .priceLineAmount { grid-column: 1 / -1; }
     .priceLinesTable td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: 12px; font-weight: 400; color: var(--price-muted); }
 }
 
@@ -197,3 +220,21 @@
 .assistantMessages li, .assistantChoices li { padding: 12px; border: 1px solid var(--price-line); border-radius: 8px; }
 .assistantChoices blockquote { margin-block: 8px 12px; }
 .assistantBody [role="alert"] { font-weight: 600; }
+
+/* Optional activity breakdown decorates the existing rows without moving them. */
+.priceLinesTable .priceActivityHeading td { padding: 12px; border-left: 3px solid var(--price-accent); background: color-mix(in srgb, var(--price-accent) 7%, transparent); font-size: 15px; overflow-wrap: anywhere; }
+.priceActivityHeading span { color: var(--price-muted); font-size: 14px; }
+.priceLinesTable .priceActivitySubtotal td { padding: 12px; }
+.priceActivitySubtotal td > div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
+.priceActivitySubtotal p { flex: 1 1 220px; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
+.priceActivitySubtotal p span { display: block; margin-top: 4px; color: var(--price-muted); font-size: 13px; }
+.priceActivityAmount { min-width: 0; font-size: 16px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.priceLineFinder { display: grid; gap: 10px; margin-block: 16px; padding: 16px; border: 1px solid var(--price-line); border-radius: 10px; }
+.priceLineFinder input { max-width: 560px; min-width: 0; }
+.priceLineFinder p { font-size: 14px; line-height: 1.6; }
+.priceLinesTable tr[data-price-find-match="true"] { background: color-mix(in srgb, var(--price-accent) 8%, transparent); }
+.priceLinesTable tr[data-price-find-current="true"] { outline: 2px solid var(--price-accent); outline-offset: -2px; scroll-margin-block: 24px; }
+@container pricing (max-width: 760px) {
+    .priceLinesTable .priceActivityHeading, .priceLinesTable .priceActivitySubtotal { display: block; padding-block: 12px; }
+    .priceLinesTable .priceActivityHeading td, .priceLinesTable .priceActivitySubtotal td { display: block; width: 100%; padding: 8px; }
+}

@@ -27,7 +27,10 @@ export default function PricingFocus({ revision }: { revision: unknown }) {
 
     useEffect(() => {
         const root = marker.current?.parentElement;
-        const invalid = submitted.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+        const invalid = submitted.current && Array.from(submitted.current.elements).find(
+            (control): control is HTMLElement => control instanceof HTMLElement &&
+                control.getAttribute("aria-invalid") === "true" && !control.matches(":disabled"),
+        );
         submitted.current = null;
         if (invalid) {
             invalid.focus();

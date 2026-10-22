@@ -7,6 +7,11 @@ import type { PricingConversationGenerator } from "@/lib/pricing-conversation";
 const current = vi.hoisted(() => ({ state: null as EstimatingState | null, slots: [] as unknown[], cursor: 0, server: vi.fn(), dispatch: vi.fn() }));
 vi.mock("react", async original => ({
     ...await original<typeof import("react")>(), useEffect: () => undefined, useMemo: (calculate: () => unknown) => calculate(),
+    useRef: (initial: unknown) => {
+        const index = current.cursor++;
+        if (!(index in current.slots)) current.slots[index] = { current: initial };
+        return current.slots[index];
+    },
     useState: (initial: unknown) => {
         const i = current.cursor++;
         if (!(i in current.slots)) current.slots[i] = initial;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, ChevronDown, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
@@ -46,10 +46,30 @@ import type { Estimate, EstimateLine } from "./types";
 import ui from "@/components/estimating.module.css";
 import PricingFocus from "@/components/pricing-focus";
 import AreaQuantityAid from "@/components/area-quantity-aid";
+import { areaQuantity } from "@/lib/area-quantity";
+import { nextEditableSavedLine, savePriceAndChangeNext } from "@/lib/save-price-change-next";
 import PricingAssistantPanel from "@/components/pricing-assistant-panel";
+import BriefPriceExcerpt from "@/components/brief-price-excerpt";
+import PriceWorkList, { type WorkDescriptionRange } from "@/components/price-work-list";
+import LineActivity from "./line-activity";
+import type { ActivitySaveResult } from "./activity-actions";
+import type { ReactNode } from "react";
+import { priceActivityRows } from "@/lib/price-activity-view";
+import { findPriceLineIds, nextPriceLineMatch } from "@/lib/price-line-finder";
+import NewPriceActivity from "@/components/new-price-activity";
+import SavedLineReuse from "@/components/saved-line-reuse";
+import { savedLineReuseContext, prepareSavedLineReuse, type ReviewedSavedLine } from "@/lib/saved-line-reuse";
+import PricingPaymentStages from "./payment-stages";
+import PricingScopeNotesEditor from "./scope-notes";
+import PricingOpeningEditor from "./opening-message";
+import PricingFullScopeEditor from "./full-scope";
+import PricingExperienceEditor from "./experience-selection";
+import type { PricingExperienceSource } from "@/lib/pricing-experience";
+import type { PricingFullScopeSource } from "@/lib/pricing-full-scope";
+import type { PricingScopeNotesSource } from "@/lib/pricing-scope-notes";
 import { createPricingAssistantSession } from "@/lib/pricing-assistant-session";
 import type { PricingConversationGenerator } from "@/lib/pricing-conversation";
-import { buildPricingReviewContext, prepareReviewedPriceDraft, reviewPricingSuggestion, PRICING_REVIEW_OPEN } from "@/lib/pricing-review";
+import { buildPricingReviewContext, prepareReviewedPriceDraft, reviewPricingSuggestion, PRICING_REVIEW_OPEN, PRICING_REVIEW_STALE, type PendingPricingReview } from "@/lib/pricing-review";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
 import { ESTIMATE_LEAVE_WARNING, hasOpenEstimateWork } from "./estimate-navigation";
@@ -66,6 +86,12 @@ interface ProjectContext {
     name: string;
     client_name: string;
     brief_scope: string;
+    payment_schedule?: unknown;
+    payment_lock_reason?: string | null;
+    scope_notes?: PricingScopeNotesSource;
+    full_scope?: PricingFullScopeSource;
+    experience?: PricingExperienceSource | null;
+    proposal_introduction?: string | null;
 }
 
 type LoadAdvancedData = () => Promise<{ ok: true; data: AdvancedEstimatingData } | { ok: false; error: string }>;
@@ -89,6 +115,8 @@ const REAL_SERVER: EstimatingServer = {
 };
 
 const SCOPE_PREVIEW_LENGTH = 220;
+type PriceFindState = { estimateId: string; open: boolean; query: string; activeId: string | null };
+const EMPTY_PRICE_FIND: PriceFindState = { estimateId: "", open: false, query: "", activeId: null };
 
 export default function EstimateClient({
     estimates: initialEstimates,
@@ -109,7 +137,97 @@ export default function EstimateClient({
     const lines = useMemo(() => estimate?.estimate_lines ?? [], [estimate]);
     const summary = useMemo(() => summarisePrice(estimate, lines), [estimate, lines]);
     const newOp = state.ops[NEW_LINE_KEY];
-    const hasOpenWork = hasOpenEstimateWork(state);
+    const [priceFind, setPriceFind] = useState<PriceFindState>(EMPTY_PRICE_FIND);
+    const priceFindRef = useRef(EMPTY_PRICE_FIND);
+    const priceTableRef = useRef<HTMLTableElement>(null);
+    const finderOpen = lines.length > 0 && priceFind.estimateId === estimate?.id && priceFind.open;
+    const foundIds = finderOpen ? findPriceLineIds(lines, priceFind.query) : [];
+    const foundSet = new Set(foundIds);
+    const foundIndex = priceFind.activeId === null ? -1 : foundIds.indexOf(priceFind.activeId);
+    const updatePriceFind = (patch: Partial<PriceFindState>) => {
+        const fresh = store.getState(), current = currentEstimate(fresh);
+        if (!current || current.id !== estimate?.id || fresh.advancedOpen) return;
+        const previous = priceFindRef.current.estimateId === current.id ? priceFindRef.current : EMPTY_PRICE_FIND;
+        const next = { ...previous, ...patch, estimateId: current.id };
+        priceFindRef.current = next;
+        setPriceFind(next);
+    };
+    const visitPriceMatch = (direction: 1 | -1) => {
+        const fresh = store.getState(), current = currentEstimate(fresh), find = priceFindRef.current;
+        if (!current || current.id !== estimate?.id || fresh.advancedOpen || !find.open || find.estimateId !== current.id) return;
+        const id = nextPriceLineMatch(findPriceLineIds(current.estimate_lines, find.query), find.activeId, direction);
+        if (id === null) return;
+        // Compare attribute values rather than interpolating contractor text into a selector.
+        const row = Array.from(priceTableRef.current?.querySelectorAll<HTMLTableRowElement>("[data-price-line]") ?? [])
+            .find(element => element.getAttribute("data-price-line") === id);
+        if (!row) return;
+        updatePriceFind({ activeId: id });
+        row.focus({ preventScroll: true });
+        row.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "auto" });
+    };
+    const [resourceSaveStates, setResourceSaveStates] = useState<Record<string, "saving" | "uncertain" | "draft">>({});
+    const resourceSaveStatesRef = useRef<Record<string, "saving" | "uncertain" | "draft">>({});
+    const resourceSaveStateChanged = (lineId: string, status: "saving" | "confirmed" | "uncertain" | "draft") => {
+        const next = { ...resourceSaveStatesRef.current };
+        if (status === "confirmed") delete next[lineId];
+        else next[lineId] = status;
+        resourceSaveStatesRef.current = next;
+        setResourceSaveStates(next);
+    };
+    const [paymentWork, setPaymentWork] = useState(false);
+    const paymentWorkRef = useRef(false);
+    const paymentWorkChanged = (open: boolean) => {
+        paymentWorkRef.current = open;
+        setPaymentWork(open);
+    };
+    const [scopeNotesWork, setScopeNotesWork] = useState(false);
+    const [experienceWork, setExperienceWork] = useState(false);
+    const experienceWorkRef = useRef(false);
+    const experienceWorkChanged = (open: boolean) => { experienceWorkRef.current = open; setExperienceWork(open); };
+    const [fullScopeWork, setFullScopeWork] = useState(false);
+    const fullScopeWorkRef = useRef(false);
+    const fullScopeWorkChanged = (open: boolean) => { fullScopeWorkRef.current = open; setFullScopeWork(open); };
+    const [openingWork, setOpeningWork] = useState(false);
+    const openingWorkRef = useRef(false);
+    const openingWorkChanged = (open: boolean) => { openingWorkRef.current = open; setOpeningWork(open); };
+    const scopeNotesWorkRef = useRef(false);
+    const scopeNotesWorkChanged = (open: boolean) => {
+        scopeNotesWorkRef.current = open;
+        setScopeNotesWork(open);
+    };
+    const [workListOpen, setWorkListOpen] = useState(false);
+    const workListOpenRef = useRef(false);
+    const workListChanged = (open: boolean) => {
+        workListOpenRef.current = open;
+        setWorkListOpen(open);
+    };
+    const [activityWork, setActivityWork] = useState<Record<string, "editing" | "saving" | "uncertain">>({});
+    const activityWorkRef = useRef<Record<string, "editing" | "saving" | "uncertain">>({});
+    const activityWorkChanged = (lineId: string, status: "editing" | "saving" | "uncertain" | "confirmed") => {
+        const next = { ...activityWorkRef.current };
+        if (status === "confirmed") delete next[lineId]; else next[lineId] = status;
+        activityWorkRef.current = next; setActivityWork(next);
+    };
+    const beginActivity = (lineId: string) => {
+        const fresh = store.getState(), current = currentEstimate(fresh);
+        const line = current?.estimate_lines.find(item => item.id === lineId);
+        if (!line || !current || !isSimpleEditable(line, current) || line.trade_section === "Preliminaries" || fresh.advancedOpen || hasOpenEstimateWork(fresh)
+            || Object.keys(activityWorkRef.current).length || Object.keys(resourceSaveStatesRef.current).length
+            || paymentWorkRef.current || scopeNotesWorkRef.current || experienceWorkRef.current || fullScopeWorkRef.current || openingWorkRef.current) return false;
+        activityWorkChanged(lineId, "editing"); return true;
+    };
+    const activitySaved = (result: Extract<ActivitySaveResult, { ok: true }>, expected: string | null) => {
+        const fresh = store.getState(), current = currentEstimate(fresh);
+        const line = current?.estimate_lines.find(item => item.id === result.lineId);
+        if (!line || !current || !isSimpleEditable(line, current) || line.trade_section === "Preliminaries" || result.section === "Preliminaries" || current.id !== result.estimateId || (line.trade_section ?? null) !== expected) return false;
+        store.dispatch({ type: "estimates/replace", update: items => items.map(item => item.id !== result.estimateId ? item : {
+            ...item, estimate_lines: item.estimate_lines.map(saved => saved.id === result.lineId ? { ...saved, trade_section: result.section } : saved),
+        }) });
+        return true;
+    };
+    const activityBusy = Object.keys(activityWork).length > 0;
+    const hasOpenWork = hasOpenEstimateWork(state) || Object.keys(resourceSaveStates).length > 0 || paymentWork || scopeNotesWork || experienceWork || fullScopeWork || openingWork || workListOpen || activityBusy;
+    const hasUnconfirmedLineChanges = Object.entries(resourceSaveStates).some(([key, status]) => key.startsWith("line:") && status === "uncertain");
     useUnsavedGuard(hasOpenWork, ESTIMATE_LEAVE_WARNING);
     useEffect(() => {
         if (!hasOpenWork) return;
@@ -122,6 +240,26 @@ export default function EstimateClient({
 
     const [showFullScope, setShowFullScope] = useState(false);
     const [showLineDetails, setShowLineDetails] = useState(false);
+    const [showActivityGroups, setShowActivityGroups] = useState(false);
+    const [fullNewLineId, setFullNewLineId] = useState<string | null>(null);
+    const [fullAmountLineIds, setFullAmountLineIds] = useState<Record<string, boolean>>({});
+    const [nextEditFocusId, setNextEditFocusId] = useState<string | null>(null);
+    const nextLineRevision = JSON.stringify(estimate);
+    const showInlineNew = !!newOp && fullNewLineId !== newOp.lineId && (showLineDetails || newOp.draft.mode === "amount");
+    const newLineProps = newOp ? {
+        idPrefix: "new-line",
+        title: lines.length ? "New price line" : "First price line",
+        op: newOp, s, isDark,
+        activityNames: estimate?.is_client_boq ? undefined : [...new Set(lines.map(line => line.trade_section).filter((name): name is string =>
+            typeof name === "string" && !!name.trim() && name !== "Preliminaries" && name.length <= 100))],
+        onChange: (patch: Partial<PriceLineDraft>) => {
+            store.dispatch({ type: "op/change", key: NEW_LINE_KEY, patch });
+            if (patch.mode === "rate") setShowLineDetails(true);
+        },
+        onCancel: () => store.dispatch({ type: "op/cancel", key: NEW_LINE_KEY }),
+        onSave: () => void submitPriceLine(store, server, project.id, NEW_LINE_KEY),
+        onSaveNext: () => submitPriceLine(store, server, project.id, NEW_LINE_KEY, { nextLineId: newClientId() }),
+    } : null;
     const [briefDraftError, setBriefDraftError] = useState("");
     const [advanced, setAdvanced] = useState<{ status: "idle" | "loading" | "failed" | "ready"; data: AdvancedEstimatingData | null; error: string }>(
         { status: "idle", data: null, error: "" },
@@ -154,18 +292,88 @@ export default function EstimateClient({
         if (saved) store.dispatch({ type: "estimate/select", estimateId: saved });
     }, [defaultTabId, store, tabKey]);
     const selectEstimate = (estimateId: string) => {
+        if (Object.keys(activityWorkRef.current).length || workListOpenRef.current || scopeNotesWorkRef.current || experienceWorkRef.current || fullScopeWorkRef.current || openingWorkRef.current || paymentWorkRef.current || Object.values(resourceSaveStatesRef.current).some(status => status === "saving" || status === "draft")) return;
         const freshState = store.getState();
         if (freshState.activeEstimateId === estimateId || !freshState.estimates.some(item => item.id === estimateId) || hasOpenEstimateWork(freshState)) return;
         store.dispatch({ type: "estimate/select", estimateId });
         if (estimateId) window.sessionStorage.setItem(tabKey, estimateId);
     };
 
-    const openAdd = () =>
+    const reuseView = useRef({ project, active: true });
+    useEffect(() => {
+        reuseView.current = { project, active: true };
+        return () => { reuseView.current.active = false; };
+    }, [project]);
+    const applyInlineArea = (key: string, expected: LineOp | undefined, quantity: string) => {
+        const fresh = store.getState(), current = currentEstimate(fresh);
+        if (!reuseView.current.active || reuseView.current.project !== project || project.payment_lock_reason
+            || !expected || fresh.ops[key] !== expected || expected.status === "saving" || expected.kind === "delete"
+            || expected.draft.mode !== "rate" || expected.draft.unit !== "m2" || fresh.advancedOpen
+            || current !== estimate || fresh.activeEstimateId !== state.activeEstimateId || fresh.pendingEstimateId !== state.pendingEstimateId
+            || (current && (current.project_id !== project.id || current.is_client_boq))
+            || Object.values(fresh.ops).some(op => op.status === "saving")
+            || Object.keys(resourceSaveStatesRef.current).length || Object.keys(activityWorkRef.current).length
+            || paymentWorkRef.current || scopeNotesWorkRef.current || experienceWorkRef.current || fullScopeWorkRef.current || openingWorkRef.current || workListOpenRef.current) return;
+        const line = current?.estimate_lines.find(item => item.id === expected.lineId);
+        if (expected.kind === "edit" && (!line || !current || !isSimpleEditable(line, current))) return;
+        const checked = areaQuantity(quantity, "1");
+        if (!checked.ok || checked.quantity !== quantity) return;
+        store.dispatch({ type: "op/change", key, patch: { quantity } });
+    };
+    const saveAndChangeNext = async (lineId: string, expected: LineOp | undefined, next: EstimateLine | null) => {
+        if (!estimate || !expected || !next) return;
+        const allowed = () => reuseView.current.active && reuseView.current.project === project && !project.payment_lock_reason
+            && Object.keys(resourceSaveStatesRef.current).length === 0 && Object.keys(activityWorkRef.current).length === 0
+            && !paymentWorkRef.current && !scopeNotesWorkRef.current && !experienceWorkRef.current && !fullScopeWorkRef.current
+            && !openingWorkRef.current && !workListOpenRef.current;
+        const opened = await savePriceAndChangeNext(store, server, project.id,
+            { estimate, lineId, op: expected, nextId: next.id, revision: nextLineRevision }, allowed);
+        if (!opened || !allowed() || store.getState().ops[opened.id]?.lineId !== opened.id) return;
+        setFullAmountLineIds(current => ({ ...current, [opened.id]: false }));
+        setNextEditFocusId(opened.id);
+        if (draftFromLine(opened).mode === "rate") setShowLineDetails(true);
+    };
+    const openSavedLineDraft = (reviewed: ReviewedSavedLine): { ok: true } | { ok: false; error: string } => {
+        if (!reuseView.current.active) return { ok: false, error: PRICING_REVIEW_STALE };
+        const fresh = store.getState();
+        const context = savedLineReuseContext(reuseView.current.project, currentEstimate(fresh));
+        if (!context.ok) return context;
+        const blocked = !!reuseView.current.project.payment_lock_reason || fresh.advancedOpen || hasOpenEstimateWork(fresh) || Object.keys(resourceSaveStatesRef.current).length > 0
+            || paymentWorkRef.current || scopeNotesWorkRef.current || experienceWorkRef.current || fullScopeWorkRef.current || openingWorkRef.current
+            || workListOpenRef.current || Object.keys(activityWorkRef.current).length > 0;
+        const draft = prepareSavedLineReuse(reviewed, context.value, blocked);
+        if (!draft.ok) return draft;
+        store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: draft.value, lineId: newClientId() });
+        return { ok: true };
+    };
+
+    const openAdd = () => {
+        if (Object.keys(activityWorkRef.current).length) return;
         store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: EMPTY_PRICE_LINE_DRAFT, lineId: newClientId() });
-    const openEdit = (line: EstimateLine) =>
+    };
+    const openEdit = (line: EstimateLine) => {
+        if (Object.keys(activityWorkRef.current).length) return;
+        if (store.getState().ops[line.id]?.status === "saving") return;
+        setNextEditFocusId(null);
+        setFullAmountLineIds(current => ({ ...current, [line.id]: false }));
         store.dispatch({ type: "op/open", key: line.id, kind: "edit", draft: draftFromLine(line), lineId: line.id });
-    const openDelete = (line: EstimateLine) =>
+    };
+    const showFullLineForm = (lineId: string) => {
+        const op = store.getState().ops[lineId];
+        if (!op || op.status === "saving") return;
+        if (op.draft.mode === "amount") setFullAmountLineIds(current => ({ ...current, [lineId]: true }));
+        else setShowLineDetails(false);
+    };
+    const showInlineLineForm = (lineId: string) => {
+        const op = store.getState().ops[lineId];
+        if (!op || op.status === "saving") return;
+        setFullAmountLineIds(current => ({ ...current, [lineId]: false }));
+        if (op.draft.mode === "rate") setShowLineDetails(true);
+    };
+    const openDelete = (line: EstimateLine) => {
+        if (Object.keys(activityWorkRef.current).length) return;
         store.dispatch({ type: "op/open", key: line.id, kind: "delete", draft: draftFromLine(line), lineId: line.id });
+    };
 
     const loadAdvanced = async () => {
         setAdvanced({ status: "loading", data: null, error: "" });
@@ -180,7 +388,9 @@ export default function EstimateClient({
     };
 
     const toggleAdvanced = () => {
+        if (Object.keys(activityWorkRef.current).length) return;
         const opening = !state.advancedOpen;
+        if (!opening && Object.values(resourceSaveStatesRef.current).some(status => status === "saving" || status === "draft")) return;
         store.dispatch({ type: "advanced/toggle" });
         if (opening && store.getState().advancedOpen && advanced.status !== "ready" && advanced.status !== "loading") void loadAdvanced();
     };
@@ -198,15 +408,34 @@ export default function EstimateClient({
         : hasOpenWork || state.advancedOpen ? PRICING_REVIEW_OPEN
         : pricingContext.value.clientBoQ ? "Use the existing client BoQ workflow for this estimate."
         : "Copies only your work wording into an unsaved price-line draft. Review it before entering a price; no quantities or prices are filled.";
-    const startBriefPriceDraft = () => {
-        if (!briefReview?.ok) { setBriefDraftError(briefDraftHelp ?? "Review the work description first."); return; }
+    const openReviewedBriefDraft = (pending: PendingPricingReview): { ok: true } | { ok: false; error: string } => {
         const freshState = store.getState();
         const freshContext = buildPricingReviewContext(project, currentEstimate(freshState));
-        if (!freshContext.ok) { setBriefDraftError(freshContext.error); return; }
-        const prepared = prepareReviewedPriceDraft(briefReview.value, 0, freshContext.value, hasOpenEstimateWork(freshState) || freshState.advancedOpen);
-        if (!prepared.ok) { setBriefDraftError(prepared.error); return; }
+        if (!freshContext.ok) return freshContext;
+        const prepared = prepareReviewedPriceDraft(pending, 0, freshContext.value, hasOpenEstimateWork(freshState) || freshState.advancedOpen || Object.keys(resourceSaveStatesRef.current).length > 0 || paymentWorkRef.current || scopeNotesWorkRef.current || experienceWorkRef.current || fullScopeWorkRef.current || openingWorkRef.current || workListOpenRef.current || Object.keys(activityWorkRef.current).length > 0);
+        if (!prepared.ok) return prepared;
         setBriefDraftError("");
         store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: prepared.value, lineId: newClientId() });
+        return { ok: true };
+    };
+    const startBriefPriceDraft = () => {
+        if (!briefReview?.ok) { setBriefDraftError(briefDraftHelp ?? "Review the work description first."); return; }
+        const opened = openReviewedBriefDraft(briefReview.value);
+        if (!opened.ok) setBriefDraftError(opened.error);
+    };
+    const openWorkListDraft = (source: string, range: WorkDescriptionRange, revision: string): { ok: true } | { ok: false; error: string } => {
+        const freshState = store.getState();
+        const base = buildPricingReviewContext(project, currentEstimate(freshState));
+        if (!base.ok) return base;
+        if (base.value.revision !== revision) return { ok: false, error: PRICING_REVIEW_STALE };
+        const context = buildPricingReviewContext(project, currentEstimate(freshState), source);
+        if (!context.ok) return context;
+        const pending = reviewPricingSuggestion(context.value, { message: "", suggestions: [{ source: "contractorMessage", ...range }] });
+        if (!pending.ok) return pending;
+        const draft = prepareReviewedPriceDraft(pending.value, 0, context.value, hasOpenEstimateWork(freshState) || freshState.advancedOpen || Object.keys(resourceSaveStatesRef.current).length > 0 || paymentWorkRef.current || scopeNotesWorkRef.current || experienceWorkRef.current || fullScopeWorkRef.current || openingWorkRef.current || Object.keys(activityWorkRef.current).length > 0);
+        if (!draft.ok) return draft;
+        store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: draft.value, lineId: newClientId() });
+        return { ok: true };
     };
     const briefHref = `/dashboard/projects/brief?projectId=${encodeURIComponent(project.id)}`;
     const programmeHref = `/dashboard/projects/schedule?projectId=${encodeURIComponent(project.id)}`;
@@ -220,6 +449,7 @@ export default function EstimateClient({
                     type="button"
                     onClick={toggleAdvanced}
                     aria-expanded={state.advancedOpen}
+                    disabled={activityBusy || (state.advancedOpen && Object.values(resourceSaveStates).some(status => status === "saving" || status === "draft"))}
                     aria-controls="advanced-estimating"
                     aria-describedby={showAdvancedLineWarning ? "advanced-line-warning" : undefined}
                     className={`w-full min-h-14 px-4 sm:px-5 py-3 flex items-center justify-between gap-3 text-left ${s.body}`}
@@ -274,6 +504,9 @@ export default function EstimateClient({
                                         rateBuildups={advanced.data.rateBuildups}
                                         labourRates={advanced.data.labourRates}
                                         preferredTrades={advanced.data.preferredTrades}
+                                        resourceSaveStates={resourceSaveStates}
+                                        onResourceSaveStateChanged={resourceSaveStateChanged}
+                                        onLineSaveStateChanged={(lineId, status) => resourceSaveStateChanged(`line:${lineId}`, status)}
                                     />
                                 </div>
                             </div>
@@ -323,11 +556,30 @@ export default function EstimateClient({
                         </button>
                         <p id="brief-price-draft-help" className={`mt-2 text-sm ${s.muted}`}>{briefDraftHelp}</p>
                         {briefDraftError && <p role="alert" className={`mt-2 text-sm ${s.errorText}`}>{briefDraftError}</p>}
+                        {pricingContext.ok && <BriefPriceExcerpt data-brief-excerpt context={pricingContext.value}
+                            blocked={hasOpenWork || state.advancedOpen || pricingContext.value.clientBoQ}
+                            blockedHelp={pricingContext.value.clientBoQ ? "Use the existing client BoQ workflow for this estimate." : PRICING_REVIEW_OPEN}
+                            styles={s} onOpen={openReviewedBriefDraft} />}
                     </div>
                 )}
             </section>
 
+            {project.scope_notes && <PricingScopeNotesEditor projectId={project.id} source={project.scope_notes}
+                lockReason={project.payment_lock_reason ?? null} styles={s} onWorkChange={scopeNotesWorkChanged} />}
+            {project.experience && <PricingExperienceEditor key={project.id} projectId={project.id} source={project.experience}
+                lockReason={project.payment_lock_reason ?? null} styles={s} onWorkChange={experienceWorkChanged} />}
+            {project.experience === null && <p className={s.muted}>Saved experience sources could not be read. No choices have been changed; review experience on the proposal page.</p>}
+            {project.full_scope && <PricingFullScopeEditor key={project.id} projectId={project.id} source={project.full_scope}
+                lockReason={project.payment_lock_reason ?? null} styles={s} onWorkChange={fullScopeWorkChanged} />}
+            {project.proposal_introduction !== undefined && <PricingOpeningEditor key={project.id} projectId={project.id} source={project.proposal_introduction}
+                lockReason={project.payment_lock_reason ?? null} styles={s} onWorkChange={openingWorkChanged} />}
+
             <PricingAssistantPanel session={pricingAssistant} blocked={hasOpenWork || state.advancedOpen || !!estimate?.is_client_boq} />
+
+            {pricingContext.ok && <PriceWorkList data-price-work-list context={pricingContext.value} styles={s}
+                blocked={hasOpenEstimateWork(state) || state.advancedOpen || Object.keys(resourceSaveStates).length > 0 || paymentWork || scopeNotesWork || experienceWork || fullScopeWork || openingWork || activityBusy || pricingContext.value.clientBoQ}
+                blockedHelp={pricingContext.value.clientBoQ ? "Use the existing client BoQ workflow for this estimate." : PRICING_REVIEW_OPEN}
+                onWorkChange={workListChanged} onOpen={openWorkListDraft} />}
 
             {/* Current version stays visible without competing with price entry. */}
             {estimate && (state.estimates.length > 1 || !estimate.is_active) && (
@@ -346,17 +598,53 @@ export default function EstimateClient({
             )}
 
             {/* Price lines */}
+            {Object.values(activityWork).includes("uncertain") && <p role="alert" data-activity-save-warning className={`${s.errorBox} p-4 text-sm`}>
+                An activity assignment is not confirmed and may have saved. Reload to reconcile it before making more estimating changes. This action does not change line prices or resources.
+            </p>}
+            {hasUnconfirmedLineChanges && <p role="alert" data-line-save-warning className={`${s.errorBox} p-4 text-sm`}>
+                Some line changes are not confirmed. Displayed totals include unconfirmed line edits, not a confirmed saved estimate. Reload to reconcile the saved prices before using them.
+            </p>}
             {!state.advancedOpen && (
                 <section className={`${s.card} p-4 sm:p-6`} aria-labelledby="price-lines-title">
                     <div className={ui.priceLinesHeader}>
                         <h2 id="price-lines-title" tabIndex={-1} className={`text-lg font-bold ${s.heading}`}>Price lines</h2>
-                        {hasLines && (
+                        {(hasLines || showInlineNew) && (
                             <button type="button" aria-controls="price-line-table" aria-pressed={showLineDetails}
                                 onClick={() => setShowLineDetails(value => !value)} className={s.quietButton}>
                                 {showLineDetails ? "Hide quantities and rates" : "Show quantities and rates"}
                             </button>
                         )}
+                        {hasLines && <button type="button" aria-controls="price-line-table" aria-pressed={showActivityGroups}
+                            data-price-activity-view onClick={() => setShowActivityGroups(value => !value)} className={s.quietButton}>
+                            {showActivityGroups ? "Hide activity breakdown" : "Show activity breakdown"}
+                        </button>}
+                        {hasLines && <button type="button" aria-controls="price-line-finder" aria-expanded={finderOpen}
+                            data-price-find-toggle onClick={() => updatePriceFind({ open: !finderOpen, query: "", activeId: null })} className={s.quietButton}>
+                            {finderOpen ? "Close finder" : "Find price lines"}
+                        </button>}
                     </div>
+                    {hasLines && <SavedLineReuse key={`${project.id}:${estimate?.id}`} context={savedLineReuseContext(project, estimate)}
+                        blocked={hasOpenWork || !!project.payment_lock_reason} blockReason={project.payment_lock_reason} onOpen={openSavedLineDraft} s={s} />}
+                    {finderOpen && <div id="price-line-finder" className={ui.priceLineFinder}>
+                        <label htmlFor="price-line-find-query" className={s.label}>Find description or activity</label>
+                        <input id="price-line-find-query" aria-describedby="price-line-find-help price-line-find-count" type="search"
+                            maxLength={500} autoComplete="off" value={priceFind.query} className={s.input}
+                            onChange={event => updatePriceFind({ query: event.target.value, activeId: null })} />
+                        <p id="price-line-find-count" role="status" aria-live="polite" className={s.muted}>
+                            {!priceFind.query.trim() ? "Enter text to find existing price lines." : foundIds.length === 0 ? "No matching price lines." :
+                                `${foundIds.length} matching ${foundIds.length === 1 ? "line" : "lines"}${foundIndex >= 0 ? `; current ${foundIndex + 1} of ${foundIds.length}` : "; choose Previous or Next"}.`}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            <button type="button" disabled={!foundIds.length} className={s.secondaryButton} onClick={() => visitPriceMatch(-1)}>Previous match</button>
+                            <button type="button" disabled={!foundIds.length} className={s.secondaryButton} onClick={() => visitPriceMatch(1)}>Next match</button>
+                            <button type="button" disabled={!priceFind.query} className={s.quietButton} onClick={() => updatePriceFind({ query: "", activeId: null })}>Clear finder</button>
+                        </div>
+                        <p id="price-line-find-help" className={s.muted}>All rows stay visible and totals still include the whole estimate. Uses displayed estimate wording, not open draft wording. Typing does not move focus or save.</p>
+                    </div>}
+                    {showActivityGroups && hasLines && <p id="price-activity-help" className={`mt-3 text-sm ${s.muted}`}>
+                        Line order is unchanged. Repeated activities continue later; each activity subtotal appears once, after its last line.
+                        Subtotals add the displayed line prices only, excluding open drafts. Adjustments and VAT are in the running total below.
+                    </p>}
 
                     {!hasLines && !newOp ? (
                         <div className="py-8 text-center" data-empty-estimate>
@@ -370,7 +658,8 @@ export default function EstimateClient({
                         </div>
                     ) : (
                         <>
-                            {hasLines && <table id="price-line-table" className={ui.priceLinesTable}>
+                            {(hasLines || showInlineNew) && <table ref={priceTableRef} id="price-line-table" className={ui.priceLinesTable}
+                                aria-describedby={showActivityGroups && hasLines ? "price-activity-help" : undefined}>
                                 <caption className={ui.priceTableCaption}>Change a line to edit it. Totals update after a confirmed save.</caption>
                                 <thead>
                                     <tr>
@@ -385,7 +674,10 @@ export default function EstimateClient({
                                     </tr>
                                 </thead>
                                 <tbody>
-                                {lines.map((line) => (
+                                {priceActivityRows(lines).flatMap(({ line, heading, subtotal }) => [
+                                    ...(showActivityGroups && heading ? [<tr key={`activity-heading-${line.id}`} className={ui.priceActivityHeading} data-activity-heading={heading.section}>
+                                        <td colSpan={showLineDetails ? 6 : 3}><strong>{heading.section}</strong>{heading.continued && <span> (continued)</span>}</td>
+                                    </tr>] : []),
                                     <PriceLineRow
                                         key={line.id}
                                         line={line}
@@ -398,32 +690,47 @@ export default function EstimateClient({
                                         onEdit={() => openEdit(line)}
                                         onDelete={() => openDelete(line)}
                                         onChange={(patch) => store.dispatch({ type: "op/change", key: line.id, patch })}
+                                        onUseArea={quantity => applyInlineArea(line.id, state.ops[line.id], quantity)}
                                         onCancel={() => store.dispatch({ type: "op/cancel", key: line.id })}
                                         onSave={() => void submitPriceLine(store, server, project.id, line.id)}
-                                        onFullForm={() => setShowLineDetails(false)}
+                                        onFullForm={() => showFullLineForm(line.id)}
+                                        fullAmountForm={!!fullAmountLineIds[line.id]}
+                                        onInlineForm={() => showInlineLineForm(line.id)}
                                         onConfirmDelete={() => void removePriceLine(store, server, line.id)}
-                                    />
-                                ))}
+                                        nextLine={nextEditableSavedLine(estimate, line.id)}
+                                        nextBlocked={!!state.ops[nextEditableSavedLine(estimate, line.id)?.id ?? ""]}
+                                        onSaveNext={() => saveAndChangeNext(line.id, state.ops[line.id], nextEditableSavedLine(estimate, line.id))}
+                                        focusDescription={nextEditFocusId === line.id}
+                                        priceBlocked={activityBusy}
+                                        finderMatch={foundSet.has(line.id)} finderCurrent={foundIndex >= 0 && priceFind.activeId === line.id}
+                                        activityControl={estimate && isSimpleEditable(line, estimate) && line.trade_section !== "Preliminaries" && !state.ops[line.id] ? <LineActivity
+                                            lineId={line.id} estimateId={estimate.id} section={line.trade_section ?? null}
+                                            choices={[...new Set(lines.map(item => item.trade_section).filter(section => section && section !== "Preliminaries"))]}
+                                            styles={s} blocked={hasOpenEstimateWork(state) || Object.keys(resourceSaveStates).length > 0 || paymentWork || scopeNotesWork || experienceWork || fullScopeWork || openingWork || Object.keys(activityWork).some(id => id !== line.id)}
+                                            onBegin={() => beginActivity(line.id)} onWork={status => activityWorkChanged(line.id, status)} onSaved={activitySaved} /> : null}
+                                    />,
+                                    ...(showActivityGroups && subtotal ? [<tr key={`activity-subtotal-${line.id}`} className={ui.priceActivitySubtotal} data-activity-subtotal={subtotal.section}>
+                                        <td colSpan={showLineDetails ? 6 : 3}><div>
+                                            <p><strong>{subtotal.section}: line-price subtotal</strong><span>{subtotal.lineCount} {subtotal.lineCount === 1 ? "line" : "lines"}{subtotal.blocks > 1 ? ` across ${subtotal.blocks} blocks` : ""}. Before adjustments and VAT.{(hasUnconfirmedLineChanges || Object.values(activityWork).includes("uncertain")) ? " Not confirmed." : ""}</span></p>
+                                            <strong className={ui.priceActivityAmount}>{subtotal.amount === null ? "Subtotal unavailable" : formatGBP(subtotal.amount)}</strong>
+                                        </div></td>
+                                    </tr>] : []),
+                                ])}
+                                {showInlineNew && newLineProps && <InlineNewPriceLine key={newOp!.lineId} {...newLineProps}
+                                    data-inline-add showDetails={showLineDetails}
+                                    onUseArea={quantity => applyInlineArea(NEW_LINE_KEY, newOp, quantity)}
+                                    onFullForm={() => setFullNewLineId(newOp!.lineId)} />}
                                 </tbody>
                             </table>}
 
-                            {newOp ? (
+                            {newOp && newLineProps ? !showInlineNew && (
                                 <div className={`mt-4 ${s.inset} p-4`}>
-                                    <LineForm
-                                        key={newOp.lineId}
-                                        idPrefix="new-line"
-                                        title={hasLines ? "New price line" : "First price line"}
-                                        op={newOp}
-                                        s={s}
-                                        isDark={isDark}
-                                        onChange={(patch) => store.dispatch({ type: "op/change", key: NEW_LINE_KEY, patch })}
-                                        onCancel={() => store.dispatch({ type: "op/cancel", key: NEW_LINE_KEY })}
-                                        onSave={() => void submitPriceLine(store, server, project.id, NEW_LINE_KEY)}
-                                        onSaveNext={() => submitPriceLine(store, server, project.id, NEW_LINE_KEY, { nextLineId: newClientId() })}
-                                    />
+                                    <button type="button" disabled={newOp.status === "saving"} className={`${s.quietButton} mb-3`}
+                                        onClick={() => { setFullNewLineId(null); if (newOp.draft.mode === "rate") setShowLineDetails(true); }}>Back to table row</button>
+                                    <LineForm key={newOp.lineId} {...newLineProps} />
                                 </div>
                             ) : (
-                                <button type="button" onClick={openAdd} className={`${s.secondaryButton} mt-4 w-full sm:w-auto`}>
+                                <button type="button" disabled={activityBusy} onClick={openAdd} className={`${s.secondaryButton} mt-4 w-full sm:w-auto`}>
                                     <Plus className="w-5 h-5" aria-hidden="true" /> Add a price line
                                 </button>
                             )}
@@ -445,6 +752,9 @@ export default function EstimateClient({
                 onChange={(patch) => store.dispatch({ type: "adjustments/change", patch })}
                 onSave={() => void submitAdjustments(store, server)}
             />
+
+            {project.payment_schedule !== undefined && <PricingPaymentStages projectId={project.id} schedule={project.payment_schedule}
+                lockReason={project.payment_lock_reason ?? null} styles={s} onWorkChange={paymentWorkChanged} />}
 
             {hasLines && (
                 <div className="flex justify-end">
@@ -497,7 +807,7 @@ export default function EstimateClient({
 // ─── One price line ──────────────────────────────────────
 
 function PriceLineRow({
-    line, editable, isClientBoQ, op, s, isDark, showDetails, onEdit, onDelete, onChange, onCancel, onSave, onFullForm, onConfirmDelete,
+    line, editable, isClientBoQ, op, s, isDark, showDetails, onEdit, onDelete, onChange, onUseArea, onCancel, onSave, onFullForm, onInlineForm, fullAmountForm = false, onConfirmDelete, nextLine, nextBlocked = false, onSaveNext, focusDescription = false, activityControl, priceBlocked = false, finderMatch = false, finderCurrent = false,
 }: {
     line: EstimateLine;
     editable: boolean;
@@ -513,18 +823,38 @@ function PriceLineRow({
     onSave: () => void;
     onFullForm: () => void;
     onConfirmDelete: () => void;
+    nextLine?: EstimateLine | null;
+    nextBlocked?: boolean;
+    onSaveNext?: () => Promise<void>;
+    focusDescription?: boolean;
+    onInlineForm: () => void;
+    fullAmountForm?: boolean;
+    onUseArea: (quantity: string) => void;
+    activityControl?: ReactNode;
+    priceBlocked?: boolean;
+    finderMatch?: boolean;
+    finderCurrent?: boolean;
 }) {
     const name = line.description?.trim() || "No description yet";
     const isAmount = Number(line.quantity) === 1 && (line.unit === "item" || !line.unit);
     const section = line.trade_section && line.trade_section !== "General" ? line.trade_section : "";
 
     if (op && op.kind === "edit") {
-        if (editable && showDetails && op.draft.mode === "rate") {
-            return <InlineRateEditor data-inline-editor={line.id} line={line} op={op} s={s}
+        if (editable && op.draft.mode === "amount" && !fullAmountForm) {
+            return <InlineAmountEditor data-inline-amount-editor={line.id} line={line} op={op} s={s} showDetails={showDetails}
+                finderMatch={finderMatch} finderCurrent={finderCurrent}
+                nextLine={nextLine} nextBlocked={nextBlocked} onSaveNext={onSaveNext} focusDescription={focusDescription}
                 onChange={onChange} onCancel={onCancel} onSave={onSave} onFullForm={onFullForm} />;
         }
+        if (editable && showDetails && op.draft.mode === "rate" && !fullAmountForm) {
+            return <InlineRateEditor data-inline-editor={line.id} line={line} op={op} s={s}
+                finderMatch={finderMatch} finderCurrent={finderCurrent}
+                nextLine={nextLine} nextBlocked={nextBlocked} onSaveNext={onSaveNext} focusDescription={focusDescription}
+                onChange={onChange} onUseArea={onUseArea} onCancel={onCancel} onSave={onSave} onFullForm={onFullForm} />;
+        }
         return (
-            <tr className={ui.priceFormRow} data-price-line={line.id}><td colSpan={showDetails ? 6 : 3}>
+            <tr className={ui.priceFormRow} data-price-line={line.id} tabIndex={-1} data-price-find-match={finderMatch || undefined} data-price-find-current={finderCurrent || undefined}><td colSpan={showDetails ? 6 : 3}>
+                {fullAmountForm && <button type="button" disabled={op.status === "saving"} onClick={onInlineForm} className={`${s.quietButton} mb-3`}>Back to table row</button>}
                 <LineForm idPrefix={`line-${line.id}`} title="Change this line" op={op} s={s} isDark={isDark} onChange={onChange} onCancel={onCancel} onSave={onSave} />
             </td></tr>
         );
@@ -536,7 +866,7 @@ function PriceLineRow({
 
     return (
         <>
-        <tr data-price-line={line.id}>
+        <tr data-price-line={line.id} tabIndex={-1} data-price-find-match={finderMatch || undefined} data-price-find-current={finderCurrent || undefined}>
                 <td className={ui.priceLineDescription}>
                     <p className={`text-base font-semibold break-words ${line.description?.trim() ? s.body : s.muted}`}>{name}</p>
                     <p className={`text-sm ${s.muted}`}>
@@ -550,6 +880,7 @@ function PriceLineRow({
                     {!editable && (
                         <p className={`text-sm ${s.muted}`}>Change this line in Advanced estimating.</p>
                     )}
+                    {activityControl}
                 </td>
                 {showDetails && (isAmount
                     ? <td colSpan={3} className={ui.priceOneAmount}>One price</td>
@@ -562,10 +893,10 @@ function PriceLineRow({
                 <td className={ui.priceLineActions}>
                     {!(op && op.kind === "delete") && editable && (
                         <div className="flex flex-wrap gap-1">
-                            <button type="button" onClick={onEdit} aria-label={`Change ${name}`} className={`${iconButton} px-2 gap-1.5 text-sm font-semibold`}>
+                            <button type="button" disabled={priceBlocked} onClick={onEdit} aria-label={`Change ${name}`} className={`${iconButton} px-2 gap-1.5 text-sm font-semibold`}>
                                 <Pencil className="w-4 h-4" aria-hidden="true" /> Change
                             </button>
-                            <button type="button" onClick={onDelete} aria-label={`Remove ${name}`} className={`${iconButton} px-2 gap-1.5 text-sm font-semibold`}>
+                            <button type="button" disabled={priceBlocked} onClick={onDelete} aria-label={`Remove ${name}`} className={`${iconButton} px-2 gap-1.5 text-sm font-semibold`}>
                                 <Trash2 className="w-4 h-4" aria-hidden="true" /> Remove
                             </button>
                         </div>
@@ -598,15 +929,86 @@ function PriceLineRow({
     );
 }
 
-function InlineRateEditor({ line, op, s, onChange, onCancel, onSave, onFullForm }: {
+function InlineAmountEditor({ line, op, s, showDetails, onChange, onCancel, onSave, onFullForm, nextLine, nextBlocked = false, onSaveNext, focusDescription = false, finderMatch = false, finderCurrent = false }: {
+    "data-inline-amount-editor": string;
+    line: EstimateLine;
+    op: LineOp;
+    s: WorkspaceStyles;
+    showDetails: boolean;
+    onChange: (patch: Partial<PriceLineDraft>) => void;
+    onCancel: () => void;
+    onSave: () => void;
+    onFullForm: () => void;
+    nextLine?: EstimateLine | null;
+    nextBlocked?: boolean;
+    onSaveNext?: () => Promise<void>;
+    focusDescription?: boolean;
+    finderMatch?: boolean;
+    finderCurrent?: boolean;
+}) {
+    const { draft, fieldErrors } = op;
+    const saving = op.status === "saving";
+    const prefix = `line-${line.id}`;
+    const formId = `${prefix}-amount-form`;
+    const total = draftLineTotal(draft);
+    const field = (name: "description" | "amount", label: string) => ({
+        id: `${prefix}-${name}`, form: formId, disabled: saving, "aria-label": `${label} for ${line.description || "this line"}`,
+        "aria-invalid": fieldErrors[name] ? true : undefined,
+        "aria-describedby": fieldErrors[name] ? `${prefix}-${name}-error` : undefined,
+    });
+    const error = (name: "description" | "amount") => fieldErrors[name]
+        ? <p id={`${prefix}-${name}-error`} className={`mt-1 text-sm ${s.errorText}`}>{fieldErrors[name]}</p> : null;
+
+    return <tr className={ui.priceInlineEditor} data-price-line={line.id} tabIndex={-1}
+        data-price-find-match={finderMatch || undefined} data-price-find-current={finderCurrent || undefined}>
+        <td className={ui.priceLineDescription}>
+            <form id={formId} noValidate aria-label={`Change one price for ${line.description || "this line"}`} aria-busy={saving}
+                onSubmit={event => { event.preventDefault(); onSave(); }}>
+                <input {...field("description", "Work description")} value={draft.description} autoFocus={focusDescription} maxLength={500} autoComplete="off"
+                    className={s.input} onChange={event => onChange({ description: event.target.value })} />
+                {error("description")}
+            </form>
+            <p className={`mt-2 text-sm ${s.muted}`}>Draft only until Save line. One price for this work.</p>
+            {op.status === "failed" && <p role="alert" className={`mt-2 text-sm ${s.errorText}`}>{op.error}</p>}
+        </td>
+        {showDetails && <td colSpan={3} className={ui.priceOneAmount}>One price</td>}
+        <td data-label="Price" className={ui.priceLineAmount}>
+            <input {...field("amount", "Price in pounds")} value={draft.amount} inputMode="decimal" autoComplete="off"
+                className={s.input} onChange={event => onChange({ amount: event.target.value })} />
+            {error("amount")}
+            <p aria-live="polite" className={`mt-2 ${s.body}`}>Draft <strong>{total === null ? "Check entries" : formatGBP(total)}</strong></p>
+            <p className={`mt-2 text-sm ${s.muted}`}>Saved {formatGBP(Number(line.line_total) || 0)}</p>
+        </td>
+        <td className={ui.priceLineActions}>
+            <div className="flex flex-wrap gap-2">
+                <button type="submit" form={formId} disabled={saving} className={s.primaryButton}>
+                    {saving ? "Saving..." : op.status === "failed" ? "Try again" : "Save line"}
+                </button>
+                {nextLine && onSaveNext && <button type="button" disabled={saving || nextBlocked} onClick={onSaveNext} className={s.secondaryButton}>Save and change next</button>}
+                <button type="button" disabled={saving} onClick={onCancel} className={s.secondaryButton}>Cancel</button>
+                <button type="button" disabled={saving} onClick={onFullForm} className={s.quietButton}>Full line form</button>
+            </div>
+            {nextLine && onSaveNext && <p className={`mt-2 text-sm ${s.muted}`}>Next editable saved line: {nextLine.description || "No description yet"}.{nextBlocked ? " This line already has open work; finish it first." : " Opens only after this save is confirmed."}</p>}
+        </td>
+    </tr>;
+}
+
+function InlineRateEditor({ line, op, s, onChange, onUseArea, onCancel, onSave, onFullForm, nextLine, nextBlocked = false, onSaveNext, focusDescription = false, finderMatch = false, finderCurrent = false }: {
     "data-inline-editor": string;
     line: EstimateLine;
     op: LineOp;
     s: WorkspaceStyles;
     onChange: (patch: Partial<PriceLineDraft>) => void;
+    onUseArea: (quantity: string) => void;
     onCancel: () => void;
     onSave: () => void;
     onFullForm: () => void;
+    nextLine?: EstimateLine | null;
+    nextBlocked?: boolean;
+    onSaveNext?: () => Promise<void>;
+    focusDescription?: boolean;
+    finderMatch?: boolean;
+    finderCurrent?: boolean;
 }) {
     const { draft, fieldErrors } = op;
     const saving = op.status === "saving";
@@ -621,15 +1023,16 @@ function InlineRateEditor({ line, op, s, onChange, onCancel, onSave, onFullForm 
     const error = (name: keyof typeof fieldErrors) => fieldErrors[name]
         ? <p id={`${prefix}-${name}-error`} className={`mt-1 text-sm ${s.errorText}`}>{fieldErrors[name]}</p> : null;
 
-    return <tr className={ui.priceInlineEditor} data-price-line={line.id}>
+    return <tr className={ui.priceInlineEditor} data-price-line={line.id} tabIndex={-1} data-price-find-match={finderMatch || undefined} data-price-find-current={finderCurrent || undefined}>
         <td className={ui.priceLineDescription}>
             <form id={formId} noValidate aria-label={`Change quantity and rate for ${line.description || "this line"}`}
                 aria-busy={saving} onSubmit={event => { event.preventDefault(); onSave(); }}>
-                <input {...field("description", "Work description")} value={draft.description} maxLength={500} autoComplete="off"
+                <input {...field("description", "Work description")} value={draft.description} autoFocus={focusDescription} maxLength={500} autoComplete="off"
                     className={s.input} onChange={event => onChange({ description: event.target.value })} />
                 {error("description")}
             </form>
             <p className={`mt-2 text-sm ${s.muted}`}>Draft only until Save line. Use Tab to move between fields.</p>
+            {draft.mode === "rate" && <AreaQuantityAid key={`${op.lineId}:${draft.unit}`} idPrefix={`${prefix}-area`} unit={draft.unit} disabled={saving} onUse={onUseArea} />}
             {op.status === "failed" && <p role="alert" className={`mt-2 text-sm ${s.errorText}`}>{op.error}</p>}
         </td>
         <td data-label="Quantity" className={ui.priceLineNumber}>
@@ -658,18 +1061,113 @@ function InlineRateEditor({ line, op, s, onChange, onCancel, onSave, onFullForm 
                 <button type="submit" form={formId} disabled={saving} className={s.primaryButton}>
                     {saving ? "Saving..." : op.status === "failed" ? "Try again" : "Save line"}
                 </button>
+                {nextLine && onSaveNext && <button type="button" disabled={saving || nextBlocked} onClick={onSaveNext} className={s.secondaryButton}>Save and change next</button>}
                 <button type="button" disabled={saving} onClick={onCancel} className={s.secondaryButton}>Cancel</button>
                 <button type="button" disabled={saving} onClick={onFullForm} className={s.quietButton}>Full line form</button>
             </div>
-            <p className={`mt-2 text-sm ${s.muted}`}>Full form includes one-price entry and measurements.</p>
+            {nextLine && onSaveNext && <p className={`mt-2 text-sm ${s.muted}`}>Next editable saved line: {nextLine.description || "No description yet"}.{nextBlocked ? " This line already has open work; finish it first." : " Opens only after this save is confirmed."}</p>}
+            <p className={`mt-2 text-sm ${s.muted}`}>Full form includes one-price entry.</p>
         </td>
     </tr>;
 }
 
 // ─── Add / change form ───────────────────────────────────
 
+function InlineNewPriceLine({ idPrefix, title, op, s, showDetails, onChange, onUseArea, onCancel, onSave, onSaveNext, onFullForm, activityNames }: {
+    "data-inline-add": boolean;
+    idPrefix: string;
+    title: string;
+    op: LineOp;
+    s: WorkspaceStyles;
+    showDetails: boolean;
+    onChange: (patch: Partial<PriceLineDraft>) => void;
+    onUseArea: (quantity: string) => void;
+    onCancel: () => void;
+    onSave: () => void;
+    onSaveNext?: () => void;
+    onFullForm: () => void;
+    activityNames?: string[];
+}) {
+    const { draft, fieldErrors } = op;
+    const saving = op.status === "saving";
+    const formId = `${idPrefix}-inline-form`;
+    const total = draftLineTotal(draft);
+    const field = (name: keyof typeof fieldErrors, label: string) => ({
+        id: `${idPrefix}-${name}`, form: formId, disabled: saving, "aria-label": label,
+        "aria-invalid": fieldErrors[name] ? true : undefined,
+        "aria-describedby": fieldErrors[name] ? `${idPrefix}-${name}-error` : undefined,
+    });
+    const error = (name: keyof typeof fieldErrors) => fieldErrors[name]
+        ? <p id={`${idPrefix}-${name}-error`} className={`mt-1 text-sm ${s.errorText}`}>{fieldErrors[name]}</p> : null;
+
+    return <tr className={`${ui.priceInlineEditor} ${ui.priceInlineNew}`} data-new-price-line={op.lineId}
+        onKeyDown={event => {
+            const fieldId = (event.target as HTMLElement).id;
+            if (!onSaveNext || saving || event.defaultPrevented || event.repeat || event.nativeEvent.isComposing
+                || event.key !== "Enter" || !(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey
+                || !["description", "amount", "quantity", "unit", "rate"].some(name => fieldId === `${idPrefix}-${name}`)) return;
+            event.preventDefault(); onSaveNext();
+        }}>
+        <td className={ui.priceLineDescription}>
+            <form id={formId} noValidate aria-label={title} aria-busy={saving}
+                onSubmit={event => { event.preventDefault(); onSave(); }}>
+                <label htmlFor={`${idPrefix}-description`} className={s.label}>{title}</label>
+                <input {...field("description", "New work description")} value={draft.description} maxLength={500}
+                    autoComplete="off" autoFocus={op.kind === "add"} className={`${s.input} mt-2`}
+                    onChange={event => onChange({ description: event.target.value })} />
+                {error("description")}
+            </form>
+            {activityNames && <NewPriceActivity id={`${idPrefix}-activity`} form={formId} value={draft.activity ?? ""}
+                names={activityNames} disabled={saving} error={fieldErrors.activity} onChange={activity => onChange({ activity })} s={s} />}
+            <div className={ui.newPriceMethods} role="group" aria-label="How to price the new line">
+                <button type="button" disabled={saving} aria-pressed={draft.mode === "amount"} onClick={() => onChange({ mode: "amount" })}>One price</button>
+                <button type="button" disabled={saving} aria-pressed={draft.mode === "rate"} onClick={() => onChange({ mode: "rate" })}>Quantity and rate</button>
+            </div>
+            <p className={`mt-2 text-sm ${s.muted}`}>Not saved. Tab between fields; save only when ready.</p>
+            {draft.mode === "rate" && <AreaQuantityAid key={`${op.lineId}:${draft.unit}`} idPrefix={`${idPrefix}-area`} unit={draft.unit} disabled={saving} onUse={onUseArea} />}
+            {op.status === "failed" && <p role="alert" className={`mt-2 text-sm ${s.errorText}`}>{op.error}</p>}
+        </td>
+        {showDetails && (draft.mode === "amount" ? <td colSpan={3} className={ui.priceOneAmount}>One price</td> : <>
+            <td data-label="Quantity" className={ui.priceLineNumber}>
+                <input {...field("quantity", "New priced quantity")} value={draft.quantity} inputMode="decimal" autoComplete="off"
+                    className={s.input} onChange={event => onChange({ quantity: event.target.value })} />
+                {error("quantity")}
+            </td>
+            <td data-label="Unit" className={ui.priceLineUnit}>
+                <select {...field("unit", "New priced unit")} value={draft.unit} className={s.input} onChange={event => onChange({ unit: event.target.value })}>
+                    {unitOptions(draft.unit).map(unit => <option key={unit} value={unit}>{unit}</option>)}
+                </select>
+                {error("unit")}
+            </td>
+            <td data-label="Rate" className={ui.priceLineNumber}>
+                <input {...field("rate", "New unit rate in pounds")} value={draft.rate} inputMode="decimal" autoComplete="off"
+                    className={s.input} onChange={event => onChange({ rate: event.target.value })} />
+                {error("rate")}
+            </td>
+        </>)}
+        <td data-label="Price" className={ui.priceLineAmount}>
+            {draft.mode === "amount" && <>
+                <label className={s.label} htmlFor={`${idPrefix}-amount`}>Price (£)</label>
+                <input {...field("amount", "New line price in pounds")} value={draft.amount} inputMode="decimal" autoComplete="off"
+                    className={`${s.input} mt-2`} onChange={event => onChange({ amount: event.target.value })} />
+                {error("amount")}
+            </>}
+            <p aria-live="polite" className={`mt-2 ${s.body}`}>Draft <strong>{total === null ? "Check entries" : formatGBP(total)}</strong></p>
+        </td>
+        <td className={ui.priceLineActions}>
+            <div className="flex flex-wrap gap-2">
+                <button type="submit" form={formId} disabled={saving} className={s.primaryButton}>{saving ? "Saving..." : op.status === "failed" ? "Try again" : "Save line"}</button>
+                {onSaveNext && <button type="button" disabled={saving} onClick={onSaveNext} className={s.secondaryButton}>Save and add next</button>}
+                <button type="button" disabled={saving} onClick={onCancel} className={s.secondaryButton}>Cancel</button>
+                <button type="button" disabled={saving} onClick={onFullForm} className={s.quietButton}>Full line form</button>
+            </div>
+            <p className={`mt-2 text-sm ${s.muted}`}>Ctrl/Command+Enter saves and adds next. Area results stay in this draft until Save line.</p>
+        </td>
+    </tr>;
+}
+
 function LineForm({
-    idPrefix, title, op, s, isDark, onChange, onCancel, onSave, onSaveNext,
+    idPrefix, title, op, s, isDark, onChange, onCancel, onSave, onSaveNext, activityNames,
 }: {
     idPrefix: string;
     title: string;
@@ -680,6 +1178,7 @@ function LineForm({
     onCancel: () => void;
     onSave: () => void;
     onSaveNext?: () => void;
+    activityNames?: string[];
 }) {
     const { draft, fieldErrors } = op;
     const saving = op.status === "saving";
@@ -721,6 +1220,8 @@ function LineForm({
                 onSaveNext();
             }} className="space-y-4" aria-label={title}>
             <p className={`text-base font-bold ${s.heading}`}>{title}</p>
+            {op.kind === "add" && activityNames && <NewPriceActivity id={`${idPrefix}-activity`} value={draft.activity ?? ""}
+                names={activityNames} disabled={saving} error={fieldErrors.activity} onChange={activity => onChange({ activity })} s={s} />}
 
             <div>
                 <label htmlFor={`${idPrefix}-description`} className={s.label}>What is this price for?</label>

@@ -8,6 +8,7 @@
  */
 
 import { getLaunchProfile, isCapabilityEnabled, type LaunchCapability, type LaunchProfile } from "@/lib/launch-profile";
+import { JOB_WORKFLOW } from "@/lib/job-workflow";
 
 export type PhoneNavKey =
     | "pipeline"
@@ -37,6 +38,7 @@ export interface PhoneNavGroup {
 interface ItemDef {
     key: PhoneNavKey;
     label: string;
+    cohortLabel?: string;
     path: string;
     capability: LaunchCapability;
     projectAware?: boolean;
@@ -54,12 +56,7 @@ const GROUPS: { key: PhoneNavGroup["key"]; label: string; items: ItemDef[] }[] =
     {
         key: "this-job",
         label: "This job",
-        items: [
-            { key: "brief", label: "Brief", path: "/dashboard/projects/brief", capability: "brief", projectAware: true },
-            { key: "estimates", label: "Estimates", path: "/dashboard/projects/costs", capability: "estimating", projectAware: true },
-            { key: "programmes", label: "Programmes", path: "/dashboard/projects/schedule", capability: "programme", projectAware: true },
-            { key: "proposals", label: "Proposals", path: "/dashboard/projects/proposal", capability: "proposal", projectAware: true },
-        ],
+        items: JOB_WORKFLOW.map(step => ({ key: step.phoneKey, label: step.legacyLabel, cohortLabel: step.label, path: step.path, capability: step.key, projectAware: true })),
     },
     {
         key: "company",
@@ -83,7 +80,7 @@ export function buildPhoneNav(
                 .filter((item) => isCapabilityEnabled(item.capability, profile))
                 .map((item) => ({
                     key: item.key,
-                    label: item.label,
+                    label: profile === "cohort" ? item.cohortLabel ?? item.label : item.label,
                     path: item.path,
                     href: item.projectAware && projectId
                         ? `${item.path}?projectId=${encodeURIComponent(projectId)}`

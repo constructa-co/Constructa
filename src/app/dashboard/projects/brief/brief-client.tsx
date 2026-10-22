@@ -262,7 +262,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                                     aria-current={active ? "step" : undefined}
                                     className={`${ui.stepButton} w-full min-h-14 px-1 py-1.5 rounded-xl border text-center transition-colors ${
                                         active
-                                            ? "border-blue-500 bg-blue-600 text-white"
+                                            ? "border-[var(--brief-accent)] bg-[var(--brief-accent)] text-[var(--brief-accent-text)]"
                                             : isDark
                                                 ? "border-[#2a2a2a] bg-[#1a1a1a] text-slate-300 hover:border-slate-500"
                                                 : "border-gray-200 bg-white text-gray-700 hover:border-gray-400"
@@ -359,7 +359,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                                             onClick={() => edit({ clientType: type })}
                                             className={`min-h-12 px-4 rounded-xl border text-base font-semibold transition-colors ${
                                                 selected
-                                                    ? "border-blue-500 bg-blue-600 text-white"
+                                                    ? "border-[var(--brief-accent)] bg-[var(--brief-accent)] text-[var(--brief-accent-text)]"
                                                     : isDark
                                                         ? "border-[#3a3a3a] text-slate-200 hover:border-slate-400"
                                                         : "border-gray-300 text-gray-800 hover:border-gray-500"
@@ -390,7 +390,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                                                 type="button"
                                                 onClick={() => store.dispatch({ type: "draft/toggleTrade", trade })}
                                                 aria-label={`Remove ${trade}`}
-                                                className="min-h-11 pl-3 pr-2 rounded-full bg-blue-600 text-white text-sm font-semibold inline-flex items-center gap-1.5"
+                                                className="min-h-11 pl-3 pr-2 rounded-full bg-[var(--brief-accent)] text-[var(--brief-accent-text)] text-sm font-semibold inline-flex items-center gap-1.5"
                                             >
                                                 {trade}
                                                 <X className="w-4 h-4" aria-hidden="true" />
@@ -424,12 +424,12 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                                             onClick={() => store.dispatch({ type: "draft/toggleTrade", trade })}
                                             className={`w-full min-h-11 px-3 py-2 rounded-lg border text-left text-sm font-medium flex items-center gap-2 transition-colors ${
                                                 selected
-                                                    ? isDark ? "border-blue-400 bg-blue-500/20 text-white" : "border-blue-500 bg-blue-50 text-blue-900"
+                                                    ? isDark ? "border-[var(--brief-accent)] bg-[var(--brief-accent)] text-[var(--brief-accent-text)]" : "border-[var(--brief-accent)] bg-[var(--brief-accent)] text-[var(--brief-accent-text)]"
                                                     : isDark ? "border-transparent text-slate-200 hover:bg-white/5" : "border-transparent text-gray-800 hover:bg-white"
                                             }`}
                                         >
                                             <span className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${
-                                                selected ? "bg-blue-600 border-blue-600 text-white" : isDark ? "border-slate-500" : "border-gray-400"
+                                                selected ? "bg-[var(--brief-accent)] border-[var(--brief-accent)] text-[var(--brief-accent-text)]" : isDark ? "border-slate-500" : "border-gray-400"
                                             }`}>
                                                 {selected && <Check className="w-3.5 h-3.5" aria-hidden="true" />}
                                             </span>
@@ -713,7 +713,7 @@ function SuggestionCard({
                                         type="checkbox"
                                         checked={checked}
                                         onChange={(e) => toggle(part, e.target.checked)}
-                                        className="mt-0.5 w-6 h-6 flex-shrink-0 accent-blue-600"
+                                        className="mt-0.5 w-6 h-6 flex-shrink-0 accent-[var(--brief-accent)]"
                                     />
                                     <span className="min-w-0">
                                         <span className={`block text-sm font-semibold ${s.muted}`}>{PART_LABEL[part]}</span>

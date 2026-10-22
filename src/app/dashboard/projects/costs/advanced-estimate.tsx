@@ -202,7 +202,10 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     const addingSectionsRef = useRef(new Set<string>());
     const deleteReceiptRef = useRef<DeleteLineReceipt | null>(null);
     const [deleteReceipt, setDeleteReceipt] = useState<DeleteLineReceipt | null>(null);
-    const deleteBlocked = () => !!deleteReceiptRef.current && deleteReceiptRef.current.phase !== "confirmed";
+    const deleteBlocked = () => (!!deleteReceiptRef.current && deleteReceiptRef.current.phase !== "confirmed") ||
+        Object.keys(catalogueView.current.resourceSaveStates ?? {}).some(key => key.startsWith("delete:"));
+    const retainedDeletes = Object.entries(resourceSaveStates ?? {}).filter(([key]) => key.startsWith("delete:"));
+    const deleteWorkOpen = (!!deleteReceipt && deleteReceipt.phase !== "confirmed") || retainedDeletes.length > 0;
 
     const showSaving = useCallback(() => {
         setSaveStatus("saving");
@@ -1321,6 +1324,10 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     return (
         <>
         <div className="space-y-6">
+            {!deleteReceipt && retainedDeletes.length > 0 && <section aria-label="Retained removal reconciliation" className="rounded-xl border border-amber-700 p-4 space-y-2 text-sm text-slate-200">
+                <p>A previous Remove is pending or unconfirmed and may already have deleted the row remotely. Current work stays read-only; reload to reconcile. No retry or refresh starts automatically.</p>
+                {retainedDeletes.map(([key, state]) => <p key={key}>Row identity: {key.slice("delete:".length)}. Retained acknowledgement: {state}.</p>)}
+            </section>}
             {deleteReceipt && <section aria-label="Remove line acknowledgement" data-delete-phase={deleteReceipt.phase} className="rounded-xl border border-slate-700 p-4 space-y-2 text-sm text-slate-200">
                 <p className="font-semibold">Remove line status</p>
                 <p>Reviewed line: {deleteReceipt.line.description}. Activity: {deleteReceipt.line.trade_section || "General"}.</p>
@@ -1750,7 +1757,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                                     allLibrary={costLibrary}
                                                     section={section}
                                                     isClientBoQ={!!currentEstimate.is_client_boq}
-                                                    saveBlocked={(!!deleteReceipt && deleteReceipt.phase !== "confirmed") || lineTypeDraft?.line.id === line.id || descriptionDraft?.line.id === line.id || unitDraft?.line.id === line.id || rateDraft?.line.id === line.id || activityReview?.line.id === line.id || quantityDraft?.line.id === line.id || draftResourceLines.has(line.id) || uncertainLineSaves.has(line.id) || resourceSaveStates?.[`line:${line.id}`] === "uncertain" || applyingResourceLines.has(line.id)}
+                                                    saveBlocked={deleteWorkOpen || lineTypeDraft?.line.id === line.id || descriptionDraft?.line.id === line.id || unitDraft?.line.id === line.id || rateDraft?.line.id === line.id || activityReview?.line.id === line.id || quantityDraft?.line.id === line.id || draftResourceLines.has(line.id) || uncertainLineSaves.has(line.id) || resourceSaveStates?.[`line:${line.id}`] === "uncertain" || applyingResourceLines.has(line.id)}
                                                     savePending={pendingLineSaves.has(line.id) || pendingResourceLines.has(line.id) || applyingResourceLines.has(line.id)}
                                                     onUpdate={handleUpdateLine}
                                                     onDelete={handleDeleteLine}
@@ -1843,7 +1850,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                                     onResourceSaveStateChanged?.(`draft:${lineId}`, open ? "draft" : "confirmed");
                                                 }}
                                                 onRateApplied={handleRateApplied}
-                                                saveBlocked={(!!deleteReceipt && deleteReceipt.phase !== "confirmed") || lineTypeDraft?.line.id === line.id || descriptionDraft?.line.id === line.id || unitDraft?.line.id === line.id || rateDraft?.line.id === line.id || activityReview?.line.id === line.id || quantityDraft?.line.id === line.id || catalogueReview?.line.id === line.id || uncertainResourceLines.has(line.id) || resourceSaveStates?.[line.id] === "uncertain" || uncertainLineSaves.has(line.id) || resourceSaveStates?.[`line:${line.id}`] === "uncertain"}
+                                                saveBlocked={deleteWorkOpen || lineTypeDraft?.line.id === line.id || descriptionDraft?.line.id === line.id || unitDraft?.line.id === line.id || rateDraft?.line.id === line.id || activityReview?.line.id === line.id || quantityDraft?.line.id === line.id || catalogueReview?.line.id === line.id || uncertainResourceLines.has(line.id) || resourceSaveStates?.[line.id] === "uncertain" || uncertainLineSaves.has(line.id) || resourceSaveStates?.[`line:${line.id}`] === "uncertain"}
                                                 priceSavePending={pendingLineSaves.has(line.id)}
                                                 canApplyRate={() => !deleteBlocked() && lineTypeDraftRef.current?.line.id !== line.id && descriptionDraftRef.current?.line.id !== line.id && unitDraftRef.current?.line.id !== line.id && rateDraftRef.current?.line.id !== line.id && activityReviewRef.current?.line.id !== line.id && quantityDraftRef.current?.line.id !== line.id && catalogueReviewRef.current?.line.id !== line.id && !(linePendingRef.current[line.id] > 0) && !lineUncertainRef.current.has(line.id) && resourceSaveStates?.[`line:${line.id}`] !== "uncertain"}
                                                 onApplyPendingChanged={(lineId, pending) => {

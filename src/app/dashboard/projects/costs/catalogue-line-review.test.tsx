@@ -1392,5 +1392,22 @@ describe("acknowledged ordinary Advanced Remove line", () => {
         expect(JSON.stringify(estimates)).toBe(before); expect(ledger).toEqual({ "delete:line": "saving" });
         expect(replay.error).not.toHaveBeenCalled();
     });
+
+    it.each(["saving", "uncertain"])("reopening Advanced retains a read-only parent delete fence for %s without retry or edits", async phase => {
+        const request = pending(); replay.other.mockReturnValue(request.promise);
+        const operation = remove()("line"); render();
+        if (phase === "uncertain") { request.resolve({ success: false, error: "unknown delete outcome" }); await operation; render(); }
+        const before = JSON.stringify(estimates); unmount(); replay.slots = {}; render();
+        expect(rowElement().props.saveBlocked).toBe(true);
+        expect(text(nodes(tree).find(n => n.props["aria-label"] === "Retained removal reconciliation"))).toContain("Row identity:  line");
+        await remove()("line");
+        (rowElement().props.onUpdate as (id: string, patch: unknown) => void)("line", { quantity: 99 });
+        (rowElement().props.onQuantityChange as (line: unknown, raw: string) => void)(estimates[0].estimate_lines[0], "99");
+        render();
+        expect(replay.other).toHaveBeenCalledTimes(1); expect(replay.save).not.toHaveBeenCalled();
+        expect(JSON.stringify(estimates)).toBe(before); expect(ledger["delete:line"]).toBe(phase);
+        if (phase === "saving") { request.resolve({ success: true }); await operation; expect(JSON.stringify(estimates)).toBe(before); }
+    });
+
 });
 

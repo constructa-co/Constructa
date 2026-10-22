@@ -61,6 +61,8 @@ interface Props {
     /** Default to the real server actions; replaced only by tests and evidence capture. */
     ask?: (projectId: string, description: string) => ReturnType<AskAssistant>;
     save?: (projectId: string, payload: Parameters<SaveBrief>[0]) => ReturnType<SaveBrief>;
+    /** Why pre-contract information can't be changed on this job, or null when it can. */
+    lockReason?: string | null;
 }
 
 const CLIENT_TYPE_LABEL: Record<ClientType, string> = {
@@ -81,7 +83,7 @@ const formatDate = (iso: string): string => {
         : date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 };
 
-export default function BriefClient({ project, ask = suggestBriefAction, save = saveBriefAction }: Props) {
+export default function BriefClient({ project, ask = suggestBriefAction, save = saveBriefAction, lockReason = null }: Props) {
     const router = useRouter();
     const { theme } = useTheme();
     const isDark = theme === "dark";
@@ -92,6 +94,21 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
     const status = briefSaveStatus(state);
     const confirmed = isBriefConfirmed(state);
     const saving = state.save.status === "saving";
+
+    // A locked job (accepted, won, active, archived…) shows its brief
+    // read-only; the server refuses a save anyway. Whatever is on screen,
+    // saved or not, stays as it is. A handler kept from an earlier render
+    // reads the latest lock, not the one it was made with.
+    const locked = !!lockReason;
+    const latest = useRef({ locked });
+    useEffect(() => { latest.current = { locked }; }, [locked]);
+    const isLocked = () => locked || latest.current.locked;
+
+    // A suggestion still being worked on when the lock arrives is dropped;
+    // a late reply to it is then ignored. The draft is not touched.
+    useEffect(() => {
+        if (locked && store.getState().ai.status === "loading") store.dispatch({ type: "ai/cancelled" });
+    }, [locked, store]);
 
     const [leaving, setLeaving] = useState(false);
     const [postcode, setPostcode] = useState(project.postcode);
@@ -113,8 +130,9 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
         if (!dirty) return;
         const warnOnUnload = (event: BeforeUnloadEvent) => event.preventDefault();
         const confirmLeave = (event: Event) => {
-            const stay = !window.confirm(
-                "Your brief has changes that are not saved yet.\n\nPress Cancel to stay here and save them, or OK to leave without saving.",
+            const stay = !window.confirm(locked
+                ? "Your brief has changes that are not saved, and this job is now locked so they can't be saved here.\n\nPress Cancel to stay on this page, or OK to leave without them."
+                : "Your brief has changes that are not saved yet.\n\nPress Cancel to stay here and save them, or OK to leave without saving.",
             );
             if (stay) {
                 event.preventDefault();
@@ -134,7 +152,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
             window.removeEventListener(BEFORE_PROJECT_NAVIGATION, confirmLeave);
             document.removeEventListener("click", confirmOnLink, true);
         };
-    }, [dirty]);
+    }, [dirty, locked]);
 
     // A save can be started from the bottom of a long page. Bring the failure
     // and its retry into view rather than leaving them off screen.
@@ -145,7 +163,14 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
         saveAlertRef.current?.focus({ preventScroll: true });
     }, [saveFailed, state.save.error]);
 
-    const edit = (patch: Partial<BriefDraft>) => store.dispatch({ type: "draft/edit", patch });
+    const edit = (patch: Partial<BriefDraft>) => {
+        if (isLocked()) return;
+        store.dispatch({ type: "draft/edit", patch });
+    };
+    const toggleTrade = (trade: string) => {
+        if (isLocked()) return;
+        store.dispatch({ type: "draft/toggleTrade", trade });
+    };
     const goTo = (next: BriefStageKey) => {
         store.dispatch({ type: "stage/set", stage: next });
         window.requestAnimationFrame(() => headingRef.current?.focus());
@@ -154,13 +179,17 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
     const saveFn: SaveBrief = (payload) => save(project.id, payload);
 
     const handleSave = (confirm: boolean) => {
+        if (isLocked()) return;
         lastSaveWasConfirm.current = confirm;
         void saveBrief(store, saveFn, { confirm });
     };
 
     const handleBuildPrice = async () => {
+        if (isLocked()) return;
         lastSaveWasConfirm.current = true;
         const outcome = await continueToPricing(store, saveFn, () => {
+            // Locked while the save was on its way: stay on the read-only brief.
+            if (isLocked()) return;
             setLeaving(true);
             router.push(pricingPathForProject(project.id));
         });
@@ -168,11 +197,13 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
     };
 
     const handleAsk = () => {
+        if (isLocked()) return;
         void requestSuggestion(store, (work) => ask(project.id, work), newClientId());
     };
 
     const handleVideoApply = (result: VideoAnalysisResult) => {
         // Video analysis is a suggestion like any other: it waits for Apply.
+        if (isLocked()) return;
         store.dispatch({
             type: "suggestion/received",
             suggestion: suggestionFromRaw(result, {
@@ -186,6 +217,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
     };
 
     const handlePostcodeLookup = async () => {
+        if (isLocked()) return;
         const clean = postcode.replace(/\s+/g, "").toUpperCase();
         setPostcodeNote("");
         if (clean.length < 5) return;
@@ -227,7 +259,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                 </div>
                 <div className="flex items-center gap-2">
                     <SaveStatus status={status} label={SAVE_STATUS_LABEL[status]} isDark={isDark} />
-                    {(status === "unsaved" || status === "saving") && (
+                    {!locked && (status === "unsaved" || status === "saving") && (
                         <button type="button" onClick={() => handleSave(false)} disabled={saving} className={s.quietButton}>
                             Save
                         </button>
@@ -235,17 +267,31 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                 </div>
             </div>
 
+            {locked && (
+                <div id="brief-lock-note" role="status" className={`${s.noticeBox} text-sm space-y-1`} data-brief-locked>
+                    <p className="font-semibold">This brief is read-only.</p>
+                    <p>{lockReason}</p>
+                    {dirty && (
+                        <p>
+                            Changes typed here before the job was locked are still shown, but they are not saved and can&apos;t be saved while it is locked.
+                        </p>
+                    )}
+                </div>
+            )}
+
             {saveFailed && (
                 <div ref={saveAlertRef} tabIndex={-1} role="alert" className={`${s.errorBox} flex flex-wrap items-center gap-3 focus:outline-none`}>
                     <AlertTriangle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
                     <p className="flex-1 min-w-[12rem] text-sm">{state.save.error}</p>
-                    <button
-                        type="button"
-                        onClick={() => handleSave(lastSaveWasConfirm.current)}
-                        className={`${s.secondaryButton} min-h-11 text-sm`}
-                    >
-                        Try again
-                    </button>
+                    {!locked && (
+                        <button
+                            type="button"
+                            onClick={() => handleSave(lastSaveWasConfirm.current)}
+                            className={`${s.secondaryButton} min-h-11 text-sm`}
+                        >
+                            Try again
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -283,7 +329,11 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                     suggestion={suggestion}
                     draft={draft}
                     s={s}
-                    onApply={(parts, replaceNewerWork) => store.dispatch({ type: "suggestion/applied", parts, replaceNewerWork })}
+                    locked={locked}
+                    onApply={(parts, replaceNewerWork) => {
+                        if (isLocked()) return;
+                        store.dispatch({ type: "suggestion/applied", parts, replaceNewerWork });
+                    }}
                     onDiscard={() => store.dispatch({ type: "suggestion/discarded" })}
                 />
             )}
@@ -309,8 +359,9 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                             </p>
                             <textarea
                                 id="brief-work"
-                                aria-describedby="brief-work-help"
+                                aria-describedby={locked ? "brief-work-help brief-lock-note" : "brief-work-help"}
                                 rows={7}
+                                readOnly={locked}
                                 value={draft.work}
                                 onChange={(e) => edit({ work: e.target.value })}
                                 placeholder="e.g. Strip out the old bathroom, move the soil pipe, fit new suite and tile throughout"
@@ -318,7 +369,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                             />
                         </div>
 
-                        <div className={`${s.inset} p-4 space-y-3`}>
+                        {!locked && <div className={`${s.inset} p-4 space-y-3`}>
                             <div className="flex flex-wrap items-center gap-3">
                                 <button
                                     type="button"
@@ -344,7 +395,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                             {state.ai.status === "failed" && (
                                 <p role="alert" className={`text-sm font-medium ${s.errorText}`}>{state.ai.error}</p>
                             )}
-                        </div>
+                        </div>}
 
                         <fieldset>
                             <legend className={s.label}>Who is the client?</legend>
@@ -356,6 +407,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                                             key={type}
                                             type="button"
                                             aria-pressed={selected}
+                                            disabled={locked}
                                             onClick={() => edit({ clientType: type })}
                                             className={`min-h-12 px-4 rounded-xl border text-base font-semibold transition-colors ${
                                                 selected
@@ -388,7 +440,8 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                                         <li key={trade}>
                                             <button
                                                 type="button"
-                                                onClick={() => store.dispatch({ type: "draft/toggleTrade", trade })}
+                                                disabled={locked}
+                                                onClick={() => toggleTrade(trade)}
                                                 aria-label={`Remove ${trade}`}
                                                 className="min-h-11 pl-3 pr-2 rounded-full bg-[var(--brief-accent)] text-[var(--brief-accent-text)] text-sm font-semibold inline-flex items-center gap-1.5"
                                             >
@@ -421,7 +474,8 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                                         <button
                                             type="button"
                                             aria-pressed={selected}
-                                            onClick={() => store.dispatch({ type: "draft/toggleTrade", trade })}
+                                            disabled={locked}
+                                            onClick={() => toggleTrade(trade)}
                                             className={`w-full min-h-11 px-3 py-2 rounded-lg border text-left text-sm font-medium flex items-center gap-2 transition-colors ${
                                                 selected
                                                     ? isDark ? "border-[var(--brief-accent)] bg-[var(--brief-accent)] text-[var(--brief-accent-text)]" : "border-[var(--brief-accent)] bg-[var(--brief-accent)] text-[var(--brief-accent-text)]"
@@ -461,8 +515,9 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                             </p>
                             <textarea
                                 id="brief-site-notes"
-                                aria-describedby="brief-site-notes-help"
+                                aria-describedby={locked ? "brief-site-notes-help brief-lock-note" : "brief-site-notes-help"}
                                 rows={5}
+                                readOnly={locked}
                                 value={draft.siteNotes}
                                 onChange={(e) => edit({ siteNotes: e.target.value })}
                                 placeholder="e.g. Rear access only. Client to clear the room before we start."
@@ -475,8 +530,9 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                                 <label htmlFor="brief-start-date" className={s.label}>Likely start date</label>
                                 <input
                                     id="brief-start-date"
-                                    aria-describedby="brief-start-date-help"
+                                    aria-describedby={locked ? "brief-start-date-help brief-lock-note" : "brief-start-date-help"}
                                     type="date"
+                                    readOnly={locked}
                                     value={draft.startDate}
                                     onChange={(e) => edit({ startDate: e.target.value })}
                                     className={`${s.input} mt-2`}
@@ -491,6 +547,8 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                                     id="brief-rough-value"
                                     inputMode="decimal"
                                     autoComplete="off"
+                                    aria-describedby={locked ? "brief-lock-note" : undefined}
+                                    readOnly={locked}
                                     value={draft.roughValue}
                                     onChange={(e) => edit({ roughValue: e.target.value })}
                                     placeholder="Optional"
@@ -504,10 +562,11 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                             <p id="brief-postcode-help" className={`mt-1 text-sm ${s.muted}`}>Optional. Used to find the region. Editing this box does not change the job&apos;s saved postcode.</p>
                             <input
                                 id="brief-postcode"
-                                aria-describedby="brief-postcode-help"
+                                aria-describedby={locked ? "brief-postcode-help brief-lock-note" : "brief-postcode-help"}
                                 autoComplete="off"
+                                readOnly={locked}
                                 value={postcode}
-                                onChange={(e) => setPostcode(e.target.value)}
+                                onChange={(e) => { if (!isLocked()) setPostcode(e.target.value); }}
                                 onBlur={handlePostcodeLookup}
                                 placeholder="e.g. SW1A 1AA"
                                 className={`${s.input} mt-2 sm:max-w-xs`}
@@ -519,7 +578,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                             )}
                         </div>
 
-                        {(showVideo || showDrawing) && (
+                        {!locked && (showVideo || showDrawing) && (
                             <div className={`rounded-xl border ${s.divider}`}>
                                 <button
                                     type="button"
@@ -559,7 +618,9 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                 {stage === "review" && (
                     <>
                         <p className={`text-base ${s.muted}`}>
-                            This is what will be saved. Change anything that isn&apos;t right.
+                            {locked
+                                ? "This is the brief as it stands on this page. It can't be changed while the job is locked."
+                                : <>This is what will be saved. Change anything that isn&apos;t right.</>}
                         </p>
                         <dl className={`divide-y ${isDark ? "divide-[#2a2a2a]" : "divide-gray-200"}`}>
                             <ReviewRow s={s} label="The job" onChange={() => goTo("client")}>
@@ -599,7 +660,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                         <button type="button" onClick={() => goTo(adjacentStage(stage, 1))} className={s.primaryButton}>
                             Next <ArrowRight className="w-4 h-4" aria-hidden="true" />
                         </button>
-                    ) : (
+                    ) : locked ? <span /> : (
                         <div className="flex flex-col sm:flex-row gap-3">
                             {!confirmed && (
                                 <button type="button" onClick={() => handleSave(true)} disabled={saving || leaving} className={s.secondaryButton}>
@@ -614,7 +675,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                         </div>
                     )}
                 </div>
-                {stage === "review" && !confirmed && (
+                {stage === "review" && !confirmed && !locked && (
                     <p className={`text-sm ${s.muted}`}>
                         Your brief is saved before pricing opens. If the save fails you stay here with everything you typed.
                     </p>
@@ -653,12 +714,15 @@ function SuggestionCard({
     suggestion,
     draft,
     s,
+    locked,
     onApply,
     onDiscard,
 }: {
     suggestion: BriefSuggestion;
     draft: BriefDraft;
     s: WorkspaceStyles;
+    /** A locked job can still discard a suggestion, but not apply one. */
+    locked: boolean;
     onApply: (parts: SuggestionPart[], replaceNewerWork: boolean) => void;
     onDiscard: () => void;
 }) {
@@ -712,6 +776,7 @@ function SuggestionCard({
                                     <input
                                         type="checkbox"
                                         checked={checked}
+                                        disabled={locked}
                                         onChange={(e) => toggle(part, e.target.checked)}
                                         className="mt-0.5 w-6 h-6 flex-shrink-0 accent-[var(--brief-accent)]"
                                     />
@@ -738,7 +803,7 @@ function SuggestionCard({
                     <button
                         type="button"
                         onClick={() => onApply(chosen, stale && replaceNewer)}
-                        disabled={chosen.length === 0}
+                        disabled={locked || chosen.length === 0}
                         className={s.primaryButton}
                     >
                         Apply

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProjectNavBar from "@/components/project-navbar";
 import ProjectEntry from "@/components/project-entry";
+import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import BriefClient from "./brief-client";
 
 export const dynamic = "force-dynamic";
@@ -71,6 +72,7 @@ export default async function BriefPage(props: { searchParams: Promise<{ project
                     region: project.region || "",
                     brief_completed: project.brief_completed || false,
                 }}
+                lockReason={getPrecontractEditLockReason(project)}
             />
         </div>
     );

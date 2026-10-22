@@ -274,7 +274,8 @@ function Block({ block }: { block: DocBlock }) {
                     {block.clauses.map((clause) => (
                         <li key={clause.number} className="mb-4 break-inside-avoid text-sm leading-relaxed text-stone-700">
                             <h3 className="font-semibold text-stone-900">{clause.number}. {clause.title}</h3>
-                            <p className="mt-0.5">{clause.body}</p>
+                            {/* Line breaks and indents in the wording are kept as written. */}
+                            <p className="mt-0.5 whitespace-pre-wrap">{clause.body}</p>
                         </li>
                     ))}
                 </ol>

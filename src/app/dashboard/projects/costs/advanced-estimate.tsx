@@ -139,6 +139,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     const [uncertainResourceLines, setUncertainResourceLines] = useState<Set<string>>(new Set());
     const [pendingResourceLines, setPendingResourceLines] = useState<Set<string>>(new Set());
     const pendingResourceLinesRef = useRef(new Set<string>());
+    const resourceUncertainRef = useRef(new Set<string>());
     const [draftResourceLines, setDraftResourceLines] = useState<Set<string>>(new Set());
     const draftResourceLinesRef = useRef(new Set<string>());
     const lineQueuesRef = useRef<Record<string, Promise<void>>>({});
@@ -629,12 +630,12 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
         if (deleteBlocked() || deleteReceiptRef.current?.context === catalogueContext) return;
         const line = currentEstimate?.estimate_lines.find(row => row.id === lineId);
         if (!line || !currentEstimate) return;
-        if (currentEstimate.is_client_boq || line.trade_section === "Preliminaries" || line.pricing_mode !== "simple") {
+        if (currentEstimate.is_client_boq || line.trade_section === "Preliminaries" || (line.pricing_mode !== "simple" && line.pricing_mode !== "buildup")) {
             handleDeleteSpecialLine(lineId); return;
         }
         const draftsClear = () => !lineTypeDraftRef.current && !descriptionDraftRef.current && !unitDraftRef.current &&
             !rateDraftRef.current && !activityReviewRef.current && !quantityDraftRef.current && !catalogueReviewRef.current &&
-            !draftResourceLinesRef.current.size && !pendingResourceLinesRef.current.size && !applyingResourceLinesRef.current.size;
+            !draftResourceLinesRef.current.size && !pendingResourceLinesRef.current.size && !applyingResourceLinesRef.current.size && !resourceUncertainRef.current.size;
         if (!catalogueMounted.current || deleteBlocked() || currentEstimate.project_id !== projectId || line.estimate_id !== currentEstimate.id ||
             catalogueView.current.context !== catalogueContext || !draftsClear() || !addLedgerClear() ||
             [...addReceiptsRef.current.values()].some(receipt => receipt.phase === "saving" || receipt.phase === "unconfirmed") ||
@@ -1861,12 +1862,14 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                                 }}
                                                 librarySaveState={resourceSaveStates?.[`library:${line.id}`] === "saving" ? "saving" : resourceSaveStates?.[`library:${line.id}`] === "uncertain" ? "uncertain" : undefined}
                                                 onLibrarySaveStateChanged={(lineId, state) => {
+                                                    if (state === "uncertain") resourceUncertainRef.current.add(lineId);
                                                     onResourceSaveStateChanged?.(`library:${lineId}`, state);
                                                     if (state === "saving") pendingResourceLinesRef.current.add(lineId);
                                                     else pendingResourceLinesRef.current.delete(lineId);
                                                     setPendingResourceLines(new Set(pendingResourceLinesRef.current));
                                                 }}
                                                 onSaveStateChanged={(lineId, state) => {
+                                                    if (state === "uncertain") resourceUncertainRef.current.add(lineId);
                                                     onResourceSaveStateChanged?.(lineId, state);
                                                     if (state === "saving") pendingResourceLinesRef.current.add(lineId);
                                                     else pendingResourceLinesRef.current.delete(lineId);

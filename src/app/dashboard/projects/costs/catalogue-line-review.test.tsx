@@ -1411,3 +1411,106 @@ describe("acknowledged ordinary Advanced Remove line", () => {
 
 });
 
+
+describe("acknowledged ordinary built-up Remove with retained resources", () => {
+    function remove() { return rowElement().props.onDelete as (id: string) => Promise<void>; }
+    function receipt() { return nodes(tree).find(n => n.props["aria-label"] === "Remove line acknowledgement"); }
+    function openResources() {
+        (nodes(tree).find(n => n.props["data-resource-disclosure"] === "line")!.props.onClick as () => void)();
+        render(); return nodes(tree).find(n => typeof n.props.onDraftChanged === "function")!;
+    }
+    beforeEach(() => {
+        estimates[0].estimate_lines[0] = { ...estimates[0].estimate_lines[0], pricing_mode: "buildup",
+            estimate_line_components: [
+                { id: "resource-labour", estimate_line_id: "line", component_type: "labour", description: "Exact skilled labour", quantity: 0.5, unit: "hour", unit_rate: 12.3456, line_total: 6.1728, manhours_per_unit: 0.5, total_manhours: 1.5, sort_order: 0 },
+                { id: "resource-material", estimate_line_id: "line", component_type: "material", description: "Exact supplier material", quantity: 2, unit: "item", unit_rate: 3.1234, line_total: 6.2468, manhours_per_unit: 0, total_manhours: 0, sort_order: 1 },
+            ],
+        };
+        replay.other.mockResolvedValue({ success: true }); render();
+    });
+
+    it("retains built-up row/resources and money until one clean delete acknowledges,without recalculating resources or changing another line", async () => {
+        const kept = { ...estimates[0].estimate_lines[0], id: "keep", description: "Other built-up work", line_total: 19.7654 };
+        estimates[0].estimate_lines.push(kept); estimates[0].total_cost = 31.7654; render();
+        const before = JSON.stringify(estimates); const request = pending(); replay.other.mockReturnValue(request.promise);
+        const stale = remove(); const operation = stale("line"); stale("line"); render();
+        expect(JSON.stringify(estimates)).toBe(before); expect(replay.other).toHaveBeenCalledExactlyOnceWith("line");
+        expect(rowElement().props.savePending).toBe(true); expect(ledger).toEqual({ "delete:line": "saving" });
+        request.resolve({ success: true }); await operation; await stale("line"); await settle();
+        expect(estimates[0].estimate_lines).toEqual([kept]); expect(estimates[0].total_cost).toBe(19.7654);
+        expect(ledger).toEqual({}); expect(receipt()?.props["data-delete-phase"]).toBe("confirmed");
+        expect(replay.save).not.toHaveBeenCalled(); expect(replay.activity).not.toHaveBeenCalled();
+    });
+
+    it.each(["refused", "warning", "unknown", "rejected"])("%s keeps the exact built-up source and disallows a blind retry or resource application", async kind => {
+        const panel = openResources(); const before = JSON.stringify(estimates);
+        if (kind === "rejected") replay.other.mockRejectedValue(new Error("lost acknowledgement"));
+        else replay.other.mockResolvedValue(kind === "refused" ? { success: false, error: "Owner/edit-lock refusal" } : kind === "warning" ? { success: true, warning: "Stored total refresh failed" } : undefined);
+        await remove()("line"); await settle(); await remove()("line");
+        expect(JSON.stringify(estimates)).toBe(before); expect(replay.other).toHaveBeenCalledTimes(1);
+        expect(ledger["delete:line"]).toBe("uncertain"); expect(text(receipt())).toContain("may already be deleted remotely");
+        expect((panel.props.canApplyRate as () => boolean)()).toBe(false);
+        expect(nodes(tree).find(n => typeof n.props.onDraftChanged === "function")!.props.saveBlocked).toBe(true);
+    });
+
+    it.each(["component quantity", "component order", "mode", "project", "membership"])("late acknowledgement never overwrites newer %s", async kind => {
+        const request = pending(); replay.other.mockReturnValue(request.promise); const operation = remove()("line"); render();
+        const line = estimates[0].estimate_lines[0];
+        if (kind === "component quantity") line.estimate_line_components = [{ ...line.estimate_line_components[0], quantity: 99 }, line.estimate_line_components[1]];
+        if (kind === "component order") line.estimate_line_components = [...line.estimate_line_components].reverse();
+        if (kind === "mode") line.pricing_mode = "simple";
+        if (kind === "project") projectId = "other";
+        if (kind === "membership") estimates[0].estimate_lines = [];
+        render(); const latest = JSON.stringify(estimates); request.resolve({ success: true }); await operation; await settle();
+        expect(JSON.stringify(estimates)).toBe(latest); expect(ledger["delete:line"]).toBe("uncertain");
+        expect(receipt()?.props["data-delete-phase"]).toBe("unconfirmed");
+    });
+
+    it.each(["draft", "apply", "save", "library", "uncertain save", "uncertain library"])("a current resource %s fences Remove before props refresh", async kind => {
+        const panel = openResources(); const oldRemove = remove();
+        if (kind === "draft") (panel.props.onDraftChanged as (id: string, open: boolean) => void)("line", true);
+        if (kind === "apply") (panel.props.onApplyPendingChanged as (id: string, open: boolean) => void)("line", true);
+        if (kind === "save" || kind === "uncertain save") (panel.props.onSaveStateChanged as (id: string, state: string) => void)("line", kind === "save" ? "saving" : "uncertain");
+        if (kind === "library" || kind === "uncertain library") (panel.props.onLibrarySaveStateChanged as (id: string, state: string) => void)("line", kind === "library" ? "saving" : "uncertain");
+        const before = JSON.stringify(estimates); await oldRemove("line");
+        expect(replay.other).not.toHaveBeenCalled(); expect(JSON.stringify(estimates)).toBe(before);
+    });
+
+    it("a resource uncertainty arriving during Remove is visible before a props commit and prevents confirmed local removal", async () => {
+        const panel = openResources(); const request = pending(); replay.other.mockReturnValue(request.promise);
+        const operation = remove()("line");
+        (panel.props.onSaveStateChanged as (id: string, state: string) => void)("line", "uncertain");
+        const before = JSON.stringify(estimates); request.resolve({ success: true }); await operation; await settle();
+        expect(JSON.stringify(estimates)).toBe(before); expect(ledger["delete:line"]).toBe("uncertain");
+    });
+
+    it("pending removal fences stale rate/components/mode callbacks,even after an old resource close", async () => {
+        const panel = openResources(); const mode = nodes(tree).find(n => n.props.title === "Switch to simple rate")!;
+        const request = pending(); replay.other.mockReturnValue(request.promise); const before = JSON.stringify(estimates);
+        const operation = remove()("line");
+        (panel.props.onDraftChanged as (id: string, open: boolean) => void)("line", false);
+        (panel.props.onRateApplied as (id: string, rate: number, quantity: number, total: number) => void)("line", 99, 3, 297);
+        (panel.props.onComponentsChanged as (id: string, components: unknown[]) => void)("line", []);
+        (mode.props.onClick as () => void)();
+        expect((panel.props.canApplyRate as () => boolean)()).toBe(false);
+        expect(JSON.stringify(estimates)).toBe(before); expect(replay.other).toHaveBeenCalledTimes(1);
+        request.resolve({ success: false, error: "refused" }); await operation; await settle();
+    });
+
+    it("uncertain built-up removal remains read-only after reopening and cannot issue another delete", async () => {
+        replay.other.mockResolvedValue({ success: true, warning: "Aggregate refresh failed" });
+        await remove()("line"); await settle(); const before = JSON.stringify(estimates);
+        unmount(); replay.slots = {}; render(); await remove()("line");
+        expect(rowElement().props.saveBlocked).toBe(true); expect(replay.other).toHaveBeenCalledTimes(1);
+        expect(JSON.stringify(estimates)).toBe(before); expect(text(tree)).toContain("Retained acknowledgement:  uncertain");
+    });
+
+    it.each(["boq", "preliminaries"])("keeps initial built-up %s removal on the unchanged legacy handler", async kind => {
+        if (kind === "boq") estimates[0].is_client_boq = true;
+        else estimates[0].estimate_lines[0].trade_section = "Preliminaries";
+        render(); const request = pending(); replay.other.mockReturnValue(request.promise); await remove()("line");
+        expect(estimates[0].estimate_lines).toHaveLength(0); expect(receipt()).toBeUndefined();
+        request.resolve({ success: true }); await settle(); expect(replay.other).toHaveBeenCalledExactlyOnceWith("line");
+    });
+});
+

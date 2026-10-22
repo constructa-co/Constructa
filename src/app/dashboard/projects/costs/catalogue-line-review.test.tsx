@@ -1285,3 +1285,112 @@ describe("acknowledged ordinary Advanced blank-line creation", () => {
         expect(replay.other).not.toHaveBeenCalled();
     });
 });
+
+describe("acknowledged ordinary Advanced Remove line", () => {
+    function remove() { return rowElement().props.onDelete as (id: string) => Promise<void>; }
+    function status() { return nodes(tree).find(n => n.props["aria-label"] === "Remove line acknowledgement"); }
+    function sibling() {
+        estimates[0].estimate_lines.push({ ...estimates[0].estimate_lines[0], id: "sibling", description: "Keep this work", line_total: 8, unit_rate: 8, quantity: 1 });
+        estimates[0].total_cost = 20; render();
+    }
+    beforeEach(() => { replay.other.mockResolvedValue({ success: true }); });
+
+    it("keeps row, resources, order and money until ONE clean acknowledgement then removes only that row", async () => {
+        sibling(); const kept = JSON.stringify(estimates[0].estimate_lines[1]); const request = pending();
+        replay.other.mockReturnValue(request.promise); const oldRemove = remove();
+        const operation = oldRemove("line"); oldRemove("line"); render();
+        expect(replay.other).toHaveBeenCalledExactlyOnceWith("line");
+        expect(estimates[0].estimate_lines.map(l => l.id)).toEqual(["line", "sibling"]);
+        expect(estimates[0].total_cost).toBe(20); expect(rowElement().props.savePending).toBe(true);
+        expect(ledger).toEqual({ "delete:line": "saving" }); expect(text(status())).toContain("pending");
+        request.resolve({ success: true }); await operation;
+        // A captured click before a rerender cannot issue a second delete.
+        await oldRemove("line"); await settle();
+        expect(replay.other).toHaveBeenCalledTimes(1);
+        expect(estimates[0].estimate_lines.map(l => l.id)).toEqual(["sibling"]);
+        expect(JSON.stringify(estimates[0].estimate_lines[0])).toBe(kept);
+        expect(estimates[0].total_cost).toBe(8); expect(ledger).toEqual({});
+        expect(status()?.props["data-delete-phase"]).toBe("confirmed");
+    });
+
+    it.each(["refused", "warning", "unknown", "empty", "success with error", "rejected"])("%s retains exact source and blocks blind retry without Saved or refresh", async kind => {
+        const before = JSON.stringify(estimates);
+        if (kind === "rejected") replay.other.mockRejectedValue(new Error("response lost"));
+        else replay.other.mockResolvedValue(kind === "refused" ? { success: false, error: "Owner/edit-lock refusal" } :
+            kind === "warning" ? { success: true, warning: "Aggregate refresh failed" } :
+            kind === "success with error" ? { success: true, error: "unknown write outcome" } : kind === "empty" ? {} : undefined);
+        await remove()("line"); await settle(); await remove()("line"); await settle();
+        expect(replay.other).toHaveBeenCalledTimes(1); expect(JSON.stringify(estimates)).toBe(before);
+        expect(ledger).toEqual({ "delete:line": "uncertain" });
+        expect(status()?.props["data-delete-phase"]).toBe("unconfirmed");
+        expect(text(status())).toContain("may already be deleted remotely");
+        expect(text(status())).toContain("Row identity:  line"); expect(text(status())).not.toContain("Saved");
+        expect(rowElement().props.saveBlocked).toBe(true);
+    });
+
+    it.each(["row", "sibling", "total", "reorder", "project", "active version", "missing estimate", "resource ledger"])("late clean acknowledgement cannot overwrite newer %s work", async kind => {
+        sibling(); const request = pending(); replay.other.mockReturnValue(request.promise);
+        const operation = remove()("line"); render();
+        if (kind === "row") estimates[0].estimate_lines[0] = { ...estimates[0].estimate_lines[0], description: "Newer wording" };
+        if (kind === "sibling") estimates[0].estimate_lines[1] = { ...estimates[0].estimate_lines[1], quantity: 7, line_total: 56 };
+        if (kind === "total") estimates[0].total_cost = 99;
+        if (kind === "reorder") estimates[0].estimate_lines.reverse();
+        if (kind === "project") projectId = "other";
+        if (kind === "active version") activeTab = "another";
+        if (kind === "missing estimate") estimates = [];
+        if (kind === "resource ledger") ledger = { ...ledger, "draft:sibling": "draft" };
+        render(); const newer = JSON.stringify(estimates);
+        request.resolve({ success: true }); await operation; await settle();
+        expect(JSON.stringify(estimates)).toBe(newer);
+        expect(status()?.props["data-delete-phase"]).toBe("unconfirmed");
+        expect(ledger["delete:line"]).toBe("uncertain"); expect(replay.other).toHaveBeenCalledTimes(1);
+    });
+
+    it("checks latest parent-store state even when newer work has not rendered yet", async () => {
+        const request = pending(); replay.other.mockReturnValue(request.promise);
+        const operation = remove()("line");
+        estimates = [{ ...estimates[0], version_name: "Unrendered newer estimate" }];
+        const before = JSON.stringify(estimates); request.resolve({ success: true }); await operation; await settle();
+        expect(JSON.stringify(estimates)).toBe(before); expect(status()?.props["data-delete-phase"]).toBe("unconfirmed");
+    });
+
+    it("stale Remove after project/source change refuses before the action", async () => {
+        const stale = remove(); projectId = "other"; render(); await stale("line");
+        expect(replay.other).not.toHaveBeenCalled(); expect(estimates[0].estimate_lines).toHaveLength(1);
+    });
+
+    it.each(["quantity", "rate", "unit", "description", "type", "catalogue", "parent draft", "parent saving", "parent uncertain"])("retains existing %s work and refuses Remove", async kind => {
+        if (kind === "quantity") quantityEdit("1e");
+        if (kind === "rate") (rowElement().props.onRateChange as (line: unknown, raw: string) => void)(estimates[0].estimate_lines[0], "1e");
+        if (kind === "unit") (rowElement().props.onUnitChange as (line: unknown, raw: string) => void)(estimates[0].estimate_lines[0], "m2");
+        if (kind === "description") (rowElement().props.onDescriptionChange as (line: unknown, raw: string) => void)(estimates[0].estimate_lines[0], "exact wording");
+        if (kind === "type") (rowElement().props.onLineTypeChange as (line: unknown, raw: string) => void)(estimates[0].estimate_lines[0], "material");
+        if (kind === "catalogue") select();
+        if (kind.startsWith("parent")) ledger = { resource: kind.split(" ")[1] as "draft" | "saving" | "uncertain" };
+        render(); const before = JSON.stringify(estimates); const savedLedger = JSON.stringify(ledger);
+        await remove()("line"); await settle();
+        expect(replay.other).not.toHaveBeenCalled(); expect(JSON.stringify(estimates)).toBe(before);
+        expect(JSON.stringify(ledger)).toBe(savedLedger);
+    });
+
+    it("pending Remove fences captured row edits, add and version controls without discarding current work", async () => {
+        const request = pending(); replay.other.mockReturnValue(request.promise);
+        const row = rowElement(); const add = nodes(tree).find(n => n.type === "button" && text(n).includes("Add line item"));
+        const before = JSON.stringify(estimates); const operation = remove()("line");
+        (row.props.onUpdate as (id: string, changes: unknown) => void)("line", { quantity: 99 });
+        (row.props.onQuantityChange as (line: unknown, raw: string) => void)(estimates[0].estimate_lines[0], "99");
+        if (add) (add.props.onClick as () => void)();
+        render(); expect(JSON.stringify(estimates)).toBe(before); expect(replay.save).not.toHaveBeenCalled();
+        expect(replay.other).toHaveBeenCalledTimes(1);
+        request.resolve({ success: false, error: "refused" }); await operation; await settle();
+    });
+
+    it("unmount retains parent reconciliation fence and never applies a late response", async () => {
+        const request = pending(); replay.other.mockReturnValue(request.promise);
+        const operation = remove()("line"); unmount(); const before = JSON.stringify(estimates);
+        request.resolve({ success: true }); await operation;
+        expect(JSON.stringify(estimates)).toBe(before); expect(ledger).toEqual({ "delete:line": "saving" });
+        expect(replay.error).not.toHaveBeenCalled();
+    });
+});
+

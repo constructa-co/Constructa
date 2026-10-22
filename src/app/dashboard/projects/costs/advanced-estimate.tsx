@@ -84,6 +84,7 @@ type UnitDraft = RateDraft;
 type DescriptionDraft = RateDraft;
 type LineTypeDraft = RateDraft;
 type AddLineReceipt = { key: string; token: object; estimateId: string; section: string; context: string; phase: "saving" | "confirmed" | "unconfirmed"; message: string; returnedId?: string };
+type DeleteLineReceipt = { line: EstimateLine; context: string; phase: "saving" | "confirmed" | "unconfirmed"; message: string };
 type ActivityReview = { line: EstimateLine; context: string; projectId: string; orgId: string; raw: string; phase: "editing" | "saving" | "uncertain"; message: string };
 const activityStyles = workspaceStyles(true);
 function AdvancedLineActivity({ lineId, section, choices, blocked, helpText, review, onBegin, onChange, onSave, onCancel }: {
@@ -199,6 +200,9 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     const [addReceipts, setAddReceipts] = useState<AddLineReceipt[]>([]);
     const confirmedAddRowsRef = useRef(new Map<string, EstimateLine>());
     const addingSectionsRef = useRef(new Set<string>());
+    const deleteReceiptRef = useRef<DeleteLineReceipt | null>(null);
+    const [deleteReceipt, setDeleteReceipt] = useState<DeleteLineReceipt | null>(null);
+    const deleteBlocked = () => !!deleteReceiptRef.current && deleteReceiptRef.current.phase !== "confirmed";
 
     const showSaving = useCallback(() => {
         setSaveStatus("saving");
@@ -217,6 +221,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
 
     // ─── Estimate CRUD ──────────────────────────────────
     const handleCreateEstimate = () => {
+        if (deleteBlocked()) return;
         if (lineTypeDraftRef.current || descriptionDraftRef.current || unitDraftRef.current || rateDraftRef.current || activityReviewRef.current || quantityDraftRef.current || draftResourceLinesRef.current.size > 0) return;
         const name = `Estimate v${estimates.length + 1}`;
         startTransition(async () => {
@@ -250,6 +255,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     };
 
     const handleDeleteEstimate = (estId: string) => {
+        if (deleteBlocked()) return;
         if (lineTypeDraftRef.current || descriptionDraftRef.current || unitDraftRef.current || rateDraftRef.current || activityReviewRef.current || quantityDraftRef.current || draftResourceLinesRef.current.size > 0) return;
         if (!confirm("Delete this estimate and all its line items?")) return;
         startTransition(async () => {
@@ -270,6 +276,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     };
 
     const handleSetActive = (estId: string) => {
+        if (deleteBlocked()) return;
         if (lineTypeDraftRef.current || descriptionDraftRef.current || unitDraftRef.current || rateDraftRef.current || activityReviewRef.current || catalogueReviewRef.current || quantityDraftRef.current) return;
         startTransition(async () => {
             showSaving();
@@ -288,11 +295,13 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
 
     // ─── Margin updates ─────────────────────────────────
     const handleMarginChange = (field: "overhead_pct" | "profit_pct" | "risk_pct" | "prelims_pct", value: number) => {
+        if (deleteBlocked()) return;
         if (!currentEstimate) return;
         const updated = { ...currentEstimate, [field]: value };
         setEstimates((prev) => prev.map((e) => (e.id === currentEstimate.id ? updated : e)));
     };
     const handleMarginBlur = (field: "overhead_pct" | "profit_pct" | "risk_pct" | "prelims_pct", value: number) => {
+        if (deleteBlocked()) return;
         if (!currentEstimate) return;
         const updated = { ...currentEstimate, [field]: value };
         setEstimates((prev) => prev.map((e) => (e.id === currentEstimate.id ? updated : e)));
@@ -315,6 +324,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     };
 
     const handleNameBlur = (name: string) => {
+        if (deleteBlocked()) return;
         if (!currentEstimate) return;
         setEstimates((prev) =>
             prev.map((e) => (e.id === currentEstimate.id ? { ...e, version_name: name } : e))
@@ -331,6 +341,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
 
     // ─── Vision Takeoff handler ───────────────────────────
     const handleAddFromVision = async (item: { description: string; quantity: number; unit: string; unit_rate: number }) => {
+        if (deleteBlocked()) return;
         if (!currentEstimate) return;
         const section = "General";
         const tempId = crypto.randomUUID();
@@ -432,6 +443,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
         return JSON.stringify(latest) === receipt.context;
     };
     const handleAddLine = async (section: string) => {
+        if (deleteBlocked()) return;
         if (currentEstimate?.is_client_boq || section === "Preliminaries") { await handleAddSpecialLine(section); return; }
         if (!catalogueMounted.current || !currentEstimate || currentEstimate.project_id !== projectId || catalogueView.current.context !== catalogueContext ||
             lineTypeDraftRef.current || descriptionDraftRef.current || unitDraftRef.current || rateDraftRef.current || activityReviewRef.current ||
@@ -531,6 +543,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
 
     const handleUpdateLine = (lineId: string, updates: Partial<EstimateLine>) => {
         if (!currentEstimate) return;
+        if (deleteBlocked()) return;
         if (lineTypeDraftRef.current?.line.id === lineId || descriptionDraftRef.current?.line.id === lineId || unitDraftRef.current?.line.id === lineId || rateDraftRef.current?.line.id === lineId || activityReviewRef.current?.line.id === lineId || quantityDraftRef.current?.line.id === lineId || draftResourceLinesRef.current.has(lineId)) return;
         if ((updates.quantity !== undefined || updates.unit_rate !== undefined) && applyingResourceLinesRef.current.has(lineId)) {
             showSaveError("Wait for the resource rate application to finish before changing the priced quantity or rate.");
@@ -609,7 +622,66 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
             ? write() : lineQueuesRef.current[lineId].then(write);
     };
 
-    const handleDeleteLine = (lineId: string) => {
+    const handleDeleteLine = async (lineId: string) => {
+        if (deleteBlocked() || deleteReceiptRef.current?.context === catalogueContext) return;
+        const line = currentEstimate?.estimate_lines.find(row => row.id === lineId);
+        if (!line || !currentEstimate) return;
+        if (currentEstimate.is_client_boq || line.trade_section === "Preliminaries" || line.pricing_mode !== "simple") {
+            handleDeleteSpecialLine(lineId); return;
+        }
+        const draftsClear = () => !lineTypeDraftRef.current && !descriptionDraftRef.current && !unitDraftRef.current &&
+            !rateDraftRef.current && !activityReviewRef.current && !quantityDraftRef.current && !catalogueReviewRef.current &&
+            !draftResourceLinesRef.current.size && !pendingResourceLinesRef.current.size && !applyingResourceLinesRef.current.size;
+        if (!catalogueMounted.current || deleteBlocked() || currentEstimate.project_id !== projectId || line.estimate_id !== currentEstimate.id ||
+            catalogueView.current.context !== catalogueContext || !draftsClear() || !addLedgerClear() ||
+            [...addReceiptsRef.current.values()].some(receipt => receipt.phase === "saving" || receipt.phase === "unconfirmed") ||
+            lineUncertainRef.current.size || Object.values(linePendingRef.current).some(count => count > 0) ||
+            currentEstimate.estimate_lines.filter(row => row.id === lineId).length !== 1) return;
+        const reviewedEstimate = (JSON.parse(catalogueContext) as [string, string, string, Estimate])[3];
+        const receipt: DeleteLineReceipt = { line: reviewedEstimate.estimate_lines.find(row => row.id === lineId)!, context: catalogueContext, phase: "saving",
+            message: "Removing this line. Its confirmed row and totals remain visible while acknowledgement is pending." };
+        deleteReceiptRef.current = receipt; setDeleteReceipt(receipt);
+        linePendingRef.current[lineId] = 1;
+        setPendingLineSaves(previous => new Set(previous).add(lineId));
+        onResourceSaveStateChanged?.(`delete:${lineId}`, "saving");
+        const unconfirmed = (message: string) => {
+            if (!catalogueMounted.current || deleteReceiptRef.current !== receipt) return;
+            const retained = { ...receipt, phase: "unconfirmed" as const,
+                message: message + " The line may already be deleted remotely. Current work is retained; reload to reconcile before further changes. No delete retry or refresh starts automatically." };
+            deleteReceiptRef.current = retained; setDeleteReceipt(retained);
+            lineUncertainRef.current.add(lineId);
+            setUncertainLineSaves(previous => new Set(previous).add(lineId));
+            onResourceSaveStateChanged?.(`delete:${lineId}`, "uncertain");
+        };
+        try {
+            const result = await deleteLineItemAction(lineId);
+            if (!catalogueMounted.current) return;
+            const fresh = deleteReceiptRef.current === receipt && catalogueView.current.context === receipt.context && draftsClear() &&
+                Object.entries(catalogueView.current.resourceSaveStates ?? {}).every(([key, state]) =>
+                    key === `delete:${lineId}` && state === "saving");
+            if (result?.success !== true || result.error || result.warning || !fresh) {
+                unconfirmed(result?.error || result?.warning || "The delete response or reviewed source was not fully confirmed."); return;
+            }
+            // The pricing screen dispatches this updater synchronously against its latest reducer-store state.
+            let removed = false;
+            setEstimates(previous => previous.map(estimate => {
+                if (estimate.id !== reviewedEstimate.id || JSON.stringify(estimate) !== JSON.stringify(reviewedEstimate)) return estimate;
+                const remaining = estimate.estimate_lines.filter(row => row.id !== lineId);
+                removed = true;
+                return { ...estimate, estimate_lines: remaining, total_cost: remaining.reduce((sum, row) => sum + (row.line_total || 0), 0) };
+            }));
+            if (!removed) { unconfirmed("Newer current work prevents applying the delete acknowledgement."); return; }
+            const confirmed = { ...receipt, phase: "confirmed" as const, message: "Line removed after acknowledgement against the unchanged reviewed estimate." };
+            deleteReceiptRef.current = confirmed; setDeleteReceipt(confirmed);
+            onResourceSaveStateChanged?.(`delete:${lineId}`, "confirmed");
+        } catch { unconfirmed("The delete acknowledgement was lost or rejected."); }
+        finally {
+            linePendingRef.current[lineId] = 0;
+            if (catalogueMounted.current) setPendingLineSaves(previous => { const next = new Set(previous); next.delete(lineId); return next; });
+        }
+    };
+
+    const handleDeleteSpecialLine = (lineId: string) => {
         if (!currentEstimate) return;
         if (lineTypeDraftRef.current?.line.id === lineId || descriptionDraftRef.current?.line.id === lineId || unitDraftRef.current?.line.id === lineId || rateDraftRef.current?.line.id === lineId || activityReviewRef.current?.line.id === lineId || quantityDraftRef.current?.line.id === lineId || draftResourceLinesRef.current.has(lineId) || linePendingRef.current[lineId] > 0 || lineUncertainRef.current.has(lineId) || pendingResourceLinesRef.current.has(lineId) || applyingResourceLinesRef.current.has(lineId)) return;
         // Snapshot previous state so we can roll back on server rejection.
@@ -645,6 +717,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     };
 
     const handleLibrarySelect = (lineId: string, itemId: string, section: string) => {
+        if (deleteBlocked()) return;
         if (!catalogueMounted.current || lineTypeDraftRef.current || descriptionDraftRef.current || unitDraftRef.current || rateDraftRef.current || activityReviewRef.current || quantityDraftRef.current || catalogueReviewRef.current || catalogueView.current.context !== catalogueContext ||
             Object.keys(catalogueView.current.resourceSaveStates ?? {}).length || draftResourceLinesRef.current.size) return;
         const item = costLibrary.find((c) => c.id === itemId);
@@ -729,6 +802,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     };
 
     const editQuantityDraft = (line: EstimateLine, raw: string, expected?: QuantityDraft) => {
+        if (deleteBlocked()) return;
         if (!catalogueMounted.current || lineTypeDraftRef.current || descriptionDraftRef.current || unitDraftRef.current || rateDraftRef.current || activityReviewRef.current || catalogueView.current.context !== catalogueContext || catalogueReviewRef.current ||
             quantityDraftRef.current !== (expected ?? null) || quantityConsumed.current || linePendingRef.current[line.id] > 0 ||
             lineUncertainRef.current.has(line.id) || pendingResourceLinesRef.current.has(line.id) || applyingResourceLinesRef.current.has(line.id)) return;
@@ -804,6 +878,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     };
 
     const editRateDraft = (line: EstimateLine, raw: string, expected?: RateDraft) => {
+        if (deleteBlocked()) return;
         if (!catalogueMounted.current || lineTypeDraftRef.current || descriptionDraftRef.current || unitDraftRef.current || activityReviewRef.current || quantityDraftRef.current || catalogueReviewRef.current ||
             catalogueView.current.context !== catalogueContext || rateDraftRef.current !== (expected ?? null) || rateConsumed.current ||
             linePendingRef.current[line.id] > 0 || lineUncertainRef.current.has(line.id) || pendingResourceLinesRef.current.has(line.id) || applyingResourceLinesRef.current.has(line.id)) return;
@@ -875,6 +950,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     };
 
     const editUnitDraft = (line: EstimateLine, raw: string, expected?: UnitDraft) => {
+        if (deleteBlocked()) return;
         if (!catalogueMounted.current || lineTypeDraftRef.current || descriptionDraftRef.current || rateDraftRef.current || activityReviewRef.current || quantityDraftRef.current || catalogueReviewRef.current ||
             catalogueView.current.context !== catalogueContext || unitDraftRef.current !== (expected ?? null) || unitConsumed.current ||
             linePendingRef.current[line.id] > 0 || lineUncertainRef.current.has(line.id) || pendingResourceLinesRef.current.has(line.id) || applyingResourceLinesRef.current.has(line.id)) return;
@@ -945,6 +1021,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     };
 
     const editDescriptionDraft = (line: EstimateLine, raw: string, expected?: DescriptionDraft) => {
+        if (deleteBlocked()) return;
         if (!catalogueMounted.current || lineTypeDraftRef.current || unitDraftRef.current || rateDraftRef.current || activityReviewRef.current || quantityDraftRef.current || catalogueReviewRef.current ||
             catalogueView.current.context !== catalogueContext || descriptionDraftRef.current !== (expected ?? null) || descriptionConsumed.current ||
             linePendingRef.current[line.id] > 0 || lineUncertainRef.current.has(line.id) || pendingResourceLinesRef.current.has(line.id) || applyingResourceLinesRef.current.has(line.id)) return;
@@ -1015,6 +1092,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     };
 
     const editLineTypeDraft = (line: EstimateLine, raw: string, expected?: LineTypeDraft) => {
+        if (deleteBlocked()) return;
         if (!catalogueMounted.current || unitDraftRef.current || descriptionDraftRef.current || rateDraftRef.current || activityReviewRef.current || quantityDraftRef.current || catalogueReviewRef.current ||
             catalogueView.current.context !== catalogueContext || lineTypeDraftRef.current !== (expected ?? null) || lineTypeConsumed.current ||
             linePendingRef.current[line.id] > 0 || lineUncertainRef.current.has(line.id) || pendingResourceLinesRef.current.has(line.id) || applyingResourceLinesRef.current.has(line.id)) return;
@@ -1085,6 +1163,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     };
 
     const beginActivityReview = (line: EstimateLine) => {
+        if (deleteBlocked()) return false;
         if (!catalogueMounted.current || catalogueView.current.context !== catalogueContext || lineTypeDraftRef.current || descriptionDraftRef.current || unitDraftRef.current || rateDraftRef.current || activityReviewRef.current ||
             quantityDraftRef.current || catalogueReviewRef.current || draftResourceLinesRef.current.size || addingSectionsRef.current.size ||
             Object.keys(catalogueView.current.resourceSaveStates ?? {}).length || Object.values(linePendingRef.current).some(count => count > 0) ||
@@ -1148,6 +1227,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
 
     // ─── Build-Up Handlers ───────────────────────────────
     const handleTogglePricingMode = (lineId: string, currentMode: string) => {
+        if (deleteBlocked()) return;
         if (lineTypeDraftRef.current?.line.id === lineId || descriptionDraftRef.current?.line.id === lineId || unitDraftRef.current?.line.id === lineId || rateDraftRef.current?.line.id === lineId || activityReviewRef.current?.line.id === lineId || quantityDraftRef.current?.line.id === lineId || draftResourceLinesRef.current.has(lineId)) return;
         const newMode = currentMode === "buildup" ? "simple" : "buildup";
         // Control panel visibility
@@ -1173,6 +1253,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     };
 
     const handleComponentsChanged = (lineId: string, components: EstimateLineComponent[]) => {
+        if (deleteBlocked()) return;
         setEstimates((prev) =>
             prev.map((e) => {
                 if (e.id !== currentEstimate?.id) return e;
@@ -1191,6 +1272,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     };
 
     const handleRateApplied = (lineId: string, unitRate: number, quantity: number, lineTotal: number) => {
+        if (deleteBlocked()) return;
         setEstimates(previous => previous.map(estimate => {
             if (estimate.id !== currentEstimate?.id) return estimate;
             const updatedLines = estimate.estimate_lines.map(line => line.id === lineId && line.quantity === quantity
@@ -1239,6 +1321,12 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     return (
         <>
         <div className="space-y-6">
+            {deleteReceipt && <section aria-label="Remove line acknowledgement" data-delete-phase={deleteReceipt.phase} className="rounded-xl border border-slate-700 p-4 space-y-2 text-sm text-slate-200">
+                <p className="font-semibold">Remove line status</p>
+                <p>Reviewed line: {deleteReceipt.line.description}. Activity: {deleteReceipt.line.trade_section || "General"}.</p>
+                <p>Row identity: {deleteReceipt.line.id}. Estimate: {deleteReceipt.line.estimate_id}.</p>
+                <p role="status">{deleteReceipt.message}</p>
+            </section>}
             {addReceipts.length > 0 && <section aria-label="Add line acknowledgements" className="rounded-xl border border-slate-700 p-4 space-y-2 text-sm text-slate-200">
                 <p className="font-semibold">Add line status</p>
                 {addReceipts.map(receipt => <div key={receipt.key} data-add-receipt={receipt.key} data-add-phase={receipt.phase} role="status">
@@ -1662,7 +1750,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                                     allLibrary={costLibrary}
                                                     section={section}
                                                     isClientBoQ={!!currentEstimate.is_client_boq}
-                                                    saveBlocked={lineTypeDraft?.line.id === line.id || descriptionDraft?.line.id === line.id || unitDraft?.line.id === line.id || rateDraft?.line.id === line.id || activityReview?.line.id === line.id || quantityDraft?.line.id === line.id || draftResourceLines.has(line.id) || uncertainLineSaves.has(line.id) || resourceSaveStates?.[`line:${line.id}`] === "uncertain" || applyingResourceLines.has(line.id)}
+                                                    saveBlocked={(!!deleteReceipt && deleteReceipt.phase !== "confirmed") || lineTypeDraft?.line.id === line.id || descriptionDraft?.line.id === line.id || unitDraft?.line.id === line.id || rateDraft?.line.id === line.id || activityReview?.line.id === line.id || quantityDraft?.line.id === line.id || draftResourceLines.has(line.id) || uncertainLineSaves.has(line.id) || resourceSaveStates?.[`line:${line.id}`] === "uncertain" || applyingResourceLines.has(line.id)}
                                                     savePending={pendingLineSaves.has(line.id) || pendingResourceLines.has(line.id) || applyingResourceLines.has(line.id)}
                                                     onUpdate={handleUpdateLine}
                                                     onDelete={handleDeleteLine}
@@ -1755,9 +1843,9 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                                     onResourceSaveStateChanged?.(`draft:${lineId}`, open ? "draft" : "confirmed");
                                                 }}
                                                 onRateApplied={handleRateApplied}
-                                                saveBlocked={lineTypeDraft?.line.id === line.id || descriptionDraft?.line.id === line.id || unitDraft?.line.id === line.id || rateDraft?.line.id === line.id || activityReview?.line.id === line.id || quantityDraft?.line.id === line.id || catalogueReview?.line.id === line.id || uncertainResourceLines.has(line.id) || resourceSaveStates?.[line.id] === "uncertain" || uncertainLineSaves.has(line.id) || resourceSaveStates?.[`line:${line.id}`] === "uncertain"}
+                                                saveBlocked={(!!deleteReceipt && deleteReceipt.phase !== "confirmed") || lineTypeDraft?.line.id === line.id || descriptionDraft?.line.id === line.id || unitDraft?.line.id === line.id || rateDraft?.line.id === line.id || activityReview?.line.id === line.id || quantityDraft?.line.id === line.id || catalogueReview?.line.id === line.id || uncertainResourceLines.has(line.id) || resourceSaveStates?.[line.id] === "uncertain" || uncertainLineSaves.has(line.id) || resourceSaveStates?.[`line:${line.id}`] === "uncertain"}
                                                 priceSavePending={pendingLineSaves.has(line.id)}
-                                                canApplyRate={() => lineTypeDraftRef.current?.line.id !== line.id && descriptionDraftRef.current?.line.id !== line.id && unitDraftRef.current?.line.id !== line.id && rateDraftRef.current?.line.id !== line.id && activityReviewRef.current?.line.id !== line.id && quantityDraftRef.current?.line.id !== line.id && catalogueReviewRef.current?.line.id !== line.id && !(linePendingRef.current[line.id] > 0) && !lineUncertainRef.current.has(line.id) && resourceSaveStates?.[`line:${line.id}`] !== "uncertain"}
+                                                canApplyRate={() => !deleteBlocked() && lineTypeDraftRef.current?.line.id !== line.id && descriptionDraftRef.current?.line.id !== line.id && unitDraftRef.current?.line.id !== line.id && rateDraftRef.current?.line.id !== line.id && activityReviewRef.current?.line.id !== line.id && quantityDraftRef.current?.line.id !== line.id && catalogueReviewRef.current?.line.id !== line.id && !(linePendingRef.current[line.id] > 0) && !lineUncertainRef.current.has(line.id) && resourceSaveStates?.[`line:${line.id}`] !== "uncertain"}
                                                 onApplyPendingChanged={(lineId, pending) => {
                                                     if (pending) applyingResourceLinesRef.current.add(lineId);
                                                     else applyingResourceLinesRef.current.delete(lineId);

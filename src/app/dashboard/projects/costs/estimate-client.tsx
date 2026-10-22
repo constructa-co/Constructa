@@ -57,6 +57,7 @@ import type { ReactNode } from "react";
 import { priceActivityRows } from "@/lib/price-activity-view";
 import { findPriceLineIds, nextPriceLineMatch } from "@/lib/price-line-finder";
 import NewPriceActivity from "@/components/new-price-activity";
+import { priceActivitySuggestions } from "@/lib/price-activity-suggestions";
 import SavedLineReuse from "@/components/saved-line-reuse";
 import { savedLineReuseContext, prepareSavedLineReuse, type ReviewedSavedLine } from "@/lib/saved-line-reuse";
 import PricingPaymentStages from "./payment-stages";
@@ -86,6 +87,7 @@ interface ProjectContext {
     name: string;
     client_name: string;
     brief_scope: string;
+    brief_trade_sections?: unknown;
     payment_schedule?: unknown;
     payment_lock_reason?: string | null;
     scope_notes?: PricingScopeNotesSource;
@@ -250,8 +252,7 @@ export default function EstimateClient({
         idPrefix: "new-line",
         title: lines.length ? "New price line" : "First price line",
         op: newOp, s, isDark,
-        activityNames: estimate?.is_client_boq ? undefined : [...new Set(lines.map(line => line.trade_section).filter((name): name is string =>
-            typeof name === "string" && !!name.trim() && name !== "Preliminaries" && name.length <= 100))],
+        activityNames: estimate?.is_client_boq ? undefined : priceActivitySuggestions(lines, project.brief_trade_sections),
         onChange: (patch: Partial<PriceLineDraft>) => {
             store.dispatch({ type: "op/change", key: NEW_LINE_KEY, patch });
             if (patch.mode === "rate") setShowLineDetails(true);

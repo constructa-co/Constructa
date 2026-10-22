@@ -35,7 +35,7 @@ export default async function EstimatingPage(props: { searchParams: Promise<{ pr
     // Fetch active project
     const { data: project } = await supabase
         .from("projects")
-        .select("id, name, client_name, brief_scope, payment_schedule, status, is_archived, proposal_status, proposal_accepted_at, exclusions_text, clarifications_text, contract_exclusions, contract_clarifications, proposal_introduction, scope_text, selected_case_study_ids")
+        .select("id, name, client_name, brief_scope, brief_trade_sections, payment_schedule, status, is_archived, proposal_status, proposal_accepted_at, exclusions_text, clarifications_text, contract_exclusions, contract_clarifications, proposal_introduction, scope_text, selected_case_study_ids")
         .eq("id", activeProjectId)
         .single();
 
@@ -68,6 +68,7 @@ export default async function EstimatingPage(props: { searchParams: Promise<{ pr
                     name: project.name || "",
                     client_name: project.client_name || "",
                     brief_scope: project.brief_scope || "",
+                    brief_trade_sections: project.brief_trade_sections ?? [],
                     payment_schedule: project.payment_schedule ?? null,
                     proposal_introduction: project.proposal_introduction ?? null,
                     experience,

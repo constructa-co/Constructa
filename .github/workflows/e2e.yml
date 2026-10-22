@@ -29,7 +29,18 @@ permissions:
   contents: read
 
 jobs:
+  hosted-write-status:
+    if: ${{ github.event_name == 'pull_request' && github.head_ref == 'backup/welcome-first-slice-20261018' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Record hosted journey NOT_RUN
+        run: |
+          echo 'Hosted Phase 1 journey: NOT_RUN. This backup branch requires a separately authorised manual run with verified disposable target, labelled identity and write controls.' >> "$GITHUB_STEP_SUMMARY"
+
   phase1:
+    # Rob-approved source-only gate: this backup branch cannot start hosted
+    # account/data writes automatically. Other branches and normal CI are unchanged.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref != 'backup/welcome-first-slice-20261018' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:

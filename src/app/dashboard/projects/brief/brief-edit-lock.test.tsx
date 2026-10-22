@@ -149,7 +149,8 @@ describe.each(LOCKED_PROJECTS)("Brief locked (%s)", (_label, row) => {
         expect(trade.props.disabled).toBe(true); click(trade);
         click(tree.find(e => e.props["aria-label"] === "Remove Roofing"));
         stage("site"); tree = render(reason);
-        for (const id of ["brief-site-notes", "brief-start-date", "brief-rough-value", "brief-postcode"]) {
+        expect(byId(tree, "brief-rough-value")).toBeUndefined();
+        for (const id of ["brief-site-notes", "brief-start-date", "brief-postcode"]) {
             expect(byId(tree, id)!.props.readOnly).toBe(true); typeInto(byId(tree, id), "x");
         }
         await (byId(tree, "brief-postcode")!.props.onBlur as () => Promise<void>)();
@@ -167,6 +168,56 @@ describe.each(LOCKED_PROJECTS)("Brief locked (%s)", (_label, row) => {
     it("keeps step and Back/Next navigation for reading", () => {
         click(buttons(render(reason), "Next")[0]); expect(current.store.getState().stage).toBe("work");
         click(buttons(render(reason), "Back")[0]); expect(current.store.getState().stage).toBe("client");
+    });
+});
+
+describe("retired rough-value capture", () => {
+    it.each([0, 123.456, 45000])("Save omits historical value %s rather than clearing or rounding it", async value => {
+        let state = initialBriefState({ ...project, potential_value: value });
+        current.store = { getState: () => state, dispatch: action => { state = briefReducer(state, action); } };
+        typeInto(byId(render(null), "brief-work"), "Changed scope");
+        click(buttons(render(null), "Save")[0]);
+        await Promise.resolve();
+        expect(current.save).toHaveBeenCalledTimes(1);
+        expect(current.save.mock.calls[0][1]).not.toHaveProperty("potential_value");
+        expect(state.draft.roughValue).toBe(value ? String(value) : "");
+        expect(state.saved).toEqual(state.draft);
+        expect(current.push).not.toHaveBeenCalled();
+    });
+
+    it("Build the price also omits the retired value and waits for acknowledgement", async () => {
+        let state = initialBriefState({ ...project, potential_value: 123.456 });
+        current.store = { getState: () => state, dispatch: action => { state = briefReducer(state, action); } };
+        typeInto(byId(render(null), "brief-work"), "Updated description");
+        stage("site");
+        const tree = render(null);
+        expect(byId(tree, "brief-rough-value")).toBeUndefined();
+        await click(buttons(tree, "Save and build the price")[0]);
+        expect(current.save.mock.calls[0][1]).not.toHaveProperty("potential_value");
+        expect(current.push).toHaveBeenCalledExactlyOnceWith(`/dashboard/projects/costs?projectId=${project.id}`);
+    });
+
+    it("neither displays nor applies a monetary-only suggestion, including a direct callback", () => {
+        current.store.dispatch({ type: "suggestion/received", suggestion: { id: "money", source: "assistant", basedOnWork: project.brief_scope, work: null, trades: [], siteNotes: null, clientType: null, roughValue: 45000, startDate: null, note: null } });
+        const card = render(null).find(e => e.props.suggestion)!;
+        current.cursor = 1000;
+        const tree = nodes((card.type as (props: unknown) => unknown)(card.props));
+        expect(tree.filter(e => e.type === "input")).toHaveLength(0);
+        expect(text(tree)).not.toContain("45,000");
+        expect(buttons(tree, "Apply")).toHaveLength(0);
+        (card.props.onApply as (parts: string[], replace: boolean) => void)(["roughValue"], false);
+        expect(current.store.getState().draft.roughValue).toBe("");
+        expect(current.store.getState().suggestion?.id).toBe("money");
+        expect(current.save).not.toHaveBeenCalled();
+    });
+
+    it("applies allowed suggested wording but refuses its retired money part", () => {
+        current.store.dispatch({ type: "suggestion/received", suggestion: { id: "mixed", source: "assistant", basedOnWork: project.brief_scope, work: "Reviewed wording", trades: [], siteNotes: null, clientType: null, roughValue: 45000, startDate: null, note: null } });
+        const card = render(null).find(e => e.props.suggestion)!;
+        (card.props.onApply as (parts: string[], replace: boolean) => void)(["work", "roughValue"], false);
+        expect(current.store.getState().draft.work).toBe("Reviewed wording");
+        expect(current.store.getState().draft.roughValue).toBe("");
+        expect(current.save).not.toHaveBeenCalled();
     });
 });
 

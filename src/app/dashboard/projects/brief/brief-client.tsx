@@ -190,7 +190,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
     const handleSave = (confirm: boolean) => {
         if (isLocked()) return;
         lastSaveWasConfirm.current = confirm;
-        void saveBrief(store, saveFn, { confirm });
+        void saveBrief(store, saveFn, { confirm, preservePotentialValue: true });
     };
 
     const handleBuildPrice = async () => {
@@ -201,7 +201,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
             if (isLocked()) return;
             setLeaving(true);
             router.push(pricingPathForProject(project.id));
-        });
+        }, { preservePotentialValue: true });
         if (outcome === "invalid") window.requestAnimationFrame(() => headingRef.current?.focus());
     };
 
@@ -349,7 +349,9 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                     locked={locked}
                     onApply={(parts, replaceNewerWork) => {
                         if (isLocked()) return;
-                        store.dispatch({ type: "suggestion/applied", parts, replaceNewerWork });
+                        const captureParts = parts.filter((part) => part !== "roughValue");
+                        if (captureParts.length === 0) return;
+                        store.dispatch({ type: "suggestion/applied", parts: captureParts, replaceNewerWork });
                     }}
                     onDiscard={() => store.dispatch({ type: "suggestion/discarded" })}
                 />
@@ -571,20 +573,6 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                                     Optional. This job&apos;s likely start date. Change it here if it has moved.
                                 </p>
                             </div>
-                            <div>
-                                <label htmlFor="brief-rough-value" className={s.label}>Rough value (£)</label>
-                                <input
-                                    id="brief-rough-value"
-                                    inputMode="decimal"
-                                    autoComplete="off"
-                                    aria-describedby={locked ? "brief-lock-note" : undefined}
-                                    readOnly={locked}
-                                    value={draft.roughValue}
-                                    onChange={(e) => edit({ roughValue: e.target.value })}
-                                    placeholder="Optional"
-                                    className={`${s.input} mt-2`}
-                                />
-                            </div>
                         </div>
 
                         <div>
@@ -700,14 +688,14 @@ function SuggestionCard({
     onApply: (parts: SuggestionPart[], replaceNewerWork: boolean) => void;
     onDiscard: () => void;
 }) {
-    const parts = suggestionParts(suggestion);
+    const parts: SuggestionPart[] = suggestionParts(suggestion).filter((part) => part !== "roughValue");
     const stale = isSuggestionStale(suggestion, draft);
     const [picked, setPicked] = useState<SuggestionPart[]>(parts);
     const [replaceNewer, setReplaceNewer] = useState(false);
 
     // Wording written from an older description is only applied when the
     // contractor has said, after the change, that they want it.
-    const chosen = picked.filter((part) => !(part === "work" && stale && !replaceNewer));
+    const chosen = picked.filter((part) => parts.includes(part) && !(part === "work" && stale && !replaceNewer));
 
     const toggle = (part: SuggestionPart, on: boolean) => {
         if (part === "work" && stale) setReplaceNewer(on);

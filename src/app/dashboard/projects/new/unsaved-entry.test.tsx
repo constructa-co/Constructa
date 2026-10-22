@@ -96,7 +96,18 @@ describe("new job unsaved-entry boundary", () => {
 
     it("leaves a blank form clean", () => { expect(warns()).toBe(false); });
 
-    it.each(Object.keys(EMPTY_BLANK_PROJECT_FORM))("protects %s typing, including optional entries", name => {
+    it("offers no rough-value entry, keeping the existing blank creation default", async () => {
+        nodes(render()).find(n => n.type === "button" && n.props.onClick)!.props.onClick!();
+        expect(nodes(render()).find(n => n.props.id === "new-project-potentialValue")).toBeUndefined();
+        expect(renderToStaticMarkup(render())).not.toContain("Rough value");
+        edit("name", "Local job"); edit("client", "Synthetic client");
+        hooks.create.mockResolvedValueOnce({ success: true, projectId: "default-job" });
+        submit();
+        await vi.waitFor(() => expect(hooks.push).toHaveBeenCalled());
+        expect(hooks.create.mock.calls[0][0].get("potentialValue")).toBe("");
+    });
+
+    it.each(Object.keys(EMPTY_BLANK_PROJECT_FORM).filter(name => name !== "potentialValue"))("protects %s typing, including optional entries", name => {
         nodes(render()).find(n => n.type === "button" && n.props.onClick)!.props.onClick!();
         edit(name, "Local entry");
         expect(warns()).toBe(true);
@@ -138,7 +149,7 @@ describe("new job unsaved-entry boundary", () => {
         expect(html).toContain('role="status"');
         expect(html).toContain("Creating from the details you submitted.");
         expect(html).toContain("Changes typed while this is in progress are not included in that request.");
-        for (const name of Object.keys(EMPTY_BLANK_PROJECT_FORM)) {
+        for (const name of Object.keys(EMPTY_BLANK_PROJECT_FORM).filter(name => name !== "potentialValue")) {
             expect(nodes(render()).find(n => n.props.id === `new-project-${name}`)!.props.disabled).not.toBe(true);
         }
         edit("name", "Later local name"); edit("siteAddress", "Later synthetic site");

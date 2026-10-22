@@ -158,7 +158,7 @@ export interface BriefSavePayload {
     lng?: number;
     region?: string;
     brief_completed: boolean;
-    potential_value: number | null;
+    potential_value?: number | null;
     start_date: string | null;
 }
 
@@ -181,12 +181,12 @@ export type BriefPayloadResult =
     | { ok: true; payload: BriefSavePayload }
     | { ok: false; error: string; stage: BriefStageKey };
 
-export function buildBriefPayload(draft: BriefDraft, completed: boolean): BriefPayloadResult {
+export function buildBriefPayload(draft: BriefDraft, completed: boolean, options: { preservePotentialValue?: boolean } = {}): BriefPayloadResult {
     const scope = composeScope(draft.work, draft.siteNotes);
     if (scope.length > MAX_SCOPE_LENGTH) {
         return { ok: false, stage: "client", error: "The description is too long to save. Shorten it and try again." };
     }
-    const value = parseRoughValue(draft.roughValue);
+    const value = options.preservePotentialValue ? { ok: true as const, value: null } : parseRoughValue(draft.roughValue);
     if (!value.ok) return { ok: false, stage: "site", error: value.error };
     if (draft.startDate && !/^\d{4}-\d{2}-\d{2}$/.test(draft.startDate)) {
         return { ok: false, stage: "site", error: "Choose the start date from the calendar." };
@@ -197,9 +197,11 @@ export function buildBriefPayload(draft: BriefDraft, completed: boolean): BriefP
         brief_trade_sections: draft.trades,
         client_type: draft.clientType,
         brief_completed: completed,
-        potential_value: value.value,
         start_date: draft.startDate || null,
     };
+    // The capture flow no longer edits this field. RPC key omission preserves
+    // the stored value instead of clearing or rounding historical money.
+    if (!options.preservePotentialValue) payload.potential_value = value.value;
     if (draft.lat !== null && draft.lng !== null) {
         payload.lat = draft.lat;
         payload.lng = draft.lng;
@@ -561,7 +563,7 @@ export type SaveOutcome = "saved" | "failed" | "invalid" | "busy";
  * plain save keeps whatever the project already says. The draft is never
  * cleared or replaced by a failed save.
  */
-export async function saveBrief(store: BriefStore, save: SaveBrief, options: { confirm: boolean }): Promise<SaveOutcome> {
+export async function saveBrief(store: BriefStore, save: SaveBrief, options: { confirm: boolean; preservePotentialValue?: boolean }): Promise<SaveOutcome> {
     const state = store.getState();
     if (state.save.status === "saving") return "busy";
 
@@ -578,14 +580,16 @@ export async function saveBrief(store: BriefStore, save: SaveBrief, options: { c
     }
 
     const completed = options.confirm || state.savedCompleted;
-    const built = buildBriefPayload(state.draft, completed);
+    const built = buildBriefPayload(state.draft, completed, options);
     if (!built.ok) {
         store.dispatch({ type: "stage/set", stage: built.stage });
         store.dispatch({ type: "save/failed", error: built.error });
         return "invalid";
     }
 
-    const snapshot = state.draft;
+    const snapshot = options.preservePotentialValue
+        ? { ...state.draft, roughValue: state.saved.roughValue }
+        : state.draft;
     store.dispatch({ type: "save/started" });
     try {
         const result = await save(built.payload);
@@ -610,9 +614,10 @@ export async function continueToPricing(
     store: BriefStore,
     save: SaveBrief,
     navigate: () => void,
+    options: { preservePotentialValue?: boolean } = {},
 ): Promise<"navigated" | SaveOutcome> {
     if (!isBriefConfirmed(store.getState())) {
-        const outcome = await saveBrief(store, save, { confirm: true });
+        const outcome = await saveBrief(store, save, { ...options, confirm: true });
         if (outcome !== "saved") return outcome;
         // Typing during the save leaves newer text unsaved: stay and say so.
         if (!isBriefConfirmed(store.getState())) return "busy";

@@ -276,19 +276,6 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
                                     />
                                     {fieldError("startDate")}
                                 </div>
-                                <div>
-                                    <label htmlFor="new-project-potentialValue" className={labelCls}>Rough value (£)</label>
-                                    <input
-                                        {...field("potentialValue")}
-                                        inputMode="decimal"
-                                        autoComplete="off"
-                                        value={form.potentialValue}
-                                        onChange={(e) => set("potentialValue", e.target.value)}
-                                        placeholder="e.g. 45000"
-                                        className={`${inputCls} mt-1.5`}
-                                    />
-                                    {fieldError("potentialValue")}
-                                </div>
                             </div>
                         </div>
                     )}

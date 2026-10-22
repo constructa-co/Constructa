@@ -342,13 +342,6 @@ export default function VideoWalkthrough({ onApply }: Props) {
                             </div>
                         )}
 
-                        {/* Estimated value */}
-                        {result.estimatedValue > 0 && (
-                            <p className="text-xs text-slate-500">
-                                Estimated value: <span className="text-slate-300 font-medium">£{result.estimatedValue.toLocaleString()}</span>
-                            </p>
-                        )}
-
                         {/* Site observations (collapsible) */}
                         {result.observations.length > 0 && (
                             <div className="bg-slate-900/40 border border-slate-700/40 rounded-lg overflow-hidden">

@@ -1322,7 +1322,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                 type="button"
                                 onClick={handleCreateEstimate}
                                 disabled={draftResourceLines.size > 0}
-                                className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-500 transition-colors flex items-center gap-1.5"
+                                className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--price-accent)] text-[var(--price-accent-text)] transition-colors flex items-center gap-1.5"
                             >
                                 <Plus className="w-4 h-4" /> Add an alternative
                             </button>
@@ -1338,7 +1338,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                     type="text"
                                     defaultValue={currentEstimate.version_name}
                                     onBlur={(e) => handleNameBlur(e.target.value)}
-                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
                                 />
                             </div>
                                 <p>Changing the name saves when you leave the field. Selecting a version to view does not change which one is used in the proposal.</p>
@@ -1407,7 +1407,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                         </div>
                         <p className="text-sm text-slate-500">No estimates yet</p>
                         <p className="text-xs text-slate-600">Start detailed pricing to build a bill of quantities, or close Advanced estimating to return to simple price lines.</p>
-                        <button type="button" onClick={handleCreateEstimate} className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white">Start detailed pricing</button>
+                        <button type="button" onClick={handleCreateEstimate} className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--price-accent)] text-[var(--price-accent-text)]">Start detailed pricing</button>
                     </div>
                 </div>
             ) : (
@@ -1466,7 +1466,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                     value={currentEstimate.prelims_pct}
                                     onChange={(e) => handleMarginChange("prelims_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("prelims_pct", parseFloat(e.target.value) || 0)}
-                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
                                 />
                             </div>
                             <div className="w-24">
@@ -1478,7 +1478,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                     value={currentEstimate.overhead_pct}
                                     onChange={(e) => handleMarginChange("overhead_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("overhead_pct", parseFloat(e.target.value) || 0)}
-                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
                                 />
                             </div>
                             <div className="w-24">
@@ -1490,7 +1490,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                     value={currentEstimate.risk_pct}
                                     onChange={(e) => handleMarginChange("risk_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("risk_pct", parseFloat(e.target.value) || 0)}
-                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
                                 />
                             </div>
                             <div className="w-24">
@@ -1502,7 +1502,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                     value={currentEstimate.profit_pct}
                                     onChange={(e) => handleMarginChange("profit_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("profit_pct", parseFloat(e.target.value) || 0)}
-                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                                    className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
                                 />
                             </div>
                             <div className="w-24">
@@ -1789,7 +1789,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                     type="button"
                                     onClick={() => handleAddLine(section)}
                                     disabled={addReceipts.some(receipt => receipt.estimateId === currentEstimate.id && receipt.section === section && receipt.phase !== "confirmed")}
-                                    className="w-full px-5 py-2.5 text-left text-sm text-blue-400 hover:bg-blue-500/10 flex items-center gap-1.5 transition-colors"
+                                    className="w-full px-5 py-2.5 text-left text-sm text-emerald-400 hover:bg-emerald-500/10 flex items-center gap-1.5 transition-colors"
                                 >
                                     <Plus className="w-4 h-4" /> Add line item
                                 </button>
@@ -2068,7 +2068,7 @@ function LineItemRow({
                     }}
                     placeholder={ordinaryDescription ? "Search catalogue only; no wording save" : "Search library or type description..."}
                     aria-label={ordinaryDescription ? "Search catalogue" : "Description"}
-                    className="w-full h-8 px-2 border border-slate-700 rounded text-sm text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50 placeholder:text-slate-600"
+                    className="w-full h-8 px-2 border border-slate-700 rounded text-sm text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 placeholder:text-slate-600"
                 />
                 </>}
                 {ordinaryDescription && <details className="mt-1" onToggle={event => {
@@ -2107,7 +2107,7 @@ function LineItemRow({
                     }}
                     placeholder={ordinaryDescription ? "Search catalogue only; no wording save" : "Search library or type description..."}
                     aria-label={ordinaryDescription ? "Search catalogue" : "Description"}
-                    className="w-full h-8 px-2 border border-slate-700 rounded text-sm text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50 placeholder:text-slate-600"
+                    className="w-full h-8 px-2 border border-slate-700 rounded text-sm text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 placeholder:text-slate-600"
                 />
                 </details>}
                 {activity && <AdvancedLineActivity {...activity} blocked={activity.blocked || (!activityOpen && (saveBlocked || savePending || search !== line.description))}
@@ -2182,7 +2182,7 @@ function LineItemRow({
                 defaultValue={line.quantity}
                 onBlur={(e) => onUpdate(line.id, { quantity: parseFloat(e.target.value) || 0 })}
                 aria-label="Quantity"
-                className="h-8 px-2 border border-slate-700 rounded text-sm text-center text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                className="h-8 px-2 border border-slate-700 rounded text-sm text-center text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
             />}
 
             {/* Unit */}
@@ -2229,7 +2229,7 @@ function LineItemRow({
                         if (!rowMounted.current || rowView.current.searchDraft !== searchDraft || search !== line.description) return;
                         onRateChange(line, event.target.value, rateDraft);
                     }}
-                    className="w-full h-8 px-2 border border-slate-700 rounded text-sm text-right text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50" />
+                    className="w-full h-8 px-2 border border-slate-700 rounded text-sm text-right text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50" />
                 {rateDraft && <>
                     <p className="text-xs text-slate-400">Draft rate only. Saved: GBP {String(line.unit_rate)}. Quantity: {String(line.quantity)}. Total remains confirmed until Save is acknowledged.</p>
                     <button type="button" disabled={ratePending || rateConsumed || !rateValid || !!rateMessage} onClick={() => void onRateSave(rateDraft)} className="text-xs underline">Save rate</button>
@@ -2251,7 +2251,7 @@ function LineItemRow({
                     defaultValue={line.unit_rate}
                     onBlur={(e) => onUpdate(line.id, { unit_rate: parseFloat(e.target.value) || 0 })}
                     aria-label="Rate (£)"
-                    className="h-8 px-2 border border-slate-700 rounded text-sm text-right text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                    className="h-8 px-2 border border-slate-700 rounded text-sm text-right text-slate-100 bg-slate-900/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
                 />
             )}
 

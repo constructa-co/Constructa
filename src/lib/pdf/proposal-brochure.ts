@@ -20,12 +20,9 @@
 
 import jsPDF from "jspdf";
 import {
-    PROGRAMME_BASIS_NOTE,
-    formatDateRange,
-    formatPlanDate,
     formatWorkingDuration,
-    stageBar,
 } from "@/lib/programme-plan";
+import { programmeAxisLabels, programmeBasisNote, programmeFacts, programmeStageBar, programmeStageRange } from "@/lib/relative-programme";
 import type { ProposalPublicationSnapshot } from "@/lib/proposal-publication";
 import {
     DOCUMENT_THEMES,
@@ -557,11 +554,9 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
 
     const timeline = (block: Extract<DocBlock, { type: "timeline" }>) => {
         const { plan } = block;
-        const headline: DocFact[] = [
-            { label: "Start on site", value: formatPlanDate(plan.start_date) },
-            { label: "Finish", value: formatPlanDate(plan.end_date) },
-            { label: "Duration", value: plan.duration_label },
-        ];
+        const basisLines = wrap(`${programmeBasisNote(plan)} Coloured bars show duration. Vertical ticks mark starts, not extra days.`, PAGE.contentWidth, STYLES.small);
+        const axisAndNoteHeight = Math.max(12, 6 + basisLines.length * STYLES.small.lineHeight);
+        const headline: DocFact[] = programmeFacts(plan);
         ensure(TIMELINE_FACTS + STAGE_ROW);
         const factsTop = y;
         const columnWidth = PAGE.contentWidth / 3;
@@ -579,32 +574,38 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
         plan.stages.forEach((stage, index) => {
             const isLast = index === plan.stages.length - 1;
             // The date axis and the basis note stay with the last stage.
-            ensure(STAGE_ROW + (isLast ? 12 : 0));
+            ensure(STAGE_ROW + (isLast ? axisAndNoteHeight : 0));
             const top = y;
             drawBlockLines(wrap(stage.name, PAGE.contentWidth - 78, STYLES.strong).slice(0, 1), PAGE.left, top, STYLES.strong);
             drawBlockLines(
-                [pdfText(`${formatDateRange(stage.start_date, stage.end_date)} - ${formatWorkingDuration(stage.working_days)}`)],
+                [pdfText(`${programmeStageRange(plan, index)} - ${formatWorkingDuration(stage.working_days)}`)],
                 PAGE.right, top + 0.6, STYLES.small, "right",
             );
-            const bar = stageBar(plan, stage);
+            const bar = programmeStageBar(plan, index, 0);
+            const barX = PAGE.left + (PAGE.contentWidth * bar.leftPct) / 100;
+            const barWidth = (PAGE.contentWidth * bar.widthPct) / 100;
             pdf.setFillColor(231, 229, 228);
             pdf.roundedRect(PAGE.left, top + 6.5, PAGE.contentWidth, 2.6, 1.3, 1.3, "F");
             pdf.setFillColor(...ACCENT);
-            pdf.roundedRect(
-                PAGE.left + (PAGE.contentWidth * bar.leftPct) / 100,
+            if (barWidth > 0) pdf.roundedRect(
+                barX,
                 top + 6.5,
-                Math.max(1.5, (PAGE.contentWidth * bar.widthPct) / 100),
-                2.6, 1.3, 1.3, "F",
+                barWidth,
+                2.6, Math.min(1.3, barWidth / 2), 1.3, "F",
             );
+            pdf.setDrawColor(...ACCENT);
+            pdf.setLineWidth(0.25);
+            pdf.line(barX, top + 6, barX, top + 9.6);
             y += STAGE_ROW;
             log("row", top, y);
         });
 
         const top = y;
-        drawBlockLines([formatPlanDate(plan.start_date, "short")], PAGE.left, y, STYLES.small);
-        drawBlockLines([formatPlanDate(plan.end_date, "short")], PAGE.right, y, STYLES.small, "right");
+        const [first, last] = programmeAxisLabels(plan);
+        drawBlockLines([first], PAGE.left, y, STYLES.small);
+        drawBlockLines([last], PAGE.right, y, STYLES.small, "right");
         y += 6;
-        y += drawBlockLines(wrap(PROGRAMME_BASIS_NOTE, PAGE.contentWidth, STYLES.small), PAGE.left, y, STYLES.small);
+        y += drawBlockLines(basisLines, PAGE.left, y, STYLES.small);
         log("text", top, y);
     };
 

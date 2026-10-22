@@ -23,6 +23,8 @@ import {
     PAYMENT_PRESETS,
     REVIEW_STATUS_LABEL,
     SEND_BLOCK_MESSAGE,
+    TEXT_LIMITS,
+    applyCompanyClosingMessage,
     balanceFor,
     buildPreviewSnapshot,
     depositBalancePayments,
@@ -159,6 +161,10 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     const [deliverByEmail, setDeliverByEmail] = useState(Boolean(project.client_email));
     const [upload, setUpload] = useState<{ busy: boolean; error: string }>({ busy: false, error: "" });
     const [copy, setCopy] = useState("");
+    const [companyClosingNote, setCompanyClosingNote] = useState("");
+    const companyMessage = context.profile.md_message ?? "";
+    const companyClosingBlocked = busy || state.ai.status === "loading" || state.suggestion !== null
+        || !!draft.closing.trim() || !!state.saved.closing.trim() || companyMessage.length > TEXT_LIMITS.closing;
     const [pdfNote, setPdfNote] = useState<{ busy: boolean; text: string; failed: boolean }>({ busy: false, text: "", failed: false });
     const [draftPdf, setDraftPdf] = useState<{ busy: boolean; text: string; failed: boolean }>({ busy: false, text: "", failed: false });
     // How the contractor chose to be paid. It opens on what is saved.
@@ -966,6 +972,24 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                     <section id="review-closing" className={sectionCard} aria-labelledby="review-closing-title">
                         {sectionTitle("review-closing", 8, "Closing message", "The last thing your client reads before they respond.")}
                         {wordingField("closing", { rows: 4, help: "In your own words. Leave it empty and this section is left out." })}
+                        {companyMessage.trim() && (
+                            <details className={`${s.inset} mt-4 p-4`} data-company-closing-source>
+                                <summary className={`cursor-pointer text-sm font-semibold ${s.heading}`}>Use your managing director&apos;s message</summary>
+                                <p className={`mt-3 text-sm ${s.muted}`}>From your saved company profile. No new text is generated here. It can also appear under About your business. Review it for this proposal before saving.</p>
+                                <blockquote className={`mt-3 max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-sm ${s.body}`}>{companyMessage}</blockquote>
+                                <button type="button" data-use-company-closing disabled={companyClosingBlocked} className={`${s.secondaryButton} mt-3`}
+                                    onClick={() => {
+                                        const result = applyCompanyClosingMessage(store, companyMessage, !locked);
+                                        setCompanyClosingNote(result.ok ? "Company message copied to this unsaved draft. Review and save it when ready." : result.error);
+                                    }}>Use company message</button>
+                                <p className={`mt-2 text-sm ${s.muted}`}>{companyMessage.length > TEXT_LIMITS.closing
+                                    ? "This message exceeds the closing field's 20,000-character limit. Nothing will be copied or shortened."
+                                    : draft.closing.trim() || state.saved.closing.trim()
+                                        ? "Your proposal's existing wording is kept. Edit the closing field directly; using company text will not replace it."
+                                        : "This fills only an empty draft. It does not save the proposal or change your company profile."}</p>
+                                {companyClosingNote && <p role="status" className={`mt-2 text-sm ${s.body}`}>{companyClosingNote}</p>}
+                            </details>
+                        )}
                     </section>
                 </fieldset>
 

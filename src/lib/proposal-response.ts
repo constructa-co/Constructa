@@ -45,7 +45,7 @@ export interface ResponseWording {
     /** In the receipt emails and the contractor's history. */
     receiptLabel: string;
     receiptExplanation: string;
-    /** The line the client signs against in the PDF. */
+    /** Blank signature-line prompt, not evidence that a response was recorded. */
     pdfSignatureLabel: string;
 }
 
@@ -61,7 +61,7 @@ const WORDING: Record<RecordedResponseKind, ResponseWording> = {
         emailInvite: "and confirm that you have received it. Confirming receipt is not acceptance and does not create a contract",
         receiptLabel: "Receipt confirmed",
         receiptExplanation: "This records that the client received the proposal. It is not acceptance of the proposal and does not create a contract.",
-        pdfSignatureLabel: "Client: receipt confirmed",
+        pdfSignatureLabel: "Client: confirm receipt",
     },
     non_binding_intent: {
         optionLabel: "Ask the client whether they intend to go ahead",

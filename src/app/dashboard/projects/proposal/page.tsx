@@ -101,7 +101,7 @@ export default async function ProposalPage(props: { searchParams: Promise<{ proj
 
     return (
         <div className="max-w-5xl mx-auto px-4 sm:px-8 pt-4 sm:pt-8 pb-16">
-            <ProjectNavBar projectId={projectId} activeTab="proposal" />
+            <ProjectNavBar projectId={projectId} projectName={project.name || ""} activeTab="proposal" />
             <ReviewSendClient
                 key={project.id}
                 context={{

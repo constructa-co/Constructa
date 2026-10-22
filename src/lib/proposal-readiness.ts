@@ -10,7 +10,9 @@
  */
 
 import { roundMoney } from "./financial";
-import { computeProgrammePlan, planCoversEveryPhase } from "./programme-plan";
+import { planCoversEveryPhase } from "./programme-plan";
+import { computeDisplayProgramme, RELATIVE_PROGRAMME_BASIS } from "./relative-programme";
+import { readProgrammeInclusion } from "./programme-inclusion";
 
 export { isUntouchedStarterProgramme, type StarterPhaseSeed } from "./programme-plan";
 
@@ -110,6 +112,9 @@ export function isValidProgrammePhase(phase: unknown, projectStartDate?: string 
         ? positiveNumber(p.manualDays)
         : positiveNumber(p.calculatedDays) || positiveNumber(p.duration_days);
     if (duration <= 0) return false;
+    if (p.timeBasis === RELATIVE_PROGRAMME_BASIS) {
+        return Number.isInteger(p.manualDays) && Number.isInteger(p.workingDayOffset) && Number(p.workingDayOffset) >= 0;
+    }
 
     if (isValidDate(p.start_date)) return true;
     const offset = p.startOffset == null ? 0 : Number(p.startOffset);
@@ -147,6 +152,7 @@ export function evaluateProposalReadiness(input: ProposalReadinessInput): Propos
     const hasProject = hasText(input.projectName);
     const hasClient = hasText(input.clientName);
     const phases = Array.isArray(input.programmePhases) ? input.programmePhases : [];
+    const programmeDecision = readProgrammeInclusion(phases);
     const payments = Array.isArray(input.paymentSchedule) ? input.paymentSchedule : [];
     const terms = Array.isArray(input.terms) ? input.terms : [];
     // The proposal shows a start, a finish and a length, and every stage the
@@ -155,9 +161,9 @@ export function evaluateProposalReadiness(input: ProposalReadinessInput): Propos
     // with no name, start or length blocks sending rather than being dropped
     // or given an invented name.
     const unusablePhases = phases.filter((phase) => !isValidProgrammePhase(phase, input.projectStartDate)).length;
-    const hasProgramme = phases.length > 0
+    const hasProgramme = programmeDecision.intent === "omit" || (programmeDecision.intent === "include" && phases.length > 0
         && unusablePhases === 0
-        && planCoversEveryPhase(computeProgrammePlan(input.projectStartDate, phases), phases);
+        && planCoversEveryPhase(computeDisplayProgramme(input.projectStartDate, phases), phases));
     const hasStart = isValidDate(input.projectStartDate) || phases.some((phase) => isValidDate(asRecord(phase).start_date));
     const coverage = paymentCoverage(payments, input.contractSum);
     const paymentsExceedPrice = coverage !== null && coverage > 100.01;
@@ -187,7 +193,7 @@ export function evaluateProposalReadiness(input: ProposalReadinessInput): Propos
         },
         {
             key: "programme",
-            label: "Programme",
+            label: programmeDecision.intent === "omit" ? "Programme (deliberately omitted)" : "Programme",
             ok: hasProgramme,
             fix: phases.length === 0 || !hasStart
                 ? "Add the start date and how long the job takes in Programme."

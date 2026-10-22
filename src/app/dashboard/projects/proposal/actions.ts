@@ -452,7 +452,12 @@ export async function publishProposalAction(
     }
 
     const estimate = estimates[0] as ProposalPublicationEstimateInput;
-    const terms = resolveProposalTerms(project.tc_overrides as ProposalTermsClause[] | null);
+    let terms: ProposalTermsClause[];
+    try {
+        terms = resolveProposalTerms(project.tc_overrides as ProposalTermsClause[] | null);
+    } catch {
+        return { success: false, error: "The saved proposal terms could not be read. Review and save them before sending." };
+    }
     const readiness = evaluateProposalReadiness({
         projectName: project.name,
         clientName: project.client_name,

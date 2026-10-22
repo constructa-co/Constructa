@@ -564,3 +564,64 @@ describe("getProposalPublicationAction", () => {
         await expect(getProposalPublicationAction(PROJECT_ID)).resolves.toEqual({ success: false, error: "Publish the proposal before downloading its PDF." });
     });
 });
+
+describe("publishing unreadable saved terms", () => {
+    it.each([
+        ["object", { clause_number: 1, title: "Saved", body: "Keep this wording" }],
+        ["string", "Saved terms"],
+        ["empty string", ""],
+        ["number", 0],
+        ["boolean", false],
+        ["null array entry", [null]],
+        ["valid clause followed by null", [{ clause_number: 8, title: "Saved", body: "Keep this wording" }, null]],
+    ])("returns a refusal for %s without replacing terms or publishing", async (_label, terms) => {
+        const { db } = setup({ tc_overrides: terms });
+        const before = JSON.stringify(db.tables);
+        await expect(publishProposalAction(PROJECT_ID, {
+            responseKind: "acknowledgement", deliverByEmail: true, reviewedContent: "0".repeat(64),
+        })).resolves.toEqual({
+            success: false, error: "The saved proposal terms could not be read. Review and save them before sending.",
+        });
+        expect(JSON.stringify(db.tables)).toBe(before);
+        expect(db.rpcCalls).toEqual([]);
+        expect(db.log.some(entry => entry.includes("proposal_publications") || entry.includes("update"))).toBe(false);
+        expect(mocks.sendProposalEmail).not.toHaveBeenCalled();
+        expect(mocks.createAdminClient).not.toHaveBeenCalled();
+    });
+
+    it.each([null, undefined])("keeps the existing default contract for %s", async (terms) => {
+        const { db } = setup({ tc_overrides: terms });
+        await expect(publishAsReviewed("acknowledgement", false)).resolves.toMatchObject({ success: true });
+        expect(publishedSnapshot(db).terms.clauses).toHaveLength(12);
+    });
+
+    it.each([{ terms: [] }, { terms: [{ clause_number: 9, title: "Hidden", body: "Keep hidden", hidden: true }] }])(
+        "keeps deliberate empty/all-hidden terms blocked rather than restoring defaults: %j", async ({ terms }) => {
+            const { db } = setup({ tc_overrides: terms });
+            const before = JSON.stringify(db.tables);
+            const result = await publishProposalAction(PROJECT_ID, {
+                responseKind: "acknowledgement", deliverByEmail: false, reviewedContent: "0".repeat(64),
+            });
+            expect(result).toMatchObject({ success: false });
+            if (!result.success) expect(result.error).toContain("Keep at least one term showing");
+            expect(JSON.stringify(db.tables)).toBe(before);
+            expect(db.rpcCalls).toEqual([]);
+            expect(mocks.sendProposalEmail).not.toHaveBeenCalled();
+        },
+    );
+
+    it("keeps exact valid custom wording, hidden clauses and source order", async () => {
+        const terms = [
+            { clause_number: 90, title: "  Later  ", body: "  First line\n  indented second line  ", custom: true },
+            { clause_number: 2, title: "Hidden", body: "Do not publish", hidden: true },
+            { clause_number: 4, title: "Earlier", body: "Last visible clause", custom: true },
+        ];
+        const { db } = setup({ tc_overrides: terms });
+        await expect(publishAsReviewed("non_binding_intent", false)).resolves.toMatchObject({ success: true });
+        expect(db.tables.projects[0].tc_overrides).toEqual(terms);
+        expect(publishedSnapshot(db).terms.clauses).toEqual([
+            { title: "Later", body: "First line\n  indented second line" },
+            { title: "Earlier", body: "Last visible clause" },
+        ]);
+    });
+});

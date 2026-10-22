@@ -42,7 +42,6 @@ export const BRIEF_STAGES = [
     { key: "client", short: "The job", title: "What does the client want?" },
     { key: "work", short: "Activities", title: "What will you do on this job?" },
     { key: "site", short: "Site and assumptions", title: "Anything about the site we should know?" },
-    { key: "review", short: "Review", title: "Review and confirm" },
 ] as const;
 
 export type BriefStageKey = (typeof BRIEF_STAGES)[number]["key"];

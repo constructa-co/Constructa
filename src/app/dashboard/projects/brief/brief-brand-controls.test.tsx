@@ -78,14 +78,14 @@ describe.each(["dark", "light"])("Brief palette in %s theme", theme => {
 });
 describe("unchanged explicit handoff and source palette", () => {
     it("still saves once before opening this job's estimate", async () => {
-        current.store.dispatch({ type: "stage/set", stage: "review" });
+        current.store.dispatch({ type: "stage/set", stage: "site" });
         await (button("Save and build the price").props.onClick as () => Promise<void>)();
         expect(current.save).toHaveBeenCalledTimes(1); expect(current.save.mock.calls[0][0]).toBe(project.id);
         expect(current.push).toHaveBeenCalledExactlyOnceWith(`/dashboard/projects/costs?projectId=${project.id}`); expect(current.fetch).not.toHaveBeenCalled();
     });
     it("retains wording and current view after a refused save and does not navigate", async () => {
         current.save.mockResolvedValue({ success: false, error: "Refused unit-test save" });
-        current.store.dispatch({ type: "stage/set", stage: "review" });
+        current.store.dispatch({ type: "stage/set", stage: "site" });
         await (button("Save and build the price").props.onClick as () => Promise<void>)();
         expect(current.store.getState().draft.work).toBe("Replace the roof."); expect(current.store.getState().save.status).toBe("failed");
         expect(current.save).toHaveBeenCalledTimes(1); expect(current.push).not.toHaveBeenCalled();

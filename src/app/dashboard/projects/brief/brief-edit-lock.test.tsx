@@ -155,7 +155,7 @@ describe.each(LOCKED_PROJECTS)("Brief locked (%s)", (_label, row) => {
         await (byId(tree, "brief-postcode")!.props.onBlur as () => Promise<void>)();
         expect(tree.find(e => typeof e.props.onApply === "function")).toBeUndefined();
         expect(capture(tree)).toHaveLength(0);
-        stage("review"); tree = render(reason);
+        stage("site"); tree = render(reason);
         expect(buttons(tree, "Save and build the price")).toHaveLength(0);
         expect(buttons(tree, "Build the price")).toHaveLength(0);
         expect(buttons(tree, "Confirm and save")).toHaveLength(0);
@@ -181,7 +181,7 @@ describe("unlocked Brief is unchanged", () => {
         expect(buttons(render(lockReason), "Tidy this up for me")).toHaveLength(1);
         stage("site"); tree = render(lockReason);
         expect(capture(tree)).toHaveLength(1);
-        stage("review"); tree = render(lockReason);
+        stage("site"); tree = render(lockReason);
         await (buttons(tree, "Save and build the price")[0].props.onClick as () => Promise<void>)();
         expect(current.save).toHaveBeenCalledTimes(1);
         expect(current.push).toHaveBeenCalledExactlyOnceWith(`/dashboard/projects/costs?projectId=${project.id}`);
@@ -220,7 +220,7 @@ describe("lock arriving after the page opened", () => {
         const postcode = byId(tree, "brief-postcode")!;
         typeInto(postcode, "SW1A 1AA"); tree = render(null);
         const postcodeBlur = byId(tree, "brief-postcode")!.props.onBlur as () => Promise<void>;
-        stage("review"); tree = render(null);
+        stage("site"); tree = render(null);
         const build = buttons(tree, "Save and build the price")[0];
 
         render(reason);
@@ -266,7 +266,7 @@ describe("lock arriving after the page opened", () => {
         let finish!: (value: unknown) => void;
         current.save.mockReturnValue(new Promise(resolve => { finish = resolve; }));
         current.store.dispatch({ type: "draft/edit", patch: { work: unsaved } });
-        stage("review");
+        stage("site");
         const pending = (buttons(render(null), "Save and build the price")[0].props.onClick as () => Promise<void>)();
         render(reason);
         finish({ success: true }); await pending;
@@ -277,7 +277,7 @@ describe("lock arriving after the page opened", () => {
     it("shows the server's existing lock refusal without offering a retry", async () => {
         current.save.mockResolvedValue({ success: false, error: reason });
         current.store.dispatch({ type: "draft/edit", patch: { work: unsaved } });
-        stage("review");
+        stage("site");
         await (buttons(render(null), "Save and build the price")[0].props.onClick as () => Promise<void>)();
         const tree = render(reason);
         expect(current.store.getState().save).toEqual({ status: "failed", error: reason });
@@ -312,14 +312,14 @@ describe("contractor activity entry integration", () => {
     it("unadded text survives steps, remains visible and enters the existing unload guard", () => {
         stage("work"); change(activity(render(null)), "  Pending\n activity  "); render(null);
         expect(window.addEventListener).toHaveBeenCalledWith("beforeunload", expect.any(Function));
-        stage("review"); const tree = render(null);
+        stage("site"); const tree = render(null);
         expect(tree.some(e => e.props.role === "status" && text(e.props.children).includes("  Pending\n activity  "))).toBe(true);
         expect(buttons(tree, "Return to activities")).toHaveLength(1);
         click(buttons(tree, "Return to activities")[0]); expect(activity(render(null)).props.text).toBe("  Pending\n activity  ");
     });
     it("stale Save and Build handlers cannot omit new unadded activity text", async () => {
         current.store.dispatch({ type: "draft/edit", patch: { work: "Older changed work" } });
-        const save = buttons(render(null), "Save")[0]; stage("review");
+        const save = buttons(render(null), "Save")[0]; stage("site");
         const build = buttons(render(null), "Save and build the price")[0];
         stage("work"); change(activity(render(null)), "New unadded text");
         click(save); await click(build);
@@ -344,7 +344,7 @@ describe("contractor activity entry integration", () => {
         let finish!: (value: unknown) => void;
         current.save.mockReturnValue(new Promise(resolve => { finish = resolve; }));
         stage("work"); change(activity(render(null)), "Included activity"); add(activity(render(null)));
-        stage("review"); const pending = click(buttons(render(null), "Save and build the price")[0]);
+        stage("site"); const pending = click(buttons(render(null), "Save and build the price")[0]);
         stage("work"); change(activity(render(null)), "Newer pending activity");
         finish({ success: true }); await pending;
         expect(current.push).not.toHaveBeenCalled(); expect(activity(render(null)).props.text).toBe("Newer pending activity");

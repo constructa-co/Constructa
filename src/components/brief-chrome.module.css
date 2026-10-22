@@ -28,7 +28,7 @@
 .eyebrow { color: var(--brief-accent); font-size: 11px; letter-spacing: .15em; text-transform: uppercase; font-weight: 800; }
 .root .title { color: var(--brief-text); font-size: clamp(32px, 4vw, 52px); line-height: 1.1; letter-spacing: -.045em; margin: 12px 0; }
 .intro { max-width: 620px; margin-top: 16px; color: var(--brief-muted); font-size: 15px; line-height: 1.65; }
-.steps ol { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.steps ol { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .steps li { min-width: 0; }
 .root .stepButton { width: 100%; min-height: 64px; padding: 10px 6px; border: 1px solid var(--brief-line); border-radius: 12px; color: var(--brief-text); background: var(--brief-panel); overflow-wrap: anywhere; }
 .root .stepButton[aria-current="step"] { color: var(--brief-accent-text); background: var(--brief-accent); border-color: var(--brief-accent); }

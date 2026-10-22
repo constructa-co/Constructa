@@ -200,6 +200,7 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
                 expect(await briefAiAttempts(accountId, email), "and one budgeted attempt").toBe(briefAi.budgetAttempts);
 
                 await use.activate(button("Next"));
+                await use.activate(page.getByText("Choose from existing trade names (optional)", { exact: true }));
             } else {
                 recorder.step("brief: assistant switched off; AI suggestion NOT tested; description and trades entered by hand");
                 // Exactly the deliberate message. "Not available", or any other error, fails here.
@@ -216,6 +217,7 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
 
                 // The brief is completed by hand, with the same trades the suggestion would have offered.
                 await use.activate(button("Next"));
+                await use.activate(page.getByText("Choose from existing trade names (optional)", { exact: true }));
                 const search = page.getByLabel("Find a trade");
                 for (const trade of JOB.trades) {
                     await use.fill(search, trade);
@@ -229,9 +231,9 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
             await expect(button("Bathroom Installation")).toHaveAttribute("aria-pressed", "true");
             await use.activate(button("Next"));
             await use.fill(page.getByLabel("Access, restrictions and assumptions"), JOB.siteNotes);
-            await use.activate(button("Next"));
-            await expect(page.getByRole("heading", { level: 2, name: "Review and confirm" })).toBeVisible();
-            await recorder.checkpoint("brief-review", { scope: "main main" });
+            await expect(page.getByRole("heading", { level: 2, name: "Anything about the site we should know?" })).toBeVisible();
+            await expect(button("Next")).toHaveCount(0);
+            await recorder.checkpoint("brief-ready-to-price", { scope: "main main" });
             await use.activate(button("Save and build the price"));
             await expect(page).toHaveURL(/\/dashboard\/projects\/costs\?projectId=/);
         });

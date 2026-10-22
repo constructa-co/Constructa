@@ -112,7 +112,7 @@ describe("contractor-led activities use the existing Brief array", () => {
         expect(isBriefConfirmed(store.getState())).toBe(false);
     });
     it("stage changes retain raw input and existing legacy trade removal still works", () => {
-        const store = storeFor(); entry(store, "Keep across steps"); store.dispatch({ type: "stage/set", stage: "review" });
+        const store = storeFor(); entry(store, "Keep across steps"); store.dispatch({ type: "stage/set", stage: "site" });
         store.dispatch({ type: "draft/toggleTrade", trade: "Roofing" });
         expect(store.getState().activityEntry).toBe("Keep across steps");
         expect(store.getState().draft.trades).toEqual(["  Legacy name  "]);

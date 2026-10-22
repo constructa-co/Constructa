@@ -73,11 +73,6 @@ const CLIENT_TYPE_LABEL: Record<ClientType, string> = {
     public: "Public sector",
 };
 
-const formatValue = (raw: string): string => {
-    const n = Number(raw.replace(/[£,\s]/g, ""));
-    return raw.trim() && Number.isFinite(n) ? `£${n.toLocaleString("en-GB")}` : raw.trim();
-};
-
 const formatDate = (iso: string): string => {
     const date = new Date(`${iso}T00:00:00`);
     return Number.isNaN(date.getTime())
@@ -268,7 +263,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                         {project.name}{project.client_name ? ` for ${project.client_name}` : ""}
                     </p>
                     <p className={ui.intro}>
-                        Describe the work, add your activities and timing, then review before pricing. Use Save to keep a draft.
+                        Describe the work, add your activities and timing, then build the price. Use Save to keep a draft.
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -319,7 +314,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
 
             {/* Stages */}
             <nav className={ui.steps} aria-label="Brief steps">
-                <ol className="grid grid-cols-4 gap-1.5 sm:gap-2">
+                <ol className="grid grid-cols-3 gap-1.5 sm:gap-2">
                     {BRIEF_STAGES.map((item, index) => {
                         const active = item.key === stage;
                         return (
@@ -650,39 +645,6 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                     </>
                 )}
 
-                {stage === "review" && (
-                    <>
-                        <p className={`text-base ${s.muted}`}>
-                            {locked
-                                ? "This is the brief as it stands on this page. It can't be changed while the job is locked."
-                                : <>This is what will be saved. Change anything that isn&apos;t right.</>}
-                        </p>
-                        <dl className={`divide-y ${isDark ? "divide-[#2a2a2a]" : "divide-gray-200"}`}>
-                            <ReviewRow s={s} label="The job" onChange={() => goTo("client")}>
-                                {draft.work.trim()
-                                    ? <span className="whitespace-pre-wrap">{draft.work.trim()}</span>
-                                    : <span className={s.errorText}>Not described yet. Add a description before you confirm.</span>}
-                            </ReviewRow>
-                            <ReviewRow s={s} label="Client" onChange={() => goTo("client")}>
-                                {CLIENT_TYPE_LABEL[draft.clientType]}
-                            </ReviewRow>
-                            <ReviewRow s={s} label="Work included" onChange={() => goTo("work")}>
-                                {draft.trades.length > 0 ? draft.trades.join(", ") : <span className={s.muted}>No trades picked</span>}
-                            </ReviewRow>
-                            <ReviewRow s={s} label="Site and assumptions" onChange={() => goTo("site")}>
-                                {draft.siteNotes.trim()
-                                    ? <span className="whitespace-pre-wrap">{draft.siteNotes.trim()}</span>
-                                    : <span className={s.muted}>Nothing added</span>}
-                            </ReviewRow>
-                            <ReviewRow s={s} label="Start and value" onChange={() => goTo("site")}>
-                                {draft.startDate ? `Start ${formatDate(draft.startDate)}` : "No start date"}
-                                {" · "}
-                                {draft.roughValue.trim() ? `About ${formatValue(draft.roughValue)}` : "No rough value"}
-                            </ReviewRow>
-                        </dl>
-                    </>
-                )}
-
                 {/* Stage actions */}
                 <div className={`pt-5 border-t ${s.divider} flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3`}>
                     {stage !== "client" ? (
@@ -691,47 +653,24 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                         </button>
                     ) : <span />}
 
-                    {stage !== "review" ? (
+                    {stage === "client" || stage === "work" ? (
                         <button type="button" onClick={() => goTo(adjacentStage(stage, 1))} className={s.primaryButton}>
                             Next <ArrowRight className="w-4 h-4" aria-hidden="true" />
                         </button>
-                    ) : locked ? <span /> : (
-                        <div className="flex flex-col sm:flex-row gap-3">
-                            {!confirmed && (
-                                <button type="button" onClick={() => handleSave(true)} disabled={saving || leaving} className={s.secondaryButton}>
-                                    Confirm and save
-                                </button>
-                            )}
-                            <button type="button" onClick={handleBuildPrice} disabled={saving || leaving} className={s.primaryButton}>
-                                {saving || leaving
-                                    ? <><Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> {leaving ? "Opening pricing…" : "Saving…"}</>
-                                    : <>{confirmed ? "Build the price" : "Save and build the price"} <ArrowRight className="w-4 h-4" aria-hidden="true" /></>}
-                            </button>
-                        </div>
-                    )}
+                    ) : stage === "site" && !locked ? (
+                        <button type="button" onClick={handleBuildPrice} disabled={saving || leaving} className={s.primaryButton}>
+                            {saving || leaving
+                                ? <><Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> {leaving ? "Opening pricing…" : "Saving…"}</>
+                                : <>{confirmed ? "Build the price" : "Save and build the price"} <ArrowRight className="w-4 h-4" aria-hidden="true" /></>}
+                        </button>
+                    ) : <span />}
                 </div>
-                {stage === "review" && !confirmed && !locked && (
+                {stage === "site" && !confirmed && !locked && (
                     <p className={`text-sm ${s.muted}`}>
                         Your brief is saved before pricing opens. If the save fails you stay here with everything you typed.
                     </p>
                 )}
             </section>
-        </div>
-    );
-}
-
-function ReviewRow({ s, label, onChange, children }: { s: WorkspaceStyles; label: string; onChange: () => void; children: React.ReactNode }) {
-    return (
-        // A term, its value and its action sit directly in the group so the
-        // list is read out as terms and values.
-        <div className="py-3 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3">
-            <dt className={`col-start-1 text-sm font-semibold ${s.muted}`}>{label}</dt>
-            <dd className={`col-start-1 mt-0.5 text-base break-words ${s.body}`}>{children}</dd>
-            <dd className="col-start-2 row-start-1 row-span-2">
-                <button type="button" onClick={onChange} aria-label={`Change ${label.toLowerCase()}`} className={s.quietButton}>
-                    Change
-                </button>
-            </dd>
         </div>
     );
 }

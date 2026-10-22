@@ -174,7 +174,7 @@ describe("Review and Send", () => {
         expect(gaps).toContain("2 things are needed before you can send");
         expect(gaps).toMatch(/data-readiness-item="programme" data-ok="false"/);
         expect(gaps).toContain("Add the start date and how long the job takes in Programme.");
-        expect(gaps).toContain("Would improve it. You can send without these.");
+        expect(gaps).toContain("Optional additions to consider");
         expect(gaps).toContain('data-recommended-item="closingStatement"');
         expect(gaps).toContain('data-send-block="not-ready"');
         // The confirmation cannot be ticked while a required item is missing.

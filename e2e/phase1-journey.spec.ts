@@ -292,7 +292,7 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
         await test.step("an incomplete proposal cannot be sent", async () => {
             recorder.step("review: sending blocked until programme and payment stages exist");
             await openProjectTab("Proposal");
-            await expect(page.getByRole("heading", { level: 1, name: "Review and send" })).toBeVisible();
+            await expect(page.getByRole("heading", { level: 1, name: "Your proposal" })).toBeVisible();
             const needed = page.getByRole("region", { name: /needed before you can send/ });
             await expect(needed).toContainText("Programme Missing");
             await expect(needed).toContainText("Payment stages Missing");
@@ -450,7 +450,7 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
 
         await test.step("review, then publish in acknowledgement mode", async () => {
             recorder.step("review: payment preset, parity, pre-send PDF, light document, acknowledgement default, publish v1");
-            await expect(page.getByRole("heading", { level: 1, name: "Review and send" })).toBeVisible();
+            await expect(page.getByRole("heading", { level: 1, name: "Your proposal" })).toBeVisible();
             const price = page.getByRole("region", { name: "Price", exact: true }).first();
             const payments = page.locator("[data-review-payments]");
             const blocker = send.locator('[data-send-block="not-ready"]');

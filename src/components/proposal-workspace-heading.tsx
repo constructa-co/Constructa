@@ -14,7 +14,7 @@ export default function ProposalWorkspaceHeading({ projectName, clientName, lock
         <header className={classes.header} data-dark={isDark ? "true" : "false"}>
             <div>
                 <p className={classes.eyebrow}>From your draft to your client</p>
-                <h1 className={classes.title}>Review and send</h1>
+                <h1 className={classes.title}>Your proposal</h1>
                 <p className={classes.project}>{projectName}{clientName ? ` for ${clientName}` : ""}</p>
                 <p className={classes.guide}>
                     {locked

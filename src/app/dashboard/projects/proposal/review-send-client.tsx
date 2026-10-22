@@ -519,7 +519,10 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
 
                     {readiness.recommended.some((item) => !item.ok) && (
                         <>
-                            <h3 className={`mt-5 text-sm font-semibold ${s.body}`}>Would improve it. You can send without these.</h3>
+                            <h3 className={`mt-5 text-sm font-semibold ${s.body}`}>Optional additions to consider</h3>
+                            <p className={`mt-1 text-sm ${s.muted}`} data-recommended-note>
+                                None of these is needed to send. Add the ones that suit this job: site photos and a relevant past job can help your client picture the work. Anything you have already chosen, such as a past job, still has to pass the Needed checks above.
+                            </p>
                             <ul className="mt-2 space-y-2">
                                 {readiness.recommended.filter((item) => !item.ok).map((item) => (
                                     <li key={item.key} className="flex items-start gap-2.5 text-sm" data-recommended-item={item.key}>

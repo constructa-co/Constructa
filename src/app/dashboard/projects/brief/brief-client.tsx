@@ -108,8 +108,6 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
     }, [locked, store]);
 
     const [leaving, setLeaving] = useState(false);
-    const [postcode, setPostcode] = useState(project.postcode);
-    const [postcodeNote, setPostcodeNote] = useState("");
     const [tradeSearch, setTradeSearch] = useState("");
     const [showCapture, setShowCapture] = useState(false);
     const lastSaveWasConfirm = useRef(false);
@@ -223,28 +221,6 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
             }),
         });
         window.scrollTo({ top: 0, behavior: "smooth" });
-    };
-
-    const handlePostcodeLookup = async () => {
-        if (isLocked()) return;
-        const clean = postcode.replace(/\s+/g, "").toUpperCase();
-        setPostcodeNote("");
-        if (clean.length < 5) return;
-        try {
-            const res = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(clean)}`);
-            const data = await res.json();
-            if (data.status === 200 && data.result) {
-                edit({
-                    lat: data.result.latitude,
-                    lng: data.result.longitude,
-                    region: data.result.region || data.result.european_electoral_region || "",
-                });
-            } else {
-                setPostcodeNote("We couldn't find that postcode. You can carry on without it.");
-            }
-        } catch {
-            setPostcodeNote("We couldn't look up that postcode just now. You can carry on without it.");
-        }
     };
 
     const filteredTrades = BRIEF_TRADES.filter((t) => t.toLowerCase().includes(tradeSearch.trim().toLowerCase()));
@@ -538,6 +514,23 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                             <p className={`mt-0.5 text-base break-words ${siteAddress ? s.body : s.muted}`}>
                                 {siteAddress || "No site address on this job yet. You can continue this brief without one."}
                             </p>
+                            <dl className="mt-3 grid sm:grid-cols-2 gap-3 text-sm" data-brief-site-context>
+                                <div>
+                                    <dt className={s.muted}>Site postcode</dt>
+                                    <dd className={`break-words ${s.body}`}>{project.postcode || "Not set"}</dd>
+                                </div>
+                                <div>
+                                    <dt className={s.muted}>Likely start date</dt>
+                                    <dd className={`break-words ${s.body}`}>{draft.startDate ? formatDate(draft.startDate) : "Not set"}</dd>
+                                </div>
+                                {draft.region && (
+                                    <div>
+                                        <dt className={s.muted}>Region</dt>
+                                        <dd className={`break-words ${s.body}`}>{draft.region}</dd>
+                                    </div>
+                                )}
+                            </dl>
+                            <p className={`mt-2 text-sm ${s.muted}`}>Carried from this job. No need to enter these details again.</p>
                         </div>
 
                         <div>
@@ -557,7 +550,9 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                             />
                         </div>
 
-                        <div className="grid sm:grid-cols-2 gap-5">
+                        {!locked && (
+                        <details className={`${s.inset} px-4 py-3`}>
+                            <summary className={`cursor-pointer min-h-11 flex items-center text-sm font-semibold ${s.body}`}>Change likely start date</summary>
                             <div>
                                 <label htmlFor="brief-start-date" className={s.label}>Likely start date</label>
                                 <input
@@ -573,28 +568,8 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                                     Optional. This job&apos;s likely start date. Change it here if it has moved.
                                 </p>
                             </div>
-                        </div>
-
-                        <div>
-                            <label htmlFor="brief-postcode" className={s.label}>Site postcode</label>
-                            <p id="brief-postcode-help" className={`mt-1 text-sm ${s.muted}`}>Optional. Used to find the region. Editing this box does not change the job&apos;s saved postcode.</p>
-                            <input
-                                id="brief-postcode"
-                                aria-describedby={locked ? "brief-postcode-help brief-lock-note" : "brief-postcode-help"}
-                                autoComplete="off"
-                                readOnly={locked}
-                                value={postcode}
-                                onChange={(e) => { if (!isLocked()) setPostcode(e.target.value); }}
-                                onBlur={handlePostcodeLookup}
-                                placeholder="e.g. SW1A 1AA"
-                                className={`${s.input} mt-2 sm:max-w-xs`}
-                            />
-                            {(draft.region || postcodeNote) && (
-                                <p role="status" className={`mt-1.5 text-sm ${s.muted}`}>
-                                    {postcodeNote || `Region: ${draft.region}`}
-                                </p>
-                            )}
-                        </div>
+                        </details>
+                        )}
 
                         {!locked && (showVideo || showDrawing) && (
                             <div className={`rounded-xl border ${s.divider}`}>

@@ -126,7 +126,8 @@ describe("brief goes straight to Build the price", () => {
     it("shows Build on an unlocked site and hides it when the site is locked", () => {
         stage("site");
         const open = render();
-        for (const id of ["brief-site-notes", "brief-start-date", "brief-postcode"]) expect(byId(open, id)).toBeDefined();
+        for (const id of ["brief-site-notes", "brief-start-date"]) expect(byId(open, id)).toBeDefined();
+        expect(byId(open, "brief-postcode")).toBeUndefined();
         expect(byId(open, "brief-rough-value")).toBeUndefined();
         expect(open.some(e => text(e.props.children) === "Existing site")).toBe(true);
         const build = buttons(open, "Build the price");

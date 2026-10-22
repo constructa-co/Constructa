@@ -65,9 +65,9 @@ function text(value: unknown): string {
     if (Array.isArray(value)) return value.map(text).join("");
     return value && typeof value === "object" && "props" in value ? text((value as Element).props.children) : "";
 }
-function render(lockReason?: string | null) {
+function render(lockReason?: string | null, fields: Partial<Parameters<typeof BriefClient>[0]["project"]> = {}) {
     current.cursor = 0;
-    const tree = BriefClient({ project, save: current.save, ask: current.ask, ...(lockReason === undefined ? {} : { lockReason }) });
+    const tree = BriefClient({ project: { ...project, ...fields }, save: current.save, ask: current.ask, ...(lockReason === undefined ? {} : { lockReason }) });
     const queued = current.queue.splice(0); for (const run of queued) run();
     return nodes(tree);
 }
@@ -150,10 +150,11 @@ describe.each(LOCKED_PROJECTS)("Brief locked (%s)", (_label, row) => {
         click(tree.find(e => e.props["aria-label"] === "Remove Roofing"));
         stage("site"); tree = render(reason);
         expect(byId(tree, "brief-rough-value")).toBeUndefined();
-        for (const id of ["brief-site-notes", "brief-start-date", "brief-postcode"]) {
+        expect(byId(tree, "brief-postcode")).toBeUndefined();
+        expect(byId(tree, "brief-start-date")).toBeUndefined();
+        for (const id of ["brief-site-notes"]) {
             expect(byId(tree, id)!.props.readOnly).toBe(true); typeInto(byId(tree, id), "x");
         }
-        await (byId(tree, "brief-postcode")!.props.onBlur as () => Promise<void>)();
         expect(tree.find(e => typeof e.props.onApply === "function")).toBeUndefined();
         expect(capture(tree)).toHaveLength(0);
         stage("site"); tree = render(reason);
@@ -221,6 +222,119 @@ describe("retired rough-value capture", () => {
     });
 });
 
+describe("Brief reuses site context instead of asking for it again", () => {
+    const fields = { site_address: "  Rear yard\nUnit 2  ", postcode: " sw1a 1aa ", start_date: "2026-11-06", lat: 51.5, lng: -0.1, region: "London" };
+    function context() {
+        let state = initialBriefState({ ...project, ...fields });
+        current.store = { getState: () => state, dispatch: action => { state = briefReducer(state, action); } };
+        stage("site");
+        return render(null, fields);
+    }
+
+    it("shows the exact existing address/postcode and current date without a lookup or write", () => {
+        const tree = context();
+        expect(text(tree)).toContain(fields.site_address);
+        expect(text(tree)).toContain(fields.postcode);
+        expect(text(tree)).toContain("6 November 2026");
+        expect(text(tree)).toContain(fields.region);
+        expect(byId(tree, "brief-postcode")).toBeUndefined();
+        expect(tree.filter(e => e.type === "input")).toHaveLength(1);
+        expect(current.fetch).not.toHaveBeenCalled(); expect(current.save).not.toHaveBeenCalled();
+        expect(current.store.getState().draft).toEqual(current.store.getState().saved);
+    });
+
+    it("keeps the existing date input in an optional, initially closed disclosure", () => {
+        const tree = context();
+        const disclosure = tree.find(e => e.type === "details" && text(e.props.children).includes("Change likely start date"))!;
+        expect(disclosure).toBeDefined(); expect(disclosure.props.open).not.toBe(true);
+        expect(byId(nodes(disclosure), "brief-start-date")!.props.value).toBe(fields.start_date);
+        expect(byId(tree, "brief-site-notes")).toBeDefined();
+        expect(tree.find(e => text(e.props.children) === "Edit job details")).toBeUndefined();
+    });
+
+    it("shows missing context honestly without forcing re-entry or choosing a date", () => {
+        stage("site");
+        const tree = render(null, { site_address: "", postcode: "" });
+        expect(text(tree)).toContain("No site address on this job yet");
+        const summary = tree.find(e => e.props["data-brief-site-context"] !== undefined)!;
+        expect(text(summary)).toBe("Site postcodeNot setLikely start dateNot set");
+        expect(current.store.getState().draft.startDate).toBe("");
+        expect(current.fetch).not.toHaveBeenCalled(); expect(current.save).not.toHaveBeenCalled();
+    });
+
+    it("retains deliberate date edits and uses only the existing acknowledged save", async () => {
+        let tree = context();
+        typeInto(byId(tree, "brief-start-date"), "2026-11-09");
+        expect(current.save).not.toHaveBeenCalled();
+        tree = render(null, fields);
+        expect(text(tree)).toContain("9 November 2026");
+        click(buttons(tree, "Save")[0]); await Promise.resolve();
+        expect(current.save).toHaveBeenCalledTimes(1);
+        expect(current.save.mock.calls[0][1]).toMatchObject({ start_date: "2026-11-09", lat: fields.lat, lng: fields.lng, region: fields.region });
+        expect(current.save.mock.calls[0][1]).not.toHaveProperty("postcode");
+        expect(current.save.mock.calls[0][1]).not.toHaveProperty("site_address");
+        expect(current.fetch).not.toHaveBeenCalled();
+    });
+
+    it("retains newer date text and does not navigate on a late price-save acknowledgement", async () => {
+        let tree = context();
+        typeInto(byId(tree, "brief-start-date"), "2026-11-09");
+        let finish!: (result: { success: true }) => void;
+        current.save.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+        tree = render(null, fields);
+        const pending = click(buttons(tree, "Save and build the price")[0]);
+        typeInto(byId(tree, "brief-start-date"), "2026-11-12");
+        finish({ success: true }); await pending;
+        expect(current.store.getState().draft.startDate).toBe("2026-11-12");
+        expect(current.store.getState().saved.startDate).toBe("2026-11-09");
+        expect(current.push).not.toHaveBeenCalled();
+    });
+
+    it("keeps a refused date save and all local notes without a lookup or navigation", async () => {
+        const tree = context();
+        typeInto(byId(tree, "brief-start-date"), "2026-11-09");
+        typeInto(byId(tree, "brief-site-notes"), "  Rear access only.  ");
+        current.save.mockResolvedValue({ success: false, error: "Refused" });
+        await click(buttons(render(null, fields), "Save and build the price")[0]);
+        expect(current.store.getState().draft).toMatchObject({ startDate: "2026-11-09", siteNotes: "  Rear access only.  " });
+        expect(current.store.getState().save.error).toBe("Refused");
+        expect(current.fetch).not.toHaveBeenCalled(); expect(current.push).not.toHaveBeenCalled();
+    });
+
+    it("keeps current context readable when locked without date edits or a settings shortcut", () => {
+        context();
+        const tree = render("Locked job", fields);
+        expect(text(tree)).toContain(fields.postcode); expect(text(tree)).toContain("6 November 2026");
+        expect(byId(tree, "brief-start-date")).toBeUndefined();
+        expect(tree.find(e => text(e.props.children) === "Edit job details")).toBeUndefined();
+        expect(byId(tree, "brief-site-notes")!.props.readOnly).toBe(true);
+        expect(current.save).not.toHaveBeenCalled(); expect(current.fetch).not.toHaveBeenCalled();
+    });
+
+    it("refreshes read-only address/postcode context without editing the retained date or notes", () => {
+        context();
+        current.store.dispatch({ type: "draft/edit", patch: { siteNotes: "Retained access note" } });
+        stage("site");
+        const tree = render(null, { ...fields, site_address: "Updated site", postcode: "NE1 1AA" });
+        expect(text(tree)).toContain("Updated site"); expect(text(tree)).toContain("NE1 1AA");
+        expect(current.store.getState().draft).toMatchObject({ startDate: fields.start_date, siteNotes: "Retained access note" });
+        expect(current.save).not.toHaveBeenCalled(); expect(current.fetch).not.toHaveBeenCalled();
+    });
+
+    it("retains the existing dirty-navigation confirmation", () => {
+        context();
+        current.store.dispatch({ type: "draft/edit", patch: { siteNotes: "Unsaved access note" } });
+        render(null, fields); current.confirm.mockReturnValue(false);
+        const handler = (document.addEventListener as ReturnType<typeof vi.fn>).mock.calls.filter(([event]) => event === "click").at(-1)![1] as (event: unknown) => void;
+        const event = { target: { closest: () => ({ getAttribute: () => null }) }, preventDefault: vi.fn(), stopPropagation: vi.fn() };
+        handler(event);
+        expect(current.confirm).toHaveBeenCalledTimes(1);
+        expect(event.preventDefault).toHaveBeenCalledTimes(1);
+        expect(current.store.getState().draft.siteNotes).toBe("Unsaved access note");
+        expect(current.save).not.toHaveBeenCalled();
+    });
+});
+
 describe("unlocked Brief is unchanged", () => {
     it.each([undefined, null])("lockReason %s keeps editing, assistant, capture and save-then-price", async lockReason => {
         let tree = render(lockReason);
@@ -268,19 +382,18 @@ describe("lock arriving after the page opened", () => {
         stage("site"); tree = render(null);
         click(capture(tree)[0]); tree = render(null);
         const video = tree.find(e => typeof e.props.onApply === "function")!;
-        const postcode = byId(tree, "brief-postcode")!;
-        typeInto(postcode, "SW1A 1AA"); tree = render(null);
-        const postcodeBlur = byId(tree, "brief-postcode")!.props.onBlur as () => Promise<void>;
+        const date = byId(tree, "brief-start-date")!;
         stage("site"); tree = render(null);
         const build = buttons(tree, "Save and build the price")[0];
 
         render(reason);
         typeInto(stale.work, "overwritten"); click(stale.business); click(stale.ask); click(stale.save); click(trade);
         (video.props.onApply as (r: unknown) => void)({ scope: "From video", suggestedTrades: ["Plumbing"] });
-        await postcodeBlur(); await (build.props.onClick as () => Promise<void>)();
+        typeInto(date, "2026-11-06"); await (build.props.onClick as () => Promise<void>)();
 
         const state = current.store.getState();
         expect(state.draft.work).toBe(unsaved); expect(state.draft.clientType).toBe("domestic"); expect(state.draft.trades).toEqual(["Roofing"]);
+        expect(state.draft.startDate).toBe("");
         expect(state.suggestion).toBeNull(); expect(state.save.status).toBe("idle");
         expect(current.save).not.toHaveBeenCalled(); expect(current.ask).not.toHaveBeenCalled();
         expect(current.fetch).not.toHaveBeenCalled(); expect(current.push).not.toHaveBeenCalled();

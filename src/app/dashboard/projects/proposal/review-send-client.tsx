@@ -1009,6 +1009,43 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                 )}
             </form>
 
+            {/* Client response: chosen while preparing, before the preview */}
+            {!locked && (
+                <section className={`${s.card} p-4 sm:p-6 space-y-5`} data-review-response>
+                    <fieldset className="space-y-2" disabled={state.send.status === "publishing"}>
+                        <legend className={s.label}>What do you want your client to do?</legend>
+                        {RESPONSE_KINDS.map((kind) => {
+                            const wording = responseWording(kind);
+                            const chosen = state.responseKind === kind;
+                            return (
+                                <label
+                                    key={kind}
+                                    data-response-option={kind}
+                                    className={`flex items-start gap-3 rounded-xl border p-3 sm:p-4 cursor-pointer ${
+                                        chosen ? "border-blue-500 ring-1 ring-blue-500" : isDark ? "border-[#3a3a3a]" : "border-gray-300"
+                                    }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="response-kind"
+                                        className="mt-1 w-5 h-5 flex-shrink-0"
+                                        checked={chosen}
+                                        onChange={() => store.dispatch({ type: "response/choose", kind })}
+                                    />
+                                    <span className="min-w-0">
+                                        <span className={`block text-base font-semibold ${s.heading}`}>{wording.optionLabel}</span>
+                                        <span className={`block text-sm ${s.muted}`}>{wording.optionHelp}</span>
+                                    </span>
+                                </label>
+                            );
+                        })}
+                        <p className={`text-sm ${s.muted}`}>
+                            Neither option is acceptance. A proposal sent here cannot be accepted as a binding contract online.
+                        </p>
+                    </fieldset>
+                </section>
+            )}
+
             {/* Preview */}
             {!locked && (
                 <section className={s.card} aria-labelledby="review-preview-title" data-review-preview>
@@ -1083,38 +1120,6 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                             {current ? ` It replaces version ${current.version_number}, which stays in your sent versions.` : ""}
                         </p>
                     </div>
-
-                    <fieldset className="space-y-2" disabled={state.send.status === "publishing"}>
-                        <legend className={s.label}>What do you want your client to do?</legend>
-                        {RESPONSE_KINDS.map((kind) => {
-                            const wording = responseWording(kind);
-                            const chosen = state.responseKind === kind;
-                            return (
-                                <label
-                                    key={kind}
-                                    data-response-option={kind}
-                                    className={`flex items-start gap-3 rounded-xl border p-3 sm:p-4 cursor-pointer ${
-                                        chosen ? "border-blue-500 ring-1 ring-blue-500" : isDark ? "border-[#3a3a3a]" : "border-gray-300"
-                                    }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="response-kind"
-                                        className="mt-1 w-5 h-5 flex-shrink-0"
-                                        checked={chosen}
-                                        onChange={() => store.dispatch({ type: "response/choose", kind })}
-                                    />
-                                    <span className="min-w-0">
-                                        <span className={`block text-base font-semibold ${s.heading}`}>{wording.optionLabel}</span>
-                                        <span className={`block text-sm ${s.muted}`}>{wording.optionHelp}</span>
-                                    </span>
-                                </label>
-                            );
-                        })}
-                        <p className={`text-sm ${s.muted}`}>
-                            Neither option is acceptance. A proposal sent here cannot be accepted as a binding contract online.
-                        </p>
-                    </fieldset>
 
                     <div>
                         {project.client_email ? (

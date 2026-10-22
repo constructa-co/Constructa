@@ -425,6 +425,7 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
 
         // ── 8. Review and send ───────────────────────────────────────────────
         const send = page.getByRole("region", { name: "Send to your client" });
+        const responseChoice = page.getByRole("group", { name: "What do you want your client to do?" });
         const preview = page.getByRole("region", { name: "What your client will see" }).getByRole("article");
         let firstLink = "";
         let checkCode = "";
@@ -551,12 +552,12 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
             await switchTheme();
 
             // Acknowledgement is what a new send asks for unless the contractor changes it.
-            const options = send.getByRole("radio");
+            const options = responseChoice.getByRole("radio");
             await expect(options).toHaveCount(2);
-            await expect(send.getByRole("radio", { name: new RegExp(RESPONSE.acknowledgement.option) })).toBeChecked();
-            await expect(send).toContainText("Neither option is acceptance.");
+            await expect(responseChoice.getByRole("radio", { name: new RegExp(RESPONSE.acknowledgement.option) })).toBeChecked();
+            await expect(responseChoice).toContainText("Neither option is acceptance.");
             await expect(page.getByRole("button", { name: BINDING_ACCEPTANCE_CONTROL })).toHaveCount(0);
-            await recorder.checkpoint("send-acknowledgement-default", { scope: "main main", focusOn: send });
+            await recorder.checkpoint("send-acknowledgement-default", { scope: "main main", focusOn: responseChoice });
 
             // The email fails once. The publication stands and only the email is retried.
             if (!keyboardRun) await stubControl({ failEmails: 1 });
@@ -667,9 +668,9 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
         if (!keyboardRun) {
             await test.step("a second version asks for a non-binding intention to proceed", async () => {
                 recorder.step("non-binding intent: publish v2, public wording and response, no acceptance path");
-                await use.check(send.getByRole("radio", { name: new RegExp(RESPONSE.nonBindingIntent.option) }));
+                await use.check(responseChoice.getByRole("radio", { name: new RegExp(RESPONSE.nonBindingIntent.option) }));
                 await expect(preview.getByRole("heading", { name: RESPONSE.nonBindingIntent.heading })).toBeVisible();
-                await recorder.checkpoint("send-non-binding-intent", { scope: "main main", focusOn: send, capture: false });
+                await recorder.checkpoint("send-non-binding-intent", { scope: "main main", focusOn: responseChoice, capture: false });
                 const secondLink = await publish(2);
                 await expect(send.locator('[data-delivery="sent"]')).toContainText(JOB.clientEmail);
                 expect(secondLink).not.toBe(firstLink);

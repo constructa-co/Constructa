@@ -60,6 +60,40 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("new job unsaved-entry boundary", () => {
+    it("offers editable job wording with optional examples rather than requiring a dropdown choice", () => {
+        nodes(render()).find(n => n.type === "button" && n.props.onClick)!.props.onClick!();
+        const html = renderToStaticMarkup(render());
+        expect(html).toMatch(/<input[^>]*id="new-project-projectType"[^>]*list="new-project-type-examples"/);
+        expect(html).not.toMatch(/<select[^>]*id="new-project-projectType"/);
+        expect(html).toContain('placeholder="Not sure yet"');
+        expect(html.match(/<datalist id="new-project-type-examples">[\s\S]*?<\/datalist>/)![0].match(/<option\b/g)).toHaveLength(8);
+        expect(hooks.create).not.toHaveBeenCalled();
+    });
+
+    it.each(["Kitchen worktop repairs", "Residential Extension", "  Specialist timber repairs  ", "", "Other"])("keeps raw custom type %j until the existing explicit create", async value => {
+        nodes(render()).find(n => n.type === "button" && n.props.onClick)!.props.onClick!();
+        edit("name", "Local job"); edit("client", "Synthetic client"); edit("projectType", value);
+        expect(nodes(render()).find(n => n.props.id === "new-project-projectType")!.type).toBe("input");
+        expect(nodes(render()).find(n => n.props.id === "new-project-projectType")!.props.value).toBe(value);
+        expect(hooks.create).not.toHaveBeenCalled();
+        hooks.create.mockResolvedValue({ success: false, error: "Unconfirmed" });
+        submit();
+        await vi.waitFor(() => expect(hooks.refs[0].current).toBe(false));
+        expect(hooks.create).toHaveBeenCalledOnce();
+        expect(hooks.create.mock.calls[0][0].get("projectType")).toBe(value);
+        expect(nodes(render()).find(n => n.props.id === "new-project-projectType")!.props.value).toBe(value);
+        expect(warns()).toBe(true);
+    });
+
+    it("keeps the existing custom-type validation failure local without truncating typed text", () => {
+        nodes(render()).find(n => n.type === "button" && n.props.onClick)!.props.onClick!();
+        edit("name", "Local job"); edit("client", "Synthetic client"); edit("projectType", "x".repeat(101));
+        submit();
+        expect(hooks.create).not.toHaveBeenCalled();
+        expect(nodes(render()).find(n => n.props.id === "new-project-projectType")!.props.value).toBe("x".repeat(101));
+        expect(renderToStaticMarkup(render())).toContain("That job type is too long.");
+    });
+
     it("leaves a blank form clean", () => { expect(warns()).toBe(false); });
 
     it.each(Object.keys(EMPTY_BLANK_PROJECT_FORM))("protects %s typing, including optional entries", name => {

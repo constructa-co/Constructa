@@ -246,17 +246,21 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
 
                             <div>
                                 <label htmlFor="new-project-projectType" className={labelCls}>Type of job</label>
-                                <select
+                                <input
                                     {...field("projectType")}
+                                    type="text"
+                                    list="new-project-type-examples"
+                                    placeholder="Not sure yet"
                                     value={form.projectType}
                                     onChange={(e) => set("projectType", e.target.value)}
                                     className={`${inputCls} mt-1.5`}
-                                >
-                                    <option value="">Not sure yet</option>
+                                />
+                                <datalist id="new-project-type-examples">
                                     {PROJECT_TYPE_OPTIONS.map((type) => (
-                                        <option key={type} value={type}>{type}</option>
+                                        <option key={type} value={type} />
                                     ))}
-                                </select>
+                                </datalist>
+                                <p className={`mt-1.5 text-sm ${muted}`}>Write your own type of job, or choose an example.</p>
                                 {fieldError("projectType")}
                             </div>
 

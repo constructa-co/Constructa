@@ -6,6 +6,7 @@ import { useTheme } from "@/lib/theme-context";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
 import { SETTINGS_LEAVE_WARNING, settingsFormSignature } from "./form-state";
+import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
 
 // --- Inline UI Components ---
 function Card({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -53,7 +54,6 @@ function Select({ children, ...props }: React.SelectHTMLAttributes<HTMLSelectEle
     );
 }
 
-const PROJECT_TYPES = ["Extension", "Loft Conversion", "New Build", "Renovation", "Bathroom/Kitchen", "Roofing", "General Works", "Other"];
 const PAYMENT_TERMS = ["14 days", "21 days", "28 days", "30 days", "Stage payments"];
 
 export default function ClientProjectSettings({ project }: { project: any }) {
@@ -153,12 +153,21 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                             </div>
                             <div className="space-y-1.5">
                                 <Label htmlFor="project_type">Project Type</Label>
-                                <Select id="project_type" name="project_type" defaultValue={project.project_type || "Extension"}>
-                                    {project.project_type && !PROJECT_TYPES.includes(project.project_type) && (
+                                {/[\r\n]/.test(project.project_type || "") ? (
+                                    // A text input strips line endings, so retain the legacy select for these saved values.
+                                    <Select id="project_type" name="project_type" defaultValue={project.project_type}>
                                         <option value={project.project_type}>{project.project_type}</option>
-                                    )}
-                                    {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                                </Select>
+                                        {JOB_TYPE_EXAMPLES.map(t => <option key={t} value={t}>{t}</option>)}
+                                    </Select>
+                                ) : (
+                                    <Input id="project_type" name="project_type" type="text" list="settings-job-type-examples" defaultValue={project.project_type || "Extension"} />
+                                )}
+                                <datalist id="settings-job-type-examples">
+                                    {JOB_TYPE_EXAMPLES.map(t => <option key={t} value={t} />)}
+                                </datalist>
+                                <p className="text-sm text-slate-500">{/[\r\n]/.test(project.project_type || "")
+                                    ? "This saved multi-line type is retained. Choose an example to replace it."
+                                    : "Write your own type of job, or choose an example."}</p>
                             </div>
                             <div className="space-y-1.5">
                                 <Label htmlFor="start_date">Target Start Date</Label>

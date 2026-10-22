@@ -78,6 +78,17 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("settings save feedback and reset boundary", () => {
+    it.each(["Kitchen worktop repairs", "Domestic Renovation", "  Specialist timber repairs  ", "", "Other"])("submits custom type %j only through the existing settings Save", async value => {
+        form.data.set("project_type", value);
+        editor().props.onChange!({ currentTarget: form });
+        expect(hooks.save).not.toHaveBeenCalled();
+        hooks.save.mockResolvedValue({ success: false });
+        submit(); await Promise.all(hooks.tasks);
+        expect(hooks.save).toHaveBeenCalledOnce();
+        expect(hooks.save.mock.calls[0][0].get("project_type")).toBe(value);
+        expect(form.data.get("project_type")).toBe(value);
+    });
+
     it("keeps a rejected submission local and reports an unconfirmed save", async () => {
         editName("Local settings failure check");
         const submitted = Array.from(form.data.entries());

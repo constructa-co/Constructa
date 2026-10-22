@@ -5,28 +5,43 @@ vi.mock("./actions", () => ({ updateProjectAction: vi.fn() }));
 
 import ClientProjectSettings from "./client-page";
 
-function typeSelect(projectType: string | null) {
+function typeInput(projectType: string | null) {
     const html = renderToStaticMarkup(<ClientProjectSettings project={{ id: "project-b", name: "Example renovation", project_type: projectType }} />);
-    return html.match(/<select id="project_type"[\s\S]*?<\/select>/)?.[0] || "";
+    return html.match(/<input id="project_type"[^>]*>/)?.[0] || "";
 }
 
 describe("settings saved project type", () => {
-    it("offers and selects the exact stored type when absent from the standard list", () => {
-        const select = typeSelect("Domestic Renovation");
-        expect(select).toContain('<option value="Domestic Renovation" selected="">Domestic Renovation</option>');
+    it.each(["Repairs\nMaintenance", "Repairs\rMaintenance", "Repairs\r\nMaintenance"])("retains the existing select path for multi-line stored wording %j", projectType => {
+        const html = renderToStaticMarkup(<ClientProjectSettings project={{ id: "project-b", project_type: projectType }} />);
+        expect(html).not.toMatch(/<input id="project_type"/);
+        const select = html.match(/<select id="project_type"[\s\S]*?<\/select>/)![0];
+        expect(select).toContain(`<option value="${projectType}" selected="">${projectType}</option>`);
         expect(select.match(/<option\b/g)).toHaveLength(9);
+        expect(html).toContain("This saved multi-line type is retained.");
+    });
+
+    it.each(["  Specialist repairs  ", "   ", "Old type & maintenance"])("keeps single-line legacy wording %j without normalising it", projectType => {
+        expect(typeInput(projectType)).toContain(`value="${projectType.replace(/&/g, "&amp;")}"`);
+    });
+
+    it("offers and selects the exact stored type when absent from the standard list", () => {
+        const input = typeInput("Domestic Renovation");
+        expect(input).toContain('value="Domestic Renovation"');
+        expect(input).toContain('list="settings-job-type-examples"');
+        expect(input).not.toContain("readOnly");
     });
 
     it("does not duplicate a standard type or change its selection", () => {
-        const select = typeSelect("Other");
-        expect(select.match(/<option\b/g)).toHaveLength(8);
-        expect(select).toContain('<option value="Other" selected="">Other</option>');
+        const input = typeInput("Other");
+        expect(input).toContain('value="Other"');
+        const html = renderToStaticMarkup(<ClientProjectSettings project={{ id: "project-b", project_type: "Other" }} />);
+        const examples = html.match(/<datalist id="settings-job-type-examples">[\s\S]*?<\/datalist>/)![0];
+        expect(examples.match(/<option\b/g)).toHaveLength(8);
+        expect(examples.match(/value="Other"/g)).toHaveLength(1);
     });
 
     it("retains the existing Extension fallback when no type is stored", () => {
-        const select = typeSelect(null);
-        expect(select.match(/<option\b/g)).toHaveLength(8);
-        expect(select).toContain('<option value="Extension" selected="">Extension</option>');
+        expect(typeInput(null)).toContain('value="Extension"');
     });
 });
 
@@ -89,7 +104,7 @@ describe("settings scope and tablet layout", () => {
 
     it("keeps the type grid single-column at tablet widths without changing other grids", () => {
         const html = markup();
-        expect(html).toMatch(/<div class="grid lg:grid-cols-2 gap-4">[\s\S]*?<select id="project_type"/);
+        expect(html).toMatch(/<div class="grid lg:grid-cols-2 gap-4">[\s\S]*?<input id="project_type"/);
         expect(html.match(/class="grid sm:grid-cols-2 gap-4"/g)).toHaveLength(2);
     });
 });

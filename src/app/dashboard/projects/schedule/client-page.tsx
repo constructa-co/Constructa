@@ -623,8 +623,8 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             {/* ── Header ── */}
             <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-                        <svg className="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                        <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                     </div>
@@ -652,7 +652,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                     </button>
                     <button type="button" onClick={handleSave} disabled={isPending} aria-label="Save programme to proposal"
                         title="Save this programme to the proposal. Edited stages also use the existing automatic save."
-                        className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 transition-colors">
+                        className="px-4 py-2 rounded-lg text-sm font-semibold bg-[#a5e8b8] text-[#10291b] disabled:opacity-50 transition-colors">
                         Save to Proposal
                     </button>
                 </div>
@@ -668,7 +668,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                     <div className="relative">
                         <input
                             type="date"
-                            className="h-8 pl-3 pr-2 text-xs border border-slate-700 rounded-lg bg-slate-900/60 text-slate-200 focus:outline-none focus:border-blue-500/60 cursor-pointer"
+                            className="h-8 pl-3 pr-2 text-xs border border-slate-700 rounded-lg bg-slate-900/60 text-slate-200 focus:outline-none focus:border-emerald-500/60 cursor-pointer"
                             value={toInputDate(programmeStart)}
                             onChange={(e) => handleStartDateChange(e.target.value)}
                         />
@@ -692,7 +692,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                 className={[
                                     "px-3 py-1.5 text-xs font-semibold border-r border-slate-700 last:border-0 transition-colors",
                                     daysPerWeek === n
-                                        ? "bg-blue-600 text-white"
+                                        ? "bg-[#a5e8b8] text-[#10291b]"
                                         : "bg-slate-800/60 text-slate-400 hover:bg-slate-700 hover:text-slate-200",
                                 ].join(" ")}
                             >
@@ -766,7 +766,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                 : "Set an estimate as active to auto-generate the programme."}
                         </p>
                         <button type="button" onClick={addPhase}
-                            className="mt-2 px-4 py-2 rounded-lg text-sm font-medium bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:bg-blue-600/30 transition-colors">
+                            className="mt-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#a5e8b8] border border-emerald-500/30 text-[#10291b] transition-colors">
                             + Add phase manually
                         </button>
                     </div>
@@ -852,7 +852,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                             <input
                                                 type="number"
                                                 min={1}
-                                                className="w-12 h-7 px-1 text-center text-xs border border-slate-700 rounded bg-slate-900/50 text-slate-100 focus:outline-none focus:border-blue-500/50"
+                                                className="w-12 h-7 px-1 text-center text-xs border border-slate-700 rounded bg-slate-900/50 text-slate-100 focus:outline-none focus:border-emerald-500/50"
                                                 value={phase.manualDays ?? ""}
                                                 onChange={(e) => handleManualDuration(idx, e.target.value)}
                                                 placeholder="—"
@@ -862,7 +862,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                         {/* Starts After */}
                                         <div className="w-[108px] flex items-center justify-center border-r border-slate-700/30 px-1.5">
                                             <select
-                                                className="w-full h-7 px-1 text-[11px] border border-slate-700 rounded bg-slate-900/50 text-slate-300 focus:outline-none focus:border-blue-500/50"
+                                                className="w-full h-7 px-1 text-[11px] border border-slate-700 rounded bg-slate-900/50 text-slate-300 focus:outline-none focus:border-emerald-500/50"
                                                 value={predIdx !== undefined && predIdx >= 0 ? predIdx : ""}
                                                 onChange={(e) => handleSetDependency(idx, e.target.value)}
                                             >
@@ -1192,7 +1192,7 @@ function LiveTrackingPanel({
                                         type="date"
                                         value={phase.actual_start_date ?? ""}
                                         onChange={e => handleActualDate(idx, "actual_start_date", e.target.value)}
-                                        className="h-7 px-2 text-xs bg-slate-900/50 border border-slate-700 rounded text-slate-300 focus:outline-none focus:border-blue-500/50"
+                                        className="h-7 px-2 text-xs bg-slate-900/50 border border-slate-700 rounded text-slate-300 focus:outline-none focus:border-emerald-500/50"
                                     />
                                 </td>
                                 <td className="px-4 py-3">
@@ -1200,7 +1200,7 @@ function LiveTrackingPanel({
                                         type="date"
                                         value={phase.actual_finish_date ?? ""}
                                         onChange={e => handleActualDate(idx, "actual_finish_date", e.target.value)}
-                                        className="h-7 px-2 text-xs bg-slate-900/50 border border-slate-700 rounded text-slate-300 focus:outline-none focus:border-blue-500/50"
+                                        className="h-7 px-2 text-xs bg-slate-900/50 border border-slate-700 rounded text-slate-300 focus:outline-none focus:border-emerald-500/50"
                                     />
                                 </td>
                                 <td className="px-4 py-3">

@@ -286,3 +286,69 @@ describe("lock arriving after the page opened", () => {
         expect(current.store.getState().draft.work).toBe(unsaved); expect(current.push).not.toHaveBeenCalled();
     });
 });
+
+
+describe("contractor activity entry integration", () => {
+    const activity = (tree: Element[]) => tree.find(e => typeof e.props.onAdd === "function" && typeof e.props.onClear === "function")!;
+    const change = (e: Element, value: string) => (e.props.onChange as (text: string) => void)(value);
+    const add = (e: Element) => (e.props.onAdd as () => void)();
+    const clear = (e: Element) => (e.props.onClear as () => void)();
+    it("puts contractor entry before an optional closed legacy picker", () => {
+        stage("work"); const tree = render(null);
+        const entryIndex = tree.indexOf(activity(tree)); const details = tree.find(e => e.type === "details")!;
+        expect(entryIndex).toBeLessThan(tree.indexOf(details)); expect(details.props.open).toBeUndefined();
+        expect(text(details.props.children)).toContain("Choose from existing trade names (optional)");
+        expect(nodes(details).some(e => e.props["aria-label"] === "Trades")).toBe(true);
+        expect(current.save).not.toHaveBeenCalled();
+    });
+    it("typing and Add stay local; a single explicit Save carries the exact activity", async () => {
+        stage("work"); change(activity(render(null)), "  Protect hallway\n  then strip out  ");
+        expect(current.store.getState().draft.trades).toEqual(["Roofing"]); expect(current.save).not.toHaveBeenCalled();
+        add(activity(render(null))); expect(current.store.getState().draft.trades).toEqual(["Roofing", "  Protect hallway\n  then strip out  "]);
+        expect(current.save).not.toHaveBeenCalled(); click(buttons(render(null), "Save")[0]); await Promise.resolve();
+        expect(current.save).toHaveBeenCalledTimes(1);
+        expect(current.save.mock.calls[0][1].brief_trade_sections).toEqual(["Roofing", "  Protect hallway\n  then strip out  "]);
+    });
+    it("unadded text survives steps, remains visible and enters the existing unload guard", () => {
+        stage("work"); change(activity(render(null)), "  Pending\n activity  "); render(null);
+        expect(window.addEventListener).toHaveBeenCalledWith("beforeunload", expect.any(Function));
+        stage("review"); const tree = render(null);
+        expect(tree.some(e => e.props.role === "status" && text(e.props.children).includes("  Pending\n activity  "))).toBe(true);
+        expect(buttons(tree, "Return to activities")).toHaveLength(1);
+        click(buttons(tree, "Return to activities")[0]); expect(activity(render(null)).props.text).toBe("  Pending\n activity  ");
+    });
+    it("stale Save and Build handlers cannot omit new unadded activity text", async () => {
+        current.store.dispatch({ type: "draft/edit", patch: { work: "Older changed work" } });
+        const save = buttons(render(null), "Save")[0]; stage("review");
+        const build = buttons(render(null), "Save and build the price")[0];
+        stage("work"); change(activity(render(null)), "New unadded text");
+        click(save); await click(build);
+        expect(current.save).not.toHaveBeenCalled(); expect(current.push).not.toHaveBeenCalled();
+        expect(current.store.getState().stage).toBe("work"); expect(current.store.getState().activityEntry).toBe("New unadded text");
+    });
+    it("retains exact text when a refreshed lock arrives and fences earlier callbacks", () => {
+        stage("work"); change(activity(render(null)), "  Retain this\n exactly  ");
+        const old = activity(render(null)); const tree = render("This job is locked.");
+        expect(activity(tree).props.text).toBe("  Retain this\n exactly  "); expect(activity(tree).props.locked).toBe(true);
+        change(old, "Wrong newer text"); add(old); clear(old);
+        expect(current.store.getState().activityEntry).toBe("  Retain this\n exactly  ");
+        expect(current.store.getState().draft.trades).toEqual(["Roofing"]); expect(current.save).not.toHaveBeenCalled();
+    });
+    it("old Add/Clear cannot change a later identical entry", () => {
+        stage("work"); change(activity(render(null)), "Same wording"); const old = activity(render(null));
+        clear(old); change(activity(render(null)), "Same wording"); add(old); clear(old);
+        expect(activity(render(null)).props.text).toBe("Same wording");
+        expect(current.store.getState().draft.trades).toEqual(["Roofing"]);
+    });
+    it("typing during the price save keeps the newer entry and prevents navigation", async () => {
+        let finish!: (value: unknown) => void;
+        current.save.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+        stage("work"); change(activity(render(null)), "Included activity"); add(activity(render(null)));
+        stage("review"); const pending = click(buttons(render(null), "Save and build the price")[0]);
+        stage("work"); change(activity(render(null)), "Newer pending activity");
+        finish({ success: true }); await pending;
+        expect(current.push).not.toHaveBeenCalled(); expect(activity(render(null)).props.text).toBe("Newer pending activity");
+        expect(current.store.getState().saved.trades).toEqual(["Roofing", "Included activity"]);
+    });
+});
+

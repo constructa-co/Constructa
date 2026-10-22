@@ -13,12 +13,14 @@ import { useReducerStore } from "@/lib/use-reducer-store";
 import { workspaceStyles, type WorkspaceStyles } from "@/lib/workspace-styles";
 import SaveStatus from "@/components/save-status";
 import BriefSaveFocus from "@/components/brief-save-focus";
+import BriefActivityEntry from "./brief-activity-entry";
 import ui from "@/components/brief-chrome.module.css";
 import {
     BRIEF_STAGES,
     BRIEF_TRADES,
     CLIENT_TYPES,
     SAVE_STATUS_LABEL,
+    activityEntryError,
     adjacentStage,
     briefReducer,
     briefSaveStatus,
@@ -171,6 +173,18 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
         if (isLocked()) return;
         store.dispatch({ type: "draft/toggleTrade", trade });
     };
+    const editActivity = (text: string) => {
+        if (isLocked()) return;
+        store.dispatch({ type: "activity/edit", text });
+    };
+    const addActivity = () => {
+        if (isLocked()) return;
+        store.dispatch({ type: "activity/add", text: state.activityEntry, version: state.activityEntryVersion });
+    };
+    const clearActivity = () => {
+        if (isLocked()) return;
+        store.dispatch({ type: "activity/clear", text: state.activityEntry, version: state.activityEntryVersion });
+    };
     const goTo = (next: BriefStageKey) => {
         store.dispatch({ type: "stage/set", stage: next });
         window.requestAnimationFrame(() => headingRef.current?.focus());
@@ -254,7 +268,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                         {project.name}{project.client_name ? ` for ${project.client_name}` : ""}
                     </p>
                     <p className={ui.intro}>
-                        Describe the work, check the trades and timing, then review before pricing. Use Save to keep a draft.
+                        Describe the work, add your activities and timing, then review before pricing. Use Save to keep a draft.
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -276,6 +290,14 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                             Changes typed here before the job was locked are still shown, but they are not saved and can&apos;t be saved while it is locked.
                         </p>
                     )}
+                </div>
+            )}
+
+            {state.activityEntry.length > 0 && stage !== "work" && (
+                <div role="status" className={`${s.noticeBox} text-sm space-y-2`}>
+                    <p>An activity entry is still waiting to be added. It is not saved with the brief yet.</p>
+                    <p className="whitespace-pre-wrap break-words">{state.activityEntry}</p>
+                    <button type="button" onClick={() => goTo("work")} className={s.quietButton}>Return to activities</button>
                 </div>
             )}
 
@@ -429,21 +451,31 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                 {stage === "work" && (
                     <>
                         <p className={`text-base ${s.muted}`}>
-                            Pick the trades this job involves. Skip this if you&apos;re not sure yet.
+                            Describe the activities you will carry out, in your own words. Add only the work this job needs; you can leave this empty.
                         </p>
+
+                        <BriefActivityEntry
+                            text={state.activityEntry}
+                            error={activityEntryError(state)}
+                            locked={locked}
+                            onChange={editActivity}
+                            onAdd={addActivity}
+                            onClear={clearActivity}
+                            s={s}
+                        />
 
                         {draft.trades.length > 0 && (
                             <div>
                                 <p className={s.label}>Included ({draft.trades.length})</p>
                                 <ul className="mt-2 flex flex-wrap gap-2">
-                                    {draft.trades.map((trade) => (
-                                        <li key={trade}>
+                                    {draft.trades.map((trade, index) => (
+                                        <li key={`${index}:${trade}`}>
                                             <button
                                                 type="button"
                                                 disabled={locked}
                                                 onClick={() => toggleTrade(trade)}
                                                 aria-label={`Remove ${trade}`}
-                                                className="min-h-11 pl-3 pr-2 rounded-full bg-[var(--brief-accent)] text-[var(--brief-accent-text)] text-sm font-semibold inline-flex items-center gap-1.5"
+                                                className="min-h-11 pl-3 pr-2 rounded-full bg-[var(--brief-accent)] text-[var(--brief-accent-text)] text-sm font-semibold inline-flex items-center gap-1.5 whitespace-pre-wrap break-words"
                                             >
                                                 {trade}
                                                 <X className="w-4 h-4" aria-hidden="true" />
@@ -454,6 +486,8 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                             </div>
                         )}
 
+                        <details className="space-y-3">
+                            <summary className={`cursor-pointer ${s.label}`}>Choose from existing trade names (optional)</summary>
                         <div>
                             <label htmlFor="brief-trade-search" className={s.label}>Find a trade</label>
                             <input
@@ -496,6 +530,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                                 <li className={`px-3 py-3 text-sm ${s.muted}`}>No trade matches that. Try a different word.</li>
                             )}
                         </ul>
+                        </details>
                     </>
                 )}
 

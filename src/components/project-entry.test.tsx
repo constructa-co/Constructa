@@ -59,6 +59,37 @@ beforeEach(() => {
         dispatchEvent: current.dispatch, location: { hash: "" },
     });
 });
+
+describe("Settings uses the existing project-entry effect", () => {
+    const settings = "/dashboard/projects/settings";
+    function settingsView(list = projects) {
+        current.cursor = 0; current.effects = [];
+        return ProjectEntry({ projects: list, path: settings });
+    }
+    it("resolves a remembered Settings job beyond a shortlist and keeps query/hash", () => {
+        current.pathname = settings; current.query = "panel=details"; window.location.hash = "#client";
+        const list = [...Array.from({ length: 30 }, (_, i) => ({ id: `owned-${i}`, name: `Job ${i}` })), projects[1]];
+        current.getItem.mockReturnValue("older"); settingsView(list); effects();
+        expect(current.replace).toHaveBeenCalledExactlyOnceWith(`${settings}?panel=details&projectId=older#client`, { scroll: false });
+    });
+    it.each([null, "not-owner-listed"])("retains the existing newest default only for absent/unlisted memory %j", memory => {
+        current.pathname = settings; current.getItem.mockReturnValue(memory); settingsView(); effects();
+        expect(current.replace).toHaveBeenCalledExactlyOnceWith(`${settings}?projectId=newest`, { scroll: false });
+    });
+    it.each(["projectId=", "projectId=unknown", "projectId=older"])("does not replace explicit Settings identity %s", query => {
+        current.pathname = settings; current.query = query; settingsView(); effects();
+        expect(current.replace).not.toHaveBeenCalled(); expect(current.getItem).not.toHaveBeenCalled();
+    });
+    it("obeys the existing leave guard without retrying automatically", () => {
+        current.pathname = settings; current.dispatch.mockReturnValue(false); settingsView(); effects(); effects();
+        expect(current.replace).not.toHaveBeenCalled(); expect(current.dispatch).toHaveBeenCalledTimes(1);
+        expect(text(settingsView())).toContain("Your current work has been kept");
+    });
+    it("does not invent an editable Settings job for an empty list", () => {
+        current.pathname = settings; settingsView([]); effects();
+        expect(current.replace).not.toHaveBeenCalled(); expect(text(settingsView([]))).toContain("No projects are available");
+    });
+});
 afterEach(() => {
     expect(current.setItem).not.toHaveBeenCalled();
     expect(current.removeItem).not.toHaveBeenCalled();

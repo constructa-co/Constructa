@@ -7,7 +7,7 @@ import { useTheme } from "@/lib/theme-context";
 
 interface ProjectEntryProps {
     projects: { id: string; name: string | null }[];
-    path: "/dashboard/projects/brief" | "/dashboard/projects/costs" | "/dashboard/projects/schedule" | "/dashboard/projects/proposal";
+    path: "/dashboard/projects/brief" | "/dashboard/projects/costs" | "/dashboard/projects/schedule" | "/dashboard/projects/proposal" | "/dashboard/projects/settings";
 }
 
 /** Resolve browser-only project memory before mounting a job's editable workspace. */

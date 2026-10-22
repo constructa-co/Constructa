@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, ChevronDown, Circle, FileDown, Loader2, Plus, Send, Sparkles, Trash2 } from "lucide-react";
 import ProgrammeTimeline from "@/components/programme-timeline";
 import ProposalDocumentView from "@/components/proposal/proposal-document-view";
+import CurrentTermsReview from "@/components/proposal/current-terms-review";
 import SaveStatus from "@/components/save-status";
 import ProposalWorkspaceHeading from "@/components/proposal-workspace-heading";
 import ui from "@/components/proposal-workspace.module.css";
@@ -915,6 +916,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                         <p className={`text-sm ${s.body}`}>
                             {shownTerms.length} {shownTerms.length === 1 ? "term is" : "terms are"} shown to the client: {shownTerms.map((clause) => clause.title).join(", ") || "none"}.
                         </p>
+                        <CurrentTermsReview terms={shownTerms} styles={s} />
                         {!locked && (
                             <button type="button" onClick={() => setTermsOpen((open) => !open)} aria-expanded={termsOpen} aria-controls="review-terms-editor" className={`${s.secondaryButton} min-h-11 text-sm`}>
                                 {termsOpen ? "Close the terms" : "Change the terms"}

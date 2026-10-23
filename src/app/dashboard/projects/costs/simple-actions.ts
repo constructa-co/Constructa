@@ -36,6 +36,12 @@ import type { CostLibraryItem, LabourRate, RateBuildup } from "./types";
 const UNIQUE_VIOLATION = "23505";
 const TOTAL_WARNING = "The line was saved, but the stored estimate total could not be refreshed. Reload the page to check it.";
 
+function matchesStoredNumber(value: unknown, expected: number): boolean {
+    if (typeof value !== "number" && (typeof value !== "string" || !value.trim())) return false;
+    const stored = Number(value);
+    return Number.isFinite(stored) && stored === expected;
+}
+
 const LineSchema = z.object({
     description: z.string().trim().min(1).max(MAX_DESCRIPTION_LENGTH),
     quantity: z.number().positive().max(MAX_LINE_QUANTITY),
@@ -196,6 +202,20 @@ export async function saveSimplePriceLineAction(request: SavePriceLineRequest): 
         if (!savedLine) return { ok: false, error: LINE_SAVE_ERROR };
         if (savedLine.trade_section !== activity) return {
             ok: false, error: "This line was already saved with a different activity. Your draft is still here. Reload to reconcile it; no activity was overwritten.",
+        };
+
+        // The same ID confirms only the same request, not a newer editable draft.
+        if (lineError?.code === UNIQUE_VIOLATION && (
+            savedLine.description !== line.description
+            || savedLine.unit !== line.unit
+            || !matchesStoredNumber(savedLine.quantity, line.quantity)
+            || !matchesStoredNumber(savedLine.unit_rate, line.unit_rate)
+            || !matchesStoredNumber(savedLine.line_total, lineTotal(line.quantity, line.unit_rate))
+            || savedLine.line_type !== "general"
+            || savedLine.pricing_mode !== "simple"
+        )) return {
+            ok: false,
+            error: "This line was already saved with different details. Your draft is still here. Reload to reconcile it; no saved price was overwritten.",
         };
 
         let warning: string | undefined;

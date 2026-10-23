@@ -127,6 +127,100 @@ describe("Brief page passes the existing pre-contract lock", () => {
     });
 });
 
+describe("Brief price handoff lifetime", () => {
+    const unmount = () => {
+        for (const effect of current.effects) effect?.cleanup?.();
+    };
+    function dirtyBuild() {
+        current.store.dispatch({ type: "draft/edit", patch: { work: "  Reviewed roof scope  " } });
+        stage("site");
+        return buttons(render(null), "Save and build the price")[0];
+    }
+
+    it("keeps the acknowledged save but never redirects after the Brief unmounts", async () => {
+        let finish!: (value: unknown) => void;
+        current.save.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+        const pending = click(dirtyBuild());
+        const oldStore = current.store;
+        unmount(); const slots = JSON.stringify(current.slots);
+        finish({ success: true }); await pending;
+        expect(current.save).toHaveBeenCalledTimes(1);
+        expect(oldStore.getState().saved.work).toBe("  Reviewed roof scope  ");
+        expect(oldStore.getState().save.status).toBe("idle");
+        expect(current.push).not.toHaveBeenCalled();
+        expect(JSON.stringify(current.slots)).toBe(slots);
+    });
+
+    it.each(["refused", "rejected"])("does not navigate or retry a late %s save", async result => {
+        let finish!: (value: unknown) => void, reject!: (reason: Error) => void;
+        current.save.mockReturnValue(new Promise((resolve, fail) => { finish = resolve; reject = fail; }));
+        const pending = click(dirtyBuild()); unmount();
+        if (result === "refused") finish({ success: false, error: "Not acknowledged" });
+        else reject(new Error("Connection ended"));
+        await pending;
+        expect(current.store.getState().save.status).toBe("failed");
+        expect(current.store.getState().draft.work).toBe("  Reviewed roof scope  ");
+        expect(current.save).toHaveBeenCalledTimes(1); expect(current.push).not.toHaveBeenCalled();
+    });
+
+    it("still opens pricing once after a mounted confirmed save", async () => {
+        await click(dirtyBuild());
+        expect(current.push).toHaveBeenCalledExactlyOnceWith("/dashboard/projects/costs?projectId=lock-unit-job");
+        expect(current.save).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([false, true])("refuses a captured Build callback after unmount (dirty %s)", async dirty => {
+        stage("site");
+        const build = dirty ? dirtyBuild() : buttons(render(null), "Build the price")[0];
+        unmount(); const state = JSON.stringify(current.store.getState()), slots = JSON.stringify(current.slots);
+        await click(build);
+        expect(current.save).not.toHaveBeenCalled(); expect(current.push).not.toHaveBeenCalled();
+        expect(JSON.stringify(current.store.getState())).toBe(state);
+        expect(JSON.stringify(current.slots)).toBe(slots);
+    });
+
+    it("does not queue invalid-draft focus after unmount during the async handoff", async () => {
+        current.store.dispatch({ type: "draft/edit", patch: { work: "" } }); stage("site");
+        const pending = click(buttons(render(null), "Save and build the price")[0]); unmount(); await pending;
+        expect(window.requestAnimationFrame).not.toHaveBeenCalled();
+        expect(current.save).not.toHaveBeenCalled(); expect(current.push).not.toHaveBeenCalled();
+        expect(current.store.getState().draft.work).toBe("");
+    });
+
+    it("does not run an already queued validation focus after unmount", async () => {
+        current.store.dispatch({ type: "draft/edit", patch: { work: "" } }); stage("site");
+        const tree = render(null), heading = tree.find(e => e.type === "h2" && e.props.ref)!;
+        const focus = vi.fn(); (heading.props.ref as { current: unknown }).current = { focus };
+        await click(buttons(tree, "Save and build the price")[0]);
+        expect(window.requestAnimationFrame).toHaveBeenCalledOnce();
+        const frame = (window.requestAnimationFrame as ReturnType<typeof vi.fn>).mock.calls[0][0];
+        unmount(); frame(); expect(focus).not.toHaveBeenCalled();
+    });
+
+    it("an old save cannot redirect or change a fresh Brief instance", async () => {
+        let finish!: (value: unknown) => void;
+        current.save.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+        const pending = click(dirtyBuild()), oldStore = current.store; unmount();
+        let state = initialBriefState({ ...project, brief_scope: "New job scope" });
+        current.store = { getState: () => state, dispatch: action => { state = briefReducer(state, action); } };
+        current.slots = []; current.effects = []; current.queue = [];
+        render(null, { id: "another-job", brief_scope: "New job scope" });
+        const fresh = JSON.stringify(state), slots = JSON.stringify(current.slots);
+        finish({ success: true }); await pending;
+        expect(oldStore.getState().saved.work).toBe("  Reviewed roof scope  ");
+        expect(JSON.stringify(state)).toBe(fresh); expect(JSON.stringify(current.slots)).toBe(slots);
+        expect(current.push).not.toHaveBeenCalled(); expect(current.save).toHaveBeenCalledTimes(1);
+    });
+
+    it("effect cleanup/setup replay keeps a live Brief able to hand off", async () => {
+        stage("site"); render(null); unmount();
+        current.effects = []; render(null);
+        await click(buttons(render(null), "Build the price")[0]);
+        expect(current.push).toHaveBeenCalledExactlyOnceWith("/dashboard/projects/costs?projectId=lock-unit-job");
+        expect(current.save).not.toHaveBeenCalled();
+    });
+});
+
 describe.each(LOCKED_PROJECTS)("Brief locked (%s)", (_label, row) => {
     const reason = getPrecontractEditLockReason(row)!;
     it("states the reason once and keeps the saved brief readable but not editable", () => {

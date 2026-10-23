@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { briefReducer, initialBriefState, BRIEF_STAGES, CLIENT_TYPES, type BriefStore, type BriefState } from "@/lib/guided-brief";
-const current = vi.hoisted(() => ({ theme: "dark", store: null as unknown as BriefStore, slots: [] as unknown[], cursor: 0, push: vi.fn(), fetch: vi.fn(), save: vi.fn(), ask: vi.fn() }));
+const current = vi.hoisted(() => ({ theme: "dark", store: null as unknown as BriefStore, slots: [] as unknown[], cursor: 0, effects: [] as Array<() => void | (() => void)>, cleanups: [] as Array<() => void>, push: vi.fn(), fetch: vi.fn(), save: vi.fn(), ask: vi.fn() }));
 vi.mock("react", async original => ({
-    ...await original<typeof import("react")>(), useEffect: () => undefined,
+    ...await original<typeof import("react")>(), useEffect: (effect: () => void | (() => void)) => { current.effects.push(effect); },
     useState: (initial: unknown) => {
         const i = current.cursor++;
         if (!(i in current.slots)) current.slots[i] = typeof initial === "function" ? initial() : initial;
@@ -31,18 +31,26 @@ function text(value: unknown): string {
     if (Array.isArray(value)) return value.map(text).join("");
     return value && typeof value === "object" && "props" in value ? text((value as Element).props.children) : "";
 }
-function view() { current.cursor = 0; return BriefClient({ project, save: current.save, ask: current.ask }); }
+function view() {
+    current.cursor = 0;
+    const tree = BriefClient({ project, save: current.save, ask: current.ask });
+    for (const effect of current.effects.splice(0)) {
+        const cleanup = effect(); if (typeof cleanup === "function") current.cleanups.push(cleanup);
+    }
+    return tree;
+}
 function button(label: string) { return nodes(view()).find(e => e.type === "button" && text(e.props.children).trim() === label)!; }
 function click(e: Element) { (e.props.onClick as () => unknown)(); }
 const selectedClasses = ["border-[var(--brief-accent)]", "bg-[var(--brief-accent)]", "text-[var(--brief-accent-text)]"];
 beforeEach(() => {
     let state: BriefState = initialBriefState(project);
     current.store = { getState: () => state, dispatch: action => { state = briefReducer(state, action); } };
-    current.slots = []; current.cursor = 0; current.theme = "dark"; current.push.mockReset(); current.fetch.mockReset(); current.save.mockReset().mockResolvedValue({ success: true }); current.ask.mockReset();
+    current.slots = []; current.cursor = 0; current.effects = []; current.cleanups = []; current.theme = "dark"; current.push.mockReset(); current.fetch.mockReset(); current.save.mockReset().mockResolvedValue({ success: true }); current.ask.mockReset();
     vi.stubEnv("NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE", "cohort");
-    vi.stubGlobal("window", { requestAnimationFrame: vi.fn() }); vi.stubGlobal("fetch", current.fetch);
+    vi.stubGlobal("window", { requestAnimationFrame: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn() });
+    vi.stubGlobal("document", { addEventListener: vi.fn(), removeEventListener: vi.fn() }); vi.stubGlobal("fetch", current.fetch);
 });
-afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
+afterEach(() => { for (const cleanup of current.cleanups) cleanup(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
 describe.each(["dark", "light"])("Brief palette in %s theme", theme => {
     beforeEach(() => { current.theme = theme; });

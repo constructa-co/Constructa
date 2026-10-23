@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, ChevronDown, Circle, FileDown, Loader2, Plus, Send, Sparkles, Trash2 } from "lucide-react";
 import ProgrammeTimeline from "@/components/programme-timeline";
 import ProposalDocumentView from "@/components/proposal/proposal-document-view";
+import ProposalDocumentDialog from "@/components/proposal/proposal-document-dialog";
 import CurrentTermsReview from "@/components/proposal/current-terms-review";
 import SaveStatus from "@/components/save-status";
 import ProposalWorkspaceHeading from "@/components/proposal-workspace-heading";
@@ -159,6 +160,11 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
 
     const [previewTime] = useState(() => now ?? new Date().toISOString());
     const [previewOpen, setPreviewOpen] = useState(true);
+    const [documentView, setDocumentView] = useState({ open: false, projectId: project.id, lockReason });
+    if (documentView.projectId !== project.id || documentView.lockReason !== lockReason) {
+        setDocumentView({ open: false, projectId: project.id, lockReason });
+    }
+    const setDocumentViewOpen = (open: boolean) => setDocumentView({ open, projectId: project.id, lockReason });
     const [termsOpen, setTermsOpen] = useState(false);
     const [deliverByEmail, setDeliverByEmail] = useState(Boolean(project.client_email));
     const [upload, setUpload] = useState<{ busy: boolean; error: string }>({ busy: false, error: "" });
@@ -469,6 +475,24 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
             <p className={`text-sm ${s.muted}`}>{text}</p>
             <Link href={to} className={`${s.quietButton} -ml-3`}>{label}</Link>
         </div>
+    );
+
+    const showingDocument = documentView.open && documentView.projectId === project.id && !locked && previewDocument !== null;
+    const documentContent = previewDocument ? (
+        <ProposalDocumentView doc={previewDocument}>
+            <h2 id="doc-response" className="font-serif text-3xl leading-tight text-stone-900">{previewDocument.response.heading}</h2>
+            <p className="mt-4 border-l-2 border-[var(--doc-accent)] bg-[var(--doc-accent-soft)] px-4 py-3 text-base leading-relaxed text-stone-800">
+                {previewDocument.response.notice}
+            </p>
+            <p className="mt-4 min-h-14 flex items-center justify-center bg-[var(--doc-accent)] px-5 text-base font-semibold text-white opacity-80" aria-hidden="true">
+                {previewDocument.response.actionLabel}
+            </p>
+            <p className="mt-2 text-sm text-stone-600">Your client fills in their name and presses this button. It does nothing in the preview.</p>
+        </ProposalDocumentView>
+    ) : (
+        <p className="bg-white p-6 text-base text-stone-700">
+            {previewProblem ?? "The preview appears once the job has a name and an estimate."}
+        </p>
     );
 
     return (
@@ -1080,6 +1104,15 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                     <div className="px-4 sm:px-5 pb-4 space-y-2" data-presend-pdf>
                         <button
                             type="button"
+                            aria-haspopup="dialog"
+                            onClick={() => setDocumentViewOpen(true)}
+                            disabled={!previewDocument}
+                            className={`${s.secondaryButton} min-h-11 text-sm w-full sm:w-auto`}
+                        >
+                            Open document view
+                        </button>
+                        <button
+                            type="button"
                             onClick={() => void downloadDraftPdf()}
                             disabled={!preview || draftPdf.busy}
                             aria-describedby="presend-pdf-note"
@@ -1099,24 +1132,9 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                         {draftPdf.text && <p role={draftPdf.failed ? "alert" : "status"} className={`text-sm ${draftPdf.failed ? s.errorText : s.body}`} data-presend-pdf-result>{draftPdf.text}</p>}
                     </div>
 
-                    {previewOpen && (
+                    {previewOpen && !showingDocument && (
                         <div id="review-preview" className="bg-stone-200 p-2 sm:p-6 rounded-b-2xl">
-                            {previewDocument ? (
-                                <ProposalDocumentView doc={previewDocument}>
-                                    <h2 id="doc-response" className="font-serif text-3xl leading-tight text-stone-900">{previewDocument.response.heading}</h2>
-                                    <p className="mt-4 border-l-2 border-[var(--doc-accent)] bg-[var(--doc-accent-soft)] px-4 py-3 text-base leading-relaxed text-stone-800">
-                                        {previewDocument.response.notice}
-                                    </p>
-                                    <p className="mt-4 min-h-14 flex items-center justify-center bg-[var(--doc-accent)] px-5 text-base font-semibold text-white opacity-80" aria-hidden="true">
-                                        {previewDocument.response.actionLabel}
-                                    </p>
-                                    <p className="mt-2 text-sm text-stone-600">Your client fills in their name and presses this button. It does nothing in the preview.</p>
-                                </ProposalDocumentView>
-                            ) : (
-                                <p className="bg-white p-6 text-base text-stone-700">
-                                    {previewProblem ?? "The preview appears once the job has a name and an estimate."}
-                                </p>
-                            )}
+                            {documentContent}
                         </div>
                     )}
                 </section>
@@ -1313,6 +1331,11 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                     s={s as WorkspaceStyles}
                     loadPublication={(publicationId) => api.loadPublication(publicationId)}
                 />
+            )}
+            {showingDocument && (
+                <ProposalDocumentDialog title={project.name} onClose={() => setDocumentViewOpen(false)}>
+                    {documentContent}
+                </ProposalDocumentDialog>
             )}
         </div>
     );

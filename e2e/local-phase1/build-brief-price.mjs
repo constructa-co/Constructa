@@ -9,7 +9,7 @@ const root = path.resolve(dir, '../..');
 const deps = path.join(root, 'node_modules');
 const out = process.argv[2];
 const scenario = process.argv[3] ?? 'brief-price';
-if (!['brief-price', 'first-job', 'programme-pdf'].includes(scenario)) throw Error('Unknown offline scenario.');
+if (!['brief-price', 'first-job', 'programme-pdf', 'proposal-view'].includes(scenario)) throw Error('Unknown offline scenario.');
 if (!out || !path.isAbsolute(out) || out === root || out.startsWith(root + path.sep)) throw Error('Provide a fresh absolute output directory outside the application.');
 fs.mkdirSync(out);
 const sourceHashes = new Map();
@@ -36,13 +36,13 @@ function stylesheet(file) {
 }
 const virtual = {
   'next/link': `const React=require('react');module.exports=React.forwardRef(function Link({href,children,...props},ref){return React.createElement('a',{...props,href,ref},children)});`,
-  'next/navigation': `exports.useRouter=()=>window.${scenario === 'first-job' ? '__firstJobLocal' : scenario === 'programme-pdf' ? '__programmePdfLocal' : '__briefPriceLocal'}.router;`,
+  'next/navigation': `exports.useRouter=()=>window.${scenario === 'first-job' ? '__firstJobLocal' : scenario === 'programme-pdf' ? '__programmePdfLocal' : scenario === 'proposal-view' ? '__documentViewLocal' : '__briefPriceLocal'}.router;`,
   'next/dynamic': `module.exports=()=>function ExcludedLazyFeature(){throw Error('Advanced/video are outside this fixture')};`,
   'excluded-lazy': `module.exports={};`,
   'excluded-action': `module.exports=new Proxy({},{get:()=>()=>{throw Error('Real server action excluded from local fixture')}});`,
-  '@/lib/theme-context': `exports.useTheme=()=>({theme:'system-c'});`,
+  '@/lib/theme-context': scenario === 'proposal-view' ? `exports.useTheme=()=>({theme:window.__documentViewOptions?.theme??'system-c'});` : `exports.useTheme=()=>({theme:'system-c'});`,
   'setup-action': `exports.saveSetupStepAction=()=>{throw Error('Real server action is excluded from verification')};`,
-  ...(scenario === 'programme-pdf' ? { jspdf: `module.exports=window.jspdf.jsPDF;` } : {}),
+  ...(['programme-pdf', 'proposal-view'].includes(scenario) ? { jspdf: `module.exports=window.jspdf.jsPDF;` } : {}),
 
 };
 const packages = {
@@ -103,11 +103,11 @@ if (pending.size) {
   // Keep the offline fixture's strict CSP: use Zod's installed interpreter,
   // not its optional generated-function fast path. Application config is untouched.
   // Use the installed browser distribution, not a PDF stub or provider.
-  const pdfRuntime = scenario === 'programme-pdf' ? read(`${deps}/jspdf/dist/jspdf.umd.min.js`) + '\n' : '';
+  const pdfRuntime = ['programme-pdf', 'proposal-view'].includes(scenario) ? read(`${deps}/jspdf/dist/jspdf.umd.min.js`) + '\n' : '';
   const zodSetup = modules.has(`${deps}/zod/index.cjs`) ? `__load(${JSON.stringify(`${deps}/zod/index.cjs`)}).config({jitless:true});` : '';
   fs.writeFileSync(`${out}/components.js`, `${pdfRuntime}const process={env:{NODE_ENV:'development'}};const __modules={${body}};const __cache={};function __load(id){if(__cache[id])return __cache[id].exports;const [fn,map]=__modules[id];const module={exports:{}};__cache[id]=module;fn(spec=>__load(map[spec]),module,module.exports);return module.exports;}${zodSetup}__load(${JSON.stringify(entry)});`);
   fs.writeFileSync(`${out}/components.css`, styleSheets.join('\n'));
-  const scope = scenario === 'programme-pdf' ? 'Actual programme editor/proposal review/frozen snapshot/document/local jsPDF;mock saves/router;detailed planner excluded;no Auth/DB/provider/publication/hosted journey' : 'Actual Brief/pricing components and controllers;mock Brief save/router;price persistence refuses;Advanced/video excluded,not visited;no Auth/DB/provider/hosted journey';
+  const scope = scenario === 'proposal-view' ? 'Actual proposal review/document dialog/native Edge modal;synthetic data/mock actions/router/theme;no save/send/download/Auth/DB/provider/hosted journey' : scenario === 'programme-pdf' ? 'Actual programme editor/proposal review/frozen snapshot/document/local jsPDF;mock saves/router;detailed planner excluded;no Auth/DB/provider/publication/hosted journey' : 'Actual Brief/pricing components and controllers;mock Brief save/router;price persistence refuses;Advanced/video excluded,not visited;no Auth/DB/provider/hosted journey';
   fs.writeFileSync(`${out}/source-manifest.json`, JSON.stringify({sourceHashes:Object.fromEntries(sourceHashes),modules:modules.size,scope},null,2));
   console.log(JSON.stringify({result:'PASS',modules:modules.size,bundleBytes:fs.statSync(`${out}/components.js`).size,compiler:ts.version,runtime:scope}));
 }

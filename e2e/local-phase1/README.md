@@ -104,3 +104,21 @@ facts, original legal terms, client response, Won or whole-journey acceptance.
 Because about:blank has no secure-origin SubtleCrypto, the test bridges only
 SHA-256 to Node's real WebCrypto. Canonical snapshot hashing and check codes
 still use the actual product builders; this is not native secure-origin proof.
+
+## Separate Document Reading View
+
+This independent scenario renders the actual proposal review client and native
+document dialog with synthetic data and refusing action/router adapters. It
+checks exact unsaved text and mounted-editor retention, native Escape/Back focus,
+mobile viewport bounds, refreshed locks and unavailable preview data. Nothing
+is saved, sent, downloaded, published or navigated. Full Next/Tailwind styling,
+Auth/PostgREST, persistence and pagination accuracy are not established here.
+
+```sh
+node e2e/local-phase1/build-brief-price.mjs /absolute/private/fresh-document-view-output proposal-view
+CONSTRUCTA_LOCAL_PHASE1_OUTPUT=/absolute/private/fresh-document-view-output node node_modules/@playwright/test/cli.js test --config=playwright.local-proposal-view.config.ts
+```
+
+Existing strict CSP, offline/abort-all and process network/source-write guards
+remain. This is a reading-mode interaction, not a new terms, readiness, Send or
+page-break policy, and not a served application or whole hosted journey.

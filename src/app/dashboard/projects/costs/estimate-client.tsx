@@ -1202,7 +1202,7 @@ function LineForm({
             onClick={() => onChange({ mode })}
             className={`min-h-11 px-3 rounded-lg border text-sm font-semibold transition-colors ${
                 draft.mode === mode
-                    ? "border-blue-500 bg-blue-600 text-white"
+                    ? "border-[#c9efcf] bg-[#c9efcf] text-[#182c1b]"
                     : isDark ? "border-[#3a3a3a] text-slate-200 hover:border-slate-400" : "border-gray-300 text-gray-800 hover:border-gray-500"
             }`}
         >

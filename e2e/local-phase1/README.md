@@ -82,3 +82,25 @@ Because about:blank is not a secure origin, this leg supplies its missing
 crypto.randomUUID API using getRandomValues and the existing client-id helper's
 v4 algorithm. IDs are not fixed or reused across separate fixtures. This is an
 explicit fixture adapter, not native secure-origin API or product-form proof.
+
+## Programme To Draft PDF
+
+This independent leg uses the actual simple programme editor and proposal review
+components, including the frozen snapshot/document builders and installed jsPDF
+browser renderer. Programme/inclusion saves and routing are explicit in-memory
+stand-ins. The optional detailed planner is excluded, not visited. Synthetic
+company, estimate and payment context is supplied, not fetched or approved legal
+wording. No real save, publication, delivery, provider or hosted action is allowed.
+
+```sh
+node e2e/local-phase1/build-brief-price.mjs /absolute/private/fresh-programme-output programme-pdf
+CONSTRUCTA_LOCAL_PHASE1_OUTPUT=/absolute/private/fresh-programme-output node node_modules/@playwright/test/cli.js test --config=playwright.local-programme-pdf.config.ts
+```
+
+Strict offline/CSP/abort-all controls remain. Generated draft PDF bytes are local
+test artifacts, not published proposals or authoritative terms. This leg does
+not establish actual Next routing, Auth/PostgREST, durable persistence, company
+facts, original legal terms, client response, Won or whole-journey acceptance.
+Because about:blank has no secure-origin SubtleCrypto, the test bridges only
+SHA-256 to Node's real WebCrypto. Canonical snapshot hashing and check codes
+still use the actual product builders; this is not native secure-origin proof.

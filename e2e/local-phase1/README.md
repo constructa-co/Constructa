@@ -56,3 +56,29 @@ explicit fixture adapters, not production guard changes or feature acceptance.
 Since about:blank has no storage origin, this fixture also supplies an ephemeral
 in-memory sessionStorage stand-in, not real browser-storage or reload proof.
 Each config selects only its own scenario and requires its own prepared output.
+
+## First Job To Brief And Pricing
+
+This separate leg starts at the actual blank NewProjectForm, not an existing
+synthetic project. It exercises required-input validation, the real blank-input
+parser/graph/response resolver over a mock creation reply, exact answer/request
+retention after refusal, then actual Brief and pricing components for that same
+mock-created ID. No scope, activity or price is seeded into the new job.
+
+```sh
+node e2e/local-phase1/build-brief-price.mjs /absolute/private/fresh-first-job-output first-job
+CONSTRUCTA_LOCAL_PHASE1_OUTPUT=/absolute/private/fresh-first-job-output node node_modules/@playwright/test/cli.js test --config=playwright.local-first-job.config.ts
+```
+
+Creation/Brief persistence, page projections, router/theme and ephemeral storage
+are explicit stand-ins. The real server actions/RPC/Auth/PostgREST, actual Next
+routing, postcode extraction, durable reload, price writes, company-to-Won,
+programme and terms/PDF/client-response stages remain NOT_RUN. The mocked
+creation response uses the form request ID, not a database-created identity.
+Strict CSP/offline/abort-all and coordinator process-network/write guards remain.
+These independent legs do not establish a continuous hosted or release journey.
+
+Because about:blank is not a secure origin, this leg supplies its missing
+crypto.randomUUID API using getRandomValues and the existing client-id helper's
+v4 algorithm. IDs are not fixed or reused across separate fixtures. This is an
+explicit fixture adapter, not native secure-origin API or product-form proof.

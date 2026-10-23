@@ -8,6 +8,8 @@ const dir = path.dirname(new URL(import.meta.url).pathname);
 const root = path.resolve(dir, '../..');
 const deps = path.join(root, 'node_modules');
 const out = process.argv[2];
+const scenario = process.argv[3] ?? 'brief-price';
+if (!['brief-price', 'first-job'].includes(scenario)) throw Error('Unknown offline scenario.');
 if (!out || !path.isAbsolute(out) || out === root || out.startsWith(root + path.sep)) throw Error('Provide a fresh absolute output directory outside the application.');
 fs.mkdirSync(out);
 const sourceHashes = new Map();
@@ -34,7 +36,7 @@ function stylesheet(file) {
 }
 const virtual = {
   'next/link': `const React=require('react');module.exports=React.forwardRef(function Link({href,children,...props},ref){return React.createElement('a',{...props,href,ref},children)});`,
-  'next/navigation': `exports.useRouter=()=>window.__briefPriceLocal.router;`,
+  'next/navigation': `exports.useRouter=()=>window.${scenario === 'first-job' ? '__firstJobLocal' : '__briefPriceLocal'}.router;`,
   'next/dynamic': `module.exports=()=>function ExcludedLazyFeature(){throw Error('Advanced/video are outside this fixture')};`,
   'excluded-lazy': `module.exports={};`,
   'excluded-action': `module.exports=new Proxy({},{get:()=>()=>{throw Error('Real server action excluded from local fixture')}});`,
@@ -89,7 +91,7 @@ function compile(id) {
   modules.set(id, { code: result.outputText, dependencies });
   for (const child of Object.values(dependencies)) compile(child);
 }
-const entry = `${dir}/brief-price-entry.tsx`;
+const entry = `${dir}/${scenario}-entry.tsx`;
 compile(entry);
 fs.writeFileSync(`${out}/pending-browser.json`, JSON.stringify([...pending].map(([file, bytes]) => ({file,bytes})), null, 2));
 if (pending.size) {

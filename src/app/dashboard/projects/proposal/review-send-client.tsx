@@ -28,6 +28,7 @@ import {
     applyCompanyClosingMessage,
     balanceFor,
     buildPreviewSnapshot,
+    buildProposalPayload,
     depositBalancePayments,
     draftFromProject,
     initialReviewState,
@@ -185,6 +186,16 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
         [context, draft, state.responseKind, previewTime],
     );
     const previewDocument = useMemo(() => (preview ? buildProposalDocument(preview, { isDraft: true }) : null), [preview]);
+    const previewValidation = !preview ? buildProposalPayload(draft) : null;
+    const previewTermIssues = previewValidation && !previewValidation.ok
+        ? (draft.terms ?? []).flatMap((clause, index) => {
+            const message = previewValidation.fieldErrors[termField(clause.clause_number)];
+            return message ? [`Term ${index + 1}: ${message}`] : [];
+        })
+        : [];
+    const previewProblem = !preview && context.estimate && project.name.trim()
+        ? ["This draft cannot be previewed. Review the current proposal details and terms.", ...previewTermIssues].join(" ")
+        : null;
     const block = sendBlock(state, readiness);
     const current = publications[0] ?? null;
 
@@ -1078,10 +1089,11 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                 ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Making the PDF…</>
                                 : <><FileDown className="w-4 h-4" aria-hidden="true" /> Download this draft as a PDF</>}
                         </button>
-                        <p id="presend-pdf-note" className={`text-sm ${s.muted}`}>
+                        <p id="presend-pdf-note" role={previewProblem ? "alert" : undefined} className={`text-sm ${s.muted}`}>
                             {preview
                                 ? "The PDF your client will get, marked as a draft. Downloading it sends nothing."
-                                : "The PDF is available once the job has a name and an estimate."}
+                                : previewProblem ?? "The PDF is available once the job has a name and an estimate."}
+                            {previewProblem && previewTermIssues.length > 0 && <> <a href="#review-terms" className={s.quietButton}>Review the current terms</a>.</>}
                             {checkCode && <> Check code <span className="font-mono font-semibold" data-check-code>{checkCode}</span>.</>}
                         </p>
                         {draftPdf.text && <p role={draftPdf.failed ? "alert" : "status"} className={`text-sm ${draftPdf.failed ? s.errorText : s.body}`} data-presend-pdf-result>{draftPdf.text}</p>}
@@ -1102,7 +1114,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                 </ProposalDocumentView>
                             ) : (
                                 <p className="bg-white p-6 text-base text-stone-700">
-                                    The preview appears once the job has a name and an estimate.
+                                    {previewProblem ?? "The preview appears once the job has a name and an estimate."}
                                 </p>
                             )}
                         </div>

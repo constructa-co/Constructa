@@ -1,12 +1,13 @@
 "use client";
 
-import { updateProjectAction } from "./actions";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { updateProjectAction, updateProjectStatusAction } from "./actions";
+import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { useTheme } from "@/lib/theme-context";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
 import { SETTINGS_LEAVE_WARNING, settingsFormSignature } from "./form-state";
 import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
+import { getPrecontractEditLockReason } from "@/lib/project-editability";
 
 // --- Inline UI Components ---
 function Card({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -60,9 +61,28 @@ export default function ClientProjectSettings({ project }: { project: any }) {
     const [isPending, startTransition] = useTransition();
     const [dirty, setDirty] = useState(false);
     const [feedback, setFeedback] = useState<"idle" | "saved" | "error">("idle");
+    const [statusDirty, setStatusDirty] = useState(false);
+    const [statusFeedback, setStatusFeedback] = useState<"idle" | "saved" | "error">("idle");
+    const [pendingIntent, setPendingIntent] = useState<"details" | "status" | null>(null);
+    const [serverLock, setServerLock] = useState<{ of: object; message: string } | null>(null);
     const formRef = useRef<HTMLFormElement | null>(null);
     const confirmedSignature = useRef<string | null>(null);
-    const mustWarn = dirty || isPending;
+    const statusFormRef = useRef<HTMLFormElement | null>(null);
+    const confirmedStatusSignature = useRef<string | null>(null);
+    const lockReason = getPrecontractEditLockReason(project) ?? (serverLock && serverLock.of === project ? serverLock.message : null);
+    const lockRef = useRef(lockReason);
+    const projectRef = useRef(project.id);
+    const pendingRef = useRef(false);
+    const aliveRef = useRef(true);
+    useLayoutEffect(() => {
+        lockRef.current = lockReason;
+        projectRef.current = project.id;
+    }, [lockReason, project.id]);
+    useEffect(() => {
+        aliveRef.current = true;
+        return () => { aliveRef.current = false; };
+    }, []);
+    const mustWarn = dirty || statusDirty || isPending;
     useUnsavedGuard(mustWarn, SETTINGS_LEAVE_WARNING);
     useEffect(() => {
         if (!mustWarn) return;
@@ -76,12 +96,24 @@ export default function ClientProjectSettings({ project }: { project: any }) {
     const isDark = theme === "dark";
 
     const handleSubmit = (formData: FormData) => {
+        if (!aliveRef.current || pendingRef.current || lockRef.current || projectRef.current !== project.id) return;
+        pendingRef.current = true;
+        setPendingIntent("details");
         const submittedSignature = settingsFormSignature(formData);
         setFeedback("idle");
         startTransition(async () => {
             try {
                 const result = await updateProjectAction(formData);
+                if (!aliveRef.current || projectRef.current !== project.id) return;
                 if (!result.success) {
+                    if ("lockReason" in result && result.lockReason) {
+                        lockRef.current = result.lockReason;
+                        setServerLock({ of: project, message: result.lockReason });
+                    }
+                    setFeedback("error");
+                    return;
+                }
+                if (lockRef.current) {
                     setFeedback("error");
                     return;
                 }
@@ -91,11 +123,38 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                 }
                 setFeedback("saved");
             } catch {
-                setFeedback("error");
+                if (aliveRef.current) setFeedback("error");
+            } finally {
+                pendingRef.current = false;
+                if (aliveRef.current) setPendingIntent(null);
             }
         });
     };
-    const statusText = isPending ? "Saving..." : feedback === "saved"
+    const handleStatusSubmit = (formData: FormData) => {
+        if (!aliveRef.current || pendingRef.current || projectRef.current !== project.id) return;
+        pendingRef.current = true;
+        setPendingIntent("status");
+        const submittedSignature = settingsFormSignature(formData);
+        setStatusFeedback("idle");
+        startTransition(async () => {
+            try {
+                const result = await updateProjectStatusAction(formData);
+                if (!aliveRef.current || projectRef.current !== project.id) return;
+                if (!result.success) { setStatusFeedback("error"); return; }
+                if (statusFormRef.current) {
+                    confirmedStatusSignature.current = submittedSignature;
+                    setStatusDirty(settingsFormSignature(new FormData(statusFormRef.current)) !== submittedSignature);
+                }
+                setStatusFeedback("saved");
+            } catch {
+                if (aliveRef.current) setStatusFeedback("error");
+            } finally {
+                pendingRef.current = false;
+                if (aliveRef.current) setPendingIntent(null);
+            }
+        });
+    };
+    const statusText = isPending && pendingIntent === "details" ? "Saving..." : feedback === "saved"
         ? dirty ? "Submitted changes saved. Newer edits are still unsaved." : "Saved"
         : dirty ? "Unsaved changes" : "";
 
@@ -116,15 +175,20 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                     formRef.current = form;
                     if (form && confirmedSignature.current === null) confirmedSignature.current = settingsFormSignature(new FormData(form));
                 }}
-                onChange={event => setDirty(settingsFormSignature(new FormData(event.currentTarget)) !== confirmedSignature.current)}
+                onChange={event => {
+                    if (aliveRef.current && !lockRef.current) setDirty(settingsFormSignature(new FormData(event.currentTarget)) !== confirmedSignature.current);
+                }}
                 onSubmit={event => {
                     // A returned action failure must not reset uncontrolled inputs.
                     event.preventDefault();
                     handleSubmit(new FormData(event.currentTarget));
                 }}
                 className="space-y-5"
+                aria-label="Job details"
             >
                 <input type="hidden" name="projectId" value={project.id} />
+                {lockReason && <p role="status" className={`text-sm ${isDark ? "text-slate-300" : "text-slate-600"}`} data-settings-lock>{lockReason} Your current text remains here. Status changes can be saved separately below.</p>}
+                <fieldset disabled={!!lockReason} className="min-w-0 space-y-5 border-0 p-0">
 
                 {/* 1. Project Basics */}
                 <Card>
@@ -137,19 +201,6 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                             <div className="space-y-1.5">
                                 <Label htmlFor="name">Project Name</Label>
                                 <Input id="name" name="name" defaultValue={project.name} required />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label htmlFor="status">Status</Label>
-                                <Select id="status" name="status" defaultValue={project.status || "Draft"}>
-                                    {project.status && !["Draft", "Review", "Sent", "Won", "Lost"].includes(project.status) && (
-                                        <option value={project.status}>{project.status}</option>
-                                    )}
-                                    <option value="Draft">Draft</option>
-                                    <option value="Review">Under Review</option>
-                                    <option value="Sent">Proposal Sent</option>
-                                    <option value="Won">Won / Active</option>
-                                    <option value="Lost">Lost</option>
-                                </Select>
                             </div>
                             <div className="space-y-1.5">
                                 <Label htmlFor="project_type">Project Type</Label>
@@ -280,6 +331,7 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                     </CardContent>
                 </Card>
 
+                </fieldset>
                 {feedback === "error" ? (
                     <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
                         Saving could not be confirmed. Your edits are still here. Try again.
@@ -290,10 +342,60 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                 <div className="flex justify-end gap-3">
                     <button
                         type="submit"
-                        disabled={isPending}
+                        disabled={isPending || !!lockReason}
                         className="min-h-12 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-base font-bold rounded-lg disabled:opacity-60 transition-all"
                     >
-                        {isPending ? "Saving..." : "Save Changes"}
+                        {isPending && pendingIntent === "details" ? "Saving..." : "Save Changes"}
+                    </button>
+                </div>
+            </form>
+            <form
+                aria-label="Project status"
+                ref={form => {
+                    statusFormRef.current = form;
+                    if (form && confirmedStatusSignature.current === null) confirmedStatusSignature.current = settingsFormSignature(new FormData(form));
+                }}
+                onChange={event => {
+                    if (aliveRef.current) setStatusDirty(settingsFormSignature(new FormData(event.currentTarget)) !== confirmedStatusSignature.current);
+                }}
+                onSubmit={event => {
+                    event.preventDefault();
+                    handleStatusSubmit(new FormData(event.currentTarget));
+                }}
+                className="space-y-5"
+            >
+                <input type="hidden" name="projectId" value={project.id} />
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Project Status</CardTitle>
+                        <CardDescription>Save the status separately. This does not save any changes to the job details above.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Label htmlFor="status">Status</Label>
+                        <Select id="status" name="status" defaultValue={project.status || "Draft"}>
+                            {project.status && !["Draft", "Review", "Sent", "Won", "Lost"].includes(project.status) && (
+                                <option value={project.status}>{project.status}</option>
+                            )}
+                            <option value="Draft">Draft</option>
+                            <option value="Review">Under Review</option>
+                            <option value="Sent">Proposal Sent</option>
+                            <option value="Won">Won / Active</option>
+                            <option value="Lost">Lost</option>
+                        </Select>
+                    </CardContent>
+                </Card>
+                {statusFeedback === "error" ? (
+                    <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">The status save could not be confirmed. Your selection is still here.</p>
+                ) : (statusDirty || statusFeedback === "saved" || isPending && pendingIntent === "status") && (
+                    <p role="status" className={`text-sm ${isDark ? "text-slate-300" : "text-slate-600"}`}>
+                        {isPending && pendingIntent === "status" ? "Saving status..." : statusFeedback === "saved"
+                            ? statusDirty ? "Submitted status saved. Newer selection is still unsaved." : "Status saved"
+                            : "Unsaved status change"}
+                    </p>
+                )}
+                <div className="flex justify-end">
+                    <button type="submit" disabled={isPending} className="min-h-12 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-base font-bold rounded-lg disabled:opacity-60 transition-all">
+                        {isPending && pendingIntent === "status" ? "Saving status..." : "Save Status"}
                     </button>
                 </div>
             </form>

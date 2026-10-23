@@ -30,7 +30,7 @@ permissions:
 
 jobs:
   hosted-write-status:
-    if: ${{ github.event_name == 'pull_request' && (github.head_ref == 'backup/welcome-first-slice-20261018' || github.head_ref == 'codex/phase1-integration-review-20261023') }}
+    if: ${{ github.event_name == 'pull_request' && (github.head_ref == 'backup/welcome-first-slice-20261018' || github.head_ref == 'codex/phase1-integration-review-20261023' || github.head_ref == 'codex/remove-public-mcp-20261023') }}
     runs-on: ubuntu-latest
     steps:
       - name: Record hosted journey NOT_RUN
@@ -38,9 +38,9 @@ jobs:
           echo 'Hosted Phase 1 journey: NOT_RUN. These review branches require a separately authorised manual run with verified disposable target, labelled identity and write controls.' >> "$GITHUB_STEP_SUMMARY"
 
   phase1:
-    # Rob-approved source-only gate: these explicit review heads cannot start hosted
-    # account/data writes automatically. Other branches and normal CI are unchanged.
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.head_ref != 'backup/welcome-first-slice-20261018' && github.head_ref != 'codex/phase1-integration-review-20261023') }}
+    # Rob-approved source-only gate: these explicit review heads cannot start
+    # hosted account/data writes automatically. Other branches and CI are unchanged.
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.head_ref != 'backup/welcome-first-slice-20261018' && github.head_ref != 'codex/phase1-integration-review-20261023' && github.head_ref != 'codex/remove-public-mcp-20261023') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:

@@ -531,6 +531,11 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                                 )}
                             </dl>
                             <p className={`mt-2 text-sm ${s.muted}`}>Carried from this job. No need to enter these details again.</p>
+                            {!locked && !saving && !leaving && (
+                                <Link href={`/dashboard/projects/settings?projectId=${encodeURIComponent(project.id)}`} prefetch={false} className={`${s.quietButton} mt-2`} data-brief-job-details>
+                                    Edit job details
+                                </Link>
+                            )}
                         </div>
 
                         <div>

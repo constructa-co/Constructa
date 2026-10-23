@@ -140,6 +140,25 @@ Strict offline/CSP/abort-all and coordinator process network/source-write
 guards remain. This is not Auth/PostgREST, durable reload, hosted routing,
 publication, client acceptance or whole company-to-Won acceptance.
 
+## Standard Twelve Terms To Draft PDF
+
+The actual proposal review client with `tc_overrides: null` (standard twelve
+from `src/lib/proposal-terms.ts`, matching the original full-build
+`STANDARD_TC_CLAUSES` lineage). The real terms editor, frozen snapshot,
+document and jsPDF draft download are exercised. Mock draft save records
+`terms: null` and applies it to the in-memory project. Programme is omitted.
+Publishing, send and Won are excluded.
+
+```sh
+node e2e/local-phase1/build-brief-price.mjs /absolute/private/fresh-terms-flow-output terms-flow
+CONSTRUCTA_LOCAL_PHASE1_OUTPUT=/absolute/private/fresh-terms-flow-output node node_modules/@playwright/test/cli.js test --config=playwright.local-terms-flow.config.ts
+```
+
+Strict offline/CSP/abort-all remain. PDF text is decoded with the installed
+`unpdf` library in the spec (not a stub file or expected-text substitution).
+about:blank uses the same Node WebCrypto SHA-256 bridge as the programme leg.
+No Auth/PostgREST, durable reload, legal approval or hosted journey.
+
 ## Preparation Before Final Review
 
 The actual proposal client now opens in Prepare proposal. Review document shows

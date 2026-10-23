@@ -249,7 +249,7 @@ describe("Brief reuses site context instead of asking for it again", () => {
         expect(disclosure).toBeDefined(); expect(disclosure.props.open).not.toBe(true);
         expect(byId(nodes(disclosure), "brief-start-date")!.props.value).toBe(fields.start_date);
         expect(byId(tree, "brief-site-notes")).toBeDefined();
-        expect(tree.find(e => text(e.props.children) === "Edit job details")).toBeUndefined();
+        expect(tree.find(e => e.props["data-brief-job-details"] !== undefined)?.props).toMatchObject({ href: "/dashboard/projects/settings?projectId=lock-unit-job", prefetch: false });
     });
 
     it("shows missing context honestly without forcing re-entry or choosing a date", () => {

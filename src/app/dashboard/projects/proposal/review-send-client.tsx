@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, ChevronDown, Circle, FileDown, Loader2, Plus, Send, Sparkles, Trash2 } from "lucide-react";
 import ProgrammeTimeline from "@/components/programme-timeline";
 import ProposalDocumentView from "@/components/proposal/proposal-document-view";
+import CurrentTermsReview from "@/components/proposal/current-terms-review";
 import SaveStatus from "@/components/save-status";
+import ProposalWorkspaceHeading from "@/components/proposal-workspace-heading";
+import ui from "@/components/proposal-workspace.module.css";
 import { newClientId } from "@/lib/client-id";
 import { copyTextWithFallback } from "@/lib/clipboard-copy";
 import { programmePlanForProject } from "@/lib/programme-plan";
@@ -21,8 +24,11 @@ import {
     PAYMENT_PRESETS,
     REVIEW_STATUS_LABEL,
     SEND_BLOCK_MESSAGE,
+    TEXT_LIMITS,
+    applyCompanyClosingMessage,
     balanceFor,
     buildPreviewSnapshot,
+    buildProposalPayload,
     depositBalancePayments,
     draftFromProject,
     initialReviewState,
@@ -54,6 +60,7 @@ import {
 import { useTheme } from "@/lib/theme-context";
 import { useReducerStore } from "@/lib/use-reducer-store";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
+import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
 import { workspaceStyles, type WorkspaceStyles } from "@/lib/workspace-styles";
 import {
     getProposalPublicationAction,
@@ -64,6 +71,8 @@ import {
     uploadPhotoAction,
 } from "./actions";
 import PublicationHistoryPanel, { type ProposalPublicationHistoryRow } from "./publication-history-panel";
+import PastJobsExtras from "./past-jobs-extras";
+import { buildPastJobs } from "@/lib/case-library/past-jobs";
 
 export interface CaseStudyOption {
     /** The case study's own id, or its position when it has none. */
@@ -122,6 +131,9 @@ const FIELD_LABEL: Record<WordingField, string> = {
     closing: "Closing message",
 };
 
+const PROPOSAL_LEAVE_WARNING =
+    "Your proposal has changes that are not saved yet.\n\nPress Cancel to stay here and save them, or OK to leave without saving.";
+
 export default function ReviewSendClient({ context, caseStudies, lockReason, estimateIssue, publications, server, now }: Props) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
@@ -151,6 +163,10 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     const [deliverByEmail, setDeliverByEmail] = useState(Boolean(project.client_email));
     const [upload, setUpload] = useState<{ busy: boolean; error: string }>({ busy: false, error: "" });
     const [copy, setCopy] = useState("");
+    const [companyClosingNote, setCompanyClosingNote] = useState("");
+    const companyMessage = context.profile.md_message ?? "";
+    const companyClosingBlocked = busy || state.ai.status === "loading" || state.suggestion !== null
+        || !!draft.closing.trim() || !!state.saved.closing.trim() || companyMessage.length > TEXT_LIMITS.closing;
     const [pdfNote, setPdfNote] = useState<{ busy: boolean; text: string; failed: boolean }>({ busy: false, text: "", failed: false });
     const [draftPdf, setDraftPdf] = useState<{ busy: boolean; text: string; failed: boolean }>({ busy: false, text: "", failed: false });
     // How the contractor chose to be paid. It opens on what is saved.
@@ -170,6 +186,16 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
         [context, draft, state.responseKind, previewTime],
     );
     const previewDocument = useMemo(() => (preview ? buildProposalDocument(preview, { isDraft: true }) : null), [preview]);
+    const previewValidation = !preview ? buildProposalPayload(draft) : null;
+    const previewTermIssues = previewValidation && !previewValidation.ok
+        ? (draft.terms ?? []).flatMap((clause, index) => {
+            const message = previewValidation.fieldErrors[termField(clause.clause_number)];
+            return message ? [`Term ${index + 1}: ${message}`] : [];
+        })
+        : [];
+    const previewProblem = !preview && context.estimate && project.name.trim()
+        ? ["This draft cannot be previewed. Review the current proposal details and terms.", ...previewTermIssues].join(" ")
+        : null;
     const block = sendBlock(state, readiness);
     const current = publications[0] ?? null;
 
@@ -187,10 +213,16 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     }, [preview]);
     const checkCode = preview && contentCheck?.of === preview ? contentCheck.code : null;
 
-    useUnsavedGuard(
-        !locked && (status === "unsaved" || status === "failed" || status === "saving"),
-        "Your proposal has changes that are not saved yet.\n\nPress Cancel to stay here and save them, or OK to leave without saving.",
-    );
+    const unsaved = !locked && (status === "unsaved" || status === "failed" || status === "saving");
+    useUnsavedGuard(unsaved, PROPOSAL_LEAVE_WARNING);
+    useEffect(() => {
+        if (!unsaved) return;
+        const confirmProjectChange = (event: Event) => {
+            if (!window.confirm(PROPOSAL_LEAVE_WARNING)) event.preventDefault();
+        };
+        window.addEventListener(BEFORE_PROJECT_NAVIGATION, confirmProjectChange);
+        return () => window.removeEventListener(BEFORE_PROJECT_NAVIGATION, confirmProjectChange);
+    }, [unsaved]);
 
     // A save or a send can be started from the bottom of a long page. Bring
     // the outcome into view. "nearest" moves the page's own scroller only as
@@ -212,6 +244,8 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     }, [sendStatus, sendChanged, router]);
 
     const edit = (patch: Partial<ProposalDraft>) => store.dispatch({ type: "draft/change", patch });
+    // What the chosen past jobs really come to, by the same resolver publication uses.
+    const pastJobs = buildPastJobs({ olderStored: context.profile.case_studies, selected: draft.caseStudyIds, library: context.caseStudyLibrary });
     const handleSave = () => void saveDraft(store, api.save);
     const handleSend = () => void sendProposal(store, {
         save: api.save,
@@ -252,6 +286,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
         programme: { href: href("schedule"), label: "Open Programme" },
         payment: { href: "#review-payments", label: "Choose how you are paid" },
         terms: { href: "#review-terms", label: "Go to the terms" },
+        caseStudySelection: { href: "#review-experience", label: "Go to past jobs" },
     };
     const recommendedFix: Partial<Record<RecommendedKey, { href: string; label: string }>> = {
         introduction: { href: "#review-cover", label: "Go to the opening message" },
@@ -437,17 +472,17 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     );
 
     return (
-        <div className="space-y-5">
+        <div className={`${ui.workspace} space-y-5`} data-dark={isDark}>
             {/* Title and save state */}
-            <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                    <h1 className={`text-2xl sm:text-3xl font-bold break-words ${s.heading}`}>Review and send</h1>
-                    <p className={`mt-1 text-base break-words ${s.muted}`}>
-                        {project.name}{project.client_name ? ` for ${project.client_name}` : ""}
-                    </p>
-                </div>
+            <ProposalWorkspaceHeading
+                projectName={project.name}
+                clientName={project.client_name}
+                locked={locked}
+                isDark={isDark}
+                classes={{ header: ui.header, eyebrow: ui.eyebrow, title: ui.title, project: ui.project, guide: ui.guide }}
+            >
                 {!locked && <SaveStatus status={status} label={REVIEW_STATUS_LABEL[status]} isDark={isDark} />}
-            </div>
+            </ProposalWorkspaceHeading>
 
             {locked && <p role="status" className={`${s.noticeBox} text-sm`} data-review-locked>{lockReason}</p>}
 
@@ -495,7 +530,10 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
 
                     {readiness.recommended.some((item) => !item.ok) && (
                         <>
-                            <h3 className={`mt-5 text-sm font-semibold ${s.body}`}>Would improve it. You can send without these.</h3>
+                            <h3 className={`mt-5 text-sm font-semibold ${s.body}`}>Optional additions to consider</h3>
+                            <p className={`mt-1 text-sm ${s.muted}`} data-recommended-note>
+                                None of these is needed to send. Add the ones that suit this job: site photos and a relevant past job can help your client picture the work. Anything you have already chosen, such as a past job, still has to pass the Needed checks above.
+                            </p>
                             <ul className="mt-2 space-y-2">
                                 {readiness.recommended.filter((item) => !item.ok).map((item) => (
                                     <li key={item.key} className="flex items-start gap-2.5 text-sm" data-recommended-item={item.key}>
@@ -549,7 +587,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                 </div>
                             ))}
                         </dl>
-                        {elsewhere("These come from the project.", href("settings"), "Change project details")}
+                        {elsewhere("Job, client and site come from the project. Your company name comes from your profile.", href("settings"), "Change project details")}
                         {wordingField("introduction", {
                             rows: 4,
                             help: "A few lines in your own words: why you want the job and what matters about it.",
@@ -561,7 +599,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                         {sectionTitle("review-about", 2, "About your business", "Shown as you wrote it in your company profile. Nothing is added.")}
                         {context.profile.capability_statement?.trim()
                             ? <p className={`text-base whitespace-pre-wrap break-words ${s.body}`}>{context.profile.capability_statement}</p>
-                            : <p className={`text-base ${s.muted}`}>You have not described your business yet, so this section is left out.</p>}
+                            : <p className={`text-base ${s.muted}`}>No company introduction is saved. Other company details may still appear in the draft preview below.</p>}
                         {elsewhere("Years trading, accreditations, insurance and your logo also come from the profile.", "/dashboard/settings/profile", "Change company profile")}
                     </section>
 
@@ -569,7 +607,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                     <section id="review-experience" className={sectionCard} aria-labelledby="review-experience-title">
                         {sectionTitle("review-experience", 3, "Relevant experience", "Choose the past jobs to show. Only the ones you tick are included.")}
                         {caseStudies.length === 0 ? (
-                            <p className={`text-base ${s.muted}`}>You have no past jobs saved, so this section is left out.</p>
+                            pastJobs.library.length === 0 && <p className={`text-base ${s.muted}`}>You have no past jobs saved, so this section is left out.</p>
                         ) : (
                             <ul className="space-y-1">
                                 {caseStudies.map((study) => {
@@ -598,6 +636,13 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                 })}
                             </ul>
                         )}
+                        <PastJobsExtras
+                            jobs={pastJobs}
+                            unapproved={context.caseStudyLibrary?.unapproved ?? 0}
+                            busy={busy}
+                            onToggle={(tick) => edit({ caseStudyIds: draft.caseStudyIds.includes(tick) ? draft.caseStudyIds.filter((id) => id !== tick) : [...draft.caseStudyIds, tick] })}
+                            classes={{ body: s.body, muted: s.muted, notice: s.noticeBox, button: s.secondaryButton }}
+                        />
                         {elsewhere("Past jobs are written once and reused.", "/dashboard/settings/case-studies", "Add or change past jobs")}
                     </section>
 
@@ -657,8 +702,11 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                             )}
                         </div>
 
-                        {wordingField("exclusions", { rows: 4, help: "One item per line." })}
-                        {wordingField("clarifications", { rows: 4, help: "One item per line: assumptions, access, anything the price depends on." })}
+                        <section aria-labelledby="review-scope-notes-title" data-review-scope-notes className={`${s.inset} p-4 sm:p-5 space-y-5`}>
+                            <h3 id="review-scope-notes-title" className={`text-lg font-bold ${s.heading}`}>Exclusions and clarifications</h3>
+                            {wordingField("exclusions", { rows: 4, help: "One item per line." })}
+                            {wordingField("clarifications", { rows: 4, help: "One item per line: assumptions, access, anything the price depends on." })}
+                        </section>
                     </section>
 
                     {/* 5. Price */}
@@ -882,6 +930,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                         <p className={`text-sm ${s.body}`}>
                             {shownTerms.length} {shownTerms.length === 1 ? "term is" : "terms are"} shown to the client: {shownTerms.map((clause) => clause.title).join(", ") || "none"}.
                         </p>
+                        <CurrentTermsReview terms={shownTerms} styles={s} />
                         {!locked && (
                             <button type="button" onClick={() => setTermsOpen((open) => !open)} aria-expanded={termsOpen} aria-controls="review-terms-editor" className={`${s.secondaryButton} min-h-11 text-sm`}>
                                 {termsOpen ? "Close the terms" : "Change the terms"}
@@ -939,6 +988,24 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                     <section id="review-closing" className={sectionCard} aria-labelledby="review-closing-title">
                         {sectionTitle("review-closing", 8, "Closing message", "The last thing your client reads before they respond.")}
                         {wordingField("closing", { rows: 4, help: "In your own words. Leave it empty and this section is left out." })}
+                        {companyMessage.trim() && (
+                            <details className={`${s.inset} mt-4 p-4`} data-company-closing-source>
+                                <summary className={`cursor-pointer text-sm font-semibold ${s.heading}`}>Use your managing director&apos;s message</summary>
+                                <p className={`mt-3 text-sm ${s.muted}`}>From your saved company profile. No new text is generated here. It can also appear under About your business. Review it for this proposal before saving.</p>
+                                <blockquote className={`mt-3 max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-sm ${s.body}`}>{companyMessage}</blockquote>
+                                <button type="button" data-use-company-closing disabled={companyClosingBlocked} className={`${s.secondaryButton} mt-3`}
+                                    onClick={() => {
+                                        const result = applyCompanyClosingMessage(store, companyMessage, !locked);
+                                        setCompanyClosingNote(result.ok ? "Company message copied to this unsaved draft. Review and save it when ready." : result.error);
+                                    }}>Use company message</button>
+                                <p className={`mt-2 text-sm ${s.muted}`}>{companyMessage.length > TEXT_LIMITS.closing
+                                    ? "This message exceeds the closing field's 20,000-character limit. Nothing will be copied or shortened."
+                                    : draft.closing.trim() || state.saved.closing.trim()
+                                        ? "Your proposal's existing wording is kept. Edit the closing field directly; using company text will not replace it."
+                                        : "This fills only an empty draft. It does not save the proposal or change your company profile."}</p>
+                                {companyClosingNote && <p role="status" className={`mt-2 text-sm ${s.body}`}>{companyClosingNote}</p>}
+                            </details>
+                        )}
                     </section>
                 </fieldset>
 
@@ -952,6 +1019,43 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                     </div>
                 )}
             </form>
+
+            {/* Client response: chosen while preparing, before the preview */}
+            {!locked && (
+                <section className={`${s.card} p-4 sm:p-6 space-y-5`} data-review-response>
+                    <fieldset className="space-y-2" disabled={state.send.status === "publishing"}>
+                        <legend className={s.label}>What do you want your client to do?</legend>
+                        {RESPONSE_KINDS.map((kind) => {
+                            const wording = responseWording(kind);
+                            const chosen = state.responseKind === kind;
+                            return (
+                                <label
+                                    key={kind}
+                                    data-response-option={kind}
+                                    className={`flex items-start gap-3 rounded-xl border p-3 sm:p-4 cursor-pointer ${
+                                        chosen ? "border-blue-500 ring-1 ring-blue-500" : isDark ? "border-[#3a3a3a]" : "border-gray-300"
+                                    }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="response-kind"
+                                        className="mt-1 w-5 h-5 flex-shrink-0"
+                                        checked={chosen}
+                                        onChange={() => store.dispatch({ type: "response/choose", kind })}
+                                    />
+                                    <span className="min-w-0">
+                                        <span className={`block text-base font-semibold ${s.heading}`}>{wording.optionLabel}</span>
+                                        <span className={`block text-sm ${s.muted}`}>{wording.optionHelp}</span>
+                                    </span>
+                                </label>
+                            );
+                        })}
+                        <p className={`text-sm ${s.muted}`}>
+                            Neither option is acceptance. A proposal sent here cannot be accepted as a binding contract online.
+                        </p>
+                    </fieldset>
+                </section>
+            )}
 
             {/* Preview */}
             {!locked && (
@@ -985,10 +1089,11 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                 ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Making the PDF…</>
                                 : <><FileDown className="w-4 h-4" aria-hidden="true" /> Download this draft as a PDF</>}
                         </button>
-                        <p id="presend-pdf-note" className={`text-sm ${s.muted}`}>
+                        <p id="presend-pdf-note" role={previewProblem ? "alert" : undefined} className={`text-sm ${s.muted}`}>
                             {preview
                                 ? "The PDF your client will get, marked as a draft. Downloading it sends nothing."
-                                : "The PDF is available once the job has a name and an estimate."}
+                                : previewProblem ?? "The PDF is available once the job has a name and an estimate."}
+                            {previewProblem && previewTermIssues.length > 0 && <> <a href="#review-terms" className={s.quietButton}>Review the current terms</a>.</>}
                             {checkCode && <> Check code <span className="font-mono font-semibold" data-check-code>{checkCode}</span>.</>}
                         </p>
                         {draftPdf.text && <p role={draftPdf.failed ? "alert" : "status"} className={`text-sm ${draftPdf.failed ? s.errorText : s.body}`} data-presend-pdf-result>{draftPdf.text}</p>}
@@ -1009,7 +1114,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                 </ProposalDocumentView>
                             ) : (
                                 <p className="bg-white p-6 text-base text-stone-700">
-                                    The preview appears once the job has a name and an estimate.
+                                    {previewProblem ?? "The preview appears once the job has a name and an estimate."}
                                 </p>
                             )}
                         </div>
@@ -1027,38 +1132,6 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                             {current ? ` It replaces version ${current.version_number}, which stays in your sent versions.` : ""}
                         </p>
                     </div>
-
-                    <fieldset className="space-y-2" disabled={state.send.status === "publishing"}>
-                        <legend className={s.label}>What do you want your client to do?</legend>
-                        {RESPONSE_KINDS.map((kind) => {
-                            const wording = responseWording(kind);
-                            const chosen = state.responseKind === kind;
-                            return (
-                                <label
-                                    key={kind}
-                                    data-response-option={kind}
-                                    className={`flex items-start gap-3 rounded-xl border p-3 sm:p-4 cursor-pointer ${
-                                        chosen ? "border-blue-500 ring-1 ring-blue-500" : isDark ? "border-[#3a3a3a]" : "border-gray-300"
-                                    }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="response-kind"
-                                        className="mt-1 w-5 h-5 flex-shrink-0"
-                                        checked={chosen}
-                                        onChange={() => store.dispatch({ type: "response/choose", kind })}
-                                    />
-                                    <span className="min-w-0">
-                                        <span className={`block text-base font-semibold ${s.heading}`}>{wording.optionLabel}</span>
-                                        <span className={`block text-sm ${s.muted}`}>{wording.optionHelp}</span>
-                                    </span>
-                                </label>
-                            );
-                        })}
-                        <p className={`text-sm ${s.muted}`}>
-                            Neither option is acceptance. A proposal sent here cannot be accepted as a binding contract online.
-                        </p>
-                    </fieldset>
 
                     <div>
                         {project.client_email ? (

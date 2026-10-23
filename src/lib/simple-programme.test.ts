@@ -106,10 +106,10 @@ describe("stages", () => {
         expect(plan.duration_label).toBe("23 working days");
     });
 
-    it("must number three to six, each with a name and a duration", () => {
+    it("accepts one to six stages, each with a name and a duration", () => {
+        expect(buildSimpleProgramme({ ...staged, stages: staged.stages.slice(0, 1) }).ok).toBe(true);
         const two = buildSimpleProgramme({ ...staged, stages: staged.stages.slice(0, 2) });
-        expect(two.ok).toBe(false);
-        if (!two.ok) expect(two.fieldErrors.stages).toContain("between 3 and 6");
+        expect(two.ok).toBe(true);
 
         const seven = buildSimpleProgramme({ ...staged, stages: Array.from({ length: 7 }, (_, i) => stage(`s${i}`, `Stage ${i}`, "1")) });
         expect(seven.ok).toBe(false);
@@ -138,7 +138,7 @@ describe("stages", () => {
     it("limits the editor to six stages", () => {
         const store = storeFor(initialProgrammeState(emptyProgrammeDraft(MONDAY), false));
         store.dispatch({ type: "stages/enable", keys: ["a", "b", "c"] });
-        expect(store.getState().draft.stages).toHaveLength(3);
+        expect(store.getState().draft.stages).toHaveLength(1);
         ["d", "e", "f", "g", "h"].forEach((key) => store.dispatch({ type: "stage/add", key }));
         expect(store.getState().draft.stages).toHaveLength(MAX_STAGES);
     });
@@ -208,7 +208,7 @@ describe("established programme data", () => {
         ["a gap between stages", [{ name: "A", calculatedDays: 5, startOffset: 0 }, { name: "B", calculatedDays: 5, startOffset: 14 }, { name: "C", calculatedDays: 5, startOffset: 21 }]],
         ["a dependency", [{ name: "A", calculatedDays: 5, startOffset: 0 }, { name: "B", calculatedDays: 5, startOffset: 7, dependsOn: [0] }, { name: "C", calculatedDays: 5, startOffset: 14 }]],
         ["progress recorded", [{ name: "A", calculatedDays: 5, startOffset: 0, pct_complete: 40 }, { name: "B", calculatedDays: 5, startOffset: 7 }, { name: "C", calculatedDays: 5, startOffset: 14 }]],
-        ["two stages", [{ name: "A", calculatedDays: 5, startOffset: 0 }, { name: "B", calculatedDays: 5, startOffset: 7 }]],
+        ["two stages with a gap", [{ name: "A", calculatedDays: 5, startOffset: 0 }, { name: "B", calculatedDays: 5, startOffset: 14 }]],
         ["more than six stages", Array.from({ length: 7 }, (_, i) => ({ name: `S${i}`, calculatedDays: 5, startOffset: i * 7 }))],
     ])("leaves a programme with %s to the detailed planner, untouched", (_label, phases) => {
         const view = viewForProject({ start_date: MONDAY, programme_phases: phases }, keys());

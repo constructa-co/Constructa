@@ -26,7 +26,7 @@ vi.mock("@/lib/supabase/project-resource-access", () => ({ requireEditableProjec
 vi.mock("@/lib/supabase/auth-utils", () => ({ requireProjectAccess: mocks.requireProjectAccess, requireAuth: mocks.requireAuth }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: mocks.createAdminClient }));
 vi.mock("@/lib/email", () => ({ sendProposalEmail: mocks.sendProposalEmail }));
-vi.mock("@/lib/ai", () => ({ generateText: vi.fn() }));
+vi.mock("@/lib/ai", async (original) => ({ ...(await original<typeof import("@/lib/ai")>()), generateStructured: vi.fn() }));
 vi.mock("@/lib/storage/public-image", () => ({ validatePublicImage: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 

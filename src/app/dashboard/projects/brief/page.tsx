@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProjectNavBar from "@/components/project-navbar";
+import ProjectEntry from "@/components/project-entry";
+import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import BriefClient from "./brief-client";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +29,12 @@ export default async function BriefPage(props: { searchParams: Promise<{ project
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-    const activeProjectId = searchParams.projectId || allProjects?.[0]?.id;
+    // Canonicalise the project identity before mounting any editable job state.
+    if (searchParams.projectId === undefined) {
+        if (!allProjects?.length) return <div className="p-8 text-slate-400">No projects found. Create one in the dashboard first.</div>;
+        return <ProjectEntry projects={allProjects} path="/dashboard/projects/brief" />;
+    }
+    const activeProjectId = searchParams.projectId;
 
     // Fetch active project
     const { data: project } = await supabase
@@ -45,9 +52,10 @@ export default async function BriefPage(props: { searchParams: Promise<{ project
 
     return (
         <div className="max-w-5xl mx-auto px-4 sm:px-8 pt-4 sm:pt-8 pb-16">
-            <ProjectNavBar projectId={activeProjectId} activeTab="brief" />
+            <ProjectNavBar projectId={activeProjectId} projectName={project.name || ""} activeTab="brief" />
 
             <BriefClient
+                key={project.id}
                 project={{
                     id: project.id,
                     name: project.name || "",
@@ -64,6 +72,7 @@ export default async function BriefPage(props: { searchParams: Promise<{ project
                     region: project.region || "",
                     brief_completed: project.brief_completed || false,
                 }}
+                lockReason={getPrecontractEditLockReason(project)}
             />
         </div>
     );

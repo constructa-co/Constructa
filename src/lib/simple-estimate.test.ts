@@ -439,6 +439,17 @@ describe("price adjustments", () => {
 });
 
 describe("advanced estimating is reachable but not the default", () => {
+    it("closes local line forms on opening without changing the saved estimate", () => {
+        const store = makeStore([estimate({ estimate_lines: [line()] })]);
+        const saved = store.getState().estimates;
+        openAdd(store, { description: "Local unsaved line" });
+        expect(store.getState().ops[NEW_LINE_KEY].draft.description).toBe("Local unsaved line");
+        store.dispatch({ type: "advanced/toggle" });
+        expect(store.getState().advancedOpen).toBe(true);
+        expect(store.getState().ops).toEqual({});
+        expect(store.getState().estimates).toBe(saved);
+    });
+
     it("starts closed and opens on request", () => {
         const store = makeStore();
         expect(store.getState().advancedOpen).toBe(false);

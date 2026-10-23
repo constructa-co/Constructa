@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-access";
 import { precontractLockMessage } from "@/lib/project-editability";
-import { computeProgrammePlan, isWorkingDay } from "@/lib/programme-plan";
+import { isWorkingDay } from "@/lib/programme-plan";
+import { computeDisplayProgramme } from "@/lib/relative-programme";
+import { readProgrammeInclusion } from "@/lib/programme-inclusion";
 import {
     MAX_STAGES,
     MAX_STAGE_NAME_LENGTH,
@@ -17,7 +19,8 @@ import {
 
 const SimpleProgrammeSchema = z.object({
     projectId: z.string().uuid(),
-    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    timeBasis: z.literal("relative").optional(),
+    startDate: z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal("")]),
     stages: z.array(z.object({
         name: z.string().trim().min(1).max(MAX_STAGE_NAME_LENGTH),
         workingDays: z.number().int().min(1).max(MAX_WORKING_DAYS),
@@ -39,11 +42,12 @@ type SaveResult = { success: true } | { success: false; error: string };
 export async function saveSimpleProgrammeAction(projectId: string, input: SimpleProgrammeInput): Promise<SaveResult> {
     const parsed = SimpleProgrammeSchema.safeParse({ projectId, ...input });
     if (!parsed.success) return { success: false, error: "Check the start date and durations, then save again." };
-    const { startDate, stages } = parsed.data;
+    const { startDate, stages, timeBasis } = parsed.data;
 
     const stageCountOk = stages.length === 1 || stages.length >= MIN_STAGES;
     const total = stages.reduce((sum, stage) => sum + stage.workingDays, 0);
-    if (!isWorkingDay(startDate) || !stageCountOk || total > MAX_WORKING_DAYS) {
+    const validStart = timeBasis === "relative" ? startDate === "" : isWorkingDay(startDate);
+    if (!validStart || !stageCountOk || total > MAX_WORKING_DAYS) {
         return { success: false, error: "Check the start date and durations, then save again." };
     }
 
@@ -65,17 +69,21 @@ export async function saveSimpleProgrammeAction(projectId: string, input: Simple
         console.error("saveSimpleProgrammeAction read failed", { projectId: parsed.data.projectId, code: readError?.code });
         return { success: false, error: PROGRAMME_SAVE_ERROR };
     }
+    if (readProgrammeInclusion(project.programme_phases).intent !== "include") {
+        return { success: false, error: "Include the programme before editing its activities." };
+    }
 
-    const phases = buildProgrammePhases({ startDate, stages }, project.programme_phases as unknown[] | null);
-    if (!computeProgrammePlan(startDate, phases)) return { success: false, error: PROGRAMME_SAVE_ERROR };
+    const phases = buildProgrammePhases({ startDate, stages, timeBasis }, project.programme_phases as unknown[] | null);
+    if (!computeDisplayProgramme(startDate, phases)) return { success: false, error: PROGRAMME_SAVE_ERROR };
 
-    const { data: saved, error } = await supabase
+    let update = supabase
         .from("projects")
-        .update({ start_date: startDate, programme_phases: phases })
+        .update(timeBasis === "relative" ? { programme_phases: phases } : { start_date: startDate, programme_phases: phases })
         .eq("id", parsed.data.projectId)
-        .eq("user_id", user.id)
-        .select("id")
-        .single();
+        .eq("user_id", user.id);
+    update = project.programme_phases == null ? update.is("programme_phases", null)
+        : update.eq("programme_phases", JSON.stringify(project.programme_phases));
+    const { data: saved, error } = await update.select("id").single();
     if (error || !saved) {
         console.error("saveSimpleProgrammeAction update failed", { projectId: parsed.data.projectId, code: error?.code });
         return { success: false, error: PROGRAMME_SAVE_ERROR };

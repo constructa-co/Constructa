@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
+import ui from "@/components/project-chooser.module.css";
 
 type SortKey = "name" | "client_name" | "project_type" | "status" | "value" | "proposal_sent_at" | "days_open";
 type SortDir = "asc" | "desc";
@@ -75,19 +76,27 @@ function SortHeader({ label, sortKey, currentSort, currentDir, onSort, align = "
     const isActive = currentSort === sortKey;
     return (
         <th
+            scope="col"
+            aria-sort={isActive ? (currentDir === "asc" ? "ascending" : "descending") : undefined}
             className={`px-4 py-3 font-medium cursor-pointer select-none transition-colors ${
                 align === "right" ? "text-right" : "text-left"
             } ${isDark ? "hover:bg-[#1a1a1a]" : "hover:bg-gray-100"}`}
-            onClick={() => onSort(sortKey)}
         >
-            <span className="inline-flex items-center gap-1">
+            <button
+                type="button"
+                onClick={() => onSort(sortKey)}
+                aria-label={`Sort by ${label}`}
+                className={`inline-flex items-center gap-1 ${align === "right" ? "justify-end" : "justify-start"}`}
+            >
                 {label}
+                <span aria-hidden="true">
                 {isActive ? (
                     currentDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
                 ) : (
                     <ArrowUpDown className="w-3 h-3 opacity-40" />
                 )}
-            </span>
+                </span>
+            </button>
         </th>
     );
 }
@@ -151,11 +160,11 @@ export default function ProjectList({ projects, financials }: { projects: any[],
     });
 
     return (
-        <div className={`rounded-xl border overflow-hidden ${
+        <div className={`${ui.projectList} rounded-xl border overflow-hidden ${
             isDark
                 ? "bg-[#1a1a1a] border-[#2a2a2a]"
                 : "bg-white border-gray-200 shadow-sm"
-        }`}>
+        }`} data-dark={isDark} role="region" aria-label="Project list" tabIndex={0}>
             <table className="w-full text-sm text-left">
                 <thead className={`border-b uppercase text-xs ${
                     isDark

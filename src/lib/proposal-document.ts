@@ -13,7 +13,8 @@
 
 import { roundMoney } from "@/lib/financial";
 import { formatGbp } from "@/lib/pdf/pdf-money";
-import { formatPlanDate, type ProgrammePlan } from "@/lib/programme-plan";
+import { formatPlanDate } from "@/lib/programme-plan";
+import { programmeFacts, type DisplayProgrammePlan } from "@/lib/relative-programme";
 import { safeImageUrl, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
 import {
     responseKindOfSnapshot,
@@ -44,7 +45,7 @@ export type DocBlock =
     | { type: "photos"; photos: Array<{ url: string; caption: string | null }> }
     | { type: "price"; groups: DocPriceGroup[]; totals: Array<DocFact & { strong: boolean }>; note: string | null }
     | { type: "payments"; rows: Array<{ stage: string; when: string | null; share: string; amount: string }>; note: string | null }
-    | { type: "timeline"; plan: ProgrammePlan }
+    | { type: "timeline"; plan: DisplayProgrammePlan }
     | { type: "stageList"; start: string | null; rows: Array<{ name: string; duration: string }> }
     | { type: "terms"; clauses: Array<{ number: number; title: string; body: string }> }
     | { type: "caseStudy"; title: string; facts: DocFact[]; delivered: string[]; valueAdded: string[]; photos: string[] };
@@ -319,6 +320,7 @@ function priceSection(snapshot: ProposalPublicationSnapshot): DocSection | null 
 }
 
 function programmeSection(snapshot: ProposalPublicationSnapshot): DocSection | null {
+    if (snapshot.programme_intent === "omit") return null;
     if (snapshot.programme_plan) {
         return { id: "programme", title: "Programme", blocks: [{ type: "timeline", plan: snapshot.programme_plan }] };
     }
@@ -375,7 +377,7 @@ export interface BuildDocumentOptions {
 
 export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, options: BuildDocumentOptions = {}): ProposalDocument {
     const commercial = snapshot.commercial;
-    const plan = snapshot.programme_plan;
+    const plan = snapshot.programme_intent === "omit" ? undefined : snapshot.programme_plan;
     const kind = responseKindOfSnapshot(snapshot);
     const wording = responseWording(kind);
 
@@ -386,12 +388,8 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
             : { label: "Price", value: formatGbp(commercial.contract_sum_ex_vat) });
     }
     if (plan) {
-        keyFacts.push(
-            { label: "Start on site", value: formatPlanDate(plan.start_date, "short") },
-            { label: "Finish", value: formatPlanDate(plan.end_date, "short") },
-            { label: "Duration", value: plan.duration_label },
-        );
-    } else if (snapshot.project.start_date && formatPlanDate(snapshot.project.start_date, "short")) {
+        keyFacts.push(...programmeFacts(plan, "short"));
+    } else if (snapshot.programme_intent !== "omit" && snapshot.project.start_date && formatPlanDate(snapshot.project.start_date, "short")) {
         keyFacts.push({ label: "Start on site", value: formatPlanDate(snapshot.project.start_date, "short") });
     }
 

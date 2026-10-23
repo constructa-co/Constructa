@@ -42,14 +42,17 @@ export async function updateProjectAction(formData: FormData) {
         if (updates[key] === "") updates[key] = null;
     });
 
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from("projects")
         .update(updates)
         .eq("id", projectId)
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .select("id")
+        .single();
 
     if (error) console.error("Settings update error:", error);
+    if (error || !data || data.id !== projectId) return { success: false };
 
     revalidatePath(`/dashboard/projects/settings?projectId=${projectId}`);
-    return { success: !error };
+    return { success: true };
 }

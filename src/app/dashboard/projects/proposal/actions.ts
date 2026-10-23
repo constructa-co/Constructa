@@ -1,12 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { isDeepStrictEqual } from "node:util";
+import { pricingFullScopeError, type PricingFullScopeSource } from "@/lib/pricing-full-scope";
 import { z } from "zod";
+import { caseLibraryEnabled } from "@/lib/case-library/gate";
+import { readProposalLibrary } from "@/lib/case-library/proposal-read";
+import { sessionReader } from "@/lib/case-library/store";
 import { requireProjectAccess } from "@/lib/supabase/auth-utils";
 import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-access";
 import { validatePublicImage } from "@/lib/storage/public-image";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { generateText } from "@/lib/ai";
+import { suggestWording } from "@/lib/cohort-ai/proposal-wording";
 import { sendProposalEmail } from "@/lib/email";
 import { precontractLockMessage } from "@/lib/project-editability";
 import {
@@ -30,7 +35,6 @@ import {
     PUBLISH_ERROR,
     REVIEW_CHANGED_ERROR,
     TEXT_LIMITS,
-    WORDING_FIELDS,
     contractSumOf,
     vatFor,
     type DeliveryOutcome,
@@ -38,6 +42,7 @@ import {
     type WordingField,
 } from "@/lib/proposal-review";
 import { resolveProgrammeSource } from "@/lib/programme-plan";
+import { SCOPE_NOTE_COLUMNS, pricingScopeNoteError, type PricingScopeNotes, type PricingScopeNotesSource } from "@/lib/pricing-scope-notes";
 import {
     PROPOSAL_TERMS_PROFILE_VERSION,
     resolveProposalTerms,
@@ -141,52 +146,178 @@ export async function saveProposalDraftAction(projectId: string, payload: Propos
     return { success: true };
 }
 
-// ── AI wording ───────────────────────────────────────────────────────────────
+/** Payment-only pricing entry: never writes proposal wording, terms or publications. */
+export async function savePricingPaymentStagesAction(
+    projectId: string,
+    expectedSchedule: unknown[] | null,
+    paymentSchedule: NonNullable<ProposalDraftPayload["paymentSchedule"]>,
+): Promise<{ success: true; paymentSchedule: NonNullable<ProposalDraftPayload["paymentSchedule"]> } | (Failure & { uncertain?: boolean })> {
+    const parsed = z.object({
+        projectId: DraftSchema.shape.projectId,
+        expectedSchedule: z.array(z.unknown()).nullable(),
+        paymentSchedule: DraftSchema.shape.paymentSchedule.unwrap(),
+    }).strict().safeParse({ projectId, expectedSchedule, paymentSchedule });
+    if (!parsed.success) return { success: false, error: "Check the payment stage names and percentages before saving." };
+    const input = parsed.data;
+    if (input.paymentSchedule.reduce((total, row) => total + row.percentage, 0) > 100.001) {
+        return { success: false, error: "The payment stages add up to more than 100%." };
+    }
+    const { access, error: accessError } = await editableAccess(input.projectId, "You can't change these payment stages.");
+    if (!access) return { success: false, error: accessError };
+    const { user, supabase } = access;
+    const { data: project, error: readError } = await supabase.from("projects")
+        .select("id, payment_schedule").eq("id", input.projectId).eq("user_id", user.id).single();
+    if (readError || !project) return { success: false, error: "The saved payment stages couldn't be checked. Nothing has been changed here." };
+    if (!isDeepStrictEqual(project.payment_schedule, input.expectedSchedule)) {
+        return { success: false, error: "Payment stages changed elsewhere. Keep your draft and reload the saved project before trying again." };
+    }
+    if ((input.expectedSchedule ?? []).some(row => row && typeof row === "object" && "amount" in row && Number(row.amount) > 0)) {
+        return { success: false, error: "Review the existing fixed-amount payment stages in the proposal. They have not been converted." };
+    }
+    const query = supabase.from("projects").update({ payment_schedule: input.paymentSchedule })
+        .eq("id", input.projectId).eq("user_id", user.id);
+    const guarded = project.payment_schedule === null ? query.is("payment_schedule", null)
+        : query.eq("payment_schedule", JSON.stringify(project.payment_schedule));
+    const { data: saved, error } = await guarded.select("id, payment_schedule").single();
+    if (error || saved?.id !== input.projectId || !isDeepStrictEqual(saved.payment_schedule, input.paymentSchedule)) {
+        return { success: false, uncertain: true, error: "The payment stage save wasn't confirmed. It may have saved. Keep your draft and reload to check before saving again." };
+    }
+    revalidatePath("/dashboard/projects/costs");
+    revalidatePath("/dashboard/projects/proposal");
+    return { success: true, paymentSchedule: saved.payment_schedule };
+}
 
-const FIELD_PURPOSE: Record<WordingField, string> = {
-    introduction: "the opening message to the client",
-    scope: "the description of the work that is included",
-    exclusions: "the list of what is not included, one item per line",
-    clarifications: "the list of clarifications and assumptions, one item per line",
-    closing: "the closing message to the client",
-};
+/** Pricing notes are a separate explicit save, not a partial full-proposal payload. */
+export async function savePricingScopeNotesAction(
+    projectId: string,
+    expected: PricingScopeNotesSource,
+    notes: PricingScopeNotes,
+): Promise<{ success: true; source: PricingScopeNotesSource } | (Failure & { uncertain?: boolean })> {
+    const SourceSchema = z.object({
+        exclusions_text: z.string().nullable(), clarifications_text: z.string().nullable(),
+        contract_exclusions: z.string().nullable(), contract_clarifications: z.string().nullable(),
+    }).strict();
+    const parsed = z.object({ projectId: DraftSchema.shape.projectId, expected: SourceSchema,
+        notes: z.object({ exclusions: DraftSchema.shape.exclusions, clarifications: DraftSchema.shape.clarifications }).strict(),
+    }).strict().safeParse({ projectId, expected, notes });
+    if (!parsed.success) return { success: false, error: "Check the exclusions and clarifications. Keep each field to 10,000 characters or fewer." };
+    const input = parsed.data;
+    const { access, error: accessError } = await editableAccess(input.projectId, "You can't change these proposal notes.");
+    if (!access) return { success: false, error: accessError };
+    const { user, supabase } = access;
+    const columns = "id, exclusions_text, clarifications_text, contract_exclusions, contract_clarifications";
+    const { data: project, error: readError } = await supabase.from("projects").select(columns)
+        .eq("id", input.projectId).eq("user_id", user.id).single();
+    if (readError || !project) return { success: false, error: "The saved notes couldn't be checked. Nothing has been changed here." };
+    const current = SourceSchema.safeParse(Object.fromEntries(SCOPE_NOTE_COLUMNS.map(key => [key, project[key]])));
+    if (!current.success || !isDeepStrictEqual(current.data, input.expected)) {
+        return { success: false, error: "Proposal or contract notes changed elsewhere. Keep your draft and reload the saved project before trying again." };
+    }
+    const validation = pricingScopeNoteError(current.data, input.notes);
+    if (validation) return { success: false, error: validation };
+    const update = { exclusions_text: input.notes.exclusions.trim() || null, clarifications_text: input.notes.clarifications.trim() || null };
+    let query = supabase.from("projects").update(update).eq("id", input.projectId).eq("user_id", user.id);
+    for (const key of SCOPE_NOTE_COLUMNS) {
+        query = current.data[key] === null ? query.is(key, null) : query.eq(key, current.data[key]);
+    }
+    const { data: saved, error } = await query.select(columns).single();
+    const confirmed = saved && SourceSchema.safeParse(Object.fromEntries(SCOPE_NOTE_COLUMNS.map(key => [key, saved[key]])));
+    if (error || saved?.id !== input.projectId || !confirmed?.success || !isDeepStrictEqual(confirmed.data, { ...current.data, ...update })) {
+        return { success: false, uncertain: true, error: "The notes save wasn't confirmed. It may have saved. Keep your draft and reload to check before saving again." };
+    }
+    revalidatePath("/dashboard/projects/costs");
+    revalidatePath("/dashboard/projects/proposal");
+    return { success: true, source: confirmed.data };
+}
+
+/** Opening wording alone; never sends a stale full-proposal draft from pricing. */
+export async function savePricingOpeningAction(
+    projectId: string, expected: string | null, introduction: string,
+): Promise<{ success: true; introduction: string | null } | (Failure & { uncertain?: boolean })> {
+    const parsed = z.object({ projectId: DraftSchema.shape.projectId, expected: z.string().nullable(),
+        introduction: DraftSchema.shape.introduction }).strict().safeParse({ projectId, expected, introduction });
+    if (!parsed.success) return { success: false, error: "Check the opening message. Keep it to 20,000 characters or fewer; nothing has been shortened." };
+    const input = parsed.data;
+    const { access, error: accessError } = await editableAccess(input.projectId, "You can't change this opening message.");
+    if (!access) return { success: false, error: accessError };
+    const { user, supabase } = access;
+    const columns = "id, proposal_introduction";
+    const { data: project, error: readError } = await supabase.from("projects").select(columns)
+        .eq("id", input.projectId).eq("user_id", user.id).single();
+    if (readError || !project) return { success: false, error: "The saved opening message couldn't be checked. Nothing has been changed here." };
+    if (project.proposal_introduction !== input.expected) return { success: false, error: "The opening message changed elsewhere. Keep your draft and reload the saved project before trying again." };
+    const update = { proposal_introduction: input.introduction.trim() || null };
+    const query = supabase.from("projects").update(update).eq("id", input.projectId).eq("user_id", user.id);
+    const guarded = input.expected === null ? query.is("proposal_introduction", null) : query.eq("proposal_introduction", input.expected);
+    const { data: saved, error } = await guarded.select(columns).single();
+    if (error || saved?.id !== input.projectId || saved.proposal_introduction !== update.proposal_introduction) {
+        return { success: false, uncertain: true, error: "The opening message save wasn't confirmed. It may have saved. Keep your draft and reload to check before saving again." };
+    }
+    revalidatePath("/dashboard/projects/costs");
+    revalidatePath("/dashboard/projects/proposal");
+    return { success: true, introduction: saved.proposal_introduction };
+}
+
+/** Scope alone, checked against both the saved override and its brief fallback. */
+export async function savePricingFullScopeAction(
+    projectId: string, expected: PricingFullScopeSource, scope: string,
+): Promise<{ success: true; source: PricingFullScopeSource } | (Failure & { uncertain?: boolean })> {
+    const SourceSchema = z.object({ scope_text: z.string().nullable(), brief_scope: z.string().nullable() }).strict();
+    const parsed = z.object({ projectId: DraftSchema.shape.projectId, expected: SourceSchema,
+        scope: DraftSchema.shape.scope }).strict().safeParse({ projectId, expected, scope });
+    if (!parsed.success) return { success: false, error: "Check the scope. Keep it to 20,000 characters or fewer; nothing has been shortened." };
+    const input = parsed.data;
+    const { access, error: accessError } = await editableAccess(input.projectId, "You can't change this proposal scope.");
+    if (!access) return { success: false, error: accessError };
+    const { user, supabase } = access;
+    const columns = "id, scope_text, brief_scope";
+    const { data: project, error: readError } = await supabase.from("projects").select(columns)
+        .eq("id", input.projectId).eq("user_id", user.id).single();
+    if (readError || !project) return { success: false, error: "The saved scope and brief couldn't be checked. Nothing has been changed here." };
+    const current = SourceSchema.safeParse({ scope_text: project.scope_text, brief_scope: project.brief_scope });
+    if (!current.success || !isDeepStrictEqual(current.data, input.expected)) {
+        return { success: false, error: "The scope or brief changed elsewhere. Keep your draft and reload the saved project before trying again." };
+    }
+    const validation = pricingFullScopeError(current.data, input.scope);
+    if (validation) return { success: false, error: validation };
+    const update = { scope_text: input.scope.trim() || null };
+    let query = supabase.from("projects").update(update).eq("id", input.projectId).eq("user_id", user.id);
+    for (const key of ["scope_text", "brief_scope"] as const) {
+        query = current.data[key] === null ? query.is(key, null) : query.eq(key, current.data[key]);
+    }
+    const { data: saved, error } = await query.select(columns).single();
+    const confirmed = saved && SourceSchema.safeParse({ scope_text: saved.scope_text, brief_scope: saved.brief_scope });
+    if (error || saved?.id !== input.projectId || !confirmed?.success || !isDeepStrictEqual(confirmed.data, { ...current.data, ...update })) {
+        return { success: false, uncertain: true, error: "The scope save wasn't confirmed. It may have saved. Keep your draft and reload to check before saving again." };
+    }
+    revalidatePath("/dashboard/projects/costs");
+    revalidatePath("/dashboard/projects/proposal");
+    return { success: true, source: confirmed.data };
+}
+
+// ── AI wording ───────────────────────────────────────────────────────────────
 
 /**
  * Suggests clearer wording for text the contractor has already written.
  * It never writes to the project: the reply is shown as a pending suggestion
  * and only the contractor's Apply puts it in the draft. The assistant is
- * told to keep every fact and add none, and the client drops any reply that
- * introduces a figure the contractor did not write.
+ * told to keep every fact and add none. A reply that introduces a figure the
+ * contractor did not write is dropped on the server and recorded as rejected,
+ * and the screen's own check for the same thing is unchanged.
+ *
+ * Order: the contractor's right to edit this proposal is checked first. Only
+ * then is the text looked at and one call made through the usage budget.
  */
 export async function suggestProposalWordingAction(
     projectId: string,
     field: WordingField,
     text: string,
 ): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
-    if (!WORDING_FIELDS.includes(field) || typeof text !== "string" || !text.trim() || text.length > TEXT_LIMITS[field]) {
-        return { ok: false, error: AI_UNAVAILABLE_ERROR };
-    }
     const { access, error: accessError } = await editableAccess(projectId, "You can't change this proposal.");
     if (!access) return { ok: false, error: accessError };
 
-    const prompt = `You are helping a UK building contractor tidy the wording of a proposal to their client.
-
-Rewrite the contractor's text below so it reads clearly and professionally in plain UK English. This text is ${FIELD_PURPOSE[field]}.
-
-Rules:
-- Keep every fact exactly as the contractor gave it.
-- Do not add any fact, figure, price, date, duration, quantity, accreditation, qualification, award, guarantee, promise or claim about experience or quality that is not in the text.
-- Do not remove any information.
-- Keep the same layout: if the text is a list with one item per line, return one item per line.
-- Return only the rewritten text. No heading, no notes, no markdown.
-
-Contractor's text:
-${text}`;
-
     try {
-        const suggestion = (await generateText(prompt)).trim();
-        if (!suggestion) return { ok: false, error: AI_UNAVAILABLE_ERROR };
-        return { ok: true, text: suggestion.slice(0, TEXT_LIMITS[field]) };
+        return await suggestWording({ admin: createAdminClient(), userId: access.user.id }, field, text);
     } catch (error) {
         console.error("suggestProposalWordingAction failed", { projectId, field, error: error instanceof Error ? error.message : "unknown" });
         return { ok: false, error: AI_UNAVAILABLE_ERROR };
@@ -321,7 +452,12 @@ export async function publishProposalAction(
     }
 
     const estimate = estimates[0] as ProposalPublicationEstimateInput;
-    const terms = resolveProposalTerms(project.tc_overrides as ProposalTermsClause[] | null);
+    let terms: ProposalTermsClause[];
+    try {
+        terms = resolveProposalTerms(project.tc_overrides as ProposalTermsClause[] | null);
+    } catch {
+        return { success: false, error: "The saved proposal terms could not be read. Review and save them before sending." };
+    }
     const readiness = evaluateProposalReadiness({
         projectName: project.name,
         clientName: project.client_name,
@@ -350,6 +486,14 @@ export async function publishProposalAction(
         return { success: false, error: "Could not determine the next proposal version." };
     }
 
+    // The contractor's approved library case studies, read again now with
+    // their own session. With the library switched off or unreadable there
+    // are none, so a saved library tick stops this publication below: it is
+    // never sent without a past job the contractor chose.
+    const caseStudyLibrary = caseLibraryEnabled()
+        ? await readProposalLibrary(sessionReader(supabase), user.id, project.selected_case_study_ids)
+        : null;
+
     const publicationId = crypto.randomUUID();
     const versionNumber = (latestPublication?.version_number ?? 0) + 1;
     const sentAt = new Date().toISOString();
@@ -372,6 +516,7 @@ export async function publishProposalAction(
             resolvedTerms: terms,
             responseKind: input.responseKind,
             ...vatFor(project),
+            ...(caseStudyLibrary ? { caseStudyLibrary: { userId: user.id, rows: caseStudyLibrary.rows } } : {}),
         });
         [tokenHash, snapshotHash, contentHash] = await Promise.all([
             hashProposalAccessToken(token),

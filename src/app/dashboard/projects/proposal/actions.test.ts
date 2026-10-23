@@ -7,18 +7,20 @@ const mocks = vi.hoisted(() => ({
     requireProjectAccess: vi.fn(),
     createAdminClient: vi.fn(),
     sendProposalEmail: vi.fn(),
-    generateText: vi.fn(),
+    generateStructured: vi.fn(),
 }));
 vi.mock("@/lib/supabase/project-resource-access", () => ({ requireEditableProjectAccess: mocks.requireEditableProjectAccess }));
 vi.mock("@/lib/supabase/auth-utils", () => ({ requireProjectAccess: mocks.requireProjectAccess }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: mocks.createAdminClient }));
 vi.mock("@/lib/email", () => ({ sendProposalEmail: mocks.sendProposalEmail }));
-vi.mock("@/lib/ai", () => ({ generateText: mocks.generateText }));
+// The real budget wrapper runs. Only the provider call itself is replaced, with canned replies.
+vi.mock("@/lib/ai", async (original) => ({ ...(await original<typeof import("@/lib/ai")>()), generateStructured: mocks.generateStructured }));
 vi.mock("@/lib/storage/public-image", () => ({ validatePublicImage: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { hashProposalAccessToken, hashProposalContent, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
 import {
+    AI_ADDED_FIGURES_ERROR,
     AI_UNAVAILABLE_ERROR,
     DELIVERY_ERROR,
     DRAFT_SAVE_ERROR,
@@ -37,6 +39,10 @@ import {
     saveProposalDraftAction,
     suggestProposalWordingAction,
 } from "./actions";
+
+import { fakeAiBudget } from "@/lib/__fixtures__/fake-ai-budget";
+import { WORDING_AI_INPUT_MAX, WORDING_TOO_LONG } from "@/lib/cohort-ai/proposal-wording";
+import { COHORT_AI_OFF } from "@/lib/cohort-ai/shared";
 
 const USER_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const PROJECT_ID = "22222222-2222-4222-8222-222222222222";
@@ -461,36 +467,73 @@ describe("retryProposalDeliveryAction", () => {
 });
 
 describe("suggestProposalWordingAction", () => {
+    const canned = (text: string) => mocks.generateStructured.mockResolvedValue({ data: { text }, model: "canned", usage: { promptTokens: 60, completionTokens: 25 } });
+    /** The contractor may edit; the server's own client is the synthetic budget. */
+    function wording(options: { cohortEnabled?: boolean } = { cohortEnabled: true }) {
+        const world = setup();
+        const budget = fakeAiBudget(options);
+        mocks.createAdminClient.mockReturnValue(budget.admin);
+        return { ...world, budget };
+    }
+
     it("returns wording and writes nothing", async () => {
-        const { db } = setup();
-        mocks.generateText.mockResolvedValue("  We will refit the bathroom.  ");
+        const { db, budget } = wording();
+        canned("  We will refit the bathroom.  ");
         await expect(suggestProposalWordingAction(PROJECT_ID, "scope", "we do the bathroom")).resolves.toEqual({ ok: true, text: "We will refit the bathroom." });
         expect(db.log).toEqual([]);
-        const prompt = String(mocks.generateText.mock.calls[0][0]);
-        expect(prompt).toContain("Do not add any fact, figure, price, date, duration");
-        expect(prompt).toContain("we do the bathroom");
+        const request = mocks.generateStructured.mock.calls[0][0] as { system: string; user: string };
+        expect(request.system).toContain("Do not add any fact, figure, price, date, duration");
+        expect(request.system).not.toContain("we do the bathroom");
+        expect(JSON.parse(request.user)).toEqual({ text: "we do the bathroom" });
+        expect(mocks.generateStructured).toHaveBeenCalledTimes(1);
+        expect(budget.attempts).toHaveLength(1);
+        expect(budget.attempts[0]).toMatchObject({ user_id: USER_ID, feature: "proposal.wording", outcome: "ok", reserved_output_tokens: 2000, completion_tokens: 25, prompt_version: "proposal-wording-v1" });
     });
 
-    it("checks the contractor may edit the project before calling the assistant", async () => {
-        setup();
+    it("checks the contractor may edit the project before the privileged client, the budget or the assistant", async () => {
+        const { budget } = wording();
         mocks.requireEditableProjectAccess.mockRejectedValue(new Error("Unauthorized project access."));
         await expect(suggestProposalWordingAction(PROJECT_ID, "scope", "text")).resolves.toEqual({ ok: false, error: "You can't change this proposal." });
-        expect(mocks.generateText).not.toHaveBeenCalled();
+        expect(mocks.generateStructured).not.toHaveBeenCalled();
+        expect(mocks.createAdminClient).not.toHaveBeenCalled();
+        expect(budget.rpcCalls).toEqual([]);
     });
 
     it("fails quietly so the contractor's own wording carries on working", async () => {
-        setup();
-        mocks.generateText.mockRejectedValue(new Error("OPENAI_API_KEY missing"));
+        const { budget } = wording();
+        mocks.generateStructured.mockRejectedValue(new Error("OPENAI_API_KEY missing"));
         await expect(suggestProposalWordingAction(PROJECT_ID, "closing", "text")).resolves.toEqual({ ok: false, error: AI_UNAVAILABLE_ERROR });
-        mocks.generateText.mockResolvedValue("   ");
+        // Not retried, and charged its whole reservation because nothing is known about what it cost.
+        expect(mocks.generateStructured).toHaveBeenCalledTimes(1);
+        expect(budget.charged()).toEqual([2000]);
+        mocks.createAdminClient.mockImplementation(() => { throw new Error("SUPABASE_SERVICE_ROLE_KEY missing"); });
         await expect(suggestProposalWordingAction(PROJECT_ID, "closing", "text")).resolves.toEqual({ ok: false, error: AI_UNAVAILABLE_ERROR });
+        expect(mocks.generateStructured).toHaveBeenCalledTimes(1);
     });
 
-    it("rejects an unknown field or empty text without calling the assistant", async () => {
-        setup();
+    it("rejects an unknown field, empty or over-long text without the budget or the assistant", async () => {
+        const { budget } = wording();
         await expect(suggestProposalWordingAction(PROJECT_ID, "price" as never, "text")).resolves.toMatchObject({ ok: false });
         await expect(suggestProposalWordingAction(PROJECT_ID, "scope", "   ")).resolves.toMatchObject({ ok: false });
-        expect(mocks.generateText).not.toHaveBeenCalled();
+        await expect(suggestProposalWordingAction(PROJECT_ID, "scope", "w".repeat(WORDING_AI_INPUT_MAX + 1))).resolves.toEqual({ ok: false, error: WORDING_TOO_LONG });
+        await expect(suggestProposalWordingAction(PROJECT_ID, "scope", "\\".repeat(WORDING_AI_INPUT_MAX))).resolves.toEqual({ ok: false, error: WORDING_TOO_LONG });
+        expect(mocks.generateStructured).not.toHaveBeenCalled();
+        expect(budget.rpcCalls).toEqual([]);
+    });
+
+    it("the server drops a reply that adds a figure, and still records what it used", async () => {
+        const { budget } = wording();
+        canned("We will refit the bathroom in 3 weeks.");
+        await expect(suggestProposalWordingAction(PROJECT_ID, "scope", "we do the bathroom")).resolves.toEqual({ ok: false, error: AI_ADDED_FIGURES_ERROR });
+        expect(budget.attempts[0]).toMatchObject({ outcome: "rejected:tripwire", completion_tokens: 25 });
+    });
+
+    it("as seeded, the feature is off: no call, and it says so", async () => {
+        const { budget } = wording({});
+        canned("We will refit the bathroom.");
+        await expect(suggestProposalWordingAction(PROJECT_ID, "scope", "we do the bathroom")).resolves.toEqual({ ok: false, error: COHORT_AI_OFF });
+        expect(mocks.generateStructured).not.toHaveBeenCalled();
+        expect(budget.attempts).toEqual([]);
     });
 });
 
@@ -519,5 +562,66 @@ describe("getProposalPublicationAction", () => {
     it("says so when nothing has been published", async () => {
         setup();
         await expect(getProposalPublicationAction(PROJECT_ID)).resolves.toEqual({ success: false, error: "Publish the proposal before downloading its PDF." });
+    });
+});
+
+describe("publishing unreadable saved terms", () => {
+    it.each([
+        ["object", { clause_number: 1, title: "Saved", body: "Keep this wording" }],
+        ["string", "Saved terms"],
+        ["empty string", ""],
+        ["number", 0],
+        ["boolean", false],
+        ["null array entry", [null]],
+        ["valid clause followed by null", [{ clause_number: 8, title: "Saved", body: "Keep this wording" }, null]],
+    ])("returns a refusal for %s without replacing terms or publishing", async (_label, terms) => {
+        const { db } = setup({ tc_overrides: terms });
+        const before = JSON.stringify(db.tables);
+        await expect(publishProposalAction(PROJECT_ID, {
+            responseKind: "acknowledgement", deliverByEmail: true, reviewedContent: "0".repeat(64),
+        })).resolves.toEqual({
+            success: false, error: "The saved proposal terms could not be read. Review and save them before sending.",
+        });
+        expect(JSON.stringify(db.tables)).toBe(before);
+        expect(db.rpcCalls).toEqual([]);
+        expect(db.log.some(entry => entry.includes("proposal_publications") || entry.includes("update"))).toBe(false);
+        expect(mocks.sendProposalEmail).not.toHaveBeenCalled();
+        expect(mocks.createAdminClient).not.toHaveBeenCalled();
+    });
+
+    it.each([null, undefined])("keeps the existing default contract for %s", async (terms) => {
+        const { db } = setup({ tc_overrides: terms });
+        await expect(publishAsReviewed("acknowledgement", false)).resolves.toMatchObject({ success: true });
+        expect(publishedSnapshot(db).terms.clauses).toHaveLength(12);
+    });
+
+    it.each([{ terms: [] }, { terms: [{ clause_number: 9, title: "Hidden", body: "Keep hidden", hidden: true }] }])(
+        "keeps deliberate empty/all-hidden terms blocked rather than restoring defaults: %j", async ({ terms }) => {
+            const { db } = setup({ tc_overrides: terms });
+            const before = JSON.stringify(db.tables);
+            const result = await publishProposalAction(PROJECT_ID, {
+                responseKind: "acknowledgement", deliverByEmail: false, reviewedContent: "0".repeat(64),
+            });
+            expect(result).toMatchObject({ success: false });
+            if (!result.success) expect(result.error).toContain("Keep at least one term showing");
+            expect(JSON.stringify(db.tables)).toBe(before);
+            expect(db.rpcCalls).toEqual([]);
+            expect(mocks.sendProposalEmail).not.toHaveBeenCalled();
+        },
+    );
+
+    it("keeps exact valid custom wording, hidden clauses and source order", async () => {
+        const terms = [
+            { clause_number: 90, title: "  Later  ", body: "  First line\n  indented second line  ", custom: true },
+            { clause_number: 2, title: "Hidden", body: "Do not publish", hidden: true },
+            { clause_number: 4, title: "Earlier", body: "Last visible clause", custom: true },
+        ];
+        const { db } = setup({ tc_overrides: terms });
+        await expect(publishAsReviewed("non_binding_intent", false)).resolves.toMatchObject({ success: true });
+        expect(db.tables.projects[0].tc_overrides).toEqual(terms);
+        expect(publishedSnapshot(db).terms.clauses).toEqual([
+            { title: "Later", body: "First line\n  indented second line" },
+            { title: "Earlier", body: "Last visible clause" },
+        ]);
     });
 });

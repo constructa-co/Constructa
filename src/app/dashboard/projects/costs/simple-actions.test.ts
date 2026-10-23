@@ -315,6 +315,48 @@ describe("saveSimplePriceLineAction — lazy estimate creation", () => {
     });
 });
 
+describe("contractor activity in the same new-line insert", () => {
+    it("stores the explicitly chosen activity with one line insert and no activity update", async () => {
+        const db = fakeDb(); useDb(db);
+        const result = await saveSimplePriceLineAction({ ...request(), activity: "  Kitchen fitting  " });
+        expect(result).toMatchObject({ ok: true, line: { trade_section: "Kitchen fitting", line_total: 2500 } });
+        expect(db.tables.estimate_lines).toHaveLength(1);
+        expect(db.log.filter(entry => entry === "insert:estimate_lines")).toHaveLength(1);
+        expect(db.log).not.toContain("update:estimate_lines");
+        expect(db.tables.estimates[0].total_cost).toBe(2500);
+    });
+    it.each(["Preliminaries", "x".repeat(101), "", "   "])("refuses invalid or reserved activity %j before access or writes", async activity => {
+        const db = fakeDb(); useDb(db);
+        expect((await saveSimplePriceLineAction({ ...request(), activity })).ok).toBe(false);
+        expect(db.log).toEqual([]); expect(mocks.requireEditableProjectAccess).not.toHaveBeenCalled();
+    });
+    it("accepts exactly 100 characters without truncation", async () => {
+        const db = fakeDb(); useDb(db); const activity = "a".repeat(100);
+        expect(await saveSimplePriceLineAction({ ...request(), activity })).toMatchObject({ ok: true, line: { trade_section: activity } });
+    });
+    it("retries the same activity under the same identity without duplicating or rewriting it", async () => {
+        const db = fakeDb(); useDb(db);
+        const first = await saveSimplePriceLineAction({ ...request(), activity: "Actual work" });
+        expect(await saveSimplePriceLineAction({ ...request(), activity: "Actual work" })).toEqual(first);
+        expect(db.tables.estimate_lines).toHaveLength(1); expect(db.log).not.toContain("update:estimate_lines");
+    });
+    it.each(["Another activity", undefined])("does not overwrite an earlier saved choice when a lost-response retry asks for %j", async activity => {
+        const db = fakeDb(); useDb(db);
+        await saveSimplePriceLineAction({ ...request(), activity: "Actual work" });
+        const result = await saveSimplePriceLineAction({ ...request(), ...(activity ? { activity } : {}) });
+        expect(result).toMatchObject({ ok: false, error: expect.stringContaining("already saved") });
+        expect(db.tables.estimate_lines).toHaveLength(1); expect(db.tables.estimate_lines[0].trade_section).toBe("Actual work");
+        expect(db.log).not.toContain("update:estimate_lines");
+    });
+    it.each([false, true])("preserves client BoQ structure for named estimate=%s", async named => {
+        const db = fakeDb({ estimates: [{ id: NEW_ESTIMATE_ID, project_id: PROJECT_ID, is_active: true, is_client_boq: true }] }); useDb(db);
+        const result = await saveSimplePriceLineAction({ ...request(), estimateId: named ? NEW_ESTIMATE_ID : null, activity: "Own activity" });
+        expect(result).toMatchObject({ ok: false, error: expect.stringContaining("client BoQ") });
+        expect(db.tables.estimate_lines).toEqual([]); expect(db.tables.estimates).toHaveLength(1);
+        expect(db.log.filter(entry => entry.startsWith("insert:") || entry.startsWith("update:") || entry.startsWith("delete:"))).toEqual([]);
+    });
+});
+
 describe("edit, delete and adjustments", () => {
     const seeded = () => fakeDb({
         estimates: [{ id: NEW_ESTIMATE_ID, project_id: PROJECT_ID, is_active: true, total_cost: 2500, overhead_pct: 0, profit_pct: 0 }],

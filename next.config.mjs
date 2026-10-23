@@ -6,6 +6,9 @@ import { assertSupabaseTarget } from "./src/lib/deployment/supabase-target.mjs";
 // check cannot be skipped by changing the build command. Production is never
 // checked. See DEVELOPMENT.md, "Preview and E2E database isolation".
 assertSupabaseTarget(process.env);
+if (process.env.CONSTRUCTA_REVIEW_ONLY === '1' && process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'preview') {
+  throw new Error('The protected review must be a Preview deployment.');
+}
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

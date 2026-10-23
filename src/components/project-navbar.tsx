@@ -3,9 +3,11 @@ import Link from "next/link";
 import { ClipboardList, Calculator, CalendarDays, FileText, Scale, Layers, Activity, MessageSquare } from "lucide-react";
 import { isCapabilityEnabled, type LaunchCapability } from "@/lib/launch-profile";
 import { useTheme } from "@/lib/theme-context";
+import { JOB_WORKFLOW } from "@/lib/job-workflow";
 
 interface Props {
   projectId: string;
+  projectName?: string;
   activeTab: "overview" | "brief" | "estimating" | "programme" | "contracts" | "proposal" | "drawings" | "communications";
 }
 
@@ -20,9 +22,27 @@ const TABS = [
   { key: "communications", capability: "extended-modules", label: "Comms", icon: MessageSquare, href: (id: string) => `/dashboard/projects/communications?projectId=${id}` },
 ];
 
-export default function ProjectNavBar({ projectId, activeTab }: Props) {
+export default function ProjectNavBar({ projectId, projectName, activeTab }: Props) {
   // The tabs sit on the page background, which follows the theme.
   const isDark = useTheme().theme === "dark";
+  if (!isCapabilityEnabled("extended-modules")) {
+    const current = JOB_WORKFLOW.find(step => step.key === activeTab);
+    return (
+      <nav aria-label="Job context" className={`mb-5 border-b pb-3 text-sm ${isDark ? "border-white/10 text-slate-400" : "border-gray-200 text-gray-600"}`}>
+        <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <li>
+            <Link href="/dashboard" className={`inline-flex min-h-11 items-center rounded-md px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${isDark ? "text-[#c9efcf] hover:text-[#e0f9e3] focus-visible:outline-[#c9efcf]" : "text-emerald-800 hover:text-emerald-950 focus-visible:outline-emerald-700"}`}>Pipeline</Link>
+          </li>
+          <li aria-hidden="true">/</li>
+          <li className="min-w-0 max-w-full break-words">{projectName || "Current job"}</li>
+          {current && <>
+            <li aria-hidden="true">/</li>
+            <li aria-current="page" className={`font-semibold ${isDark ? "text-slate-100" : "text-gray-900"}`}>{current.label}</li>
+          </>}
+        </ol>
+      </nav>
+    );
+  }
   const activeCls = isDark ? "border-blue-500 text-white" : "border-blue-600 text-gray-900";
   const idleCls = isDark
     ? "border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600"
@@ -30,7 +50,16 @@ export default function ProjectNavBar({ projectId, activeTab }: Props) {
 
   return (
     <div className={`border-b mb-6 ${isDark ? "border-slate-700/50" : "border-gray-200"}`}>
-      <nav className="flex gap-0 -mb-px overflow-x-auto">
+      <nav className="flex gap-0 -mb-px overflow-x-auto" onFocusCapture={(event) => {
+        const link = event.target;
+        if (!(link instanceof HTMLAnchorElement)) return;
+        const nav = event.currentTarget;
+        const bounds = nav.getBoundingClientRect();
+        const focused = link.getBoundingClientRect();
+        // Reveal the focused tab without scrolling the page vertically.
+        if (focused.left < bounds.left) nav.scrollLeft += focused.left - bounds.left;
+        else if (focused.right > bounds.right) nav.scrollLeft += focused.right - bounds.right;
+      }}>
         {TABS.filter(({ capability }) => isCapabilityEnabled(capability as LaunchCapability)).map(({ key, label, icon: Icon, href }) => {
           const isActive = activeTab === key;
           return (

@@ -16,6 +16,7 @@
  *    confirmed is fingerprinted and the server publishes only that content.
  */
 
+import { buildPastJobs, type ProposalLibrary } from "@/lib/case-library/past-jobs";
 import { computeContractSum, roundMoney } from "./financial";
 import { splitScope } from "./guided-brief";
 import { resolveProgrammeSource } from "./programme-plan";
@@ -111,6 +112,8 @@ export interface ReviewContext {
     estimate: ProposalPublicationEstimateInput | null;
     /** The version number the next publication would take. */
     nextVersion: number;
+    /** The contractor's approved case-study library, when it is in use. Never drafts. */
+    caseStudyLibrary?: ProposalLibrary;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -149,7 +152,7 @@ export function draftFromProject(project: ReviewProject, makeKey: () => string):
         fixedPayments: fixed ? schedule : null,
         photos: sanitisePhotos(project.site_photos).slice(0, MAX_PHOTOS).map((photo) => ({ url: photo.url, caption: photo.caption ?? "" })),
         caseStudyIds: (Array.isArray(project.selected_case_study_ids) ? project.selected_case_study_ids : []).map(String),
-        terms: Array.isArray(project.tc_overrides) && project.tc_overrides.length > 0
+        terms: Array.isArray(project.tc_overrides)
             ? project.tc_overrides.map((clause, index) => ({
                 clause_number: Number(clause.clause_number) || index + 1,
                 title: clause.title ?? "",
@@ -414,6 +417,7 @@ export function reviewReadiness(context: ReviewContext, draft: ProposalDraft): P
         aboutBusiness: context.profile.capability_statement,
         hasPhotos: draft.photos.some((photo) => photo.url),
         hasCaseStudies: draft.caseStudyIds.length > 0,
+        caseStudySelectionProblem: buildPastJobs({ olderStored: context.profile.case_studies, selected: draft.caseStudyIds, library: context.caseStudyLibrary }).blocked,
         exclusions: draft.exclusions,
         clarifications: draft.clarifications,
         closingStatement: draft.closing,
@@ -448,6 +452,7 @@ export function buildPreviewSnapshot(
             resolvedTerms: draftTerms(draft),
             responseKind,
             ...vatFor(context.project),
+            ...(context.caseStudyLibrary ? { caseStudyLibrary: { userId: context.caseStudyLibrary.userId, rows: context.caseStudyLibrary.rows } } : {}),
         }, { allowIncomplete: true });
     } catch {
         return null;
@@ -720,6 +725,23 @@ export const SEND_BLOCK_MESSAGE: Record<Exclude<SendBlock, null>, string> = {
 export interface ReviewStore {
     getState: () => ReviewState;
     dispatch: (action: ReviewAction) => void;
+}
+
+/** Explicit local draft fill; profile reads and rerenders never replace job wording. */
+export function applyCompanyClosingMessage(store: ReviewStore, message: string, editable: boolean): { ok: true } | { ok: false; error: string } {
+    const state = store.getState();
+    if (!editable || state.save.status === "saving" || state.send.status === "publishing" || state.ai.status === "loading" || state.suggestion) {
+        return { ok: false, error: "Finish the current save or review before using the company message." };
+    }
+    if (state.draft.closing.trim() || state.saved.closing.trim()) {
+        return { ok: false, error: "This proposal already has closing wording. Edit it directly; the company message has not replaced it." };
+    }
+    if (!message.trim()) return { ok: false, error: "No managing director's message is saved in the company profile." };
+    if (message.length > TEXT_LIMITS.closing) {
+        return { ok: false, error: "The company message is longer than 20,000 characters. Nothing has been copied or shortened." };
+    }
+    store.dispatch({ type: "draft/change", patch: { closing: message } });
+    return { ok: true };
 }
 
 type Outcome<T> = Promise<({ success: true } & T) | { success: false; error: string; changed?: boolean }>;

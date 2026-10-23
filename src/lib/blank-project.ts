@@ -16,13 +16,7 @@ import { z } from "zod";
  */
 export const UNSPECIFIED_PROJECT_TYPE = "Other";
 
-export const PROJECT_TYPE_OPTIONS: readonly string[] = [
-    "Residential Extension", "Loft Conversion", "New Build Residential",
-    "Domestic Renovation", "Driveway & External Works", "Groundworks & Civils",
-    "Drainage & Utilities", "Commercial Fit-Out", "Commercial New Build",
-    "Industrial Works", "Landscaping", "Roofing",
-    "Electrical Installation", "Plumbing & Heating", "General Building Works", "Other",
-];
+export { JOB_TYPE_EXAMPLES as PROJECT_TYPE_OPTIONS } from "./job-type-options";
 
 export interface BlankProjectForm {
     name: string;

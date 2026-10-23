@@ -1,0 +1,288 @@
+.header {
+    --proposal-ink: #18221a;
+    --proposal-muted: #566257;
+    --proposal-accent: #176d49;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    min-width: 0;
+    padding: clamp(20px, 3vw, 32px);
+    border: 1px solid #d5ded2;
+    border-radius: 24px;
+    background: radial-gradient(ellipse at top left, #e5f4e5 0, transparent 65%), #fafcf8;
+    color: var(--proposal-ink);
+    font-family: "Avenir Next", Avenir, "Trebuchet MS", sans-serif;
+}
+
+.header[data-dark="true"] {
+    --proposal-ink: #f2f7ef;
+    --proposal-muted: #b8c5b5;
+    --proposal-accent: #a5e8b8;
+    border-color: #3b4b3c;
+    background: radial-gradient(ellipse at top left, #213d2b 0, transparent 65%), #131c15;
+}
+
+.header > div {
+    min-width: 0;
+}
+
+.eyebrow {
+    margin: 0 0 10px;
+    color: var(--proposal-accent);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.title {
+    margin: 0;
+    color: var(--proposal-ink);
+    font-size: clamp(32px, 4vw, 46px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -.035em;
+}
+
+.project {
+    margin: 10px 0 0;
+    color: var(--proposal-muted);
+    font-size: 16px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.guide {
+    max-width: 560px;
+    margin: 12px 0 0;
+    color: var(--proposal-muted);
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.workspace {
+    --review-ink: #18221a;
+    --review-muted: #566257;
+    --review-border: #d5ded2;
+    --review-surface: #fafcf8;
+    --review-inset: #f0f5ed;
+    --review-field: #fff;
+    --review-focus: #176d49;
+    min-width: 0;
+}
+
+.workspace[data-dark="true"] {
+    --review-ink: #f2f7ef;
+    --review-muted: #b8c5b5;
+    --review-border: #3b4b3c;
+    --review-surface: #131c15;
+    --review-inset: #1c291f;
+    --review-field: #101812;
+    --review-focus: #a5e8b8;
+}
+
+.workspace > [data-readiness],
+.workspace > form > fieldset > section {
+    min-width: 0;
+    padding: clamp(18px, 3vw, 28px);
+    border: 1px solid var(--review-border);
+    border-radius: 20px;
+    background: var(--review-surface);
+    color: var(--review-ink);
+}
+
+.workspace > form,
+.workspace > form > fieldset {
+    min-width: 0;
+    display: grid;
+    gap: 20px;
+}
+
+.workspace > form > fieldset {
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.workspace > form > fieldset > section {
+    display: grid;
+    gap: 20px;
+    margin-top: 0;
+}
+
+.workspace > form > * {
+    margin-top: 0;
+}
+
+.workspace > form > fieldset > section > * {
+    margin-top: 0;
+    min-width: 0;
+}
+
+.workspace > [data-readiness] > ul {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.workspace > [data-readiness] > h3 {
+    margin-top: 24px;
+}
+
+.workspace > [data-readiness] > ul > [data-readiness-item],
+.workspace > [data-readiness] > ul > [data-recommended-item] {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-width: 0;
+    margin-top: 0;
+    padding: 14px;
+    border: 1px solid var(--review-border);
+    border-radius: 14px;
+    background: var(--review-inset);
+    line-height: 1.5;
+}
+
+.workspace [data-readiness-item] > svg,
+.workspace [data-recommended-item] > svg {
+    flex: 0 0 20px;
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+}
+
+.workspace [data-readiness-item] > span,
+.workspace [data-recommended-item] > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.workspace > form h2,
+.workspace > [data-readiness] h2 {
+    color: var(--review-ink);
+    font-family: "Avenir Next", Avenir, "Trebuchet MS", sans-serif;
+    font-size: 21px;
+    line-height: 1.3;
+}
+
+.workspace > form :is(input, textarea):not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    padding: 12px;
+    border: 1px solid var(--review-border);
+    border-radius: 12px;
+    background: var(--review-field);
+    color: var(--review-ink);
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+.workspace > form textarea {
+    resize: vertical;
+}
+
+.workspace > form button,
+.workspace > form label[for="review-photo-file"],
+.workspace > [data-readiness] a {
+    min-height: 44px;
+}
+
+.workspace > form div:has(> input[id="review-photo-file"]) {
+    position: relative;
+}
+
+.workspace > form :is(button, a, input, textarea):focus-visible,
+.workspace > [data-readiness] a:focus-visible,
+.workspace > form input[id="review-photo-file"]:focus-visible + label[for="review-photo-file"] {
+    outline: 3px solid var(--review-focus);
+    outline-offset: 3px;
+}
+
+/* Keep the existing DOM IDs outside CSS-module name scoping. */
+.workspace > form [id="review-cover"] > dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.workspace > form [id="review-cover"] > dl,
+.workspace > form [data-payment-stage],
+.workspace > form [data-review-totals] {
+    padding: 16px;
+    border: 1px solid var(--review-border);
+    border-radius: 14px;
+    background: var(--review-inset);
+}
+
+.workspace > form [data-payment-stage] > div:first-child {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 6.5rem;
+    gap: 12px;
+}
+
+.workspace > form [data-payment-stage] {
+    min-width: 0;
+}
+
+.workspace > form [id="review-validity"],
+.workspace > form [id="payment-deposit"] {
+    max-width: 10rem;
+}
+
+.workspace > form [data-review-totals] > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+}
+
+@media (max-width: 639px) {
+    .workspace > [data-readiness] > ul,
+    .workspace > form [id="review-cover"] > dl {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .workspace > [data-readiness],
+    .workspace > form > fieldset > section {
+        border-radius: 16px;
+    }
+}
+
+@media (max-width: 539px) {
+    .workspace > form [data-payment-stage] > div:first-child {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .workspace > form [data-payment-stage] input[id$="-share"] {
+        max-width: 10rem;
+    }
+}
+
+@media (max-width: 639px) {
+    .header {
+        border-radius: 18px;
+    }
+}
+
+.workspace [data-proposal-document] {
+    container: proposal-draft / inline-size;
+}
+
+@container proposal-draft (max-width: 639px) {
+    .workspace [data-key-facts] {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@container proposal-draft (max-width: 359px) {
+    .workspace [data-key-facts] {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

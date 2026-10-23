@@ -1,0 +1,16 @@
+title = "Constructa secret scanning"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "constructa-perplexity-agent-proxy"
+description = "Perplexity agent-proxy bearer token"
+regex = '''\bagp_[A-Za-z0-9_-]{20,}\b'''
+keywords = ["agp_"]
+
+[[rules]]
+id = "constructa-supabase-personal-token"
+description = "Supabase personal access token, including legacy and scoped forms"
+regex = '''\bsbp_[A-Za-z0-9_-]{20,}\b'''
+keywords = ["sbp_"]

@@ -3,11 +3,12 @@ import { createRoot } from "react-dom/client";
 import ReviewSendClient, { type ReviewServer } from "../../src/app/dashboard/projects/proposal/review-send-client";
 import type { ReviewContext } from "../../src/lib/proposal-review";
 
-interface Options { locked?: boolean; noEstimate?: boolean; theme?: string }
+interface Options { locked?: boolean; noEstimate?: boolean; theme?: string; emptyTerms?: boolean; noPayments?: boolean; pendingSave?: boolean }
 interface Fixture {
     calls: string[];
     lockReason: string | null;
     setLock: (reason: string | null) => void;
+    refuseSave: () => void;
     router: { push: (href: string) => void; refresh: () => void };
 }
 declare global {
@@ -21,7 +22,8 @@ const context: ReviewContext = {
         name: "TEST DATA - Garage conversion",
         client_name: "Synthetic client",
         brief_scope: "Existing synthetic scope.",
-        payment_schedule: [{ id: "payment-1", stage: "Completion", description: "Synthetic handover", percentage: 100 }],
+        payment_schedule: options.noPayments ? [] : [{ id: "payment-1", stage: "Completion", description: "Synthetic handover", percentage: 100 }],
+        ...(options.emptyTerms ? { tc_overrides: [] } : {}),
         programme_phases: [{ programmeIntent: "omit", intent_version: 1 }],
         start_date: null,
     },
@@ -34,10 +36,12 @@ const context: ReviewContext = {
     nextVersion: 1,
 };
 const root = createRoot(document.getElementById("app")!);
+let resolveSave: ((result: Awaited<ReturnType<ReviewServer["save"]>>) => void) | undefined;
 const fixture: Fixture = {
     calls: [],
     lockReason: options.locked ? "Local fixture: protected job is locked." : null,
     setLock(reason) { fixture.lockReason = reason; render(); },
+    refuseSave() { resolveSave?.({ success: false, error: "Synthetic save refused. Exact draft retained." }); },
     router: { push: () => blocked("router.push"), refresh: () => blocked("router.refresh") },
 };
 window.__documentViewLocal = fixture;
@@ -46,7 +50,11 @@ function blocked(name: string): never {
     throw new Error(`Real actions/navigation excluded from document-view fixture: ${name}`);
 }
 const server: ReviewServer = {
-    save: async () => blocked("save"), ask: async () => blocked("ask"),
+    save: async () => {
+        if (!options.pendingSave) return blocked("save");
+        fixture.calls.push("mock.save");
+        return new Promise(resolve => { resolveSave = resolve; });
+    }, ask: async () => blocked("ask"),
     publish: async () => blocked("publish"), retry: async () => blocked("retry"),
     upload: async () => blocked("upload"), loadPublication: async () => blocked("loadPublication"),
 };

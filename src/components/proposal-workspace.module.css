@@ -84,7 +84,7 @@
 }
 
 .workspace > [data-readiness],
-.workspace > form > fieldset > section {
+.workspace > [id="proposal-preparation"] > form > fieldset > section {
     min-width: 0;
     padding: clamp(18px, 3vw, 28px);
     border: 1px solid var(--review-border);
@@ -93,30 +93,30 @@
     color: var(--review-ink);
 }
 
-.workspace > form,
-.workspace > form > fieldset {
+.workspace > [id="proposal-preparation"] > form,
+.workspace > [id="proposal-preparation"] > form > fieldset {
     min-width: 0;
     display: grid;
     gap: 20px;
 }
 
-.workspace > form > fieldset {
+.workspace > [id="proposal-preparation"] > form > fieldset {
     margin: 0;
     padding: 0;
     border: 0;
 }
 
-.workspace > form > fieldset > section {
+.workspace > [id="proposal-preparation"] > form > fieldset > section {
     display: grid;
     gap: 20px;
     margin-top: 0;
 }
 
-.workspace > form > * {
+.workspace > [id="proposal-preparation"] > form > * {
     margin-top: 0;
 }
 
-.workspace > form > fieldset > section > * {
+.workspace > [id="proposal-preparation"] > form > fieldset > section > * {
     margin-top: 0;
     min-width: 0;
 }
@@ -162,7 +162,7 @@
     overflow-wrap: anywhere;
 }
 
-.workspace > form h2,
+.workspace > [id="proposal-preparation"] > form h2,
 .workspace > [data-readiness] h2 {
     color: var(--review-ink);
     font-family: "Avenir Next", Avenir, "Trebuchet MS", sans-serif;
@@ -170,7 +170,7 @@
     line-height: 1.3;
 }
 
-.workspace > form :is(input, textarea):not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+.workspace > [id="proposal-preparation"] > form :is(input, textarea):not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
     width: 100%;
     min-width: 0;
     min-height: 48px;
@@ -183,59 +183,59 @@
     line-height: 1.5;
 }
 
-.workspace > form textarea {
+.workspace > [id="proposal-preparation"] > form textarea {
     resize: vertical;
 }
 
-.workspace > form button,
-.workspace > form label[for="review-photo-file"],
+.workspace > [id="proposal-preparation"] > form button,
+.workspace > [id="proposal-preparation"] > form label[for="review-photo-file"],
 .workspace > [data-readiness] a {
     min-height: 44px;
 }
 
-.workspace > form div:has(> input[id="review-photo-file"]) {
+.workspace > [id="proposal-preparation"] > form div:has(> input[id="review-photo-file"]) {
     position: relative;
 }
 
-.workspace > form :is(button, a, input, textarea):focus-visible,
+.workspace > [id="proposal-preparation"] > form :is(button, a, input, textarea):focus-visible,
 .workspace > [data-readiness] a:focus-visible,
-.workspace > form input[id="review-photo-file"]:focus-visible + label[for="review-photo-file"] {
+.workspace > [id="proposal-preparation"] > form input[id="review-photo-file"]:focus-visible + label[for="review-photo-file"] {
     outline: 3px solid var(--review-focus);
     outline-offset: 3px;
 }
 
 /* Keep the existing DOM IDs outside CSS-module name scoping. */
-.workspace > form [id="review-cover"] > dl {
+.workspace > [id="proposal-preparation"] > form [id="review-cover"] > dl {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
 }
 
-.workspace > form [id="review-cover"] > dl,
-.workspace > form [data-payment-stage],
-.workspace > form [data-review-totals] {
+.workspace > [id="proposal-preparation"] > form [id="review-cover"] > dl,
+.workspace > [id="proposal-preparation"] > form [data-payment-stage],
+.workspace > [id="proposal-preparation"] > form [data-review-totals] {
     padding: 16px;
     border: 1px solid var(--review-border);
     border-radius: 14px;
     background: var(--review-inset);
 }
 
-.workspace > form [data-payment-stage] > div:first-child {
+.workspace > [id="proposal-preparation"] > form [data-payment-stage] > div:first-child {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 6.5rem;
     gap: 12px;
 }
 
-.workspace > form [data-payment-stage] {
+.workspace > [id="proposal-preparation"] > form [data-payment-stage] {
     min-width: 0;
 }
 
-.workspace > form [id="review-validity"],
-.workspace > form [id="payment-deposit"] {
+.workspace > [id="proposal-preparation"] > form [id="review-validity"],
+.workspace > [id="proposal-preparation"] > form [id="payment-deposit"] {
     max-width: 10rem;
 }
 
-.workspace > form [data-review-totals] > div {
+.workspace > [id="proposal-preparation"] > form [data-review-totals] > div {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
@@ -245,22 +245,22 @@
 
 @media (max-width: 639px) {
     .workspace > [data-readiness] > ul,
-    .workspace > form [id="review-cover"] > dl {
+    .workspace > [id="proposal-preparation"] > form [id="review-cover"] > dl {
         grid-template-columns: minmax(0, 1fr);
     }
 
     .workspace > [data-readiness],
-    .workspace > form > fieldset > section {
+    .workspace > [id="proposal-preparation"] > form > fieldset > section {
         border-radius: 16px;
     }
 }
 
 @media (max-width: 539px) {
-    .workspace > form [data-payment-stage] > div:first-child {
+    .workspace > [id="proposal-preparation"] > form [data-payment-stage] > div:first-child {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .workspace > form [data-payment-stage] input[id$="-share"] {
+    .workspace > [id="proposal-preparation"] > form [data-payment-stage] input[id$="-share"] {
         max-width: 10rem;
     }
 }

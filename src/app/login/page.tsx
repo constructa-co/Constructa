@@ -30,10 +30,12 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [termsAccepted, setTermsAccepted] = useState(false);
     const router = useRouter();
     const supabase = createClient();
 
     const switchMode = (next: Mode) => {
+        if (next !== mode) setTermsAccepted(false);
         setMode(next);
         setErrorMessage(null);
         setSuccessMessage(null);
@@ -74,6 +76,10 @@ export default function LoginPage() {
         }
         if (password !== confirmPassword) {
             setErrorMessage("Passwords don't match.");
+            return;
+        }
+        if (!termsAccepted) {
+            setErrorMessage("Please accept the platform terms of service before creating an account.");
             return;
         }
 
@@ -176,6 +182,26 @@ export default function LoginPage() {
                                     className={ui.input}
                                     placeholder="••••••••"
                                 />
+                            </div>
+                        )}
+
+                        {isSignUp && (
+                            <div className={ui.field}>
+                                <label htmlFor="platform-terms" className={`${ui.label} flex min-h-11 items-start gap-3`}>
+                                    <input
+                                        id="platform-terms"
+                                        type="checkbox"
+                                        required
+                                        checked={termsAccepted}
+                                        onChange={(e) => setTermsAccepted(e.target.checked)}
+                                        disabled={loading}
+                                        className="mt-1 h-4 w-4 shrink-0"
+                                    />
+                                    <span>I accept Constructa&apos;s platform terms of service.</span>
+                                </label>
+                                <Link href="/terms-of-service" target="_blank" rel="noopener noreferrer" className={ui.textButton}>
+                                    Read the full platform terms (opens in a new tab)
+                                </Link>
                             </div>
                         )}
 

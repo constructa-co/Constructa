@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getLaunchLandingPath } from "@/lib/launch-profile";
 
 const state = vi.hoisted(() => ({ slots: [] as unknown[], cursor: 0, signIn: vi.fn(), signUp: vi.fn(), push: vi.fn(), refresh: vi.fn() }));
@@ -40,10 +40,114 @@ async function submit() {
 }
 const html = () => renderToStaticMarkup(render());
 
+function acceptTerms(checked: boolean) {
+    const input = nodes(render()).find(e => e.type === "input" && e.props.id === "platform-terms")!;
+    (input.props.onChange as (event: { target: { checked: boolean } }) => void)({ target: { checked } });
+}
+function fillSignup() {
+    choose("signup");
+    fill("email", "contractor@example.invalid");
+    fill("password", "not-a-real-password");
+    fill("confirm", "not-a-real-password");
+}
+
 beforeEach(() => {
     state.slots = []; state.cursor = 0;
     for (const mock of [state.signIn, state.signUp, state.push, state.refresh]) mock.mockReset();
     state.signIn.mockResolvedValue({ error: null }); state.signUp.mockResolvedValue({ error: null });
+});
+
+describe("actual signup platform terms acceptance", () => {
+    beforeEach(() => vi.stubGlobal("location", { origin: "https://constructa.example.invalid" }));
+    afterEach(() => vi.unstubAllGlobals());
+
+    it("offers a native required unchecked checkbox and a separate named full-terms link only in signup", () => {
+        expect(nodes(render()).some(e => e.props.id === "platform-terms")).toBe(false);
+        fillSignup();
+        const elements = nodes(render());
+        const checkbox = elements.find(e => e.type === "input" && e.props.id === "platform-terms")!;
+        expect(checkbox.props.type).toBe("checkbox");
+        expect(checkbox.props.required).toBe(true);
+        expect(checkbox.props.checked).toBe(false);
+        const label = elements.find(e => e.type === "label" && e.props.htmlFor === "platform-terms")!;
+        expect(renderToStaticMarkup(label)).toContain("I accept Constructa&#x27;s platform terms of service.");
+        const link = elements.find(e => e.props.href === "/terms-of-service")!;
+        expect(link.props.children).toBe("Read the full platform terms (opens in a new tab)");
+        expect(link.props.target).toBe("_blank");
+        expect(link.props.rel).toBe("noopener noreferrer");
+        expect(nodes(label).some(e => e.props.href === "/terms-of-service")).toBe(false);
+        expect(html()).not.toMatch(/id="platform-terms"[^>]*checked/);
+        expect(state.signUp).not.toHaveBeenCalled();
+    });
+
+    it.each([false, true])("rejects synthetic submission without acceptance, previously checked: %s", async previouslyChecked => {
+        fillSignup();
+        if (previouslyChecked) { acceptTerms(true); acceptTerms(false); }
+        await submit();
+        expect(state.signUp).not.toHaveBeenCalled();
+        expect(state.signIn).not.toHaveBeenCalled();
+        expect(state.push).not.toHaveBeenCalled();
+        expect(state.refresh).not.toHaveBeenCalled();
+        expect(html()).toContain('role="alert"');
+        expect(html()).toContain("Please accept the platform terms of service before creating an account.");
+        expect(nodes(render()).find(e => e.type === "form")?.props["aria-busy"]).toBe(false);
+    });
+
+    it("preserves the signup payload and confirmation contract after explicit acceptance", async () => {
+        fillSignup(); acceptTerms(true); await submit();
+        expect(state.signUp).toHaveBeenCalledExactlyOnceWith({
+            email: "contractor@example.invalid",
+            password: "not-a-real-password",
+            options: { emailRedirectTo: "https://constructa.example.invalid/auth/callback" },
+        });
+        expect(html()).toContain("Account created. Check your email for the confirmation link — once confirmed, sign in to get started.");
+        expect(html()).toContain("Check your inbox.");
+        expect(html()).not.toContain('role="alert"');
+        expect(state.push).not.toHaveBeenCalled();
+        expect(state.refresh).not.toHaveBeenCalled();
+        expect(state.signIn).not.toHaveBeenCalled();
+    });
+
+    it("preserves provider errors and clears a prior acceptance error on accepted resubmission", async () => {
+        fillSignup(); await submit();
+        state.signUp.mockResolvedValue({ error: { message: "Test signup refused" } });
+        acceptTerms(true); await submit();
+        expect(state.signUp).toHaveBeenCalledOnce();
+        expect(html()).toContain('role="alert"');
+        expect(html()).toContain("Test signup refused");
+        expect(html()).not.toContain("Please accept the platform terms");
+        expect(html()).not.toContain("Check your inbox.");
+        expect(nodes(render()).find(e => e.type === "form")?.props["aria-busy"]).toBe(false);
+        expect(state.push).not.toHaveBeenCalled();
+        expect(state.refresh).not.toHaveBeenCalled();
+    });
+
+    it("resets acceptance on deliberate mode changes without changing signin or entered credentials", async () => {
+        fillSignup(); acceptTerms(true); choose("signup");
+        expect(nodes(render()).find(e => e.props.id === "platform-terms")?.props.checked).toBe(true);
+        choose("signin");
+        expect(nodes(render()).some(e => e.props.id === "platform-terms")).toBe(false);
+        await submit();
+        expect(state.signIn).toHaveBeenCalledExactlyOnceWith({ email: "contractor@example.invalid", password: "not-a-real-password" });
+        expect(state.push).toHaveBeenCalledExactlyOnceWith(getLaunchLandingPath());
+        expect(state.refresh).toHaveBeenCalledOnce();
+        choose("signup");
+        expect(nodes(render()).find(e => e.props.id === "platform-terms")?.props.checked).toBe(false);
+        fill("confirm", "not-a-real-password"); await submit();
+        expect(state.signUp).not.toHaveBeenCalled();
+        expect(html()).toContain("Please accept the platform terms");
+    });
+
+    it("disables the acceptance checkbox with the existing pending signup controls", async () => {
+        fillSignup(); acceptTerms(true);
+        let release!: (value: { error: null }) => void;
+        state.signUp.mockReturnValue(new Promise(resolve => { release = resolve; }));
+        const pending = submit();
+        expect(nodes(render()).filter(e => e.type === "input").every(e => e.props.disabled)).toBe(true);
+        expect(html()).toContain('aria-busy="true"');
+        expect(html()).toContain("Processing...");
+        release({ error: null }); await pending;
+    });
 });
 
 describe("actual sign-in/signup presentation boundary", () => {

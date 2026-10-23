@@ -123,6 +123,23 @@ Existing strict CSP, offline/abort-all and process network/source-write guards
 remain. This is a reading-mode interaction, not a new terms, readiness, Send or
 page-break policy, and not a served application or whole hosted journey.
 
+## Joined Company To Draft PDF Journey
+
+One explicit mock journey joins the company setup/readiness handoff, blank
+first-job creation, Brief, pricing (with an in-memory estimate seed because
+price persistence refuses), programme, proposal review and local draft PDF.
+Client response appears only as frozen preview content; acceptance,
+publication, delivery and Won are NOT_RUN.
+
+```sh
+node e2e/local-phase1/build-brief-price.mjs /absolute/private/fresh-journey-output journey
+CONSTRUCTA_LOCAL_PHASE1_OUTPUT=/absolute/private/fresh-journey-output node node_modules/@playwright/test/cli.js test --config=playwright.local-journey.config.ts
+```
+
+Strict offline/CSP/abort-all and coordinator process network/source-write
+guards remain. This is not Auth/PostgREST, durable reload, hosted routing,
+publication, client acceptance or whole company-to-Won acceptance.
+
 ## Preparation Before Final Review
 
 The actual proposal client now opens in Prepare proposal. Review document shows

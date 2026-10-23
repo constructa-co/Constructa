@@ -31,3 +31,28 @@ and source/dependency writes at the process boundary.
 The normal hosted journey remains separately gated. A local fixture must not
 be reported as Auth/PostgREST/publication/Won or whole-company journey acceptance.
 The browser screenshot is fixture evidence, not a served app URL or release proof.
+
+## Brief To Pricing
+
+The separate second-leg fixture renders the actual Brief and simple estimating
+components/controllers. A mock save records the existing Brief payload and a
+mock router passes that saved description/activities to the pricing component.
+It verifies that saved activity names can be chosen without automatic prices or
+lines. Price persistence refuses; Advanced/video, AI, real server actions, Auth,
+PostgREST, Next routing and later programme/PDF/response/Won stages are NOT_RUN.
+This starts from a synthetic existing job, not the first-job creation flow, and
+does not establish a continuous company-to-price or durable save/reload journey.
+
+```sh
+node e2e/local-phase1/build-brief-price.mjs /absolute/private/fresh-brief-output
+CONSTRUCTA_LOCAL_PHASE1_OUTPUT=/absolute/private/fresh-brief-output node node_modules/@playwright/test/cli.js test --config=playwright.local-brief-price.config.ts
+```
+
+The compiler uses installed real Zod/React modules, with Zod's interpreted
+validation path in this fixture so CSP can continue to prohibit unsafe-eval.
+This does not change application configuration or schemas. Framework routing/theme,
+server-action transports and unvisited lazy Advanced/video boundaries are
+explicit fixture adapters, not production guard changes or feature acceptance.
+Since about:blank has no storage origin, this fixture also supplies an ephemeral
+in-memory sessionStorage stand-in, not real browser-storage or reload proof.
+Each config selects only its own scenario and requires its own prepared output.

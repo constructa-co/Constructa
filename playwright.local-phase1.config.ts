@@ -9,7 +9,7 @@ if (!output || !path.isAbsolute(output) || output.startsWith(process.cwd() + pat
 // No webServer, dotenv, global setup, auth, hosted target or provider helpers.
 export default defineConfig({
     testDir: "./e2e/local-phase1",
-    testMatch: "**/*.spec.ts",
+    testMatch: "company-setup.spec.ts",
     outputDir: path.join(output, "browser-output"),
     reporter: [["json", { outputFile: path.join(output, "browser-results.json") }]],
     workers: 1,

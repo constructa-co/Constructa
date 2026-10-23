@@ -100,6 +100,11 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
     const latest = useRef({ locked });
     useEffect(() => { latest.current = { locked }; }, [locked]);
     const isLocked = () => locked || latest.current.locked;
+    const mounted = useRef(false);
+    useEffect(() => {
+        mounted.current = true;
+        return () => { mounted.current = false; };
+    }, []);
 
     // A suggestion still being worked on when the lock arrives is dropped;
     // a late reply to it is then ignored. The draft is not touched.
@@ -192,15 +197,17 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
     };
 
     const handleBuildPrice = async () => {
-        if (isLocked()) return;
+        if (!mounted.current || isLocked()) return;
         lastSaveWasConfirm.current = true;
         const outcome = await continueToPricing(store, saveFn, () => {
-            // Locked while the save was on its way: stay on the read-only brief.
-            if (isLocked()) return;
+            // A completed save must not redirect after this Brief has been left.
+            if (!mounted.current || isLocked()) return;
             setLeaving(true);
             router.push(pricingPathForProject(project.id));
         }, { preservePotentialValue: true });
-        if (outcome === "invalid") window.requestAnimationFrame(() => headingRef.current?.focus());
+        if (mounted.current && outcome === "invalid") window.requestAnimationFrame(() => {
+            if (mounted.current) headingRef.current?.focus();
+        });
     };
 
     const handleAsk = () => {

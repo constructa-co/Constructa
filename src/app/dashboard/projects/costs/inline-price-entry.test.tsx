@@ -64,6 +64,30 @@ function newField(name: string) { return nodes(newRow()).find(node => node.props
 function newChange(name: string, value: string) { (newField(name).props.onChange as (event: unknown) => void)({ target: { value } }); }
 function newButton(label: string) { return nodes(newRow()).find(node => node.type === "button" && node.props.children === label)!; }
 
+describe("selected full-form pricing modes use the existing sage palette", () => {
+    it.each(["dark", "light"])("keeps selected modes sage and changes only the local draft in %s", theme => {
+        current.theme = theme;
+        current.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", lineId: "palette", draft: { ...EMPTY_PRICE_LINE_DRAFT, description: "Fit panels", amount: "100" } });
+        (newButton("Full line form").props.onClick as () => void)();
+        const form = () => {
+            const component = nodes(view()).find(node => node.props.idPrefix === "new-line")!;
+            expect(component).toBeDefined();
+            return nodes((component.type as (props: unknown) => Element)(component.props));
+        };
+        const selected = () => form().find(node => node.type === "button" && node.props["aria-pressed"] === true)!;
+        expect(selected().props.children).toBe("One price");
+        for (const token of ["border-[#c9efcf]", "bg-[#c9efcf]", "text-[#182c1b]"]) expect(String(selected().props.className).split(/\s+/)).toContain(token);
+        expect(String(selected().props.className)).not.toMatch(/blue/);
+        const rate = form().find(node => node.type === "button" && node.props.children === "Quantity and rate")!;
+        (rate.props.onClick as () => void)();
+        expect(selected().props.children).toBe("Quantity and rate");
+        expect(String(selected().props.className)).toContain("bg-[#c9efcf]");
+        expect(current.state!.ops.new.draft.description).toBe("Fit panels");
+        expect(current.state!.ops.new.draft.amount).toBe("100");
+        expect(current.other).not.toHaveBeenCalled(); expect(current.update).not.toHaveBeenCalled();
+    });
+});
+
 describe("inline new price lines", () => {
     beforeEach(() => {
         current.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", lineId: "new-item", draft: { ...EMPTY_PRICE_LINE_DRAFT, description: "Fit panels", amount: "100" } });

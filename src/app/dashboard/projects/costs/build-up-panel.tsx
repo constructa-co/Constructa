@@ -719,7 +719,7 @@ export default function BuildUpPanel({
                                         (!labourRates.some(lr => lr.role === comp.description) && comp.description && comp.description !== '__custom__')) && (
                                         <input
                                             aria-label={`Labour description: ${comp.description || "labour"}`}
-                                            className="w-full border border-blue-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
+                                            className="w-full border border-gray-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
                                             value={comp.description === '__custom__' ? '' : comp.description}
                                             onChange={e => handleUpdate(comp.id, { description: e.target.value })}
                                             placeholder="Type role or description..."
@@ -762,7 +762,7 @@ export default function BuildUpPanel({
                                         (!allPlantItems.some((p) => p.name === comp.description) && comp.description)) && (
                                         <input
                                             aria-label={`Plant description: ${comp.description || "plant"}`}
-                                            className="w-32 border border-blue-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
+                                            className="w-32 border border-gray-200 rounded px-1 py-0.5 bg-white text-xs text-gray-900"
                                             value={comp.description === "__custom__" ? "" : comp.description}
                                             onChange={(e) => handleUpdate(comp.id, { description: e.target.value })}
                                             placeholder="Type description..."
@@ -989,7 +989,7 @@ export default function BuildUpPanel({
                                         type="number"
                                         aria-label={`Hours per resource unit: ${comp.description || "labour"}`}
                                         title="Hours for one resource unit; multiplied by total resource quantity to calculate labour hours"
-                                        className="w-16 text-right text-xs border border-blue-300 rounded px-1 py-0.5 bg-blue-100 text-gray-900"
+                                        className="w-16 text-right text-xs border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-900"
                                         value={numberDraft?.id === comp.id && numberDraft.field === "manhours_per_unit" ? numberDraft.value : comp.manhours_per_unit}
                                         disabled={!!numberDraft && (numberDraft.id !== comp.id || numberDraft.field !== "manhours_per_unit") || reviewBlocked}
                                         aria-invalid={numberDraft?.id === comp.id && numberDraft.field === "manhours_per_unit" && numberDraftValue === null}
@@ -1035,7 +1035,7 @@ export default function BuildUpPanel({
                         type="button"
                         onClick={() => handleAdd(type)}
                         disabled={reviewBlocked || !!resourceDraft || !!numberDraft}
-                        className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 capitalize transition-colors disabled:opacity-50"
+                        className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 capitalize transition-colors disabled:opacity-50"
                     >
                         + {type.replace("_", " ")}
                     </button>
@@ -1110,7 +1110,7 @@ export default function BuildUpPanel({
                         aria-label="Save build-up copy to rate library"
                         aria-busy={libraryPending}
                         disabled={!!numberDraft || !!resourceDraft || isPending || libraryPending || libraryUncertain || applyStatus === "applying" || hasQuantityErrors || resourceStatus === "saving" || resourcesBlocked || priceSavePending}
-                        className="text-xs text-blue-600 hover:text-blue-800 underline"
+                        className="text-xs text-emerald-700 hover:text-emerald-800 underline"
                     >
                         Save to rate library
                     </button>
@@ -1120,7 +1120,7 @@ export default function BuildUpPanel({
                         aria-label="Apply resource rate"
                         aria-busy={applyStatus === "applying"}
                         disabled={!!numberDraft || !!resourceDraft || !basisReviewed || isPending || applyStatus === "applying" || hasQuantityErrors || resourceStatus === "saving" || resourcesBlocked || priceSavePending}
-                        className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded hover:bg-blue-700 font-medium"
+                        className="bg-[#c9efcf] text-[#182c1b] text-xs px-3 py-1.5 rounded hover:bg-[#e0f9e3] font-medium"
                     >
                         {applyStatus === "applying" ? "Applying rate..." : `${applyStatus === "error" ? "Retry Apply rate" : "Apply rate"} (${formatGBP(ratePerUnit)}/unit)`} →
                     </button>

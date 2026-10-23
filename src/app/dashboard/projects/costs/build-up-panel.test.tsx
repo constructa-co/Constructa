@@ -100,6 +100,20 @@ function rawApply(parent = line) {
 function confirmBasis(parent = line) {
     (basisReview(parent).onChange as (event: unknown) => void)({ target: { checked: true } });
 }
+describe("ordinary build-up controls retain neutral and sage chrome", () => {
+    it("renders sage Apply and library controls plus neutral resource inputs without writing", () => {
+        const tree = view();
+        expect(String(control(tree, "Apply resource rate").className)).toContain("bg-[#c9efcf]");
+        expect(String(control(tree, "Apply resource rate").className)).toContain("text-[#182c1b]");
+        expect(control(tree, "Apply resource rate").disabled).toBe(true);
+        expect(String(libraryControl(tree).className)).toContain("text-emerald-700");
+        expect(String(control(tree, "Labour description: Fitter").className)).toContain("border-gray-200");
+        expect(String(control(tree, "Hours per resource unit: Fitter").className)).toContain("bg-white");
+        for (const label of ["Apply resource rate", "Labour description: Fitter", "Hours per resource unit: Fitter"]) expect(String(control(tree, label).className)).not.toMatch(/blue/);
+        expect(replay.update).not.toHaveBeenCalled(); expect(replay.apply).not.toHaveBeenCalled(); expect(replay.library).not.toHaveBeenCalled();
+    });
+});
+
 describe("priced quantity resource review", () => {
     it("opens unreviewed without changing resources or prices", () => {
         const tree = view();

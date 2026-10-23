@@ -993,7 +993,8 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
         pdf.text(`Page ${number} of ${pages}`, PAGE.right, PAGE.footerText, { align: "right" });
         if (document.isDraft) {
             apply({ ...STYLES.label, size: 8.5, color: [180, 83, 9] });
-            pdf.text("DRAFT PREVIEW - NOT SENT TO THE CLIENT", PAGE.width / 2, number === 1 ? 11 : PAGE.footerText, { align: "center" });
+            // Later pages keep a separate line below the contact/page footer.
+            pdf.text("DRAFT PREVIEW - NOT SENT TO THE CLIENT", PAGE.width / 2, number === 1 ? 11 : PAGE.footerText + 6, { align: "center" });
         }
     }
 

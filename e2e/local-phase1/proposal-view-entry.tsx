@@ -3,12 +3,13 @@ import { createRoot } from "react-dom/client";
 import ReviewSendClient, { type ReviewServer } from "../../src/app/dashboard/projects/proposal/review-send-client";
 import type { ReviewContext } from "../../src/lib/proposal-review";
 
-interface Options { locked?: boolean; noEstimate?: boolean; theme?: string; emptyTerms?: boolean; noPayments?: boolean; pendingSave?: boolean }
+interface Options { locked?: boolean; noEstimate?: boolean; theme?: string; emptyTerms?: boolean; noPayments?: boolean; pendingSave?: boolean; longTerms?: boolean }
 interface Fixture {
     calls: string[];
     lockReason: string | null;
     setLock: (reason: string | null) => void;
     refuseSave: () => void;
+    termBody: string | null;
     router: { push: (href: string) => void; refresh: () => void };
 }
 declare global {
@@ -16,6 +17,7 @@ declare global {
 }
 
 const options = window.__documentViewOptions ?? {};
+const termBody = options.longTerms ? Array.from({ length: 100 }, (_, index) => `SYNTHETIC TEST LINE ${index + 1}. Not legal wording.`).join("\n") + "\nEND OF SYNTHETIC TERMS TEST" : null;
 const context: ReviewContext = {
     project: {
         id: "local-document-view-job",
@@ -24,6 +26,7 @@ const context: ReviewContext = {
         brief_scope: "Existing synthetic scope.",
         payment_schedule: options.noPayments ? [] : [{ id: "payment-1", stage: "Completion", description: "Synthetic handover", percentage: 100 }],
         ...(options.emptyTerms ? { tc_overrides: [] } : {}),
+        ...(termBody ? { tc_overrides: [{ clause_number: 1, title: "Synthetic test clause", body: termBody }] } : {}),
         programme_phases: [{ programmeIntent: "omit", intent_version: 1 }],
         start_date: null,
     },
@@ -42,6 +45,7 @@ const fixture: Fixture = {
     lockReason: options.locked ? "Local fixture: protected job is locked." : null,
     setLock(reason) { fixture.lockReason = reason; render(); },
     refuseSave() { resolveSave?.({ success: false, error: "Synthetic save refused. Exact draft retained." }); },
+    termBody,
     router: { push: () => blocked("router.push"), refresh: () => blocked("router.refresh") },
 };
 window.__documentViewLocal = fixture;

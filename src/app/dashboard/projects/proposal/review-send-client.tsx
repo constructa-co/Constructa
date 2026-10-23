@@ -7,6 +7,7 @@ import { AlertTriangle, Check, ChevronDown, Circle, FileDown, Loader2, Plus, Sen
 import ProgrammeTimeline from "@/components/programme-timeline";
 import ProposalDocumentView from "@/components/proposal/proposal-document-view";
 import ProposalDocumentDialog from "@/components/proposal/proposal-document-dialog";
+import ProposalDocumentReader from "@/components/proposal/proposal-document-reader";
 import ProposalStageSwitcher from "@/components/proposal/proposal-stage-switcher";
 import CurrentTermsReview from "@/components/proposal/current-terms-review";
 import SaveStatus from "@/components/save-status";
@@ -482,8 +483,8 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
 
     const preparing = proposalStage === "prepare";
     const showingDocument = !preparing && documentView.open && documentView.projectId === project.id && !locked && previewDocument !== null;
-    const documentContent = previewDocument ? (
-        <ProposalDocumentView doc={previewDocument}>
+    const documentResponse = previewDocument ? (
+        <>
             <h2 id="doc-response" className="font-serif text-3xl leading-tight text-stone-900">{previewDocument.response.heading}</h2>
             <p className="mt-4 border-l-2 border-[var(--doc-accent)] bg-[var(--doc-accent-soft)] px-4 py-3 text-base leading-relaxed text-stone-800">
                 {previewDocument.response.notice}
@@ -492,7 +493,10 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                 {previewDocument.response.actionLabel}
             </p>
             <p className="mt-2 text-sm text-stone-600">Your client fills in their name and presses this button. It does nothing in the preview.</p>
-        </ProposalDocumentView>
+        </>
+    ) : null;
+    const documentContent = previewDocument ? (
+        <ProposalDocumentView doc={previewDocument}>{documentResponse}</ProposalDocumentView>
     ) : (
         <p className="bg-white p-6 text-base text-stone-700">
             {previewProblem ?? "The preview appears once the job has a name and an estimate."}
@@ -1352,9 +1356,9 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                     loadPublication={(publicationId) => api.loadPublication(publicationId)}
                 />
             )}
-            {showingDocument && (
+            {showingDocument && previewDocument && (
                 <ProposalDocumentDialog title={project.name} onClose={() => setDocumentViewOpen(false)}>
-                    {documentContent}
+                    <ProposalDocumentReader doc={previewDocument}>{documentResponse}</ProposalDocumentReader>
                 </ProposalDocumentDialog>
             )}
         </div>

@@ -11,7 +11,7 @@ import { DOCUMENT_THEMES, type DocBlock, type DocFact, type ProposalDocument } f
  * reflows down to a phone: tables are laid out as rows, not grids, so
  * nothing scrolls sideways. `children` is the response area.
  */
-export default function ProposalDocumentView({ doc, children }: { doc: ProposalDocument; children?: ReactNode }) {
+export default function ProposalDocumentView({ doc, children, readingPage }: { doc: ProposalDocument; children?: ReactNode; readingPage?: string }) {
     const theme = DOCUMENT_THEMES[doc.theme];
     const style = {
         "--doc-accent": theme.accent,
@@ -23,6 +23,7 @@ export default function ProposalDocumentView({ doc, children }: { doc: ProposalD
         <article
             style={style}
             data-proposal-document
+            data-reading-page={readingPage}
             className="mx-auto w-full max-w-3xl bg-white text-stone-800 shadow-sm ring-1 ring-stone-200 sm:rounded-sm [overflow-wrap:anywhere]"
         >
             {doc.isDraft && (
@@ -32,7 +33,7 @@ export default function ProposalDocumentView({ doc, children }: { doc: ProposalD
             )}
 
             {/* Cover */}
-            <header className="px-5 pb-10 pt-8 sm:px-12 sm:pb-14 sm:pt-12">
+            <header hidden={readingPage !== undefined && readingPage !== "cover"} className="px-5 pb-10 pt-8 sm:px-12 sm:pb-14 sm:pt-12">
                 <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-stone-200 pb-6">
                     {doc.company.logoUrl
                         ? <img src={doc.company.logoUrl} alt={doc.company.name} className="max-h-14 max-w-[60%] object-contain" />
@@ -88,6 +89,7 @@ export default function ProposalDocumentView({ doc, children }: { doc: ProposalD
                     key={section.id}
                     aria-labelledby={`doc-${section.id}`}
                     data-doc-section={section.id}
+                    hidden={readingPage !== undefined && readingPage !== section.id}
                     className="border-t border-stone-200 px-5 py-10 sm:px-12 sm:py-12"
                 >
                     <p className="text-xs font-semibold tracking-[0.2em] text-[var(--doc-highlight)]" aria-hidden="true">
@@ -101,7 +103,7 @@ export default function ProposalDocumentView({ doc, children }: { doc: ProposalD
             ))}
 
             {children && (
-                <section aria-labelledby="doc-response" data-doc-section="response" className="border-t border-stone-200 px-5 py-10 sm:px-12 sm:py-12">
+                <section hidden={readingPage !== undefined && readingPage !== "response"} aria-labelledby="doc-response" data-doc-section="response" className="border-t border-stone-200 px-5 py-10 sm:px-12 sm:py-12">
                     {children}
                 </section>
             )}

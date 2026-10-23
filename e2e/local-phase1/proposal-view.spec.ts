@@ -50,7 +50,9 @@ test("document reading preserves the mounted exact unsaved draft, native Escape/
     await expect(dialog).toContainText("Exact unsaved contractor scope.");
     await expect(dialog).toContainText("A second line remains.");
     await expect(dialog.locator("input,textarea,form")).toHaveCount(0);
-    await expect(dialog.getByRole("button")).toHaveCount(1);
+    await expect(dialog.getByRole("button")).toHaveCount(3);
+    await expect(dialog.getByRole("button", { name: "Previous reading page", exact: true })).toBeDisabled();
+    await expect(dialog.getByRole("button", { name: "Next reading page", exact: true })).toBeVisible();
     const back = dialog.getByRole("button", { name: "Back to drafting", exact: true });
     await expect(back).toBeFocused();
     await expect(page.locator("#doc-response")).toHaveCount(1);

@@ -141,3 +141,22 @@ fix-link targets, an existing deliberate payment shortcut, an explicit pending
 mock-save refusal, lock refresh and native keyboard switching. All normal actions
 refuse; only the pending-save case uses a labelled in-memory mock. No hosted
 write, real Auth/Next/database, legal approval, pagination or release acceptance.
+
+## Section-Based Web Reading Pages
+
+The separate document dialog offers Previous/Next and a direct page selector.
+Cover, actual document sections and the actual response are logical web reading
+pages. They are explicitly not predictions of physical PDF page breaks. Every
+section stays complete; long wording scrolls instead of being clipped. The
+default continuous/public renderer and downloaded PDF content are unchanged.
+
+```sh
+node e2e/local-phase1/build-brief-price.mjs /absolute/private/fresh-reading-pages-output proposal-view
+CONSTRUCTA_LOCAL_PHASE1_OUTPUT=/absolute/private/fresh-reading-pages-output node node_modules/@playwright/test/cli.js test --config=playwright.local-reading-pages.config.ts
+```
+
+The offline scenario uses actual reader/document/client components with refusing
+mock actions/router/context. It covers page boundaries, selection, exact draft
+retention, long synthetic terms, omitted programme and mobile keyboard controls.
+It does not establish exact PDF pagination, real Next/Auth/database/save-reload,
+full Tailwind/assistive/layout acceptance, original legal wording or release.

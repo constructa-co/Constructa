@@ -630,9 +630,6 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
         if (deleteBlocked() || deleteReceiptRef.current?.context === catalogueContext) return;
         const line = currentEstimate?.estimate_lines.find(row => row.id === lineId);
         if (!line || !currentEstimate) return;
-        if (currentEstimate.is_client_boq || line.trade_section === "Preliminaries" || (line.pricing_mode !== "simple" && line.pricing_mode !== "buildup")) {
-            handleDeleteSpecialLine(lineId); return;
-        }
         const draftsClear = () => !lineTypeDraftRef.current && !descriptionDraftRef.current && !unitDraftRef.current &&
             !rateDraftRef.current && !activityReviewRef.current && !quantityDraftRef.current && !catalogueReviewRef.current &&
             !draftResourceLinesRef.current.size && !pendingResourceLinesRef.current.size && !applyingResourceLinesRef.current.size && !resourceUncertainRef.current.size;
@@ -683,41 +680,6 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
             linePendingRef.current[lineId] = 0;
             if (catalogueMounted.current) setPendingLineSaves(previous => { const next = new Set(previous); next.delete(lineId); return next; });
         }
-    };
-
-    const handleDeleteSpecialLine = (lineId: string) => {
-        if (!currentEstimate) return;
-        if (lineTypeDraftRef.current?.line.id === lineId || descriptionDraftRef.current?.line.id === lineId || unitDraftRef.current?.line.id === lineId || rateDraftRef.current?.line.id === lineId || activityReviewRef.current?.line.id === lineId || quantityDraftRef.current?.line.id === lineId || draftResourceLinesRef.current.has(lineId) || linePendingRef.current[lineId] > 0 || lineUncertainRef.current.has(lineId) || pendingResourceLinesRef.current.has(lineId) || applyingResourceLinesRef.current.has(lineId)) return;
-        // Snapshot previous state so we can roll back on server rejection.
-        const prevEstimate = currentEstimate;
-        setEstimates((prev) =>
-            prev.map((e) => {
-                if (e.id !== currentEstimate.id) return e;
-                const remaining = e.estimate_lines.filter((l) => l.id !== lineId);
-                const total = remaining.reduce((s, l) => s + (l.line_total || 0), 0);
-                return { ...e, estimate_lines: remaining, total_cost: total };
-            })
-        );
-        showSaving();
-        deleteLineItemAction(lineId)
-            .then((result) => {
-                if (result && !result.success) {
-                    // Roll the optimistic delete back
-                    setEstimates((prev) => prev.map((e) => (e.id === prevEstimate.id ? prevEstimate : e)));
-                    router.refresh();
-                    showSaveError(result.error ?? "Failed to delete line");
-                    return;
-                }
-                if (result?.warning) {
-                    showSaveError(result.warning);
-                    return;
-                }
-                showSaved();
-            })
-            .catch((err) => {
-                console.error(err);
-                showSaveError("Failed to delete line");
-            });
     };
 
     const handleLibrarySelect = (lineId: string, itemId: string, section: string) => {

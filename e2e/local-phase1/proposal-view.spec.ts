@@ -41,6 +41,7 @@ test("document reading preserves the mounted exact unsaved draft, native Escape/
     const originalNode = await input.elementHandle();
     await expect(page.locator("[data-save-status='unsaved']")).toBeVisible();
     const open = page.getByRole("button", { name: "Open document view", exact: true });
+    await page.getByRole("button", { name: "2. Review document", exact: true }).click();
     await open.click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
@@ -72,6 +73,7 @@ test("dark mobile reading view fits the viewport and returns without saving", as
     await page.evaluate(() => { window.__documentViewOptions = { theme: "dark" }; });
     await page.addStyleTag({ content: css });
     await page.addScriptTag({ content: bundle });
+    await page.getByRole("button", { name: "2. Review document", exact: true }).click();
     await page.getByRole("button", { name: "Open document view", exact: true }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
@@ -91,6 +93,7 @@ test("a refreshed existing lock hides the open document and retains the current 
     await page.addScriptTag({ content: bundle });
     const scopeInput = page.locator("#wording-scope");
     await scopeInput.fill("UNSAVED EXACT TEXT");
+    await page.getByRole("button", { name: "2. Review document", exact: true }).click();
     await page.getByRole("button", { name: "Open document view", exact: true }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.evaluate(() => window.__documentViewLocal.setLock("Local fixture: protected job is locked."));
@@ -108,6 +111,7 @@ test("missing preview data keeps document view unavailable under the existing es
     await page.evaluate(() => { window.__documentViewOptions = { noEstimate: true }; });
     await page.addStyleTag({ content: css });
     await page.addScriptTag({ content: bundle });
+    await page.getByRole("button", { name: "2. Review document", exact: true }).click();
     await expect(page.getByRole("button", { name: "Open document view", exact: true })).toBeDisabled();
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.locator("#presend-pdf-note")).toContainText("once the job has a name and an estimate");

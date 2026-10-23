@@ -7,6 +7,7 @@ import { AlertTriangle, Check, ChevronDown, Circle, FileDown, Loader2, Plus, Sen
 import ProgrammeTimeline from "@/components/programme-timeline";
 import ProposalDocumentView from "@/components/proposal/proposal-document-view";
 import ProposalDocumentDialog from "@/components/proposal/proposal-document-dialog";
+import ProposalStageSwitcher from "@/components/proposal/proposal-stage-switcher";
 import CurrentTermsReview from "@/components/proposal/current-terms-review";
 import SaveStatus from "@/components/save-status";
 import ProposalWorkspaceHeading from "@/components/proposal-workspace-heading";
@@ -160,9 +161,11 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
 
     const [previewTime] = useState(() => now ?? new Date().toISOString());
     const [previewOpen, setPreviewOpen] = useState(true);
+    const [proposalStage, setProposalStage] = useState<"prepare" | "review">("prepare");
     const [documentView, setDocumentView] = useState({ open: false, projectId: project.id, lockReason });
     if (documentView.projectId !== project.id || documentView.lockReason !== lockReason) {
         setDocumentView({ open: false, projectId: project.id, lockReason });
+        setProposalStage("prepare");
     }
     const setDocumentViewOpen = (open: boolean) => setDocumentView({ open, projectId: project.id, lockReason });
     const [termsOpen, setTermsOpen] = useState(false);
@@ -477,7 +480,8 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
         </div>
     );
 
-    const showingDocument = documentView.open && documentView.projectId === project.id && !locked && previewDocument !== null;
+    const preparing = proposalStage === "prepare";
+    const showingDocument = !preparing && documentView.open && documentView.projectId === project.id && !locked && previewDocument !== null;
     const documentContent = previewDocument ? (
         <ProposalDocumentView doc={previewDocument}>
             <h2 id="doc-response" className="font-serif text-3xl leading-tight text-stone-900">{previewDocument.response.heading}</h2>
@@ -496,7 +500,15 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     );
 
     return (
-        <div className={`${ui.workspace} space-y-5`} data-dark={isDark}>
+        <div className={`${ui.workspace} space-y-5`} data-dark={isDark} onClickCapture={(event) => {
+            // Existing in-page fixes still reveal their mounted preparation fields.
+            const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
+            const hash = anchor?.getAttribute("href");
+            const target = hash?.startsWith("#") ? document.getElementById(hash.slice(1)) : null;
+            if (target && event.currentTarget.contains(target) && target.closest("#proposal-preparation")) {
+                setProposalStage("prepare");
+            }
+        }}>
             {/* Title and save state */}
             <ProposalWorkspaceHeading
                 projectName={project.name}
@@ -516,6 +528,8 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                     {locked ? "" : " Anything you change here stays in your draft until you send a new version."}
                 </p>
             )}
+
+            {!locked && <ProposalStageSwitcher stage={proposalStage} onStageChange={setProposalStage} disabled={saving || state.send.status === "publishing"} />}
 
             {/* Readiness */}
             {!locked && (
@@ -591,6 +605,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                 </div>
             )}
 
+            <div id="proposal-preparation" role="region" aria-label="Proposal preparation" hidden={!preparing} className="space-y-5">
             <form noValidate onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-5">
                 <fieldset disabled={locked} className="space-y-5 min-w-0">
                     <legend className="sr-only">The proposal, in the order your client reads it</legend>
@@ -1081,6 +1096,9 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                 </section>
             )}
 
+            </div>
+
+            <div id="proposal-final-review" role="region" aria-label="Document review" hidden={preparing} className="space-y-5">
             {/* Preview */}
             {!locked && (
                 <section className={s.card} aria-labelledby="review-preview-title" data-review-preview>
@@ -1324,6 +1342,8 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                     </div>
                 </section>
             )}
+
+            </div>
 
             {publications.length > 0 && (
                 <PublicationHistoryPanel

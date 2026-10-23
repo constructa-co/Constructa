@@ -129,6 +129,7 @@ test("a dated two-stage programme saves, freezes into the proposal preview and d
     // Next: Proposal navigates only because the save is confirmed; the
     // proposal review screen freezes its preview from what the mock holds.
     await page.getByRole("button", { name: "Next: Proposal", exact: true }).click();
+    await page.getByRole("button", { name: "2. Review document", exact: true }).click();
     await expect(page.locator("[data-proposal-document]")).toBeVisible();
 
     // The frozen headline facts: one price, the saved start, the calculated
@@ -192,6 +193,7 @@ test("a refused programme save keeps everything typed until the deliberate retry
     await page.locator("[data-programme-save-error]").getByRole("button", { name: "Try again", exact: true }).click();
     await expect(page.locator("[data-save-status='saved']")).toBeVisible();
     await page.getByRole("button", { name: "Next: Proposal", exact: true }).click();
+    await page.getByRole("button", { name: "2. Review document", exact: true }).click();
     await expect(page.locator("[data-proposal-document]")).toBeVisible();
 
     // One week from Monday 2 November 2026 is Friday 6 November 2026.
@@ -221,6 +223,7 @@ test("a relative Day 1 programme saves without dates and freezes Day numbers, ne
     await expect(page.locator("[data-programme-finish]")).toContainText("2 weeks");
 
     await page.getByRole("button", { name: "Next: Proposal", exact: true }).click();
+    await page.getByRole("button", { name: "2. Review document", exact: true }).click();
     await expect(page.locator("[data-proposal-document]")).toBeVisible();
 
     const relative = await snapshot(page);
@@ -266,6 +269,7 @@ test("omitting the programme through the real inclusion control removes it from 
     await expect(page.getByRole("status").filter({ hasText: "Programme deliberately omitted from the proposal" })).toBeVisible();
 
     await page.getByRole("link", { name: "Next: Proposal", exact: true }).click();
+    await page.getByRole("button", { name: "2. Review document", exact: true }).click();
     await expect(page.locator("[data-proposal-document]")).toBeVisible();
 
     // The frozen document carries no programme section and no programme

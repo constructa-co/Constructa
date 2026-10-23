@@ -122,3 +122,22 @@ CONSTRUCTA_LOCAL_PHASE1_OUTPUT=/absolute/private/fresh-document-view-output node
 Existing strict CSP, offline/abort-all and process network/source-write guards
 remain. This is a reading-mode interaction, not a new terms, readiness, Send or
 page-break policy, and not a served application or whole hosted journey.
+
+## Preparation Before Final Review
+
+The actual proposal client now opens in Prepare proposal. Review document shows
+the finished preview and existing Send controls separately while keeping the
+editor mounted. Switching does not save or send. Existing in-page fix links
+reveal preparation, and the existing dirty/readiness/confirmation gates remain.
+The earlier programme/PDF and document-dialog scenarios enter Review explicitly.
+
+```sh
+node e2e/local-phase1/build-brief-price.mjs /absolute/private/fresh-proposal-stage-output proposal-view
+CONSTRUCTA_LOCAL_PHASE1_OUTPUT=/absolute/private/fresh-proposal-stage-output node node_modules/@playwright/test/cli.js test --config=playwright.local-proposal-stage.config.ts
+```
+
+This offline scenario covers stage separation, exact raw draft/response retention,
+fix-link targets, an existing deliberate payment shortcut, an explicit pending
+mock-save refusal, lock refresh and native keyboard switching. All normal actions
+refuse; only the pending-save case uses a labelled in-memory mock. No hosted
+write, real Auth/Next/database, legal approval, pagination or release acceptance.

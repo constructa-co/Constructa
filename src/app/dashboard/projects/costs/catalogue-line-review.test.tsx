@@ -1505,12 +1505,86 @@ describe("acknowledged ordinary built-up Remove with retained resources", () => 
         expect(JSON.stringify(estimates)).toBe(before); expect(text(tree)).toContain("Retained acknowledgement:  uncertain");
     });
 
-    it.each(["boq", "preliminaries"])("keeps initial built-up %s removal on the unchanged legacy handler", async kind => {
+    it.each(["boq", "preliminaries"])("acknowledged special-mode Remove retains initial built-up %s until confirmation", async kind => {
         if (kind === "boq") estimates[0].is_client_boq = true;
         else estimates[0].estimate_lines[0].trade_section = "Preliminaries";
-        render(); const request = pending(); replay.other.mockReturnValue(request.promise); await remove()("line");
-        expect(estimates[0].estimate_lines).toHaveLength(0); expect(receipt()).toBeUndefined();
-        request.resolve({ success: true }); await settle(); expect(replay.other).toHaveBeenCalledExactlyOnceWith("line");
+        render(); const before = JSON.stringify(estimates); const request = pending(); replay.other.mockReturnValue(request.promise); const operation = remove()("line"); render();
+        expect(JSON.stringify(estimates)).toBe(before); expect(receipt()?.props["data-delete-phase"]).toBe("saving");
+        request.resolve({ success: true }); await operation; await settle(); expect(replay.other).toHaveBeenCalledExactlyOnceWith("line");
+        expect(estimates[0].estimate_lines).toHaveLength(0); expect(receipt()?.props["data-delete-phase"]).toBe("confirmed");
+    });
+});
+
+describe("acknowledged special-mode Remove with no snapshot rollback", () => {
+    const kinds = ["BoQ simple", "BoQ built-up", "Preliminaries simple", "Preliminaries built-up", "legacy unknown mode"];
+    function remove() { return rowElement().props.onDelete as (id: string) => Promise<void>; }
+    function receipt() { return nodes(tree).find(n => n.props["aria-label"] === "Remove line acknowledgement"); }
+    function setup(kind: string) {
+        const line = estimates[0].estimate_lines[0];
+        estimates[0].is_client_boq = kind.startsWith("BoQ");
+        line.trade_section = kind.startsWith("Preliminaries") ? "Preliminaries" : "Kitchen";
+        line.pricing_mode = (kind.includes("built-up") ? "buildup" : kind.includes("unknown") ? "legacy-special" : "simple") as typeof line.pricing_mode;
+        line.quantity = 3.125; line.unit_rate = 4.2468; line.line_total = 13.271625;
+        line.estimate_line_components = [{ id: "retained-resource", estimate_line_id: "line", component_type: "material", description: "  Exact resource  ", quantity: 0.125, unit: "item", unit_rate: 3.1234, line_total: 0.390425, manhours_per_unit: 0, total_manhours: 0, sort_order: 3 }];
+        estimates[0].estimate_lines.push({ ...line, id: "keep", description: "Unrelated confirmed work", line_total: 19.7654 });
+        estimates[0].total_cost = 33.037025; render();
+    }
+
+    it.each(kinds)("%s keeps exact confirmed source until one acknowledgement and removes only its reviewed row", async kind => {
+        setup(kind); const before = JSON.stringify(estimates), kept = JSON.stringify(estimates[0].estimate_lines[1]);
+        const request = pending(); replay.other.mockReturnValue(request.promise); const stale = remove();
+        const operation = stale("line"); stale("line"); render();
+        expect(JSON.stringify(estimates)).toBe(before); expect(ledger).toEqual({ "delete:line": "saving" });
+        expect(replay.other).toHaveBeenCalledExactlyOnceWith("line");
+        request.resolve({ success: true }); await operation; await stale("line"); await settle();
+        expect(estimates[0].estimate_lines.map(l => l.id)).toEqual(["keep"]); expect(JSON.stringify(estimates[0].estimate_lines[0])).toBe(kept);
+        expect(estimates[0].total_cost).toBe(19.7654); expect(estimates[0].is_client_boq).toBe(kind.startsWith("BoQ"));
+        expect(ledger).toEqual({}); expect(receipt()?.props["data-delete-phase"]).toBe("confirmed");
+        expect(replay.other).toHaveBeenCalledTimes(1); expect(replay.save).not.toHaveBeenCalled(); expect(replay.activity).not.toHaveBeenCalled();
+    });
+
+    it.each(kinds.flatMap(kind => ["refusal", "warning", "missing", "success with error", "rejection"].map(reply => ({ kind, reply }))))("$kind / $reply retains exact source and prohibits retry or refresh", async ({ kind, reply }) => {
+        setup(kind); const before = JSON.stringify(estimates);
+        if (reply === "rejection") replay.other.mockRejectedValue(Error("Lost response"));
+        else replay.other.mockResolvedValue(reply === "refusal" ? { success: false, error: "Owner/edit-lock refusal" } : reply === "warning" ? { success: true, warning: "Stored total refresh failed" } : reply === "success with error" ? { success: true, error: "Unconfirmed" } : undefined);
+        await remove()("line"); await settle(); await remove()("line");
+        expect(JSON.stringify(estimates)).toBe(before); expect(replay.other).toHaveBeenCalledExactlyOnceWith("line");
+        expect(ledger["delete:line"]).toBe("uncertain"); expect(receipt()?.props["data-delete-phase"]).toBe("unconfirmed");
+        expect(text(receipt())).toContain("may already be deleted remotely"); expect(text(receipt())).toContain("Row identity:  line");
+        expect(text(receipt())).not.toContain("Saved"); expect(rowElement().props.saveBlocked).toBe(true);
+    });
+
+    it.each(["refusal", "success"])("late %s cannot roll back newer BoQ sibling work in the synchronous parent store", async reply => {
+        setup("BoQ simple"); const request = pending(); replay.other.mockReturnValue(request.promise); const operation = remove()("line");
+        estimates = [{ ...estimates[0], total_cost: 91.25, estimate_lines: estimates[0].estimate_lines.map(l => l.id === "keep" ? { ...l, description: "Newer exact work", unit_rate: 13.75, quantity: 5, line_total: 68.75 } : l) }];
+        const newer = JSON.stringify(estimates); request.resolve(reply === "refusal" ? { success: false, error: "Refused" } : { success: true }); await operation; await settle();
+        expect(JSON.stringify(estimates)).toBe(newer); expect(ledger["delete:line"]).toBe("uncertain"); expect(replay.other).toHaveBeenCalledTimes(1);
+    });
+
+    it.each(["mode", "resource", "project", "version", "parent draft"])("late %s changes fence a Preliminaries acknowledgement", async kind => {
+        setup("Preliminaries built-up"); const request = pending(); replay.other.mockReturnValue(request.promise); const operation = remove()("line"); render();
+        if (kind === "mode") estimates[0].estimate_lines[0].pricing_mode = "simple";
+        if (kind === "resource") estimates[0].estimate_lines[0].estimate_line_components[0].quantity = 99;
+        if (kind === "project") projectId = "other";
+        if (kind === "version") activeTab = "another";
+        if (kind === "parent draft") ledger = { ...ledger, "draft:keep": "draft" };
+        render(); const newer = JSON.stringify(estimates); request.resolve({ success: true }); await operation; await settle();
+        expect(JSON.stringify(estimates)).toBe(newer); expect(ledger["delete:line"]).toBe("uncertain");
+    });
+
+    it.each(["draft", "saving", "uncertain"])("existing %s parent work blocks an initial special-mode request", async state => {
+        setup("BoQ simple"); const stale = remove(); ledger = { "resource:keep": state as "draft" | "saving" | "uncertain" }; render(); const before = JSON.stringify(estimates);
+        await stale("line"); expect(replay.other).not.toHaveBeenCalled(); expect(JSON.stringify(estimates)).toBe(before);
+    });
+
+    it.each(["saving", "uncertain"])("special-mode %s removal remains read-only after unmount/reopen", async phase => {
+        setup("Preliminaries simple"); const request = pending(); replay.other.mockReturnValue(request.promise); const operation = remove()("line");
+        if (phase === "uncertain") { request.resolve({ success: true, warning: "Aggregate refresh failed" }); await operation; }
+        const before = JSON.stringify(estimates); unmount(); replay.slots = {}; render();
+        await remove()("line"); expect(rowElement().props.saveBlocked).toBe(true); expect(ledger["delete:line"]).toBe(phase);
+        expect(nodes(tree).some(n => n.props["aria-label"] === "Retained removal reconciliation")).toBe(true);
+        if (phase === "saving") { request.resolve({ success: true }); await operation; }
+        expect(JSON.stringify(estimates)).toBe(before); expect(replay.other).toHaveBeenCalledTimes(1);
     });
 });
 

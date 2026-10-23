@@ -21,8 +21,9 @@ vi.mock("react", async importOriginal => ({
         hooks.tasks.push(task().finally(() => { hooks.pending = false; }));
     }],
     useEffect: vi.fn(),
+    useLayoutEffect: vi.fn(),
 }));
-vi.mock("./actions", () => ({ updateProjectAction: hooks.save }));
+vi.mock("./actions", () => ({ updateProjectAction: hooks.save, updateProjectStatusAction: vi.fn() }));
 vi.mock("@/lib/theme-context", () => ({ useTheme: () => ({ theme: "dark" }) }));
 vi.mock("@/lib/use-unsaved-guard", () => ({ useUnsavedGuard: vi.fn() }));
 
@@ -64,7 +65,7 @@ function submit() {
 beforeEach(() => {
     hooks.states = []; hooks.refs = []; hooks.tasks = []; hooks.pending = false; hooks.save.mockReset();
     const data = new NativeFormData();
-    for (const [key, value] of Object.entries({ projectId: "job-b", name: "Example renovation", status: "Lead", project_type: "Domestic Renovation", start_date: "2026-10-19", potential_value: "", payment_terms: "21 days", client_name: "Example client", client_email: "", client_phone: "", client_address: "", site_address: "", scope: "" })) data.set(key, value);
+    for (const [key, value] of Object.entries({ projectId: "job-b", name: "Example renovation", project_type: "Domestic Renovation", start_date: "2026-10-19", potential_value: "", payment_terms: "21 days", client_name: "Example client", client_email: "", client_phone: "", client_address: "", site_address: "", scope: "" })) data.set(key, value);
     form = { data } as HTMLFormElement & { data: FormData };
     // Model only FormData's DOM constructor; field entries stay real FormData.
     vi.stubGlobal("FormData", class extends NativeFormData {

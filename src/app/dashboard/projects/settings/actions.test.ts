@@ -2,13 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ auth: vi.fn(), revalidate: vi.fn() }));
 vi.mock("@/lib/supabase/auth-utils", () => ({ requireAuth: mocks.auth }));
+vi.mock("@/lib/supabase/project-resource-access", () => ({ requireEditableProjectAccess: () => mocks.auth() }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 import { updateProjectAction } from "./actions";
 
 const id = "owned-settings-job";
 const form = () => {
     const data = new FormData();
-    for (const [key, value] of Object.entries({ projectId: id, name: "Job name", status: "Estimating", project_type: "Other", start_date: "2026-11-06", potential_value: "123.45", payment_terms: "21 days", client_name: "Client", client_email: "", client_phone: "", client_address: "  Exact address  ", site_address: "Site address", scope: "Scope" })) data.set(key, value);
+    for (const [key, value] of Object.entries({ projectId: id, name: "Job name", project_type: "Other", start_date: "2026-11-06", potential_value: "123.45", payment_terms: "21 days", client_name: "Client", client_email: "", client_phone: "", client_address: "  Exact address  ", site_address: "Site address", scope: "Scope" })) data.set(key, value);
     return data;
 };
 function database(result: unknown = { data: { id }, error: null }) {
@@ -28,7 +29,7 @@ describe("settings save acknowledges only the requested owner-scoped job", () =>
         const db = database();
         expect(await updateProjectAction(form())).toEqual({ success: true });
         expect(db.from).toHaveBeenCalledExactlyOnceWith("projects");
-        expect(db.query.update).toHaveBeenCalledExactlyOnceWith({ name: "Job name", status: "Estimating", project_type: "Other", start_date: "2026-11-06", potential_value: 123.45, payment_terms: "21 days", client_name: "Client", client_email: null, client_phone: null, client_address: "  Exact address  ", site_address: "Site address", scope_description: "Scope", is_vat_reverse_charge: false });
+        expect(db.query.update).toHaveBeenCalledExactlyOnceWith({ name: "Job name", project_type: "Other", start_date: "2026-11-06", potential_value: 123.45, payment_terms: "21 days", client_name: "Client", client_email: null, client_phone: null, client_address: "  Exact address  ", site_address: "Site address", scope_description: "Scope", is_vat_reverse_charge: false });
         expect(db.query.eq.mock.calls).toEqual([["id", id], ["user_id", "owner"]]);
         expect(db.query.select).toHaveBeenCalledExactlyOnceWith("id"); expect(db.query.single).toHaveBeenCalledTimes(1);
         expect(mocks.revalidate).toHaveBeenCalledExactlyOnceWith(`/dashboard/projects/settings?projectId=${id}`);

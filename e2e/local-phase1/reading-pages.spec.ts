@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -121,4 +121,95 @@ test("dark mobile reading controls stay in bounds and support keyboard page chan
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(391);
     expect((await next.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     await page.screenshot({ path: path.join(output, "reading-pages-mobile-dark.png") });
+});
+
+const LONG_DRAFT = "  Exact long-page draft.\nKept while reading.  ";
+async function openLongTermsScrolledToEnd(page: Page) {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => { window.__documentViewOptions = { longTerms: true }; });
+    await page.addScriptTag({ content: bundle });
+    await page.locator("#wording-scope").fill(LONG_DRAFT);
+    await page.getByRole("button", { name: "2. Review document", exact: true }).click();
+    await page.getByRole("button", { name: "Open document view", exact: true }).click();
+    const dialog = page.getByRole("dialog"), select = dialog.getByLabel("Reading page", { exact: true });
+    const scroller = dialog.locator("[data-document-view-scroll]");
+    const keys = await select.locator("option").evaluateAll(options => options.map(option => (option as HTMLOptionElement).value));
+    await select.selectOption("terms");
+    const footer = dialog.locator("[data-proposal-document] > footer");
+    await footer.scrollIntoViewIfNeeded();
+    await expect(footer).toBeInViewport();
+    expect(await scroller.evaluate(element => element.scrollTop)).toBeGreaterThan(1000);
+    return { dialog, select, scroller, keys };
+}
+const scrollTop = (scroller: Locator) => scroller.evaluate(element => element.scrollTop);
+const overflow = (scroller: Locator) => scroller.evaluate(element => element.scrollHeight - element.clientHeight);
+
+test("a long reading page scrolled to its end starts the next and the selected page at their beginning", async ({ page }) => {
+    const { dialog, select, scroller, keys } = await openLongTermsScrolledToEnd(page);
+    const next = dialog.getByRole("button", { name: "Next reading page", exact: true });
+    const nextKey = keys[keys.indexOf("terms") + 1];
+
+    await next.click();
+    await expect(select).toHaveValue(nextKey);
+    await expect(dialog.getByRole("status")).toContainText(`Web reading page ${keys.indexOf(nextKey) + 1} of ${keys.length}`);
+    expect(await scrollTop(scroller)).toBe(0);
+    await expect(dialog.locator(`[data-doc-section='${nextKey}']`)).toBeInViewport();
+    // Next keeps focus unless it has just reached the last page and been disabled.
+    await expect(keys.indexOf(nextKey) === keys.length - 1 ? select : next).toBeFocused();
+
+    // Back to the long page: the selected page opens at its start, not at the earlier footer position.
+    await select.selectOption("terms");
+    await expect(dialog.getByRole("status")).toContainText(`Web reading page ${keys.indexOf("terms") + 1} of ${keys.length}`);
+    expect(await overflow(scroller)).toBeGreaterThan(1000);
+    expect(await scrollTop(scroller)).toBe(0);
+    await expect(dialog.locator("#doc-terms")).toBeInViewport();
+
+    await dialog.locator("[data-proposal-document] > footer").scrollIntoViewIfNeeded();
+    expect(await scrollTop(scroller)).toBeGreaterThan(1000);
+    await select.selectOption("cover");
+    await expect(dialog.getByRole("status")).toContainText(`Web reading page 1 of ${keys.length}`);
+    expect(await overflow(scroller)).toBeGreaterThan(0);
+    expect(await scrollTop(scroller)).toBe(0);
+    await expect(dialog.locator("[data-proposal-document] > header h1")).toBeInViewport();
+    await expect(dialog.locator("[data-proposal-document]")).toContainText("END OF SYNTHETIC TERMS TEST");
+});
+
+test("reaching the last reading page by keyboard keeps focus on the page chooser", async ({ page }) => {
+    const { dialog, select, scroller, keys } = await openLongTermsScrolledToEnd(page);
+    await select.selectOption(keys[keys.length - 2]);
+    const next = dialog.getByRole("button", { name: "Next reading page", exact: true });
+    await next.focus();
+    await page.keyboard.press("Enter");
+    await expect(select).toHaveValue(keys[keys.length - 1]);
+    await expect(next).toBeDisabled();
+    await expect(select).toBeFocused();
+    await expect(dialog.getByRole("status")).toContainText(`Web reading page ${keys.length} of ${keys.length}`);
+    expect(await scrollTop(scroller)).toBe(0);
+
+    const previous = dialog.getByRole("button", { name: "Previous reading page", exact: true });
+    await select.selectOption(keys[1]);
+    await previous.focus();
+    await page.keyboard.press("Enter");
+    await expect(select).toHaveValue("cover");
+    await expect(previous).toBeDisabled();
+    await expect(select).toBeFocused();
+});
+
+test("a same-page render keeps the reader's scroll position, page and exact draft", async ({ page }) => {
+    const { dialog, select, scroller } = await openLongTermsScrolledToEnd(page);
+    const before = await scrollTop(scroller);
+    const navigation = await dialog.getByRole("navigation", { name: "Document reading pages" }).elementHandle();
+    // Re-render the actual client with unchanged props, then let React and layout settle.
+    await page.evaluate(() => window.__documentViewLocal.setLock(null));
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await expect(select).toHaveValue("terms");
+    expect(await scrollTop(scroller)).toBe(before);
+    await expect(dialog.locator("[data-proposal-document] > footer")).toBeInViewport();
+    expect(await page.evaluate(element => element!.isConnected, navigation)).toBe(true);
+
+    await dialog.getByRole("button", { name: "Back to drafting", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await page.getByRole("button", { name: "1. Prepare proposal", exact: true }).click();
+    await expect(page.locator("#wording-scope")).toHaveValue(LONG_DRAFT);
+    await expect(page.locator("[data-save-status='unsaved']")).toBeVisible();
 });

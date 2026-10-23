@@ -1,9 +1,23 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { ProposalDocument } from "@/lib/proposal-document";
 import ProposalDocumentView from "./proposal-document-view";
 import ui from "./proposal-document-reader.module.css";
+
+/**
+ * Brings the reader's start back into view inside its nearest scrolling box,
+ * such as the document dialog. The page itself is never scrolled.
+ */
+function showReaderStart(reader: HTMLElement) {
+    for (let box = reader.parentElement; box && box !== document.body && box !== document.documentElement; box = box.parentElement) {
+        const style = getComputedStyle(box);
+        if (!/(auto|scroll)/.test(style.overflowY) || box.scrollHeight <= box.clientHeight) continue;
+        const hidden = reader.getBoundingClientRect().top - box.getBoundingClientRect().top - box.clientTop - parseFloat(style.paddingTop);
+        if (hidden < 0) box.scrollTop = Math.max(0, box.scrollTop + hidden);
+        return;
+    }
+}
 
 /** Section-based reading pages, not a prediction of PDF page breaks. */
 export default function ProposalDocumentReader({ doc, children }: { doc: ProposalDocument; children?: ReactNode }) {
@@ -19,21 +33,43 @@ export default function ProposalDocumentReader({ doc, children }: { doc: Proposa
     const current = pages[index];
     const selectId = useId();
     const noteId = useId();
+    const reader = useRef<HTMLDivElement>(null);
+    const select = useRef<HTMLSelectElement>(null);
+    const shownPage = useRef(current.key);
+    // Set when Previous or Next reaches the first or last page and so is disabled.
+    const focusChooser = useRef(false);
+
+    // Only a change of page moves the view: a new page starts at its beginning.
+    // Other renders of the same page leave scroll and focus where they are.
+    useLayoutEffect(() => {
+        if (shownPage.current === current.key) return;
+        shownPage.current = current.key;
+        if (reader.current) showReaderStart(reader.current);
+        if (focusChooser.current) {
+            focusChooser.current = false;
+            select.current?.focus();
+        }
+    }, [current.key]);
+
+    const goTo = (target: number) => {
+        focusChooser.current = target === 0 || target === pages.length - 1;
+        setPageKey(pages[target].key);
+    };
 
     return (
-        <div className={ui.reader} data-document-reader>
+        <div ref={reader} className={ui.reader} data-document-reader>
             <nav className={ui.navigation} aria-label="Document reading pages">
                 <div className={ui.controls}>
-                    <button type="button" className={ui.button} disabled={index === 0} onClick={() => { if (index > 0) setPageKey(pages[index - 1].key); }}>
+                    <button type="button" className={ui.button} disabled={index === 0} onClick={() => { if (index > 0) goTo(index - 1); }}>
                         Previous reading page
                     </button>
                     <div className={ui.choice}>
                         <label htmlFor={selectId}>Reading page</label>
-                        <select id={selectId} value={current.key} aria-describedby={noteId} onChange={event => setPageKey(event.target.value)} className={ui.select}>
+                        <select ref={select} id={selectId} value={current.key} aria-describedby={noteId} onChange={event => setPageKey(event.target.value)} className={ui.select}>
                             {pages.map((page, number) => <option key={page.key} value={page.key}>{number + 1}. {page.title}</option>)}
                         </select>
                     </div>
-                    <button type="button" className={ui.button} disabled={index === pages.length - 1} onClick={() => { if (index < pages.length - 1) setPageKey(pages[index + 1].key); }}>
+                    <button type="button" className={ui.button} disabled={index === pages.length - 1} onClick={() => { if (index < pages.length - 1) goTo(index + 1); }}>
                         Next reading page
                     </button>
                 </div>

@@ -516,3 +516,88 @@ describe("contractor activity entry integration", () => {
     });
 });
 
+describe("Brief site-context Job details handoff", () => {
+    function shortcut(tree: Element[]) { return tree.find(e => e.props["data-brief-job-details"] !== undefined); }
+    function linkEvent(link: Element) {
+        const anchor = { getAttribute: (name: string) => name === "href" ? link.props.href : null };
+        return { target: { closest: () => anchor }, preventDefault: vi.fn(), stopPropagation: vi.fn() };
+    }
+    function guard() {
+        return (document.addEventListener as ReturnType<typeof vi.fn>).mock.calls.filter(([name]) => name === "click").at(-1)?.[1] as ((event: unknown) => void) | undefined;
+    }
+    function noWrites() {
+        expect(current.save).not.toHaveBeenCalled(); expect(current.ask).not.toHaveBeenCalled();
+        expect(current.fetch).not.toHaveBeenCalled(); expect(current.push).not.toHaveBeenCalled();
+    }
+
+    it("offers the current job's existing editor without prefetch,custom navigation or a write", () => {
+        stage("site"); const before = JSON.stringify(current.store.getState()), link = shortcut(render(null))!;
+        expect(link.props.href).toBe("/dashboard/projects/settings?projectId=lock-unit-job");
+        expect(text(link.props.children)).toBe("Edit job details"); expect(link.props.prefetch).toBe(false);
+        expect(link.props.target).toBeUndefined(); expect(link.props.onClick).toBeUndefined();
+        expect(JSON.stringify(current.store.getState())).toBe(before); noWrites();
+    });
+    it("encodes only the current explicit identity without a fallback or second lookup", () => {
+        stage("site"); const id = "job/a?x=one&two";
+        expect(shortcut(render(null, { id }))!.props.href).toBe(`/dashboard/projects/settings?projectId=${encodeURIComponent(id)}`); noWrites();
+    });
+    it.each(["client", "work"] as const)("does not add a duplicate edit entry on %s", next => {
+        stage(next); expect(shortcut(render(null))).toBeUndefined(); noWrites();
+    });
+    it("does not offer protected editing on an initially locked job", () => {
+        stage("site"); expect(shortcut(render("This project is archived."))).toBeUndefined();
+        expect(shortcut(render(null))).toBeDefined(); noWrites();
+    });
+    it("Cancel from the real link retains exact newer notes and prevents navigation propagation", () => {
+        current.store.dispatch({ type: "draft/edit", patch: { siteNotes: "  Newer access\n\n  exact notes  " } }); stage("site");
+        const link = shortcut(render(null))!, before = JSON.stringify(current.store.getState()), event = linkEvent(link);
+        current.confirm.mockReturnValue(false); guard()!(event);
+        expect(current.confirm).toHaveBeenCalledOnce(); expect(event.preventDefault).toHaveBeenCalledOnce(); expect(event.stopPropagation).toHaveBeenCalledOnce();
+        expect(JSON.stringify(current.store.getState())).toBe(before); noWrites();
+    });
+    it("unadded contractor activity text is guarded and retained on Cancel", () => {
+        current.store.dispatch({ type: "activity/edit", text: "  Keep this\n  pending activity  " }); stage("site");
+        const link = shortcut(render(null))!, before = JSON.stringify(current.store.getState()), event = linkEvent(link);
+        current.confirm.mockReturnValue(false); guard()!(event);
+        expect(event.preventDefault).toHaveBeenCalledOnce(); expect(JSON.stringify(current.store.getState())).toBe(before);
+        expect(current.store.getState().activityEntry).toBe("  Keep this\n  pending activity  "); noWrites();
+    });
+    it("explicit consent permits the link event without autosaving or mutating the current draft", () => {
+        current.store.dispatch({ type: "draft/edit", patch: { work: "Newer deliberate draft" } }); stage("site");
+        const link = shortcut(render(null))!, before = JSON.stringify(current.store.getState()), event = linkEvent(link);
+        current.confirm.mockReturnValue(true); guard()!(event);
+        expect(current.confirm).toHaveBeenCalledOnce(); expect(event.preventDefault).not.toHaveBeenCalled(); expect(event.stopPropagation).not.toHaveBeenCalled();
+        expect(JSON.stringify(current.store.getState())).toBe(before); noWrites();
+    });
+    it("retains the existing leave guard for a failed Brief", () => {
+        current.store.dispatch({ type: "save/failed", error: "Unconfirmed save" });
+        stage("site"); const link = shortcut(render(null))!, before = JSON.stringify(current.store.getState()), event = linkEvent(link);
+        current.confirm.mockReturnValue(false); guard()!(event);
+        expect(event.preventDefault).toHaveBeenCalledOnce(); expect(JSON.stringify(current.store.getState())).toBe(before); noWrites();
+    });
+    it("hides the shortcut during a save while the existing old-link leave guard still retains the current draft", () => {
+        stage("site"); const old = shortcut(render(null))!;
+        current.store.dispatch({ type: "save/started" });
+        expect(shortcut(render(null))).toBeUndefined(); const before = JSON.stringify(current.store.getState()), event = linkEvent(old);
+        current.confirm.mockReturnValue(false); guard()!(event);
+        expect(event.preventDefault).toHaveBeenCalledOnce(); expect(JSON.stringify(current.store.getState())).toBe(before); noWrites();
+    });
+    it("hides the shortcut once the existing confirmed Build the price handoff has started", async () => {
+        stage("site"); expect(shortcut(render(null))).toBeDefined();
+        await click(buttons(render(null), "Build the price")[0]);
+        expect(shortcut(render(null))).toBeUndefined(); expect(current.push).toHaveBeenCalledExactlyOnceWith("/dashboard/projects/costs?projectId=lock-unit-job");
+        expect(current.save).not.toHaveBeenCalled(); expect(current.fetch).not.toHaveBeenCalled();
+    });
+    it("does not install a leave prompt for an already saved clean Brief", () => {
+        stage("site"); expect(shortcut(render(null))).toBeDefined(); expect(guard()).toBeUndefined(); noWrites();
+    });
+    it("refreshed lock hides the shortcut and preserves the locked unsaved-leave warning for an old link", () => {
+        current.store.dispatch({ type: "draft/edit", patch: { siteNotes: "Retain on lock" } }); stage("site");
+        const old = shortcut(render(null))!, before = JSON.stringify(current.store.getState());
+        expect(shortcut(render("This job is now locked."))).toBeUndefined();
+        const event = linkEvent(old); current.confirm.mockReturnValue(false); guard()!(event);
+        expect(current.confirm.mock.lastCall?.[0]).toContain("now locked"); expect(event.preventDefault).toHaveBeenCalledOnce();
+        expect(JSON.stringify(current.store.getState())).toBe(before); noWrites();
+    });
+});
+

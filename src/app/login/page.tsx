@@ -26,10 +26,12 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [termsAccepted, setTermsAccepted] = useState(false);
     const router = useRouter();
     const supabase = createClient();
 
     const switchMode = (next: Mode) => {
+        if (next !== mode) setTermsAccepted(false);
         setMode(next);
         setErrorMessage(null);
         setSuccessMessage(null);
@@ -70,6 +72,10 @@ export default function LoginPage() {
         }
         if (password !== confirmPassword) {
             setErrorMessage("Passwords don't match.");
+            return;
+        }
+        if (!termsAccepted) {
+            setErrorMessage("Please accept the platform terms of service before creating an account.");
             return;
         }
 
@@ -160,6 +166,26 @@ export default function LoginPage() {
                                     className="mt-2 w-full min-h-12 px-4 py-2 bg-black border border-zinc-800 rounded-lg focus:ring-2 focus:ring-white focus:border-transparent outline-none transition-all text-white"
                                     placeholder="••••••••"
                                 />
+                            </div>
+                        )}
+
+                        {isSignUp && (
+                            <div>
+                                <label htmlFor="platform-terms" className="flex min-h-11 items-start gap-3 text-sm font-medium text-gray-400">
+                                    <input
+                                        id="platform-terms"
+                                        type="checkbox"
+                                        required
+                                        checked={termsAccepted}
+                                        onChange={(e) => setTermsAccepted(e.target.checked)}
+                                        disabled={loading}
+                                        className="mt-1 h-4 w-4 shrink-0 accent-white"
+                                    />
+                                    <span>I accept Constructa&apos;s platform terms of service.</span>
+                                </label>
+                                <Link href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-xs text-gray-400 hover:text-white hover:underline">
+                                    Read the full platform terms (opens in a new tab)
+                                </Link>
                             </div>
                         )}
 

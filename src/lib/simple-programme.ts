@@ -243,6 +243,10 @@ export function buildSimpleProgramme(draft: ProgrammeDraft): BuildProgrammeResul
 
     const stages: SimpleProgrammeStageInput[] = [];
     if (draft.stages.length === 0) {
+        // A preserved dated name can exceed the relative renderer's limit.
+        if (draft.timeBasis === "relative" && (draft.wholeName || WHOLE_JOB_NAME).trim().length > MAX_STAGE_NAME_LENGTH) {
+            fieldErrors.stages = `To use an undated programme, break the job into stages and shorten this name to ${MAX_STAGE_NAME_LENGTH} characters.`;
+        }
         const parsed = parseDuration(draft.duration, draft.unit);
         if ("error" in parsed) fieldErrors.duration = draft.duration.trim() ? parsed.error : "Say how long the job takes.";
         else stages.push({ name: draft.wholeName || WHOLE_JOB_NAME, workingDays: parsed.days, unit: draft.unit, source: draft.wholeSource });

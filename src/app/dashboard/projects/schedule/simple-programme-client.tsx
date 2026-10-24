@@ -625,8 +625,6 @@ function ProgrammeEditor({
                                 })}
                             </ol>
 
-                            {fieldErrors.stages && <p role="alert" className={`text-sm ${s.errorText}`}>{fieldErrors.stages}</p>}
-
                             <div className="flex flex-col sm:flex-row gap-2">
                                 {draft.stages.length < MAX_STAGES && (
                                     <button
@@ -649,6 +647,7 @@ function ProgrammeEditor({
                             </div>
                         </>
                     )}
+                    {fieldErrors.stages && <p role="alert" className={`text-sm ${s.errorText}`}>{fieldErrors.stages}</p>}
                 </section>
 
                 <div className="flex flex-col sm:flex-row sm:justify-end gap-2">

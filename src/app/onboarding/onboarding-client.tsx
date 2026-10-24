@@ -132,7 +132,7 @@ export default function OnboardingClient({
     };
 
     return (
-        <FirstSessionPanel step={1}>
+        <FirstSessionPanel step={1} setupStage={step === "business" ? "company" : "trade"}>
             <p className={ui.eyebrow} aria-live="polite">
                 Step {stepNumber} of {SETUP_STEPS.length}
             </p>

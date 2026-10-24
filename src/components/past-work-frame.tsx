@@ -20,8 +20,9 @@ export default function PastWorkFrame({ children }: { children: ReactNode }) {
                 <div className={ui.content}>{children}</div>
                 <aside className={ui.guide} aria-label="Adding past work">
                     <p className={ui.eyebrow}>One example is a start</p>
-                    <h2>The job. The work. The difference.</h2>
-                    <p>Give the project a name, describe what you delivered, then explain what made your work stand out.</p>
+                    <h2>Help a client see work like theirs.</h2>
+                    <p>A similar project gives a client something concrete to judge: what the job involved, what you delivered and the difference your work made. Give the project a name, describe what you delivered, then explain what made your work stand out.</p>
+                    <p>Choose relevant saved examples when preparing a proposal, then review what that client will see. Only describe work you actually did; do not invent results or achievements.</p>
                     <p>Use examples and details you have permission to share. You can keep working on the wording before saving.</p>
                     <p className={ui.note}>Save all past work saves this whole list. A save from another tab can overwrite newer changes, so work in one tab at a time.</p>
                 </aside>

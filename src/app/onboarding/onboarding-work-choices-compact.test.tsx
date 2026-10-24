@@ -14,7 +14,8 @@ describe("compact setup work suggestion chrome (A007)", () => {
         expect(css).toMatch(/\.workSuggestion\s*\{[^}]*font-size:\s*14px/);
         expect(css).toMatch(/\.workSuggestion\s*\{[^}]*border-radius:\s*8px/);
         expect(css).toMatch(/\.workSuggestion\[aria-pressed="true"\]\s*\{[^}]*var\(--session-accent\)/);
-        expect(css).toMatch(/@media\s*\(max-width:\s*420px\)\s*\{\s*\.workSuggestions\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+        expect(css).toMatch(/@media\s*\(max-width:\s*359px\)\s*\{\s*\.workSuggestions\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+        expect(css).not.toMatch(/@media\s*\(max-width:\s*420px\)\s*\{\s*\.workSuggestions/);
         expect(css).not.toMatch(/\.workSuggestion\s*\{[^}]*min-height:\s*64px/);
         expect(css).not.toMatch(/\.workSuggestions\s*\{[^}]*gap:\s*10px/);
         expect(css).not.toMatch(/\.input\s*\{[^}]*font-size:\s*14px/);

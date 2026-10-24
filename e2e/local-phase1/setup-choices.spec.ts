@@ -158,6 +158,50 @@ async function assertRoofingToggle(
     expect(await page.evaluate(() => window.__phase1Local.navigation)).toEqual([]);
 }
 
+async function assertReadablePhoneChoices(page: import("@playwright/test").Page, compact: boolean) {
+    const group = suggestionGroup(page);
+    const before = await group.evaluate(node => node.getBoundingClientRect().height);
+    const longest = group.getByRole("button", { name: "Ventilation & air conditioning", exact: true });
+    await longest.click();
+    await expect(longest).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator("#setup-work")).toHaveValue(`${INITIAL_FREE_TEXT}, Ventilation & air conditioning`);
+    await assertSuggestionGridGeometry(page, compact ? 2 : 1);
+    const labels = await group.getByRole("button").evaluateAll(buttons => buttons.map(button => {
+        const box = button.getBoundingClientRect();
+        const walker = document.createTreeWalker(button, NodeFilter.SHOW_TEXT);
+        const textBoxes: { left: number; right: number; top: number; bottom: number }[] = [];
+        while (walker.nextNode()) {
+            if (!walker.currentNode.textContent?.trim()) continue;
+            const range = document.createRange();
+            range.selectNodeContents(walker.currentNode);
+            for (const rect of range.getClientRects()) textBoxes.push({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom });
+        }
+        return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, textBoxes };
+    }));
+    for (const label of labels) {
+        expect(label.textBoxes.length).toBeGreaterThan(0);
+        for (const box of label.textBoxes) {
+            expect(box.left).toBeGreaterThanOrEqual(label.left - PIXEL_TOLERANCE);
+            expect(box.right).toBeLessThanOrEqual(label.right + PIXEL_TOLERANCE);
+            expect(box.top).toBeGreaterThanOrEqual(label.top - PIXEL_TOLERANCE);
+            expect(box.bottom).toBeLessThanOrEqual(label.bottom + PIXEL_TOLERANCE);
+        }
+    }
+    const selected = await group.evaluate(node => node.getBoundingClientRect().height);
+    // Compare with the accepted C20 measured 390px single-column baseline,
+    // not an arbitrary fixed height cap or a full-page acceptance claim.
+    if (compact) {
+        expect(before).toBeLessThan(794);
+        expect(selected).toBeLessThan(794);
+    }
+    await test.info().attach("phone-reflow", { body: JSON.stringify({ viewport: page.viewportSize(), compact, old390GroupHeight: 794, before, selected, labels }), contentType: "application/json" });
+    await page.screenshot({ path: path.join(output, `phone-choices-${page.viewportSize()!.width}.png`), fullPage: true });
+    await longest.click();
+    await expect(page.locator("#setup-work")).toHaveValue(INITIAL_FREE_TEXT);
+    expect(await page.evaluate(() => window.__phase1Local.calls)).toEqual([]);
+    expect(await page.evaluate(() => window.__phase1Local.navigation)).toEqual([]);
+}
+
 async function assertRefusedTradeSaveThenRetry(page: import("@playwright/test").Page) {
     const work = page.locator("#setup-work");
     const roofing = suggestionGroup(page).getByRole("button", { name: "Roofing", exact: true });
@@ -229,10 +273,25 @@ test.describe("desktop 1280x900", () => {
 test.describe("phone 390x844", () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
-    test("single-column aligned suggestions, keyboard toggle, and refused trade save retry", async ({ page }) => {
+    test("compact two-column aligned suggestions, readable labels, keyboard toggle, and refused trade save retry", async ({ page }) => {
+        await page.locator("#setup-work").fill(INITIAL_FREE_TEXT);
+        expect(await readSuggestionLabels(page)).toEqual([...EXPECTED_SUGGESTION_LABELS]);
+        await assertSuggestionGridGeometry(page, 2);
+        await assertReadablePhoneChoices(page, true);
+        await assertRoofingToggle(page, "keyboard");
+        await assertRefusedTradeSaveThenRetry(page);
+        expect(await page.evaluate(() => window.__phase1Local.calls.length)).toBe(2);
+    });
+});
+
+test.describe("narrow phone 320x844", () => {
+    test.use({ viewport: { width: 320, height: 844 } });
+
+    test("retains readable single-column fallback, all choices, free text and refused save retry", async ({ page }) => {
         await page.locator("#setup-work").fill(INITIAL_FREE_TEXT);
         expect(await readSuggestionLabels(page)).toEqual([...EXPECTED_SUGGESTION_LABELS]);
         await assertSuggestionGridGeometry(page, 1);
+        await assertReadablePhoneChoices(page, false);
         await assertRoofingToggle(page, "keyboard");
         await assertRefusedTradeSaveThenRetry(page);
         expect(await page.evaluate(() => window.__phase1Local.calls.length)).toBe(2);

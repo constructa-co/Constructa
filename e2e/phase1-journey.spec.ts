@@ -27,7 +27,7 @@ const RESPONSE = {
         recorded: "Receipt confirmed",
         history: "Receipt confirmed",
         askedFor: "confirmation of receipt",
-        pdfLine: "Client: receipt confirmed",
+        pdfLine: "Client: confirm receipt",
     },
     nonBindingIntent: {
         option: "Ask the client whether they intend to go ahead",

@@ -121,6 +121,9 @@ export default function LoginPage() {
     };
 
     const isSignUp = mode === "signup";
+    // The checkbox is invalid only while its own refusal is shown and it is still unchecked.
+    const termsRefused = isSignUp && !termsAccepted
+        && errorMessage === "Please accept the platform terms of service before creating an account.";
 
     return (
         <FirstSessionFrame>
@@ -213,18 +216,20 @@ export default function LoginPage() {
                                         checked={termsAccepted}
                                         onChange={(e) => setTermsAccepted(e.target.checked)}
                                         disabled={loading}
+                                        aria-describedby={termsRefused ? "login-error platform-terms-link" : "platform-terms-link"}
+                                        aria-invalid={termsRefused || undefined}
                                         className="mt-1 h-4 w-4 shrink-0"
                                     />
                                     <span>I accept Constructa&apos;s platform terms of service.</span>
                                 </label>
-                                <Link href="/terms-of-service" target="_blank" rel="noopener noreferrer" className={ui.textButton}>
+                                <Link id="platform-terms-link" href="/terms-of-service" target="_blank" rel="noopener noreferrer" className={ui.textButton}>
                                     Read the full platform terms (opens in a new tab)
                                 </Link>
                             </div>
                         )}
 
                         {errorMessage && (
-                            <div role="alert" className={ui.error}>
+                            <div id="login-error" role="alert" className={ui.error}>
                                 {errorMessage}
                             </div>
                         )}

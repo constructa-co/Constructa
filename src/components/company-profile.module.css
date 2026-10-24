@@ -40,6 +40,10 @@
 .navigation { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 30px; }
 .navigation a { display: inline-flex; align-items: center; padding: 10px 15px; min-height: 44px; border: 1px solid var(--company-line); border-radius: 30px; font-size: 13px; }
 .navigation a:hover { border-color: var(--company-accent); background: var(--company-panel); }
+.navigation button { display: inline-flex; align-items: center; padding: 10px 15px; min-height: 44px; border: 1px solid var(--company-line); border-radius: 30px; font-size: 13px; color: var(--company-ink); background: transparent; cursor: pointer; }
+.navigation button:hover { border-color: var(--company-accent); background: var(--company-panel); }
+.navigation button[aria-current="true"] { border-color: var(--company-accent); background: var(--company-accent); color: var(--company-accent-ink); font-weight: 650; }
+.form > .navigation { margin: 0; }
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 28px; align-items: start; }
 .editor, .form { min-width: 0; }
 .aside { border-top: 2px solid var(--company-accent); padding-top: 22px; }
@@ -93,7 +97,7 @@
     .fields, .themes { grid-template-columns: minmax(0, 1fr); }
     .trades { grid-template-columns: minmax(0, 1fr); }
     .navigation { gap: 6px; }
-    .navigation a { padding: 10px 12px; }
+    .navigation :is(a, button) { padding: 10px 12px; }
     .header h1 { letter-spacing: -1px; }
     .back { margin-bottom: 12px; }
     .lede { font-size: 15px; line-height: 1.5; }

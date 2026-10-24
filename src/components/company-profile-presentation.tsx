@@ -22,14 +22,7 @@ export default function CompanyProfilePresentation({ children }: { children: Rea
                     <div><strong>One profile. More useful proposals.</strong><p>Save applies to the whole profile. Moving between sections does not save anything.</p></div>
                 </div>
             </header>
-            <nav className={ui.navigation} aria-label="Company profile sections">
-                <a href="#company-basics">Company basics</a>
-                <a href="#company-work">Your work &amp; story</a>
-                <a href="#company-contacts">Your people</a>
-                <a href="#company-style">Proposal style</a>
-                <a href="#company-director">Director message</a>
-                <a href="#company-consent">Data consent</a>
-            </nav>
+            {/* Section navigation lives in the form, which shows one section at a time. */}
             <div className={ui.layout}>
                 <div className={ui.editor}>{children}</div>
                 <aside className={ui.aside} aria-labelledby="company-other-ways">

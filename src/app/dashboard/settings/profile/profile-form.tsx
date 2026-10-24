@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { toast } from "sonner";
 import { updateProfileAction, rewriteWithAIAction, rewriteMdMessageAction } from "./actions";
 import { uploadProfileImageAction } from "@/app/storage/actions";
@@ -86,6 +87,19 @@ const ALL_TRADES = [
     'Scaffolding & Access',
 ];
 
+// One section is shown at a time. Every section stays mounted, so each field keeps
+// what was typed and is still posted by the whole-profile save.
+const PROFILE_SECTIONS = [
+    { id: "company-basics", label: "Company basics" },
+    { id: "company-work", label: "Your work & story" },
+    { id: "company-contacts", label: "Your people" },
+    { id: "company-style", label: "Proposal style" },
+    { id: "company-director", label: "Director message" },
+    { id: "company-consent", label: "Data consent" },
+] as const;
+type ProfileSectionId = (typeof PROFILE_SECTIONS)[number]["id"];
+const isProfileSection = (id: string): id is ProfileSectionId => PROFILE_SECTIONS.some(section => section.id === id);
+
 function ProfileSuggestion({ id, suggestion, onUse, onDiscard }: {
     id: string;
     suggestion: string | null;
@@ -132,6 +146,50 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
     // A reply is held here as a suggestion. It replaces nothing until the contractor chooses it.
     const [capabilitySuggestion, setCapabilitySuggestion] = useState<string | null>(null);
     const [mdMessageSuggestion, setMdMessageSuggestion] = useState<string | null>(null);
+    const [activeSection, setActiveSection] = useState<ProfileSectionId>("company-basics");
+    const [revealNotice, setRevealNotice] = useState<string | null>(null);
+
+    // A link such as /dashboard/settings/profile#company-style opens that section.
+    useEffect(() => {
+        const openLinkedSection = () => {
+            const id = window.location.hash.slice(1);
+            if (!isProfileSection(id)) return;
+            setActiveSection(id);
+        };
+        openLinkedSection();
+        window.addEventListener("hashchange", openLinkedSection);
+        return () => window.removeEventListener("hashchange", openLinkedSection);
+    }, []);
+
+    // Wait for the selected panel's hidden attribute to commit before focusing it.
+    useEffect(() => {
+        if (window.location.hash.slice(1) === activeSection) {
+            document.getElementById(activeSection)?.focus();
+        }
+    }, [activeSection]);
+
+    // On save the browser focuses the first invalid field. A field in a hidden section
+    // cannot take focus, so its section is shown first, before the browser reports it.
+    useEffect(() => {
+        const form = formRef.current;
+        if (!form) return;
+        let revealing = false;
+        const revealInvalid = (event: Event) => {
+            if (revealing) return;
+            const id = (event.target as Element).closest("section[id]")?.id ?? "";
+            if (!isProfileSection(id)) return;
+            revealing = true;
+            // Later invalid events from the same save attempt keep the first field's section.
+            setTimeout(() => { revealing = false; }, 0);
+            const label = PROFILE_SECTIONS.find(item => item.id === id)?.label ?? "This section";
+            flushSync(() => {
+                setActiveSection(id);
+                setRevealNotice(`${label} has a field to check before the profile can be saved.`);
+            });
+        };
+        form.addEventListener("invalid", revealInvalid, true);
+        return () => form.removeEventListener("invalid", revealInvalid, true);
+    }, []);
 
     // State-only choices are mirrored on the form, so async replies compare the live DOM,
     // not an older render's values. Overrides cover a choice before React commits it.
@@ -198,6 +256,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
         setSaving(true);
         setSaveError(null);
         setSaveNotice(null);
+        setRevealNotice(null);
         const form = e.currentTarget;
         try {
             const fd = new FormData(form);
@@ -239,8 +298,20 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
             </p>
             {saveError && <p role="alert" className={ui.saveError}>{saveError}</p>}
 
+            {/* Choosing a section only changes what is shown. It does not save or reset anything. */}
+            <nav className={ui.navigation} aria-label="Company profile sections">
+                {PROFILE_SECTIONS.map(section => (
+                    <button key={section.id} type="button" aria-controls={section.id}
+                        aria-current={activeSection === section.id ? "true" : undefined}
+                        onClick={() => { setActiveSection(section.id); setRevealNotice(null); }}>
+                        {section.label}
+                    </button>
+                ))}
+            </nav>
+            {revealNotice && <p role="status" className={ui.saveError}>{revealNotice}</p>}
+
             {/* Section B — Company Profile */}
-            <section id="company-basics" tabIndex={-1} className={ui.section}>
+            <section id="company-basics" tabIndex={-1} className={ui.section} hidden={activeSection !== "company-basics"}>
                 <h2 className="text-lg font-bold text-slate-100">Company basics</h2>
                 <p>Begin with who you are and the kind of work you do. Keep the other details for when you need them.</p>
                 <div className={ui.fields}>
@@ -342,7 +413,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
 
             </section>
 
-            <section id="company-work" tabIndex={-1} className={ui.section}>
+            <section id="company-work" tabIndex={-1} className={ui.section} hidden={activeSection !== "company-work"}>
                 <h2>Your work &amp; story</h2>
                 <p>Choose your trades and introduce the experience behind your business.</p>
                 <div>
@@ -479,7 +550,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
             </section>
 
             {/* Section A — Personal Details */}
-            <section id="company-contacts" tabIndex={-1} className={ui.section}>
+            <section id="company-contacts" tabIndex={-1} className={ui.section} hidden={activeSection !== "company-contacts"}>
                 <h2 className="text-lg font-bold text-slate-100">Personal Details</h2>
                 <p>Your people and the contacts you use for sales and accounts.</p>
                 <div className={ui.fields}>
@@ -548,7 +619,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
             </section>
 
             {/* Section C — Proposal Theme */}
-            <section id="company-style" tabIndex={-1} className={ui.section}>
+            <section id="company-style" tabIndex={-1} className={ui.section} hidden={activeSection !== "company-style"}>
                 <div>
                     <h2 className="text-lg font-bold text-slate-100">Proposal Theme</h2>
                     <p className="text-xs text-slate-500 mt-0.5">Choose the colour scheme for your PDF proposals.</p>
@@ -584,22 +655,8 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                 </div>
             </section>
 
-            {/* Section D — Past Projects & Case Studies. Edited on their own page; this form does not save them. */}
-            <section data-profile-case-studies className={ui.section}>
-                <h2 className="text-lg font-bold text-slate-100">Past Projects &amp; Case Studies</h2>
-                <p className="text-sm text-slate-300">
-                    Case studies are added and changed on their own page. Saving this profile does not change them.
-                </p>
-                <Link
-                    href={CASE_STUDIES_PATH}
-                    className="inline-flex items-center min-h-11 px-4 rounded-lg border border-blue-400 text-sm font-semibold text-blue-200 hover:bg-blue-900/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                >
-                    Go to case studies
-                </Link>
-            </section>
-
             {/* Section — MD Message (for PDF proposals) */}
-            <section id="company-director" tabIndex={-1} className={ui.section}>
+            <section id="company-director" tabIndex={-1} className={ui.section} hidden={activeSection !== "company-director"}>
                 <h2 className="text-lg font-bold text-slate-100">Managing Director Message</h2>
                 <p className="text-sm text-slate-400">This message appears in your PDF proposals as a personal note from the MD.</p>
                 <div className={ui.fields}>
@@ -645,7 +702,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
             </section>
 
             {/* ── Data Consent ──────────────────────────────────────────────── */}
-            <section id="company-consent" tabIndex={-1} className={ui.section}>
+            <section id="company-consent" tabIndex={-1} className={ui.section} hidden={activeSection !== "company-consent"}>
                 <h2 className="text-base font-semibold text-white">Industry Benchmarking</h2>
                 <p className="text-sm text-slate-400">
                     Help improve Constructa&apos;s industry benchmarks by contributing anonymised data from your closed projects.
@@ -668,6 +725,21 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                     You can withdraw consent at any time by unchecking this box. Previously contributed data
                     cannot be retroactively removed as it is fully anonymised with no link back to your account.
                 </p>
+            </section>
+
+            {/* Section D — Past Projects & Case Studies. Edited on their own page; this form does not save them.
+                Not one of the switched sections: it stays visible under whichever section is shown. */}
+            <section data-profile-case-studies className={ui.section}>
+                <h2 className="text-lg font-bold text-slate-100">Past Projects &amp; Case Studies</h2>
+                <p className="text-sm text-slate-300">
+                    Case studies are added and changed on their own page. Saving this profile does not change them.
+                </p>
+                <Link
+                    href={CASE_STUDIES_PATH}
+                    className="inline-flex items-center min-h-11 px-4 rounded-lg border border-blue-400 text-sm font-semibold text-blue-200 hover:bg-blue-900/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                >
+                    Go to case studies
+                </Link>
             </section>
 
             <div className={ui.saveBar}>

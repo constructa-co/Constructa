@@ -63,6 +63,8 @@ test("Company Profile: no case-study editor, a link to the real one, and saving 
 
         // 2. A case study is added on its own page after this form was loaded. Then the profile is saved.
         expect((await control({ addCaseStudyElsewhere: "Bathroom at Test Lane" })).caseStudies).toEqual([...STORED, "Bathroom at Test Lane"]);
+        // The form shows one section at a time; the phone field is in "Your people".
+        await use.activate(page.getByRole("button", { name: "Your people", exact: true }));
         await use.fill(phone, "0113 496 0101");
         await use.activate(save);
         await expect(page.getByText("Profile saved")).toBeVisible();

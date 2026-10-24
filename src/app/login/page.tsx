@@ -12,6 +12,7 @@ import ui from '@/components/first-session.module.css';
 import { platformSignupAction, type PlatformSignupErrorCode } from '@/lib/platform-signup-action';
 import { PLATFORM_TERMS_CURRENT_REVISION } from '@/lib/platform-terms';
 import { PLATFORM_TERMS_COMPLETION_PATH, platformTermsCompletionReturn } from '@/lib/platform-terms-completion';
+import AuthCallbackNotice from '@/components/auth-callback-notice';
 
 // A023 (Rob 15:05) — signup now runs through the server action seam
 // (platform-signup-action): the server verifies explicit terms acceptance
@@ -167,6 +168,8 @@ export default function LoginPage() {
                     />
                 ) : (
                     <>
+                    {/* Shown only after the auth callback reports a link it could not confirm. */}
+                    <AuthCallbackNotice />
                     <div className={ui.modeToggle} role="group" aria-label="Account mode">
                         <button type="button" disabled={loading} aria-pressed={isSignUp} onClick={() => switchMode("signup")}>Get started</button>
                         <button type="button" disabled={loading} aria-pressed={!isSignUp} onClick={() => switchMode("signin")}>Sign in</button>

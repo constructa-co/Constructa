@@ -71,21 +71,25 @@ export default function LoginPage() {
         setSuccessMessage(null);
         setSuccessOutcome(null);
 
-        const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
+        try {
+            const { error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
 
-        if (error) {
-            setErrorMessage(error.message);
+            if (error) {
+                setErrorMessage("We couldn't confirm sign-in. Check your details and try again.");
+                return;
+            }
+
+            // Only the exact platform terms completion page is honoured as a return.
+            router.push(platformTermsCompletionReturn(globalThis.location?.search) ?? getLaunchLandingPath());
+            router.refresh();
+        } catch {
+            setErrorMessage("We couldn't confirm sign-in. Check your details and try again.");
+        } finally {
             setLoading(false);
-            return;
         }
-
-        // Only the exact platform terms completion page is honoured as a return.
-        router.push(platformTermsCompletionReturn(globalThis.location?.search) ?? getLaunchLandingPath());
-        router.refresh();
-        setLoading(false);
     };
 
     const handleSignUp = async (e: React.FormEvent) => {

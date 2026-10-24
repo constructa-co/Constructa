@@ -171,7 +171,8 @@ describe("platform terms contract in the actual login layout", () => {
     it("retains signin errors and never invokes signup from signin mode", async () => {
         state.signIn.mockResolvedValue({ error: { message: "Synthetic signin refused" } });
         await submit();
-        expect(html()).toContain("Synthetic signin refused");
+        expect(html()).toContain("We couldn&#x27;t confirm sign-in. Check your details and try again.");
+        expect(html()).not.toContain("Synthetic signin refused");
         expect(input("platform-terms")).toBeUndefined();
         expect(state.signUp).not.toHaveBeenCalled();
         expect(state.push).not.toHaveBeenCalled();

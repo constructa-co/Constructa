@@ -197,7 +197,9 @@ describe("actual sign-in/signup presentation boundary", () => {
     it("keeps sign-in failure visible without a setup indicator or navigation", async () => {
         state.signIn.mockResolvedValue({ error: { message: "Test sign-in refused" } });
         await submit(); const view = html();
-        expect(view).toContain('role="alert"'); expect(view).toContain("Test sign-in refused");
+        expect(view).toContain('role="alert"');
+        expect(view).toContain("We couldn&#x27;t confirm sign-in. Check your details and try again.");
+        expect(view).not.toContain("Test sign-in refused");
         expect(view).not.toContain('aria-label="Getting started"'); expect(state.push).not.toHaveBeenCalled();
     });
 

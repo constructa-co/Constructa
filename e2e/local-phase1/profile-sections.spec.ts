@@ -71,6 +71,42 @@ test.afterEach(async ({ page }, info) => {
     await info.attach("scope", { body: JSON.stringify({ ...scope, ...await fixtureState(page), requests, pageErrors }), contentType: "application/json" });
 });
 
+for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+    test(`setup sequence stays visible with current position and exact drafts at ${viewport.width}px`, async ({ page }, info) => {
+        await page.setViewportSize(viewport);
+        await open(page);
+        const nav = page.getByRole("navigation", { name: "Company profile sections" });
+        const panels = page.locator("[data-profile-panels]");
+        const navBox = await nav.boundingBox();
+        const panelBox = await panels.boundingBox();
+        expect(navBox).not.toBeNull();
+        expect(panelBox).not.toBeNull();
+        if (viewport.width > 800) {
+            expect(navBox!.x + navBox!.width).toBeLessThanOrEqual(panelBox!.x);
+            expect(Math.abs(navBox!.y - panelBox!.y)).toBeLessThan(1);
+        } else {
+            expect(navBox!.y + navBox!.height).toBeLessThanOrEqual(panelBox!.y);
+            expect(navBox!.x).toBeGreaterThanOrEqual(0);
+            expect(navBox!.x + navBox!.width).toBeLessThanOrEqual(viewport.width);
+        }
+        await info.attach("setup-navigation-geometry", { body: JSON.stringify({ viewport, navBox, panelBox }), contentType: "application/json" });
+        const draft = "TEST DATA - Retained setup draft & company";
+        await field(page, "company_name").fill(draft);
+        await expect(nav.getByRole("button")).toHaveText(SECTIONS.map(([, label]) => label));
+        for (const [id, label] of SECTIONS) {
+            await chooser(page, label).click();
+            await expectOnlyShown(page, id);
+            await expect(nav.locator('[aria-current="true"]')).toHaveCount(1);
+            await expect(field(page, "company_name")).toHaveValue(draft);
+            expect((await fixtureState(page)).saves).toEqual([]);
+        }
+        await expect(page.getByText("Next: Work Winning", { exact: true })).toBeVisible();
+        await expect(page.getByText(/Save your profile changes before leaving/)).toBeVisible();
+        await expect(status(page)).toHaveText("Unsaved changes. Save before leaving this profile.");
+        expect((await fixtureState(page)).script).toEqual([]);
+    });
+}
+
 test("switching sections shows one at a time, keeps every value and saves the whole profile only on Save", async ({ page }) => {
     await open(page);
     await expect(page.getByRole("navigation", { name: "Company profile sections" }).getByRole("button")).toHaveCount(6);

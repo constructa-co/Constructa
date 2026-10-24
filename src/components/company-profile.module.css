@@ -44,6 +44,10 @@
 .navigation button:hover { border-color: var(--company-accent); background: var(--company-panel); }
 .navigation button[aria-current="true"] { border-color: var(--company-accent); background: var(--company-accent); color: var(--company-accent-ink); font-weight: 650; }
 .form > .navigation { margin: 0; }
+.sectionLayout { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 20px; align-items: start; }
+.sectionLayout > .navigation { flex-direction: column; flex-wrap: nowrap; align-items: stretch; margin: 0; position: sticky; top: 24px; }
+.sectionLayout > .navigation button { text-align: left; border-radius: 8px; }
+.sectionBody { display: grid; gap: 20px; min-width: 0; }
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 28px; align-items: start; }
 .editor, .form { min-width: 0; }
 .aside { border-top: 2px solid var(--company-accent); padding-top: 22px; }
@@ -91,6 +95,10 @@
 .root :is(button, input, textarea, select):disabled { opacity: .6; cursor: not-allowed; }
 .root a, .section { overflow-wrap: anywhere; }
 @media (max-width: 1000px) { .layout { grid-template-columns: minmax(0, 1fr); } .aside { max-width: 740px; } }
+@media (max-width: 800px) {
+    .sectionLayout { grid-template-columns: minmax(0, 1fr); }
+    .sectionLayout > .navigation { position: static; flex-direction: row; flex-wrap: wrap; }
+}
 @media (max-width: 650px) {
     .root { margin: 0; border-radius: 0; padding: 28px 16px; }
     .section { padding: 22px 16px; }

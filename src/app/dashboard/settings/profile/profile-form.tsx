@@ -299,6 +299,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
             {saveError && <p role="alert" className={ui.saveError}>{saveError}</p>}
 
             {/* Choosing a section only changes what is shown. It does not save or reset anything. */}
+            <div className={ui.sectionLayout} data-profile-journey>
             <nav className={ui.navigation} aria-label="Company profile sections">
                 {PROFILE_SECTIONS.map(section => (
                     <button key={section.id} type="button" aria-controls={section.id}
@@ -308,6 +309,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                     </button>
                 ))}
             </nav>
+            <div className={ui.sectionBody} data-profile-panels>
             {revealNotice && <p role="status" className={ui.saveError}>{revealNotice}</p>}
 
             {/* Section B — Company Profile */}
@@ -744,6 +746,9 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                     Go to case studies
                 </Link>
             </section>
+
+            </div>
+            </div>
 
             <div className={ui.saveBar}>
                 <p>Save applies to all sections of this profile, not just the section you are viewing.</p>

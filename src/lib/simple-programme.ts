@@ -111,17 +111,33 @@ function hasLiveOrLinkedData(phase: Record<string, unknown>): boolean {
         || (typeof phase.start_date === "string" && phase.start_date !== "");
 }
 
-/** True when saved phases are a start date and stages that run back to back. */
+/** Where the plan draws a saved phase: its calendar offset, rolled on to a working day. */
+function placedStart(startDate: string, offset: number): string | null {
+    const start = parseIsoDate(startDate);
+    if (start === null || !Number.isInteger(offset) || offset < 0) return null;
+    return addWorkingDays(new Date(start + offset * 86_400_000).toISOString().slice(0, 10), 1);
+}
+
+/**
+ * True when saved phases are a start date and stages that run back to back.
+ * A weekend start, such as one the Brief has since moved to, is read as the
+ * plan reads it, from the next working day. The date itself is not changed;
+ * it still has to be corrected to a weekday before the programme is saved.
+ */
 function fitsSimpleShape(startDate: string, phases: unknown[]): boolean {
-    if (!isWorkingDay(startDate)) return false;
+    const firstDay = addWorkingDays(startDate, 1);
+    if (!firstDay) return false;
+    const weekendStart = firstDay !== startDate;
     if (phases.length !== 1 && (phases.length < MIN_STAGES || phases.length > MAX_STAGES)) return false;
 
-    let cursor: string | null = startDate;
+    let cursor: string | null = firstDay;
     for (const entry of phases) {
         const phase = asRecord(entry);
         const workingDays = phaseWorkingDays(phase);
         if (typeof phase.name !== "string" || !phase.name.trim() || workingDays < 1 || hasLiveOrLinkedData(phase)) return false;
-        if (cursor === null || Number(phase.startOffset ?? 0) !== calendarOffset(startDate, cursor)) return false;
+        if (cursor === null) return false;
+        const offset = Number(phase.startOffset ?? 0);
+        if (weekendStart ? placedStart(startDate, offset) !== cursor : offset !== calendarOffset(startDate, cursor)) return false;
         const end = addWorkingDays(cursor, workingDays);
         cursor = end ? nextWorkingDayAfter(end) : null;
     }

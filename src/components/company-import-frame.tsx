@@ -31,8 +31,8 @@ export default function CompanyImportFrame({ children, dark, draftId }: {
         }}>
             <header className={ui.header}>
                 <p className={ui.eyebrow}>Your company / Your website</p>
-                <h1 id="import-heading">Your website. Your choices.</h1>
-                <p>An optional starting point for your company profile. Review the details before deciding which to save.</p>
+                <h1 id="import-heading">Your company, brought into focus.</h1>
+                <p>An optional starting point for your company profile. Review each suggestion before deciding what to save.</p>
             </header>
             <div className={ui.layout}>
                 <div className={ui.editor}>{children}</div>

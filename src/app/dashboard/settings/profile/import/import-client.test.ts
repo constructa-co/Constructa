@@ -33,6 +33,9 @@ const render = (initialDraft: ImportDraft | null, savedWebsite = "") =>
 describe("ImportClient", () => {
     it("starts with permission unticked and manual entry one link away", () => {
         const html = render(null);
+        expect(html).toContain("Your company, brought into focus.");
+        expect(html).toContain("Your website address");
+        expect(html).toContain("Review before you save");
         expect(html).toContain("This is my own business&#x27;s website");
         expect(html).not.toMatch(/id="import-permission"[^>]*checked/);
         expect(html).toMatch(/href="\/dashboard\/settings\/profile"[^>]*>Enter details by hand/);

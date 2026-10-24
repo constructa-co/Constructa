@@ -5,21 +5,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, Loader2 } from "lucide-react";
 import {
-    NEW_PROJECT_PATH,
     SETUP_LIMITS,
     SETUP_SAVE_FALLBACK_ERROR,
     SETUP_STEPS,
-    SETUP_TRADES,
+    SETUP_WORK_SUGGESTIONS,
     buildSetupPatch,
+    hasWorkSuggestion,
     resolveSetupSaveOutcome,
     saveStateFromOutcome,
+    toggleWorkSuggestion,
     type SetupSaveState,
     type SetupStep,
     type SetupStepInput,
 } from "@/lib/first-session";
 import { saveSetupStepAction } from "./actions";
-
-const OTHER_TRADE = "__other__";
+import { FirstSessionPanel } from "@/components/first-session-frame";
+import ui from "@/components/first-session.module.css";
 
 interface Props {
     initialStep: SetupStep;
@@ -35,7 +36,7 @@ interface Props {
 }
 
 const inputCls =
-    "w-full h-12 px-3 rounded-lg border border-slate-600 bg-slate-900 text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500";
+    ui.input;
 
 export default function OnboardingClient({
     initialStep,
@@ -53,12 +54,8 @@ export default function OnboardingClient({
     // double-taps can fire before React re-renders the disabled state).
     const inFlightRef = useRef(false);
 
-    const savedTrade = initialBusinessType.trim();
-    const savedTradeIsListed = SETUP_TRADES.includes(savedTrade);
-    const [tradeChoice, setTradeChoice] = useState(savedTrade ? (savedTradeIsListed ? savedTrade : OTHER_TRADE) : "");
-    const [otherTrade, setOtherTrade] = useState(savedTrade && !savedTradeIsListed ? savedTrade : "");
-    const [tradeSaved, setTradeSaved] = useState(!!savedTrade);
-    const businessType = tradeChoice === OTHER_TRADE ? otherTrade.trim() : tradeChoice;
+    const [businessType, setBusinessType] = useState(initialBusinessType.trim());
+    const [tradeSaved, setTradeSaved] = useState(!!initialBusinessType.trim());
 
     const [companyName, setCompanyName] = useState(initialCompanyName);
     const [fullName, setFullName] = useState(initialFullName);
@@ -123,8 +120,8 @@ export default function OnboardingClient({
         if (saveState.status === "failed") setSaveState({ status: "idle" });
     };
 
-    const pickTrade = (value: string) => {
-        setTradeChoice(value);
+    const toggleSuggestion = (suggestion: string) => {
+        setBusinessType((answer) => toggleWorkSuggestion(answer, suggestion));
         clearFailure();
     };
 
@@ -135,13 +132,13 @@ export default function OnboardingClient({
     };
 
     return (
-        <div className="max-w-xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-            <p className="text-sm font-semibold text-blue-400" aria-live="polite">
+        <FirstSessionPanel step={1}>
+            <p className={ui.eyebrow} aria-live="polite">
                 Step {stepNumber} of {SETUP_STEPS.length}
             </p>
             <div className="mt-2 flex gap-2" aria-hidden>
                 {SETUP_STEPS.map((key, i) => (
-                    <div key={key} className={`h-1.5 flex-1 rounded-full ${i < stepNumber ? "bg-blue-500" : "bg-slate-700"}`} />
+                    <div key={key} className={`h-1.5 flex-1 rounded-full ${i < stepNumber ? "bg-[#c9efcf]" : "bg-slate-700"}`} />
                 ))}
             </div>
 
@@ -151,58 +148,60 @@ export default function OnboardingClient({
                 className="mt-8"
             >
                 {step === "trade" && (
-                    <fieldset disabled={saving}>
-                        <legend className="text-2xl sm:text-3xl font-bold text-white">What kind of work do you do?</legend>
-                        <p className="mt-2 text-base text-slate-400">Pick your main trade. You can change it later.</p>
+                    <fieldset disabled={saving} className="min-w-0">
+                        <legend className={ui.heading}>
+                            <h1><label htmlFor="setup-work">What kind of work do you do?</label></h1>
+                        </legend>
+                        <p id="setup-work-help" className={ui.lede}>
+                            Say it in your own words, as you would to a customer. You can change it later.
+                        </p>
 
-                        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2.5" role="group" aria-label="Main trade">
-                            {[...SETUP_TRADES, OTHER_TRADE].map((trade) => {
-                                const selected = tradeChoice === trade;
+                        <textarea
+                            id="setup-work"
+                            value={businessType}
+                            onChange={(e) => { setBusinessType(e.target.value); clearFailure(); }}
+                            placeholder="e.g. Kitchen and bathroom fitting, tiling and small extensions"
+                            maxLength={SETUP_LIMITS.businessType}
+                            rows={3}
+                            autoComplete="off"
+                            aria-describedby="setup-work-help"
+                            className={`${inputCls} mt-5 h-auto py-2.5 resize-none`}
+                        />
+
+                        <p id="setup-work-suggestions" className="mt-5 text-sm font-semibold text-slate-200">
+                            Or tap any that fit <span className="font-normal text-slate-400">(optional)</span>
+                        </p>
+                        <div className={ui.workSuggestions} role="group" aria-labelledby="setup-work-suggestions">
+                            {SETUP_WORK_SUGGESTIONS.map((suggestion) => {
+                                const selected = hasWorkSuggestion(businessType, suggestion);
                                 return (
                                     <button
-                                        key={trade}
+                                        key={suggestion}
                                         type="button"
                                         aria-pressed={selected}
-                                        onClick={() => pickTrade(trade)}
-                                        className={`min-h-12 px-4 py-2.5 rounded-xl border text-left text-base font-medium flex items-center justify-between gap-3 transition-colors ${
-                                            selected
-                                                ? "border-blue-500 bg-blue-600/20 text-white"
-                                                : "border-slate-700 bg-slate-900 text-slate-200 hover:border-slate-500"
-                                        }`}
+                                        onClick={() => toggleSuggestion(suggestion)}
+                                        className={ui.workSuggestion}
                                     >
-                                        <span>{trade === OTHER_TRADE ? "Something else" : trade}</span>
-                                        {selected && <Check className="w-5 h-5 flex-shrink-0 text-blue-400" />}
+                                        {selected && <Check className="w-4 h-4 flex-shrink-0" aria-hidden="true" />}
+                                        {suggestion}
                                     </button>
                                 );
                             })}
                         </div>
-
-                        {tradeChoice === OTHER_TRADE && (
-                            <div className="mt-4">
-                                <label htmlFor="setup-other-trade" className="block text-sm font-semibold text-slate-200">Your trade</label>
-                                <input
-                                    id="setup-other-trade"
-                                    value={otherTrade}
-                                    onChange={(e) => { setOtherTrade(e.target.value); clearFailure(); }}
-                                    placeholder="e.g. Scaffolding"
-                                    maxLength={SETUP_LIMITS.businessType}
-                                    autoComplete="off"
-                                    className={`${inputCls} mt-1.5`}
-                                />
-                            </div>
-                        )}
                     </fieldset>
                 )}
 
                 {step === "business" && (
-                    <fieldset disabled={saving}>
-                        <legend className="text-2xl sm:text-3xl font-bold text-white">What&apos;s your business called?</legend>
-                        <p className="mt-2 text-base text-slate-400">This is the name your clients will see on your proposals.</p>
+                    <fieldset disabled={saving} className="min-w-0">
+                        <legend className={ui.heading}><h1>Let&apos;s make it yours.</h1></legend>
+                        <p className={ui.lede}>
+                            Clients see this name on your proposals. You can change it later from Profile.
+                        </p>
 
                         {tradeSaved && businessType && (
-                            <p className="mt-4 flex items-center gap-2 text-sm text-emerald-400">
-                                <Check className="w-4 h-4 flex-shrink-0" />
-                                <span className="min-w-0 truncate">Saved: {businessType}</span>
+                            <p className={ui.saved}>
+                                <Check className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                                <span className="min-w-0 break-words">Saved: {businessType}</span>
                             </p>
                         )}
 
@@ -238,8 +237,8 @@ export default function OnboardingClient({
                 )}
 
                 {/* Pinned to the bottom of a phone screen so the action and any
-                    failure message stay in view under a long list of trades. */}
-                <div className="sticky bottom-0 z-10 -mx-4 px-4 mt-6 pt-3 pb-4 bg-[#0d0d0d] border-t border-white/10 sm:static sm:mx-0 sm:px-0 sm:pt-0 sm:pb-0 sm:border-0">
+                    failure message stay in view under the suggestions. */}
+                <div className={ui.saveBar}>
                 {saveState.status === "failed" && (
                     <div role="alert" className="mb-3 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 flex items-start gap-3 text-red-200">
                         <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
@@ -253,7 +252,7 @@ export default function OnboardingClient({
                             type="button"
                             onClick={goBackToTrade}
                             disabled={saving}
-                            className="min-h-12 px-5 rounded-xl border border-slate-600 text-base font-semibold text-slate-200 hover:bg-white/5 disabled:opacity-50 transition-colors"
+                            className={ui.secondary}
                         >
                             Back
                         </button>
@@ -261,7 +260,7 @@ export default function OnboardingClient({
                     <button
                         type="submit"
                         disabled={saving}
-                        className="flex-1 min-h-12 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed text-white text-base font-bold transition-colors flex items-center justify-center gap-2"
+                        className={`${ui.primary} flex-1`}
                     >
                         {saving ? (
                             <>
@@ -270,10 +269,8 @@ export default function OnboardingClient({
                             </>
                         ) : saveState.status === "failed" ? (
                             "Try again"
-                        ) : step === "trade" ? (
+                        ) : step === "trade" || !exitPath ? (
                             "Save and continue"
-                        ) : completionPath === NEW_PROJECT_PATH ? (
-                            "Save and add your first job"
                         ) : (
                             "Save"
                         )}
@@ -282,8 +279,8 @@ export default function OnboardingClient({
                 </div>
             </form>
 
-            <p className="mt-6 sm:mt-8 text-sm text-slate-400">
-                That&apos;s all we need to get you started. Your logo, address, insurance and other company details are optional, and you can add them later from Profile.
+            <p className={ui.footnote}>
+                That&apos;s all we need to get you started. Your logo, company story, case studies and other details are optional, and you can add them whenever you like.
             </p>
 
             {exitPath && (
@@ -293,6 +290,6 @@ export default function OnboardingClient({
                     </Link>
                 </p>
             )}
-        </div>
+        </FirstSessionPanel>
     );
 }

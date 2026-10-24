@@ -18,7 +18,8 @@ vi.mock("../schedule/simple-actions", () => ({ saveSimpleProgrammeAction: vi.fn(
 import { representativeInput } from "@/lib/__fixtures__/proposal";
 import { isDashboardPathAllowed } from "@/lib/launch-profile";
 import { responseWording } from "@/lib/proposal-response";
-import type { ReviewContext } from "@/lib/proposal-review";
+import { buildPreviewSnapshot, draftFromProject, type ReviewContext } from "@/lib/proposal-review";
+import { buildProposalDocument } from "@/lib/proposal-document";
 import SimpleProgrammeClient from "../schedule/simple-programme-client";
 import PublicationHistoryPanel, {
     publicationResponseKind,
@@ -95,6 +96,46 @@ describe("Review and Send", () => {
         expect(html).toContain("12 terms are shown to the client");
     });
 
+    it("distinguishes project details from the company profile on the cover", () => {
+        const cover = html.slice(html.indexOf('id="review-cover"'), html.indexOf('id="review-about"'));
+        expect(cover).toContain("Job, client and site come from the project. Your company name comes from your profile.");
+        expect(cover).not.toContain("These come from the project.");
+        expect(cover).toContain("Change project details");
+        expect(cover).toContain(`/dashboard/projects/settings?projectId=${input.project.id}`);
+        expect(html).toContain('href="/dashboard/settings/profile"');
+    });
+
+    it("does not claim About is omitted when only the company introduction is missing", () => {
+        const current = { ...context(), profile: { ...input.profile, capability_statement: "" } };
+        let key = 0;
+        const snapshot = buildPreviewSnapshot(current, draftFromProject(current.project, () => `about-${key++}`), "acknowledgement", NOW);
+        expect(snapshot).not.toBeNull();
+        const about = buildProposalDocument(snapshot!).sections.find(section => section.id === "about");
+        expect(about).toBeDefined();
+        expect(about!.blocks).toContainEqual({ type: "facts", items: [{ label: "Years trading", value: "12" }] });
+        const page = review({ context: current });
+        const summary = page.slice(page.indexOf('id="review-about"'), page.indexOf('id="review-experience"'));
+        expect(summary).toContain("No company introduction is saved. Other company details may still appear in the draft preview below.");
+        expect(summary).not.toContain("so this section is left out");
+        expect(page).toContain('id="doc-about"');
+        expect(page).toContain("Public liability cover, certificate available on request");
+    });
+
+    it("groups exclusions and clarifications visibly within scope without changing their controls", () => {
+        const group = html.match(/<section[^>]*data-review-scope-notes[\s\S]*?<\/section>/)?.[0];
+        expect(group).toBeDefined();
+        expect(group).toContain('aria-labelledby="review-scope-notes-title"');
+        expect(group).toMatch(/<h3[^>]*id="review-scope-notes-title"[^>]*>Exclusions and clarifications<\/h3>/);
+        expect(group).toContain('for="wording-exclusions"');
+        expect(group).toContain('for="wording-clarifications"');
+        expect(group).toContain("One item per line.");
+        expect(group).toContain("One item per line: assumptions, access, anything the price depends on.");
+        expect(group).not.toContain('required=""');
+        expect(group!.indexOf('id="wording-exclusions"')).toBeLessThan(group!.indexOf('id="wording-clarifications"'));
+        expect(html.indexOf("data-review-scope-notes")).toBeGreaterThan(html.indexOf('id="review-photo-file"'));
+        expect(html.indexOf("data-review-scope-notes")).toBeLessThan(html.indexOf('id="review-price"'));
+    });
+
     it("offers exactly two responses with acknowledgement chosen, and says neither is acceptance", () => {
         const options = html.match(/data-response-option="[^"]+"/g);
         expect(options).toEqual(['data-response-option="acknowledgement"', 'data-response-option="non_binding_intent"']);
@@ -133,7 +174,7 @@ describe("Review and Send", () => {
         expect(gaps).toContain("2 things are needed before you can send");
         expect(gaps).toMatch(/data-readiness-item="programme" data-ok="false"/);
         expect(gaps).toContain("Add the start date and how long the job takes in Programme.");
-        expect(gaps).toContain("Would improve it. You can send without these.");
+        expect(gaps).toContain("Optional additions to consider");
         expect(gaps).toContain('data-recommended-item="closingStatement"');
         expect(gaps).toContain('data-send-block="not-ready"');
         // The confirmation cannot be ticked while a required item is missing.
@@ -249,6 +290,15 @@ describe("Review and Send", () => {
         });
         // Radios and tick boxes are reached through a label at least 44px tall.
         expect(html.match(/<label[^>]*min-h-11[^>]*>/g)?.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it("shows native photo-input keyboard focus on its visible label", () => {
+        expect(html).toMatch(/<input[^>]*id="review-photo-file"[^>]*class="sr-only"/);
+        expect(html).toContain('for="review-photo-file"');
+        const css = readFileSync(path.join(SRC, "components/proposal-workspace.module.css"), "utf8");
+        expect(css).toMatch(/div:has\(> input\[id="review-photo-file"\]\)\s*\{\s*position: relative;/);
+        expect(css).toMatch(/input\[id="review-photo-file"\]:focus-visible\s*\+\s*label\[for="review-photo-file"\][^{]*\{\s*outline: 3px solid var\(--review-focus\);\s*outline-offset: 3px;/);
+        expect(review({ lockReason: "Read only" })).not.toContain('id="review-photo-file"');
     });
 });
 

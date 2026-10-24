@@ -1,0 +1,135 @@
+/* Finished-document view. Colours come from the review workspace's
+   --review-* variables, which the dialog inherits from its place in the page;
+   the fallbacks are the workspace's light values. */
+
+.dialog {
+    width: min(calc(100% - 32px), 60rem);
+    max-width: none;
+    height: calc(100dvh - 32px);
+    max-height: none;
+    margin: auto;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--review-border, #d5ded2);
+    border-radius: 20px;
+    background: var(--review-surface, #fafcf8);
+    color: var(--review-ink, #18221a);
+    font-family: "Avenir Next", Avenir, "Trebuchet MS", sans-serif;
+    box-shadow: 0 24px 64px rgb(24 34 26 / .28);
+}
+
+/* The browser's own rule hides a closed dialog; only an open one lays out. */
+.dialog[open] {
+    display: flex;
+}
+
+/* Backdrop inheritance differs between browsers, so no variables here. */
+.dialog::backdrop {
+    background: rgb(24 34 26 / .62);
+}
+
+.frame {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+.header {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px 20px;
+    padding: clamp(16px, 2.5vw, 24px);
+    border-bottom: 1px solid var(--review-border, #d5ded2);
+}
+
+.heading {
+    flex: 1 1 18rem;
+    min-width: 0;
+}
+
+.eyebrow {
+    margin: 0 0 6px;
+    color: var(--review-focus, #176d49);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.title {
+    margin: 0;
+    color: var(--review-ink, #18221a);
+    font-size: clamp(20px, 2.4vw, 26px);
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -.02em;
+    overflow-wrap: anywhere;
+}
+
+.notice {
+    margin: 8px 0 0;
+    color: var(--review-muted, #566257);
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.back {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1px solid var(--review-border, #d5ded2);
+    border-radius: 12px;
+    background: var(--review-field, #fff);
+    color: var(--review-ink, #18221a);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.back:hover {
+    background: var(--review-inset, #f0f5ed);
+}
+
+/* The document keeps its own light paper, as it does inline. */
+.document {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: clamp(8px, 3vw, 32px);
+    background: #e7e5e4;
+}
+
+.back:focus-visible,
+.document:focus-visible {
+    outline: 3px solid var(--review-focus, #176d49);
+    outline-offset: 3px;
+}
+
+.document:focus-visible {
+    outline-offset: -3px;
+}
+
+@media (max-width: 639px) {
+    .dialog {
+        width: calc(100% - 16px);
+        height: calc(100dvh - 16px);
+        border-radius: 16px;
+    }
+
+    .back {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .back {
+        transition: background-color .15s ease;
+    }
+}

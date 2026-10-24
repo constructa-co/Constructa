@@ -33,11 +33,14 @@ export const MAX_LINE_AMOUNT = 100_000_000;
 export const MAX_LINE_QUANTITY = 1_000_000;
 export const MAX_DESCRIPTION_LENGTH = 500;
 export const MAX_UNIT_LENGTH = 20;
+export const MAX_PRICE_ACTIVITY_LENGTH = 100;
 
 export type PriceLineMode = "amount" | "rate";
 
 export interface PriceLineDraft {
     description: string;
+    /** Optional contractor activity for a new line; existing-line edits keep their saved section. */
+    activity?: string;
     mode: PriceLineMode;
     /** One figure for the whole line. */
     amount: string;
@@ -55,7 +58,7 @@ export const EMPTY_PRICE_LINE_DRAFT: PriceLineDraft = {
     rate: "",
 };
 
-export type PriceLineField = "description" | "amount" | "quantity" | "unit" | "rate";
+export type PriceLineField = "description" | "amount" | "quantity" | "unit" | "rate" | "activity";
 export type PriceLineFieldErrors = Partial<Record<PriceLineField, string>>;
 
 /** What is sent to the server for one line. */
@@ -376,7 +379,7 @@ export type EstimatingAction =
     | { type: "op/cancel"; key: string }
     | { type: "op/saving"; key: string }
     | { type: "op/failed"; key: string; error: string | null; fieldErrors?: PriceLineFieldErrors }
-    | { type: "line/saved"; key: string; estimateId: string; createdEstimate: Estimate | null; line: EstimateLine; notice?: string | null }
+    | { type: "line/saved"; key: string; estimateId: string; createdEstimate: Estimate | null; line: EstimateLine; notice?: string | null; nextLine?: { lineId: string; draft: PriceLineDraft } }
     | { type: "line/removed"; key: string; estimateId: string; lineId: string; notice?: string | null }
     | { type: "estimate/select"; estimateId: string }
     | { type: "estimates/replace"; update: (estimates: Estimate[]) => Estimate[] }
@@ -460,11 +463,21 @@ export function estimatingReducer(state: EstimatingState, action: EstimatingActi
                     : [...e.estimate_lines, action.line];
                 return { ...e, estimate_lines: lines, total_cost: storedTotal(lines) };
             });
+            const op = state.ops[action.key];
+            const nextLine = action.nextLine;
+            const continueEntry = nextLine && action.key === NEW_LINE_KEY && op?.kind === "add"
+                && op.status === "saving" && op.lineId === action.line.id && !state.advancedOpen
+                && (!state.activeEstimateId || state.activeEstimateId === action.estimateId)
+                && nextLine.lineId !== action.line.id && !estimates.some(e => e.estimate_lines.some(line => line.id === nextLine.lineId));
+            const ops = withoutOp(state.ops, action.key);
+            if (continueEntry) ops[NEW_LINE_KEY] = {
+                kind: "add", status: "editing", draft: nextLine.draft, lineId: nextLine.lineId, error: null, fieldErrors: {},
+            };
             return {
                 ...state,
                 estimates,
                 activeEstimateId: state.activeEstimateId || action.estimateId,
-                ops: withoutOp(state.ops, action.key),
+                ops,
                 notice: action.notice ?? null,
             };
         }
@@ -542,6 +555,8 @@ export function estimatingReducer(state: EstimatingState, action: EstimatingActi
 
 export interface SavePriceLineRequest {
     projectId: string;
+    /** Absent means the existing General default. Not part of a financial line edit. */
+    activity?: string;
     /** Null when the project has no estimate yet. */
     estimateId: string | null;
     /** Id to create the first estimate under. */
@@ -575,6 +590,7 @@ export async function submitPriceLine(
     server: Pick<EstimatingServer, "saveLine" | "updateLine">,
     projectId: string,
     key: string,
+    options?: { nextLineId: string },
 ): Promise<boolean> {
     const state = store.getState();
     const op = state.ops[key];
@@ -587,11 +603,20 @@ export async function submitPriceLine(
     }
 
     const estimate = currentEstimate(state);
+    const activity = op.kind === "add" ? op.draft.activity?.trim() : undefined;
+    if (activity && (activity.length > MAX_PRICE_ACTIVITY_LENGTH || activity === "Preliminaries" || estimate?.is_client_boq)) {
+        store.dispatch({ type: "op/failed", key, error: null, fieldErrors: { activity: estimate?.is_client_boq
+            ? "Keep the client BoQ structure in Advanced estimating."
+            : activity === "Preliminaries" ? "Manage Preliminaries in Advanced estimating; it affects price calculations."
+                : "Keep the activity name to 100 characters." } });
+        return false;
+    }
     store.dispatch({ type: "op/saving", key });
     try {
         if (op.kind === "add") {
             const result = await server.saveLine({
                 projectId,
+                ...(activity ? { activity } : {}),
                 estimateId: estimate?.id ?? null,
                 newEstimateId: state.pendingEstimateId,
                 lineId: op.lineId,
@@ -601,6 +626,10 @@ export async function submitPriceLine(
                 store.dispatch({ type: "op/failed", key, error: result.error || LINE_SAVE_ERROR });
                 return false;
             }
+            if (activity && result.line.trade_section !== activity) {
+                store.dispatch({ type: "op/failed", key, error: "The line activity is not confirmed and may have saved. Your draft is still here. Reload to reconcile it." });
+                return false;
+            }
             store.dispatch({
                 type: "line/saved",
                 key,
@@ -608,6 +637,8 @@ export async function submitPriceLine(
                 createdEstimate: result.createdEstimate,
                 line: result.line,
                 notice: result.warning ?? null,
+                // Continue only after confirmation; never carry a description, quantity or price forward.
+                nextLine: options ? { lineId: options.nextLineId, draft: { ...EMPTY_PRICE_LINE_DRAFT, mode: op.draft.mode, unit: op.draft.unit } } : undefined,
             });
             return true;
         }

@@ -20,12 +20,9 @@
 
 import jsPDF from "jspdf";
 import {
-    PROGRAMME_BASIS_NOTE,
-    formatDateRange,
-    formatPlanDate,
     formatWorkingDuration,
-    stageBar,
 } from "@/lib/programme-plan";
+import { programmeAxisLabels, programmeBasisNote, programmeFacts, programmeStageBar, programmeStageRange } from "@/lib/relative-programme";
 import type { ProposalPublicationSnapshot } from "@/lib/proposal-publication";
 import {
     DOCUMENT_THEMES,
@@ -217,6 +214,23 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
         const cleaned = pdfText(text);
         return cleaned ? (pdf.splitTextToSize(cleaned, width) as string[]) : [];
     };
+    /**
+     * Term bodies only. Stored CR/LF breaks are split before the existing
+     * per-line sanitizer, so adjacent words are not joined. A line with no
+     * break still goes through `wrap` unchanged. The leading "x" is removed
+     * after sanitizing so `pdfText` trim does not eat that line's indent.
+     */
+    const termBodyLines = (body: string, width: number): string[] => {
+        if (!/[\r\n]/.test(body)) return wrap(body, width, STYLES.term);
+        const lines: string[] = [];
+        for (const part of body.split(/\r\n|\n|\r/)) {
+            apply(STYLES.term);
+            const cleaned = pdfText(`x${part}`).slice(1);
+            const wrapped = cleaned ? (pdf.splitTextToSize(cleaned, width) as string[]) : [];
+            lines.push(...(wrapped.length > 0 ? wrapped : [""]));
+        }
+        return lines;
+    };
     /** Baseline offset so `top` is the top of the first line. */
     const ascent = (style: TextStyle) => style.size * PT_TO_MM * 0.8;
 
@@ -327,7 +341,7 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
                 if (!first) return 0;
                 const columnWidth = (PAGE.contentWidth - 8) / 2;
                 return wrap(`${first.number}. ${first.title}`, columnWidth, STYLES.termTitle).length * STYLES.termTitle.lineHeight
-                    + Math.min(wrap(first.body, columnWidth, STYLES.term).length, 12) * STYLES.term.lineHeight;
+                    + Math.min(termBodyLines(first.body, columnWidth).length, 12) * STYLES.term.lineHeight;
             }
             case "caseStudy":
                 return 14 + (block.facts.length > 0 ? factRowHeight(block.facts.slice(0, 2), PAGE.contentWidth / 2 - 6) : 12);
@@ -557,11 +571,9 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
 
     const timeline = (block: Extract<DocBlock, { type: "timeline" }>) => {
         const { plan } = block;
-        const headline: DocFact[] = [
-            { label: "Start on site", value: formatPlanDate(plan.start_date) },
-            { label: "Finish", value: formatPlanDate(plan.end_date) },
-            { label: "Duration", value: plan.duration_label },
-        ];
+        const basisLines = wrap(`${programmeBasisNote(plan)} Coloured bars show duration. Vertical ticks mark starts, not extra days.`, PAGE.contentWidth, STYLES.small);
+        const axisAndNoteHeight = Math.max(12, 6 + basisLines.length * STYLES.small.lineHeight);
+        const headline: DocFact[] = programmeFacts(plan);
         ensure(TIMELINE_FACTS + STAGE_ROW);
         const factsTop = y;
         const columnWidth = PAGE.contentWidth / 3;
@@ -579,32 +591,38 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
         plan.stages.forEach((stage, index) => {
             const isLast = index === plan.stages.length - 1;
             // The date axis and the basis note stay with the last stage.
-            ensure(STAGE_ROW + (isLast ? 12 : 0));
+            ensure(STAGE_ROW + (isLast ? axisAndNoteHeight : 0));
             const top = y;
             drawBlockLines(wrap(stage.name, PAGE.contentWidth - 78, STYLES.strong).slice(0, 1), PAGE.left, top, STYLES.strong);
             drawBlockLines(
-                [pdfText(`${formatDateRange(stage.start_date, stage.end_date)} - ${formatWorkingDuration(stage.working_days)}`)],
+                [pdfText(`${programmeStageRange(plan, index)} - ${formatWorkingDuration(stage.working_days)}`)],
                 PAGE.right, top + 0.6, STYLES.small, "right",
             );
-            const bar = stageBar(plan, stage);
+            const bar = programmeStageBar(plan, index, 0);
+            const barX = PAGE.left + (PAGE.contentWidth * bar.leftPct) / 100;
+            const barWidth = (PAGE.contentWidth * bar.widthPct) / 100;
             pdf.setFillColor(231, 229, 228);
             pdf.roundedRect(PAGE.left, top + 6.5, PAGE.contentWidth, 2.6, 1.3, 1.3, "F");
             pdf.setFillColor(...ACCENT);
-            pdf.roundedRect(
-                PAGE.left + (PAGE.contentWidth * bar.leftPct) / 100,
+            if (barWidth > 0) pdf.roundedRect(
+                barX,
                 top + 6.5,
-                Math.max(1.5, (PAGE.contentWidth * bar.widthPct) / 100),
-                2.6, 1.3, 1.3, "F",
+                barWidth,
+                2.6, Math.min(1.3, barWidth / 2), 1.3, "F",
             );
+            pdf.setDrawColor(...ACCENT);
+            pdf.setLineWidth(0.25);
+            pdf.line(barX, top + 6, barX, top + 9.6);
             y += STAGE_ROW;
             log("row", top, y);
         });
 
         const top = y;
-        drawBlockLines([formatPlanDate(plan.start_date, "short")], PAGE.left, y, STYLES.small);
-        drawBlockLines([formatPlanDate(plan.end_date, "short")], PAGE.right, y, STYLES.small, "right");
+        const [first, last] = programmeAxisLabels(plan);
+        drawBlockLines([first], PAGE.left, y, STYLES.small);
+        drawBlockLines([last], PAGE.right, y, STYLES.small, "right");
         y += 6;
-        y += drawBlockLines(wrap(PROGRAMME_BASIS_NOTE, PAGE.contentWidth, STYLES.small), PAGE.left, y, STYLES.small);
+        y += drawBlockLines(basisLines, PAGE.left, y, STYLES.small);
         log("text", top, y);
     };
 
@@ -645,7 +663,7 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
         const units: TermUnit[] = [];
         block.clauses.forEach((clause) => {
             const title = wrap(`${clause.number}. ${clause.title}`, termWidth, STYLES.termTitle);
-            const body = wrap(clause.body, termWidth, STYLES.term);
+            const body = termBodyLines(clause.body, termWidth);
             for (let start = 0; start === 0 || start < body.length; start += TERM_CHUNK) {
                 let end = Math.min(body.length, start + TERM_CHUNK);
                 // Never leave a single line of a clause for the next unit.
@@ -975,7 +993,8 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
         pdf.text(`Page ${number} of ${pages}`, PAGE.right, PAGE.footerText, { align: "right" });
         if (document.isDraft) {
             apply({ ...STYLES.label, size: 8.5, color: [180, 83, 9] });
-            pdf.text("DRAFT PREVIEW - NOT SENT TO THE CLIENT", PAGE.width / 2, number === 1 ? 11 : PAGE.footerText, { align: "center" });
+            // Later pages keep a separate line below the contact/page footer.
+            pdf.text("DRAFT PREVIEW - NOT SENT TO THE CLIENT", PAGE.width / 2, number === 1 ? 11 : PAGE.footerText + 6, { align: "center" });
         }
     }
 

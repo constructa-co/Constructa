@@ -425,7 +425,7 @@ describe("save states and retry", () => {
 
     it("will not confirm a brief with no description", async () => {
         const store = makeStore();
-        store.dispatch({ type: "stage/set", stage: "review" });
+        store.dispatch({ type: "stage/set", stage: "site" });
         const save = vi.fn<SaveBrief>(async () => ({ success: true }));
 
         expect(await saveBrief(store, save, { confirm: true })).toBe("invalid");

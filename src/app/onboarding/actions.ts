@@ -87,10 +87,11 @@ export async function saveSetupStepAction(input: SetupStepInput): Promise<SaveSe
             .from("projects")
             .select("id", { count: "exact", head: true })
             .eq("user_id", user.id);
-        destination = count === null
-            ? getLaunchLandingPath()
-            : resolvePostSetupPath(count, getLaunchLandingPath());
+        destination = resolvePostSetupPath(count, getLaunchLandingPath(), companyNameClaimedNow);
     } catch (error) {
+        if (error instanceof Error && error.message === "Unauthorized: No user found.") {
+            redirect("/login");
+        }
         console.error("saveSetupStepAction threw", {
             message: error instanceof Error ? error.message : String(error),
         });

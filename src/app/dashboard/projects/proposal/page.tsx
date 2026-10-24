@@ -1,15 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProjectNavBar from "@/components/project-navbar";
-import ProjectPicker from "@/components/project-picker";
+import ProjectEntry from "@/components/project-entry";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import type { ProposalPublicationEstimateInput } from "@/lib/proposal-publication";
 import ReviewSendClient, { type CaseStudyOption } from "./review-send-client";
+import { caseLibraryEnabled } from "@/lib/case-library/gate";
+import { readProposalLibrary } from "@/lib/case-library/proposal-read";
+import { sessionReader } from "@/lib/case-library/store";
 import type { ProposalPublicationHistoryRow } from "./publication-history-panel";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProposalPage(props: { searchParams: Promise<{ projectId: string }> }) {
+export default async function ProposalPage(props: { searchParams: Promise<{ projectId?: string }> }) {
     const searchParams = await props.searchParams;
     const supabase = await createClient();
 
@@ -20,19 +23,17 @@ export default async function ProposalPage(props: { searchParams: Promise<{ proj
 
     const { projectId } = searchParams;
 
-    if (!projectId) {
+    // Canonicalise the project identity before mounting any editable job state.
+    if (projectId === undefined) {
         const { data: projects } = await supabase
             .from("projects")
-            .select("id, name, client_name, project_type, proposal_status, potential_value, created_at")
+            .select("id, name")
             .eq("user_id", user.id)
-            .order("created_at", { ascending: false })
-            .limit(25);
+            .order("created_at", { ascending: false });
         return (
-            <ProjectPicker
+            <ProjectEntry
                 projects={projects ?? []}
-                targetPath="/dashboard/projects/proposal"
-                title="Proposal"
-                description="Select a project to review and send its proposal"
+                path="/dashboard/projects/proposal"
             />
         );
     }
@@ -88,15 +89,25 @@ export default async function ProposalPage(props: { searchParams: Promise<{ proj
 
     const history = (publications ?? []) as unknown as ProposalPublicationHistoryRow[];
 
+    // The contractor's approved library case studies, read with their own
+    // session, only when the library is switched on. Never drafts. Switched
+    // off or unreadable, there are none, and a saved library tick is shown as
+    // one that cannot be sent.
+    const caseStudyLibrary = caseLibraryEnabled()
+        ? await readProposalLibrary(sessionReader(supabase), user.id, project.selected_case_study_ids)
+        : undefined;
+
     return (
         <div className="max-w-5xl mx-auto px-4 sm:px-8 pt-4 sm:pt-8 pb-16">
-            <ProjectNavBar projectId={projectId} activeTab="proposal" />
+            <ProjectNavBar projectId={projectId} projectName={project.name || ""} activeTab="proposal" />
             <ReviewSendClient
+                key={project.id}
                 context={{
                     project,
                     profile: profile ?? {},
                     estimate,
                     nextVersion: (history[0]?.version_number ?? 0) + 1,
+                    ...(caseStudyLibrary ? { caseStudyLibrary } : {}),
                 }}
                 caseStudies={caseStudies}
                 lockReason={getPrecontractEditLockReason(project)}

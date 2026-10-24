@@ -20,7 +20,7 @@ const eslintConfig = defineConfig([
       "react-hooks/static-components": "warn",
     },
   },
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+  globalIgnores([".next/**", ".next-company-first/**", "out/**", "build/**", "next-env.d.ts"]),
 ]);
 
 export default eslintConfig;

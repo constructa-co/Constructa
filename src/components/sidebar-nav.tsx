@@ -48,7 +48,10 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
+import { requestProjectNavigation } from "@/lib/project-navigation";
 import { buildPhoneNav, getPhoneNavTitle, isPhoneNavItemActive, type PhoneNavKey } from "@/lib/phone-nav";
+import { JOB_WORKFLOW } from "@/lib/job-workflow";
+import PhoneMenuFocus from "./phone-menu-focus";
 
 interface Project {
     id: string;
@@ -88,11 +91,12 @@ function NavItem({
     return (
         <Link
             href={href}
+            aria-current={active ? "page" : undefined}
             className={`flex items-center gap-2.5 min-h-11 lg:min-h-0 px-3 py-2 rounded-lg font-medium transition-all group text-sm ${
                 active ? "bg-gray-900 text-white" : "text-slate-300 hover:text-white hover:bg-white/8"
             }`}
         >
-            <Icon className={`w-4 h-4 flex-shrink-0 transition-colors ${active ? "text-blue-400" : "text-slate-400 group-hover:text-slate-200"}`} />
+            <Icon className={`w-4 h-4 flex-shrink-0 transition-colors ${active ? "text-[#c9efcf]" : "text-slate-400 group-hover:text-slate-200"}`} />
             <span className="truncate">{label}</span>
         </Link>
     );
@@ -115,15 +119,17 @@ function SidebarSection({
     return (
         <div>
             <button
+                type="button"
+                aria-expanded={!collapsed}
                 onClick={() => onToggle(sectionKey)}
-                className="w-full min-h-11 lg:min-h-0 flex items-center justify-between px-3 py-2 group"
+                className="w-full min-h-11 flex items-center justify-between px-3 py-2 group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c9efcf]"
             >
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 group-hover:text-slate-400 transition-colors">
+                <span className="text-xs leading-5 font-semibold uppercase tracking-wider text-[#b7c8bb] group-hover:text-[#d6ded7] transition-colors">
                     {label}
                 </span>
                 {collapsed
-                    ? <ChevronRight className="w-3 h-3 text-slate-600 group-hover:text-slate-400 transition-colors" />
-                    : <ChevronDown className="w-3 h-3 text-slate-600 group-hover:text-slate-400 transition-colors" />
+                    ? <ChevronRight aria-hidden={true} className="w-4 h-4 text-[#b7c8bb] group-hover:text-[#d6ded7] transition-colors" />
+                    : <ChevronDown aria-hidden={true} className="w-4 h-4 text-[#b7c8bb] group-hover:text-[#d6ded7] transition-colors" />
                 }
             </button>
             {!collapsed && (
@@ -148,6 +154,44 @@ const PHONE_NAV_ICONS: Record<PhoneNavKey, any> = {
 
 const SECTION_KEYS = ["company-profile", "work-winning", "pre-construction", "live-projects", "closed-projects"];
 
+export function ProjectPickerControls({ selected, name, open, onToggle, onClear }: {
+    selected: boolean;
+    name: string | null;
+    open: boolean;
+    onToggle: () => void;
+    onClear: (event: React.MouseEvent<HTMLButtonElement>) => void;
+}) {
+    return (
+        <div className={`w-full flex items-stretch rounded-lg text-xs transition-all border ${
+            selected
+                ? "bg-emerald-500/10 border-emerald-400/30 text-[#c9efcf] hover:bg-emerald-500/15"
+                : "bg-white/5 border-white/8 text-slate-400 hover:bg-white/10 hover:text-slate-200"
+        }`}>
+            <button
+                type="button"
+                aria-expanded={open}
+                onClick={onToggle}
+                className="min-h-11 min-w-0 flex-1 flex items-center gap-2 px-2.5 py-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9efcf] focus-visible:ring-inset"
+            >
+                <FolderKanban aria-hidden="true" className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="flex-1 text-left truncate font-medium">{name ?? "Select a project…"}</span>
+                {!selected && <ChevronDown aria-hidden="true" className={`w-3 h-3 flex-shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />}
+            </button>
+            {selected && (
+                <button
+                    type="button"
+                    aria-label="Deselect project"
+                    title="Deselect project"
+                    onClick={onClear}
+                    className="w-11 min-h-11 flex-shrink-0 flex items-center justify-center rounded-r-lg hover:bg-emerald-500/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9efcf] focus-visible:ring-inset"
+                >
+                    <X aria-hidden="true" className="w-3 h-3" />
+                </button>
+            )}
+        </div>
+    );
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function SidebarNav({ user, projects, isAdmin = false }: SidebarNavProps) {
     const pathname = usePathname();
@@ -164,6 +208,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
     const [pickerOpen, setPickerOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const pickerRef = useRef<HTMLDivElement>(null);
+    const clearingProject = useRef(false);
 
     // Phone menu — the desktop sidebar is hidden below md.
     const [phoneMenuOpen, setPhoneMenuOpen] = useState(false);
@@ -179,11 +224,11 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
 
     // Load localStorage on mount
     useEffect(() => {
-        const savedId   = localStorage.getItem("constructa_selected_project_id");
-        const savedName = localStorage.getItem("constructa_selected_project_name");
-        if (savedId && savedName && projects.some(p => p.id === savedId)) {
-            setSelectedProjectId(savedId);
-            setSelectedProjectName(savedName);
+        const savedId = localStorage.getItem("constructa_selected_project_id");
+        const savedProject = projects.find(p => p.id === savedId);
+        if (savedProject) {
+            setSelectedProjectId(savedProject.id);
+            setSelectedProjectName(savedProject.name);
         } else {
             localStorage.removeItem("constructa_selected_project_id");
             localStorage.removeItem("constructa_selected_project_name");
@@ -208,7 +253,12 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
     // it exists. Fall back to localStorage for non-project pages.
     useEffect(() => {
         const urlProjectId = searchParams?.get("projectId");
-        if (!urlProjectId) return;
+        if (!urlProjectId) {
+            clearingProject.current = false;
+            return;
+        }
+        // The old URL must not undo a clear while pipeline navigation commits.
+        if (clearingProject.current) return;
         // Only update if the URL param differs from current state AND
         // the project exists in the sidebar's known list (guards against
         // stale IDs that no longer map to a visible project).
@@ -276,6 +326,8 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
     };
 
     const selectProject = (id: string, name: string) => {
+        if (pathname?.startsWith("/dashboard/projects/") && searchParams?.get("projectId") !== id && !requestProjectNavigation()) return;
+        clearingProject.current = false;
         setSelectedProjectId(id);
         setSelectedProjectName(name);
         localStorage.setItem("constructa_selected_project_id", id);
@@ -301,6 +353,9 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
 
     const clearProject = (e?: React.MouseEvent) => {
         e?.stopPropagation();
+        const leavingProject = Boolean(pathname?.startsWith("/dashboard/projects/") && searchParams?.get("projectId"));
+        if (leavingProject && !requestProjectNavigation()) return;
+        clearingProject.current = leavingProject;
         setSelectedProjectId(null);
         setSelectedProjectName(null);
         localStorage.removeItem("constructa_selected_project_id");
@@ -308,7 +363,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
         // P2-1 — if the current page is scoped to a project, deselecting
         // would strand the user on a broken page. Send them to the pipeline
         // where they can pick a different project.
-        if (pathname?.startsWith("/dashboard/projects/") && searchParams?.get("projectId")) {
+        if (leavingProject) {
             router.push("/dashboard");
         }
     };
@@ -345,16 +400,17 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
             <div className="min-w-0 flex-1">
                 <div className="text-sm font-bold text-white truncate">{phoneTitle}</div>
                 {selectedProjectName && (
-                    <div className="text-[11px] text-blue-300 truncate">{selectedProjectName}</div>
+                    <div className="text-[11px] text-[#c9efcf] truncate">{selectedProjectName}</div>
                 )}
             </div>
             <Link href="/dashboard" aria-label="Constructa pipeline" className="w-11 h-11 -mr-1.5 flex items-center justify-center flex-shrink-0">
-                <span className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-base">C</span>
+                <span className="w-8 h-8 bg-[#c9efcf] rounded-lg flex items-center justify-center text-[#182c1b] font-bold text-base">C</span>
             </Link>
         </header>
 
         {phoneMenuOpen && (
             <div className="md:hidden fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Menu" id="phone-menu">
+                <PhoneMenuFocus />
                 <button
                     type="button"
                     aria-label="Close menu"
@@ -376,7 +432,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
 
                     <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
                         <div>
-                            <label htmlFor="phone-active-project" className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-1 pb-1.5">
+                            <label htmlFor="phone-active-project" className="block text-xs leading-5 font-semibold uppercase tracking-wider text-[#b7c8bb] px-1 pb-1.5">
                                 Active Project
                             </label>
                             <select
@@ -387,7 +443,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                                     if (match) selectProject(match.id, match.name);
                                     else clearProject();
                                 }}
-                                className="w-full h-11 rounded-lg bg-white/5 border border-white/10 px-3 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+                                className="w-full h-11 rounded-lg bg-white/5 border border-white/10 px-3 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
                             >
                                 <option value="">{projects.length === 0 ? "No projects yet" : "Select a project…"}</option>
                                 {projects.map((p) => (
@@ -398,7 +454,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
 
                         {phoneNav.map((group) => (
                             <div key={group.key}>
-                                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-1 pb-1">{group.label}</div>
+                                <div className="text-xs leading-5 font-semibold uppercase tracking-wider text-[#b7c8bb] px-1 pb-1">{group.label}</div>
                                 <div className="space-y-0.5">
                                     {group.items.map((item) => {
                                         const Icon = PHONE_NAV_ICONS[item.key];
@@ -413,7 +469,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                                                     active ? "bg-gray-900 text-white" : "text-slate-300 hover:text-white hover:bg-white/8"
                                                 }`}
                                             >
-                                                <Icon className={`w-5 h-5 flex-shrink-0 ${active ? "text-blue-400" : "text-slate-400"}`} />
+                                                <Icon className={`w-5 h-5 flex-shrink-0 ${active ? "text-[#c9efcf]" : "text-slate-400"}`} />
                                                 <span className="truncate">{item.label}</span>
                                             </Link>
                                         );
@@ -439,8 +495,8 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
             {/* Logo */}
             <div className="p-5 pb-3">
                 <Link href="/dashboard" className="flex items-center gap-2.5 min-h-11 lg:min-h-0 group">
-                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-base group-hover:bg-blue-500 transition-colors">C</div>
-                    <span className="text-lg font-bold tracking-tight text-white group-hover:text-blue-300 transition-colors">Constructa</span>
+                    <div className="w-8 h-8 bg-[#c9efcf] rounded-lg flex items-center justify-center text-[#182c1b] font-bold text-base group-hover:bg-[#e0f9e3] transition-colors">C</div>
+                    <span className="text-lg font-bold tracking-tight text-white group-hover:text-[#c9efcf] transition-colors">Constructa</span>
                 </Link>
             </div>
 
@@ -457,27 +513,17 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
 
                 {/* ── Active Project Selector — always visible, at top ─── */}
                 <div className="pb-3">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 pb-1.5">
+                    <div className="text-xs leading-5 font-semibold uppercase tracking-wider text-[#b7c8bb] px-3 pb-1.5">
                         Active Project
                     </div>
                     <div ref={pickerRef} className="relative px-1">
-                        <button
-                            onClick={() => setPickerOpen(!pickerOpen)}
-                            className={`w-full min-h-11 lg:min-h-0 flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-all border ${
-                                selectedProjectId
-                                    ? "bg-blue-600/15 border-blue-500/30 text-blue-300 hover:bg-blue-600/25"
-                                    : "bg-white/5 border-white/8 text-slate-400 hover:bg-white/10 hover:text-slate-200"
-                            }`}
-                        >
-                            <FolderKanban className="w-3.5 h-3.5 flex-shrink-0" />
-                            <span className="flex-1 text-left truncate font-medium">
-                                {selectedProjectName ?? "Select a project…"}
-                            </span>
-                            {selectedProjectId
-                                ? <X className="w-3 h-3 flex-shrink-0 hover:text-white transition-colors" onClick={clearProject} />
-                                : <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform duration-200 ${pickerOpen ? "rotate-180" : ""}`} />
-                            }
-                        </button>
+                        <ProjectPickerControls
+                            selected={Boolean(selectedProjectId)}
+                            name={selectedProjectName}
+                            open={pickerOpen}
+                            onToggle={() => setPickerOpen(!pickerOpen)}
+                            onClear={clearProject}
+                        />
 
                         {pickerOpen && (
                             <div className="absolute left-0 right-0 top-full mt-1 bg-[#1a1a1a] border border-white/10 rounded-lg shadow-2xl z-50 overflow-hidden">
@@ -489,7 +535,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                                             value={searchQuery}
                                             onChange={e => setSearchQuery(e.target.value)}
                                             placeholder="Search projects…"
-                                            className="w-full bg-white/5 border border-white/10 rounded-md pl-6 pr-2 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+                                            className="w-full bg-white/5 border border-white/10 rounded-md pl-6 pr-2 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
                                         />
                                     </div>
                                 </div>
@@ -503,7 +549,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                                             key={p.id}
                                             onClick={() => selectProject(p.id, p.name)}
                                             className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-white/8 ${
-                                                selectedProjectId === p.id ? "bg-blue-600/20 text-blue-300" : "text-slate-300"
+                                                selectedProjectId === p.id ? "bg-emerald-500/15 text-[#c9efcf]" : "text-slate-300"
                                             }`}
                                         >
                                             <div className="font-medium truncate">{p.name}</div>
@@ -543,12 +589,16 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                     </SidebarSection>
 
                     {/* Pre-Construction */}
-                    <SidebarSection label="Pre-Construction" sectionKey="pre-construction" collapsed={collapsed["pre-construction"] ?? true} onToggle={toggleSection}>
+                    <SidebarSection label={showExtendedModules ? "Pre-Construction" : "This job"} sectionKey="pre-construction" collapsed={collapsed["pre-construction"] ?? true} onToggle={toggleSection}>
+                        {!showExtendedModules ? JOB_WORKFLOW.map(step => (
+                            <NavItem key={step.key} href={pLink(step.path)} icon={{ brief: ClipboardList, estimating: Calculator, programme: CalendarDays, proposal: FileText }[step.key]} label={step.label} active={is(step.path)} />
+                        )) : <>
                         <NavItem href={pLink("/dashboard/projects/brief")} icon={ClipboardList} label="Briefs" active={is("/dashboard/projects/brief")} />
                         <NavItem href={pLink("/dashboard/projects/costs")} icon={Calculator} label="Estimates" active={is("/dashboard/projects/costs")} />
                         <NavItem href={pLink("/dashboard/projects/schedule")} icon={CalendarDays} label="Programmes" active={is("/dashboard/projects/schedule")} />
                         {showExtendedModules && <NavItem href={pLink("/dashboard/projects/contracts")} icon={Scale} label="Contracts" active={is("/dashboard/projects/contracts")} />}
                         <NavItem href={pLink("/dashboard/projects/proposal")} icon={FileText} label="Proposals" active={is("/dashboard/projects/proposal")} />
+                        </>}
                     </SidebarSection>
 
                     {showExtendedModules && <>
@@ -574,14 +624,14 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
 
                     {/* Resources — direct links, no accordion */}
                     <div className="pt-1">
-                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 pb-1.5">Resources</div>
+                        <div className="text-xs leading-5 font-semibold uppercase tracking-wider text-[#b7c8bb] px-3 pb-1.5">Resources</div>
                         <NavItem href="/dashboard/resources/portfolio" icon={PieChart} label="Resource Portfolio" active={is("/dashboard/resources/portfolio")} />
                         <NavItem href="/dashboard/accounting" icon={Receipt} label="Accounting" active={is("/dashboard/accounting")} />
                     </div>
 
                     {/* Reporting — direct links, no accordion */}
                     <div className="pt-1">
-                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 pb-1.5">Reporting</div>
+                        <div className="text-xs leading-5 font-semibold uppercase tracking-wider text-[#b7c8bb] px-3 pb-1.5">Reporting</div>
                         <NavItem href="/dashboard/reporting" icon={FileText} label="Reports & Photos" active={is("/dashboard/reporting")} />
                         <NavItem href="/dashboard/management-accounts" icon={BarChart2} label="Management Accounts" active={is("/dashboard/management-accounts")} />
                         <NavItem href="/dashboard/cis" icon={HardHat} label="CIS Compliance" active={is("/dashboard/cis")} />
@@ -634,7 +684,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
             {/* User footer */}
             <div className="p-3 border-t border-white/10">
                 <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors group">
-                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-[#c9efcf] flex items-center justify-center text-[#182c1b] font-bold text-sm flex-shrink-0">
                         {user.email?.[0].toUpperCase()}
                     </div>
                     <div className="overflow-hidden flex-1 min-w-0">

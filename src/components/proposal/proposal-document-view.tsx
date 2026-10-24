@@ -11,7 +11,7 @@ import { DOCUMENT_THEMES, type DocBlock, type DocFact, type ProposalDocument } f
  * reflows down to a phone: tables are laid out as rows, not grids, so
  * nothing scrolls sideways. `children` is the response area.
  */
-export default function ProposalDocumentView({ doc, children }: { doc: ProposalDocument; children?: ReactNode }) {
+export default function ProposalDocumentView({ doc, children, readingPage }: { doc: ProposalDocument; children?: ReactNode; readingPage?: string }) {
     const theme = DOCUMENT_THEMES[doc.theme];
     const style = {
         "--doc-accent": theme.accent,
@@ -23,6 +23,7 @@ export default function ProposalDocumentView({ doc, children }: { doc: ProposalD
         <article
             style={style}
             data-proposal-document
+            data-reading-page={readingPage}
             className="mx-auto w-full max-w-3xl bg-white text-stone-800 shadow-sm ring-1 ring-stone-200 sm:rounded-sm [overflow-wrap:anywhere]"
         >
             {doc.isDraft && (
@@ -32,7 +33,7 @@ export default function ProposalDocumentView({ doc, children }: { doc: ProposalD
             )}
 
             {/* Cover */}
-            <header className="px-5 pb-10 pt-8 sm:px-12 sm:pb-14 sm:pt-12">
+            <header hidden={readingPage !== undefined && readingPage !== "cover"} className="px-5 pb-10 pt-8 sm:px-12 sm:pb-14 sm:pt-12">
                 <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-stone-200 pb-6">
                     {doc.company.logoUrl
                         ? <img src={doc.company.logoUrl} alt={doc.company.name} className="max-h-14 max-w-[60%] object-contain" />
@@ -64,10 +65,13 @@ export default function ProposalDocumentView({ doc, children }: { doc: ProposalD
 
                 {doc.keyFacts.length > 0 && (
                     <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 bg-[var(--doc-accent-soft)] px-5 py-5 sm:grid-cols-4 sm:px-6" data-key-facts>
+                        {/* Each fact spans a label row and a value row shared by its whole visual row
+                            (subgrid), so a label that wraps lowers every value beside it equally.
+                            Without subgrid support it lays out as before: label, then value. */}
                         {doc.keyFacts.map((fact) => (
-                            <div key={fact.label} className="min-w-0 border-t-2 border-[var(--doc-accent)] pt-2">
+                            <div key={fact.label} className="row-span-2 grid min-w-0 grid-cols-1 grid-rows-[subgrid] content-start gap-y-1 border-t-2 border-[var(--doc-accent)] pt-2" data-key-fact>
                                 <dt className="text-xs font-semibold uppercase tracking-wide text-stone-600">{fact.label}</dt>
-                                <dd className="mt-1 text-lg font-semibold text-stone-900 sm:text-xl">{fact.value}</dd>
+                                <dd className="text-lg font-semibold text-stone-900 sm:text-xl">{fact.value}</dd>
                             </div>
                         ))}
                     </dl>
@@ -85,6 +89,7 @@ export default function ProposalDocumentView({ doc, children }: { doc: ProposalD
                     key={section.id}
                     aria-labelledby={`doc-${section.id}`}
                     data-doc-section={section.id}
+                    hidden={readingPage !== undefined && readingPage !== section.id}
                     className="border-t border-stone-200 px-5 py-10 sm:px-12 sm:py-12"
                 >
                     <p className="text-xs font-semibold tracking-[0.2em] text-[var(--doc-highlight)]" aria-hidden="true">
@@ -98,7 +103,7 @@ export default function ProposalDocumentView({ doc, children }: { doc: ProposalD
             ))}
 
             {children && (
-                <section aria-labelledby="doc-response" data-doc-section="response" className="border-t border-stone-200 px-5 py-10 sm:px-12 sm:py-12">
+                <section hidden={readingPage !== undefined && readingPage !== "response"} aria-labelledby="doc-response" data-doc-section="response" className="border-t border-stone-200 px-5 py-10 sm:px-12 sm:py-12">
                     {children}
                 </section>
             )}
@@ -274,7 +279,8 @@ function Block({ block }: { block: DocBlock }) {
                     {block.clauses.map((clause) => (
                         <li key={clause.number} className="mb-4 break-inside-avoid text-sm leading-relaxed text-stone-700">
                             <h3 className="font-semibold text-stone-900">{clause.number}. {clause.title}</h3>
-                            <p className="mt-0.5">{clause.body}</p>
+                            {/* Line breaks and indents in the wording are kept as written. */}
+                            <p className="mt-0.5 whitespace-pre-wrap">{clause.body}</p>
                         </li>
                     ))}
                 </ol>

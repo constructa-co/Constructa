@@ -1,11 +1,7 @@
 import {
-    PROGRAMME_BASIS_NOTE,
-    formatDateRange,
-    formatPlanDate,
     formatWorkingDuration,
-    stageBar,
-    type ProgrammePlan,
 } from "@/lib/programme-plan";
+import { programmeAxisLabels, programmeBasisNote, programmeFacts, programmeStageBar, programmeStageRange, type DisplayProgrammePlan } from "@/lib/relative-programme";
 
 type Tone = "light" | "dark" | "document";
 
@@ -22,13 +18,10 @@ const TONES: Record<Tone, { label: string; value: string; muted: string; track: 
  * programme never depends on reading the bars. The bars sit inside the
  * component's own width, so nothing scrolls sideways on a phone.
  */
-export default function ProgrammeTimeline({ plan, tone }: { plan: ProgrammePlan; tone: Tone }) {
+export default function ProgrammeTimeline({ plan, tone }: { plan: DisplayProgrammePlan; tone: Tone }) {
     const t = TONES[tone];
-    const facts = [
-        { label: "Start on site", value: formatPlanDate(plan.start_date) },
-        { label: "Finish", value: formatPlanDate(plan.end_date) },
-        { label: "Duration", value: plan.duration_label },
-    ];
+    const facts = programmeFacts(plan);
+    const [first, last] = programmeAxisLabels(plan);
 
     return (
         <div data-programme-timeline>
@@ -43,13 +36,13 @@ export default function ProgrammeTimeline({ plan, tone }: { plan: ProgrammePlan;
 
             <ol className={`mt-5 space-y-3 border-t pt-4 ${t.rule}`} aria-label="Programme stages">
                 {plan.stages.map((stage, index) => {
-                    const bar = stageBar(plan, stage);
+                    const bar = programmeStageBar(plan, index);
                     return (
                         <li key={`${stage.name}-${index}`} className="min-w-0">
                             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
                                 <span className={`text-sm font-semibold break-words min-w-0 ${t.value}`}>{stage.name}</span>
                                 <span className={`text-sm ${t.muted}`}>
-                                    {formatDateRange(stage.start_date, stage.end_date)} · {formatWorkingDuration(stage.working_days)}
+                                    {programmeStageRange(plan, index)} · {formatWorkingDuration(stage.working_days)}
                                 </span>
                             </div>
                             <div className={`mt-1.5 h-3 w-full rounded-full overflow-hidden ${t.track}`} aria-hidden="true">
@@ -64,10 +57,10 @@ export default function ProgrammeTimeline({ plan, tone }: { plan: ProgrammePlan;
             </ol>
 
             <div className={`mt-2 flex justify-between gap-3 text-xs ${t.muted}`} aria-hidden="true">
-                <span>{formatPlanDate(plan.start_date, "short")}</span>
-                <span>{formatPlanDate(plan.end_date, "short")}</span>
+                <span>{first}</span>
+                <span>{last}</span>
             </div>
-            <p className={`mt-3 text-xs ${t.muted}`}>{PROGRAMME_BASIS_NOTE}</p>
+            <p className={`mt-3 text-xs ${t.muted}`}>{programmeBasisNote(plan)}</p>
         </div>
     );
 }

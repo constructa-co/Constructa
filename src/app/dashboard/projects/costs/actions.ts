@@ -13,6 +13,7 @@ import {
 } from "@/lib/supabase/project-resource-access";
 import { revalidatePath } from "next/cache";
 import { recalcEstimateTotal } from "./estimate-total";
+import type { EstimateLine, EstimateLineComponent } from "./types";
 
 // P1-3 — Estimate immutability after project goes live.
 //
@@ -222,7 +223,7 @@ export async function updateLineItemAction(
         mom_item_code?: string | null;
         notes?: string | null;
     }
-): Promise<{ success: boolean; error?: string; warning?: string }> {
+): Promise<{ success: boolean; error?: string; warning?: string; line?: Partial<EstimateLine> }> {
     let lineAccess: Awaited<ReturnType<typeof requireEstimateLineAccess>>;
     try {
         lineAccess = await requireEstimateLineAccess(lineId);
@@ -233,28 +234,49 @@ export async function updateLineItemAction(
     if (!lock.ok) return { success: false, error: lock.error };
 
     const updateData: Record<string, unknown> = { ...data };
-    if (data.quantity !== undefined && data.unit_rate !== undefined) {
-        updateData.line_total = data.quantity * data.unit_rate;
+    const changesPrice = data.quantity !== undefined || data.unit_rate !== undefined;
+    let previous: { quantity: number | null; unit_rate: number | null } | null = null;
+    if (changesPrice) {
+        const { data: current, error } = await lock.supabase.from("estimate_lines")
+            .select("quantity, unit_rate, estimate_id")
+            .eq("id", lineId).eq("estimate_id", lineAccess.estimateId).single();
+        if (error || !current || current.estimate_id !== lineAccess.estimateId) {
+            return { success: false, error: "The current quantity and rate could not be checked. Reload the estimate before editing the price." };
+        }
+        previous = current;
+        const quantity = data.quantity ?? current.quantity;
+        const rate = data.unit_rate ?? current.unit_rate;
+        if (typeof quantity !== "number" || typeof rate !== "number" ||
+            !Number.isFinite(quantity) || !Number.isFinite(rate) || !Number.isFinite(quantity * rate)) {
+            return { success: false, error: "Enter a finite priced quantity and rate." };
+        }
+        updateData.line_total = quantity * rate;
     }
 
-    const { error } = await lock.supabase
+    let update = lock.supabase
         .from("estimate_lines")
         .update(updateData)
         .eq("id", lineId)
         .eq("estimate_id", lineAccess.estimateId);
-
-    if (error) {
-        console.error("[updateLineItemAction] failed", error);
-        return { success: false, error: error.message };
+    if (previous) {
+        update = previous.quantity === null ? update.is("quantity", null) : update.eq("quantity", previous.quantity);
+        update = previous.unit_rate === null ? update.is("unit_rate", null) : update.eq("unit_rate", previous.unit_rate);
     }
+    const { data: saved, error } = await update.select("*").single();
+    if (error || !saved || saved.id !== lineId || saved.estimate_id !== lineAccess.estimateId ||
+        (changesPrice && ![saved.quantity, saved.unit_rate, saved.line_total].every(value => typeof value === "number" && Number.isFinite(value)))) {
+        return { success: false, error: "The line save was not confirmed and may already have saved. Reload the estimate before retrying." };
+    }
+    const line: Partial<EstimateLine> = { id: saved.id, ...Object.fromEntries(Object.keys(data).map(key => [key, saved[key]])) };
+    if (changesPrice) Object.assign(line, { quantity: saved.quantity, unit_rate: saved.unit_rate, line_total: saved.line_total });
 
     try {
         await recalcEstimateTotal(lock.supabase, lineAccess.estimateId);
     } catch (error) {
         console.error("[updateLineItemAction] recalc failed", error);
-        return { success: true, warning: "The line was saved, but the stored estimate total could not be refreshed." };
+        return { success: true, line, warning: "The line was saved, but the stored estimate total could not be refreshed." };
     }
-    return { success: true };
+    return { success: true, line };
 }
 
 export async function deleteLineItemAction(
@@ -344,7 +366,7 @@ export async function addComponentAction(
         manhours_per_unit: number;
         sort_order: number;
     }
-): Promise<{ id: string; line_total: number; total_manhours: number } | null> {
+): Promise<EstimateLineComponent | null> {
     let lineAccess: Awaited<ReturnType<typeof requireEstimateLineAccess>>;
     try {
         lineAccess = await requireEstimateLineAccess(lineId);
@@ -358,10 +380,18 @@ export async function addComponentAction(
     const { data: result, error } = await lock.supabase
         .from("estimate_line_components")
         .insert({ estimate_line_id: lineId, ...data })
-        .select("id, line_total, total_manhours")
+        .select("*")
         .single();
     if (error) { console.error("addComponentAction: insert failed", error); return null; }
+    if (!isConfirmedResource(result, lineId)) return null;
     return result;
+}
+
+function isConfirmedResource(row: EstimateLineComponent | null, lineId: string): row is EstimateLineComponent {
+    return !!row && typeof row.id === "string" && row.id.length > 0 && row.estimate_line_id === lineId &&
+        typeof row.description === "string" && typeof row.unit === "string" &&
+        [row.quantity, row.unit_rate, row.line_total, row.manhours_per_unit, row.total_manhours, row.sort_order]
+            .every(value => typeof value === "number" && Number.isFinite(value));
 }
 
 export async function updateComponentAction(
@@ -373,28 +403,35 @@ export async function updateComponentAction(
         unit_rate: number;
         manhours_per_unit: number;
     }>
-): Promise<void> {
+): Promise<EstimateLineComponent> {
     const access = await requireEstimateComponentAccess(componentId);
     const lock = await assertEstimateEditable(access.estimateId, access);
     if (!lock.ok) throw new Error(lock.error);
-    const { error } = await lock.supabase
+    const { data: saved, error } = await lock.supabase
         .from("estimate_line_components")
         .update(data)
         .eq("id", componentId)
-        .eq("estimate_line_id", access.lineId);
-    if (error) throw new Error(error.message);
+        .eq("estimate_line_id", access.lineId)
+        .select("*").single();
+    if (error || !isConfirmedResource(saved, access.lineId) || saved.id !== componentId) {
+        throw new Error("Resource save was not confirmed and may already have saved.");
+    }
+    return saved;
 }
 
 export async function deleteComponentAction(componentId: string): Promise<void> {
     const access = await requireEstimateComponentAccess(componentId);
     const lock = await assertEstimateEditable(access.estimateId, access);
     if (!lock.ok) throw new Error(lock.error);
-    const { error } = await lock.supabase
+    const { data: removed, error } = await lock.supabase
         .from("estimate_line_components")
         .delete()
         .eq("id", componentId)
-        .eq("estimate_line_id", access.lineId);
-    if (error) throw new Error(error.message);
+        .eq("estimate_line_id", access.lineId)
+        .select("id, estimate_line_id").single();
+    if (error || !removed || removed.id !== componentId || removed.estimate_line_id !== access.lineId) {
+        throw new Error("Resource removal was not confirmed and may already have saved.");
+    }
 }
 
 export async function setPricingModeAction(lineId: string, mode: "simple" | "buildup"): Promise<void> {
@@ -417,43 +454,70 @@ export async function saveRateBuildupAction(
     components: { type: string; description: string; quantity: number; unit: string; unit_rate: number; manhours_per_unit: number }[],
     builtUpRate: number,
     totalManhoursPerUnit: number
-): Promise<void> {
+): Promise<{ id: string; name: string }> {
+    const savedName = name.trim();
+    if (!savedName) throw new Error("Enter a name for the library copy.");
     const activeOrgId = await getActiveOrganizationId();
     if (activeOrgId !== orgId) {
         throw new Error("Unauthorized organization access.");
     }
     const { supabase } = await requireAuth();
-    const { error } = await supabase.from("rate_buildups").insert({
+    const { data: saved, error } = await supabase.from("rate_buildups").insert({
         organization_id: orgId,
-        name,
+        name: savedName,
         unit,
         trade_section: tradeSection,
         components,
         built_up_rate: builtUpRate,
         total_manhours_per_unit: totalManhoursPerUnit,
-    });
-    if (error) throw new Error(error.message);
+    }).select("id, organization_id, name").single();
+    if (error || !saved || typeof saved.id !== "string" || !saved.id ||
+        saved.organization_id !== orgId || saved.name !== savedName) {
+        throw new Error("The library copy was not confirmed and may already have saved. Check the library before saving another copy.");
+    }
+    return { id: saved.id, name: saved.name };
 }
 
-export async function updateLineBuiltUpRateAction(lineId: string, builtUpRate: number): Promise<void> {
+export async function updateLineBuiltUpRateAction(
+    lineId: string,
+    builtUpRate: number,
+    expectedQuantity: number,
+): Promise<{ unitRate: number; lineTotal: number; quantity: number }> {
+    if (!Number.isFinite(builtUpRate) || builtUpRate < 0 ||
+        !Number.isFinite(expectedQuantity) || expectedQuantity < 0 ||
+        !Number.isFinite(expectedQuantity * builtUpRate)) {
+        throw new Error("Enter a finite non-negative rate and priced quantity.");
+    }
     const access = await requireEstimateLineAccess(lineId);
     const lock = await assertEstimateEditable(access.estimateId, access);
     if (!lock.ok) throw new Error(lock.error);
-    const { data: line } = await lock.supabase
+    const { data: line, error: readError } = await lock.supabase
         .from("estimate_lines")
         .select("quantity, estimate_id")
         .eq("id", lineId)
         .eq("estimate_id", access.estimateId)
         .single();
-    const qty = line?.quantity || 1;
-    const { error } = await lock.supabase.from("estimate_lines").update({
-        unit_rate: builtUpRate,
-        line_total: qty * builtUpRate,
-    }).eq("id", lineId).eq("estimate_id", access.estimateId);
-    if (error) throw new Error(error.message);
-    if (line?.estimate_id) {
-        await recalcEstimateTotal(lock.supabase, line.estimate_id);
+    if (readError || !line || line.estimate_id !== access.estimateId) {
+        throw new Error("The priced quantity could not be checked. Reload the estimate before applying the rate.");
     }
+    if (line.quantity !== expectedQuantity) {
+        throw new Error("The priced quantity has changed. Recheck the resources before applying the rate.");
+    }
+    const { data: saved, error } = await lock.supabase.from("estimate_lines").update({
+        unit_rate: builtUpRate,
+        line_total: expectedQuantity * builtUpRate,
+    }).eq("id", lineId).eq("estimate_id", access.estimateId)
+        .eq("quantity", expectedQuantity)
+        .select("id, estimate_id, quantity, unit_rate, line_total").single();
+    if (error || !saved || saved.id !== lineId || saved.estimate_id !== access.estimateId ||
+        saved.quantity !== expectedQuantity ||
+        typeof saved.unit_rate !== "number" || !Number.isFinite(saved.unit_rate) || saved.unit_rate < 0 ||
+        typeof saved.line_total !== "number" || !Number.isFinite(saved.line_total) || saved.line_total < 0) {
+        throw new Error("The rate was not confirmed and may already have saved. Reload the estimate before retrying.");
+    }
+    await recalcEstimateTotal(lock.supabase, access.estimateId);
+    // Return stored amounts, including the database's existing numeric precision.
+    return { unitRate: saved.unit_rate, lineTotal: saved.line_total, quantity: saved.quantity };
 }
 
 export async function saveDiscountAction(

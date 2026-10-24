@@ -1,0 +1,87 @@
+.frame {
+    container-type: inline-size;
+}
+
+.frame [data-home-kpis] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.frame [data-home-kpi-heading] {
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.frame [data-home-kpi-heading] p {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.frame [data-home-kpi-heading] svg {
+    flex-shrink: 0;
+}
+
+@container (min-width: 640px) {
+    .frame [data-home-kpis] {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@container (max-width: 349px) {
+    .frame [data-home-kpi-heading] {
+        flex-direction: column-reverse;
+    }
+
+    .frame [data-home-kpi-heading] p {
+        width: 100%;
+    }
+}
+
+.frame a {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+.frame a:not([data-home-kpi]) {
+    display: flex;
+    align-items: center;
+}
+
+.frame a[data-home-project-name] {
+    display: block;
+    line-height: 44px;
+}
+
+.frame a[title] {
+    justify-content: center;
+    flex-shrink: 0;
+    color: #b9f6a5;
+}
+
+.frame a:focus-visible {
+    outline: 3px solid #77c66e;
+    outline-offset: 3px;
+}
+
+.frame [data-home-header] {
+    gap: 16px;
+}
+
+.frame [data-home-header] > div:first-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.frame [data-home-header] > div:last-child {
+    flex-shrink: 0;
+}
+
+@media (max-width: 539px) {
+    .frame {
+        padding: 24px 16px;
+    }
+
+    .frame [data-home-header] {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

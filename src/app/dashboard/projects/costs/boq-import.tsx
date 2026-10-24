@@ -198,7 +198,7 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
                                 />
                                 <div className="flex justify-center gap-4 mb-3">
                                     <FileSpreadsheet className="w-8 h-8 text-emerald-400/60" />
-                                    <FileText className="w-8 h-8 text-blue-400/60" />
+                                    <FileText className="w-8 h-8 text-slate-400/60" />
                                 </div>
                                 <p className="text-slate-200 font-medium mb-1">Drop your client BoQ here</p>
                                 <p className="text-slate-400 text-sm mb-3">Excel (.xlsx, .xls, .csv) or PDF · Max 25MB</p>

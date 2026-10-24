@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ChevronDown, Loader2 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
+import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import {
     BLANK_PROJECT_CREATE_ERROR,
     EMPTY_BLANK_PROJECT_FORM,
@@ -15,6 +16,8 @@ import {
     type CreateBlankProjectResult,
 } from "@/lib/blank-project";
 import { createBlankProjectAction } from "./actions";
+import NewJobFrame from "@/components/new-job-frame";
+import ui from "@/components/new-job.module.css";
 
 type FieldErrors = Partial<Record<BlankProjectField, string>>;
 
@@ -36,8 +39,12 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
     const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
     const [createError, setCreateError] = useState("");
     const [creating, setCreating] = useState(false);
+    const [created, setCreated] = useState(false);
     const [showMore, setShowMore] = useState(false);
     const inFlightRef = useRef(false);
+
+    useUnsavedGuard(!created && (creating || Object.values(form).some(value => value !== "")),
+        "This new job has entries that are not saved yet.\n\nPress Cancel to stay here, or OK to leave without saving them.");
 
     const set = (field: BlankProjectField, value: string) => {
         setForm((prev) => ({ ...prev, [field]: value }));
@@ -84,6 +91,7 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
         }
 
         if (result.success) {
+            setCreated(true);
             // Stay in the creating state while the Brief loads.
             const briefPath = briefPathForProject(result.projectId);
             router.push(briefPath);
@@ -105,9 +113,7 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
         inFlightRef.current = false;
     };
 
-    const heading = isDark ? "text-white" : "text-gray-900";
     const muted = isDark ? "text-slate-400" : "text-gray-600";
-    const card = isDark ? "bg-[#1a1a1a] border-[#2a2a2a]" : "bg-white border-gray-200 shadow-sm";
     const labelCls = `block text-sm font-semibold ${isDark ? "text-slate-200" : "text-gray-800"}`;
     const inputBase = `w-full rounded-lg border px-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 ${
         isDark
@@ -129,20 +135,11 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
         ) : null;
 
     return (
-        <div className="max-w-xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-            <div className="mb-6">
-                <h1 className={`text-2xl sm:text-3xl font-bold ${heading}`}>
-                    {isFirstProject ? "Add your first job" : "New project"}
-                </h1>
-                <p className={`mt-2 text-base ${muted}`}>
-                    Just a name for the job and who it&apos;s for. It starts blank, and you describe the work on the next screen.
-                </p>
-            </div>
-
+        <NewJobFrame first={isFirstProject} dark={isDark} creating={creating} errorKey={createError || Object.entries(fieldErrors).map(([name, message]) => `${name}:${message}`).join("|")}>
             <form
                 noValidate
                 onSubmit={(e) => { e.preventDefault(); handleCreate(); }}
-                className={`rounded-2xl border p-5 sm:p-8 space-y-5 ${card}`}
+                className={ui.form}
             >
                 <div>
                     <label htmlFor="new-project-name" className={labelCls}>Job name</label>
@@ -172,7 +169,7 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
                     {fieldError("client")}
                 </div>
 
-                <div className={`rounded-xl border ${isDark ? "border-[#2a2a2a]" : "border-gray-200"}`}>
+                <div className={ui.optional}>
                     <button
                         type="button"
                         onClick={() => setShowMore((open) => !open)}
@@ -249,17 +246,21 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
 
                             <div>
                                 <label htmlFor="new-project-projectType" className={labelCls}>Type of job</label>
-                                <select
+                                <input
                                     {...field("projectType")}
+                                    type="text"
+                                    list="new-project-type-examples"
+                                    placeholder="Not sure yet"
                                     value={form.projectType}
                                     onChange={(e) => set("projectType", e.target.value)}
                                     className={`${inputCls} mt-1.5`}
-                                >
-                                    <option value="">Not sure yet</option>
+                                />
+                                <datalist id="new-project-type-examples">
                                     {PROJECT_TYPE_OPTIONS.map((type) => (
-                                        <option key={type} value={type}>{type}</option>
+                                        <option key={type} value={type} />
                                     ))}
-                                </select>
+                                </datalist>
+                                <p className={`mt-1.5 text-sm ${muted}`}>Write your own type of job, or choose an example.</p>
                                 {fieldError("projectType")}
                             </div>
 
@@ -275,19 +276,6 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
                                     />
                                     {fieldError("startDate")}
                                 </div>
-                                <div>
-                                    <label htmlFor="new-project-potentialValue" className={labelCls}>Rough value (£)</label>
-                                    <input
-                                        {...field("potentialValue")}
-                                        inputMode="decimal"
-                                        autoComplete="off"
-                                        value={form.potentialValue}
-                                        onChange={(e) => set("potentialValue", e.target.value)}
-                                        placeholder="e.g. 45000"
-                                        className={`${inputCls} mt-1.5`}
-                                    />
-                                    {fieldError("potentialValue")}
-                                </div>
                             </div>
                         </div>
                     )}
@@ -296,16 +284,29 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
                 {createError && (
                     <div
                         role="alert"
+                        tabIndex={-1}
+                        data-job-create-error
                         className={`rounded-xl border px-4 py-3 flex items-start gap-3 ${
                             isDark ? "border-red-500/40 bg-red-500/10 text-red-200" : "border-red-200 bg-red-50 text-red-800"
                         }`}
                     >
                         <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                         <div className="min-w-0 text-sm">
-                            <p className="font-semibold">The project wasn&apos;t created</p>
-                            <p className="mt-0.5">{createError}</p>
+                            <p className="font-semibold">Project creation wasn&apos;t confirmed</p>
+                            <p className="mt-0.5">{createError === BLANK_PROJECT_CREATE_ERROR ? "Your entries are still here. A missing reply does not prove whether a project was created." : createError}</p>
+                            {createError === BLANK_PROJECT_CREATE_ERROR && (
+                                <p className="mt-2" data-job-retry-help>
+                                    Try again uses the same request. If the first attempt already created the job, it opens that job; changes you made here afterwards are not applied to it. Check its details before continuing.
+                                </p>
+                            )}
                         </div>
                     </div>
+                )}
+
+                {creating && (
+                    <p role="status" className={`text-sm ${muted}`} data-job-pending-help>
+                        Creating from the details you submitted. Changes typed while this is in progress are not included in that request.
+                    </p>
                 )}
 
                 <button
@@ -325,6 +326,6 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
                     )}
                 </button>
             </form>
-        </div>
+        </NewJobFrame>
     );
 }

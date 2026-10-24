@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next-company-first/
 /out/
 
 # production
@@ -34,6 +35,9 @@ yarn-error.log*
 .env*
 /.mcp.json
 
+# local MCP connection configuration
+/.mcp.json
+
 # vercel
 .vercel
 
@@ -49,3 +53,7 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# website-import fixture harness: copied into the app only for a fixture
+# browser run (e2e/import-fixture/prepare.mjs) and never committed
+/src/app/admin-e2e-import-fixture/

@@ -472,11 +472,15 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
 
             <section id="company-work" tabIndex={-1} className={ui.section} hidden={activeSection !== "company-work"}>
                 <h2>Your work &amp; story</h2>
-                <p>Choose your trades and introduce the experience behind your business.</p>
+                <p>Introduce the experience behind your business. Your own work description stays in Company basics.</p>
                 <div>
                     <p className="block text-sm font-semibold text-slate-100 mb-1">Your Trades</p>
-                    <p className="text-xs text-slate-500 mb-3">Select the trades your company works in. These appear first in the estimating tool.</p>
-                    <div className={ui.trades}>
+                    <p className="text-xs text-slate-500 mb-3">Trade preferences are optional labels for estimating, not another description of your business. Nothing is selected from your description.</p>
+                    {preferredTrades.length > 0 && <p className="text-sm text-slate-300">Selected preferences: {preferredTrades.join(", ")}</p>}
+                    <details data-profile-trade-preferences>
+                        <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium text-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">Optional trade preferences ({preferredTrades.length} selected)</summary>
+                        <p className="text-xs text-slate-500 mb-3">Choose only the trades you want shown first in the estimating tool. All other trades remain available.</p>
+                        <div className={ui.trades}>
                         {ALL_TRADES.map(trade => {
                             const isSelected = preferredTrades.includes(trade);
                             return (
@@ -499,7 +503,8 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                                 </button>
                             );
                         })}
-                    </div>
+                        </div>
+                    </details>
                 </div>
 
                 <div className="space-y-1.5">

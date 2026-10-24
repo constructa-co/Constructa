@@ -81,6 +81,7 @@ test("switching sections shows one at a time, keeps every value and saves the wh
 
     await chooser(page, "Your work & story").click();
     await expectOnlyShown(page, "company-work");
+    await page.locator("#company-work summary").click();
     const roofing = page.locator("#company-work").getByRole("button", { name: "Roofing", exact: true });
     await roofing.click();
     await expect(roofing).toHaveAttribute("aria-pressed", "true");
@@ -138,6 +139,40 @@ test("switching sections shows one at a time, keeps every value and saves the wh
         preferred_trades: JSON.stringify(["Roofing"]),
         financial_year_start_month: "4",
         logo_url: "",
+    });
+});
+
+test("trade preferences stay optional while the exact work-description draft survives disclosure and section changes", async ({ page }) => {
+    await open(page);
+    await expect(field(page, "company_name")).toHaveValue("TEST DATA - Example Builders Ltd");
+    await expect(field(page, "business_type")).toHaveValue("Kitchen fitting");
+    await field(page, "business_type").fill("Kitchens, specialist repairs & odd-shaped rooms");
+    await chooser(page, "Your work & story").click();
+    const details = page.locator("[data-profile-trade-preferences]");
+    const summary = details.locator("summary");
+    const piling = details.getByRole("button", { name: "Piling", exact: true });
+    await expect(details).not.toHaveAttribute("open", /.*/);
+    await expect(summary).toHaveText("Optional trade preferences (0 selected)");
+    await expect(piling).toBeHidden();
+    await expect(field(page, "specialisms")).toBeVisible();
+    await expect(field(page, "capability_statement")).toBeVisible();
+    await summary.click();
+    await expect(piling).toBeVisible();
+    await expect(details.locator('[aria-pressed="true"]')).toHaveCount(0);
+    await summary.click();
+    await chooser(page, "Company basics").click();
+    await expect(field(page, "business_type")).toHaveValue("Kitchens, specialist repairs & odd-shaped rooms");
+    await expect(field(page, "company_name")).toHaveValue("TEST DATA - Example Builders Ltd");
+    expect((await fixtureState(page)).saves).toEqual([]);
+    await page.evaluate(() => { window.__profileSectionsLocal.script = ["ack"]; });
+    await saveButton(page).click();
+    await expect(status(page)).toHaveText("Profile saved.");
+    const { saves } = await fixtureState(page);
+    expect(saves).toHaveLength(1);
+    expect(Object.fromEntries(saves[0]!)).toMatchObject({
+        company_name: "TEST DATA - Example Builders Ltd",
+        business_type: "Kitchens, specialist repairs & odd-shaped rooms",
+        preferred_trades: "[]",
     });
 });
 

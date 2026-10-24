@@ -25,7 +25,14 @@ export async function GET(request: Request) {
     // Handle PKCE code exchange (standard OAuth / email confirmation)
     if (code) {
         const supabase = await createClient()
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        let exchanged: Awaited<ReturnType<typeof supabase.auth.exchangeCodeForSession>>
+        try {
+            exchanged = await supabase.auth.exchangeCodeForSession(code)
+        } catch {
+            // An uncertain exchange must not trigger a second provider attempt.
+            return NextResponse.redirect(`${origin}/login?error=auth-code-error`)
+        }
+        const { error } = exchanged
         if (!error) {
             // If the code exchange was for a recovery flow, redirect to reset-password
             if (type === 'recovery') {
@@ -38,10 +45,16 @@ export async function GET(request: Request) {
     // Handle token_hash flow (e.g. email links with token_hash + type)
     if (token_hash && type) {
         const supabase = await createClient()
-        const { error } = await supabase.auth.verifyOtp({
-            token_hash,
-            type: type as 'recovery' | 'email' | 'signup',
-        })
+        let verified: Awaited<ReturnType<typeof supabase.auth.verifyOtp>>
+        try {
+            verified = await supabase.auth.verifyOtp({
+                token_hash,
+                type: type as 'recovery' | 'email' | 'signup',
+            })
+        } catch {
+            return NextResponse.redirect(`${origin}/login?error=auth-code-error`)
+        }
+        const { error } = verified
         if (!error) {
             if (type === 'recovery') {
                 return NextResponse.redirect(`${origin}/auth/reset-password`)

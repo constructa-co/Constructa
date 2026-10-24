@@ -1,0 +1,4 @@
+import { defineConfig } from "@playwright/test";
+import navigation from "./playwright.local-navigation.config";
+
+export default defineConfig({ ...navigation, testMatch: "boq-activity-boundary.spec.ts" });

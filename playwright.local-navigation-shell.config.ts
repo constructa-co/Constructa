@@ -1,0 +1,19 @@
+import { defineConfig } from "@playwright/test";
+import path from "node:path";
+
+const output = process.env.CONSTRUCTA_LOCAL_NAVIGATION_OUTPUT;
+if (!output || !path.isAbsolute(output) || output.startsWith(process.cwd() + path.sep)) {
+    throw Error("Set CONSTRUCTA_LOCAL_NAVIGATION_OUTPUT to the prepared private output outside the application.");
+}
+
+export default defineConfig({
+    testDir: "./e2e/local-navigation",
+    testMatch: "shell-hierarchy.spec.ts",
+    outputDir: path.join(output, "browser-output"),
+    reporter: [["json", { outputFile: path.join(output, "browser-results.json") }]],
+    workers: 1,
+    retries: 0,
+    forbidOnly: true,
+    timeout: 30_000,
+    use: { channel: "msedge", headless: true, viewport: { width: 1280, height: 900 } },
+});

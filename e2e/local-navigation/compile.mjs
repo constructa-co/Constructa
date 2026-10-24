@@ -19,8 +19,8 @@ if (!out || !path.isAbsolute(out) || out === root || out.startsWith(root + path.
 // 'responsive' (2125) mounts the hierarchy with the actual compiled Tailwind
 // stylesheet from the installed pipeline.
 const scenario = process.argv[3] ?? 'navigation';
-if (!['navigation', 'brief-navigation', 'responsive', 'navigation-palette'].includes(scenario)) throw Error('Unknown offline scenario.');
-const globalName = scenario === 'navigation-palette' ? '__navigationPaletteLocal' : scenario === 'brief-navigation' ? '__briefNavigationLocal' : scenario === 'responsive' ? '__responsiveHierarchyLocal' : '__navigationLocal';
+if (!['navigation', 'brief-navigation', 'responsive', 'navigation-palette', 'shell-hierarchy'].includes(scenario)) throw Error('Unknown offline scenario.');
+const globalName = scenario === 'shell-hierarchy' ? '__shellHierarchyLocal' : scenario === 'navigation-palette' ? '__navigationPaletteLocal' : scenario === 'brief-navigation' ? '__briefNavigationLocal' : scenario === 'responsive' ? '__responsiveHierarchyLocal' : '__navigationLocal';
 fs.mkdirSync(out);
 const sourceHashes = new Map();
 const ts = createRequire(import.meta.url)(`${deps}/typescript/lib/typescript.js`);
@@ -111,13 +111,13 @@ function compile(id) {
   modules.set(id, { code: result.outputText, dependencies });
   for (const child of Object.values(dependencies)) compile(child);
 }
-const entry = scenario === 'navigation-palette' ? path.join(dir, 'navigation-palette-entry.tsx') : `${dir}/${scenario === 'brief-navigation' ? 'brief-navigation-entry.tsx' : scenario === 'responsive' ? 'responsive-hierarchy-entry.tsx' : 'entry.tsx'}`;
+const entry = scenario === 'shell-hierarchy' ? path.join(dir, 'shell-hierarchy-entry.tsx') : scenario === 'navigation-palette' ? path.join(dir, 'navigation-palette-entry.tsx') : `${dir}/${scenario === 'brief-navigation' ? 'brief-navigation-entry.tsx' : scenario === 'responsive' ? 'responsive-hierarchy-entry.tsx' : 'entry.tsx'}`;
 compile(entry);
 // 2125 responsive provenance: compile the ACTUAL application stylesheet with
 // the installed Tailwind v3 pipeline — inputs are exactly src/app/globals.css
 // + tailwind.config.js, scanning ./src per the config's content globs. No
 // surrogate CSS, no handwritten rules.
-if (scenario === 'responsive' || scenario === 'navigation-palette') {
+if (scenario === 'shell-hierarchy' || scenario === 'responsive' || scenario === 'navigation-palette') {
   read(path.join(root, 'src/app/globals.css'));
   read(path.join(root, 'tailwind.config.js'));
   read(fs.realpathSync(path.join(deps, '.bin', 'tailwindcss')));
@@ -135,7 +135,7 @@ if (pending.size) {
   const body = [...modules].map(([id, value]) => `${JSON.stringify(id)}:[function(require,module,exports){\n${value.code}\n},${JSON.stringify(value.dependencies)}]`).join(',\n');
   fs.writeFileSync(`${out}/components.js`, `const process={env:{NODE_ENV:'development'}};const __modules={${body}};const __cache={};function __load(id){if(__cache[id])return __cache[id].exports;const [fn,map]=__modules[id];const module={exports:{}};__cache[id]=module;fn(spec=>__load(map[spec]),module,module.exports);return module.exports;}__load(${JSON.stringify(entry)});`);
   fs.writeFileSync(`${out}/components.css`, styleSheets.join('\n'));
-  const scope = scenario === 'navigation-palette' ? 'Actual SidebarNav-ProjectNavBar-PhoneMenuFocus computed activepalette under actual installed Tailwind3/globals/config/provenance;MOCKNexttheme-storage/syntheticbody/noAuthDB/served' : scenario === 'responsive'
+  const scope = scenario === 'shell-hierarchy' ? 'Actual DashboardShell SidebarNav ProjectNavBar mainoffset desktopphone geometry; actualTailwind3 pipeline; MOCKNext/theme/storage/syntheticbody; noDashboardLayoutAuthDB/hosted/assistive' : scenario === 'navigation-palette' ? 'Actual SidebarNav-ProjectNavBar-PhoneMenuFocus computed activepalette under actual installed Tailwind3/globals/config/provenance;MOCKNexttheme-storage/syntheticbody/noAuthDB/served' : scenario === 'responsive'
     ? 'Actual SidebarNav/ProjectNavBar/PhoneMenuFocus/requestProjectNavigation/phone-nav/job-workflow;actual compiled Tailwind stylesheet (globals.css+tailwind.config.js via installed tailwindcss v3);mocked Next link/router/path/query and theme;explicit memory localStorage;synthetic jobs;no Auth/DB/backend/provider/hosted journey'
     : scenario === 'brief-navigation'
     ? 'Actual BriefClient/SidebarNav/ProjectNavBar/PhoneMenuFocus/requestProjectNavigation/guided-brief;mock saves (acknowledge/refuse) and mocked Next link/router/path/query/theme;explicit memory localStorage;getRandomValues v4 id bridge;synthetic jobs;no AI transport/server action/Auth/DB/provider/hosted journey'

@@ -45,20 +45,6 @@ export default async function RootLayout(
         {!review && <Script id="plausible-events" strategy="afterInteractive">
           {`window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }`}
         </Script>}
-        {!review && <Script id="clarity-script" strategy="afterInteractive">
-          {`
-            (function() {
-              const hostname = window.location.hostname;
-              const projectId = hostname === 'constructa.co' ? 'r4mocnetxs' : 'r4msf8pw3w';
-              
-              (function(c,l,a,r,i,t,y){
-                  c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-                  t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-                  y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-              })(window, document, "clarity", "script", projectId);
-            })();
-          `}
-        </Script>}
       </head>
       <body className={`${inter.className} bg-black text-white antialiased`}>
         {review && <aside className="bg-emerald-950 px-4 py-3 text-center text-sm text-emerald-100">{process.env.CONSTRUCTA_REVIEW_EDITABLE === '1' ? 'Protected backend test. Only the two existing QA jobs are editable. AI, uploads, deletion, publishing and sending are disabled. Do not enter real client data.' : 'Protected work-in-progress review. Test data only. Saving, AI, uploads and sending are disabled.'}</aside>}

@@ -1,5 +1,5 @@
 import { formatWorkingDuration } from "@/lib/programme-plan";
-import { programmeAxisDays, programmeAxisLabels, programmeBasisNote, programmeFacts, programmeStageBar, programmeStageRange, type DisplayProgrammePlan } from "@/lib/relative-programme";
+import { programmeAxisDays, programmeAxisLabels, programmeBasisNote, programmeFacts, programmeStageBar, programmeStageRange, RELATIVE_PROGRAMME_BASIS, type DisplayProgrammePlan } from "@/lib/relative-programme";
 import ui from "./programme.module.css";
 
 export default function ProgrammeOverview({ plan, isDark }: { plan: DisplayProgrammePlan; isDark: boolean }) {
@@ -13,11 +13,18 @@ export default function ProgrammeOverview({ plan, isDark }: { plan: DisplayProgr
             <dl className={ui.overviewFacts}>
                 {facts.map(fact => <div key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}
             </dl>
+            {plan.basis !== RELATIVE_PROGRAMME_BASIS && (
+                <p className={ui.overviewCalendarSpan} data-programme-calendar-span>
+                    <strong>Calendar span: {plan.calendar_days} calendar {plan.calendar_days === 1 ? "day" : "days"}</strong>
+                    {" · "}{plan.working_days} working {plan.working_days === 1 ? "day" : "days"}.
+                    {" "}Calendar time stays continuous across weeks. Bars show start-to-finish spans, including any weekends within an activity; gaps can include weekends or unscheduled time.
+                </p>
+            )}
             <div className={ui.overviewAxis} aria-hidden="true">
                 <span>Activity</span>
                 <div><span>{first}</span><span>{last}</span></div>
             </div>
-            <ol className={ui.overviewRows} aria-label="Programme activities">
+            <ol className={ui.overviewRows} aria-label="Programme activities" data-calendar-axis={plan.basis !== RELATIVE_PROGRAMME_BASIS ? "true" : undefined}>
                 {plan.stages.map((stage, index) => {
                     const bar = bars[index];
                     return (

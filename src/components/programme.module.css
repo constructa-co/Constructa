@@ -202,6 +202,18 @@
     padding: 0;
 }
 
+.overviewRows[data-calendar-axis="true"] {
+    /* Carry the calendar lane through row spacing without moving activity bars. */
+    background: linear-gradient(to right, transparent calc((100% - 24px) / 3 + 24px), var(--overview-surface) 0);
+}
+
+.overviewCalendarSpan {
+    margin: 0 0 16px;
+    color: var(--overview-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
 .overviewRow {
     padding: 14px 0;
     border-bottom: 1px solid var(--overview-rule);
@@ -273,6 +285,10 @@
 }
 
 @media (max-width: 639px) {
+    .overviewRows[data-calendar-axis="true"] {
+        background: var(--overview-surface);
+    }
+
     .overviewRow,
     .overviewFacts {
         grid-template-columns: minmax(0, 1fr);

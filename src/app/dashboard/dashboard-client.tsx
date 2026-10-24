@@ -77,25 +77,25 @@ function getPeriodRange(period: Period): { start: Date; end: Date; label: string
             const dayOfWeek = now.getDay(); // 0 = Sunday
             const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
             start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diff);
-            end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6, 23, 59, 59);
+            end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6, 23, 59, 59, 999);
             label = "This Week";
             break;
         }
         case "month":
             start = new Date(now.getFullYear(), now.getMonth(), 1);
-            end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+            end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
             label = "This Month";
             break;
         case "quarter": {
             const quarter = Math.floor(now.getMonth() / 3);
             start = new Date(now.getFullYear(), quarter * 3, 1);
-            end = new Date(now.getFullYear(), quarter * 3 + 3, 0, 23, 59, 59);
+            end = new Date(now.getFullYear(), quarter * 3 + 3, 0, 23, 59, 59, 999);
             label = "This Quarter";
             break;
         }
         case "year":
             start = new Date(now.getFullYear(), 0, 1);
-            end = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+            end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
             label = "This Year";
             break;
     }

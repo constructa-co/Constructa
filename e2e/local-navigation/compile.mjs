@@ -15,10 +15,12 @@ const out = process.argv[2];
 if (!out || !path.isAbsolute(out) || out === root || out.startsWith(root + path.sep)) throw Error('Provide a fresh absolute output directory outside the application.');
 // Additive scenario hook (1845): default 'navigation' keeps the original
 // A004 three-case fixture bit-for-bit; 'brief-navigation' mounts the actual
-// BriefClient and needs the css/actions/dynamic hooks below.
+// BriefClient and needs the css/actions/dynamic hooks below;
+// 'responsive' (2125) mounts the hierarchy with the actual compiled Tailwind
+// stylesheet from the installed pipeline.
 const scenario = process.argv[3] ?? 'navigation';
-if (!['navigation', 'brief-navigation'].includes(scenario)) throw Error('Unknown offline scenario.');
-const globalName = scenario === 'brief-navigation' ? '__briefNavigationLocal' : '__navigationLocal';
+if (!['navigation', 'brief-navigation', 'responsive'].includes(scenario)) throw Error('Unknown offline scenario.');
+const globalName = scenario === 'brief-navigation' ? '__briefNavigationLocal' : scenario === 'responsive' ? '__responsiveHierarchyLocal' : '__navigationLocal';
 fs.mkdirSync(out);
 const sourceHashes = new Map();
 const ts = createRequire(import.meta.url)(`${deps}/typescript/lib/typescript.js`);
@@ -109,8 +111,22 @@ function compile(id) {
   modules.set(id, { code: result.outputText, dependencies });
   for (const child of Object.values(dependencies)) compile(child);
 }
-const entry = `${dir}/${scenario === 'brief-navigation' ? 'brief-navigation-entry.tsx' : 'entry.tsx'}`;
+const entry = `${dir}/${scenario === 'brief-navigation' ? 'brief-navigation-entry.tsx' : scenario === 'responsive' ? 'responsive-hierarchy-entry.tsx' : 'entry.tsx'}`;
 compile(entry);
+// 2125 responsive provenance: compile the ACTUAL application stylesheet with
+// the installed Tailwind v3 pipeline — inputs are exactly src/app/globals.css
+// + tailwind.config.js, scanning ./src per the config's content globs. No
+// surrogate CSS, no handwritten rules.
+if (scenario === 'responsive') {
+  read(path.join(root, 'src/app/globals.css'));
+  read(path.join(root, 'tailwind.config.js'));
+  read(fs.realpathSync(path.join(deps, '.bin', 'tailwindcss')));
+  read(path.join(deps, 'tailwindcss/package.json'));
+  execFileSync(path.join(deps, '.bin', 'tailwindcss'),
+    ['--config', path.join(root, 'tailwind.config.js'), '--input', path.join(root, 'src/app/globals.css'), '--output', path.join(out, 'tailwind.css')],
+    { cwd: root, timeout: 120_000, stdio: ['ignore', 'pipe', 'pipe'] });
+  styleSheets.push(read(path.join(out, 'tailwind.css')));
+}
 fs.writeFileSync(`${out}/pending-browser.json`, JSON.stringify([...pending].map(([file, bytes]) => ({file,bytes})), null, 2));
 if (pending.size) {
   console.log(JSON.stringify({result:'DEPENDENCIES_PENDING',files:pending.size,bytes:[...pending.values()].reduce((a,b)=>a+b,0)}));
@@ -119,7 +135,9 @@ if (pending.size) {
   const body = [...modules].map(([id, value]) => `${JSON.stringify(id)}:[function(require,module,exports){\n${value.code}\n},${JSON.stringify(value.dependencies)}]`).join(',\n');
   fs.writeFileSync(`${out}/components.js`, `const process={env:{NODE_ENV:'development'}};const __modules={${body}};const __cache={};function __load(id){if(__cache[id])return __cache[id].exports;const [fn,map]=__modules[id];const module={exports:{}};__cache[id]=module;fn(spec=>__load(map[spec]),module,module.exports);return module.exports;}__load(${JSON.stringify(entry)});`);
   fs.writeFileSync(`${out}/components.css`, styleSheets.join('\n'));
-  const scope = scenario === 'brief-navigation'
+  const scope = scenario === 'responsive'
+    ? 'Actual SidebarNav/ProjectNavBar/PhoneMenuFocus/requestProjectNavigation/phone-nav/job-workflow;actual compiled Tailwind stylesheet (globals.css+tailwind.config.js via installed tailwindcss v3);mocked Next link/router/path/query and theme;explicit memory localStorage;synthetic jobs;no Auth/DB/backend/provider/hosted journey'
+    : scenario === 'brief-navigation'
     ? 'Actual BriefClient/SidebarNav/ProjectNavBar/PhoneMenuFocus/requestProjectNavigation/guided-brief;mock saves (acknowledge/refuse) and mocked Next link/router/path/query/theme;explicit memory localStorage;getRandomValues v4 id bridge;synthetic jobs;no AI transport/server action/Auth/DB/provider/hosted journey'
     : 'Actual SidebarNav/ProjectNavBar/PhoneMenuFocus/requestProjectNavigation/phone-nav/job-workflow;mocked Next link/router/path/query and theme;explicit memory localStorage;synthetic jobs and synthetic dirty editor;no Auth/DB/backend/provider/hosted journey';
   fs.writeFileSync(`${out}/source-manifest.json`, JSON.stringify({sourceHashes:Object.fromEntries(sourceHashes),modules:modules.size,scope},null,2));

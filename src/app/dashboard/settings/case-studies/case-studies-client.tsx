@@ -337,7 +337,7 @@ function CaseStudyCard({
                             aria-label="What We Delivered"
                             value={cs.whatWeDelivered}
                             onChange={e => onChange("whatWeDelivered", e.target.value)}
-                            placeholder="Brief description of the works delivered..."
+                            placeholder="The work you carried out, in your own words. A few lines is plenty."
                         />
                         {suggestionPanel("whatWeDelivered", "What We Delivered")}
                     </div>
@@ -347,11 +347,11 @@ function CaseStudyCard({
                         <textarea
                             id={`${fieldId}-added`}
                             className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                            rows={2}
+                            rows={3}
                             aria-label="Value Added"
                             value={cs.valueAdded}
                             onChange={e => onChange("valueAdded", e.target.value)}
-                            placeholder="What made this project stand out..."
+                            placeholder="What it meant for the client, if you know. Only what actually happened."
                         />
                         {suggestionPanel("valueAdded", "Value Added")}
                     </div>

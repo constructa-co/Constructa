@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useReducer, useRef, useState } from "react";
 import { newDraft, type ApprovedCaseStudy, type CaseStudyContent } from "@/lib/case-library/content";
 import { editorReducer, initialEditorState, isDirty, saveLine } from "@/lib/case-library/editor-state";
+import { questionOf } from "@/lib/case-library/guided";
 import { CANONICAL_WORK_NAMES } from "@/lib/case-library/labels";
 import type { ApprovalCheck, LibraryResult, StudyView } from "@/lib/case-library/service";
 import { asProposalCaseStudy, changesSinceApproval } from "@/lib/case-library/status";
@@ -246,11 +247,13 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
 
                 <div>
                     <label htmlFor="cs-delivered" className={label}>What did you do? <span className="font-normal text-slate-300">(optional)</span></label>
-                    <textarea id="cs-delivered" className={input} rows={5} value={content.delivered} maxLength={5000} onChange={(event) => set({ delivered: event.target.value })} {...invalid("delivered")} />
+                    <p id="cs-delivered-help" className={hint}>{questionOf("delivered").help}</p>
+                    <textarea id="cs-delivered" className={input} rows={5} aria-describedby="cs-delivered-help" value={content.delivered} maxLength={5000} onChange={(event) => set({ delivered: event.target.value })} {...invalid("delivered")} />
                 </div>
                 <div>
                     <label htmlFor="cs-value-added" className={label}>What did it mean for the client? <span className="font-normal text-slate-300">(optional)</span></label>
-                    <textarea id="cs-value-added" className={input} rows={3} value={content.value_added} maxLength={5000} onChange={(event) => set({ value_added: event.target.value })} {...invalid("value_added")} />
+                    <p id="cs-value-added-help" className={hint}>{questionOf("value_added").help}</p>
+                    <textarea id="cs-value-added" className={input} rows={5} aria-describedby="cs-value-added-help" value={content.value_added} maxLength={5000} onChange={(event) => set({ value_added: event.target.value })} {...invalid("value_added")} />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>

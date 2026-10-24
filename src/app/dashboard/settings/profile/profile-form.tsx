@@ -410,7 +410,64 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                     </div>
                 </div>
 
+                <div className="space-y-1.5">
+                    <label htmlFor="company-insurance_details" className="text-sm font-medium text-slate-400">Insurance Details</label>
+                    <textarea
+                        id="company-insurance_details"
+                            name="insurance_details"
+                        defaultValue={profile?.insurance_details || ""}
+                        rows={2}
+                        className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        placeholder="Public Liability: £5M, Employer's Liability: £10M"
+                    />
+                </div>
 
+                <div className="space-y-1.5">
+                    <label htmlFor="company-accreditations" className="text-sm font-medium text-slate-400">Accreditations</label>
+                    <input
+                        id="company-accreditations"
+                            name="accreditations"
+                        defaultValue={profile?.accreditations || ""}
+                        className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        placeholder="CITB, FMB Member, NHBC Registered"
+                    />
+                </div>
+
+                <div className="space-y-1.5">
+                    <label htmlFor="company-logo-input" className="text-sm font-medium text-slate-400">Company Logo</label>
+                    <input name="logo_url" type="hidden" value={logoUrl} />
+                    <div className="flex items-start gap-4">
+                        {logoUrl && (
+                            <div className="p-2 bg-slate-800 rounded-lg border border-slate-700 flex-shrink-0">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={logoUrl} alt="Logo preview" className="h-16 w-auto object-contain" />
+                            </div>
+                        )}
+                        <div className="flex flex-col gap-2">
+                            <button
+                                type="button"
+                                onClick={() => logoInputRef.current?.click()}
+                                disabled={uploadingLogo}
+                                className="flex items-center gap-2 h-10 px-4 rounded-lg border border-slate-700 bg-slate-800 text-sm text-slate-100 hover:bg-slate-700 transition-colors disabled:opacity-60"
+                            >
+                                {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                {uploadingLogo ? "Uploading..." : "Upload Logo"}
+                            </button>
+                            <input
+                                id="company-logo-input"
+                                ref={logoInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                className="hidden"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleLogoUpload(file);
+                                }}
+                            />
+                            <p className="text-xs text-slate-500">PNG, JPG or WebP, up to 10 MB</p>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <section id="company-work" tabIndex={-1} className={ui.section} hidden={activeSection !== "company-work"}>
@@ -458,29 +515,6 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                 </div>
 
                 <div className="space-y-1.5">
-                    <label htmlFor="company-insurance_details" className="text-sm font-medium text-slate-400">Insurance Details</label>
-                    <textarea
-                        id="company-insurance_details"
-                            name="insurance_details"
-                        defaultValue={profile?.insurance_details || ""}
-                        rows={2}
-                        className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                        placeholder="Public Liability: £5M, Employer's Liability: £10M"
-                    />
-                </div>
-
-                <div className="space-y-1.5">
-                    <label htmlFor="company-accreditations" className="text-sm font-medium text-slate-400">Accreditations</label>
-                    <input
-                        id="company-accreditations"
-                            name="accreditations"
-                        defaultValue={profile?.accreditations || ""}
-                        className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                        placeholder="CITB, FMB Member, NHBC Registered"
-                    />
-                </div>
-
-                <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                         <label htmlFor="company-capability_statement" className="text-sm font-medium text-slate-400">Capability Statement</label>
                         {capabilityStatement.trim().length > 20 && (
@@ -510,42 +544,6 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                     <p className="text-xs text-slate-500">
                         This can provide your &ldquo;About Us&rdquo; paragraph in proposals. Review each proposal before sending.
                     </p>
-                </div>
-
-                <div className="space-y-1.5">
-                    <label htmlFor="company-logo-input" className="text-sm font-medium text-slate-400">Company Logo</label>
-                    <input name="logo_url" type="hidden" value={logoUrl} />
-                    <div className="flex items-start gap-4">
-                        {logoUrl && (
-                            <div className="p-2 bg-slate-800 rounded-lg border border-slate-700 flex-shrink-0">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={logoUrl} alt="Logo preview" className="h-16 w-auto object-contain" />
-                            </div>
-                        )}
-                        <div className="flex flex-col gap-2">
-                            <button
-                                type="button"
-                                onClick={() => logoInputRef.current?.click()}
-                                disabled={uploadingLogo}
-                                className="flex items-center gap-2 h-10 px-4 rounded-lg border border-slate-700 bg-slate-800 text-sm text-slate-100 hover:bg-slate-700 transition-colors disabled:opacity-60"
-                            >
-                                {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                                {uploadingLogo ? "Uploading..." : "Upload Logo"}
-                            </button>
-                            <input
-                                id="company-logo-input"
-                                ref={logoInputRef}
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                                className="hidden"
-                                onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) handleLogoUpload(file);
-                                }}
-                            />
-                            <p className="text-xs text-slate-500">PNG, JPG or WebP, up to 10 MB</p>
-                        </div>
-                    </div>
                 </div>
             </section>
 

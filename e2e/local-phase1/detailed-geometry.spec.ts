@@ -192,3 +192,49 @@ test("on a grouped fifteen-week axis, a later one-day Wednesday stage is still o
     const weekWidth = m.lane.width / 15;
     expect(Math.abs(short.wrapper.left - (m.gridLines[6]!.left + weekWidth + (2 / 7) * weekWidth))).toBeLessThan(NEAR);
 });
+
+test("on a native phone390x844 viewport, the grouped fifteen-week 105-day axis still places the Wednesday 3 Feb one-day fill at offset 93 of the actual lane", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, "long");
+    // Same hand-expected five-day long fixture as the desktop grouped case: 15 weeks, 105-day axis.
+    // Dated stages: Mon 2 Nov-Fri 22 Jan (60 working days, 82 calendar days), Wed 3 Feb (offset 93, 1 day).
+    await expect(page.getByText("68 working days / 94 calendar days", { exact: true })).toBeVisible();
+    for (const dates of ["2 Nov – 22 Jan", "3 Feb – 3 Feb"]) await expect(page.getByText(dates, { exact: true })).toBeVisible();
+    await expect(page.getByText("Grid columns group up to 2 calendar weeks; the last column may be shorter. Weekly move and resize snapping is unchanged.", { exact: true })).toBeVisible();
+
+    const m = await measure(page);
+    expect(m.lane.width, "phone timeline must not collapse to zero").toBeGreaterThan(0);
+    expectGrid(m, 15, [
+        { start: 1, span: 2, label: "W1-W2", date: "2 Nov", range: "W1-W2: 2026-11-02 to 2026-11-15" },
+        { start: 3, span: 2, label: "W3-W4", date: "16 Nov", range: "W3-W4: 2026-11-16 to 2026-11-29" },
+        { start: 5, span: 2, label: "W5-W6", date: "30 Nov", range: "W5-W6: 2026-11-30 to 2026-12-13" },
+        { start: 7, span: 2, label: "W7-W8", date: "14 Dec", range: "W7-W8: 2026-12-14 to 2026-12-27" },
+        { start: 9, span: 2, label: "W9-W10", date: "28 Dec", range: "W9-W10: 2026-12-28 to 2027-01-10" },
+        { start: 11, span: 2, label: "W11-W12", date: "11 Jan", range: "W11-W12: 2027-01-11 to 2027-01-24" },
+        { start: 13, span: 2, label: "W13-W14", date: "25 Jan", range: "W13-W14: 2027-01-25 to 2027-02-07" },
+        { start: 15, span: 1, label: "W15", date: "8 Feb", range: "W15: 2027-02-08 to 2027-02-14" },
+    ]);
+    expectBars(m, 105, [
+        { offset: 0, days: 82, label: "60d" },
+        { offset: 93, days: 1, label: "1d" },
+    ]);
+    // Short bar: the fill is one 105th of the lane, below the 24px move target, and starts two days after the W14 week begins.
+    const short = m.bars[1]!;
+    expect(short.fill.width).toBeLessThan(24);
+    expect(short.move.width).toBeGreaterThan(short.fill.width);
+    const weekWidth = m.lane.width / 15;
+    expect(Math.abs(short.wrapper.left - (m.gridLines[6]!.left + weekWidth + (2 / 7) * weekWidth))).toBeLessThan(NEAR);
+    const scroll = await page.locator('[data-planner-grid-week="1"]').evaluate(line => {
+        const card = line.parentElement!.parentElement!.parentElement!;
+        card.scrollLeft = card.scrollWidth;
+        const rect = card.getBoundingClientRect();
+        return { left: rect.left, right: rect.right, scrollLeft: card.scrollLeft, width: card.clientWidth, total: card.scrollWidth };
+    });
+    expect(scroll.total).toBeGreaterThan(scroll.width);
+    expect(scroll.scrollLeft).toBeGreaterThan(0);
+    const visibleBar = await page.locator('[data-planner-duration="1"]').boundingBox();
+    expect(visibleBar).not.toBeNull();
+    expect(visibleBar!.width).toBeGreaterThan(0);
+    expect(visibleBar!.x).toBeGreaterThanOrEqual(scroll.left);
+    expect(visibleBar!.x + visibleBar!.width).toBeLessThanOrEqual(scroll.right);
+});

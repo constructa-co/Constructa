@@ -775,10 +775,10 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
             {/* ── Gantt ── */}
             {phases.length > 0 && (
-                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
+                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-x-auto">
 
                     {/* Column headers */}
-                    <div className="flex border-b border-slate-700/50 bg-slate-900/40">
+                    <div className="flex min-w-[900px] border-b border-slate-700/50 bg-slate-900/40">
                         <div className="w-[216px] shrink-0 border-r border-slate-700/50 px-3 py-2.5">
                             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Phase / Trade</span>
                         </div>
@@ -804,7 +804,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                     </div>
 
                     {/* Body */}
-                    <div className="flex">
+                    <div className="flex min-w-[900px]">
 
                         {/* Left panel */}
                         <div className="shrink-0 border-r border-slate-700/50">

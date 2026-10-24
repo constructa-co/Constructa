@@ -45,7 +45,7 @@ describe("setup work choices", () => {
     it("uses an aligned responsive grid with restrained corners and green selected states", () => {
         const css = readFileSync(new URL("../../components/first-session.module.css", import.meta.url), "utf8");
         expect(css).toMatch(/\.workSuggestions\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
-        expect(css).toMatch(/\.workSuggestion\s*\{[^}]*min-height:\s*64px/);
+        expect(css).toMatch(/\.workSuggestion\s*\{[^}]*min-height:\s*44px/);
         expect(css).toMatch(/\.workSuggestion\s*\{[^}]*border-radius:\s*8px/);
         expect(css).toMatch(/\.workSuggestion\[aria-pressed="true"\]\s*\{[^}]*var\(--session-accent\)/);
         expect(css).toMatch(/@media\s*\(max-width:\s*420px\)\s*\{\s*\.workSuggestions\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/);

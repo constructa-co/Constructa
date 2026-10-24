@@ -216,3 +216,26 @@ mock actions/router/context. It covers page boundaries, selection, exact draft
 retention, long synthetic terms, omitted programme and mobile keyboard controls.
 It does not establish exact PDF pagination, real Next/Auth/database/save-reload,
 full Tailwind/assistive/layout acceptance, original legal wording or release.
+
+## Styled Finished-Document Reader
+
+This separate leg renders the actual proposal review client inside the actual
+`ThemeProvider` (initial theme supplied as the dashboard layout does), so the
+actual workspace, dialog and reader CSS modules style the native document
+dialog, reading pages and document renderer in light and dark. It checks
+module-derived colours and sizes, native Tab/Shift+Tab containment with module
+focus rings, Escape/Back focus return, cover-start and both page boundaries,
+long synthetic terms at 390px without sideways scroll, exact draft retention
+and that no Save/Send control or action is reached.
+
+```sh
+node e2e/local-phase1/build-brief-price.mjs /absolute/private/fresh-reader-styled-output reader-styled
+CONSTRUCTA_LOCAL_PHASE1_OUTPUT=/absolute/private/fresh-reader-styled-output node node_modules/@playwright/test/cli.js test --config=playwright.local-reader-styled.config.ts
+```
+
+Data, actions and router are refusing synthetic stand-ins; about:blank gets an
+in-memory localStorage stand-in that only lets the provider read no stored
+theme. Tailwind utilities (including the document renderer's and the app's
+box-sizing preflight) are not compiled, so sizes are compared as computed
+module values. Not full Next/Tailwind, Auth/database, assistive technology,
+physical PDF pagination, legal wording, publication or release acceptance.

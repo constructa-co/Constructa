@@ -2,8 +2,10 @@ import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getLaunchLandingPath } from "@/lib/launch-profile";
+import { PLATFORM_TERMS_CURRENT_REVISION } from "@/lib/platform-terms";
+import type { PlatformSignupResult } from "@/lib/platform-signup-action";
 
-const state = vi.hoisted(() => ({ slots: [] as unknown[], cursor: 0, signIn: vi.fn(), signUp: vi.fn(), push: vi.fn(), refresh: vi.fn() }));
+const state = vi.hoisted(() => ({ slots: [] as unknown[], cursor: 0, signIn: vi.fn(), signUp: vi.fn(), browserSignUp: vi.fn(), push: vi.fn(), refresh: vi.fn() }));
 vi.mock("react", async original => ({
     ...await original<typeof import("react")>(),
     useState: (initial: unknown) => {
@@ -12,7 +14,8 @@ vi.mock("react", async original => ({
         return [state.slots[index], (value: unknown) => { state.slots[index] = value; }];
     },
 }));
-vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ auth: { signInWithPassword: state.signIn, signUp: state.signUp } }) }));
+vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ auth: { signInWithPassword: state.signIn, signUp: state.browserSignUp } }) }));
+vi.mock("@/lib/platform-signup-action", () => ({ platformSignupAction: state.signUp }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: state.push, refresh: state.refresh }) }));
 import LoginPage from "./page";
 
@@ -53,9 +56,11 @@ function fillSignup() {
 
 beforeEach(() => {
     state.slots = []; state.cursor = 0;
-    for (const mock of [state.signIn, state.signUp, state.push, state.refresh]) mock.mockReset();
-    state.signIn.mockResolvedValue({ error: null }); state.signUp.mockResolvedValue({ error: null });
+    for (const mock of [state.signIn, state.signUp, state.browserSignUp, state.push, state.refresh]) mock.mockReset();
+    state.signIn.mockResolvedValue({ error: null });
+    state.signUp.mockResolvedValue({ ok: true, outcome: "confirmation-required" });
 });
+afterEach(() => expect(state.browserSignUp).not.toHaveBeenCalled());
 
 describe("actual signup platform terms acceptance", () => {
     beforeEach(() => vi.stubGlobal("location", { origin: "https://constructa.example.invalid" }));
@@ -93,12 +98,12 @@ describe("actual signup platform terms acceptance", () => {
         expect(nodes(render()).find(e => e.type === "form")?.props["aria-busy"]).toBe(false);
     });
 
-    it("preserves the signup payload and confirmation contract after explicit acceptance", async () => {
+    it("uses the explicit server consent payload and preserves the confirmation contract", async () => {
         fillSignup(); acceptTerms(true); await submit();
         expect(state.signUp).toHaveBeenCalledExactlyOnceWith({
             email: "contractor@example.invalid",
             password: "not-a-real-password",
-            options: { emailRedirectTo: "https://constructa.example.invalid/auth/callback" },
+            acceptance: true, revision: PLATFORM_TERMS_CURRENT_REVISION,
         });
         expect(html()).toContain("Account created. Check your email for the confirmation link — once confirmed, sign in to get started.");
         expect(html()).toContain("Check your inbox.");
@@ -108,13 +113,13 @@ describe("actual signup platform terms acceptance", () => {
         expect(state.signIn).not.toHaveBeenCalled();
     });
 
-    it("preserves provider errors and clears a prior acceptance error on accepted resubmission", async () => {
+    it("shows typed signup errors and clears a prior acceptance error on accepted resubmission", async () => {
         fillSignup(); await submit();
-        state.signUp.mockResolvedValue({ error: { message: "Test signup refused" } });
+        state.signUp.mockResolvedValue({ ok: false, code: "signup-failed" });
         acceptTerms(true); await submit();
         expect(state.signUp).toHaveBeenCalledOnce();
         expect(html()).toContain('role="alert"');
-        expect(html()).toContain("Test signup refused");
+        expect(html()).toContain("We couldn&#x27;t create your account. Please try again.");
         expect(html()).not.toContain("Please accept the platform terms");
         expect(html()).not.toContain("Check your inbox.");
         expect(nodes(render()).find(e => e.type === "form")?.props["aria-busy"]).toBe(false);
@@ -140,13 +145,13 @@ describe("actual signup platform terms acceptance", () => {
 
     it("disables the acceptance checkbox with the existing pending signup controls", async () => {
         fillSignup(); acceptTerms(true);
-        let release!: (value: { error: null }) => void;
+        let release!: (value: PlatformSignupResult) => void;
         state.signUp.mockReturnValue(new Promise(resolve => { release = resolve; }));
         const pending = submit();
         expect(nodes(render()).filter(e => e.type === "input").every(e => e.props.disabled)).toBe(true);
         expect(html()).toContain('aria-busy="true"');
         expect(html()).toContain("Processing...");
-        release({ error: null }); await pending;
+        release({ ok: true, outcome: "confirmation-required" }); await pending;
     });
 });
 

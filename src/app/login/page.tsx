@@ -9,6 +9,24 @@ import { ArrowRight } from 'lucide-react';
 import { FirstSessionFrame, FirstSessionPanel } from '@/components/first-session-frame';
 import AccountConfirmation from '@/components/account-confirmation';
 import ui from '@/components/first-session.module.css';
+import { platformSignupAction, type PlatformSignupErrorCode } from '@/lib/platform-signup-action';
+import { PLATFORM_TERMS_CURRENT_REVISION } from '@/lib/platform-terms';
+
+// A023 (Rob 15:05) — signup now runs through the server action seam
+// (platform-signup-action): the server verifies explicit terms acceptance
+// and the trusted technical revision before any account call, creates the
+// account with the cookie-bound server client, and records consent only
+// when a server session exists. While signup stays OFF the action's
+// hard-coded gate answers signup-disabled and the page says so truthfully.
+// Typed failures are shown as fixed copy — no raw provider/transport data.
+const SIGNUP_ERROR_MESSAGES: Record<PlatformSignupErrorCode, string> = {
+    "signup-disabled": "Sign-up is currently disabled.",
+    "invalid-input": "Please check your email address and password and try again.",
+    "terms-refused": "Please accept the platform terms of service before creating an account.",
+    "unrecognized-revision": "The platform terms have been updated. Please review them and try again.",
+    "signup-failed": "We couldn't create your account. Please try again.",
+    "consent-not-stored": "Your account was created, but we couldn't record your terms acceptance. Please sign in to complete it.",
+};
 
 // P2-3 — sign-up UX overhaul.
 // Previously "Sign up" was a button below the sign-in form that
@@ -84,22 +102,22 @@ export default function LoginPage() {
         }
 
         setLoading(true);
-        const { error } = await supabase.auth.signUp({
+        const result = await platformSignupAction({
             email,
             password,
-            options: {
-                emailRedirectTo: `${location.origin}/auth/callback`,
-            },
+            acceptance: termsAccepted,
+            revision: PLATFORM_TERMS_CURRENT_REVISION,
         });
+        setLoading(false);
 
-        if (error) {
-            setErrorMessage(error.message);
-            setLoading(false);
+        if (!result.ok) {
+            setErrorMessage(SIGNUP_ERROR_MESSAGES[result.code]);
             return;
         }
 
-        setSuccessMessage("Account created. Check your email for the confirmation link — once confirmed, sign in to get started.");
-        setLoading(false);
+        setSuccessMessage(result.outcome === "confirmation-required"
+            ? "Account created. Check your email for the confirmation link — once confirmed, sign in to get started."
+            : "Account created and your acceptance of the platform terms is recorded. Sign in to get started.");
     };
 
     const isSignUp = mode === "signup";

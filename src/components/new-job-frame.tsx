@@ -36,9 +36,9 @@ export default function NewJobFrame({ children, first, dark, creating, errorKey 
                 {first ? "Back to company setup" : "Back to your workspace"}
             </Link>
             <header className={ui.header}>
-                <p className={ui.eyebrow}>Your next job / A blank starting point</p>
+                <p className={ui.eyebrow}>Work Winning / New job</p>
                 <h1>{first ? "Add your first job" : "New project"}</h1>
-                <p>Just a name for the job and who it&apos;s for. It starts blank, and you describe the work on the next screen.</p>
+                <p>This is a new job, not company setup. Add a name and client, then describe the work in the brief.</p>
             </header>
             <div className={ui.layout}>
                 <div className={ui.editor}>{children}</div>

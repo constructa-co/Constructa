@@ -4,9 +4,11 @@ import { useEffect, useRef } from "react";
 import { ArrowRight } from "lucide-react";
 import ui from "./first-session.module.css";
 
-export default function AccountConfirmation({ message, onSignIn }: {
+export default function AccountConfirmation({ message, onSignIn, footnote = "Already confirmed? Sign in with the email and password you used here." }: {
     message: string;
     onSignIn: () => void;
+    /** Shown under the sign-in button. The default suits an account that still needs email confirmation. */
+    footnote?: string;
 }) {
     const nextAction = useRef<HTMLButtonElement>(null);
 
@@ -26,7 +28,7 @@ export default function AccountConfirmation({ message, onSignIn }: {
             <button ref={nextAction} type="button" onClick={returnToSignIn} className={ui.primary}>
                 Back to sign in<ArrowRight size={18} aria-hidden="true" />
             </button>
-            <p className={ui.footnote}>Already confirmed? Sign in with the email and password you used here.</p>
+            <p className={ui.footnote}>{footnote}</p>
         </div>
     );
 }

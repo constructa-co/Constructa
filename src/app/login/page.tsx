@@ -50,6 +50,8 @@ export default function LoginPage() {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [termsAccepted, setTermsAccepted] = useState(false);
+    // The typed success the server returned, so the page never guesses it from the message.
+    const [successOutcome, setSuccessOutcome] = useState<"confirmation-required" | "created-and-recorded" | null>(null);
     const router = useRouter();
     const supabase = createClient();
 
@@ -58,6 +60,7 @@ export default function LoginPage() {
         setMode(next);
         setErrorMessage(null);
         setSuccessMessage(null);
+        setSuccessOutcome(null);
         setConfirmPassword("");
     };
 
@@ -66,6 +69,7 @@ export default function LoginPage() {
         setLoading(true);
         setErrorMessage(null);
         setSuccessMessage(null);
+        setSuccessOutcome(null);
 
         const { error } = await supabase.auth.signInWithPassword({
             email,
@@ -88,6 +92,7 @@ export default function LoginPage() {
         e.preventDefault();
         setErrorMessage(null);
         setSuccessMessage(null);
+        setSuccessOutcome(null);
 
         // Client-side validation
         if (password.length < 8) {
@@ -120,6 +125,7 @@ export default function LoginPage() {
             setSuccessMessage(result.outcome === "confirmation-required"
                 ? "Account created. Check your email for the confirmation link — once confirmed, sign in to get started."
                 : "Account created and your acceptance of the platform terms is recorded. Sign in to get started.");
+            setSuccessOutcome(result.outcome);
         } catch {
             // Transport-level rejection OUTSIDE the action's typed errors
             // (Rob 18:15 gap). The request may have died after the account
@@ -143,14 +149,18 @@ export default function LoginPage() {
             <FirstSessionPanel step={isSignUp ? 0 : undefined}>
                 <p className={ui.eyebrow}>{isSignUp ? "Your next chapter starts here" : "Good to see you again"}</p>
                 <h1 className={ui.heading}>
-                    {successMessage ? "Check your inbox." : isSignUp ? <>Get started.<br />Make it yours.</> : <>Welcome back.<br />Let&apos;s get to work.</>}
+                    {successMessage ? (successOutcome === "created-and-recorded" ? "Account created." : "Check your inbox.") : isSignUp ? <>Get started.<br />Make it yours.</> : <>Welcome back.<br />Let&apos;s get to work.</>}
                 </h1>
                 <p className={ui.lede}>
-                    {successMessage ? "Confirm your email, then sign in to get started." : isSignUp ? "A few simple steps. Then shape your company profile and your first job." : "Pick up where you left off."}
+                    {successMessage ? (successOutcome === "created-and-recorded" ? "Sign in with your email and password to get started." : "Confirm your email, then sign in to get started.") : isSignUp ? "A few simple steps. Then shape your company profile and your first job." : "Pick up where you left off."}
                 </p>
 
                 {successMessage ? (
-                    <AccountConfirmation message={successMessage} onSignIn={() => switchMode("signin")} />
+                    <AccountConfirmation
+                        message={successMessage}
+                        onSignIn={() => switchMode("signin")}
+                        footnote={successOutcome === "created-and-recorded" ? "Sign in with the email and password you used here." : undefined}
+                    />
                 ) : (
                     <>
                     <div className={ui.modeToggle} role="group" aria-label="Account mode">

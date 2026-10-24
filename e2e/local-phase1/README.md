@@ -140,6 +140,26 @@ Strict offline/CSP/abort-all and coordinator process network/source-write
 guards remain. This is not Auth/PostgREST, durable reload, hosted routing,
 publication, client acceptance or whole company-to-Won acceptance.
 
+## Joined Unseeded Company To Draft PDF Journey
+
+One explicit mock journey joins company setup through brief, then starts pricing
+with **no estimate seed**. The contractor enters the first price line on the real
+`EstimateClient` (activity from the saved brief, quantity, unit and rate). A
+deliberate **MOCK** `saveLine` acknowledgement (with one-shot refusal/retry)
+stores the line in-memory only; programme, frozen proposal and local draft PDF
+read that acknowledged line—not the separate seeded `journey.spec.ts` £480→£576
+fixture.
+
+```sh
+node e2e/local-phase1/build-brief-price.mjs /absolute/private/fresh-unseeded-journey-output unseeded-journey
+CONSTRUCTA_LOCAL_PHASE1_OUTPUT=/absolute/private/fresh-unseeded-journey-output node node_modules/@playwright/test/cli.js test --config=playwright.local-unseeded-journey.config.ts
+```
+
+Strict offline/CSP/abort-all, Node WebCrypto SHA-256 bridge and coordinator
+process network/source-write guards remain. PDF text is decoded with installed
+`unpdf` in the spec. This is not Auth/PostgREST, durable reload, hosted routing,
+publication, client acceptance or whole company-to-Won acceptance.
+
 ## Standard Twelve Terms To Draft PDF
 
 The actual proposal review client with `tc_overrides: null` (standard twelve

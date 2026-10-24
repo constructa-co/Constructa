@@ -19,6 +19,35 @@ vi.mock('next/navigation', () => ({ usePathname: () => route.pathname, useRouter
 afterEach(() => { vi.unstubAllEnvs(); route.pathname = '/'; });
 
 describe('phase-one marketing integration', () => {
+  it('names the retained pricing route as preview access in phase-one navigation', () => {
+    const html = renderToStaticMarkup(<MarketingHeader />);
+    expect(html).toContain('href="/pricing">Preview access</a>');
+    expect(html).not.toContain('href="/pricing">Access</a>');
+  });
+
+  it('does not link the preview-access page back to itself from its scope section', () => {
+    vi.stubEnv('NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE', 'cohort');
+    const html = renderToStaticMarkup(<Pricing />);
+    expect(html).toContain('Preview access');
+    expect(html).toContain('id="phase-one"');
+    expect(html).toContain('href="/features"');
+    expect(html).toContain('href="/login"');
+    expect(html).not.toContain('href="/pricing"');
+    expect(html).not.toContain('About preview access');
+  });
+
+  it.each([PhaseOneHome, PhaseOneFeatures])('retains the access link on other pages and keeps journey arrows decorative (%#)', Page => {
+    const html = renderToStaticMarkup(<Page />);
+    expect(html).toContain('href="/pricing"');
+    expect(html).toContain('About preview access');
+    const journey = html.match(/<ol[^>]*>([\s\S]*?)<\/ol>/)?.[1];
+    expect(journey).toBeDefined();
+    expect(journey).not.toMatch(/<a\b|<button\b|tabindex=/i);
+    const arrows = journey!.match(/<svg\b[^>]*>/g) ?? [];
+    expect(arrows).toHaveLength(4);
+    for (const arrow of arrows) expect(arrow).toContain('aria-hidden="true"');
+  });
+
   it('introduces the complete work-winning journey without an add-on sales form', () => {
     const html = renderToStaticMarkup(<PhaseOneHome />);
     expect(html).toContain('Good work.');

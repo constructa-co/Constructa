@@ -18,7 +18,7 @@ export function MarketingHeader() {
         <nav aria-label="Main navigation" className={ui.nav}>
           <Link href="/#how-it-works">How it works</Link>
           <Link href="/features">The product</Link>
-          <Link href="/pricing">Access</Link>
+          <Link href="/pricing">Preview access</Link>
         </nav>
         <Link className={ui.signIn} href="/login">Sign in <ArrowRight size={16} aria-hidden="true" /></Link>
       </div>
@@ -84,14 +84,14 @@ function Journey() {
   );
 }
 
-function Scope() {
+function Scope({ showAccessLink = true }: { showAccessLink?: boolean }) {
   return (
     <section id="phase-one" className={`${ui.section} ${ui.scope}`}>
       <div><p className={ui.eyebrow}>A focused first release</p><h2>The work-winning essentials.<br />Not a catalogue of add-ons.</h2><p>This phase-one preview brings together company profiles, estimating, programmes and proposals. It is a working review, not a claim that every part is ready for release.</p></div>
       <div className={ui.scopeList}>
         {['Company profile and past work', 'Job brief and estimating', 'Programme and proposal preparation'].map(item => <p key={item}><Check size={18} aria-hidden="true" />{item}</p>)}
         <p className={ui.scopeNote}>Later-phase delivery, finance and resource tools are outside this preview. No add-on checkout is offered here.</p>
-        <Link href="/pricing" className={ui.textLink}>About preview access <ArrowRight size={16} aria-hidden="true" /></Link>
+        {showAccessLink && <Link href="/pricing" className={ui.textLink}>About preview access <ArrowRight size={16} aria-hidden="true" /></Link>}
       </div>
     </section>
   );
@@ -141,5 +141,5 @@ export function PhaseOneFeatures() {
 }
 
 export function PhaseOnePricing() {
-  return <div className={`${ui.theme} ${ui.root}`}><section className={ui.pageIntro}><p className={ui.eyebrow}>Preview access</p><h1>A focused first phase.<br /><em>No add-on checkout.</em></h1><p>We are reviewing the complete work-winning journey before release. This page does not sell a subscription, promise a free trial or take payment for later-phase features.</p><AccountLink /><Link href="/features" className={ui.textLink}>Explore the phase-one scope <ArrowRight size={16} aria-hidden="true" /></Link></section><Scope /><Questions /></div>;
+  return <div className={`${ui.theme} ${ui.root}`}><section className={ui.pageIntro}><p className={ui.eyebrow}>Preview access</p><h1>A focused first phase.<br /><em>No add-on checkout.</em></h1><p>We are reviewing the complete work-winning journey before release. This page does not sell a subscription, promise a free trial or take payment for later-phase features.</p><AccountLink /><Link href="/features" className={ui.textLink}>Explore the phase-one scope <ArrowRight size={16} aria-hidden="true" /></Link></section><Scope showAccessLink={false} /><Questions /></div>;
 }

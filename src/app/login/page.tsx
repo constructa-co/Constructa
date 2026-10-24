@@ -102,22 +102,33 @@ export default function LoginPage() {
         }
 
         setLoading(true);
-        const result = await platformSignupAction({
-            email,
-            password,
-            acceptance: termsAccepted,
-            revision: PLATFORM_TERMS_CURRENT_REVISION,
-        });
-        setLoading(false);
+        try {
+            const result = await platformSignupAction({
+                email,
+                password,
+                acceptance: termsAccepted,
+                revision: PLATFORM_TERMS_CURRENT_REVISION,
+            });
 
-        if (!result.ok) {
-            setErrorMessage(SIGNUP_ERROR_MESSAGES[result.code]);
-            return;
+            if (!result.ok) {
+                setErrorMessage(SIGNUP_ERROR_MESSAGES[result.code]);
+                return;
+            }
+
+            setSuccessMessage(result.outcome === "confirmation-required"
+                ? "Account created. Check your email for the confirmation link — once confirmed, sign in to get started."
+                : "Account created and your acceptance of the platform terms is recorded. Sign in to get started.");
+        } catch {
+            // Transport-level rejection OUTSIDE the action's typed errors
+            // (Rob 18:15 gap). The request may have died after the account
+            // was created, so neither failure nor success may be claimed.
+            // Fixed redacted copy advises checking by signing in, and never
+            // retries automatically. Draft inputs, checkbox and mode are
+            // deliberately left untouched.
+            setErrorMessage("We couldn't confirm whether your account was created. Please try signing in before creating another account.");
+        } finally {
+            setLoading(false);
         }
-
-        setSuccessMessage(result.outcome === "confirmation-required"
-            ? "Account created. Check your email for the confirmation link — once confirmed, sign in to get started."
-            : "Account created and your acceptance of the platform terms is recorded. Sign in to get started.");
     };
 
     const isSignUp = mode === "signup";

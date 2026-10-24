@@ -409,11 +409,17 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             </div>
 
             {/* SECTION C — Search & Filter Bar */}
-            <div data-project-filters className={`rounded-xl border p-4 ${
+            <div data-project-filters role="group" aria-labelledby="pipeline-filters-heading" className={`rounded-xl border p-4 ${
                 isDark
                     ? "bg-[#1a1a1a] border-[#2a2a2a]"
                     : "bg-white border-gray-200 shadow-sm"
             }`}>
+                <h2 id="pipeline-filters-heading" className={`text-sm font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
+                    Filter jobs
+                </h2>
+                <p id="pipeline-filters-help" className={`text-xs mt-1 mb-3 ${isDark ? "text-[#a0a0a0]" : "text-gray-600"}`}>
+                    View only: these filters do not change a job&apos;s stage.
+                </p>
                 <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3" data-project-toolbar>
                     {/* Search */}
                     <div className="relative flex-1">
@@ -454,6 +460,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                         value={statusFilter}
                         onChange={e => setStatusFilter(e.target.value)}
                         aria-label="Filter by stage"
+                        aria-describedby="pipeline-filters-help"
                         className={`min-h-11 lg:min-h-0 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                             isDark
                                 ? "bg-[#0d0d0d] border border-[#2a2a2a] text-white"

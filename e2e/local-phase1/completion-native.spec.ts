@@ -102,3 +102,47 @@ test("pending fences duplicate submit; transport throw retains checkbox and form
     await expect(page.getByRole("heading", { name: "Accept the platform terms.", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Continue", exact: true })).toHaveCount(0);
 });
+
+test("expired session: typed unauthenticated refusal keeps the checked box, offers only the fixed Sign in, and never retries by itself", async ({ page }) => {
+    // MOCK transport answers as the real action does with no server session; nothing is recorded or claimed.
+    await boot(page, () => {
+        window.__completionNativeLocal.completionBehavior = async () => ({ ok: false, code: "unauthenticated" });
+    });
+    const checkbox = page.locator("#platform-terms-completion");
+    const submit = page.getByRole("button", { name: "Accept platform terms", exact: true });
+    const settle = () => page.evaluate(() => new Promise(resolve => setTimeout(resolve, 100)));
+    const invocations = () => page.evaluate(() => window.__completionNativeLocal.completionInvocationCount);
+    await checkbox.check();
+    await submit.click();
+
+    const alert = page.getByRole("alert");
+    await expect(alert).toContainText("You're not signed in, so your acceptance wasn't recorded. Sign in, then accept the platform terms.");
+    await expect(alert).toHaveAttribute("id", "platform-terms-completion-error");
+    const signIn = alert.getByRole("link", { name: "Sign in", exact: true });
+    await expect(signIn).toHaveAttribute("href", "/login?next=%2Fauth%2Fplatform-terms");
+    await expect(page.getByRole("link", { name: "Sign in", exact: true })).toHaveCount(1);
+    await expect(checkbox).toBeChecked();
+    await expect(checkbox).toBeEnabled();
+    await expect(checkbox).not.toHaveAttribute("aria-invalid", /.*/);
+    await expect(submit).toBeEnabled();
+    await expect(page.getByRole("heading", { name: "Accept the platform terms.", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "You're all set.", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("status")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Continue", exact: true })).toHaveCount(0);
+    expect(await page.evaluate(() => window.__completionNativeLocal.lastCompletionInput)).toEqual({ acceptance: true, revision: REVISION });
+
+    // No automatic retry and no navigation while the page waits.
+    await settle();
+    expect(await invocations()).toBe(1);
+    expect(page.url()).toBe("about:blank");
+
+    // Only a deliberate second submit asks again, with the same acceptance and revision, and gets the same honest refusal.
+    await submit.click();
+    await expect.poll(invocations).toBe(2);
+    expect(await page.evaluate(() => window.__completionNativeLocal.lastCompletionInput)).toEqual({ acceptance: true, revision: REVISION });
+    await expect(page.getByRole("alert")).toContainText("You're not signed in, so your acceptance wasn't recorded.");
+    await expect(checkbox).toBeChecked();
+    await expect(page.getByRole("link", { name: "Continue", exact: true })).toHaveCount(0);
+    await settle();
+    expect(await invocations()).toBe(2);
+});

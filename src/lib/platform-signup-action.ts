@@ -5,6 +5,7 @@ import { requireTrustedAppUrl } from "@/lib/email";
 import { isPlatformSignupDisabled } from "@/lib/platform-signup-policy";
 import { isRecognizedPlatformTermsRevision } from "@/lib/platform-terms";
 import { recordPlatformTermsAcceptance } from "@/lib/platform-terms-acceptance";
+import { platformTermsConfirmationRedirect } from "@/lib/platform-terms-completion";
 
 // A023 (Rob 15:05; coordinator source repair 15:46) — server-side signup
 // orchestration seam with consent.
@@ -84,7 +85,8 @@ async function trustedEmailRedirect(): Promise<{ emailRedirectTo: string } | und
         const baseUrl = requireTrustedAppUrl(
             process.env.NEXT_PUBLIC_SITE_URL ?? DEFAULT_TRUSTED_APP_URL,
         ).replace(/\/+$/, "");
-        return { emailRedirectTo: `${baseUrl}/auth/callback` };
+        // The confirmed user lands on the explicit platform terms completion page.
+        return { emailRedirectTo: platformTermsConfirmationRedirect(baseUrl) };
     } catch {
         // Trusted URL unavailable (e.g. misconfigured site URL): omit the
         // redirect rather than guessing or trusting arbitrary input.

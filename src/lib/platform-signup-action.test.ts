@@ -156,7 +156,7 @@ describe("signup orchestration behind the gate (offline mocks)", () => {
         expect(mocks.signUp).toHaveBeenCalledWith({
             email: "builder@example.com",
             password: "correct horse 1",
-            options: { emailRedirectTo: "https://constructa-nu.vercel.app/auth/callback" },
+            options: { emailRedirectTo: "https://constructa-nu.vercel.app/auth/callback?next=%2Fauth%2Fplatform-terms" },
         });
         // Sequencing: consent is recorded strictly after account creation,
         // with the trusted revision and explicit acceptance only.

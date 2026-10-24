@@ -11,6 +11,7 @@ import AccountConfirmation from '@/components/account-confirmation';
 import ui from '@/components/first-session.module.css';
 import { platformSignupAction, type PlatformSignupErrorCode } from '@/lib/platform-signup-action';
 import { PLATFORM_TERMS_CURRENT_REVISION } from '@/lib/platform-terms';
+import { PLATFORM_TERMS_COMPLETION_PATH, platformTermsCompletionReturn } from '@/lib/platform-terms-completion';
 
 // A023 (Rob 15:05) — signup now runs through the server action seam
 // (platform-signup-action): the server verifies explicit terms acceptance
@@ -77,7 +78,8 @@ export default function LoginPage() {
             return;
         }
 
-        router.push(getLaunchLandingPath());
+        // Only the exact platform terms completion page is honoured as a return.
+        router.push(platformTermsCompletionReturn(globalThis.location?.search) ?? getLaunchLandingPath());
         router.refresh();
         setLoading(false);
     };
@@ -243,6 +245,11 @@ export default function LoginPage() {
                             <div id="login-error" role="alert" className={ui.error}>
                                 {errorMessage}
                             </div>
+                        )}
+                        {errorMessage === SIGNUP_ERROR_MESSAGES["consent-not-stored"] && (
+                            <Link href={PLATFORM_TERMS_COMPLETION_PATH} className={ui.textButton}>
+                                Complete platform terms acceptance
+                            </Link>
                         )}
 
                         <button

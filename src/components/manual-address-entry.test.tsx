@@ -1,0 +1,130 @@
+import type { FormEvent, ReactElement, ReactNode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MANUAL_ADDRESS_MAX_LENGTH } from "@/lib/manual-address";
+
+const hooks = vi.hoisted(() => ({
+    slots: [] as unknown[],
+    cursor: 0,
+}));
+
+vi.mock("react", async importOriginal => ({
+    ...await importOriginal<typeof import("react")>(),
+    useState: (initial: unknown) => {
+        const index = hooks.cursor++;
+        if (!(index in hooks.slots)) hooks.slots[index] = typeof initial === "function" ? initial() : initial;
+        return [
+            hooks.slots[index],
+            (value: unknown) => {
+                hooks.slots[index] = typeof value === "function" ? value(hooks.slots[index]) : value;
+            },
+        ];
+    },
+    useRef: (initial: unknown) => {
+        const index = hooks.cursor++;
+        if (!(index in hooks.slots)) hooks.slots[index] = { current: initial };
+        return hooks.slots[index];
+    },
+}));
+
+import ManualAddressEntry from "./manual-address-entry";
+
+type Node = ReactElement<{
+    children?: ReactNode;
+    id?: string;
+    type?: string;
+    disabled?: boolean;
+    value?: string;
+    onClick?: () => void;
+    onChange?: (event: { target: { value: string } }) => void;
+    onSubmit?: (event: FormEvent) => void;
+}>;
+
+function nodes(value: ReactNode): Node[] {
+    if (Array.isArray(value)) return value.flatMap(nodes);
+    if (!value || typeof value !== "object" || !("props" in value)) return [];
+    const node = value as Node;
+    return [node, ...nodes(node.props.children)];
+}
+
+type EntryProps = {
+    idPrefix: string;
+    disabled?: boolean;
+    onApply: (preview: string) => void;
+    onPendingChange: (pending: boolean) => void;
+    isDark: boolean;
+    labelCls: string;
+    inputCls: string;
+    muted: string;
+};
+
+const defaultProps = (): EntryProps => ({
+    idPrefix: "test-manual",
+    disabled: false,
+    onApply: vi.fn(),
+    onPendingChange: vi.fn(),
+    isDark: true,
+    labelCls: "label",
+    inputCls: "input",
+    muted: "muted",
+});
+
+function renderEntry(overrides: Partial<EntryProps> = {}) {
+    hooks.cursor = 0;
+    const props = { ...defaultProps(), ...overrides };
+    return { node: ManualAddressEntry(props), props };
+}
+
+function editPart(id: string, value: string, overrides: Partial<EntryProps> = {}) {
+    nodes(renderEntry(overrides).node).find(n => n.props.id === id)!.props.onChange!({ target: { value } });
+}
+
+beforeEach(() => {
+    hooks.slots = [];
+    hooks.cursor = 0;
+});
+
+describe("ManualAddressEntry", () => {
+    it("starts closed with no named fields and does not submit a form", () => {
+        const html = renderToStaticMarkup(renderEntry().node);
+        expect(html).toMatch(/<details[^>]*data-manual-address-entry="test-manual"/);
+        expect(html).not.toMatch(/<details[^>]*\sopen(?:=|\s|>)/);
+        expect(html).not.toMatch(/\bname="/);
+        expect(nodes(renderEntry().node).find(n => n.type === "form")).toBeUndefined();
+    });
+
+    it("keeps parent address untouched until Use is pressed", () => {
+        const onApply = vi.fn();
+        const onPendingChange = vi.fn();
+        editPart("test-manual-line1", "Warehouse", { onApply, onPendingChange });
+        expect(onApply).not.toHaveBeenCalled();
+        expect(onPendingChange).toHaveBeenLastCalledWith(true);
+        nodes(renderEntry({ onApply, onPendingChange }).node)
+            .find(n => n.props.id === "test-manual-use")!
+            .props.onClick!();
+        expect(onApply).toHaveBeenCalledWith("Warehouse");
+        expect(onPendingChange).toHaveBeenLastCalledWith(false);
+    });
+
+    it("disables Use for empty preview and for previews over 500 characters", () => {
+        editPart("test-manual-line1", "z".repeat(MANUAL_ADDRESS_MAX_LENGTH + 5));
+        const use = nodes(renderEntry().node).find(n => n.props.id === "test-manual-use")!;
+        expect(use.props.disabled).toBe(true);
+        expect(renderToStaticMarkup(renderEntry().node)).toContain("over 500 characters");
+    });
+
+    it("disables controls while the parent create flow is pending", () => {
+        editPart("test-manual-line1", "Site");
+        expect(nodes(renderEntry({ disabled: true }).node).find(n => n.props.id === "test-manual-line1")!.props.disabled).toBe(true);
+        expect(nodes(renderEntry({ disabled: true }).node).find(n => n.props.id === "test-manual-use")!.props.disabled).toBe(true);
+    });
+
+    it("retains draft values in markup without applying on re-render", () => {
+        editPart("test-manual-line1", "Keep");
+        editPart("test-manual-townCity", "Draft");
+        const html = renderToStaticMarkup(renderEntry().node);
+        expect(html).toContain('value="Keep"');
+        expect(html).toContain('value="Draft"');
+        expect(html).toContain("Keep\nDraft");
+    });
+});

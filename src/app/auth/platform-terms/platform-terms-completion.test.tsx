@@ -21,6 +21,11 @@ vi.mock("react", async original => ({
         if (!(index in state.slots)) state.slots[index] = initial;
         return [state.slots[index], (value: unknown) => { state.slots[index] = value; }];
     },
+    useRef: (initial: unknown) => {
+        const index = state.cursor++;
+        if (!(index in state.slots)) state.slots[index] = { current: initial };
+        return state.slots[index];
+    },
 }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: state.createClient }));
 vi.mock("next/navigation", () => ({ redirect: state.redirect }));
@@ -89,6 +94,27 @@ describe("completion page access", () => {
 });
 
 describe("explicit acceptance on the completion page", () => {
+    it("fences two calls to the same accepted submit handler before rerender", async () => {
+        let release!: (value: { error: null }) => void;
+        state.insert.mockReturnValue(new Promise(resolve => { release = resolve; }));
+        tick(true);
+        const form = find(element => element.type === "form")!;
+        const handler = form.props.onSubmit as (event: { preventDefault: () => void }) => Promise<void>;
+        const first = handler({ preventDefault: vi.fn() });
+        const second = handler({ preventDefault: vi.fn() });
+        await vi.waitFor(() => expect(state.insert).toHaveBeenCalled());
+        await settle();
+        const writesBeforeReply = state.insert.mock.calls.length;
+        expect(continueLink()).toBeUndefined();
+        release({ error: null });
+        await Promise.all([first, second]);
+        expect(writesBeforeReply).toBe(1);
+        expect(state.insert).toHaveBeenCalledExactlyOnceWith({
+            user_id: "server-user", terms_document: PLATFORM_TERMS_DOCUMENT_ID,
+            accepted_revision: PLATFORM_TERMS_CURRENT_REVISION,
+        });
+    });
+
     it("starts with a required unchecked box, a separate full-terms link and no recorded claim", () => {
         expect(checkbox().props).toMatchObject({ type: "checkbox", required: true, checked: false, disabled: false, "aria-describedby": "platform-terms-completion-link" });
         const elements = nodes(render());

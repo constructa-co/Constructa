@@ -16,6 +16,7 @@ import {
     type CreateBlankProjectResult,
 } from "@/lib/blank-project";
 import { createBlankProjectAction } from "./actions";
+import ManualAddressEntry from "@/components/manual-address-entry";
 import NewJobFrame from "@/components/new-job-frame";
 import ui from "@/components/new-job.module.css";
 
@@ -41,9 +42,12 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
     const [creating, setCreating] = useState(false);
     const [created, setCreated] = useState(false);
     const [showMore, setShowMore] = useState(false);
+    const [structuredAddressDraftPending, setStructuredAddressDraftPending] = useState({ site: false, client: false });
     const inFlightRef = useRef(false);
 
-    useUnsavedGuard(!created && (creating || Object.values(form).some(value => value !== "")),
+    const hasStructuredAddressDraft = structuredAddressDraftPending.site || structuredAddressDraftPending.client;
+
+    useUnsavedGuard(!created && (creating || hasStructuredAddressDraft || Object.values(form).some(value => value !== "")),
         "This new job has entries that are not saved yet.\n\nPress Cancel to stay here, or OK to leave without saving them.");
 
     const set = (field: BlankProjectField, value: string) => {
@@ -186,8 +190,7 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
                         <ChevronDown className={`w-5 h-5 flex-shrink-0 transition-transform ${showMore ? "rotate-180" : ""}`} />
                     </button>
 
-                    {showMore && (
-                        <div id="new-project-more" className="px-4 pt-2 pb-4 space-y-5">
+                    <div id="new-project-more" hidden={!showMore} className="px-4 pt-2 pb-4 space-y-5">
                             <div className="grid sm:grid-cols-2 gap-5">
                                 <div>
                                     <label htmlFor="new-project-clientEmail" className={labelCls}>Client email</label>
@@ -229,6 +232,16 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
                                     className={`${textareaCls} mt-1.5`}
                                 />
                                 {fieldError("siteAddress")}
+                                <ManualAddressEntry
+                                    idPrefix="new-project-site-manual"
+                                    disabled={creating}
+                                    onApply={(preview) => set("siteAddress", preview)}
+                                    onPendingChange={(pending) => setStructuredAddressDraftPending((prev) => ({ ...prev, site: pending }))}
+                                    isDark={isDark}
+                                    labelCls={labelCls}
+                                    inputCls={inputCls}
+                                    muted={muted}
+                                />
                             </div>
 
                             <div>
@@ -242,6 +255,16 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
                                     className={`${textareaCls} mt-1.5`}
                                 />
                                 {fieldError("clientAddress")}
+                                <ManualAddressEntry
+                                    idPrefix="new-project-client-manual"
+                                    disabled={creating}
+                                    onApply={(preview) => set("clientAddress", preview)}
+                                    onPendingChange={(pending) => setStructuredAddressDraftPending((prev) => ({ ...prev, client: pending }))}
+                                    isDark={isDark}
+                                    labelCls={labelCls}
+                                    inputCls={inputCls}
+                                    muted={muted}
+                                />
                             </div>
 
                             <div>
@@ -278,7 +301,6 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
                                 </div>
                             </div>
                         </div>
-                    )}
                 </div>
 
                 {createError && (

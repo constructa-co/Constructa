@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { FirstSessionFrame, FirstSessionPanel } from "@/components/first-session-frame";
@@ -22,15 +22,18 @@ export default function PlatformTermsCompletion({ revision }: { revision: string
     const [pending, setPending] = useState(false);
     const [feedback, setFeedback] = useState<Feedback | null>(null);
     const [recorded, setRecorded] = useState<"recorded" | "already-recorded" | null>(null);
+    // Set synchronously, so the same submit called again before the pending rerender cannot record twice.
+    const inFlight = useRef(false);
 
     const submit = async (event: React.FormEvent) => {
         event.preventDefault();
-        if (pending) return;
+        if (pending || inFlight.current) return;
         setFeedback(null);
         if (!accepted) {
             setFeedback("refused");
             return;
         }
+        inFlight.current = true;
         setPending(true);
         try {
             const result = await completePlatformTermsAcceptanceAction({ acceptance: accepted, revision });
@@ -40,6 +43,7 @@ export default function PlatformTermsCompletion({ revision }: { revision: string
             // The request itself failed; whether anything was stored is unknown.
             setFeedback("unconfirmed");
         } finally {
+            inFlight.current = false;
             setPending(false);
         }
     };

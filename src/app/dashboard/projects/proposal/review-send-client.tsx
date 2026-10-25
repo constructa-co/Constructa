@@ -7,6 +7,7 @@ import { AlertTriangle, Check, ChevronDown, Circle, FileDown, Loader2, Plus, Sen
 import ProgrammeTimeline from "@/components/programme-timeline";
 import ProposalDocumentView from "@/components/proposal/proposal-document-view";
 import ProposalDocumentDialog from "@/components/proposal/proposal-document-dialog";
+import CompanyCredentialsSummary from "@/components/proposal/company-credentials-summary";
 import ProposalDocumentReader from "@/components/proposal/proposal-document-reader";
 import ProposalStageSwitcher from "@/components/proposal/proposal-stage-switcher";
 import CurrentTermsReview from "@/components/proposal/current-terms-review";
@@ -618,12 +619,16 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                     <section id="review-cover" className={sectionCard} aria-labelledby="review-cover-title">
                         {sectionTitle("review-cover", 1, "Cover and opening message", "The first thing your client reads.")}
                         <dl className={`grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm ${s.inset} p-3 sm:p-4`}>
-                            {[
+                            {([
                                 ["Job", project.name],
                                 ["Client", project.client_name || "Not set"],
                                 ["Site", project.site_address || "Not set"],
                                 ["From", context.profile.company_name || "Not set"],
-                            ].map(([label, value]) => (
+                            ] as Array<[string, string]>)
+                                .concat(project.project_type?.trim()
+                                    ? [["Type of work", project.project_type] as [string, string]]
+                                    : [])
+                            .map(([label, value]) => (
                                 <div key={label} className="min-w-0">
                                     <dt className={`font-semibold ${s.muted}`}>{label}</dt>
                                     <dd className={`break-words ${s.body}`}>{value}</dd>
@@ -643,7 +648,14 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                         {context.profile.capability_statement?.trim()
                             ? <p className={`text-base whitespace-pre-wrap break-words ${s.body}`}>{context.profile.capability_statement}</p>
                             : <p className={`text-base ${s.muted}`}>No company introduction is saved. Other company details may still appear in the draft preview below.</p>}
-                        {elsewhere("Years trading, accreditations, insurance and your logo also come from the profile.", "/dashboard/settings/profile", "Change company profile")}
+                        <CompanyCredentialsSummary
+                            yearsTrading={context.profile.years_trading}
+                            specialisms={context.profile.specialisms}
+                            accreditations={context.profile.accreditations}
+                            insuranceDetails={context.profile.insurance_details}
+                            styles={{ body: s.body, muted: s.muted }}
+                        />
+                        {elsewhere("Your logo also comes from the profile.", "/dashboard/settings/profile", "Change company profile")}
                     </section>
 
                     {/* 3. Experience */}

@@ -205,4 +205,42 @@ describe("new project manual structured addresses", () => {
         expect(nodes(render()).find(n => n.props.id === "new-project-site-manual-line1")!.props.value).toBe("Survives outer collapse");
         expect(warns()).toBe(true);
     });
+
+    it("refuses create with unapplied site and client parts, then clearing those parts deliberately creates with the original free text exactly once", async () => {
+        openMore();
+        edit("new-project-name", "Job");
+        edit("new-project-client", "Client");
+        edit("new-project-siteAddress", "Existing site\nunchanged");
+        edit("new-project-clientAddress", "Existing client, flat 2");
+        edit("new-project-site-manual-line1", "Would-be site");
+        edit("new-project-client-manual-postcode", "AB1 2CD");
+        hooks.create.mockResolvedValue({ success: true, projectId: "job-1" });
+
+        // Deliberate Create with unapplied structured parts on both sides: refused, zero action/navigation.
+        submitCreate();
+        await vi.waitFor(() => expect(staticHtml()).toContain(MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE));
+        expect(hooks.create).not.toHaveBeenCalled();
+        expect(hooks.push).not.toHaveBeenCalled();
+        submitCreate();
+        expect(hooks.create).not.toHaveBeenCalled();
+        expect(nodes(render()).find(n => n.props.id === "new-project-siteAddress")!.props.value).toBe("Existing site\nunchanged");
+        expect(nodes(render()).find(n => n.props.id === "new-project-clientAddress")!.props.value).toBe("Existing client, flat 2");
+
+        // Clear every pending structured field deliberately (no Use): the refusal releases, free text stays byte-exact.
+        edit("new-project-site-manual-line1", "");
+        expect(staticHtml()).toContain(MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE);
+        edit("new-project-client-manual-postcode", "");
+        expect(staticHtml()).not.toContain(MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE);
+        expect(nodes(render()).find(n => n.props.id === "new-project-site-manual-line1")!.props.value).toBe("");
+        expect(nodes(render()).find(n => n.props.id === "new-project-client-manual-postcode")!.props.value).toBe("");
+
+        // One explicit Create now submits the original free text exactly once; no structured keys leak in.
+        submitCreate();
+        await vi.waitFor(() => expect(hooks.create).toHaveBeenCalledOnce());
+        const keys = Array.from(hooks.create.mock.calls[0][0].keys());
+        expect(keys).not.toContain("line1");
+        expect(keys).not.toContain("postcode");
+        expect(hooks.create.mock.calls[0][0].get("siteAddress")).toBe("Existing site\nunchanged");
+        expect(hooks.create.mock.calls[0][0].get("clientAddress")).toBe("Existing client, flat 2");
+    });
 });

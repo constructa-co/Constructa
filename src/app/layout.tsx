@@ -36,15 +36,6 @@ export default async function RootLayout(
         {!review && <Script id="sw-register" strategy="afterInteractive">
           {`if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js'); }`}
         </Script>}
-        {!review && <Script
-          defer
-          data-domain="constructa.co"
-          src="https://plausible.io/js/script.js"
-          strategy="afterInteractive"
-        />}
-        {!review && <Script id="plausible-events" strategy="afterInteractive">
-          {`window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }`}
-        </Script>}
       </head>
       <body className={`${inter.className} bg-black text-white antialiased`}>
         {review && <aside className="bg-emerald-950 px-4 py-3 text-center text-sm text-emerald-100">{process.env.CONSTRUCTA_REVIEW_EDITABLE === '1' ? 'Protected backend test. Only the two existing QA jobs are editable. AI, uploads, deletion, publishing and sending are disabled. Do not enter real client data.' : 'Protected work-in-progress review. Test data only. Saving, AI, uploads and sending are disabled.'}</aside>}

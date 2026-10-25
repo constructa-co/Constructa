@@ -10,20 +10,21 @@ vi.mock('next/script', () => ({ default: ({ children, id, src }: { children?: Re
 vi.mock('next/image', () => ({ default: () => null }));
 afterEach(() => vi.unstubAllEnvs());
 
-it('does not inject a behavioural replay loader around confidential child content', async () => {
+it('does not inject automatic analytics or replay around confidential child content', async () => {
     vi.stubEnv('CONSTRUCTA_REVIEW_ONLY', '0');
     const html = renderToStaticMarkup(await RootLayout({ children: <main>TEST DATA - private project</main> }));
     expect(html).toContain('TEST DATA - private project');
     expect(html).toContain('id="sw-register"');
-    expect(html).toContain('https://plausible.io/js/script.js');
-    expect(html).toContain('id="plausible-events"');
+    expect(html).not.toContain('https://plausible.io/js/script.js');
+    expect(html).not.toContain('id="plausible-events"');
+    expect(html).not.toContain('window.plausible');
     expect(html).not.toMatch(/clarity-script|microsoft-clarity|clarity\.ms\/tag\//);
 });
 
-it('does not leave a second landing replay loader that can survive navigation to private pages', () => {
+it('does not leave a landing analytics or replay loader that can survive navigation to private pages', () => {
     const html = renderToStaticMarkup(<FullLandingPage />);
     expect(html).toContain('Join the waitlist');
-    expect(html).toContain('https://plausible.io/js/script.js');
+    expect(html).not.toContain('https://plausible.io/js/script.js');
     expect(html).toContain('src="/feature-scroll.js"');
     expect(html).toContain('id="plausible-contact"');
     expect(html).not.toMatch(/clarity-script|microsoft-clarity|clarity\.ms\/tag\//);

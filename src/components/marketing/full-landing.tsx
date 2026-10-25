@@ -115,11 +115,6 @@ export default function FullLandingPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <Script
-        src="https://plausible.io/js/script.js"
-        data-domain="constructa.co"
-        strategy="afterInteractive"
-      />
       <Script src="/feature-scroll.js" strategy="afterInteractive" />
       <Script id="plausible-contact" strategy="afterInteractive">
         {`

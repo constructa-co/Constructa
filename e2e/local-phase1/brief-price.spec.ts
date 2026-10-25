@@ -300,3 +300,69 @@ test.describe("phone presentation", () => {
     });
 });
 
+const MULTILINE_CONTRACTOR_ACTIVITY = "Strip existing coverings;\nRe-point chimney (north).\nRe-felt & batten slope.";
+const SECOND_CONTRACTOR_ACTIVITY = "Install new gutters (10m run; both sides).";
+const UNADDED_MULTILINE_ENTRY = "Cart away arisings;\nstill waiting to be added.";
+
+test("multiline contractor activities: add, clear unadded text, legacy picker closed, ordered activities on build", async ({ page }, info) => {
+    await page.getByLabel("Describe the job in your own words").fill(WORK);
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+
+    const legacyPicker = page.locator("details").filter({ hasText: "Choose from existing trade names" });
+    await expect(legacyPicker).toHaveCount(1);
+    await expect(legacyPicker).toHaveJSProperty("open", false);
+    await expect(page.getByLabel("Find a trade")).toBeHidden();
+
+    const entry = page.getByLabel("Activity to add");
+    await entry.fill(MULTILINE_CONTRACTOR_ACTIVITY);
+    await page.getByRole("button", { name: "Add activity", exact: true }).click();
+    await expect(entry).toHaveValue("");
+    await expect(page.getByRole("button", { name: `Remove ${MULTILINE_CONTRACTOR_ACTIVITY}`, exact: true })).toBeVisible();
+
+    await entry.fill(SECOND_CONTRACTOR_ACTIVITY);
+    await page.getByRole("button", { name: "Add activity", exact: true }).click();
+    await expect(page.getByRole("button", { name: `Remove ${SECOND_CONTRACTOR_ACTIVITY}`, exact: true })).toBeVisible();
+
+    await entry.fill(UNADDED_MULTILINE_ENTRY);
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    await expect(page.getByRole("status").filter({ hasText: "An activity entry is still waiting to be added" })).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "An activity entry is still waiting to be added" })).toContainText("Cart away arisings;");
+
+    await page.getByRole("button", { name: /Activities/ }).click();
+    await expect(entry).toHaveValue(UNADDED_MULTILINE_ENTRY);
+    await page.getByRole("button", { name: "Clear entry", exact: true }).click();
+    await expect(entry).toHaveValue("");
+    await expect(page.getByRole("button", { name: "Add activity", exact: true })).toBeDisabled();
+
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    expect((await snapshot(page)).saves).toEqual([]);
+    expect((await snapshot(page)).navigation).toEqual([]);
+    expect((await snapshot(page)).priceWrites).toEqual([]);
+    await page.getByRole("button", { name: "Save and build the price", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Build the price", exact: true })).toBeVisible();
+
+    const saved = await snapshot(page);
+    expect(saved.saves).toHaveLength(1);
+    expect(saved.saves[0].projectId).toBe(JOB_ID);
+    expect(saved.saves[0].payload.brief_scope).toBe(WORK);
+    expect(saved.saves[0].payload.brief_trade_sections).toEqual([
+        MULTILINE_CONTRACTOR_ACTIVITY,
+        SECOND_CONTRACTOR_ACTIVITY,
+    ]);
+    expect(saved.saves[0].payload.brief_completed).toBe(true);
+    expect(saved.navigation).toEqual([PRICING_PATH]);
+    expect(saved.priceWrites).toEqual([]);
+    expect(requests).toEqual([]);
+    expect(pageErrors).toEqual([]);
+
+    await info.attach("c28-a044-scope", {
+        body: JSON.stringify({
+            ...scope,
+            note: "REAL BriefClient activity add/clear; multiline preserved; MOCK save on Build only",
+            activities: saved.saves[0].payload.brief_trade_sections,
+        }),
+        contentType: "application/json",
+    });
+    await page.screenshot({ path: path.join(output, "brief-multiline-activities.png"), fullPage: true });
+});
+

@@ -184,3 +184,112 @@ test("dirty project switch asks first: Cancel retains job and draft, explicit Le
     expect(pageErrors).toEqual([]);
     await info.attach("scope", { body: JSON.stringify({ ...scope, requests }), contentType: "application/json" });
 });
+
+const C30_SIDEBAR_SCOPE_NOTE =
+    "REAL mounted SidebarNav (cohort capabilities): no Admin link, no extended-module Live/Closed/Resources/Reporting finance placeholders; Work Winning + This job links and selected project identity unchanged; no navigation to forbidden hrefs";
+
+/** Labels for sections/links only rendered when `extended-modules` or `isAdmin` is active. */
+const C30_COHORT_FORBIDDEN_SIDEBAR_LABELS = [
+    "Admin Dashboard",
+    "Overview",
+    "Live Projects",
+    "Closed Projects",
+    "Resource Portfolio",
+    "Accounting",
+    "Management Accounts",
+    "Reports & Photos",
+    "CIS Compliance",
+    "Material Rates",
+    "Billing & Invoicing",
+    "Job P&L",
+] as const;
+
+const C30_COHORT_FORBIDDEN_HREF_FRAGMENTS = [
+    "/admin",
+    "/dashboard/home",
+    "/dashboard/management-accounts",
+    "/dashboard/accounting",
+    "/dashboard/resources/portfolio",
+    "/dashboard/reporting",
+    "/dashboard/projects/billing",
+] as const;
+
+async function assertCohortSidebarAbsence(root: ReturnType<import("@playwright/test").Page["locator"]>) {
+    for (const label of C30_COHORT_FORBIDDEN_SIDEBAR_LABELS) {
+        await expect(root.getByText(label, { exact: true })).toHaveCount(0);
+    }
+    for (const fragment of C30_COHORT_FORBIDDEN_HREF_FRAGMENTS) {
+        await expect(root.locator(`a[href*="${fragment}"]`)).toHaveCount(0);
+    }
+    await expect(root.getByText("Soon", { exact: true })).toHaveCount(0);
+}
+
+async function assertCohortSidebarRetained(aside: ReturnType<import("@playwright/test").Page["locator"]>) {
+    await expect(aside.getByRole("button", { name: "Synthetic job one", exact: true })).toBeVisible();
+    if (await aside.getByRole("button", { name: "Work Winning", exact: true }).getAttribute("aria-expanded") === "false") {
+    await aside.getByRole("button", { name: "Work Winning", exact: true }).click();
+    }
+    await expect(aside.getByRole("link", { name: "Pipeline", exact: true })).toHaveAttribute("href", "/dashboard");
+    await expect(aside.getByRole("link", { name: "New Project", exact: true })).toHaveAttribute(
+        "href",
+        "/dashboard/projects/new",
+    );
+    if (await aside.getByRole("button", { name: "This job", exact: true }).getAttribute("aria-expanded") === "false") {
+    await aside.getByRole("button", { name: "This job", exact: true }).click();
+    }
+    const workflow = [
+        ["Job brief", "/dashboard/projects/brief?projectId=job-1"],
+        ["Estimate", "/dashboard/projects/costs?projectId=job-1"],
+        ["Programme", "/dashboard/projects/schedule?projectId=job-1"],
+        ["Proposal", "/dashboard/projects/proposal?projectId=job-1"],
+    ] as const;
+    for (const [label, href] of workflow) {
+        await expect(aside.getByRole("link", { name: label, exact: true })).toHaveAttribute("href", href);
+    }
+    await expect(aside.locator('a[href*="projectId=job-1"]')).toHaveCount(4);
+}
+
+function registerC30SidebarNativeCases(host: {
+    scope: Record<string, string>;
+    requests: () => string[];
+    pageErrors: () => string[];
+}) {
+    const attach = async (info: import("@playwright/test").TestInfo, extra: Record<string, unknown>) => {
+        await info.attach("c30-sidebar-scope", {
+            body: JSON.stringify({ ...host.scope, ...extra, note: C30_SIDEBAR_SCOPE_NOTE }),
+            contentType: "application/json",
+        });
+    };
+
+    test("cohort desktop SidebarNav: no Admin or future resource/finance placeholders; Work Winning and This job links stay usable", async ({ page }, info) => {
+        const aside = page.locator("aside");
+        await assertCohortSidebarAbsence(aside);
+        await assertCohortSidebarRetained(aside);
+        expect(host.requests()).toEqual([]);
+        expect(host.pageErrors()).toEqual([]);
+        await attach(info, { surface: "desktop-aside", launchProfile: "cohort-default" });
+    });
+
+    test.describe("cohort phone menu", () => {
+        test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+        test("no Admin or finance placeholder labels; cohort workflow links remain", async ({ page }, info) => {
+            await page.getByRole("button", { name: "Open menu", exact: true }).click();
+            const dialog = page.locator("#phone-menu");
+            await expect(dialog).toBeVisible();
+            const nav = dialog.locator("nav");
+            await assertCohortSidebarAbsence(dialog);
+            await expect(nav.getByRole("link", { name: "Pipeline", exact: true })).toHaveAttribute("href", "/dashboard");
+            await expect(nav.getByRole("link", { name: "Job brief", exact: true })).toHaveAttribute(
+                "href",
+                "/dashboard/projects/brief?projectId=job-1",
+            );
+            await expect(nav.locator('a[href*="projectId=job-1"]')).toHaveCount(4);
+            expect(host.requests()).toEqual([]);
+            expect(host.pageErrors()).toEqual([]);
+            await attach(info, { surface: "phone-menu", launchProfile: "cohort-default" });
+        });
+    });
+}
+
+registerC30SidebarNativeCases({ scope, requests: () => requests, pageErrors: () => pageErrors });

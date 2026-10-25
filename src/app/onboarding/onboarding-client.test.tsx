@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { SETUP_WORK_SUGGESTIONS } from "@/lib/first-session";
+import ui from "@/components/first-session.module.css";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 vi.mock("./actions", () => ({ saveSetupStepAction: vi.fn() }));
@@ -32,6 +33,10 @@ describe("setup work choices", () => {
         expect(html).toContain("(optional)");
         expect(html).not.toContain("<select");
         expect(html).toContain("Save and continue");
+        const exit = html.match(/<a\b[^>]*>Back to your dashboard<\/a>/)?.[0];
+        expect(exit).toContain('href="/dashboard"');
+        expect(exit).toContain(`class="${ui.textButton}"`);
+        expect(exit).not.toContain("text-blue-");
     });
 
     it("recognises an existing suggestion without selecting other disciplines", () => {

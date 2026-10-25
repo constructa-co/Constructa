@@ -250,7 +250,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
         return (
             <div className={`min-h-screen px-4 py-6 sm:p-8 space-y-6 ${isDark ? "bg-[#0d0d0d] text-white" : "bg-white text-gray-900"}`}>
                 {launchNoticeBanner}
-                <div className="max-w-3xl">
+                <div className="max-w-3xl mx-auto w-full">
                     <FirstProjectStart companyName={companyName} />
                 </div>
             </div>

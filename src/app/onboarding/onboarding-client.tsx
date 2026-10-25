@@ -285,7 +285,7 @@ export default function OnboardingClient({
 
             {exitPath && (
                 <p className="mt-4">
-                    <Link href={exitPath} className="inline-flex items-center min-h-11 text-sm font-semibold text-blue-400 hover:text-blue-300">
+                    <Link href={exitPath} className={ui.textButton}>
                         Back to your dashboard
                     </Link>
                 </p>

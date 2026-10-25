@@ -54,3 +54,31 @@ describe("manualAddressDraftPending", () => {
         expect(manualAddressDraftPending({ ...parts, line2: "Annex" }, applied)).toBe(true);
     });
 });
+
+describe("joined Unicode UTF-16 500/501 boundary", () => {
+    it.each([
+        { townCity: "x", joinedLength: 500, usable: true },
+        { townCity: "xx", joinedLength: 501, usable: false },
+    ])(
+        "townCity $townCity => joined UTF-16 $joinedLength",
+        ({ townCity, joinedLength, usable }) => {
+            const line1 = "\uD83D\uDE00".repeat(249);
+            const parts = { line1, line2: "", townCity, postcode: "" };
+            const originalParts = { line1, line2: "", townCity, postcode: "" };
+
+            const joined = joinManualAddressPreview(parts);
+
+            expect(joined).toBe(`${line1}\n${townCity}`);
+            expect(joined.length).toBe(joinedLength);
+            expect(joined.length).toBe(usable ? MANUAL_ADDRESS_MAX_LENGTH : MANUAL_ADDRESS_MAX_LENGTH + 1);
+            expect(joined.includes("\n")).toBe(true);
+            expect(joined.split("\n")).toEqual([line1, townCity]);
+            expect(Array.from(joined).length).not.toBe(joined.length);
+            expect(Array.from(joined).length).toBe(249 + 1 + townCity.length);
+
+            expect(manualAddressPreviewTooLong(joined)).toBe(!usable);
+            expect(canUseManualAddressPreview(joined)).toBe(usable);
+            expect(parts).toEqual(originalParts);
+        },
+    );
+});

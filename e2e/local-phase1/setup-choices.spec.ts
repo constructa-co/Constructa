@@ -287,11 +287,11 @@ test.describe("phone 390x844", () => {
 test.describe("narrow phone 320x844", () => {
     test.use({ viewport: { width: 320, height: 844 } });
 
-    test("retains readable single-column fallback, all choices, free text and refused save retry", async ({ page }) => {
+    test("retains readable compact two-column layout, all choices, free text and refused save retry", async ({ page }) => {
         await page.locator("#setup-work").fill(INITIAL_FREE_TEXT);
         expect(await readSuggestionLabels(page)).toEqual([...EXPECTED_SUGGESTION_LABELS]);
-        await assertSuggestionGridGeometry(page, 1);
-        await assertReadablePhoneChoices(page, false);
+        await assertSuggestionGridGeometry(page, 2);
+        await assertReadablePhoneChoices(page, true);
         await assertRoofingToggle(page, "keyboard");
         await assertRefusedTradeSaveThenRetry(page);
         expect(await page.evaluate(() => window.__phase1Local.calls.length)).toBe(2);

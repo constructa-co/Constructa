@@ -15,10 +15,13 @@ describe("company setup navigation", () => {
             profile: { company_name: "Example Builders", pdf_theme: "navy", md_name: "Sam", md_message: "Our own message" } as never,
             userEmail: "sam@example.invalid",
         }));
-        const groups = [...html.matchAll(/<div[^>]*role="group" aria-label="([^"]+)"[^>]*>([\s\S]*?)<\/div>/g)];
+        const navigation = html.match(/<nav[\s\S]*?<\/nav>/)?.[0] ?? "";
+        const groups = [...navigation.matchAll(/<div[^>]*role="group" aria-label="([^"]+)"[^>]*>([\s\S]*?)<\/div>/g)];
         expect(groups.map(group => group[1])).toEqual(["Company profile", "Proposal defaults", "Data choices"]);
         expect([...groups[1][2].matchAll(/aria-controls="([^"]+)"/g)].map(match => match[1])).toEqual(["company-style", "company-director"]);
         expect(groups[0][2]).not.toContain('aria-controls="company-style"');
+        expect(html).toMatch(/role="group" aria-label="Proposal defaults"[^>]*hidden=""/);
+        expect(html).toContain('aria-label="Profile journeys"');
         expect(html.match(/<form\b/g)).toHaveLength(1);
         expect(html).toContain('data-pdf-theme="navy"');
         expect(html).toContain('name="md_name"');

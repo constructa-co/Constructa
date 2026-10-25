@@ -49,6 +49,11 @@
 .sectionLayout > .navigation button { text-align: left; border-radius: 8px; }
 .navigationGroup { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .navigationHeading { margin: 8px 0 2px; color: var(--company-muted); font-size: 12px; font-weight: 650; }
+.navigationGroup[hidden] { display: none; }
+.journeys { display: flex; flex-wrap: wrap; gap: 8px; }
+.journeys button { min-height: 44px; padding: 10px 15px; border: 1px solid var(--company-line); border-radius: 8px; color: var(--company-ink); background: var(--company-panel); cursor: pointer; }
+.journeys button[aria-pressed="true"] { color: var(--company-accent-ink); background: var(--company-accent); border-color: var(--company-accent); }
+.journeyTitle { margin: 0; font-size: 24px; line-height: 1.2; font-weight: 550; }
 .sectionBody { display: grid; gap: 20px; min-width: 0; }
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 28px; align-items: start; }
 .editor, .form { min-width: 0; }

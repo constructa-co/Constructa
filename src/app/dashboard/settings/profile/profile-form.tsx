@@ -153,6 +153,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
     const [mdMessageSuggestion, setMdMessageSuggestion] = useState<string | null>(null);
     const [activeSection, setActiveSection] = useState<ProfileSectionId>("company-basics");
     const [revealNotice, setRevealNotice] = useState<string | null>(null);
+    const proposalDefaultsView = activeSection === "company-style" || activeSection === "company-director";
 
     // A link such as /dashboard/settings/profile#company-style opens that section.
     useEffect(() => {
@@ -303,11 +304,21 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
             </p>
             {saveError && <p role="alert" className={ui.saveError}>{saveError}</p>}
 
+            <div className={ui.journeys} role="group" aria-label="Profile journeys">
+                <button type="button" aria-pressed={!proposalDefaultsView}
+                    onClick={() => { setActiveSection("company-basics"); setRevealNotice(null); }}>Company profile</button>
+                <button type="button" aria-pressed={proposalDefaultsView}
+                    onClick={() => { setActiveSection("company-style"); setRevealNotice(null); }}>Proposal defaults</button>
+            </div>
+            <h2 className={ui.journeyTitle}>{proposalDefaultsView ? "Proposal defaults" : "Company profile"}</h2>
+
             {/* Choosing a section only changes what is shown. It does not save or reset anything. */}
             <div className={ui.sectionLayout} data-profile-journey>
-            <nav className={ui.navigation} aria-label="Company profile sections">
+            <nav className={ui.navigation} data-profile-section-navigation
+                aria-label={proposalDefaultsView ? "Proposal defaults sections" : "Company profile sections"}>
                 {PROFILE_SECTION_GROUPS.map(group => (
-                    <div key={group.label} role="group" aria-label={group.label} className={ui.navigationGroup}>
+                    <div key={group.label} role="group" aria-label={group.label} className={ui.navigationGroup}
+                        hidden={(group.label === "Proposal defaults") !== proposalDefaultsView}>
                     <p className={ui.navigationHeading}>{group.label}</p>
                     {group.sections.map(section => (
                     <button key={section.id} type="button" aria-controls={section.id}

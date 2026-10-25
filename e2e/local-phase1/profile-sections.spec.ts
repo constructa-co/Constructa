@@ -29,7 +29,13 @@ const scope = {
 const fixtureState = (page: Page): Promise<Pick<LocalProfileSectionsFixture, "saves" | "script">> =>
     page.evaluate(() => ({ saves: window.__profileSectionsLocal.saves, script: window.__profileSectionsLocal.script }));
 const settle = (page: Page) => page.evaluate(() => new Promise(resolve => setTimeout(resolve, 50)));
-const chooser = (page: Page, label: string) => page.getByRole("navigation", { name: "Company profile sections" }).getByRole("button", { name: label, exact: true });
+const sectionNavigation = (page: Page) => page.locator("nav[data-profile-section-navigation]");
+const chooser = (page: Page, label: string) => sectionNavigation(page).getByRole("button", { name: label, exact: true, includeHidden: true });
+async function choose(page: Page, label: string) {
+    const journey = ["Proposal style", "Director message"].includes(label) ? "Proposal defaults" : "Company profile";
+    await page.getByRole("group", { name: "Profile journeys", exact: true }).getByRole("button", { name: journey, exact: true }).click();
+    await chooser(page, label).click();
+}
 const field = (page: Page, name: string) => page.locator(`[name="${name}"]`);
 const status = (page: Page) => page.locator("#profile-save-status");
 const saveButton = (page: Page) => page.getByRole("button", { name: /Save Company Profile|Saving\.\.\./ });
@@ -75,7 +81,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
     test(`setup sequence stays visible with current position and exact drafts at ${viewport.width}px`, async ({ page }, info) => {
         await page.setViewportSize(viewport);
         await open(page);
-        const nav = page.getByRole("navigation", { name: "Company profile sections" });
+        const nav = sectionNavigation(page);
         const panels = page.locator("[data-profile-panels]");
         const navBox = await nav.boundingBox();
         const panelBox = await panels.boundingBox();
@@ -92,13 +98,17 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
         await info.attach("setup-navigation-geometry", { body: JSON.stringify({ viewport, navBox, panelBox }), contentType: "application/json" });
         const draft = "TEST DATA - Retained setup draft & company";
         await field(page, "company_name").fill(draft);
-        await expect(nav.getByRole("button")).toHaveText(SECTIONS.map(([, label]) => label));
+        await expect(nav.getByRole("button", { includeHidden: true })).toHaveText(SECTIONS.map(([, label]) => label));
         for (const [id, label] of SECTIONS) {
-            await chooser(page, label).click();
+            await choose(page, label);
+            const defaults = ["company-style", "company-director"].includes(id);
+            await expect(nav.getByRole("button")).toHaveText(SECTIONS.filter(([section]) => ["company-style", "company-director"].includes(section) === defaults).map(([, name]) => name));
+            await expect(page.getByRole("group", { name: "Profile journeys", exact: true }).getByRole("button", { name: defaults ? "Proposal defaults" : "Company profile", exact: true })).toHaveAttribute("aria-pressed", "true");
             await expectOnlyShown(page, id);
             await expect(nav.locator('[aria-current="true"]')).toHaveCount(1);
             await expect(field(page, "company_name")).toHaveValue(draft);
             expect((await fixtureState(page)).saves).toEqual([]);
+            if (id === "company-style") await info.attach("proposal-defaults-view", { body: await page.screenshot(), contentType: "image/png" });
         }
         await expect(page.getByText("Next: Work Winning", { exact: true })).toBeVisible();
         await expect(page.getByText(/Save your profile changes before leaving/)).toBeVisible();
@@ -109,13 +119,13 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
 
 test("switching sections shows one at a time, keeps every value and saves the whole profile only on Save", async ({ page }) => {
     await open(page);
-    await expect(page.getByRole("navigation", { name: "Company profile sections" }).getByRole("button")).toHaveCount(6);
+    await expect(sectionNavigation(page).getByRole("button", { includeHidden: true })).toHaveCount(6);
     await expectOnlyShown(page, "company-basics");
     const companyName = field(page, "company_name");
     const original = await companyName.elementHandle();
     await companyName.fill("TEST DATA - Edited Builders Ltd");
 
-    await chooser(page, "Your work & story").click();
+    await choose(page, "Your work & story");
     await expectOnlyShown(page, "company-work");
     await page.locator("#company-work summary").click();
     const roofing = page.locator("#company-work").getByRole("button", { name: "Roofing", exact: true });
@@ -123,30 +133,31 @@ test("switching sections shows one at a time, keeps every value and saves the wh
     await expect(roofing).toHaveAttribute("aria-pressed", "true");
     await field(page, "capability_statement").fill("We build carefully.");
 
-    await chooser(page, "Your people").click();
+    await choose(page, "Your people");
     await expectOnlyShown(page, "company-contacts");
     await field(page, "phone").fill("0113 496 0101");
     await field(page, "sales_email").fill("sales@example.invalid");
 
-    await chooser(page, "Proposal style").click();
+    await choose(page, "Proposal style");
     await expectOnlyShown(page, "company-style");
     await page.locator("#company-style").getByRole("button", { name: /^Navy/ }).click();
 
-    await chooser(page, "Director message").click();
+    await choose(page, "Director message");
     await expectOnlyShown(page, "company-director");
+    await expect(sectionNavigation(page).getByRole("button")).toHaveText(["Proposal style", "Director message"]);
     await field(page, "md_name").fill("Sam Example");
     await field(page, "md_message").fill("Thank you for considering us.");
 
-    await chooser(page, "Data consent").click();
+    await choose(page, "Data consent");
     await expectOnlyShown(page, "company-consent");
     await field(page, "data_consent").check();
 
     // Back again: the same mounted inputs still hold what was typed and chosen.
-    await chooser(page, "Company basics").click();
+    await choose(page, "Company basics");
     await expectOnlyShown(page, "company-basics");
     await expect(companyName).toHaveValue("TEST DATA - Edited Builders Ltd");
     expect(await page.evaluate(element => element === document.querySelector('[name="company_name"]'), original)).toBe(true);
-    await chooser(page, "Your work & story").click();
+    await choose(page, "Your work & story");
     await expect(roofing).toHaveAttribute("aria-pressed", "true");
     await expect(field(page, "capability_statement")).toHaveValue("We build carefully.");
 
@@ -183,7 +194,7 @@ test("trade preferences stay optional while the exact work-description draft sur
     await expect(field(page, "company_name")).toHaveValue("TEST DATA - Example Builders Ltd");
     await expect(field(page, "business_type")).toHaveValue("Kitchen fitting");
     await field(page, "business_type").fill("Kitchens, specialist repairs & odd-shaped rooms");
-    await chooser(page, "Your work & story").click();
+    await choose(page, "Your work & story");
     const details = page.locator("[data-profile-trade-preferences]");
     const summary = details.locator("summary");
     const piling = details.getByRole("button", { name: "Piling", exact: true });
@@ -196,7 +207,7 @@ test("trade preferences stay optional while the exact work-description draft sur
     await expect(piling).toBeVisible();
     await expect(details.locator('[aria-pressed="true"]')).toHaveCount(0);
     await summary.click();
-    await chooser(page, "Company basics").click();
+    await choose(page, "Company basics");
     await expect(field(page, "business_type")).toHaveValue("Kitchens, specialist repairs & odd-shaped rooms");
     await expect(field(page, "company_name")).toHaveValue("TEST DATA - Example Builders Ltd");
     expect((await fixtureState(page)).saves).toEqual([]);
@@ -216,7 +227,7 @@ test("a hidden invalid field opens its section before the browser reports it, an
     await open(page);
     const companyName = field(page, "company_name");
     await companyName.fill("");
-    await chooser(page, "Data consent").click();
+    await choose(page, "Data consent");
     await saveButton(page).click();
 
     await expectOnlyShown(page, "company-basics");
@@ -227,10 +238,10 @@ test("a hidden invalid field opens its section before the browser reports it, an
 
     // A type error in another hidden section is revealed the same way.
     await companyName.fill("TEST DATA - Example Builders Ltd");
-    await chooser(page, "Your people").click();
+    await choose(page, "Your people");
     const salesEmail = field(page, "sales_email");
     await salesEmail.fill("not-an-email");
-    await chooser(page, "Director message").click();
+    await choose(page, "Director message");
     await saveButton(page).click();
     await expectOnlyShown(page, "company-contacts");
     await expect(salesEmail).toBeFocused();
@@ -249,13 +260,13 @@ test("a hidden invalid field opens its section before the browser reports it, an
 test("newer edits made in another section during a save, and a refused save, keep every value without a retry", async ({ page }) => {
     await open(page);
     await page.evaluate(() => { window.__profileSectionsLocal.script = ["hold", "refuse"]; });
-    await chooser(page, "Your people").click();
+    await choose(page, "Your people");
     await field(page, "phone").fill("0113 496 0202");
     await saveButton(page).click();
     await expect(status(page)).toHaveText("Saving the submitted profile...");
 
     // While the save is held, the contractor moves on and keeps typing.
-    await chooser(page, "Director message").click();
+    await choose(page, "Director message");
     await field(page, "md_name").fill("Newer Name");
     await page.evaluate(() => window.__profileSectionsLocal.release?.());
     await expect(status(page)).toHaveText("Submitted profile saved. Newer edits still need saving.");
@@ -265,9 +276,9 @@ test("newer edits made in another section during a save, and a refused save, kee
 
     await saveButton(page).click();
     await expect(page.getByRole("alert").filter({ hasText: "Local fixture: profile save not acknowledged." })).toBeVisible();
-    await chooser(page, "Your people").click();
+    await choose(page, "Your people");
     await expect(field(page, "phone")).toHaveValue("0113 496 0202");
-    await chooser(page, "Director message").click();
+    await choose(page, "Director message");
     await expect(field(page, "md_name")).toHaveValue("Newer Name");
     await expect(page.getByRole("alert").filter({ hasText: "Local fixture: profile save not acknowledged." })).toBeVisible();
     await settle(page);
@@ -282,6 +293,7 @@ test("a linked section opens on arrival and when the link changes", async ({ pag
     await expect(page.locator("#company-director")).toBeFocused();
     await page.evaluate(() => { window.location.hash = "company-style"; });
     await expectOnlyShown(page, "company-style");
+    await expect(sectionNavigation(page).getByRole("button")).toHaveText(["Proposal style", "Director message"]);
     await expect(page.locator("#company-style")).toBeFocused();
     expect((await fixtureState(page)).saves).toEqual([]);
 });

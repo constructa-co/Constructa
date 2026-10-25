@@ -53,6 +53,24 @@ const blocksOf = (doc: ProposalDocument, id: string) => doc.sections.find((secti
 const blockOf = <T extends DocBlock["type"]>(doc: ProposalDocument, id: string, type: T) =>
     blocksOf(doc, id).find((block): block is Extract<DocBlock, { type: T }> => block.type === type);
 
+describe("independent site address in the document", () => {
+    it.each([null, "", "SITE ONLY - Plot 9\nNo postal address"])("uses only the saved site value %j, never the client's address", (site) => {
+        const current = buildProposalPublicationSnapshot(representativeInput());
+        current.project.site_address = site;
+        current.project.client_address = "CLIENT ONLY - Separate billing office";
+        const before = structuredClone(current);
+        const doc = buildProposalDocument(current);
+        expect(doc.siteAddress).toBe(site || null);
+        expect(htmlText(doc)).not.toContain("CLIENT ONLY - Separate billing office");
+        expect(pdfStrings(doc)).not.toContain("CLIENT ONLY - Separate billing office");
+        if (site) {
+            expect(htmlText(doc)).toContain("SITE ONLY - Plot 9 No postal address");
+            expect(pdfStrings(doc)).toContain("SITE ONLY - Plot 9");
+        }
+        expect(current).toEqual(before);
+    });
+});
+
 describe("document order and content", () => {
     it("reads in the order the client receives it", () => {
         expect(document.sections.map((section) => section.id)).toEqual([

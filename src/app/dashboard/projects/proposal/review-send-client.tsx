@@ -621,7 +621,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                             {[
                                 ["Job", project.name],
                                 ["Client", project.client_name || "Not set"],
-                                ["Site", project.site_address || project.client_address || "Not set"],
+                                ["Site", project.site_address || "Not set"],
                                 ["From", context.profile.company_name || "Not set"],
                             ].map(([label, value]) => (
                                 <div key={label} className="min-w-0">

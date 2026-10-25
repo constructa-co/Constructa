@@ -415,7 +415,7 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
         reference: options.isDraft ? "Draft" : proposalReference(snapshot),
         title: snapshot.project.name,
         clientName: snapshot.project.client_name,
-        siteAddress: snapshot.project.site_address || snapshot.project.client_address,
+        siteAddress: snapshot.project.site_address || null,
         projectType: snapshot.project.project_type,
         issued: formatLongDate(snapshot.publication.sent_at),
         validUntil: formatLongDate(snapshot.publication.expires_at),

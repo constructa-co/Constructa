@@ -64,6 +64,17 @@ const history: ProposalPublicationHistoryRow[] = [
     { id: "p1", version_number: 1, status: "accepted", sent_at: "2026-09-01T09:00:00Z", expires_at: "2026-10-01T09:00:00Z", first_viewed_at: null, responded_at: "2026-09-02T09:00:00Z", responded_by: "Alex Client", superseded_by: null, snapshot_hash: "a".repeat(64), response_kind: null, response_mode: "binding_acceptance" },
 ];
 
+describe("independent site address in proposal review", () => {
+    it.each([null, "", "SITE ONLY - Plot 9\nNo postal address"])("does not label the client address as the site for %j", (site) => {
+        const current = context({ site_address: site, client_address: "CLIENT ONLY - Separate billing office" });
+        const before = structuredClone(current);
+        const html = review({ context: current });
+        const siteRow = html.match(/<dt[^>]*>Site<\/dt>\s*<dd[^>]*>([\s\S]*?)<\/dd>/)?.[1];
+        expect(siteRow).toBe(site || "Not set");
+        expect(current).toEqual(before);
+    });
+});
+
 describe("Review and Send", () => {
     const html = review();
 

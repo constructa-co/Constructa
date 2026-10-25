@@ -72,6 +72,24 @@ afterEach(() => {
 });
 
 describe("detailed planner calendar-axis geometry", () => {
+    it.each(["move", "resize"] as const)("leaves a saved Wednesday one-day stage unchanged on zero horizontal %s movement", type => {
+        const saved = [phase(2, 1)];
+        render(saved);
+        const listeners = new Map<string, (event: { clientX: number }) => void>();
+        vi.stubGlobal("document", {
+            addEventListener: (name: string, callback: (event: { clientX: number }) => void) => listeners.set(name, callback),
+            removeEventListener: (name: string) => listeners.delete(name),
+        });
+        for (const effect of hooks.effects) { const cleanup = effect(); if (cleanup) cleanups.push(cleanup); }
+        hooks.refs[0].current = { getBoundingClientRect: () => ({ width: 280 }) };
+        hooks.callbacks[0]({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: 100 } as unknown as MouseEvent, 0, type);
+        listeners.get("mousemove")!({ clientX: 100 });
+        listeners.get("mouseup")!({ clientX: 100 });
+        const phaseUpdates = hooks.updates.filter((value): value is PlannerPhase[] => Array.isArray(value));
+        expect(phaseUpdates.every(value => JSON.stringify(value) === JSON.stringify(saved))).toBe(true);
+        expect(saved).toEqual([phase(2, 1)]);
+    });
+
     it("places three weeks in the first three of the four displayed week columns", () => {
         const before = JSON.stringify(stages);
         const html = render();

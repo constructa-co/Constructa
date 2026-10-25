@@ -122,6 +122,8 @@ interface DragState {
     phaseIndex: number;
     startClientX: number;
     originalValue: number;
+    /** The stage as it was when the drag began. */
+    originalPhase: Phase;
     trackWidth: number;
     capturedTotalDays: number;
 }
@@ -418,6 +420,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             originalValue: type === "move"
                 ? phase.startOffset
                 : (phase.manualDays ?? phase.calculatedDays),
+            originalPhase: phase,
             trackWidth: rect.width,
             capturedTotalDays: axisDaysRef.current,
         };
@@ -429,6 +432,12 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             const drag = dragStateRef.current;
             if (!drag) return;
             const deltaX   = e.clientX - drag.startClientX;
+            // No horizontal movement: the stage stays exactly as it was when the drag began, not snapped.
+            if (deltaX === 0) {
+                setPhases((prev) => prev[drag.phaseIndex] === drag.originalPhase ? prev
+                    : prev.map((p, i) => i === drag.phaseIndex ? drag.originalPhase : p));
+                return;
+            }
             const pxPerDay = drag.trackWidth / drag.capturedTotalDays;
             const deltaDays = deltaX / pxPerDay;
 

@@ -47,6 +47,8 @@
 .sectionLayout { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 20px; align-items: start; }
 .sectionLayout > .navigation { flex-direction: column; flex-wrap: nowrap; align-items: stretch; margin: 0; position: sticky; top: 24px; }
 .sectionLayout > .navigation button { text-align: left; border-radius: 8px; }
+.navigationGroup { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.navigationHeading { margin: 8px 0 2px; color: var(--company-muted); font-size: 12px; font-weight: 650; }
 .sectionBody { display: grid; gap: 20px; min-width: 0; }
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 28px; align-items: start; }
 .editor, .form { min-width: 0; }
@@ -98,6 +100,8 @@
 @media (max-width: 800px) {
     .sectionLayout { grid-template-columns: minmax(0, 1fr); }
     .sectionLayout > .navigation { position: static; flex-direction: row; flex-wrap: wrap; }
+    .navigationGroup { flex-direction: row; flex-wrap: wrap; width: 100%; }
+    .navigationHeading { width: 100%; }
 }
 @media (max-width: 650px) {
     .root { margin: 0; border-radius: 0; padding: 28px 16px; }

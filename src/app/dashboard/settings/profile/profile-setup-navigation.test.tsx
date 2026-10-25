@@ -10,6 +10,23 @@ import ProfileForm from "./profile-form";
 import CompanyProfilePresentation from "@/components/company-profile-presentation";
 
 describe("company setup navigation", () => {
+    it("separates proposal defaults from company details without a second save owner", () => {
+        const html = renderToStaticMarkup(createElement(ProfileForm, {
+            profile: { company_name: "Example Builders", pdf_theme: "navy", md_name: "Sam", md_message: "Our own message" } as never,
+            userEmail: "sam@example.invalid",
+        }));
+        const groups = [...html.matchAll(/<div[^>]*role="group" aria-label="([^"]+)"[^>]*>([\s\S]*?)<\/div>/g)];
+        expect(groups.map(group => group[1])).toEqual(["Company profile", "Proposal defaults", "Data choices"]);
+        expect([...groups[1][2].matchAll(/aria-controls="([^"]+)"/g)].map(match => match[1])).toEqual(["company-style", "company-director"]);
+        expect(groups[0][2]).not.toContain('aria-controls="company-style"');
+        expect(html.match(/<form\b/g)).toHaveLength(1);
+        expect(html).toContain('data-pdf-theme="navy"');
+        expect(html).toContain('name="md_name"');
+        expect(html).toContain("Our own message");
+        expect(html).toContain("Shared proposal settings stay in this profile. Save still applies to every section.");
+        expect(html).toContain("Saving this profile does not change them.");
+    });
+
     it("groups the persistent section chooser beside the same mounted profile panels", () => {
         const html = renderToStaticMarkup(createElement(ProfileForm, {
             profile: { company_name: "Example Builders", business_type: "Kitchen fitting" } as never,

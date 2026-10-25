@@ -97,6 +97,11 @@ const PROFILE_SECTIONS = [
     { id: "company-director", label: "Director message" },
     { id: "company-consent", label: "Data consent" },
 ] as const;
+const PROFILE_SECTION_GROUPS = [
+    { label: "Company profile", sections: PROFILE_SECTIONS.slice(0, 3) },
+    { label: "Proposal defaults", sections: PROFILE_SECTIONS.slice(3, 5) },
+    { label: "Data choices", sections: PROFILE_SECTIONS.slice(5) },
+];
 type ProfileSectionId = (typeof PROFILE_SECTIONS)[number]["id"];
 const isProfileSection = (id: string): id is ProfileSectionId => PROFILE_SECTIONS.some(section => section.id === id);
 
@@ -301,12 +306,17 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
             {/* Choosing a section only changes what is shown. It does not save or reset anything. */}
             <div className={ui.sectionLayout} data-profile-journey>
             <nav className={ui.navigation} aria-label="Company profile sections">
-                {PROFILE_SECTIONS.map(section => (
+                {PROFILE_SECTION_GROUPS.map(group => (
+                    <div key={group.label} role="group" aria-label={group.label} className={ui.navigationGroup}>
+                    <p className={ui.navigationHeading}>{group.label}</p>
+                    {group.sections.map(section => (
                     <button key={section.id} type="button" aria-controls={section.id}
                         aria-current={activeSection === section.id ? "true" : undefined}
                         onClick={() => { setActiveSection(section.id); setRevealNotice(null); }}>
                         {section.label}
                     </button>
+                    ))}
+                    </div>
                 ))}
             </nav>
             <div className={ui.sectionBody} data-profile-panels>
@@ -625,6 +635,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
 
             {/* Section C — Proposal Theme */}
             <section id="company-style" tabIndex={-1} className={ui.section} hidden={activeSection !== "company-style"}>
+                <p>Shared proposal settings stay in this profile. Save still applies to every section.</p>
                 <div>
                     <h2 className="text-lg font-bold text-slate-100">Proposal Theme</h2>
                     <p className="text-xs text-slate-500 mt-0.5">Choose the colour scheme for your PDF proposals.</p>
@@ -662,6 +673,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
 
             {/* Section — MD Message (for PDF proposals) */}
             <section id="company-director" tabIndex={-1} className={ui.section} hidden={activeSection !== "company-director"}>
+                <p>Shared proposal settings stay in this profile. Save still applies to every section.</p>
                 <h2 className="text-lg font-bold text-slate-100">Managing Director Message</h2>
                 <p className="text-sm text-slate-400">This message appears in your PDF proposals as a personal note from the MD.</p>
                 <div className={ui.fields}>

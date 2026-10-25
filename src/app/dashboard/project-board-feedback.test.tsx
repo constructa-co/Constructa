@@ -43,6 +43,11 @@ function click(label: string) {
     const button = nodes(view()).find(e => e.type === "button" && text(e.props.children).trim() === label);
     expect(button).toBeDefined(); return button!.props.onClick as () => void;
 }
+function chooseStage(next: string) {
+    const select = nodes(view()).find(e => typeof e.props.onValueChange === "function" && e.props.value === projects[0].status);
+    expect(select).toBeDefined();
+    (select!.props.onValueChange as (stage: string) => void)(next);
+}
 const settle = async () => { await Promise.all(current.tasks); };
 function held() { let resolve!: (value: unknown) => void; const promise = new Promise(r => { resolve = r; }); return { resolve, promise }; }
 beforeEach(() => {
@@ -92,6 +97,30 @@ describe("actual pipeline move handler", () => {
         click("Start Estimating")(); await settle(); expect(current.ordinary).toHaveBeenCalledTimes(1);
         click("Start Estimating")(); await settle(); expect(current.ordinary).toHaveBeenCalledTimes(2);
         expect(text(column("Estimating"))).toContain("QA Example");
+    });
+});
+
+describe("card stage Select onValueChange (A017 selector)", () => {
+    it("calls updateStatusAction once per choice, restores on refusal, and releases the fence for a deliberate retry", async () => {
+        current.ordinary.mockResolvedValueOnce({
+            success: false,
+            error: "The stage change could not be confirmed. It may have saved. Reload the pipeline to check before trying again.",
+        });
+        chooseStage("Estimating");
+        await settle();
+        expect(current.ordinary).toHaveBeenCalledExactlyOnceWith("job", "Estimating");
+        expect(current.won).not.toHaveBeenCalled();
+        expect(text(column("Lead"))).toContain("QA Example");
+        expect(text(column("Estimating"))).not.toContain("QA Example");
+        const alert = nodes(view()).find(e => e.props.role === "alert");
+        expect(alert).toBeDefined();
+        expect(text(alert)).toMatch(/confirm|saved|reload/i);
+        current.ordinary.mockResolvedValueOnce({ success: true });
+        chooseStage("Estimating");
+        await settle();
+        expect(current.ordinary).toHaveBeenCalledTimes(2);
+        expect(text(column("Estimating"))).toContain("QA Example");
+        expect(current.won).not.toHaveBeenCalled();
     });
 });
 

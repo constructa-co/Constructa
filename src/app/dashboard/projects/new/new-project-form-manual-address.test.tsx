@@ -167,6 +167,36 @@ describe("new project manual structured addresses", () => {
         expect(hooks.create.mock.calls[0][0].get("clientAddress")).toBe("AB1 2CD");
     });
 
+    it("refuses create when client postcode alone is pending with separate site and client free text, then Use and explicit Create", async () => {
+        const unusualSite = "Plot π rear\n(courtyard access only)";
+        const clientFreeText = "Accounts dept — same as 2019 job";
+        const postcodeDraft = "  AB1 2CD  ";
+        openMore();
+        edit("new-project-name", "Job");
+        edit("new-project-client", "Client");
+        edit("new-project-siteAddress", unusualSite);
+        edit("new-project-clientAddress", clientFreeText);
+        edit("new-project-client-manual-postcode", postcodeDraft);
+        hooks.create.mockResolvedValue({ success: true, projectId: "job-1" });
+        submitCreate();
+        await vi.waitFor(() => expect(staticHtml()).toContain(MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE));
+        expect(hooks.create).not.toHaveBeenCalled();
+        expect(hooks.push).not.toHaveBeenCalled();
+        expect(nodes(render()).find(n => n.props.id === "new-project-client-manual-postcode")!.props.value).toBe(postcodeDraft);
+        expect(nodes(render()).find(n => n.props.id === "new-project-siteAddress")!.props.value).toBe(unusualSite);
+        expect(nodes(render()).find(n => n.props.id === "new-project-clientAddress")!.props.value).toBe(clientFreeText);
+        nodes(render()).find(n => n.props.id === "new-project-client-manual-use")!.props.onClick!();
+        expect(nodes(render()).find(n => n.props.id === "new-project-siteAddress")!.props.value).toBe(unusualSite);
+        expect(nodes(render()).find(n => n.props.id === "new-project-clientAddress")!.props.value).toBe("AB1 2CD");
+        submitCreate();
+        await vi.waitFor(() => expect(hooks.create).toHaveBeenCalledOnce());
+        const fd = hooks.create.mock.calls[0][0];
+        expect(fd.get("siteAddress")).toBe(unusualSite);
+        expect(fd.get("clientAddress")).toBe("AB1 2CD");
+        expect(Array.from(fd.keys())).not.toContain("postcode");
+        expect(Array.from(fd.keys())).not.toContain("line1");
+    });
+
     it("refuses create when site parts are pending after Enter-equivalent submit, then allows deliberate create after Use", async () => {
         openMore();
         edit("new-project-name", "Job");

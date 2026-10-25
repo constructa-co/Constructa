@@ -165,4 +165,27 @@ describe("ManualAddressEntry", () => {
         expect(onPendingChange).toHaveBeenCalledTimes(1);
         expect(onPendingChange).toHaveBeenLastCalledWith(false);
     });
+
+    it("postcode-first: retains the edge-whitespace literal, applies only the trimmed postcode preview on one explicit Use, and a later line1 edit turns pending again without another apply", () => {
+        const onApply = vi.fn();
+        const onPendingChange = vi.fn();
+        editPart("test-manual-postcode", "  AB1 2CD  ", { onApply, onPendingChange });
+        // Postcode alone (no street/town yet): exact literal retained, preview trims per current policy, no apply.
+        expect(nodes(renderEntry({ onApply, onPendingChange }).node).find(n => n.props.id === "test-manual-postcode")!.props.value).toBe("  AB1 2CD  ");
+        expect(nodes(renderEntry({ onApply, onPendingChange }).node).find(n => n.props.id === "test-manual-preview")!.props.children).toBe("AB1 2CD");
+        expect(onApply).not.toHaveBeenCalled();
+        expect(onPendingChange).toHaveBeenLastCalledWith(true);
+        const use = nodes(renderEntry({ onApply, onPendingChange }).node).find(n => n.props.id === "test-manual-use")!;
+        expect(use.props.disabled).toBe(false);
+        // One explicit Use applies the current preview once and clears pending; the literal draft stays.
+        use.props.onClick!();
+        expect(onApply).toHaveBeenCalledExactlyOnceWith("AB1 2CD");
+        expect(onPendingChange).toHaveBeenLastCalledWith(false);
+        expect(nodes(renderEntry({ onApply, onPendingChange }).node).find(n => n.props.id === "test-manual-postcode")!.props.value).toBe("  AB1 2CD  ");
+        // Adding line1 afterwards turns pending again with no automatic apply.
+        editPart("test-manual-line1", "14 Example Street", { onApply, onPendingChange });
+        expect(onApply).toHaveBeenCalledTimes(1);
+        expect(onPendingChange).toHaveBeenLastCalledWith(true);
+        expect(nodes(renderEntry({ onApply, onPendingChange }).node).find(n => n.props.id === "test-manual-preview")!.props.children).toBe("14 Example Street\nAB1 2CD");
+    });
 });

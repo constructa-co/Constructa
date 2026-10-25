@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import type { CSSProperties, ReactNode } from "react";
 import ProgrammeTimeline from "@/components/programme-timeline";
-import { DOCUMENT_THEMES, type DocBlock, type DocFact, type ProposalDocument } from "@/lib/proposal-document";
+import { DOCUMENT_THEMES, type DocBlock, type DocFact, type DocSectionId, type ProposalDocument } from "@/lib/proposal-document";
 
 /**
  * The proposal as the client reads it on screen.
@@ -97,7 +97,7 @@ export default function ProposalDocumentView({ doc, children, readingPage }: { d
                     </p>
                     <h2 id={`doc-${section.id}`} className="mt-1 font-serif text-3xl leading-tight text-stone-900">{section.title}</h2>
                     <div className="mt-6 space-y-5">
-                        {section.blocks.map((block, blockIndex) => <Block key={blockIndex} block={block} />)}
+                        {section.blocks.map((block, blockIndex) => <Block key={blockIndex} block={block} sectionId={section.id} />)}
                     </div>
                 </section>
             ))}
@@ -123,13 +123,13 @@ export default function ProposalDocumentView({ doc, children, readingPage }: { d
     );
 }
 
-function Facts({ items }: { items: DocFact[] }) {
+function Facts({ items, multilineValues = false }: { items: DocFact[]; multilineValues?: boolean }) {
     return (
         <dl className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
             {items.map((fact) => (
                 <div key={fact.label} className="min-w-0 border-t border-stone-200 pt-2">
                     <dt className="text-xs font-semibold uppercase tracking-wide text-stone-500">{fact.label}</dt>
-                    <dd className="mt-0.5 text-base text-stone-900">{fact.value}</dd>
+                    <dd className={`mt-0.5 text-base text-stone-900${multilineValues ? " whitespace-pre-wrap" : ""}`}>{fact.value}</dd>
                 </div>
             ))}
         </dl>
@@ -157,7 +157,7 @@ function Paragraphs({ paragraphs }: { paragraphs: string[] }) {
     );
 }
 
-function Block({ block }: { block: DocBlock }) {
+function Block({ block, sectionId }: { block: DocBlock; sectionId: DocSectionId }) {
     switch (block.type) {
         case "paragraphs":
             return <Paragraphs paragraphs={block.paragraphs} />;
@@ -169,7 +169,7 @@ function Block({ block }: { block: DocBlock }) {
             return <Bullets items={block.items} />;
 
         case "facts":
-            return <Facts items={block.items} />;
+            return <Facts items={block.items} multilineValues={sectionId === "about"} />;
 
         case "quote":
             return (

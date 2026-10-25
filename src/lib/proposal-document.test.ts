@@ -310,9 +310,18 @@ describe("truthful content", () => {
 
     it("states years trading, accreditations and insurance only as saved", () => {
         const about = blocksOf(document, "about");
-        expect(about).toContainEqual({ type: "facts", items: [{ label: "Years trading", value: "12" }] });
-        expect(about).toContainEqual({ type: "bullets", items: ["Example Trade Register member"] });
+        expect(about[0]).toEqual({
+            type: "facts",
+            items: [
+                { label: "Type of work", value: "Bathroom refurbishment" },
+                { label: "Years trading", value: "12" },
+                { label: "Specialisms", value: "Bathrooms, Kitchens, Tiling" },
+                { label: "Accreditations", value: "Example Trade Register member" },
+                { label: "Insurance", value: "Public liability cover, certificate available on request" },
+            ],
+        });
         expect(about).toContainEqual({ type: "quote", paragraphs: ["I visit every job at the start and at the end."], attribution: "Sam Builder" });
+        expect(about.some((block) => block.type === "subheading" && block.text === "Accreditations")).toBe(false);
     });
 
     it("drops an unsafe image link rather than showing it", () => {

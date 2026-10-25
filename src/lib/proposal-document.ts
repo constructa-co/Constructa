@@ -167,20 +167,39 @@ function formatTypedValue(value: string): string {
 
 // ── Sections ─────────────────────────────────────────────────────────────────
 
+function hasSavedCredentialText(value: string | null | undefined): boolean {
+    return Boolean(value?.trim());
+}
+
+/** Saved contractor profile facts only (not the job work type). Literal strings. */
+function contractorProfileCredentialFacts(contractor: ProposalPublicationSnapshot["contractor"]): DocFact[] {
+    const items: DocFact[] = [];
+    if (contractor.years_trading && contractor.years_trading > 0) {
+        items.push({ label: "Years trading", value: String(contractor.years_trading) });
+    }
+    if (hasSavedCredentialText(contractor.specialisms)) items.push({ label: "Specialisms", value: contractor.specialisms! });
+    if (hasSavedCredentialText(contractor.accreditations)) items.push({ label: "Accreditations", value: contractor.accreditations! });
+    if (hasSavedCredentialText(contractor.insurance_details)) items.push({ label: "Insurance", value: contractor.insurance_details! });
+    return items;
+}
+
 function aboutSection(snapshot: ProposalPublicationSnapshot): DocSection | null {
     const c = snapshot.contractor;
-    const blocks: DocBlock[] = [...textBlocks(c.capability_statement)];
-
-    if (c.years_trading && c.years_trading > 0) {
-        blocks.push({ type: "facts", items: [{ label: "Years trading", value: String(c.years_trading) }] });
-    }
-    const specialisms = splitList(c.specialisms);
-    if (specialisms.length > 0) blocks.push({ type: "subheading", text: "Specialisms" }, { type: "bullets", items: specialisms });
-    const accreditations = splitList(c.accreditations);
-    if (accreditations.length > 0) blocks.push({ type: "subheading", text: "Accreditations" }, { type: "bullets", items: accreditations });
-    const insurance = lines(c.insurance_details);
-    if (insurance.length > 0) blocks.push({ type: "subheading", text: "Insurance" }, { type: "paragraphs", paragraphs: insurance });
+    const profileCredentials = contractorProfileCredentialFacts(c);
+    const capabilityBlocks = textBlocks(c.capability_statement);
     const message = lines(c.md_message);
+    if (profileCredentials.length === 0 && capabilityBlocks.length === 0 && message.length === 0) {
+        return null;
+    }
+
+    const blocks: DocBlock[] = [];
+    const credentialFacts: DocFact[] = [];
+    if (hasSavedCredentialText(snapshot.project.project_type)) {
+        credentialFacts.push({ label: "Type of work", value: snapshot.project.project_type! });
+    }
+    credentialFacts.push(...profileCredentials);
+    if (credentialFacts.length > 0) blocks.push({ type: "facts", items: credentialFacts });
+    blocks.push(...capabilityBlocks);
     if (message.length > 0) blocks.push({ type: "quote", paragraphs: message, attribution: c.md_name?.trim() || null });
 
     if (blocks.length === 0) return null;

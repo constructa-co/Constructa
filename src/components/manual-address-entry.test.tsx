@@ -142,4 +142,27 @@ describe("ManualAddressEntry", () => {
         expect(onApply).toHaveBeenCalledTimes(2);
         expect(onPendingChange).toHaveBeenLastCalledWith(false);
     });
+
+    it("refuses an already-captured Use callback after a disabled rerender, then a deliberate re-enabled Use applies the retained literal once", () => {
+        const onApply = vi.fn();
+        const onPendingChange = vi.fn();
+        editPart("test-manual-line1", "  Warehouse, Unit 7!  ", { onApply, onPendingChange });
+        const capturedUse = nodes(renderEntry({ onApply, onPendingChange }).node)
+            .find(n => n.props.id === "test-manual-use")!
+            .props.onClick!;
+        onApply.mockClear();
+        onPendingChange.mockClear();
+        nodes(renderEntry({ disabled: true, onApply, onPendingChange }).node);
+        capturedUse();
+        expect(onApply).not.toHaveBeenCalled();
+        expect(onPendingChange).not.toHaveBeenCalled();
+        expect(nodes(renderEntry({ disabled: true, onApply, onPendingChange }).node)
+            .find(n => n.props.id === "test-manual-line1")!.props.value).toBe("  Warehouse, Unit 7!  ");
+        nodes(renderEntry({ onApply, onPendingChange }).node)
+            .find(n => n.props.id === "test-manual-use")!
+            .props.onClick!();
+        expect(onApply).toHaveBeenCalledExactlyOnceWith("Warehouse, Unit 7!");
+        expect(onPendingChange).toHaveBeenCalledTimes(1);
+        expect(onPendingChange).toHaveBeenLastCalledWith(false);
+    });
 });

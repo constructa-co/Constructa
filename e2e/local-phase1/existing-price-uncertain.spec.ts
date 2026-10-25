@@ -127,3 +127,87 @@ test("an uncertain existing-line quantity save retains the exact draft and ackno
 
     await page.screenshot({ path: path.join(output, "existing-price-uncertain-fenced.png"), fullPage: true });
 });
+
+// A054 Partial — append this single test to e2e/local-phase1/existing-price-uncertain.spec.ts.
+// Reuses that spec's boot, helpers (snapshot, settle, group, groupTotal, draftBox), constants,
+// playwright.local-existing-price-uncertain.config.ts, existing-price-uncertain-entry.tsx, and
+// `build-brief-price.mjs <out> existing-price-uncertain`. Do not copy boot or the fenced-control matrix.
+// NOT_RUN here; coordinator compiles and grades. Playwright keyboard on the native summary only —
+// not an OS keyboard, physical phone, served theme, hosted, or legal-release claim.
+
+test("native running-total fold under an uncertain Advanced quantity save hides the dock amount and exact note without a second write", async ({ page }) => {
+    await page.evaluate(() => { window.__existingPriceUncertainActions.script = { update: ["uncertain"] }; });
+
+    await page.locator("button[aria-controls='advanced-estimating']").click();
+    const before = await snapshot(page);
+    await group(page, "Groundworks").getByLabel("Quantity", { exact: true }).fill(QTY_DRAFT);
+    const draft = draftBox(page, LINE_EDIT);
+    await draft.getByRole("button", { name: "Save quantity", exact: true }).click();
+
+    await expect(draft.getByLabel("Quantity", { exact: true })).toHaveValue(QTY_DRAFT);
+    await expect(draft).toContainText(`Saved: ${QTY_BEFORE}`);
+    await expect(page.locator("[data-contract-sum]")).toHaveText(CONTRACT);
+    await expect(groupTotal(page, "Groundworks")).toHaveText(GROUP_GW);
+    await expect(groupTotal(page, "Roofing")).toHaveText(GROUP_ROOF);
+    const groupedWarning = group(page, "Groundworks").getByRole("alert");
+    const pageWarning = page.locator("[data-line-save-warning]");
+    await expect(groupedWarning).toContainText("Line save not confirmed. Some changes may already have saved. Reload the estimate to reconcile this line before editing or applying resources.");
+    await expect(pageWarning).toContainText("Some line changes are not confirmed.");
+    await expect(pageWarning).toContainText("Reload to reconcile the saved prices");
+    await settle(page);
+    const fenced = await snapshot(page);
+    expect(fenced.estimates).toEqual(before.estimates);
+    await expect(draft.getByLabel("Quantity", { exact: true })).toBeDisabled();
+    expect(fenced.actionCalls).toEqual([UPDATE_CALL]);
+    expect(fenced.updateAttempts).toEqual([{ lineId: LINE_EDIT, updates: { quantity: 12 } }]);
+    expect(fenced.updateAcknowledgements).toBe(0);
+
+    const dock = page.locator("[data-running-total]");
+    const disclosure = dock.locator("[data-running-total-disclosure]");
+    const toggle = disclosure.locator("summary");
+    const values = disclosure.locator("[data-running-total-values]");
+    const amount = values.locator("[data-in-view-contract-sum]");
+    const note = values.locator("p");
+    await expect(disclosure).toHaveAttribute("open", "");
+    await expect(amount).toHaveText(CONTRACT);
+    await expect(note).toHaveText("May include changes not yet confirmed.");
+    await expect(dock.locator("[data-line-save-warning]")).toHaveCount(0);
+    await expect(dock.getByRole("alert")).toHaveCount(0);
+
+    await toggle.focus();
+    await page.keyboard.press("Space");
+    await expect(disclosure).not.toHaveAttribute("open", "");
+    await expect(amount).toBeHidden();
+    await expect(note).toBeHidden();
+    await expect(values).toBeHidden();
+    await expect(draft.getByLabel("Quantity", { exact: true })).toHaveValue(QTY_DRAFT);
+    await expect(draft).toContainText(`Saved: ${QTY_BEFORE}`);
+    await expect(page.locator("[data-contract-sum]")).toHaveText(CONTRACT);
+    await expect(groupTotal(page, "Groundworks")).toHaveText(GROUP_GW);
+    await expect(groupTotal(page, "Roofing")).toHaveText(GROUP_ROOF);
+    await expect(groupedWarning).toBeVisible();
+    await expect(pageWarning).toBeVisible();
+    await expect(toggle).toBeVisible();
+
+    await toggle.focus();
+    await page.keyboard.press("Enter");
+    await expect(disclosure).toHaveAttribute("open", "");
+    await expect(amount).toHaveText(CONTRACT);
+    await expect(note).toHaveText("May include changes not yet confirmed.");
+    await expect(draft.getByLabel("Quantity", { exact: true })).toHaveValue(QTY_DRAFT);
+    await expect(draft).toContainText(`Saved: ${QTY_BEFORE}`);
+    await expect(page.locator("[data-contract-sum]")).toHaveText(CONTRACT);
+    await expect(groupedWarning).toBeVisible();
+    await expect(pageWarning).toBeVisible();
+    await expect(dock.locator("[data-line-save-warning]")).toHaveCount(0);
+    await expect(dock.getByRole("alert")).toHaveCount(0);
+
+    await settle(page);
+    const folded = await snapshot(page);
+    expect(folded.actionCalls).toEqual([UPDATE_CALL]);
+    expect(folded.updateAttempts).toEqual([{ lineId: LINE_EDIT, updates: { quantity: 12 } }]);
+    expect(folded.updateAcknowledgements).toBe(0);
+    expect(folded.estimates).toEqual(fenced.estimates);
+    expect(folded.simpleServerCalls).toEqual([]);
+    expect(folded.unexpectedWrites).toEqual([]);
+});

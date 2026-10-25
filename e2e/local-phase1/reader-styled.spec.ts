@@ -254,6 +254,29 @@ for (const theme of THEMES) {
     });
 }
 
+test("named reading parts move only on Go and focus the exact retained clause below sticky controls", async ({ page }) => {
+    const { dialog } = await openReader(page, { theme: "system-c" }, { width: 390, height: 844 });
+    await dialog.getByLabel("Reading page", { exact: true }).selectOption("terms");
+    const parts = dialog.getByLabel("Part of this reading page", { exact: true });
+    const clauses = dialog.locator("[data-doc-section='terms'] [data-doc-terms] > li");
+    const texts = await clauses.allTextContents();
+    expect(texts).toHaveLength(12);
+    await expect(parts.locator("option")).toHaveCount(12);
+    const scroller = dialog.locator("[data-document-view-scroll]");
+    const before = await scroller.evaluate(el => el.scrollTop);
+    await parts.selectOption("8");
+    expect(await scroller.evaluate(el => el.scrollTop)).toBe(before);
+    await expect(clauses.nth(8)).not.toBeFocused();
+    await dialog.getByRole("button", { name: "Go to part", exact: true }).click();
+    await expect(clauses.nth(8)).toBeFocused();
+    const clauseBox = (await clauses.nth(8).boundingBox())!;
+    const controlsBox = (await dialog.getByRole("navigation", { name: "Document reading pages" }).boundingBox())!;
+    expect(clauseBox.y).toBeGreaterThanOrEqual(controlsBox.y + controlsBox.height);
+    expect(await scroller.evaluate(el => el.scrollTop)).toBeGreaterThan(before);
+    expect(await clauses.allTextContents()).toEqual(texts);
+    expect(await scroller.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+});
+
 test("the exact source draft is retained across reading with no Save, Send or navigation", async ({ page }) => {
     await page.evaluate(() => { window.__readerStyledOptions = { theme: "system-c" }; });
     await page.addScriptTag({ content: bundle });

@@ -240,13 +240,13 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
             {/* Title and save state */}
             <div className={`${ui.header} flex flex-wrap items-start justify-between gap-3`}>
                 <div className="min-w-0">
-                    <p className={ui.eyebrow}>From notes to a clear brief</p>
+                    <p className={ui.eyebrow}>Work Winning / Job brief</p>
                     <h1 className={`${ui.title} text-2xl sm:text-3xl font-bold break-words ${s.heading}`}>Job brief</h1>
                     <p className={`mt-1 text-base break-words ${s.muted}`}>
                         {project.name}{project.client_name ? ` for ${project.client_name}` : ""}
                     </p>
                     <p className={ui.intro}>
-                        Describe the work, add your activities and timing, then build the price. Use Save to keep a draft.
+                        Set out what the client needs, the work you will carry out and the site details that shape your price. Save your draft as you go, then build the price when the brief is ready.
                     </p>
                 </div>
                 <div className="flex items-center gap-2">

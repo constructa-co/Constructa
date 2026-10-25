@@ -54,6 +54,18 @@ afterEach(() => { for (const cleanup of current.cleanups) cleanup(); vi.unstubAl
 
 describe.each(["dark", "light"])("Brief palette in %s theme", theme => {
     beforeEach(() => { current.theme = theme; });
+    it("introduces contractor-led pricing with compact, readable step styling", () => {
+        const tree = view();
+        expect(text(tree)).toContain("Work Winning / Job brief");
+        expect(text(tree)).toContain("Set out what the client needs, the work you will carry out and the site details that shape your price. Save your draft as you go, then build the price when the brief is ready.");
+        expect(nodes(tree).find(e => e.type === "h1")?.props.children).toBe("Job brief");
+        expect(text(tree)).toContain("Describe the job in your own words");
+        for (const label of ["A homeowner", "A business", "Public sector"]) expect(button(label)).toBeDefined();
+        const css = readFileSync(path.join(process.cwd(), "src/components/brief-chrome.module.css"), "utf8");
+        expect(css).toContain("clamp(32px, 4vw, 44px)");
+        expect(css).toMatch(/\.root \.stepButton \{[^}]*min-height: 56px;[^}]*text-align: left;/);
+        expect(current.save).not.toHaveBeenCalled(); expect(current.ask).not.toHaveBeenCalled(); expect(current.push).not.toHaveBeenCalled();
+    });
     it.each(CLIENT_TYPES)("retains the exact %s client value with visible reviewed selection, without saving", type => {
         const labels = { domestic: "A homeowner", commercial: "A business", public: "Public sector" };
         click(button(labels[type])); expect(current.store.getState().draft.clientType).toBe(type);

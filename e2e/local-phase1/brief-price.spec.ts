@@ -182,3 +182,121 @@ test("an unadded activity entry blocks Build until it is deliberately added", as
     await info.attach("scope", { body: JSON.stringify(scope), contentType: "application/json" });
 });
 
+
+const INTRO =
+    "Set out what the client needs, the work you will carry out and the site details that shape your price. Save your draft as you go, then build the price when the brief is ready.";
+const PRESENTATION_SCOPE = {
+    ...scope,
+    stylesheet: "brief-chrome.module.css via local-phase1 compiler bridge only; Tailwind utilities/preflight NOT compiled",
+    servedApp: "NOT_CLAIMED",
+};
+
+async function briefPresentationGeometry(page: Page) {
+    const title = page.getByRole("heading", { level: 1, name: "Job brief", exact: true });
+    const titleStyle = await title.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return { fontSize: style.fontSize, fontFamily: style.fontFamily };
+    });
+    const steps = page.locator('[aria-label="Brief steps"] button');
+    const count = await steps.count();
+    expect(count).toBe(3);
+    const boxes: Array<{ x: number; y: number; width: number; height: number; textAlign: string }> = [];
+    for (let index = 0; index < count; index += 1) {
+        const button = steps.nth(index);
+        const box = await button.boundingBox();
+        expect(box).not.toBeNull();
+        const textAlign = await button.evaluate((element) => getComputedStyle(element).textAlign);
+        boxes.push({ ...box!, textAlign });
+        expect(box!.height).toBeGreaterThanOrEqual(56);
+        expect(textAlign).toBe("left");
+        const labelRects = await button.evaluate(element => Array.from(element.querySelectorAll("span")).flatMap(span => {
+            const range = document.createRange(); range.selectNodeContents(span);
+            return Array.from(range.getClientRects()).map(r => ({ x: r.x, y: r.y, right: r.right, bottom: r.bottom }));
+        }));
+        expect(labelRects.length).toBeGreaterThan(0);
+        for (const rect of labelRects) {
+            expect(rect.x).toBeGreaterThanOrEqual(box!.x - 1);
+            expect(rect.y).toBeGreaterThanOrEqual(box!.y - 1);
+            expect(rect.right).toBeLessThanOrEqual(box!.x + box!.width + 1);
+            expect(rect.bottom).toBeLessThanOrEqual(box!.y + box!.height + 1);
+        }
+        await expect(button).toBeVisible();
+    }
+    for (let i = 0; i < boxes.length; i += 1) {
+        for (let j = i + 1; j < boxes.length; j += 1) {
+            const a = boxes[i];
+            const b = boxes[j];
+            const overlap = a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+            expect(overlap).toBe(false);
+        }
+    }
+    return { titleStyle, stepBoxes: boxes };
+}
+
+async function exerciseBriefStages(page: Page) {
+    await page.getByLabel("Describe the job in your own words").fill(WORK);
+    await page.getByRole("button", { name: "A business", exact: true }).click();
+    await expect(page.getByRole("button", { name: "A business", exact: true })).toHaveAttribute("aria-pressed", "true");
+
+    const stages = ["The job", "Activities", "Site and assumptions"] as const;
+    for (const label of stages) {
+        await page.getByRole("button", { name: new RegExp(label) }).click();
+        await expect(page.locator('[aria-label="Brief steps"] [aria-current="step"]')).toHaveCount(1);
+        await expect(page.getByRole("button", { name: new RegExp(label) })).toHaveAttribute("aria-current", "step");
+    }
+
+    await page.getByRole("button", { name: /The job/ }).click();
+    await expect(page.getByLabel("Describe the job in your own words")).toHaveValue(WORK);
+    await expect(page.getByRole("button", { name: "A business", exact: true })).toHaveAttribute("aria-pressed", "true");
+
+    await page.getByRole("button", { name: /Site and assumptions/ }).click();
+    await expect(page.locator("[data-brief-site-context]")).toBeVisible();
+    await expect(page.getByText("Carried from this job. No need to enter these details again.")).toBeVisible();
+    const access = page.getByLabel("Access, restrictions and assumptions");
+    await access.fill("Rear lane access only on weekdays.");
+    await expect(access).toHaveValue("Rear lane access only on weekdays.");
+    await expect(access).toBeEditable();
+
+    const state = await snapshot(page);
+    expect(state.saves).toEqual([]);
+    expect(state.navigation).toEqual([]);
+    expect(state.priceWrites).toEqual([]);
+}
+
+test("refined brief presentation on desktop", async ({ page }, info) => {
+    test.info().annotations.push({ type: "viewport", description: "1280x900 default config" });
+    await expect(page.getByText("Work Winning / Job brief", { exact: true })).toBeVisible();
+    await expect(page.getByText(INTRO, { exact: true })).toBeVisible();
+    const geometry = await briefPresentationGeometry(page);
+    expect(parseFloat(geometry.titleStyle.fontSize)).toBeCloseTo(44, 0);
+    expect(geometry.titleStyle.fontFamily.toLowerCase()).toContain("avenir");
+    await exerciseBriefStages(page);
+    expect(requests).toEqual([]); expect(pageErrors).toEqual([]);
+    await info.attach("presentation-geometry-desktop", {
+        body: JSON.stringify({ ...geometry, viewport: "1280x900" }),
+        contentType: "application/json",
+    });
+    await info.attach("scope", { body: JSON.stringify(PRESENTATION_SCOPE), contentType: "application/json" });
+    await page.screenshot({ path: path.join(output, "brief-presentation-desktop.png"), fullPage: true });
+});
+
+test.describe("phone presentation", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("refined brief presentation on 390px phone", async ({ page }, info) => {
+        await expect(page.getByText("Work Winning / Job brief", { exact: true })).toBeVisible();
+        await expect(page.getByText(INTRO, { exact: true })).toBeVisible();
+        const geometry = await briefPresentationGeometry(page);
+        expect(parseFloat(geometry.titleStyle.fontSize)).toBeCloseTo(32, 0);
+        expect(geometry.titleStyle.fontFamily.toLowerCase()).toContain("avenir");
+        await exerciseBriefStages(page);
+        expect(requests).toEqual([]); expect(pageErrors).toEqual([]);
+        await info.attach("presentation-geometry-phone", {
+            body: JSON.stringify({ ...geometry, viewport: "390x844" }),
+            contentType: "application/json",
+        });
+        await info.attach("scope", { body: JSON.stringify(PRESENTATION_SCOPE), contentType: "application/json" });
+        await page.screenshot({ path: path.join(output, "brief-presentation-phone.png"), fullPage: true });
+    });
+});
+

@@ -39,6 +39,9 @@ describe("in-view estimate total", () => {
         expect(dock?.match(/data-in-view-contract-sum[^>]*>([^<]+)/)?.[1]).toBe(cardValue);
         expect(dock).toContain("Total before VAT");
         expect(dock).toContain("May include changes not yet confirmed.");
+        expect(dock).toMatch(/<details[^>]*open[^>]*data-running-total-disclosure/);
+        expect(dock).toMatch(/<summary[^>]*>Estimate total<\/summary>/);
+        expect(dock).toMatch(/<div[^>]*data-running-total-values[\s\S]*Total before VAT[\s\S]*May include changes not yet confirmed\.[\s\S]*<\/div>\s*<\/details>/);
         expect(dock).not.toMatch(/<button|<input|<a /);
     });
 

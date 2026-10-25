@@ -153,3 +153,78 @@ test("refused then acknowledged existing-line edit updates group and running tot
 
     await page.screenshot({ path: path.join(output, "existing-price-native-acknowledged.png"), fullPage: true });
 });
+
+for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+    test(`running total folds without changing a retained price draft or its deliberate save at ${viewport.width}px`, async ({ page }, info) => {
+        await page.setViewportSize(viewport);
+        await page.evaluate(() => { window.__existingPriceNativeLocal.script.update = ["refuse", "ack"]; });
+        const dock = page.locator("[data-running-total]");
+        const disclosure = dock.locator("[data-running-total-disclosure]");
+        const toggle = disclosure.locator("summary");
+        const values = disclosure.locator("[data-running-total-values]");
+        const amount = values.locator("[data-in-view-contract-sum]");
+        await expect(disclosure).toHaveAttribute("open", "");
+        await expect(amount).toHaveText(CONTRACT_BEFORE);
+        await expect(values).toContainText("May include changes not yet confirmed.");
+        const expanded = await dock.boundingBox();
+        expect(expanded).not.toBeNull();
+        const before = await snapshot(page);
+
+        await toggle.click();
+        await expect(disclosure).not.toHaveAttribute("open", "");
+        await expect(values).toBeHidden();
+        const folded = await dock.boundingBox();
+        expect(folded).not.toBeNull();
+        expect(folded!.height).toBeLessThan(expanded!.height);
+
+        await page.getByRole("button", { name: "Show quantities and rates", exact: true }).click();
+        await page.getByRole("button", { name: `Change ${LINE_EDIT_DESC}`, exact: true }).click();
+        const editor = inlineEditor(page, LINE_EDIT);
+        const quantity = editor.getByLabel(/Quantity for/, { exact: false });
+        const rate = editor.getByLabel(/Rate in pounds for/, { exact: false });
+        await quantity.fill("4");
+        await rate.fill("60");
+        await expect(disclosure).not.toHaveAttribute("open", "");
+        await expect(values).toBeHidden();
+        const typed = await snapshot(page);
+        expect(typed).toEqual(before);
+
+        await toggle.focus();
+        await page.keyboard.press("Space");
+        await expect(disclosure).toHaveAttribute("open", "");
+        await expect(amount).toHaveText(CONTRACT_BEFORE);
+        await expect(quantity).toHaveValue("4");
+        await expect(rate).toHaveValue("60");
+        await toggle.click();
+        await editor.getByRole("button", { name: "Save line", exact: true }).click();
+        await expect(editor.getByRole("alert")).toContainText("price update not acknowledged");
+        await expect(disclosure).not.toHaveAttribute("open", "");
+        await expect(values).toBeHidden();
+        await expect(quantity).toHaveValue("4");
+        await expect(rate).toHaveValue("60");
+        const refused = await snapshot(page);
+        expect(refused.updateAttempts).toHaveLength(1);
+        expect(refused.updateAcknowledgements).toBe(0);
+        expect(refused.estimates).toEqual(before.estimates);
+
+        await toggle.focus();
+        await page.keyboard.press("Enter");
+        await expect(disclosure).toHaveAttribute("open", "");
+        await expect(amount).toHaveText(CONTRACT_BEFORE);
+        await editor.getByRole("button", { name: "Try again", exact: true }).click();
+        await expect(editor).toHaveCount(0);
+        await expect(amount).toHaveText(CONTRACT_AFTER_EDIT);
+        await expect(page.locator("[data-contract-sum]")).toHaveText(CONTRACT_AFTER_EDIT);
+        await expect(values).toContainText("May include changes not yet confirmed.");
+        const finished = await snapshot(page);
+        expect(finished.updateAttempts).toHaveLength(2);
+        expect(finished.updateAttempts[1]).toEqual(finished.updateAttempts[0]);
+        expect(finished.updateAcknowledgements).toBe(1);
+        expect(finished.deleteAttempts).toEqual([]);
+        expect(finished.saveLineCalls).toBe(0);
+        expect(finished.unexpectedWrites).toEqual([]);
+        await info.attach("running-total-fold", { body: JSON.stringify({ viewport, expanded, folded,
+            scope: "Actual CSS-module/EstimateClient; native disclosure and keyboard; MOCK save, not OS keyboard/served Tailwind/AuthDB/hosted" }), contentType: "application/json" });
+        await page.screenshot({ path: path.join(output, `running-total-fold-${viewport.width}.png`), fullPage: true });
+    });
+}

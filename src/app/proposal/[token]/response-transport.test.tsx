@@ -80,4 +80,33 @@ describe("actual public response transport boundary", () => {
         expect(current.respond).toHaveBeenCalledTimes(2);
         expect(nodes(view("acknowledgement")).find(e => e.props["data-response-state"] === "recorded")).toBeDefined();
     });
+
+    it("releases the synchronous pending fence when the reply promise rejects, then a deliberate retry of the same literal happens exactly once before the acknowledged recorded state", async () => {
+        current.respond.mockReturnValueOnce(Promise.reject(new Error("Synthetic lost reply transport")));
+        const email = nodes(view()).find(e => e.props.id === "response-email")!;
+        (email.props.onChange as (e: { target: { value: string } }) => void)({ target: { value: "client@example.invalid" } });
+        const send = submit(); send();
+        // The lost reply resolves asynchronously: the pending fence holds synchronously, no duplicate in-flight submit.
+        const pending = nodes(view());
+        expect(pending.find(e => e.type === "button")!.props.disabled).toBe(true);
+        expect(pending.filter(e => e.type === "input").every(e => e.props.disabled === true)).toBe(true);
+        await settle();
+        // The rejected promise releases the fence with the lost-reply wording, fields retained, and no automatic retry.
+        expect(current.respond).toHaveBeenCalledTimes(1);
+        const released = view();
+        const alert = nodes(released).find(e => e.props.role === "alert");
+        expect(text(alert)).toMatch(/could not be confirmed|couldn't confirm/i);
+        expect(text(alert)).not.toMatch(/nothing was sent|not recorded/i);
+        expect(nodes(released).find(e => e.props["data-response-state"] === "recorded")).toBeUndefined();
+        expect(nodes(released).find(e => e.props.id === "response-name")!.props.value).toBe("Alex Client");
+        expect(nodes(released).find(e => e.props.id === "response-email")!.props.value).toBe("client@example.invalid");
+        await settle(); expect(current.respond).toHaveBeenCalledTimes(1);
+        // The deliberate retry carries the SAME literal name/email/token exactly once and reaches the recorded state.
+        current.respond.mockResolvedValueOnce({ success: true, status: "acknowledged", respondedAt: "2026-10-25T00:00:00.000Z" });
+        submit()(); await settle();
+        expect(current.respond).toHaveBeenCalledTimes(2);
+        expect(current.respond).toHaveBeenLastCalledWith(TOKEN, "Alex Client", "client@example.invalid");
+        await settle(); expect(current.respond).toHaveBeenCalledTimes(2);
+        expect(nodes(view()).find(e => e.props["data-response-state"] === "recorded")).toBeDefined();
+    });
 });

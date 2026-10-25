@@ -73,6 +73,43 @@ afterEach(() => {
 
 describe("detailed planner calendar-axis geometry", () => {
     it.each(["move", "resize"] as const)(
+        "restores a saved Wednesday one-day stage with manualDays null after %s drag away then back to the starting mouse X",
+        type => {
+            const saved = [{ ...phase(2, 1), manualDays: null }];
+            const before = JSON.stringify(saved);
+            render(saved);
+            const listeners = new Map<string, (event: { clientX: number }) => void>();
+            vi.stubGlobal("document", {
+                addEventListener: (name: string, callback: (event: { clientX: number }) => void) => listeners.set(name, callback),
+                removeEventListener: (name: string) => listeners.delete(name),
+            });
+            for (const effect of hooks.effects) {
+                const cleanup = effect();
+                if (cleanup) cleanups.push(cleanup);
+            }
+            hooks.refs[0].current = { getBoundingClientRect: () => ({ width: 280 }) };
+            const originX = 100;
+            hooks.callbacks[0]({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: originX } as unknown as MouseEvent, 0, type);
+            listeners.get("mousemove")!({ clientX: 140 });
+            const phaseUpdates = hooks.updates.filter((value): value is PlannerPhase[] => Array.isArray(value));
+            const midway = phaseUpdates.at(-1)!;
+            if (type === "move") {
+                expect(midway[0].startOffset).not.toBe(2);
+            } else {
+                expect(midway[0].manualDays).not.toBe(null);
+            }
+            listeners.get("mousemove")!({ clientX: originX });
+            listeners.get("mouseup")!({ clientX: originX });
+            const finalUpdate = hooks.updates.filter((value): value is PlannerPhase[] => Array.isArray(value)).at(-1);
+            expect(finalUpdate).toEqual(saved);
+            expect(finalUpdate?.[0].manualDays).toBe(null);
+            expect(phaseUpdates.some(value => JSON.stringify(value) !== before)).toBe(true);
+            expect(saved).toEqual([{ ...phase(2, 1), manualDays: null }]);
+            expect(JSON.stringify(saved)).toBe(before);
+        },
+    );
+
+    it.each(["move", "resize"] as const)(
         "restores a saved Wednesday one-day stage after %s drag away then back to the starting mouse X",
         type => {
             const saved = [phase(2, 1)];

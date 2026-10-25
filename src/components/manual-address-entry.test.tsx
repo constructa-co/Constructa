@@ -127,4 +127,19 @@ describe("ManualAddressEntry", () => {
         expect(html).toContain('value="Draft"');
         expect(html).toContain("Keep\nDraft");
     });
+
+    it("keeps an explicitly refused local Use draft pending until a deliberate successful retry", () => {
+        const onApply = vi.fn().mockReturnValueOnce(false).mockReturnValueOnce(true);
+        const onPendingChange = vi.fn();
+        editPart("test-manual-line1", "  Unapplied site!  ", { onApply, onPendingChange });
+        nodes(renderEntry({ onApply, onPendingChange }).node).find(n => n.props.id === "test-manual-use")!.props.onClick!();
+        expect(onApply).toHaveBeenCalledExactlyOnceWith("Unapplied site!");
+        expect(onPendingChange).toHaveBeenLastCalledWith(true);
+        editPart("test-manual-line1", "  Unapplied site!  ", { onApply, onPendingChange });
+        expect(onPendingChange).toHaveBeenLastCalledWith(true);
+        expect(nodes(renderEntry({ onApply, onPendingChange }).node).find(n => n.props.id === "test-manual-line1")!.props.value).toBe("  Unapplied site!  ");
+        nodes(renderEntry({ onApply, onPendingChange }).node).find(n => n.props.id === "test-manual-use")!.props.onClick!();
+        expect(onApply).toHaveBeenCalledTimes(2);
+        expect(onPendingChange).toHaveBeenLastCalledWith(false);
+    });
 });

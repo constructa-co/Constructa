@@ -13,7 +13,7 @@ import {
 type Props = {
     idPrefix: string;
     disabled?: boolean;
-    onApply: (preview: string) => void;
+    onApply: (preview: string) => void | boolean;
     onPendingChange: (pending: boolean) => void;
     isDark: boolean;
     labelCls: string;
@@ -54,7 +54,8 @@ export default function ManualAddressEntry({
 
     const applyPreview = () => {
         if (latest.current.disabled || !canUseManualAddressPreview(preview)) return;
-        latest.current.onApply(preview);
+        const applied = latest.current.onApply(preview);
+        if (applied === false) return;
         setLastUsedPreview(preview);
         latest.current.onPendingChange(false);
     };

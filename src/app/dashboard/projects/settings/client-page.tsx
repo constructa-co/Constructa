@@ -8,6 +8,7 @@ import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
 import { SETTINGS_LEAVE_WARNING, settingsFormSignature } from "./form-state";
 import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
+import ManualAddressEntry from "@/components/manual-address-entry";
 
 // --- Inline UI Components ---
 function Card({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -64,6 +65,8 @@ export default function ClientProjectSettings({ project }: { project: any }) {
     const [statusDirty, setStatusDirty] = useState(false);
     const [statusFeedback, setStatusFeedback] = useState<"idle" | "saved" | "error">("idle");
     const [pendingIntent, setPendingIntent] = useState<"details" | "status" | null>(null);
+    const [structuredAddressDraftPending, setStructuredAddressDraftPending] = useState({ site: false, client: false });
+    const hasStructuredAddressDraft = structuredAddressDraftPending.site || structuredAddressDraftPending.client;
     const [serverLock, setServerLock] = useState<{ of: object; message: string } | null>(null);
     const formRef = useRef<HTMLFormElement | null>(null);
     const confirmedSignature = useRef<string | null>(null);
@@ -82,7 +85,7 @@ export default function ClientProjectSettings({ project }: { project: any }) {
         aliveRef.current = true;
         return () => { aliveRef.current = false; };
     }, []);
-    const mustWarn = dirty || statusDirty || isPending;
+    const mustWarn = dirty || statusDirty || isPending || hasStructuredAddressDraft;
     useUnsavedGuard(mustWarn, SETTINGS_LEAVE_WARNING);
     useEffect(() => {
         if (!mustWarn) return;
@@ -157,6 +160,21 @@ export default function ClientProjectSettings({ project }: { project: any }) {
     const statusText = isPending && pendingIntent === "details" ? "Saving..." : feedback === "saved"
         ? dirty ? "Submitted changes saved. Newer edits are still unsaved." : "Saved"
         : dirty ? "Unsaved changes" : "";
+
+    const labelCls = `text-sm font-semibold ${isDark ? "text-slate-300" : "text-slate-700"}`;
+    const inputCls = `flex h-12 w-full rounded-lg border ${isDark ? "border-slate-600 bg-slate-900/50 text-slate-100" : "border-slate-200 bg-white text-slate-900"} px-3 py-2 text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-50`;
+    const muted = isDark ? "text-slate-400" : "text-slate-500";
+
+    const applyAddressField = (fieldName: "client_address" | "site_address", preview: string): boolean => {
+        if (!aliveRef.current || pendingRef.current || lockRef.current || projectRef.current !== project.id) return false;
+        const form = formRef.current;
+        if (!form) return false;
+        const field = form.elements.namedItem(fieldName);
+        if (!(field instanceof HTMLTextAreaElement)) return false;
+        field.value = preview;
+        setDirty(settingsFormSignature(new FormData(form)) !== confirmedSignature.current);
+        return true;
+    };
 
     return (
         <div className="max-w-4xl mx-auto p-8 space-y-6">
@@ -300,6 +318,16 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                                 placeholder="Client billing address..."
                                 rows={2}
                             />
+                            <ManualAddressEntry
+                                idPrefix="settings-client-manual"
+                                disabled={!!lockReason || isPending}
+                                onApply={(preview) => applyAddressField("client_address", preview)}
+                                onPendingChange={(pending) => setStructuredAddressDraftPending((prev) => ({ ...prev, client: pending }))}
+                                isDark={isDark}
+                                labelCls={labelCls}
+                                inputCls={inputCls}
+                                muted={muted}
+                            />
                         </div>
                         <div className="space-y-1.5">
                             <Label htmlFor="site_address">Site Address (if different)</Label>
@@ -309,6 +337,16 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                                 defaultValue={project.site_address || ""}
                                 placeholder="Works site address..."
                                 rows={2}
+                            />
+                            <ManualAddressEntry
+                                idPrefix="settings-site-manual"
+                                disabled={!!lockReason || isPending}
+                                onApply={(preview) => applyAddressField("site_address", preview)}
+                                onPendingChange={(pending) => setStructuredAddressDraftPending((prev) => ({ ...prev, site: pending }))}
+                                isDark={isDark}
+                                labelCls={labelCls}
+                                inputCls={inputCls}
+                                muted={muted}
                             />
                         </div>
                     </CardContent>

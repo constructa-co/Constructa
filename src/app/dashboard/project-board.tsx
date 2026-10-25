@@ -229,20 +229,31 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                             </div>
 
                                             {/* MANUAL STATUS OVERRIDE DROPDOWN */}
-                                            <Select value={status} onValueChange={(val) => move(p.id, val)} disabled={isPending}>
-                                                <SelectTrigger aria-label={`Stage of ${p.name}`} className={`h-11 lg:h-7 text-[10px] font-bold transition-colors ${
-                                                    isDark
-                                                        ? "border-[#2a2a2a] bg-[#0d0d0d] text-white hover:bg-[#1a1a1a]"
-                                                        : "border-gray-100 bg-gray-50/50 hover:bg-gray-50"
-                                                }`}>
-                                                    <SelectValue />
-                                                </SelectTrigger>
+                                            <div data-board-stage-control className="space-y-1">
+                                                <label
+                                                    htmlFor={`stage-change-${p.id}`}
+                                                    className={`block text-[9px] font-bold uppercase tracking-wide ${isDark ? "text-[#a0a0a0]" : "text-gray-600"}`}
+                                                >
+                                                    Change stage
+                                                </label>
+                                                <p className={`text-[9px] leading-snug ${isDark ? "text-[#707070]" : "text-gray-500"}`}>
+                                                    Saves immediately when you pick a stage.
+                                                </p>
+                                                <Select value={status} onValueChange={(val) => move(p.id, val)} disabled={isPending}>
+                                                    <SelectTrigger id={`stage-change-${p.id}`} aria-label={`Stage of ${p.name}`} className={`h-11 lg:h-7 text-[10px] font-bold transition-colors ${
+                                                        isDark
+                                                            ? "border-[#2a2a2a] bg-[#0d0d0d] text-white hover:bg-[#1a1a1a]"
+                                                            : "border-gray-100 bg-gray-50/50 hover:bg-gray-50"
+                                                    }`}>
+                                                        <SelectValue />
+                                                    </SelectTrigger>
                                                 <SelectContent>
                                                     {COLUMNS.map(c => (
                                                         <SelectItem key={c.id} value={c.id} className="text-xs font-medium">{c.label}</SelectItem>
                                                     ))}
                                                 </SelectContent>
-                                            </Select>
+                                                </Select>
+                                            </div>
 
                                             {/* ── STAGE ACTION BUTTONS ──────────────── */}
 
@@ -282,7 +293,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                             : "bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"
                                                     }`}
                                                 >
-                                                    Proposal Sent <ArrowRight className="w-3 h-3" />
+                                                    Mark proposal sent <ArrowRight className="w-3 h-3" />
                                                 </button>
                                             ) : status === "Active" ? (
                                                 <button

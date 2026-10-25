@@ -35,3 +35,7 @@ export function manualAddressDraftPending(parts: ManualAddressParts, lastUsedPre
     const preview = joinManualAddressPreview(parts);
     return preview.length > 0 && preview !== lastUsedPreview;
 }
+
+/** Shown when Create/Try again is blocked because structured parts were not applied via Use. */
+export const MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE =
+    "You have address parts that are not applied yet. Choose Use this address for each structured entry, or clear those parts, before creating the job.";

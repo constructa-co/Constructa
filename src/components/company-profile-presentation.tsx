@@ -32,7 +32,7 @@ export default function CompanyProfilePresentation({ children }: { children: Rea
                     <Link href={INTERVIEW_PATH}><strong>Answer a few questions</strong><span>A guided questionnaire for your introduction.</span></Link>
                     <Link href={IMPORT_PATH}><strong>Bring in website details</strong><span>Open the existing website-import flow.</span></Link>
                     <div className={ui.note}><strong>No need to finish everything.</strong><p>You can begin a job before completing your full profile. Each proposal has its own checks before sending.</p></div>
-                    <div className={ui.note}><strong>Next: Work Winning</strong><p>Save your profile changes before leaving. Then open Pipeline or New Project from Work Winning in the main navigation to begin the job journey.</p></div>
+                    <div className={ui.note}><strong>Next: Pipeline or New Project</strong><p>Save your profile changes before leaving. Open them from the main menu (Jobs on phone, Work Winning on desktop).</p></div>
                 </aside>
             </div>
         </div>

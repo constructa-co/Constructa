@@ -1,8 +1,10 @@
 import type { ComponentProps, FormEvent, ReactElement, ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MANUAL_ADDRESS_MAX_LENGTH } from "@/lib/manual-address";
 import ManualAddressEntry from "@/components/manual-address-entry";
+
+const MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE = "You have address parts that are not applied yet. Choose Use this address for each structured entry, or clear those parts, before creating the job.";
 
 const hooks = vi.hoisted(() => ({
     states: [] as unknown[],
@@ -103,10 +105,19 @@ function staticHtml() {
 }
 
 beforeEach(() => {
+    vi.stubGlobal("window", { setTimeout: vi.fn() });
     hooks.states = [];
     hooks.refs = [];
     hooks.guard.mockClear();
+    hooks.create.mockReset();
+    hooks.push.mockReset();
 });
+
+afterEach(() => vi.unstubAllGlobals());
+
+function submitCreate() {
+    nodes(render()).find(n => n.type === "form")!.props.onSubmit!({ preventDefault: vi.fn() } as unknown as FormEvent);
+}
 
 describe("new project manual structured addresses", () => {
     it("leaves existing free text byte-exact until Use applies a structured preview", () => {
@@ -129,21 +140,48 @@ describe("new project manual structured addresses", () => {
         expect(nodes(render()).find(n => n.props.id === "new-project-clientAddress")!.props.value).toBe("Client only");
     });
 
-    it("includes unapplied structured drafts in the unsaved guard without extra FormData keys", async () => {
+    it("includes unapplied structured drafts in the unsaved guard and refuses create until Use", async () => {
         openMore();
         expect(warns()).toBe(false);
         edit("new-project-client-manual-postcode", "AB1 2CD");
         expect(warns()).toBe(true);
         edit("new-project-name", "Job");
         edit("new-project-client", "Client");
+        edit("new-project-siteAddress", "Free text site");
         hooks.create.mockResolvedValue({ success: true, projectId: "job-1" });
-        nodes(render()).find(n => n.type === "form")!.props.onSubmit!({ preventDefault: vi.fn() } as unknown as FormEvent);
+        submitCreate();
+        await vi.waitFor(() => expect(staticHtml()).toContain(MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE));
+        expect(hooks.create).not.toHaveBeenCalled();
+        expect(hooks.push).not.toHaveBeenCalled();
+        expect(nodes(render()).find(n => n.props.id === "new-project-client-manual-postcode")!.props.value).toBe("AB1 2CD");
+        expect(nodes(render()).find(n => n.props.id === "new-project-siteAddress")!.props.value).toBe("Free text site");
+        submitCreate();
+        expect(hooks.create).not.toHaveBeenCalled();
+        nodes(render()).find(n => n.props.id === "new-project-client-manual-use")!.props.onClick!();
+        submitCreate();
         await vi.waitFor(() => expect(hooks.create).toHaveBeenCalled());
         const keys = Array.from(hooks.create.mock.calls[0][0].keys());
         expect(keys).not.toContain("line1");
         expect(keys).not.toContain("postcode");
-        expect(hooks.create.mock.calls[0][0].get("siteAddress")).toBe("");
-        expect(hooks.create.mock.calls[0][0].get("clientAddress")).toBe("");
+        expect(hooks.create.mock.calls[0][0].get("siteAddress")).toBe("Free text site");
+        expect(hooks.create.mock.calls[0][0].get("clientAddress")).toBe("AB1 2CD");
+    });
+
+    it("refuses create when site parts are pending after Enter-equivalent submit, then allows deliberate create after Use", async () => {
+        openMore();
+        edit("new-project-name", "Job");
+        edit("new-project-client", "Client");
+        edit("new-project-site-manual-postcode", "AB1 2CD");
+        hooks.create.mockResolvedValue({ success: true, projectId: "job-1" });
+        submitCreate();
+        await vi.waitFor(() => expect(staticHtml()).toMatch(/data-job-unapplied-address/));
+        expect(hooks.create).not.toHaveBeenCalled();
+        expect(nodes(render()).find(n => n.props.id === "new-project-site-manual-postcode")!.props.value).toBe("AB1 2CD");
+        expect(nodes(render()).find(n => n.props.id === "new-project-siteAddress")!.props.value).toBe("");
+        nodes(render()).find(n => n.props.id === "new-project-site-manual-use")!.props.onClick!();
+        submitCreate();
+        await vi.waitFor(() => expect(hooks.create).toHaveBeenCalledOnce());
+        expect(hooks.create.mock.calls[0][0].get("siteAddress")).toBe("AB1 2CD");
     });
 
     it("refuses Use over 500 characters in the joined preview", () => {

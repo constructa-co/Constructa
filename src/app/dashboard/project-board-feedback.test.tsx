@@ -94,3 +94,22 @@ describe("actual pipeline move handler", () => {
         expect(text(column("Estimating"))).toContain("QA Example");
     });
 });
+
+describe("pipeline card stage labels (A017)", () => {
+    it("labels the card stage selector as an immediate save, distinct from view-only filters", () => {
+        expect(text(view())).toMatch(/Change stage/i);
+        expect(text(view())).toMatch(/Saves immediately when you pick a stage/i);
+        expect(nodes(view()).some(e => e.props["data-board-stage-control"] !== undefined)).toBe(true);
+    });
+
+    it("names the estimating advance control as an action, not a bare status label", async () => {
+        projects = [{ ...project, status: "Estimating" }];
+        const advance = nodes(view()).find(e => e.type === "button" && text(e.props.children).includes("Mark proposal sent"));
+        expect(advance).toBeDefined();
+        expect(nodes(view()).some(e => e.type === "button" && text(e.props.children).trim() === "Proposal Sent")).toBe(false);
+        (advance!.props.onClick as () => void)();
+        await settle();
+        expect(current.ordinary).toHaveBeenCalledExactlyOnceWith("job", "Proposal Sent");
+        expect(current.won).not.toHaveBeenCalled();
+    });
+});

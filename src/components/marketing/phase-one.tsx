@@ -76,7 +76,7 @@ function Journey() {
       <div className={ui.sectionIntro}><p className={ui.eyebrow}>One connected journey</p><h2>Less starting again.<br />More moving forward.</h2><p>From who you are to what you will deliver. Keep the company story, the job and the proposal connected.</p></div>
       <ol className={ui.journey}>
         {stages.map(stage => <li key={stage.number}>
-          <div className={ui.stageTop}><span>{stage.number}</span><span>{stage.label}</span><ArrowRight size={17} aria-hidden="true" /></div>
+          <div className={ui.stageTop}><span>{stage.number}</span><span>{stage.label}</span></div>
           <h3>{stage.title}</h3><p>{stage.description}</p><small>{stage.detail}</small>
         </li>)}
       </ol>

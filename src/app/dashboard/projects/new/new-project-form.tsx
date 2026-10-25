@@ -15,6 +15,7 @@ import {
     type BlankProjectForm,
     type CreateBlankProjectResult,
 } from "@/lib/blank-project";
+import { MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE } from "@/lib/manual-address";
 import { createBlankProjectAction } from "./actions";
 import ManualAddressEntry from "@/components/manual-address-entry";
 import NewJobFrame from "@/components/new-job-frame";
@@ -43,9 +44,19 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
     const [created, setCreated] = useState(false);
     const [showMore, setShowMore] = useState(false);
     const [structuredAddressDraftPending, setStructuredAddressDraftPending] = useState({ site: false, client: false });
+    const structuredAddressDraftRef = useRef({ site: false, client: false });
     const inFlightRef = useRef(false);
 
     const hasStructuredAddressDraft = structuredAddressDraftPending.site || structuredAddressDraftPending.client;
+
+    const setStructuredAddressDraft = (field: "site" | "client", pending: boolean) => {
+        const next = { ...structuredAddressDraftRef.current, [field]: pending };
+        structuredAddressDraftRef.current = next;
+        setStructuredAddressDraftPending(next);
+        if (!next.site && !next.client) {
+            setCreateError((prev) => (prev === MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE ? "" : prev));
+        }
+    };
 
     useUnsavedGuard(!created && (creating || hasStructuredAddressDraft || Object.values(form).some(value => value !== "")),
         "This new job has entries that are not saved yet.\n\nPress Cancel to stay here, or OK to leave without saving them.");
@@ -70,6 +81,14 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
 
     const handleCreate = async () => {
         if (inFlightRef.current) return;
+
+        const pendingStructuredAddress =
+            structuredAddressDraftRef.current.site || structuredAddressDraftRef.current.client;
+        if (pendingStructuredAddress) {
+            setShowMore(true);
+            setCreateError(MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE);
+            return;
+        }
 
         const checked = validateBlankProjectForm(form, requestId);
         if (!checked.ok) {
@@ -236,7 +255,7 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
                                     idPrefix="new-project-site-manual"
                                     disabled={creating}
                                     onApply={(preview) => set("siteAddress", preview)}
-                                    onPendingChange={(pending) => setStructuredAddressDraftPending((prev) => ({ ...prev, site: pending }))}
+                                    onPendingChange={(pending) => setStructuredAddressDraft("site", pending)}
                                     isDark={isDark}
                                     labelCls={labelCls}
                                     inputCls={inputCls}
@@ -259,7 +278,7 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
                                     idPrefix="new-project-client-manual"
                                     disabled={creating}
                                     onApply={(preview) => set("clientAddress", preview)}
-                                    onPendingChange={(pending) => setStructuredAddressDraftPending((prev) => ({ ...prev, client: pending }))}
+                                    onPendingChange={(pending) => setStructuredAddressDraft("client", pending)}
                                     isDark={isDark}
                                     labelCls={labelCls}
                                     inputCls={inputCls}
@@ -303,7 +322,21 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
                         </div>
                 </div>
 
-                {createError && (
+                {createError === MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE && (
+                    <div
+                        role="alert"
+                        tabIndex={-1}
+                        data-job-unapplied-address
+                        className={`rounded-xl border px-4 py-3 text-sm ${
+                            isDark ? "border-amber-500/40 bg-amber-500/10 text-amber-100" : "border-amber-200 bg-amber-50 text-amber-900"
+                        }`}
+                    >
+                        <p className="font-semibold">Apply or clear structured address parts</p>
+                        <p className="mt-1">{MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE}</p>
+                    </div>
+                )}
+
+                {createError && createError !== MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE && (
                     <div
                         role="alert"
                         tabIndex={-1}

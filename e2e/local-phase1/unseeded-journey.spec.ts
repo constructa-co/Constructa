@@ -289,6 +289,44 @@ test("company through brief, unseeded first priced line with refused-then-acknow
 });
 
 for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+    test(`manual address pending site parts refuse create on Enter until Use at ${viewport.width}px`, async ({ page }) => {
+        await page.setViewportSize(viewport);
+        await page.getByLabel("What kind of work do you do?", { exact: true }).fill(WORK_TYPE);
+        await page.getByRole("button", { name: "Save and continue", exact: true }).click();
+        await page.getByLabel("Business or trading name").fill(COMPANY);
+        await page.getByLabel("Your name", { exact: false }).fill(OPERATOR);
+        await page.getByRole("button", { name: "Save and continue", exact: true }).click();
+        await page.locator('[data-welcome-step="proposal"]').click();
+        await page.getByLabel("Job name", { exact: true }).fill(JOB);
+        await page.getByLabel("Client name", { exact: true }).fill(CLIENT);
+        const more = page.getByRole("button", { name: /^Add more details/ });
+        await more.click();
+        const site = page.locator('[data-manual-address-entry="new-project-site-manual"]');
+        await site.locator("summary").click();
+        await site.getByLabel("Address line 1", { exact: true }).fill("Plot 7 rear gate");
+        await site.getByLabel("Postcode", { exact: true }).fill("AB1 2CD");
+        await expect(page.getByLabel("Where is the job?", { exact: true })).toHaveValue("");
+        await site.getByLabel("Postcode", { exact: true }).press("Enter");
+        await expect(page.locator("[data-job-unapplied-address]")).toBeVisible();
+        expect((await snapshot(page)).attempts).toEqual([]);
+        await expect(site.getByLabel("Address line 1", { exact: true })).toHaveValue("Plot 7 rear gate");
+        await expect(site.getByLabel("Postcode", { exact: true })).toHaveValue("AB1 2CD");
+        await page.getByRole("button", { name: "Try again", exact: true }).click();
+        expect((await snapshot(page)).attempts).toEqual([]);
+        await site.getByRole("button", { name: "Use this address", exact: true }).click();
+        await expect(page.getByLabel("Where is the job?", { exact: true })).toHaveValue("Plot 7 rear gate\nAB1 2CD");
+        await page.getByRole("button", { name: CREATE, exact: true }).click();
+        const created = await snapshot(page);
+        expect(created.attempts).toHaveLength(1);
+        expect(created.attempts[0].siteAddress).toBe("Plot 7 rear gate\nAB1 2CD");
+        expect(Object.keys(created.attempts[0])).not.toContain("postcode");
+        expect(created.rpcCalls.map(call => call.outcome)).toEqual(["created"]);
+        expect(requests).toEqual([]);
+        expect(pageErrors).toEqual([]);
+    });
+}
+
+for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
     test(`manual address explicit Use retains drafts across outer collapse and refused create at ${viewport.width}px`, async ({ page }) => {
         await page.setViewportSize(viewport);
         await page.getByLabel("What kind of work do you do?", { exact: true }).fill(WORK_TYPE);

@@ -36,7 +36,7 @@ describe('phase-one marketing integration', () => {
     expect(html).not.toContain('About preview access');
   });
 
-  it.each([PhaseOneHome, PhaseOneFeatures])('retains the access link on other pages and keeps journey arrows decorative (%#)', Page => {
+  it.each([PhaseOneHome, PhaseOneFeatures])('retains real access-link arrows but removes arrows from non-interactive journey cards (%#)', Page => {
     const html = renderToStaticMarkup(<Page />);
     expect(html).toContain('href="/pricing"');
     expect(html).toContain('About preview access');
@@ -44,8 +44,11 @@ describe('phase-one marketing integration', () => {
     expect(journey).toBeDefined();
     expect(journey).not.toMatch(/<a\b|<button\b|tabindex=/i);
     const arrows = journey!.match(/<svg\b[^>]*>/g) ?? [];
-    expect(arrows).toHaveLength(4);
-    for (const arrow of arrows) expect(arrow).toContain('aria-hidden="true"');
+    expect(arrows).toHaveLength(0);
+    for (const destination of ['/login', '/pricing']) {
+      const links = html.match(/<a\b[^>]*>[\s\S]*?<\/a>/g) ?? [];
+      expect(links.some(link => link.includes(`href="${destination}"`) && /<svg\b/.test(link))).toBe(true);
+    }
   });
 
   it('introduces the complete work-winning journey without an add-on sales form', () => {

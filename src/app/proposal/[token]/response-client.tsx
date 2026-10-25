@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { RecordedResponseKind } from "@/lib/proposal-response";
 import { respondToProposalAction } from "./actions";
 
@@ -46,16 +46,18 @@ export default function ResponseClient({
     const [recorded, setRecorded] = useState<{ status: string; at: string | null; by: string | null }>(
         { status, at: respondedAt, by: respondedBy },
     );
+    const submitPending = useRef(false);
 
     const hasResponded = ["acknowledged", "accepted", "declined"].includes(recorded.status);
     const canRespondOnline = kind !== "binding_acceptance";
 
     const submit = async () => {
-        if (busy) return;
+        if (busy || submitPending.current) return;
         if (name.trim().length < 2) {
             setError("Enter your full name.");
             return;
         }
+        submitPending.current = true;
         setBusy(true);
         setError("");
         try {
@@ -66,8 +68,9 @@ export default function ResponseClient({
                 setError(result?.error || "Your response could not be recorded. Please try again.");
             }
         } catch {
-            setError("Your response could not be recorded. Nothing was sent. Please try again, or contact the contractor.");
+            setError("Your response could not be confirmed. Please try again, or contact the contractor.");
         } finally {
+            submitPending.current = false;
             setBusy(false);
         }
     };

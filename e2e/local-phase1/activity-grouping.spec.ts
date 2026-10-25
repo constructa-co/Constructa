@@ -147,3 +147,80 @@ test("an uncertain activity save stays fenced with the exact text and old groupi
     expect(after.simpleServerCalls).toEqual([]);
     await page.screenshot({ path: path.join(output, "activity-grouping-uncertain.png"), fullPage: true });
 });
+
+// Rob06:10 Kimi: current literal/blank/length boundary; shared fixture and old cases unchanged.
+const LINE = "line-paving";
+const SAVED_SECTION = "Groundworks";
+const LITERAL_RAW = "  External paving, phase-1 (rear)!  ";
+const LITERAL_TRIMMED = "External paving, phase-1 (rear)!";
+const OVERLENGTH = "X".repeat(101);
+
+const editor = (page: Page, lineId: string) => page.locator(`[data-line-activity-editor='${lineId}']`);
+test("exact punctuation and whitespace literal is retained while editing and saves trimmed by current policy, regrouping only the edited line", async ({ page }) => {
+    await page.evaluate(() => { window.__activityGroupingActions.script = { activity: ["ack"] }; });
+    await page.locator("button[aria-controls='advanced-estimating']").click();
+    const before = await snapshot(page);
+    const contractSum = await page.locator("[data-contract-sum]").innerText();
+
+    // The editor opens with the saved activity and retains the exact literal, whitespace and all.
+    await change(page, LINE).click();
+    const draft = editor(page, LINE);
+    await expect(draft).toBeVisible();
+    const input = draft.getByLabel("Work activity for this line", { exact: true });
+    await expect(input).toHaveValue(SAVED_SECTION);
+    await input.fill(LITERAL_RAW);
+    await expect(input).toHaveValue(LITERAL_RAW);
+    const save = draft.getByRole("button", { name: "Save activity", exact: true });
+    await expect(save).toBeEnabled();
+
+    // Deliberate save: the client trims by the current policy before invoking; the ack regroups only this line.
+    expect((await snapshot(page)).actionCalls).toEqual([]);
+    await save.click();
+    await expect(draft).toHaveCount(0);
+    await expect(group(page, LITERAL_TRIMMED).locator(`[data-line-activity='${LINE}']`)).toHaveText(`Activity: ${LITERAL_TRIMMED} · Change`);
+    await expect(groupTotal(page, LITERAL_TRIMMED)).toHaveText("£500.00");
+    await expect(groupTotal(page, SAVED_SECTION)).toHaveText("£240.00");
+    await expect(groupTotal(page, "External Works")).toHaveText("£300.00");
+    await expect(groupTotal(page, "Preliminaries")).toHaveText("£200.00");
+    await expect(page.locator("[data-contract-sum]")).toHaveText(contractSum);
+
+    const after = await snapshot(page);
+    // The action received exactly one call with the trimmed section; no other write happened.
+    expect(after.actionCalls).toEqual([{ name: "savePriceLineActivityAction", args: [{ lineId: LINE, estimateId: ESTIMATE, expectedSection: SAVED_SECTION, section: LITERAL_TRIMMED }] }]);
+    expect(after.simpleServerCalls).toEqual([]);
+    // Only the edited line's activity changed; quantity, unit, rate, totals and every other line are exact.
+    const expected = structuredClone(before.estimates);
+    expected[0]!.estimate_lines = expected[0]!.estimate_lines.map(row => row.id === LINE ? { ...row, trade_section: LITERAL_TRIMMED } : row);
+    expect(after.estimates).toEqual(expected);
+    await page.screenshot({ path: path.join(output, "a051-literal-trimmed-acknowledged.png"), fullPage: true });
+});
+
+test("blank and overlength entries keep the exact text, show the existing bounds, and never invoke the action", async ({ page }) => {
+    await page.evaluate(() => { window.__activityGroupingActions.script = { activity: ["ack"] }; });
+    await page.locator("button[aria-controls='advanced-estimating']").click();
+    await change(page, LINE).click();
+    const draft = editor(page, LINE);
+    await expect(draft).toBeVisible();
+    const input = draft.getByLabel("Work activity for this line", { exact: true });
+    const save = draft.getByRole("button", { name: "Save activity", exact: true });
+
+    // Whitespace-only: exact text retained, Save disabled, no action invoked.
+    await input.fill("   ");
+    await expect(input).toHaveValue("   ");
+    await expect(save).toBeDisabled();
+    await settle(page);
+    expect((await snapshot(page)).actionCalls).toEqual([]);
+
+    // Overlength after trim: exact text retained, existing bound message shown, Save disabled, no action invoked.
+    await input.fill(OVERLENGTH);
+    await expect(input).toHaveValue(OVERLENGTH);
+    await expect(draft.getByRole("alert")).toHaveText("Keep the activity within 100 characters. Nothing is truncated.");
+    await expect(save).toBeDisabled();
+    await expect(change(page, "line-excavate")).toBeDisabled();
+    await expect(groupTotal(page, SAVED_SECTION)).toHaveText("£740.00");
+    await settle(page);
+    const after = await snapshot(page);
+    expect(after.actionCalls).toEqual([]);
+    expect(after.simpleServerCalls).toEqual([]);
+    await page.screenshot({ path: path.join(output, "a051-literal-bounds-not-invoked.png"), fullPage: true });
+});

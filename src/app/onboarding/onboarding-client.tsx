@@ -145,7 +145,7 @@ export default function OnboardingClient({
             <form
                 noValidate
                 onSubmit={(e) => { e.preventDefault(); submitCurrent(); }}
-                className="mt-8"
+                className={`mt-8 ${ui.setupForm}`}
             >
                 {step === "trade" && (
                     <fieldset disabled={saving} className="min-w-0">

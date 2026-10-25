@@ -192,36 +192,24 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             label: "Pipeline Value",
             value: formatCurrency(metrics.totalPipelineValue),
             subtitle: "Open opportunities",
-            color: "text-blue-600",
-            bgColor: isDark ? "bg-blue-500/10" : "bg-blue-50",
-            borderColor: isDark ? "border-blue-500/20" : "border-blue-100",
         },
         {
             icon: Send,
             label: "Proposals Sent",
             value: metrics.proposalsSent.toString(),
             subtitle: "Awaiting client decision",
-            color: "text-purple-600",
-            bgColor: isDark ? "bg-purple-500/10" : "bg-purple-50",
-            borderColor: isDark ? "border-purple-500/20" : "border-purple-100",
         },
         {
             icon: Trophy,
             label: "Projects Won",
             value: metrics.wonThisMonth.toString(),
             subtitle: "Accepted proposals",
-            color: "text-green-600",
-            bgColor: isDark ? "bg-green-500/10" : "bg-green-50",
-            borderColor: isDark ? "border-green-500/20" : "border-green-100",
         },
         {
             icon: Hammer,
             label: "Active Jobs",
             value: metrics.activeJobs.toString(),
             subtitle: "Currently on site",
-            color: "text-amber-600",
-            bgColor: isDark ? "bg-amber-500/10" : "bg-amber-50",
-            borderColor: isDark ? "border-amber-500/20" : "border-amber-100",
         },
         {
             icon: TrendingUp,
@@ -237,18 +225,12 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             subtitle: metrics.winRateSampleSize >= MIN_SAMPLE_WIN_RATE
                 ? `${metrics.winRateSampleSize} proposals sent`
                 : `Need ${MIN_SAMPLE_WIN_RATE - metrics.winRateSampleSize} more proposal${MIN_SAMPLE_WIN_RATE - metrics.winRateSampleSize === 1 ? "" : "s"}`,
-            color: "text-teal-600",
-            bgColor: isDark ? "bg-teal-500/10" : "bg-teal-50",
-            borderColor: isDark ? "border-teal-500/20" : "border-teal-100",
         },
         {
             icon: PoundSterling,
             label: "Revenue Signed",
             value: formatCurrency(metrics.totalRevenueSigned),
             subtitle: "Contracted value",
-            color: "text-emerald-600",
-            bgColor: isDark ? "bg-emerald-500/10" : "bg-emerald-50",
-            borderColor: isDark ? "border-emerald-500/20" : "border-emerald-100",
         },
     ];
 
@@ -351,24 +333,15 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     <h2 className={`text-sm font-semibold ${isDark ? "text-[#a0a0a0]" : "text-gray-500"}`}>
                         Performance — <span className={isDark ? "text-white" : "text-gray-900"}>{periodLabel}</span>
                     </h2>
-                    <div className={`flex items-center gap-1 rounded-lg p-1 shadow-sm ${
-                        isDark
-                            ? "bg-[#1a1a1a] border border-[#2a2a2a]"
-                            : "bg-white border border-gray-200"
-                    }`}>
+                    <div className={ui.periodBar}>
                         {PERIOD_OPTIONS.map(opt => (
                             <button
                                 key={opt.value}
+                                type="button"
                                 onClick={() => setPeriod(opt.value)}
-                                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                                    period === opt.value
-                                        ? isDark
-                                            ? "bg-white text-[#0d0d0d] shadow-sm"
-                                            : "bg-gray-900 text-white shadow-sm"
-                                        : isDark
-                                            ? "text-[#a0a0a0] hover:text-white"
-                                            : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-                                }`}
+                                aria-pressed={period === opt.value}
+                                data-selected={period === opt.value ? "true" : "false"}
+                                className={ui.periodButton}
                             >
                                 {opt.label}
                             </button>
@@ -376,20 +349,17 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4" data-project-kpi-strip>
                     {kpiCards.map((card) => {
                         const Icon = card.icon;
                         return (
                             <div
                                 key={card.label}
-                                className={`rounded-xl border p-4 flex flex-col gap-3 transition-shadow ${
-                                    isDark
-                                        ? "bg-[#1a1a1a] border-[#2a2a2a] hover:shadow-lg hover:shadow-black/20"
-                                        : "bg-white border-gray-200 shadow-sm hover:shadow-md"
-                                }`}
+                                className={`${ui.kpiCard} p-4 flex flex-col gap-3`}
+                                data-project-kpi-card
                             >
-                                <div className={`w-9 h-9 rounded-lg ${card.bgColor} flex items-center justify-center`}>
-                                    <Icon className={`w-4 h-4 ${card.color}`} />
+                                <div className={ui.kpiIcon} data-project-kpi-icon>
+                                    <Icon className="w-4 h-4" aria-hidden />
                                 </div>
                                 <div>
                                     <div className={`text-2xl font-bold leading-none ${isDark ? "text-white" : "text-gray-900"}`}>

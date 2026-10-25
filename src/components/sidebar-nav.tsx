@@ -52,6 +52,7 @@ import { requestProjectNavigation } from "@/lib/project-navigation";
 import { buildPhoneNav, getPhoneNavTitle, isPhoneNavItemActive, type PhoneNavKey } from "@/lib/phone-nav";
 import { JOB_WORKFLOW } from "@/lib/job-workflow";
 import PhoneMenuFocus from "./phone-menu-focus";
+import { SidebarBrand } from "./sidebar-brand";
 
 interface Project {
     id: string;
@@ -404,7 +405,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                 )}
             </div>
             <Link href="/dashboard" aria-label="Constructa pipeline" className="w-11 h-11 -mr-1.5 flex items-center justify-center flex-shrink-0">
-                <span className="w-8 h-8 bg-[#c9efcf] rounded-lg flex items-center justify-center text-[#182c1b] font-bold text-base">C</span>
+                <SidebarBrand markOnly />
             </Link>
         </header>
 
@@ -419,7 +420,7 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
                 />
                 <nav className="absolute inset-y-0 left-0 w-[86%] max-w-xs bg-[#0d0d0d] border-r border-white/10 flex flex-col shadow-2xl">
                     <div className="h-14 flex items-center justify-between px-4 border-b border-white/10 flex-shrink-0">
-                        <span className="text-lg font-bold tracking-tight text-white">Constructa</span>
+                        <SidebarBrand />
                         <button
                             type="button"
                             onClick={() => setPhoneMenuOpen(false)}
@@ -494,9 +495,8 @@ export default function SidebarNav({ user, projects, isAdmin = false }: SidebarN
         <aside className="w-64 bg-[#0d0d0d] hidden md:flex flex-col h-screen fixed z-30">
             {/* Logo */}
             <div className="p-5 pb-3">
-                <Link href="/dashboard" className="flex items-center gap-2.5 min-h-11 lg:min-h-0 group">
-                    <div className="w-8 h-8 bg-[#c9efcf] rounded-lg flex items-center justify-center text-[#182c1b] font-bold text-base group-hover:bg-[#e0f9e3] transition-colors">C</div>
-                    <span className="text-lg font-bold tracking-tight text-white group-hover:text-[#c9efcf] transition-colors">Constructa</span>
+                <Link href="/dashboard" className="flex items-center min-h-11 lg:min-h-0 group">
+                    <SidebarBrand />
                 </Link>
             </div>
 

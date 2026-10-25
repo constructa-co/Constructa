@@ -48,6 +48,6 @@ describe("setup work choices", () => {
         expect(css).toMatch(/\.workSuggestion\s*\{[^}]*min-height:\s*44px/);
         expect(css).toMatch(/\.workSuggestion\s*\{[^}]*border-radius:\s*8px/);
         expect(css).toMatch(/\.workSuggestion\[aria-pressed="true"\]\s*\{[^}]*var\(--session-accent\)/);
-        expect(css).toMatch(/@media\s*\(max-width:\s*420px\)\s*\{\s*\.workSuggestions\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+        expect(css).toMatch(/@media\s*\(max-width:\s*319px\)\s*\{\s*\.workSuggestions\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
     });
 });

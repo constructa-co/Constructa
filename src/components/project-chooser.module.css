@@ -104,6 +104,75 @@
     justify-content: center;
 }
 
+.workspace .periodBar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--chooser-border);
+    border-radius: 10px;
+    background: var(--chooser-field);
+    box-shadow: none;
+}
+
+.workspace .periodButton {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--chooser-muted);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.workspace .periodButton:hover {
+    color: var(--chooser-ink);
+}
+
+.workspace .periodButton[data-selected="true"] {
+    background: #dcf4d2;
+    color: #152419;
+}
+
+.workspace[data-dark="true"] .periodButton[data-selected="true"] {
+    background: #29452b;
+    color: #dbfbd0;
+}
+
+.workspace .kpiCard {
+    border: 1px solid var(--chooser-border);
+    border-radius: 12px;
+    background: var(--chooser-surface);
+    transition: box-shadow 0.15s ease;
+}
+
+.workspace .kpiCard:hover {
+    box-shadow: 0 4px 14px rgb(21 36 25 / 8%);
+}
+
+.workspace[data-dark="true"] .kpiCard:hover {
+    box-shadow: 0 4px 18px rgb(0 0 0 / 35%);
+}
+
+.workspace .kpiIcon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--chooser-border);
+    background: var(--chooser-field);
+    color: #2f6330;
+}
+
+.workspace[data-dark="true"] .kpiIcon {
+    color: var(--chooser-mint);
+}
+
 .projectList[data-dark] {
     max-width: 100%;
     overflow: auto;

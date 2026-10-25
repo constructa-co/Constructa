@@ -12,7 +12,7 @@ import type { ReviewContext } from "../../src/lib/proposal-review";
  * actual native dialog and reader. Data, actions and router are synthetic
  * and refuse; nothing is saved, sent, downloaded or navigated.
  */
-interface Options { theme?: "system-c" | "dark"; longTerms?: boolean }
+interface Options { theme?: "system-c" | "dark"; longTerms?: boolean; shortParts?: boolean }
 interface Fixture {
     calls: string[];
     termBody: string | null;
@@ -42,6 +42,7 @@ const context: ReviewContext = {
         name: "TEST DATA - Styled reader extension",
         client_name: "Synthetic client",
         brief_scope: "Existing synthetic scope.",
+        ...(options.shortParts ? { exclusions_text: "SYNTHETIC excluded item.", clarifications_text: "SYNTHETIC clarification note." } : {}),
         payment_schedule: [{ id: "payment-1", stage: "Completion", description: "Synthetic handover", percentage: 100 }],
         ...(termBody ? { tc_overrides: [{ clause_number: 1, title: "Synthetic test clause", body: termBody }] } : {}),
         programme_phases: [{ programmeIntent: "omit", intent_version: 1 }],

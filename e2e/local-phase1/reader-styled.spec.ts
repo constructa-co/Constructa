@@ -46,7 +46,7 @@ test.afterEach(async ({ page }, info) => {
     await info.attach("scope", { body: JSON.stringify({ ...scope, requests, errors }), contentType: "application/json" });
 });
 
-async function openReader(page: Page, options: { theme: Theme; longTerms?: boolean }, viewport = { width: 1280, height: 900 }) {
+async function openReader(page: Page, options: { theme: Theme; longTerms?: boolean; shortParts?: boolean }, viewport = { width: 1280, height: 900 }) {
     await page.setViewportSize(viewport);
     await page.evaluate(value => { window.__readerStyledOptions = value; }, options);
     await page.addScriptTag({ content: bundle });
@@ -307,4 +307,55 @@ test("the exact source draft is retained across reading with no Save, Send or na
     await expect(input).toHaveValue(raw);
     expect(await page.evaluate(el => el === document.getElementById("wording-scope"), original)).toBe(true);
     await expect(page.locator("[data-save-status='unsaved']")).toBeVisible();
+});
+
+test("Go to part with the inner reader not overflowing focuses the actual Clarifications subheading without moving the background page", async ({ page }) => {
+    const { dialog } = await openReader(page, { theme: "system-c", shortParts: true }, { width: 1280, height: 1400 });
+    const scroller = dialog.locator("[data-document-view-scroll]");
+    await dialog.getByLabel("Reading page", { exact: true }).selectOption("scope");
+    // Input condition for this boundary, measured rather than assumed: the
+    // short synthetic scope (real subheadings) fits its inner scroll container.
+    expect(await scroller.evaluate(el => el.scrollHeight <= el.clientHeight)).toBe(true);
+    const parts = dialog.getByLabel("Part of this reading page", { exact: true });
+    await expect(parts.locator("option")).toHaveText(["Not included", "Clarifications"]);
+    const section = dialog.locator("[data-doc-section='scope']");
+    const notIncluded = section.getByRole("heading", { name: "Not included", exact: true, level: 3 });
+    const clarifications = section.getByRole("heading", { name: "Clarifications", exact: true, level: 3 });
+    await expect(notIncluded).toBeVisible();
+    await expect(clarifications).toBeVisible();
+
+    // Choosing a part alone never moves the inner container or focuses the target.
+    const scrollTopBefore = await scroller.evaluate(el => el.scrollTop);
+    await parts.selectOption("1");
+    expect(await scroller.evaluate(el => el.scrollTop)).toBe(scrollTopBefore);
+    await expect(clarifications).not.toBeFocused();
+
+    // From here, count real window.scrollBy calls and record the background offset.
+    await page.evaluate(() => {
+        const w = window as unknown as Record<string, number>;
+        const original = window.scrollBy;
+        w.__a072ScrollByCount = 0;
+        window.scrollBy = function (...args: unknown[]) {
+            w.__a072ScrollByCount += 1;
+            return (original as unknown as (...values: unknown[]) => unknown).apply(window, args);
+        } as unknown as typeof window.scrollBy;
+        w.__a072ScrollY = window.scrollY;
+    });
+
+    // One explicit Go focuses the actual Clarifications h3: no inner scroll is
+    // needed (everything already fits) and the background page must not move.
+    await dialog.getByRole("button", { name: "Go to part", exact: true }).click();
+    await expect(clarifications).toBeFocused();
+    const after = await page.evaluate(() => {
+        const w = window as unknown as Record<string, number>;
+        return { calls: w.__a072ScrollByCount, y: window.scrollY, before: w.__a072ScrollY };
+    });
+    expect(after.calls).toBe(0);
+    expect(after.y).toBe(after.before);
+    expect(await scroller.evaluate(el => el.scrollTop)).toBe(scrollTopBefore);
+    await expect(section).toContainText("Existing synthetic scope.");
+    await expect(section).toContainText("SYNTHETIC excluded item.");
+    await expect(section).toContainText("SYNTHETIC clarification note.");
+    await expect(notIncluded).toBeVisible();
+    await expect(clarifications).toBeVisible();
 });

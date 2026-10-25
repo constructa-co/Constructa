@@ -29,6 +29,8 @@ function showPart(reader: HTMLElement, target: HTMLElement, controls: HTMLElemen
         box.scrollTop = Math.max(0, box.scrollTop + target.getBoundingClientRect().top - box.getBoundingClientRect().top - box.clientTop - below);
         return;
     }
+    // Modal document view: when the inner scroller fits, do not move the page behind the dialog.
+    if (reader.closest("dialog")) return;
     window.scrollBy({ top: target.getBoundingClientRect().top - below });
 }
 

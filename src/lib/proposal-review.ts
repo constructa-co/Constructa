@@ -411,6 +411,7 @@ export function reviewReadiness(context: ReviewContext, draft: ProposalDraft): P
         contractSum: contractSumOf(context.estimate),
         programmePhases: resolveProgrammeSource(project).phases,
         projectStartDate: project.start_date,
+        programmeWorkingPattern: project.programme_working_pattern,
         paymentSchedule: project.payment_schedule,
         terms: draftTerms(draft),
         introduction: draft.introduction,

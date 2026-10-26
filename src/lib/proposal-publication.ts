@@ -31,6 +31,7 @@ export interface ProposalPublicationProjectInput {
     closing_statement?: string | null;
     programme_phases?: unknown[] | null;
     gantt_phases?: unknown[] | null;
+    programme_working_pattern?: unknown;
     payment_schedule?: unknown[] | null;
     site_photos?: unknown[] | null;
     selected_case_study_ids?: unknown[] | null;
@@ -474,11 +475,17 @@ export function buildProposalPublicationSnapshot(
     const programmeSource = resolveProgrammeSource(input.project);
     const programmeDecision = readProgrammeInclusion(programmeSource.phases);
     const omitted = programmeDecision.intent === "omit";
-    const programmePlan = omitted ? null : computeDisplayProgramme(input.project.start_date, programmeSource.phases);
+    const programmePlan = omitted ? null : computeDisplayProgramme(input.project.start_date, programmeSource.phases, input.project.programme_working_pattern);
     if ((!programmePlan && !omitted || programmeDecision.intent === "invalid") && !options.allowIncomplete) throw new Error(PROGRAMME_REQUIRED_ERROR);
     // A stage the contractor saved is never left out of what is sent.
     if (programmePlan && !options.allowIncomplete && !planCoversEveryPhase(programmePlan, programmeSource.phases)) {
         throw new Error(PROGRAMME_INCOMPLETE_ERROR);
+    }
+    if (programmePlan) {
+        // Freeze this calculation, never the caller's phases or an older publication.
+        programmePlan.stages.forEach(stage => Object.freeze(stage));
+        Object.freeze(programmePlan.stages);
+        Object.freeze(programmePlan);
     }
 
     const snapshot: ProposalPublicationSnapshot = {

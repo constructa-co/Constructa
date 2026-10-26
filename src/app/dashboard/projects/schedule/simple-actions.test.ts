@@ -33,6 +33,79 @@ const whole = { startDate: MONDAY, stages: [{ name: "Works on site", workingDays
 beforeEach(() => vi.clearAllMocks());
 
 describe("saveSimpleProgrammeAction", () => {
+    it("atomically saves and reads back the job pattern and phases, then reopens weekends", async () => {
+        const pattern = { version: 1 as const, weekdays: [1, 2, 3, 4, 5, 6] };
+        const db = setup({ programme_working_pattern: null });
+        const input = { startDate: "2026-10-16", workingPattern: pattern, expectedWorkingPattern: null,
+            stages: [{ name: "Works", workingDays: 2, unit: "days" as const, source: null }] };
+        const result = await saveSimpleProgrammeAction(PROJECT_ID, input);
+        expect(result).toMatchObject({ success: true, confirmedProject: { programme_working_pattern: pattern, start_date: input.startDate } });
+        expect(db.updates).toHaveLength(1);
+        expect(db.updates[0].values).toMatchObject({ programme_working_pattern: pattern, start_date: input.startDate });
+        expect(db.updates[0].filters).toMatchObject({ id: PROJECT_ID, user_id: USER_ID, programme_phases: "[]", programme_working_pattern: null });
+        const saved = db.tables.projects[0];
+        expect(computeDisplayProgramme(input.startDate, saved.programme_phases as unknown[], saved.programme_working_pattern)?.end_date).toBe("2026-10-17");
+        expect(viewForProject(saved, () => "key")).toMatchObject({ kind: "simple", draft: { workingPattern: pattern, duration: "2", unit: "days" } });
+        expect(await saveSimpleProgrammeAction(PROJECT_ID, { ...input, expectedWorkingPattern: pattern })).toMatchObject({ success: true });
+    });
+
+    it("preserves legacy saves before migration but refuses calendar writes when its column is absent", async () => {
+        const db = setup();
+        const pattern = { version: 1 as const, weekdays: [1, 2, 3, 4, 5, 6] };
+        expect(await saveSimpleProgrammeAction(PROJECT_ID, { ...whole, workingPattern: pattern, expectedWorkingPattern: null })).toEqual({ success: false, error: "Calendar storage is not set up for this job yet. Nothing was saved." });
+        expect(db.updates).toHaveLength(0);
+        expect(await saveSimpleProgrammeAction(PROJECT_ID, whole)).toEqual({ success: true });
+        expect(db.updates[0].values).not.toHaveProperty("programme_working_pattern");
+    });
+
+    it("refuses malformed or unbound calendar requests before access, and stale legacy clients after opt-in", async () => {
+        const pattern = { version: 1 as const, weekdays: [1, 2, 3, 4, 5, 6] };
+        const db = setup({ programme_working_pattern: pattern });
+        for (const input of [
+            { ...whole, workingPattern: pattern },
+            { ...whole, workingPattern: { version: 1, weekdays: [1, 1] }, expectedWorkingPattern: null },
+        ]) expect((await saveSimpleProgrammeAction(PROJECT_ID, input as never)).success).toBe(false);
+        expect(mocks.requireEditableProjectAccess).not.toHaveBeenCalled();
+        expect((await saveSimpleProgrammeAction(PROJECT_ID, whole)).success).toBe(false);
+        expect((await saveSimpleProgrammeAction(PROJECT_ID, { ...whole, workingPattern: pattern, expectedWorkingPattern: null })).success).toBe(false);
+        expect(db.updates).toHaveLength(0);
+    });
+
+    it("keeps refused calendar saves unchanged and fences concurrent pattern changes", async () => {
+        const pattern = { version: 1 as const, weekdays: [1, 2, 3, 4, 5, 6] };
+        const input = { ...whole, workingPattern: pattern, expectedWorkingPattern: null };
+        const db = setup({ programme_working_pattern: null });
+        db.fail("projects", "update");
+        expect((await saveSimpleProgrammeAction(PROJECT_ID, input)).success).toBe(false);
+        expect(db.tables.projects[0].programme_working_pattern).toBeNull();
+        expect(db.tables.projects[0].programme_phases).toEqual([]);
+        const from = db.client.from;
+        vi.spyOn(db.client, "from").mockImplementation(table => {
+            const query = from(table), update = query.update;
+            query.update = values => { db.tables.projects[0].programme_working_pattern = pattern; return update(values); };
+            return query;
+        });
+        expect((await saveSimpleProgrammeAction(PROJECT_ID, input)).success).toBe(false);
+        expect(db.tables.projects[0].programme_working_pattern).toEqual(pattern);
+        expect(db.tables.projects[0].programme_phases).toEqual([]);
+    });
+
+    it("never confirms a calendar save whose returned row does not confirm the stored pattern", async () => {
+        const pattern = { version: 1 as const, weekdays: [1, 2, 3, 4, 5, 6] };
+        const db = setup({ programme_working_pattern: null }), from = db.client.from;
+        vi.spyOn(db.client, "from").mockImplementation(table => {
+            const query = from(table), update = query.update, single = query.single;
+            let updating = false;
+            query.update = values => { updating = true; return update(values); };
+            query.single = async () => { const result = await single(); return updating && result.data
+                ? { ...result, data: { ...result.data, programme_working_pattern: null } } : result; };
+            return query;
+        });
+        const result = await saveSimpleProgrammeAction(PROJECT_ID, { ...whole, workingPattern: pattern, expectedWorkingPattern: null });
+        expect(result).toEqual({ success: false, error: "The programme save wasn't confirmed and may already have saved. Reload Programme before retrying." });
+        expect(db.tables.projects[0].programme_working_pattern).toEqual(pattern);
+    });
+
     it("saves and reads relative stages without overwriting a project's separate start date", async () => {
         const db = setup({ start_date: MONDAY, programme_phases: established });
         const input = { timeBasis: "relative" as const, startDate: "", stages: [

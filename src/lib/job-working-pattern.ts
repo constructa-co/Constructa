@@ -1,4 +1,4 @@
-import { parseIsoDate } from "./programme-plan";
+import { parseIsoDate } from "./programme-date";
 
 /** UTC civil weekdays: Sunday=0 through Saturday=6. No shift/hour capacity. */
 export interface JobWorkingPattern {
@@ -22,6 +22,11 @@ export function resolveJobWorkingPattern(value: unknown): JobWorkingPattern | nu
         || ![...row.weekdays].every(day => Number.isInteger(day) && day >= 0 && day <= 6)
         || new Set(row.weekdays).size !== row.weekdays.length) return null;
     return Object.freeze({ version: 1, weekdays: Object.freeze([...row.weekdays]) });
+}
+
+/** Weekday order does not change the meaning of the legacy Monday-Friday week. */
+export function isDefaultJobWorkingPattern(pattern: JobWorkingPattern): boolean {
+    return pattern.weekdays.length === 5 && DEFAULT_JOB_WORKING_PATTERN.weekdays.every(day => pattern.weekdays.includes(day));
 }
 
 const DAY_MS = 86_400_000;

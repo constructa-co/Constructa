@@ -1,10 +1,12 @@
 import { computeProgrammePlan, formatDateRange, formatPlanDate, formatWorkingDuration, PROGRAMME_BASIS_NOTE, stageBar, type ProgrammePlan } from "./programme-plan";
+import { isDefaultJobWorkingPattern, resolveJobWorkingPattern, type JobWorkingPattern } from "./job-working-pattern";
 
 export const RELATIVE_PROGRAMME_BASIS = "relative_working_days" as const;
 export const RELATIVE_PROGRAMME_NOTE = "Start date not agreed. Day numbers count working days, not calendar dates. A week means five working days.";
 
 export interface RelativeProgrammePlan {
     basis: typeof RELATIVE_PROGRAMME_BASIS;
+    working_pattern?: JobWorkingPattern;
     start_date?: never;
     end_date?: never;
     calendar_days?: never;
@@ -34,7 +36,9 @@ export function hasRelativeProgramme(phases: unknown[] | null | undefined): bool
 }
 
 /** Only explicitly marked, complete, sequential working-day phases are relative. */
-export function computeRelativeProgramme(phases: unknown[] | null | undefined): RelativeProgrammePlan | null {
+export function computeRelativeProgramme(phases: unknown[] | null | undefined, rawPattern?: unknown): RelativeProgrammePlan | null {
+    const pattern = resolveJobWorkingPattern(rawPattern);
+    if (!pattern) return null;
     if (!Array.isArray(phases) || !phases.length || phases.length > 200) return null;
     let offset = 0;
     const stages: RelativeProgrammePlan["stages"] = [];
@@ -50,11 +54,15 @@ export function computeRelativeProgramme(phases: unknown[] | null | undefined): 
         offset += days;
         if (offset > 2600) return null;
     }
-    return { basis: RELATIVE_PROGRAMME_BASIS, working_days: offset, duration_label: formatWorkingDuration(offset), stages };
+    return {
+        basis: RELATIVE_PROGRAMME_BASIS,
+        ...(isDefaultJobWorkingPattern(pattern) ? {} : { working_pattern: pattern }),
+        working_days: offset, duration_label: formatWorkingDuration(offset, pattern), stages,
+    };
 }
 
-export function computeDisplayProgramme(startDate: string | null | undefined, phases: unknown[] | null | undefined): DisplayProgrammePlan | null {
-    return hasRelativeProgramme(phases) ? computeRelativeProgramme(phases) : computeProgrammePlan(startDate, phases);
+export function computeDisplayProgramme(startDate: string | null | undefined, phases: unknown[] | null | undefined, rawPattern?: unknown): DisplayProgrammePlan | null {
+    return hasRelativeProgramme(phases) ? computeRelativeProgramme(phases, rawPattern) : computeProgrammePlan(startDate, phases, rawPattern);
 }
 
 export function programmeFacts(plan: DisplayProgrammePlan, style: "long" | "short" = "long") {
@@ -95,5 +103,15 @@ export function programmeStageBar(plan: DisplayProgrammePlan, index: number, min
 }
 
 export function programmeBasisNote(plan: DisplayProgrammePlan): string {
+    const pattern = resolveJobWorkingPattern(plan.working_pattern);
+    if (!pattern) return "Working pattern is invalid. Programme basis unavailable.";
+    if (!isDefaultJobWorkingPattern(pattern)) {
+        const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const selected = weekdays.filter((_, day) => pattern.weekdays.includes(day)).join(", ");
+        const basis = `Working days are ${selected}. A week means ${pattern.weekdays.length} working ${pattern.weekdays.length === 1 ? "day" : "days"}. Bank holidays are not allowed for.`;
+        return plan.basis === RELATIVE_PROGRAMME_BASIS
+            ? `Start date not agreed. Day numbers count working days, not calendar dates. ${basis}`
+            : basis;
+    }
     return plan.basis === RELATIVE_PROGRAMME_BASIS ? RELATIVE_PROGRAMME_NOTE : PROGRAMME_BASIS_NOTE;
 }

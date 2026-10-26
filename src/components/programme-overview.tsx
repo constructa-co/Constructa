@@ -31,7 +31,7 @@ export default function ProgrammeOverview({ plan, isDark }: { plan: DisplayProgr
                         <li key={`${stage.name}-${index}`} className={ui.overviewRow} data-overview-stage={index}>
                             <div className={ui.overviewLabel}>
                                 <strong>{stage.name}</strong>
-                                <span>{programmeStageRange(plan, index)} · {formatWorkingDuration(stage.working_days)}</span>
+                                <span>{programmeStageRange(plan, index)} · {formatWorkingDuration(stage.working_days, plan.working_pattern)}</span>
                             </div>
                             <div className={ui.overviewTrack} aria-hidden="true" style={{ backgroundSize: `${100 / programmeAxisDays(plan)}% 100%` }}>
                                 <div className={ui.overviewBar} style={{ insetInlineStart: `${bar.leftPct}%`, width: `${bar.widthPct}%` }}>

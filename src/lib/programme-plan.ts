@@ -6,9 +6,14 @@
  * appears: the programme editor, the publication snapshot, the public
  * proposal and the PDF. Nothing else works out a programme date.
  *
- * Basis: working days are Monday to Friday. Bank holidays are not allowed
- * for, and every surface that shows the programme says so.
+ * Missing working patterns retain the Monday-Friday basis. A saved pattern
+ * selects working weekdays, not bank holidays or shift/hour capacity.
  */
+
+import { parseIsoDate } from "./programme-date";
+import { addJobWorkingDays, countJobWorkingDays, isDefaultJobWorkingPattern, isJobWorkingDay, nextJobWorkingDayAfter, resolveJobWorkingPattern, type JobWorkingPattern } from "./job-working-pattern";
+
+export { parseIsoDate } from "./programme-date";
 
 export const WORKING_DAYS_PER_WEEK = 5;
 export const PROGRAMME_BASIS = "mon_fri_working_days" as const;
@@ -29,8 +34,7 @@ export interface ProgrammePlanStage {
     span_days: number;
 }
 
-export interface ProgrammePlan {
-    basis: typeof PROGRAMME_BASIS;
+interface ProgrammePlanFields {
     start_date: string;
     end_date: string;
     /** Working days from the start to the finish, both included. */
@@ -41,96 +45,48 @@ export interface ProgrammePlan {
     stages: ProgrammePlanStage[];
 }
 
+export type ProgrammePlan = ProgrammePlanFields & (
+    | { basis: typeof PROGRAMME_BASIS; working_pattern?: never }
+    | { basis: "job_working_days"; working_pattern: JobWorkingPattern }
+);
+
 // ── Dates ────────────────────────────────────────────────────────────────────
 
-/** UTC midnight for a YYYY-MM-DD date, or null when it is not a real date. */
-export function parseIsoDate(value: unknown): number | null {
-    if (typeof value !== "string") return null;
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim().slice(0, 10));
-    if (!match) return null;
-    const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
-    const ms = Date.UTC(year, month - 1, day);
+function toIso(ms: number): string | null {
     const date = new Date(ms);
-    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
-    return ms;
-}
-
-function toIso(ms: number): string {
-    return new Date(ms).toISOString().slice(0, 10);
-}
-
-function isWorkingMs(ms: number): boolean {
-    const day = new Date(ms).getUTCDay();
-    return day !== 0 && day !== 6;
+    if (!Number.isFinite(date.getTime())) return null;
+    const iso = date.toISOString().slice(0, 10);
+    return parseIsoDate(iso) === ms ? iso : null;
 }
 
 export function isWorkingDay(iso: string): boolean {
-    const ms = parseIsoDate(iso);
-    return ms !== null && isWorkingMs(ms);
-}
-
-function rollToWorkingDay(ms: number): number {
-    let cursor = ms;
-    while (!isWorkingMs(cursor)) cursor += DAY_MS;
-    return cursor;
-}
-
-/**
- * The last working day of a run of `workingDays` that begins on `startMs`.
- * The start counts as day one. A start on a weekend begins the next Monday.
- */
-function endOfWorkingRun(startMs: number, workingDays: number): number {
-    let cursor = rollToWorkingDay(startMs);
-    let remaining = Math.max(1, Math.round(workingDays)) - 1;
-    // Whole weeks first so a long programme is not walked day by day.
-    const weeks = Math.floor(remaining / WORKING_DAYS_PER_WEEK);
-    cursor += weeks * 7 * DAY_MS;
-    remaining -= weeks * WORKING_DAYS_PER_WEEK;
-    while (remaining > 0) {
-        cursor += DAY_MS;
-        if (isWorkingMs(cursor)) remaining -= 1;
-    }
-    return cursor;
+    return isJobWorkingDay(iso);
 }
 
 /** The date a run of working days finishes, or null for an invalid start. */
 export function addWorkingDays(startIso: string, workingDays: number): string | null {
-    const start = parseIsoDate(startIso);
-    if (start === null || !Number.isFinite(workingDays) || workingDays < 1) return null;
-    return toIso(endOfWorkingRun(start, workingDays));
+    return addJobWorkingDays(startIso, workingDays);
 }
 
 /** The first working day after the given date. */
 export function nextWorkingDayAfter(iso: string): string | null {
-    const ms = parseIsoDate(iso);
-    return ms === null ? null : toIso(rollToWorkingDay(ms + DAY_MS));
-}
-
-function countWorkingMs(startMs: number, endMs: number): number {
-    if (endMs < startMs) return 0;
-    const totalDays = Math.round((endMs - startMs) / DAY_MS) + 1;
-    const weeks = Math.floor(totalDays / 7);
-    let count = weeks * WORKING_DAYS_PER_WEEK;
-    for (let cursor = startMs + weeks * 7 * DAY_MS; cursor <= endMs; cursor += DAY_MS) {
-        if (isWorkingMs(cursor)) count += 1;
-    }
-    return count;
+    return nextJobWorkingDayAfter(iso);
 }
 
 /** Working days from one date to another, both included. */
 export function countWorkingDays(startIso: string, endIso: string): number {
-    const start = parseIsoDate(startIso);
-    const end = parseIsoDate(endIso);
-    return start === null || end === null ? 0 : countWorkingMs(start, end);
+    return countJobWorkingDays(startIso, endIso);
 }
 
 // ── Wording ──────────────────────────────────────────────────────────────────
 
 /** "3 weeks" for whole working weeks, otherwise "8 working days". */
-export function formatWorkingDuration(workingDays: number): string {
+export function formatWorkingDuration(workingDays: number, rawPattern?: unknown): string {
+    const pattern = resolveJobWorkingPattern(rawPattern);
+    if (!pattern || !Number.isFinite(workingDays) || !Number.isSafeInteger(Math.round(workingDays))) return "";
     const days = Math.max(0, Math.round(workingDays));
-    if (days > 0 && days % WORKING_DAYS_PER_WEEK === 0) {
-        const weeks = days / WORKING_DAYS_PER_WEEK;
+    if (days > 0 && days % pattern.weekdays.length === 0) {
+        const weeks = days / pattern.weekdays.length;
         return `${weeks} ${weeks === 1 ? "week" : "weeks"}`;
     }
     return `${days} working ${days === 1 ? "day" : "days"}`;
@@ -203,7 +159,7 @@ interface ReadPhase {
  *  - the earlier proposal timeline: calendar days from the phase's own
  *    start date.
  */
-function readPhase(entry: unknown, index: number, programmeStartMs: number | null): ReadPhase | null {
+function readPhase(entry: unknown, index: number, programmeStartMs: number | null, pattern: JobWorkingPattern): ReadPhase | null {
     const p = asRecord(entry);
     const name = typeof p.name === "string" && p.name.trim() ? p.name.trim().slice(0, 200) : `Stage ${index + 1}`;
 
@@ -215,16 +171,21 @@ function readPhase(entry: unknown, index: number, programmeStartMs: number | nul
             ? programmeStartMs + Math.round(offset) * DAY_MS
             : null;
     if (startMs === null) return null;
+    const startIso = toIso(startMs);
+    if (startIso === null) return null;
 
     const workingDays = phaseWorkingDays(p);
     if (workingDays > 0) {
-        const firstDay = rollToWorkingDay(startMs);
-        return { name, startMs: firstDay, endMs: endOfWorkingRun(firstDay, workingDays) };
+        const firstDay = addJobWorkingDays(startIso, 1, pattern);
+        const lastDay = addJobWorkingDays(startIso, workingDays, pattern);
+        return firstDay === null || lastDay === null ? null
+            : { name, startMs: parseIsoDate(firstDay)!, endMs: parseIsoDate(lastDay)! };
     }
 
     const calendarDays = Math.ceil(positive(p.duration_days));
-    if (calendarDays <= 0) return null;
-    return { name, startMs, endMs: startMs + (calendarDays - 1) * DAY_MS };
+    if (calendarDays <= 0 || !Number.isSafeInteger(calendarDays)) return null;
+    const endMs = startMs + (calendarDays - 1) * DAY_MS;
+    return toIso(endMs) === null ? null : { name, startMs, endMs };
 }
 
 // ── The plan ─────────────────────────────────────────────────────────────────
@@ -237,7 +198,10 @@ function readPhase(entry: unknown, index: number, programmeStartMs: number | nul
 export function computeProgrammePlan(
     startDate: string | null | undefined,
     phases: unknown[] | null | undefined,
+    rawPattern?: unknown,
 ): ProgrammePlan | null {
+    const pattern = resolveJobWorkingPattern(rawPattern);
+    if (!pattern) return null;
     if (!Array.isArray(phases) || phases.length === 0) return null;
     // An explicitly undated programme must never acquire dates from a legacy reader.
     if (phases.some(phase => asRecord(phase).timeBasis != null || asRecord(phase).workingDayOffset != null || Object.hasOwn(asRecord(phase), "programmeIntent"))) return null;
@@ -245,26 +209,28 @@ export function computeProgrammePlan(
 
     const read = phases
         .slice(0, 200)
-        .map((entry, index) => readPhase(entry, index, programmeStartMs))
+        .map((entry, index) => readPhase(entry, index, programmeStartMs, pattern))
         .filter((phase): phase is ReadPhase => phase !== null);
     if (read.length === 0) return null;
 
     const startMs = Math.min(...read.map((phase) => phase.startMs));
     const endMs = Math.max(...read.map((phase) => phase.endMs));
-    const workingDays = countWorkingMs(startMs, endMs);
+    const startIso = toIso(startMs)!;
+    const endIso = toIso(endMs)!;
+    const workingDays = countJobWorkingDays(startIso, endIso, pattern);
 
     return {
-        basis: PROGRAMME_BASIS,
-        start_date: toIso(startMs),
-        end_date: toIso(endMs),
+        ...(isDefaultJobWorkingPattern(pattern) ? { basis: PROGRAMME_BASIS } : { basis: "job_working_days" as const, working_pattern: pattern }),
+        start_date: startIso,
+        end_date: endIso,
         working_days: workingDays,
         calendar_days: Math.round((endMs - startMs) / DAY_MS) + 1,
-        duration_label: formatWorkingDuration(workingDays),
+        duration_label: formatWorkingDuration(workingDays, pattern),
         stages: read.map((phase) => ({
             name: phase.name,
-            start_date: toIso(phase.startMs),
-            end_date: toIso(phase.endMs),
-            working_days: countWorkingMs(phase.startMs, phase.endMs),
+            start_date: toIso(phase.startMs)!,
+            end_date: toIso(phase.endMs)!,
+            working_days: countJobWorkingDays(toIso(phase.startMs)!, toIso(phase.endMs)!, pattern),
             offset_days: Math.round((phase.startMs - startMs) / DAY_MS),
             span_days: Math.round((phase.endMs - phase.startMs) / DAY_MS) + 1,
         })),
@@ -369,6 +335,7 @@ export function programmePlanForProject(project: {
     start_date?: string | null;
     programme_phases?: unknown[] | null;
     gantt_phases?: unknown[] | null;
+    programme_working_pattern?: unknown;
 }): ProgrammePlan | null {
-    return computeProgrammePlan(project.start_date, resolveProgrammeSource(project).phases);
+    return computeProgrammePlan(project.start_date, resolveProgrammeSource(project).phases, project.programme_working_pattern);
 }

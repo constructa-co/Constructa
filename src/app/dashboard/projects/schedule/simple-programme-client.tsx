@@ -16,7 +16,8 @@ import ui from "@/components/programme.module.css";
 import { newClientId } from "@/lib/client-id";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
 import { formatPlanDate, formatWorkingDuration, PROGRAMME_BASIS_NOTE } from "@/lib/programme-plan";
-import { hasRelativeProgramme, RELATIVE_PROGRAMME_BASIS, RELATIVE_PROGRAMME_NOTE } from "@/lib/relative-programme";
+import { hasRelativeProgramme, programmeBasisNote, RELATIVE_PROGRAMME_BASIS, RELATIVE_PROGRAMME_NOTE } from "@/lib/relative-programme";
+import { isDefaultJobWorkingPattern, resolveJobWorkingPattern } from "@/lib/job-working-pattern";
 import {
     MAX_STAGES,
     MIN_STAGES,
@@ -55,6 +56,7 @@ const DetailedPlanner = dynamic(() => import("./client-page"), {
 });
 
 interface ProgrammeProject {
+    programme_working_pattern?: unknown;
     id: string;
     name: string;
     client_name?: string | null;
@@ -95,6 +97,8 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
     const project = override?.base === incomingProject ? override.value : incomingProject;
     const inclusion = readProgrammeInclusion(project.programme_phases);
     const relativePlannerBlocked = relativeSimple || hasRelativeProgramme(inclusion.phases);
+    const jobPattern = resolveJobWorkingPattern(project.programme_working_pattern);
+    const calendarPlannerBlocked = jobPattern === null || !isDefaultJobWorkingPattern(jobPattern);
 
     // Keys for saved stages are positional so the first render matches on the
     // server and in the browser.
@@ -108,7 +112,7 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
     // the simple view shows what the planner left behind.
     const toggleDetailed = () => {
         if (inclusionBusy) return;
-        if (!detailedOpen && relativePlannerBlocked) return;
+        if (!detailedOpen && (relativePlannerBlocked || calendarPlannerBlocked)) return;
         if (!detailedOpen && unsavedSimple) {
             setPlannerRefused(true);
             return;
@@ -121,6 +125,12 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
     const detailedSection = relativePlannerBlocked ? (
         <section className={`${s.card} p-4 sm:p-5`} role="note" data-relative-planner-note>
             <p className={`text-sm ${s.muted}`}>The detailed planner needs a known start date. To use it, choose a target start date, save the dated programme and reopen Programme. Your relative activities stay here until you explicitly save a change.</p>
+        </section>
+    ) : calendarPlannerBlocked ? (
+        <section className={`${s.card} p-4 sm:p-5`} role="note" data-calendar-planner-note>
+            {jobPattern === null
+                ? <p role="alert" className={`text-sm ${s.muted}`}>Check this job&apos;s saved working days before editing its programme. The detailed planner cannot replace an invalid saved pattern.</p>
+                : <p className={`text-sm ${s.muted}`}>This job uses its saved working days in the shared programme preview and proposal. Detailed weekly-grid editing for this pattern is not available yet. Use the timing and stages above; browser-only working-week settings do not change this saved pattern.</p>}
         </section>
     ) : (
         <section className={s.card} aria-labelledby="detailed-planner-title">
@@ -216,8 +226,14 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
                             key={project.id}
                             project={project}
                             estimate={estimate}
-                            initial={view.kind === "simple" ? view : { kind: "simple", draft: emptyProgrammeDraft(view.startDate), hasSaved: false }}
-                            save={save ?? ((input) => saveSimpleProgrammeAction(project.id, input))}
+                            initial={view.kind === "simple" ? view : { kind: "simple", draft: emptyProgrammeDraft(view.startDate, jobPattern ?? undefined), hasSaved: false }}
+                            save={async input => {
+                                const result = await (save ? save(input) : saveSimpleProgrammeAction(project.id, input));
+                                if (result.success && result.confirmedProject) {
+                                    setOverride({ base: incomingProject, value: { ...project, ...result.confirmedProject } });
+                                }
+                                return result;
+                            }}
                             onUnsavedChange={setUnsavedSimple}
                             onRelativeChange={setRelativeSimple}
                             unsavedCheckRef={unsavedCheckRef}
@@ -461,6 +477,26 @@ function ProgrammeEditor({
                         </select>
                     </div>
 
+                    <fieldset disabled={saving} className="min-w-0 border-0 m-0 p-0 space-y-2" aria-describedby="programme-working-days-note">
+                        <legend className={s.label}>Working days for this job</legend>
+                        <p id="programme-working-days-note" className={`text-sm ${s.muted}`}>Monday to Friday is the default. Include weekends only when this job works them. A week uses the selected working days. Review the dates, then save the programme; these choices are not saved just in this browser.</p>
+                        {([6, 0] as const).map(day => (
+                            <label key={day} className={`flex items-center gap-3 min-h-11 text-sm ${s.body}`}>
+                                <input type="checkbox" id={`programme-weekend-${day}`}
+                                    checked={resolveJobWorkingPattern(draft.workingPattern)?.weekdays.includes(day) ?? false}
+                                    onChange={event => {
+                                        const current = resolveJobWorkingPattern(draft.workingPattern);
+                                        if (!current) return;
+                                        const weekdays = event.target.checked ? [...new Set([...current.weekdays, day])].sort()
+                                            : current.weekdays.filter(value => value !== day);
+                                        store.dispatch({ type: "field/change", patch: { workingPattern: { version: 1, weekdays } } });
+                                    }} />
+                                {day === 6 ? "Work on Saturdays" : "Work on Sundays"}
+                            </label>
+                        ))}
+                        {errorText("programme-working-days-error", fieldErrors.workingPattern)}
+                    </fieldset>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" data-programme-timing>
                         {!relative && <div>
                             <label htmlFor="programme-start" className={s.label}>Start on site</label>
@@ -509,10 +545,10 @@ function ProgrammeEditor({
 
                     <p className={`text-base ${s.body}`} aria-live="polite" data-programme-finish>
                         {plan
-                            ? <>Finishes <strong className={s.heading}>{plan.basis === RELATIVE_PROGRAMME_BASIS ? `Day ${plan.working_days}` : formatPlanDate(plan.end_date)}</strong> ({formatWorkingDuration(plan.working_days)}).</>
+                            ? <>Finishes <strong className={s.heading}>{plan.basis === RELATIVE_PROGRAMME_BASIS ? `Day ${plan.working_days}` : formatPlanDate(plan.end_date)}</strong> ({formatWorkingDuration(plan.working_days, draft.workingPattern)}).</>
                             : <span className={s.muted}>{relative ? "The finish day appears here once there is a valid length." : "The finish date appears here once there is a start date and a length."}</span>}
                     </p>
-                    <p className={`text-sm ${s.muted}`}>{relative ? RELATIVE_PROGRAMME_NOTE : PROGRAMME_BASIS_NOTE}</p>
+                    <p className={`text-sm ${s.muted}`}>{plan ? programmeBasisNote(plan) : relative ? RELATIVE_PROGRAMME_NOTE : PROGRAMME_BASIS_NOTE}</p>
                 </section>
 
                 {/* Stages */}

@@ -595,7 +595,7 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
             const top = y;
             drawBlockLines(wrap(stage.name, PAGE.contentWidth - 78, STYLES.strong).slice(0, 1), PAGE.left, top, STYLES.strong);
             drawBlockLines(
-                [pdfText(`${programmeStageRange(plan, index)} - ${formatWorkingDuration(stage.working_days)}`)],
+                [pdfText(`${programmeStageRange(plan, index)} - ${formatWorkingDuration(stage.working_days, plan.working_pattern)}`)],
                 PAGE.right, top + 0.6, STYLES.small, "right",
             );
             const bar = programmeStageBar(plan, index, 0);

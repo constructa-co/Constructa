@@ -42,7 +42,7 @@ export default function ProgrammeTimeline({ plan, tone }: { plan: DisplayProgram
                             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
                                 <span className={`text-sm font-semibold break-words min-w-0 ${t.value}`}>{stage.name}</span>
                                 <span className={`text-sm ${t.muted}`}>
-                                    {programmeStageRange(plan, index)} · {formatWorkingDuration(stage.working_days)}
+                                    {programmeStageRange(plan, index)} · {formatWorkingDuration(stage.working_days, plan.working_pattern)}
                                 </span>
                             </div>
                             <div className={`mt-1.5 h-3 w-full rounded-full overflow-hidden ${t.track}`} aria-hidden="true">

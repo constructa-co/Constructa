@@ -53,6 +53,7 @@ export interface ProposalReadinessInput {
     programmePhases?: unknown[] | null;
     /** Project start date — anchors Programme-tab phases that store an offset. */
     projectStartDate?: string | null;
+    programmeWorkingPattern?: unknown;
     paymentSchedule?: unknown[] | null;
     /** Resolved terms as they would be published. */
     terms?: unknown[] | null;
@@ -163,7 +164,7 @@ export function evaluateProposalReadiness(input: ProposalReadinessInput): Propos
     const unusablePhases = phases.filter((phase) => !isValidProgrammePhase(phase, input.projectStartDate)).length;
     const hasProgramme = programmeDecision.intent === "omit" || (programmeDecision.intent === "include" && phases.length > 0
         && unusablePhases === 0
-        && planCoversEveryPhase(computeDisplayProgramme(input.projectStartDate, phases), phases));
+        && planCoversEveryPhase(computeDisplayProgramme(input.projectStartDate, phases, input.programmeWorkingPattern), phases));
     const hasStart = isValidDate(input.projectStartDate) || phases.some((phase) => isValidDate(asRecord(phase).start_date));
     const coverage = paymentCoverage(payments, input.contractSum);
     const paymentsExceedPrice = coverage !== null && coverage > 100.01;

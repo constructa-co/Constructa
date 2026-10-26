@@ -45,6 +45,64 @@ beforeEach(() => {
 });
 
 describe("timeline-first simple programme workspace", () => {
+    it("keeps weekend choice local until explicit save, retains refusal and requires calendar readback", async () => {
+        hooks.state = initialProgrammeState({ ...emptyProgrammeDraft("2026-10-16"), duration: "2", unit: "days" }, true);
+        const saturday = nodes(editor()).find(n => n.type === "input" && n.props.id === "programme-weekend-6")!;
+        expect(saturday.props.checked).toBe(false);
+        (saturday.props.onChange as (event: unknown) => void)({ target: { checked: true } });
+        const pattern = { version: 1, weekdays: [1, 2, 3, 4, 5, 6] };
+        expect(hooks.state!.draft.workingPattern).toEqual(pattern);
+        expect(hooks.state!.saved.workingPattern).toBeUndefined();
+        expect(hooks.save).not.toHaveBeenCalled();
+        expect(renderToStaticMarkup(editor())).toContain("17 October 2026");
+        hooks.save.mockResolvedValueOnce({ success: false, error: "Calendar not confirmed" });
+        (nodes(editor()).find(n => n.type === "form")!.props.onSubmit as (event: unknown) => void)({ preventDefault: vi.fn() });
+        await vi.waitFor(() => expect(hooks.state!.save.status).toBe("failed"));
+        expect(hooks.state!.draft.workingPattern).toEqual(pattern);
+        expect(renderToStaticMarkup(editor())).toContain("Try again");
+        expect(hooks.save).toHaveBeenCalledTimes(1);
+        hooks.save.mockResolvedValueOnce({ success: true, confirmedProject: {
+            programme_working_pattern: pattern, start_date: "2026-10-16",
+            programme_phases: [{ name: "Works on site", manualDays: 2, startOffset: 0 }],
+        } });
+        (nodes(editor()).find(n => n.type === "form")!.props.onSubmit as (event: unknown) => void)({ preventDefault: vi.fn() });
+        await vi.waitFor(() => expect(hooks.state!.save.status).toBe("idle"));
+        expect(hooks.state!.saved.workingPattern).toEqual(pattern);
+        expect(hooks.save.mock.calls[1][0]).toMatchObject({ workingPattern: pattern, expectedWorkingPattern: null });
+    });
+
+    it("reopens saved working days without using the old browser-only detailed calendar", () => {
+        const selected = { ...project, start_date: "2026-10-16", programme_working_pattern: { version: 1, weekdays: [1, 2, 3, 4, 5, 6] },
+            programme_phases: [{ name: "Works", manualDays: 2, startOffset: 0 }] };
+        const view = viewForProject(selected, () => "key");
+        if (view.kind !== "simple") throw Error("Expected simple saved programme");
+        hooks.state = initialProgrammeState(view.draft, true);
+        const entry = nodes(parent({ project: selected })).find(n => typeof n.type === "function" && n.props.initial)!;
+        const tree = (entry.type as (props: unknown) => Element)(entry.props);
+        expect(nodes(tree).find(n => n.props.id === "programme-weekend-6")!.props.checked).toBe(true);
+        expect(renderToStaticMarkup(parent({ project: selected }))).toContain("data-calendar-planner-note");
+        expect(renderToStaticMarkup(parent({ project: selected }))).not.toContain("Detailed programme planner");
+        expect(hooks.save).not.toHaveBeenCalled();
+    });
+
+    it("does not mount detailed editing over malformed stored calendar data", () => {
+        const html = renderToStaticMarkup(parent({ project: { ...project, programme_working_pattern: { version: 1, weekdays: [] } } }));
+        expect(html).toContain("invalid saved pattern");
+        expect(html).not.toContain("Detailed programme planner");
+        expect(hooks.save).not.toHaveBeenCalled();
+    });
+
+    it("retains the saved pattern and CAS baseline when explicitly replacing a legacy timeline", () => {
+        const pattern = { version: 1, weekdays: [1, 2, 3, 4, 5, 6] };
+        const selected = { ...project, programme_working_pattern: pattern, gantt_phases: [{ name: "Existing job stage", duration_days: 3, start_date: "2026-10-16" }] };
+        const start = nodes(parent({ project: selected })).find(n => typeof n.props.onStartSimple === "function")!;
+        expect(start).toBeDefined();
+        (start.props.onStartSimple as () => void)();
+        const next = nodes(parent({ project: selected })).find(n => typeof n.type === "function" && n.props.initial)!;
+        expect(next.props.initial).toMatchObject({ kind: "simple", hasSaved: false, draft: { workingPattern: pattern } });
+        expect(hooks.save).not.toHaveBeenCalled();
+    });
+
     it("switches to relative days without saving or losing the entered date, then submits only explicit relative intent", async () => {
         two();
         const select = nodes(editor()).find(n => n.type === "select" && n.props.id === "programme-time-basis")!;

@@ -42,7 +42,7 @@ export function fakeSupabase(seed: Record<string, Row[]>) {
             const rows = tables[table] ?? [];
             const hit = rows.filter((row) => Object.entries(filters).every(([column, value]) => {
                 if (nullFilters.has(column)) return row[column] == null;
-                if ((column === "programme_phases" || column === "payment_schedule" || column === "selected_case_study_ids") && typeof value === "string") {
+                if ((column === "programme_phases" || column === "programme_working_pattern" || column === "payment_schedule" || column === "selected_case_study_ids") && typeof value === "string") {
                     try { return isDeepStrictEqual(row[column], JSON.parse(value)); } catch { return false; }
                 }
                 return row[column] === value;

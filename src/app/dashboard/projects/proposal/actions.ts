@@ -465,6 +465,7 @@ export async function publishProposalAction(
         contractSum: contractSumOf(estimate),
         programmePhases: resolveProgrammeSource(project).phases,
         projectStartDate: project.start_date,
+        programmeWorkingPattern: project.programme_working_pattern,
         paymentSchedule: project.payment_schedule,
         terms,
     });

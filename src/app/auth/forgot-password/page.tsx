@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { SidebarBrand } from '@/components/sidebar-brand';
 
 /**
  * Sprint 58 Phase 2 item #12 — Forgot Password flow.
@@ -56,7 +57,7 @@ export default function ForgotPasswordPage() {
             <div className="w-full max-w-md space-y-8">
                 <div className="text-center">
                     <Link href="/" className="text-3xl font-bold tracking-tight">
-                        CONSTRUCTA
+                        <SidebarBrand />
                     </Link>
                     <h2 className="mt-6 text-xl font-medium text-gray-400">
                         Reset your password

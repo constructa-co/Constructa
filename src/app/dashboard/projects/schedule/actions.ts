@@ -12,8 +12,16 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PROGRAMME_NOT_SAVED, writeProgrammeUpdate } from "@/lib/cohort-ai/programme-update";
 import { COHORT_AI_UNAVAILABLE } from "@/lib/cohort-ai/shared";
-import { UpdatePhasesSchema, parseInput } from "@/lib/validation/schemas";
+import { IsoDate, UpdatePhasesSchema, parseInput } from "@/lib/validation/schemas";
 import { writeProgrammeStorage } from "@/lib/server/programme-storage";
+import { resolveJobWorkingPattern } from "@/lib/job-working-pattern";
+
+// This separate argument is deliberately not parsed by UpdatePhasesSchema, which strips unknown keys.
+function parseExpectedWorkingPattern(value: unknown) {
+    const pattern = resolveJobWorkingPattern(value);
+    if (!pattern) throw new Error("Check the job's working days before saving.");
+    return pattern;
+}
 
 export async function updateDependencyAction(formData: FormData) {
     // The form only carries estimate ids; resolve the owning project first,
@@ -88,7 +96,8 @@ export async function updatePhasesAction(
         color?: string;
         dependsOn?: number[];
     }[],
-    startDate?: string   // ISO YYYY-MM-DD — if provided, saves to projects.start_date
+    startDate?: string,   // ISO YYYY-MM-DD — if provided, saves to projects.start_date
+    expectedWorkingPattern?: unknown,
 ): Promise<{ success: true } | { success: false; error: string }> {
     const input = parseInput(UpdatePhasesSchema, { projectId, phases, startDate }, "programme phases");
     // This shared autosave also carries post-award live tracking fields
@@ -100,7 +109,10 @@ export async function updatePhasesAction(
     // Note: projects has no `timeline_phases` column — writing it used to cause the
     // whole UPDATE to fail silently, meaning programme edits weren't saved.
     try {
-        await writeProgrammeStorage(supabase, user.id, input.projectId, { phases: input.phases, startDate: input.startDate });
+        await writeProgrammeStorage(supabase, user.id, input.projectId, {
+            phases: input.phases, startDate: input.startDate,
+            ...(expectedWorkingPattern !== undefined ? { expectedWorkingPattern: parseExpectedWorkingPattern(expectedWorkingPattern) } : {}),
+        });
     } catch {
         return { success: false, error: "Could not save the programme. Your changes remain on screen; please retry." };
     }
@@ -183,10 +195,16 @@ export async function getEstimatePhasesAction(
 
 export async function saveProgrammePhasesAction(
     projectId: string,
-    phases: any[]
+    phases: any[],
+    expectedWorkingPattern?: unknown,
+    startDate?: string,
 ): Promise<void> {
     const { user, supabase } = await requireEditableProjectAccess(projectId);
-    await writeProgrammeStorage(supabase, user.id, projectId, { phases });
+    await writeProgrammeStorage(supabase, user.id, projectId, {
+        phases,
+        ...(expectedWorkingPattern !== undefined ? { expectedWorkingPattern: parseExpectedWorkingPattern(expectedWorkingPattern) } : {}),
+        ...(startDate !== undefined ? { startDate: parseInput(IsoDate, startDate, "programme start date") } : {}),
+    });
     revalidatePath("/dashboard/projects/schedule");
 }
 

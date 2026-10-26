@@ -14,7 +14,8 @@
 
 import { SIMPLE_LINE_SECTION } from "./simple-estimate";
 import { WHOLE_JOB_NAME } from "./simple-programme";
-import { computeProgrammePlan, WORKING_DAYS_PER_WEEK, type ProgrammePlan } from "./programme-plan";
+import { computeProgrammePlan, phaseWorkingDays, WORKING_DAYS_PER_WEEK, type ProgrammePlan } from "./programme-plan";
+import { addJobWorkingDays, jobCalendarOffset, nextJobWorkingDayAfter } from "./job-working-pattern";
 
 export interface PlannerPhase {
     name: string;
@@ -47,10 +48,32 @@ export function plannerCalendarDays(workingDays: number, daysPerWeek: number): n
 }
 
 /** Display-only dates; never show a partial plan that silently leaves stages out. */
-export function plannerDisplayPlan(startDate: string, phases: PlannerPhase[], daysPerWeek: number): ProgrammePlan | null {
-    if (daysPerWeek !== WORKING_DAYS_PER_WEEK) return null;
-    const plan = computeProgrammePlan(startDate, phases);
+export function plannerDisplayPlan(startDate: string, phases: PlannerPhase[], daysPerWeek: number, workingPattern?: unknown): ProgrammePlan | null {
+    if (workingPattern === undefined && daysPerWeek !== WORKING_DAYS_PER_WEEK) return null;
+    const plan = computeProgrammePlan(startDate, phases, workingPattern);
     return plan && plan.stages.length === phases.length ? plan : null;
+}
+
+/** Exact geometry from the same inclusive calendar used by proposals. */
+export function plannerPhaseSpan(startDate: string, phase: PlannerPhase, workingPattern: unknown): { startOffset: number; calendarDays: number } | null {
+    const stage = computeProgrammePlan(startDate, [phase], workingPattern)?.stages[0];
+    const offset = stage ? jobCalendarOffset(startDate, stage.start_date) : null;
+    return stage && offset !== null ? { startOffset: offset, calendarDays: stage.span_days } : null;
+}
+
+/** Deliberate sequence placement preserves lengths and other phase metadata. */
+export function sequencePlannerPhases<T extends Pick<PlannerPhase, "name" | "calculatedDays" | "manualDays">>(phases: readonly T[], startDate: string, workingPattern: unknown): Array<T & { startOffset: number }> | null {
+    let cursor = addJobWorkingDays(startDate, 1, workingPattern);
+    const placed: Array<T & { startOffset: number }> = [];
+    for (const phase of phases) {
+        if (!cursor) return null;
+        const startOffset = jobCalendarOffset(startDate, cursor);
+        const finish = addJobWorkingDays(cursor, phaseWorkingDays(phase), workingPattern);
+        if (startOffset === null || !finish) return null;
+        placed.push({ ...phase, startOffset, ...("start_date" in phase ? { start_date: cursor } : {}) });
+        cursor = nextJobWorkingDayAfter(finish, workingPattern);
+    }
+    return placed;
 }
 
 /**
@@ -76,7 +99,12 @@ export function suggestedStageName(section: string | null | undefined): string {
 export function sequenceSuggestedPhases<T extends Pick<PlannerPhase, "name" | "calculatedDays" | "manualDays">>(
     phases: readonly T[],
     daysPerWeek: number,
+    startDate?: string,
+    workingPattern?: unknown,
 ): Array<T & { startOffset: number }> {
+    if (startDate && workingPattern !== undefined) return sequencePlannerPhases(
+        phases.map(phase => ({ ...phase, name: suggestedStageName(phase.name) })), startDate, workingPattern,
+    ) ?? [];
     let offset = 0;
     return phases.map((phase) => {
         const placed = { ...phase, name: suggestedStageName(phase.name), startOffset: offset };
@@ -86,7 +114,7 @@ export function sequenceSuggestedPhases<T extends Pick<PlannerPhase, "name" | "c
 }
 
 /** Stages worked out from the labour hours in an estimate, one per section that has any. */
-export function estimateSuggestedPhases(estimate: PlannerEstimate | null | undefined, daysPerWeek: number): PlannerPhase[] {
+export function estimateSuggestedPhases(estimate: PlannerEstimate | null | undefined, daysPerWeek: number, startDate?: string, workingPattern?: unknown): PlannerPhase[] {
     const sectionManhours = new Map<string, number>();
     for (const line of estimate?.estimate_lines ?? []) {
         const hours = (line.estimate_line_components ?? []).reduce((sum, component) => sum + (component.total_manhours || 0), 0);
@@ -101,7 +129,7 @@ export function estimateSuggestedPhases(estimate: PlannerEstimate | null | undef
             manualDays: null,
             manhours,
         }));
-    return sequenceSuggestedPhases(phases, daysPerWeek);
+    return sequenceSuggestedPhases(phases, daysPerWeek, startDate, workingPattern);
 }
 
 export interface PlannerOpening {
@@ -118,8 +146,8 @@ export interface PlannerOpening {
  * The phases the planner shows when it opens. Saved phases always win and
  * are returned as they are: same stages, same order, same lengths.
  */
-export function plannerPhasesOnOpen(saved: PlannerPhase[], estimate: PlannerEstimate | null | undefined, daysPerWeek: number): PlannerOpening {
+export function plannerPhasesOnOpen(saved: PlannerPhase[], estimate: PlannerEstimate | null | undefined, daysPerWeek: number, startDate?: string, workingPattern?: unknown): PlannerOpening {
     if (saved.length > 0) return { phases: saved, origin: "saved" };
-    const suggested = estimateSuggestedPhases(estimate, daysPerWeek);
+    const suggested = estimateSuggestedPhases(estimate, daysPerWeek, startDate, workingPattern);
     return suggested.length > 0 ? { phases: suggested, origin: "suggested" } : { phases: [], origin: "empty" };
 }

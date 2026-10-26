@@ -17,7 +17,7 @@ import { newClientId } from "@/lib/client-id";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
 import { formatPlanDate, formatWorkingDuration, PROGRAMME_BASIS_NOTE } from "@/lib/programme-plan";
 import { hasRelativeProgramme, programmeBasisNote, RELATIVE_PROGRAMME_BASIS, RELATIVE_PROGRAMME_NOTE } from "@/lib/relative-programme";
-import { isDefaultJobWorkingPattern, resolveJobWorkingPattern } from "@/lib/job-working-pattern";
+import { resolveJobWorkingPattern } from "@/lib/job-working-pattern";
 import {
     MAX_STAGES,
     MIN_STAGES,
@@ -98,7 +98,7 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
     const inclusion = readProgrammeInclusion(project.programme_phases);
     const relativePlannerBlocked = relativeSimple || hasRelativeProgramme(inclusion.phases);
     const jobPattern = resolveJobWorkingPattern(project.programme_working_pattern);
-    const calendarPlannerBlocked = jobPattern === null || !isDefaultJobWorkingPattern(jobPattern);
+    const calendarPlannerBlocked = jobPattern === null;
 
     // Keys for saved stages are positional so the first render matches on the
     // server and in the browser.
@@ -128,9 +128,7 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
         </section>
     ) : calendarPlannerBlocked ? (
         <section className={`${s.card} p-4 sm:p-5`} role="note" data-calendar-planner-note>
-            {jobPattern === null
-                ? <p role="alert" className={`text-sm ${s.muted}`}>Check this job&apos;s saved working days before editing its programme. The detailed planner cannot replace an invalid saved pattern.</p>
-                : <p className={`text-sm ${s.muted}`}>This job uses its saved working days in the shared programme preview and proposal. Detailed weekly-grid editing for this pattern is not available yet. Use the timing and stages above; browser-only working-week settings do not change this saved pattern.</p>}
+            <p role="alert" className={`text-sm ${s.muted}`}>Check this job&apos;s saved working days before editing its programme. The detailed planner cannot replace an invalid saved pattern.</p>
         </section>
     ) : (
         <section className={s.card} aria-labelledby="detailed-planner-title">
@@ -226,7 +224,7 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
                             key={project.id}
                             project={project}
                             estimate={estimate}
-                            initial={view.kind === "simple" ? view : { kind: "simple", draft: emptyProgrammeDraft(view.startDate, jobPattern ?? undefined), hasSaved: false }}
+                            initial={view.kind === "simple" ? view : { kind: "simple", draft: emptyProgrammeDraft(view.startDate, project.programme_working_pattern == null ? undefined : jobPattern ?? undefined), hasSaved: false }}
                             save={async input => {
                                 const result = await (save ? save(input) : saveSimpleProgrammeAction(project.id, input));
                                 if (result.success && result.confirmedProject) {

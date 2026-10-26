@@ -72,8 +72,9 @@ function elements(value: unknown): Node[] {
 }
 
 let current: ReturnType<typeof open> | null = null;
-function open(phases = stages, startingEstimate: Props["estimate"] = null, replay = true, startDate = "2026-10-19") {
-    const props: Props = { project: { id: "opening-check", name: "Example", start_date: startDate, programme_phases: phases }, projectId: "opening-check", estimate: startingEstimate };
+function open(phases = stages, startingEstimate: Props["estimate"] = null, replay = true, startDate = "2026-10-19", workingPattern?: unknown) {
+    const props: Props = { project: { id: "opening-check", name: "Example", start_date: startDate, programme_phases: phases,
+        ...(workingPattern === undefined ? {} : { programme_working_pattern: workingPattern }) }, projectId: "opening-check", estimate: startingEstimate };
     let tree: unknown;
     function render() {
         lifecycle.cursor = 0; lifecycle.pending = []; lifecycle.dirty = false;
@@ -99,8 +100,9 @@ function open(phases = stages, startingEstimate: Props["estimate"] = null, repla
         revise(next: Partial<Props>) { Object.assign(props, next); render(); flush(); },
         names: () => elements(tree).filter(node => node.type === "input" && !node.props.type).map(node => node.props.value),
         week(n: number) {
-            const button = elements(tree).find(node => node.type === "button" && Array.isArray(node.props.children) && node.props.children[0] === n);
-            expect(button).toBeDefined(); (button!.props.onClick as () => void)(); flush();
+            // An actual saved-project refresh, not the removed browser-only selector.
+            props.project = { ...props.project, programme_working_pattern: { version: 1, weekdays: n === 7 ? [0, 1, 2, 3, 4, 5, 6] : Array.from({ length: n }, (_, i) => i + 1) } };
+            render(); flush();
         },
         notices: () => elements(tree).filter(node => node.props.role === "status" && !("data-programme-save-state" in node.props)).map(node => node.props.children),
         saveStatus: () => elements(tree).find(node => "data-programme-save-state" in node.props)?.props,
@@ -138,6 +140,24 @@ beforeEach(() => {
 afterEach(() => { current?.unmount(); current = null; vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe("detailed planner initial-open no-write intent", () => {
+    it("binds a saved weekend pattern to real autosave/manual retry without writing on open or losing a refusal draft", async () => {
+        const pattern = { version: 1, weekdays: [1, 2, 3, 4, 5, 6] };
+        lifecycle.write.mockResolvedValueOnce({ success: false, error: "Refused" });
+        const view = open(stages, null, true, "2026-10-16", pattern);
+        expect(view.startDateInput()).toBe("2026-10-16");
+        expect(lifecycle.write).not.toHaveBeenCalled();
+        view.change(nameInput("Demo"), "Exact weekend draft");
+        await vi.advanceTimersByTimeAsync(500); await settle(view);
+        expect(lifecycle.write).toHaveBeenCalledTimes(1);
+        expect(lifecycle.write).toHaveBeenLastCalledWith("opening-check", [{ ...stages[0], name: "Exact weekend draft" }], "2026-10-16", pattern);
+        expect(view.names()).toContain("Exact weekend draft");
+        expect(view.saveStatus()?.["data-programme-save-state"]).toBe("error");
+        view.save(); await settle(view);
+        expect(lifecycle.write).toHaveBeenCalledTimes(2);
+        expect(view.saveStatus()?.["data-programme-save-state"]).toBe("saved");
+        expect(view.names()).toContain("Exact weekend draft");
+    });
+
     it("does not save a normal first opening or its unmount", async () => {
         const view = open(stages, null, false);
         await vi.advanceTimersByTimeAsync(1000); view.unmount();
@@ -250,6 +270,19 @@ async function settle(view: ReturnType<typeof open>) {
 }
 
 describe("explicit detailed programme regeneration acknowledgement", () => {
+    it("atomically regenerates against an edited unsaved date instead of confirming phases against the previous saved date", async () => {
+        const pattern = { version: 1, weekdays: [1, 2, 3, 4, 5, 6] };
+        lifecycle.read.mockResolvedValue(regeneratedStages);
+        const view = open(stages, null, true, "2026-10-16", pattern);
+        view.change(node => node.type === "input" && node.props.type === "date", "2026-10-23");
+        view.regenerate(); await settle(view);
+        expect(lifecycle.regenerateWrite).toHaveBeenCalledExactlyOnceWith("opening-check", regeneratedStages, pattern, "2026-10-23");
+        expect(view.startDateInput()).toBe("2026-10-23");
+        await vi.advanceTimersByTimeAsync(1000); await settle(view);
+        expect(lifecycle.write).not.toHaveBeenCalled();
+        expect(view.names()).toContain("Reviewed estimate section");
+    });
+
     it("Cancel reads and writes nothing and retains all stages", async () => {
         vi.mocked(window.confirm).mockReturnValue(false);
         const view = open(); view.regenerate(); await settle(view);
@@ -263,7 +296,7 @@ describe("explicit detailed programme regeneration acknowledgement", () => {
         const saved = deferred<void>(); lifecycle.regenerateWrite.mockReturnValue(saved.promise);
         const view = open(); view.regenerate(); await settle(view);
         expect(view.names()).toContain("Demo"); expect(lifecycle.success).not.toHaveBeenCalled();
-        expect(lifecycle.regenerateWrite).toHaveBeenCalledExactlyOnceWith("opening-check", regeneratedStages);
+        expect(lifecycle.regenerateWrite).toHaveBeenCalledExactlyOnceWith("opening-check", regeneratedStages, undefined, "2026-10-19");
         saved.resolve(); await settle(view);
         expect(view.names()).toContain("Reviewed estimate section"); expect(view.suggestion()).toBe(false);
         expect(lifecycle.success).toHaveBeenCalledExactlyOnceWith("Programme regenerated from estimate and saved");

@@ -259,11 +259,11 @@ describe("bounded whole-axis calendar week labels", () => {
         expect(html).toContain("Grid columns group up to 5 calendar weeks");
         expect(html).toContain("Weekly move and resize snapping is unchanged");
     });
-    it.each([4, 5, 6, 7])("retains the %i-day calendar's actual axis and bounded final grid", days => {
+    it.each([4, 5, 6, 7])("retains the saved default axis and bounded final grid despite an old browser %i-day override", days => {
         vi.stubGlobal("window", {}); vi.stubGlobal("localStorage", { getItem: () => String(days) });
         const phases = [phase(0), phase(3650, 3650)];
         const html = render(phases), labels = headers(html);
-        const span = days === 7 ? 3650 : Math.ceil(3650 / days) * 7;
+        const span = Math.ceil(3650 / 5) * 7;
         const weeks = Math.ceil((3650 + span) / 7);
         expect(labels.length).toBeLessThanOrEqual(12);
         expect(labels.at(-1)!.start + labels.at(-1)!.span - 1).toBe(weeks);
@@ -296,12 +296,12 @@ describe("detailed planner short-span visibility without false duration", () => 
         expect(html).toContain('data-planner-resize-target="0"');
         expect(html).toContain("ticks and grips are controls, not extra days");
     });
-    it.each([4, 5, 6, 7])("uses dated five-day spans and preserves other %i-day calendar fallbacks", days => {
+    it.each([4, 5, 6, 7])("uses saved default spans, ignoring the removed browser-only %i-day override", days => {
         vi.stubGlobal("window", {}); vi.stubGlobal("localStorage", { getItem: () => String(days) });
         const phases = [phase(0, 1), phase(1001, 7)];
         const html = render(phases), bars = barStyles(html);
-        const existingSpan = days === 5 || days === 7 ? 1 : 7;
-        const axis = days === 4 || days === 5 || days === 6 ? 1015 : 1008;
+        const existingSpan = 1;
+        const axis = 1015;
         expect(bars[0].width).toBeCloseTo(existingSpan / axis * 100);
         expect(bars[1].left).toBeCloseTo(1001 / axis * 100);
     });

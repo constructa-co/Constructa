@@ -24,9 +24,10 @@ function nodes(value: unknown): Element[] {
     if (!value || typeof value !== "object" || !("props" in value)) return [];
     const node = value as Element; return [node, ...nodes(node.props.children)];
 }
-function setup(phases = example(), start = "2026-10-19", days = 5) {
+function setup(phases = example(), start = "2026-10-19", days = 5, workingPattern?: unknown) {
     vi.stubGlobal("window", {}); vi.stubGlobal("localStorage", { getItem: () => String(days) });
-    const props = { project: { id: "job", name: "Kitchen", start_date: start, programme_phases: phases }, projectId: "job", estimate: null };
+    const props = { project: { id: "job", name: "Kitchen", start_date: start, programme_phases: phases,
+        ...(workingPattern === undefined ? {} : { programme_working_pattern: workingPattern }) }, projectId: "job", estimate: null };
     const parent = () => { hooks.cursor = 0; return ClientSchedulePage(props); };
     const toggle = nodes(parent()).find(n => n.type === "button" && typeof n.props.children === "string" && n.props.children.includes("Live Tracking"))!;
     (toggle.props.onClick as () => void)();
@@ -68,10 +69,16 @@ describe("five-day Live Tracking date parity", () => {
         hooks.slots = [];
         expect(setup(example(), "2026-12-28").html()).toContain("11 Jan \u2192 15 Jan");
     });
-    it.each([4, 6, 7])("preserves the existing %i-day Live Tracking fallback", days => {
+    it.each([4, 6, 7])("does not let the removed %i-day browser override change saved-default Live Tracking dates", days => {
         const html = setup([phase("Work", 0)], "2026-10-19", days).html();
-        expect(html).toContain(days === 4 ? "19 Oct \u2192 2 Nov" : "19 Oct \u2192 26 Oct");
-        expect(html).not.toContain("19 Oct \u2192 23 Oct");
+        expect(html).toContain("19 Oct \u2192 23 Oct");
+        expect(html).not.toContain("19 Oct \u2192 2 Nov");
+    });
+    it.each([{ weekdays: [1, 2, 3, 4, 5, 6], finish: "26 Oct" }, { weekdays: [0, 1, 2, 3, 4, 5, 6], finish: "25 Oct" }])("shares saved weekend dates through $finish without changing operational handlers", ({ weekdays, finish }) => {
+        const pattern = { version: 1, weekdays }, phases = [phase("Work", 0, 7)];
+        const app = setup(phases, "2026-10-19", weekdays.length, pattern);
+        expect(app.html()).toContain(`19 Oct \u2192 ${finish}`);
+        expect(computeProgrammePlan("2026-10-19", phases, pattern)?.end_date).toBe(`2026-10-${finish.slice(0, 2)}`);
     });
     it("does not mix a partial valid plan with legacy fallback when a stage has no duration", () => {
         const html = setup([phase("Valid", 0), phase("Missing duration", 7, 0)]).html();

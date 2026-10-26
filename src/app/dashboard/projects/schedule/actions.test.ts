@@ -17,10 +17,13 @@ vi.mock("@/lib/ai", async (original) => ({ ...(await original<typeof import("@/l
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
 import { fakeAiBudget } from "@/lib/__fixtures__/fake-ai-budget";
+import { fakeSupabase } from "@/lib/__fixtures__/fake-supabase";
+import { withProgrammeInclusion } from "@/lib/programme-inclusion";
+import * as programmeStorage from "@/lib/server/programme-storage";
 import { PROGRAMME_ADDED, PROGRAMME_NO_PHASES, PROGRAMME_NOT_SAVED, PROGRAMME_TOO_MANY } from "@/lib/cohort-ai/programme-update";
 import { COHORT_AI_NOT_USABLE, COHORT_AI_OFF, COHORT_AI_UNAVAILABLE } from "@/lib/cohort-ai/shared";
 import { AiResponseError } from "@/lib/ai";
-import { generateWeeklyUpdateAction } from "./actions";
+import { generateWeeklyUpdateAction, saveProgrammePhasesAction, updatePhasesAction } from "./actions";
 
 const PROJECT_ID = "11111111-1111-4111-8111-111111111111";
 const PHASES = [
@@ -150,5 +153,273 @@ describe("generateWeeklyUpdateAction", () => {
         await expect(generateWeeklyUpdateAction(PROJECT_ID)).rejects.toThrow(COHORT_AI_UNAVAILABLE);
         expect(mocks.generateStructured).not.toHaveBeenCalled();
         expect(inserts).toEqual([]);
+    });
+});
+
+const USER_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const SIX_DAYS = { version: 1, weekdays: [1, 2, 3, 4, 5, 6] };
+const DETAILED_PHASES = [{ name: "Works", calculatedDays: 2, manualDays: null, manhours: 16, startOffset: 0, color: "emerald" }];
+
+function arrangeProgramme(overrides: Record<string, unknown> = {}) {
+    const db = fakeSupabase({ projects: [{
+        id: PROJECT_ID, user_id: USER_ID, start_date: "2026-10-16", programme_phases: DETAILED_PHASES, ...overrides,
+    }] });
+    const access = { user: { id: USER_ID }, supabase: db.client };
+    mocks.requireProjectAccess.mockResolvedValue(access);
+    mocks.requireEditableProjectAccess.mockResolvedValue(access);
+    return db;
+}
+
+describe("detailed programme calendar storage", () => {
+    beforeEach(() => {
+        vi.restoreAllMocks();
+        vi.clearAllMocks();
+    });
+
+    it("saves and regenerates on the stored custom calendar, comparing weekday sets rather than their order", async () => {
+        const db = arrangeProgramme({ programme_working_pattern: SIX_DAYS });
+        const next = [{ ...DETAILED_PHASES[0], manualDays: 3 }];
+        const expected = { version: 1, weekdays: [6, 5, 4, 3, 2, 1] };
+        expect(await updatePhasesAction(PROJECT_ID, next, undefined, expected)).toEqual({ success: true });
+        await expect(saveProgrammePhasesAction(PROJECT_ID, DETAILED_PHASES, expected)).resolves.toBeUndefined();
+        expect(db.updates).toHaveLength(2);
+        expect(db.updates[0].filters).toEqual({
+            id: PROJECT_ID, user_id: USER_ID, programme_phases: JSON.stringify(DETAILED_PHASES),
+            programme_working_pattern: JSON.stringify(SIX_DAYS),
+        });
+        expect(db.updates[1].filters.programme_phases).toBe(JSON.stringify(next));
+        for (const update of db.updates) expect(update.values).not.toHaveProperty("programme_working_pattern");
+        expect(db.tables.projects[0].programme_working_pattern).toEqual(SIX_DAYS);
+        expect(db.tables.projects[0].programme_phases).toEqual(DETAILED_PHASES);
+    });
+
+    it.each(["matching", "mismatched"])("regenerates phases and start date in one guarded write with %s start readback", async readback => {
+        const db = arrangeProgramme({ programme_working_pattern: SIX_DAYS }), from = db.client.from;
+        const startDate = "2026-10-19";
+        const phases = [{ ...DETAILED_PHASES[0], manualDays: 5 },
+            { ...DETAILED_PHASES[0], name: "Finish", calculatedDays: 1, manualDays: 1, startOffset: 5 }];
+        const selections: Array<string | undefined> = [];
+        vi.spyOn(db.client, "from").mockImplementation(table => {
+            const query = from(table), select = query.select, update = query.update, single = query.single;
+            let updating = false;
+            query.select = (columns?: string) => { selections.push(columns); return select(); };
+            query.update = values => { updating = true; return update(values); };
+            query.single = async () => {
+                const result = await single();
+                return updating && readback === "mismatched" && result.data
+                    ? { ...result, data: { ...result.data, start_date: "2026-10-16" } } : result;
+            };
+            return query;
+        });
+        const result = saveProgrammePhasesAction(PROJECT_ID, phases, SIX_DAYS, startDate);
+        if (readback === "matching") await expect(result).resolves.toBeUndefined();
+        else await expect(result).rejects.toThrow(programmeStorage.PROGRAMME_CHOICE_UNCONFIRMED);
+        expect(db.log).toEqual(["select:projects", "update:projects"]);
+        expect(db.updates).toEqual([{ table: "projects", values: { programme_phases: phases, start_date: startDate }, filters: {
+            id: PROJECT_ID, user_id: USER_ID, programme_phases: JSON.stringify(DETAILED_PHASES),
+            programme_working_pattern: JSON.stringify(SIX_DAYS),
+        } }]);
+        expect(selections).toEqual(["*", "programme_phases,programme_working_pattern,start_date"]);
+        expect(db.tables.projects[0]).toMatchObject({ programme_phases: phases, start_date: startDate, programme_working_pattern: SIX_DAYS });
+        expect(mocks.revalidatePath).toHaveBeenCalledTimes(readback === "matching" ? 1 : 0);
+    });
+
+    it.each(["", "19/10/2026"])("refuses a malformed supplied regeneration date %j before storage", async startDate => {
+        const db = arrangeProgramme();
+        await expect(saveProgrammePhasesAction(PROJECT_ID, DETAILED_PHASES, undefined, startDate)).rejects.toThrow();
+        expect(db.log).toEqual([]);
+        expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        ["stale default expectation", SIX_DAYS, null],
+        ["stale custom expectation", null, SIX_DAYS],
+        ["invalid stored pattern", { version: 1, weekdays: [] }, null],
+        ["invalid expectation", SIX_DAYS, { version: 1, weekdays: [1, 1] }],
+        ["unknown expectation keys", SIX_DAYS, { ...SIX_DAYS, extra: true }],
+    ])("refuses %s in both action entry points without writing", async (_label, stored, expected) => {
+        const db = arrangeProgramme({ programme_working_pattern: stored });
+        expect((await updatePhasesAction(PROJECT_ID, DETAILED_PHASES, undefined, expected)).success).toBe(false);
+        await expect(saveProgrammePhasesAction(PROJECT_ID, DETAILED_PHASES, expected)).rejects.toThrow();
+        expect(db.updates).toEqual([]);
+        expect(db.tables.projects[0].programme_phases).toEqual(DETAILED_PHASES);
+        expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    });
+
+    it("keeps old action request shapes and legacy saves when the calendar column is absent", async () => {
+        const db = arrangeProgramme({ start_date: null });
+        const write = vi.spyOn(programmeStorage, "writeProgrammeStorage");
+        expect(await updatePhasesAction(PROJECT_ID, DETAILED_PHASES)).toEqual({ success: true });
+        expect(write).toHaveBeenLastCalledWith(db.client, USER_ID, PROJECT_ID, { phases: DETAILED_PHASES, startDate: undefined });
+        await saveProgrammePhasesAction(PROJECT_ID, DETAILED_PHASES);
+        expect(write).toHaveBeenLastCalledWith(db.client, USER_ID, PROJECT_ID, { phases: DETAILED_PHASES });
+        for (const update of db.updates) {
+            expect(update.filters).not.toHaveProperty("programme_working_pattern");
+            expect(update.values).not.toHaveProperty("programme_working_pattern");
+        }
+    });
+
+    it("reads * before migration and only phases on readback, with explicit default expectations", async () => {
+        const db = arrangeProgramme(), from = db.client.from, selections: Array<string | undefined> = [];
+        vi.spyOn(db.client, "from").mockImplementation(table => {
+            const query = from(table), select = query.select;
+            query.select = (columns?: string) => { selections.push(columns); return select(); };
+            return query;
+        });
+        expect(await updatePhasesAction(PROJECT_ID, DETAILED_PHASES, undefined, null)).toEqual({ success: true });
+        expect(selections).toEqual(["*", "programme_phases"]);
+        expect(db.tables.projects[0]).not.toHaveProperty("programme_working_pattern");
+    });
+
+    it("uses an incoming start date before the stored start and fences a null stored pattern", async () => {
+        const db = arrangeProgramme({ start_date: null, programme_working_pattern: null });
+        const expected = { version: 1, weekdays: [5, 4, 3, 2, 1] };
+        expect(await updatePhasesAction(PROJECT_ID, DETAILED_PHASES, "2026-10-19", expected)).toEqual({ success: true });
+        expect(db.updates[0].filters.programme_working_pattern).toBeNull();
+        expect(db.tables.projects[0].start_date).toBe("2026-10-19");
+        expect(db.tables.projects[0].programme_working_pattern).toBeNull();
+    });
+
+    it.each([
+        ["empty", []],
+        ["partial", [...DETAILED_PHASES, { name: "Missing duration", calculatedDays: 0, manualDays: null, manhours: 0, startOffset: 2 }]],
+        ["truncated", Array.from({ length: 201 }, () => ({ ...DETAILED_PHASES[0] }))],
+    ])("requires a complete incoming plan, not the valid old plan: %s", async (_label, phases) => {
+        const db = arrangeProgramme({ programme_working_pattern: SIX_DAYS });
+        await expect(saveProgrammePhasesAction(PROJECT_ID, phases, SIX_DAYS)).rejects.toThrow();
+        expect(db.updates).toEqual([]);
+        expect(db.tables.projects[0].programme_phases).toEqual(DETAILED_PHASES);
+    });
+
+    it("does not accept an explicitly bound dated plan without a usable start", async () => {
+        const db = arrangeProgramme({ start_date: null });
+        expect((await updatePhasesAction(PROJECT_ID, DETAILED_PHASES, undefined, null)).success).toBe(false);
+        expect(db.updates).toEqual([]);
+    });
+
+    it("preserves relative phases, unrelated project start and omission while validating incoming activities", async () => {
+        const db = arrangeProgramme({ programme_working_pattern: SIX_DAYS, programme_phases: withProgrammeInclusion(DETAILED_PHASES, false) });
+        const relative = [{ name: "Undated works", manualDays: 6, timeBasis: "relative_working_days", workingDayOffset: 0 }];
+        await saveProgrammePhasesAction(PROJECT_ID, relative, SIX_DAYS);
+        expect(db.tables.projects[0].programme_phases).toEqual(withProgrammeInclusion(relative, false));
+        expect(db.tables.projects[0].start_date).toBe("2026-10-16");
+        expect(db.updates[0].values).not.toHaveProperty("start_date");
+    });
+
+    it("keeps accepted-job operational autosave available without allowing calendar-unaware planning changes", async () => {
+        const db = arrangeProgramme({ programme_working_pattern: SIX_DAYS, programme_phases: withProgrammeInclusion(DETAILED_PHASES, false) });
+        mocks.requireEditableProjectAccess.mockRejectedValue(new Error("Accepted job is locked"));
+        const tracking = [{ ...DETAILED_PHASES[0], pct_complete: 50, actual_start_date: "2026-10-17", actual_finish_date: null }];
+        expect(await updatePhasesAction(PROJECT_ID, tracking, "2026-10-16")).toEqual({ success: true });
+        expect(mocks.requireEditableProjectAccess).not.toHaveBeenCalled();
+        expect(db.tables.projects[0].programme_phases).toEqual(withProgrammeInclusion(tracking, false));
+        expect(db.tables.projects[0].programme_working_pattern).toEqual(SIX_DAYS);
+        expect((await updatePhasesAction(PROJECT_ID, [{ ...tracking[0], startOffset: 1 }])).success).toBe(false);
+        expect((await updatePhasesAction(PROJECT_ID, tracking, "2026-10-19")).success).toBe(false);
+        expect(db.updates).toHaveLength(1);
+    });
+
+    it.each([
+        ["duration", [{ ...DETAILED_PHASES[0], manualDays: 5 }]],
+        ["dependencies", [{ ...DETAILED_PHASES[0], dependsOn: [1] }]],
+        ["renaming", [{ ...DETAILED_PHASES[0], name: "Regenerated work" }]],
+        ["lost planning metadata", [{ name: "Works", calculatedDays: 2, manualDays: null, manhours: 16, startOffset: 0 }]],
+        ["added activities", [...DETAILED_PHASES, { ...DETAILED_PHASES[0], name: "Extra" }]],
+        ["unknown planning fields", [{ ...DETAILED_PHASES[0], frozen: true }]],
+    ])("rejects legacy custom-calendar planning overwrite: %s", async (_label, phases) => {
+        const db = arrangeProgramme({ programme_working_pattern: SIX_DAYS });
+        await expect(saveProgrammePhasesAction(PROJECT_ID, phases)).rejects.toThrow();
+        expect(db.updates).toEqual([]);
+    });
+
+    it("keeps legacy as-built tracking and JSON-omitted optional fields without demanding a dated plan", async () => {
+        const db = arrangeProgramme({ start_date: null, programme_working_pattern: SIX_DAYS });
+        const access = await mocks.requireProjectAccess(PROJECT_ID);
+        const tracking = [{ ...DETAILED_PHASES[0], pct_complete: 25, actual_start_date: undefined,
+            revised_planned_finish: "2026-10-29", delay_reason: "Weather", delay_notes: "Observed on site" }];
+        await expect(programmeStorage.writeProgrammeStorage(access.supabase, USER_ID, PROJECT_ID, { phases: tracking }))
+            .resolves.toStrictEqual(JSON.parse(JSON.stringify(tracking)));
+        expect(db.tables.projects[0].programme_working_pattern).toEqual(SIX_DAYS);
+    });
+
+    it.each(["programme_phases", "programme_working_pattern"])("refuses a concurrent %s change, including raw weekday reordering", async column => {
+        const db = arrangeProgramme({ programme_working_pattern: SIX_DAYS }), from = db.client.from;
+        const newer = column === "programme_phases" ? [{ ...DETAILED_PHASES[0], name: "Newer work" }]
+            : { version: 1, weekdays: [6, 5, 4, 3, 2, 1] };
+        vi.spyOn(db.client, "from").mockImplementation(table => {
+            const query = from(table), update = query.update;
+            query.update = values => { db.tables.projects[0][column] = newer; return update(values); };
+            return query;
+        });
+        expect((await updatePhasesAction(PROJECT_ID, [{ ...DETAILED_PHASES[0], manualDays: 3 }], undefined, SIX_DAYS)).success).toBe(false);
+        expect(db.tables.projects[0][column]).toEqual(newer);
+        if (column === "programme_working_pattern") expect(db.tables.projects[0].programme_phases).toEqual(DETAILED_PHASES);
+        expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    });
+
+    it.each(["phases", "pattern", "missing pattern"])("does not confirm a misleading %s readback", async mismatch => {
+        const db = arrangeProgramme({ programme_working_pattern: SIX_DAYS }), from = db.client.from;
+        const next = [{ ...DETAILED_PHASES[0], manualDays: 3 }];
+        const selections: Array<string | undefined> = [];
+        vi.spyOn(db.client, "from").mockImplementation(table => {
+            const query = from(table), update = query.update, single = query.single, select = query.select;
+            let updating = false;
+            query.select = (columns?: string) => { selections.push(columns); return select(); };
+            query.update = values => { updating = true; return update(values); };
+            query.single = async () => {
+                const result = await single();
+                if (!updating || !result.data) return result;
+                const data = { ...result.data };
+                if (mismatch === "phases") data.programme_phases = DETAILED_PHASES;
+                else if (mismatch === "pattern") data.programme_working_pattern = null;
+                else delete data.programme_working_pattern;
+                return { ...result, data };
+            };
+            return query;
+        });
+        await expect(saveProgrammePhasesAction(PROJECT_ID, next, SIX_DAYS)).rejects.toThrow(programmeStorage.PROGRAMME_CHOICE_UNCONFIRMED);
+        expect(selections).toEqual(["*", "programme_phases,programme_working_pattern"]);
+        expect(db.tables.projects[0].programme_phases).toEqual(next);
+        expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    });
+
+    it("does not confirm a supplied start date whose readback differs", async () => {
+        const db = arrangeProgramme({ programme_working_pattern: SIX_DAYS }), from = db.client.from;
+        const selections: Array<string | undefined> = [];
+        vi.spyOn(db.client, "from").mockImplementation(table => {
+            const query = from(table), update = query.update, single = query.single, select = query.select;
+            let updating = false;
+            query.select = (columns?: string) => { selections.push(columns); return select(); };
+            query.update = values => { updating = true; return update(values); };
+            query.single = async () => {
+                const result = await single();
+                return updating && result.data ? { ...result, data: { ...result.data, start_date: "2026-10-16" } } : result;
+            };
+            return query;
+        });
+        expect((await updatePhasesAction(PROJECT_ID, DETAILED_PHASES, "2026-10-19", SIX_DAYS)).success).toBe(false);
+        expect(selections).toEqual(["*", "programme_phases,programme_working_pattern,start_date"]);
+        expect(db.tables.projects[0].start_date).toBe("2026-10-19");
+        expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    });
+
+    it("keeps inclusion-only writes independent of calendar and plan validity", async () => {
+        const invalid = { version: 1, weekdays: [] };
+        const db = arrangeProgramme({ start_date: null, programme_working_pattern: invalid });
+        const access = await mocks.requireProjectAccess(PROJECT_ID);
+        await programmeStorage.writeProgrammeStorage(access.supabase, USER_ID, PROJECT_ID, { include: false });
+        expect(db.tables.projects[0].programme_phases).toEqual(withProgrammeInclusion(DETAILED_PHASES, false));
+        expect(db.tables.projects[0].programme_working_pattern).toEqual(invalid);
+        expect(db.updates[0].filters.programme_working_pattern).toBe(JSON.stringify(invalid));
+    });
+
+    it("retains regenerate edit locks and autosave ownership checks before storage", async () => {
+        const db = arrangeProgramme();
+        mocks.requireEditableProjectAccess.mockRejectedValue(new Error("Accepted job is locked"));
+        await expect(saveProgrammePhasesAction(PROJECT_ID, DETAILED_PHASES, null)).rejects.toThrow("Accepted job is locked");
+        mocks.requireProjectAccess.mockRejectedValue(new Error("Unauthorized project access."));
+        await expect(updatePhasesAction(PROJECT_ID, DETAILED_PHASES, undefined, null)).rejects.toThrow("Unauthorized project access.");
+        expect(db.log).toEqual([]);
+        expect(mocks.revalidatePath).not.toHaveBeenCalled();
     });
 });

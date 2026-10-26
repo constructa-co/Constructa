@@ -9,11 +9,15 @@ import {
     estimateSuggestedPhases,
     plannerCalendarDays as toCalendarDays,
     plannerDisplayPlan,
+    plannerPhaseSpan,
     plannerPhasesOnOpen,
     savedPlannerPhases,
     sequenceSuggestedPhases,
+    sequencePlannerPhases,
     type PlannerPhase,
 } from "@/lib/planner-phases";
+import { addJobWorkingDays, jobCalendarOffset, nextJobWorkingDayAfter, resolveJobWorkingPattern } from "@/lib/job-working-pattern";
+import { programmeBasisNote } from "@/lib/relative-programme";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 // Working days for lengths, calendar days from the project start for offsets.
@@ -24,6 +28,7 @@ type ProgrammeWrite = {
     kind: "manual" | "auto";
     operation: symbol;
     context: string;
+    workingPattern?: unknown;
 };
 type ProgrammeSaveStatus = {
     state: "idle" | "saving" | "saved" | "error" | "uncertain";
@@ -56,6 +61,7 @@ interface Props {
         start_date?: string;
         timeline_phases?: Phase[];
         programme_phases?: Phase[];
+        programme_working_pattern?: unknown;
     };
     estimate: Estimate | null;
     projectId: string;
@@ -78,17 +84,15 @@ const PHASE_COLORS = [
 const ROW_H  = 52;
 const BAR_H  = 30;
 const BAR_PAD = (ROW_H - BAR_H) / 2;
-const DEFAULT_DPW = 5; // default working days per week
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** Snap a date forward to the nearest Monday (stays if already Monday). */
-function snapToMonday(date: Date): Date {
+/** The calendar axis starts Monday; the saved job date does not move. */
+function axisMonday(date: Date): Date {
     const d = new Date(date);
     const day = d.getDay(); // 0=Sun, 1=Mon, …6=Sat
     if (day === 1) return d;
-    const daysToAdd = day === 0 ? 1 : 8 - day;
-    d.setDate(d.getDate() + daysToAdd);
+    d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
     return d;
 }
 
@@ -130,6 +134,10 @@ interface DragState {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export default function ClientSchedulePage({ project, estimate, projectId }: Props) {
+    const workingPattern = resolveJobWorkingPattern(project.programme_working_pattern);
+    const usesSavedCalendar = project.programme_working_pattern != null;
+    const daysPerWeek = workingPattern?.weekdays.length ?? 5;
+    const expectedWorkingPattern = project.programme_working_pattern == null ? undefined : workingPattern;
     const [isPending, startTransition] = useTransition();
     const [isDragging, setIsDragging] = useState(false);
     const [showLiveTracking, setShowLiveTracking] = useState(false);
@@ -155,35 +163,22 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const [persistPhases] = useState(() => createLatestWriteQueue(
         (input: ProgrammeWrite) => serializeProgrammeWrite(async () => ({
             input,
-            result: await updatePhasesAction(project.id, input.phases, input.startDate),
+            result: await updatePhasesAction(project.id, input.phases, input.startDate, ...(input.workingPattern === undefined ? [] : [input.workingPattern])),
         })),
     ));
 
-    // ── Working week (persisted in localStorage per project) ──────────────
-    const DPW_KEY = `prog_dpw_${projectId}`;
-    const [daysPerWeek, setDaysPerWeek] = useState<number>(() => {
-        if (typeof window !== "undefined") {
-            const s = localStorage.getItem(DPW_KEY);
-            return s ? parseInt(s, 10) : DEFAULT_DPW;
-        }
-        return DEFAULT_DPW;
-    });
-
-    const handleSetDaysPerWeek = (n: number) => {
-        setDaysPerWeek(n);
-        if (typeof window !== "undefined") localStorage.setItem(DPW_KEY, String(n));
-    };
-
-    // ── Programme start date (always a Monday) ────────────────────────────
+    // Working days come from the saved job, never a browser-only override.
     const [programmeStart, setProgrammeStart] = useState<Date>(() => {
         const base = project.start_date ? new Date(project.start_date + "T00:00:00") : new Date();
-        return snapToMonday(base);
+        // Retain the legacy opening convention until a job explicitly saves its calendar.
+        return usesSavedCalendar ? base : addDays(axisMonday(base), base.getDay() === 1 ? 0 : 7);
     });
 
     const handleStartDateChange = (value: string) => {
         if (!value) return;
-        const d = new Date(value + "T00:00:00");
-        setProgrammeStart(snapToMonday(d));
+        if (!workingPattern) return;
+        const first = addJobWorkingDays(value, 1, workingPattern);
+        if (first) setProgrammeStart(new Date(first + "T00:00:00"));
     };
 
     // ── Phases ────────────────────────────────────────────────────────────
@@ -201,7 +196,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     // from the estimate are only ever a starting point for a job that has
     // no programme, and are not saved by being shown.
     const opening = useMemo(
-        () => plannerPhasesOnOpen(existingPhases, estimate, daysPerWeek),
+        () => plannerPhasesOnOpen(existingPhases, estimate, daysPerWeek, toInputDate(programmeStart), workingPattern),
         // eslint-disable-next-line react-hooks/exhaustive-deps
         []
     );
@@ -229,7 +224,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
         return () => { regenerationMounted.current = false; regenerationRequest.current = null; };
     }, [projectId]);
 
-    const saveContext = JSON.stringify([projectId, project.id, phases, toInputDate(programmeStart)]);
+    const saveContext = JSON.stringify([projectId, project.id, phases, toInputDate(programmeStart), workingPattern]);
     const saveContextRef = useRef(saveContext);
     const latestSaveOperation = useRef<symbol | null>(null);
     const manualSaveRequest = useRef<symbol | null>(null);
@@ -239,9 +234,11 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     useEffect(() => { saveContextRef.current = saveContext; }, [saveContext]);
 
     const saveProgramme = async (kind: ProgrammeWrite["kind"], snapshot: Phase[], startDate: string) => {
+        if (!workingPattern) return;
         const input: ProgrammeWrite = {
             phases: snapshot, startDate, kind, operation: Symbol(kind),
-            context: JSON.stringify([projectId, project.id, snapshot, startDate]),
+            workingPattern: expectedWorkingPattern,
+            context: JSON.stringify([projectId, project.id, snapshot, startDate, workingPattern]),
         };
         latestSaveOperation.current = input.operation;
         setSaveStatus({ ...input, state: "saving" });
@@ -319,6 +316,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 persistPhases({
                     phases: phasesRef.current, startDate: startDateStr, kind: "auto",
                     operation: Symbol("unmount"), context: "unmount",
+                    workingPattern: expectedWorkingPattern,
                 }).catch(console.error);
             }
         };
@@ -326,7 +324,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     }, []);
 
     useEffect(() => {
-        if (phases.length === 0) {
+        if (workingPattern && phases.length === 0) {
             getEstimatePhasesAction(projectId).then((serverPhases) => {
                 if (!regenerationMounted.current || regenerationRequest.current ||
                     regenerationContextRef.current !== regenerationContext || confirmedRegeneration.current) return;
@@ -335,7 +333,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                     // proposal has no programme until the contractor makes one.
                     skipNextAutoSave.current = true;
                     setIsSuggestion(true);
-                    setPhases(sequenceSuggestedPhases(serverPhases, daysPerWeek));
+                    setPhases(sequenceSuggestedPhases(serverPhases, daysPerWeek, toInputDate(programmeStart), workingPattern));
                 }
             });
         }
@@ -343,13 +341,23 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     }, []);
 
     // ── Computed values ───────────────────────────────────────────────────
-    const totalDays = useMemo(() => {
+    const gridStart = axisMonday(programmeStart);
+    const axisLead = jobCalendarOffset(toInputDate(gridStart), toInputDate(programmeStart)) ?? 0;
+    const phaseSpan = (phase: Phase) => (usesSavedCalendar ? plannerPhaseSpan(toInputDate(programmeStart), phase, workingPattern) : null)
+        ?? { startOffset: phase.startOffset, calendarDays: toCalendarDays(phase.manualDays ?? phase.calculatedDays, daysPerWeek) };
+    const nextOffset = (phase: Phase) => {
+        const plan = plannerDisplayPlan(toInputDate(programmeStart), [phase], daysPerWeek, workingPattern);
+        const next = plan && nextJobWorkingDayAfter(plan.end_date, workingPattern);
+        return next ? jobCalendarOffset(toInputDate(programmeStart), next) ?? 0
+            : phase.startOffset + toCalendarDays(phase.manualDays ?? phase.calculatedDays, daysPerWeek);
+    };
+    const totalDays = (() => {
         const max = phases.reduce((m, p) => {
-            const calDur = toCalendarDays(p.manualDays ?? p.calculatedDays, daysPerWeek);
-            return Math.max(m, p.startOffset + calDur);
+            const span = phaseSpan(p);
+            return Math.max(m, axisLead + span.startOffset + span.calendarDays);
         }, 0);
         return Math.max(max, 7);
-    }, [phases, daysPerWeek]);
+    })();
 
     const totalWeeks    = Math.max(Math.ceil(totalDays / 7), 4);
     // Bars, headers, arrows and pointer input share the displayed calendar span.
@@ -358,10 +366,10 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     useEffect(() => { axisDaysRef.current = axisDays; }, [axisDays]);
 
     const totalManhours = phases.reduce((s, p) => s + p.manhours, 0);
-    const displayPlan = plannerDisplayPlan(toInputDate(programmeStart), phases, daysPerWeek);
+    const displayPlan = plannerDisplayPlan(toInputDate(programmeStart), phases, daysPerWeek, workingPattern);
     // Stage offsets are relative to the plan's first activity, not the weekly axis.
     const planAxisOffset = displayPlan
-        ? (Date.parse(displayPlan.start_date) - Date.parse(toInputDate(programmeStart))) / 86_400_000
+        ? jobCalendarOffset(toInputDate(gridStart), displayPlan.start_date) ?? 0
         : 0;
     const datedSpans = displayPlan?.stages.map(stage => ({
         startOffset: planAxisOffset + stage.offset_days,
@@ -370,22 +378,23 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     // Legacy dates outside this axis keep the existing geometry rather than being clipped or rewritten.
     const useDatedSpans = datedSpans?.every(span => span.startOffset >= 0 && span.startOffset + span.calendarDays <= axisDays);
     const barSpans = phases.map((phase, index) => useDatedSpans ? datedSpans![index] : {
-        startOffset: phase.startOffset,
-        calendarDays: toCalendarDays(phase.manualDays ?? phase.calculatedDays, daysPerWeek),
+        startOffset: axisLead + phaseSpan(phase).startOffset,
+        calendarDays: phaseSpan(phase).calendarDays,
     });
     const displayedStart = displayPlan ? new Date(displayPlan.start_date + "T00:00:00") : programmeStart;
-    const projectEnd    = displayPlan ? new Date(displayPlan.end_date + "T00:00:00") : addDays(programmeStart, totalDays);
+    const projectEnd    = displayPlan ? new Date(displayPlan.end_date + "T00:00:00") : addDays(gridStart, totalDays);
     const totalHeight   = phases.length * ROW_H;
 
     // Critical path: phases ending within the last calendar week
-    const criticalSet = useMemo(() => {
+    const criticalSet = (() => {
         const s = new Set<number>();
         phases.forEach((p, i) => {
-            const end = p.startOffset + toCalendarDays(p.manualDays ?? p.calculatedDays, daysPerWeek);
+            const span = phaseSpan(p);
+            const end = axisLead + span.startOffset + span.calendarDays;
             if (end >= totalDays - 6) s.add(i);
         });
         return s;
-    }, [phases, totalDays, daysPerWeek]);
+    })();
 
     // Label the whole axis with bounded calendar-week groups, always starting Monday.
     const weekHeaders = useMemo(
@@ -394,7 +403,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             return Array.from({ length: Math.ceil(totalWeeks / weeksPerHeader) }, (_, i) => {
                 const weekIndex = i * weeksPerHeader;
                 const weeks = Math.min(weeksPerHeader, totalWeeks - weekIndex);
-                const weekMon = addDays(programmeStart, weekIndex * 7);
+                const weekMon = addDays(axisMonday(programmeStart), weekIndex * 7);
                 const label = weeks === 1 ? `W${weekIndex + 1}` : `W${weekIndex + 1}-W${weekIndex + weeks}`;
                 return {
                     weekIndex, weeks, label, date: fmtDate(weekMon),
@@ -425,7 +434,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             capturedTotalDays: axisDaysRef.current,
         };
         setIsDragging(true);
-    }, []);
+    }, [setIsDragging]);
 
     useEffect(() => {
         const onMouseMove = (e: MouseEvent) => {
@@ -446,7 +455,8 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 const snapped = Math.max(0, Math.round((drag.originalValue + deltaDays) / 7) * 7);
                 setPhases((prev) => {
                     const u = [...prev];
-                    u[drag.phaseIndex] = { ...u[drag.phaseIndex], startOffset: snapped };
+                    u[drag.phaseIndex] = { ...u[drag.phaseIndex], startOffset: snapped,
+                        ...("start_date" in u[drag.phaseIndex] ? { start_date: toInputDate(addDays(programmeStart, snapped)) } : {}) };
                     return u;
                 });
             } else {
@@ -475,7 +485,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             document.removeEventListener("mousemove", onMouseMove);
             document.removeEventListener("mouseup", onMouseUp);
         };
-    }, [daysPerWeek]);
+    }, [daysPerWeek, programmeStart]);
 
     // ── Phase mutations ───────────────────────────────────────────────────
     const updatePhaseName = (idx: number, name: string) =>
@@ -495,8 +505,9 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             // Snap successor to start exactly when predecessor finishes
             if (depIdx >= 0 && depIdx < prev.length) {
                 const pred = u[depIdx];
-                const predEnd = pred.startOffset + toCalendarDays(pred.manualDays ?? pred.calculatedDays, daysPerWeek);
-                u[idx] = { ...u[idx], startOffset: predEnd };
+                const predEnd = nextOffset(pred);
+                u[idx] = { ...u[idx], startOffset: predEnd,
+                    ...("start_date" in u[idx] ? { start_date: toInputDate(addDays(programmeStart, predEnd)) } : {}) };
             }
             return u;
         });
@@ -516,7 +527,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
     const addPhase = () => {
         const maxEnd = phases.reduce(
-            (m, p) => Math.max(m, p.startOffset + toCalendarDays(p.manualDays ?? p.calculatedDays, daysPerWeek)), 0
+            (m, p) => Math.max(m, nextOffset(p)), 0
         );
         setPhases((prev) => [
             ...prev,
@@ -525,14 +536,9 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     };
 
     const sequencePhases = () => {
-        setPhases((prev) => {
-            let offset = 0;
-            return prev.map((p) => {
-                const phase = { ...p, startOffset: offset };
-                offset += toCalendarDays(p.manualDays ?? p.calculatedDays, daysPerWeek);
-                return phase;
-            });
-        });
+        const sequenced = sequencePlannerPhases(phases, toInputDate(programmeStart), workingPattern);
+        if (!sequenced) { toast.error("Check every stage's duration before sequencing. Nothing changed."); return; }
+        setPhases(sequenced);
         toast.success("Phases sequenced with no gaps");
     };
 
@@ -576,12 +582,12 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 const serverPhases = await getEstimatePhasesAction(projectId);
                 if (!isCurrent()) return;
                 if (serverPhases.length > 0) {
-                    const resequenced = sequenceSuggestedPhases(serverPhases, daysPerWeek);
+                    const resequenced = sequenceSuggestedPhases(serverPhases, daysPerWeek, toInputDate(programmeStart), workingPattern);
                     const saved = await serializeProgrammeWrite(async () => {
                         if (!isCurrent()) return false;
                         attemptedSave = true;
                         // This existing action resolves only after its guarded write; refusals throw.
-                        await saveProgrammePhasesAction(projectId, resequenced);
+                        await saveProgrammePhasesAction(projectId, resequenced, expectedWorkingPattern, toInputDate(programmeStart));
                         return true;
                     });
                     if (!saved) return;
@@ -594,13 +600,13 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                     confirmedRegeneration.current = { phases: resequenced, programmeStart };
                     setSaveStatus({
                         state: "idle", kind: "manual", operation: null,
-                        context: JSON.stringify([projectId, project.id, resequenced, toInputDate(programmeStart)]),
+                        context: JSON.stringify([projectId, project.id, resequenced, toInputDate(programmeStart), workingPattern]),
                     });
                     setPhases(previous => previous === phases ? resequenced : previous);
                     setIsSuggestion(false);
                     toast.success("Programme regenerated from estimate and saved");
                 } else {
-                    const regenerated = estimateSuggestedPhases(estimate, daysPerWeek);
+                    const regenerated = estimateSuggestedPhases(estimate, daysPerWeek, toInputDate(programmeStart), workingPattern);
                     if (regenerated.length > 0) {
                         setPhases(previous => previous === phases ? regenerated : previous);
                         toast.success("Estimate stages prepared; existing programme autosave will save them");
@@ -626,6 +632,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     };
 
     // ── Render ────────────────────────────────────────────────────────────
+    if (!workingPattern) return <p role="alert">Check this job&apos;s saved working days before editing its programme.</p>;
     return (
         <div className="space-y-6">
 
@@ -683,7 +690,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         />
                     </div>
                     <span className="text-[10px] text-slate-600">
-                        Mon {fmtDate(programmeStart)}
+                        {fmtDate(programmeStart)}
                     </span>
                 </div>
 
@@ -692,29 +699,14 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 {/* Working week */}
                 <div className="flex items-center gap-2.5">
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Working week</span>
-                    <div className="flex rounded-lg overflow-hidden border border-slate-700">
-                        {[4, 5, 6, 7].map((n) => (
-                            <button
-                                key={n}
-                                type="button"
-                                onClick={() => handleSetDaysPerWeek(n)}
-                                className={[
-                                    "px-3 py-1.5 text-xs font-semibold border-r border-slate-700 last:border-0 transition-colors",
-                                    daysPerWeek === n
-                                        ? "bg-[#a5e8b8] text-[#10291b]"
-                                        : "bg-slate-800/60 text-slate-400 hover:bg-slate-700 hover:text-slate-200",
-                                ].join(" ")}
-                            >
-                                {n}d
-                            </button>
-                        ))}
-                    </div>
-                    <span className="text-[10px] text-slate-600">
-                        {daysPerWeek === 5 ? "Mon–Fri" : daysPerWeek === 6 ? "Mon–Sat" : daysPerWeek === 4 ? "Mon–Thu" : "7 days"}
+                    <span className="text-xs text-slate-300" data-planner-saved-working-days>
+                        {workingPattern?.weekdays.map(day => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][day]).join(", ")}
                     </span>
+                    <span className="text-xs text-slate-400">Change working days in the timing editor above, save, then reopen this planner.</span>
                 </div>
             </div>
 
+            {displayPlan && <p className="text-xs text-slate-400" data-planner-calendar-basis>{programmeBasisNote(displayPlan)}</p>}
             {/* ── Summary strip ── */}
             {phases.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -807,6 +799,12 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                     className="shrink-0 min-w-0 text-center py-1.5 border-r border-slate-700/20 last:border-0" style={{ width: `${wk.weeks / totalWeeks * 100}%` }}>
                                     <div className="text-[9px] font-bold text-slate-500 leading-tight truncate">{wk.label}</div>
                                     <div className="text-[8px] text-slate-600 leading-tight truncate hidden md:block">{wk.date}</div>
+                                    {wk.weeks === 1 && <div className="grid grid-cols-7 mt-1" aria-label="Calendar days Monday to Sunday">
+                                        {[1, 2, 3, 4, 5, 6, 0].map(day => <span key={day} data-planner-calendar-day={day}
+                                            data-working-day={workingPattern?.weekdays.includes(day) ? "true" : "false"}
+                                            className={workingPattern?.weekdays.includes(day) ? "text-[10px] text-slate-300" : "text-[10px] text-slate-500"}
+                                        >{["S", "M", "T", "W", "T", "F", "S"][day]}</span>)}
+                                    </div>}
                                 </div>
                             ))}
                         </div>
@@ -1068,8 +1066,7 @@ function LiveTrackingPanel({
         : 0;
     const complete = phases.filter(p => (p.pct_complete ?? 0) === 100).length;
     const inProgress = phases.filter(p => (p.pct_complete ?? 0) > 0 && (p.pct_complete ?? 0) < 100).length;
-    // Use the same complete five-day plan as the chart, including its inclusive finish.
-    // Other working weeks and invalid/partial plans keep the existing tracking fallback.
+    // The chart and tracking share the saved calendar and inclusive finish.
     const plannedDates = phases.map((phase, index) => {
         const stage = displayPlan?.stages[index];
         if (stage) return { start: new Date(stage.start_date + "T00:00:00"), end: new Date(stage.end_date + "T00:00:00") };

@@ -80,8 +80,8 @@ describe("timeline-first simple programme workspace", () => {
         const entry = nodes(parent({ project: selected })).find(n => typeof n.type === "function" && n.props.initial)!;
         const tree = (entry.type as (props: unknown) => Element)(entry.props);
         expect(nodes(tree).find(n => n.props.id === "programme-weekend-6")!.props.checked).toBe(true);
-        expect(renderToStaticMarkup(parent({ project: selected }))).toContain("data-calendar-planner-note");
-        expect(renderToStaticMarkup(parent({ project: selected }))).not.toContain("Detailed programme planner");
+        expect(renderToStaticMarkup(parent({ project: selected }))).not.toContain("data-calendar-planner-note");
+        expect(renderToStaticMarkup(parent({ project: selected }))).toContain("Detailed programme planner");
         expect(hooks.save).not.toHaveBeenCalled();
     });
 
@@ -101,6 +101,23 @@ describe("timeline-first simple programme workspace", () => {
         const next = nodes(parent({ project: selected })).find(n => typeof n.type === "function" && n.props.initial)!;
         expect(next.props.initial).toMatchObject({ kind: "simple", hasSaved: false, draft: { workingPattern: pattern } });
         expect(hooks.save).not.toHaveBeenCalled();
+    });
+
+    it.each([null, undefined])("keeps the implicit calendar baseline when starting from a legacy timeline (%s)", async workingPattern => {
+        const selected = { ...project, programme_working_pattern: workingPattern,
+            gantt_phases: [{ name: "Existing job stage", duration_days: 3, start_date: "2026-10-16" }] };
+        const start = nodes(parent({ project: selected })).find(n => typeof n.props.onStartSimple === "function")!;
+        (start.props.onStartSimple as () => void)();
+        const entry = nodes(parent({ project: selected })).find(n => typeof n.type === "function" && n.props.initial)!;
+        const initial = entry.props.initial as { draft: Parameters<typeof initialProgrammeState>[0] };
+        expect(initial.draft.workingPattern).toBeUndefined();
+        hooks.state = initialProgrammeState({ ...initial.draft, startDate: "2026-10-16", duration: "2", unit: "days" }, false);
+        const tree = (entry.type as (props: unknown) => Element)(entry.props);
+        (nodes(tree).find(n => n.type === "form")!.props.onSubmit as (event: unknown) => void)({ preventDefault: vi.fn() });
+        await vi.waitFor(() => expect(hooks.state!.save.status).toBe("idle"));
+        expect(hooks.save).toHaveBeenCalledTimes(1);
+        expect(hooks.save.mock.calls[0][0]).not.toHaveProperty("workingPattern");
+        expect(hooks.save.mock.calls[0][0]).not.toHaveProperty("expectedWorkingPattern");
     });
 
     it("switches to relative days without saving or losing the entered date, then submits only explicit relative intent", async () => {
@@ -198,5 +215,39 @@ describe("timeline-first simple programme workspace", () => {
         const buttons = nodes(editor()).filter(n => n.type === "button" && n.props.type === "submit");
         expect(buttons).toHaveLength(2); expect(buttons.every(n => n.props.disabled)).toBe(true);
         release(); await vi.waitFor(() => expect(hooks.state!.save.status).toBe("idle"));
+    });
+
+    it("toggles the actual Sunday checkbox independently of Saturday: Sunday-only, both-on, and unchecking Saturday alone", () => {
+        hooks.state = initialProgrammeState({ ...emptyProgrammeDraft("2026-10-16"), duration: "2", unit: "days" }, true);
+        const dayBox = (day: number) => nodes(editor()).find(n => n.type === "input" && n.props.id === `programme-weekend-${day}`)!;
+        // Default Monday-Friday: both weekend boxes are off and a Friday start
+        // plus 2 working days lands on the Monday.
+        expect(dayBox(0).props.checked).toBe(false);
+        expect(dayBox(6).props.checked).toBe(false);
+        expect(renderToStaticMarkup(editor())).toContain("19 October 2026");
+        // Sunday-only is a different calendar from Saturday: day 1 is Friday
+        // 16 October and day 2 is Sunday 18 October, not Saturday 17 October.
+        (dayBox(0).props.onChange as (event: unknown) => void)({ target: { checked: true } });
+        expect(hooks.state!.draft.workingPattern).toEqual({ version: 1, weekdays: [0, 1, 2, 3, 4, 5] });
+        expect(dayBox(0).props.checked).toBe(true);
+        expect(dayBox(6).props.checked).toBe(false);
+        expect(renderToStaticMarkup(editor())).toContain("18 October 2026");
+        expect(renderToStaticMarkup(editor())).not.toContain("17 October 2026");
+        expect(hooks.save).not.toHaveBeenCalled();
+        // Both weekend days on: the same Friday plus 2 working days now ends
+        // on Saturday, a day earlier than the Sunday-only week.
+        (dayBox(6).props.onChange as (event: unknown) => void)({ target: { checked: true } });
+        expect(hooks.state!.draft.workingPattern).toEqual({ version: 1, weekdays: [0, 1, 2, 3, 4, 5, 6] });
+        expect(dayBox(0).props.checked).toBe(true);
+        expect(dayBox(6).props.checked).toBe(true);
+        expect(renderToStaticMarkup(editor())).toContain("17 October 2026");
+        // Unchecking Saturday alone returns to the exact Sunday-only week,
+        // with Sunday still on: it is not a weekday-count toggle.
+        (dayBox(6).props.onChange as (event: unknown) => void)({ target: { checked: false } });
+        expect(hooks.state!.draft.workingPattern).toEqual({ version: 1, weekdays: [0, 1, 2, 3, 4, 5] });
+        expect(dayBox(0).props.checked).toBe(true);
+        expect(dayBox(6).props.checked).toBe(false);
+        expect(renderToStaticMarkup(editor())).toContain("18 October 2026");
+        expect(hooks.save).not.toHaveBeenCalled();
     });
 });

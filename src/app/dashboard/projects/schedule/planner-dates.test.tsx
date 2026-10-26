@@ -88,10 +88,39 @@ describe("five-day detailed planner date presentation", () => {
         expect(html).not.toContain("18 Jan 27");
     });
 
-    it.each([4, 6, 7])("leaves the existing %i-day planner calculation unchanged", days => {
+    it.each([4, 6, 7])("ignores an old browser-only %i-day override rather than diverging from the saved job", days => {
         const html = render(phases, "2026-10-19", days);
-        expect(html).toContain(days === 4 ? "16 Nov 26" : days === 6 ? "9 Nov 26" : "7 Nov 26");
-        expect(html).not.toContain("15 working days / 19 calendar days");
+        expect(html).toContain("6 Nov 26");
+        expect(html).toContain("15 working days / 19 calendar days");
+    });
+
+    it.each([[1, 2, 3, 4, 5, 6], [0, 1, 2, 3, 4, 5, 6]].map(weekdays => ({ weekdays })))("uses the saved weekend pattern $weekdays and shows all seven calendar days without writes", ({ weekdays }) => {
+        const html = renderToStaticMarkup(<ClientSchedulePage project={{ id: "weekend", name: "Example", start_date: "2026-10-16",
+            programme_phases: [phase("Works", 0, 2)], programme_working_pattern: { version: 1, weekdays } }} projectId="weekend" estimate={null} />);
+        expect(html).toContain('value="2026-10-16"');
+        expect(html).toContain("16 Oct – 17 Oct");
+        expect(html).toContain("2 working days / 2 calendar days");
+        expect(html).toContain('aria-label="W1: 2026-10-12 to 2026-10-18"');
+        for (const day of [0, 1, 2, 3, 4, 5, 6]) expect(html).toContain(`data-planner-calendar-day="${day}" data-working-day="${weekdays.includes(day) ? "true" : "false"}"`);
+        expect(html).toContain("Bank holidays are not allowed for.");
+        expect(html).not.toContain("prog_dpw_");
+    });
+
+    it("keeps a saved Wednesday start instead of moving it to the next Monday", () => {
+        const html = renderToStaticMarkup(<ClientSchedulePage project={{ id: "midweek", name: "Example", start_date: "2026-10-21",
+            programme_phases: [phase("Works", 0, 1)], programme_working_pattern: { version: 1, weekdays: [1, 2, 3, 4, 5] } }} projectId="midweek" estimate={null} />);
+        expect(html).toContain('value="2026-10-21"');
+        expect(html).toContain("21 Oct – 21 Oct");
+        expect(html).toContain('aria-label="W1: 2026-10-19 to 2026-10-25"');
+    });
+
+    it("does not add the Friday axis lead twice when an explicit-calendar plan is incomplete", () => {
+        const html = renderToStaticMarkup(<ClientSchedulePage project={{ id: "partial", name: "Example", start_date: "2026-10-16",
+            programme_phases: [phase("Works", 0, 2), phase("Needs duration", 0, 0)],
+            programme_working_pattern: { version: 1, weekdays: [1, 2, 3, 4, 5, 6] } }} projectId="partial" estimate={null} />);
+        expect(html).toContain("19 Oct 26");
+        expect(html).not.toContain("23 Oct 26");
+        expect(html).toContain('value="Needs duration"');
     });
 
     it("keeps an undated stage visible instead of presenting a partial canonical plan", () => {

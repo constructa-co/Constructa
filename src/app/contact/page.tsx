@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Contact | Constructa",
+  description: "If you've got a question, suggestion, or want early access—we'd love to hear from you.",
+};
+
 export default function ContactPage() {
   return (
     <main className="min-h-screen pt-16 bg-black">

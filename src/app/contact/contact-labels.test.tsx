@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import ContactPage from "./page";
+import ContactPage, { metadata } from "./page";
 
 type Element = ReactElement<Record<string, unknown>>;
 function nodes(value: unknown): Element[] {
@@ -75,5 +75,14 @@ describe("actual contact form labels", () => {
         expect(markup).toContain("Your Name");
         expect(markup).toContain("Your Email");
         expect(markup).toContain("Your Message");
+    });
+});
+
+describe("actual contact route metadata", () => {
+    it("exports named Contact | Constructa metadata from the page module", () => {
+        expect(metadata).toEqual({
+            title: "Contact | Constructa",
+            description: "If you've got a question, suggestion, or want early access—we'd love to hear from you.",
+        });
     });
 });

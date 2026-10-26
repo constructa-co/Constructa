@@ -163,6 +163,25 @@ describe("actual project-entry effect and retry control", () => {
         expect(text(view())).toContain("could not be opened"); expect(text(view())).not.toContain("private router detail");
         effects(); expect(current.replace).toHaveBeenCalledOnce();
     });
+    it("recovers through the explicit retry after a router failure by rechecking changed memory and the guard", () => {
+        current.query = "tab=estimate-b&view=details&tag=a&tag=b"; window.location.hash = "#price";
+        current.getItem.mockReturnValue(null);
+        current.replace.mockImplementationOnce(() => { throw Error("private router detail"); });
+        view(); effects();
+        expect(text(view())).toContain("could not be opened"); expect(text(view())).not.toContain("private router detail");
+        effects(); view(); effects();
+        expect(current.replace).toHaveBeenCalledExactlyOnceWith(`${path}?tab=estimate-b&view=details&tag=a&tag=b&projectId=newest#price`, { scroll: false });
+
+        current.getItem.mockReturnValue("older");
+        const button = nodes(view()).find(node => node.type === "button")!;
+        (button.props.onClick as () => void)(); view(); effects();
+        expect(current.dispatch).toHaveBeenCalledTimes(2);
+        expect(current.getItem).toHaveBeenCalledTimes(2);
+        expect(current.replace).toHaveBeenCalledTimes(2);
+        expect(current.replace).toHaveBeenLastCalledWith(`${path}?tab=estimate-b&view=details&tag=a&tag=b&projectId=older#price`, { scroll: false });
+        expect(text(view())).toContain("Opening your project");
+        expect(current.setItem).not.toHaveBeenCalled(); expect(current.removeItem).not.toHaveBeenCalled();
+    });
     it("does not invent or load a job when the owner list is empty", () => {
         view([]); effects();
         expect(current.replace).not.toHaveBeenCalled(); expect(current.dispatch).not.toHaveBeenCalled();

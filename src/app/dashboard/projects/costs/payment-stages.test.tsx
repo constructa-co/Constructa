@@ -114,4 +114,20 @@ describe("explicit payment stages while pricing", () => {
         expect(button("Add payment stage").disabled).toBe(true); expect(nodes(view()).filter(n => n.type === "input")).toHaveLength(36);
         expect(replay.save).not.toHaveBeenCalled();
     });
+    it("shows a draft percentage total for valid multi-stage shares before save", () => {
+        draft(); click("Add payment stage"); change("Stage 2 name", "Later"); change("Stage 2 percentage", "30"); change("Stage 2 due", "After");
+        expect(text(view())).toContain("Draft percentage total (not saved): 70%");
+        expect(nodes(view()).find(n => n.props["aria-label"] === "Stage 1 percentage")!.props.value).toBe("40");
+        expect(nodes(view()).find(n => n.props["aria-label"] === "Stage 2 percentage")!.props.value).toBe("30");
+        change("Stage 2 percentage", "35");
+        expect(text(view())).toContain("Draft percentage total (not saved): 75%");
+        expect(nodes(view()).find(n => n.props["aria-label"] === "Stage 2 percentage")!.props.value).toBe("35");
+        expect(replay.save).not.toHaveBeenCalled(); expect(nodes(view()).some(n => n.type === "form")).toBe(true);
+    });
+    it("keeps a check-input draft total fallback for invalid raw percentages", () => {
+        draft(); change("Stage 1 percentage", "abc");
+        expect(text(view())).toContain("Check the stage names and percentages."); expect(text(view())).not.toContain("NaN");
+        expect(nodes(view()).find(n => n.props["aria-label"] === "Stage 1 percentage")!.props.value).toBe("abc");
+        expect(replay.save).not.toHaveBeenCalled();
+    });
 });

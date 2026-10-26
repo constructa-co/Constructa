@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { buildProposalPayload, draftFromProject, MAX_PAYMENT_STAGES, type PaymentStageDraft } from "@/lib/proposal-review";
+import { roundMoney } from "@/lib/financial";
 import { useReducerStore } from "@/lib/use-reducer-store";
 import type { WorkspaceStyles } from "@/lib/workspace-styles";
 import { savePricingPaymentStagesAction } from "../proposal/actions";
@@ -27,6 +28,11 @@ export default function PricingPaymentStages({ projectId, schedule, lockReason, 
     const [state, store] = useReducerStore(patchState, () => ({ saved: supported ? schedule : null,
         rows: supported ? rowsFrom(schedule) : [], editing: false, pending: false, uncertain: false, message: "" }));
     const proposalHref = `/dashboard/projects/proposal?projectId=${encodeURIComponent(projectId)}#review-payments`;
+    const builtDraft = supported && state.editing ? buildProposalPayload({
+        ...draftFromProject({ id: projectId, name: "", payment_schedule: null }, () => "draft-total"), payments: state.rows,
+    }) : null;
+    const draftPercentageTotal = builtDraft?.ok && builtDraft.payload.paymentSchedule?.length
+        ? roundMoney(builtDraft.payload.paymentSchedule.reduce((sum, row) => sum + row.percentage, 0)) : null;
     const change = (rows: PaymentStageDraft[]) => {
         const fresh = store.getState();
         if (!fresh.editing || fresh.pending || fresh.uncertain || lockReason || !supported) return;
@@ -63,6 +69,7 @@ export default function PricingPaymentStages({ projectId, schedule, lockReason, 
                 }}>{state.saved?.length ? "Edit payment stages" : "Set payment stages"}</button>
             </> : <form className="mt-4 space-y-4" onSubmit={event => { event.preventDefault(); void submit(); }}>
                 <p className={`text-sm ${s.muted}`}>Unsaved payment-stage draft. Enter your own stages and percentages; the total must not exceed 100%.</p>
+                <p className={`text-sm ${s.muted}`}>Draft percentage total (not saved): <output aria-label="Draft percentage total (not saved)" aria-live="polite">{draftPercentageTotal === null ? "Check the stage names and percentages." : `${draftPercentageTotal}%`}</output></p>
                 <fieldset disabled={state.pending || state.uncertain} className="space-y-4 min-w-0">
                     {state.rows.map((row, index) => <div key={row.key} className="grid gap-3 sm:grid-cols-2">
                         <label className={s.label}>Stage {index + 1}<input aria-label={`Stage ${index + 1} name`} maxLength={200} className={s.input} value={row.stage}

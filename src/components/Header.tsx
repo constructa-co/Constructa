@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import FeatureDropdown from './FeatureDropdown';
 import { getLaunchProfile } from '@/lib/launch-profile';
 import { MarketingHeader } from './marketing/phase-one';
+import { SidebarBrand } from './sidebar-brand';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -23,7 +24,7 @@ const Header = () => {
             {/* Left column - Logo */}
             <div className="flex items-center">
               <a href="/" className="text-2xl font-semibold text-white hover:opacity-90 transition-opacity">
-                CONSTRUCTA
+                <SidebarBrand />
               </a>
             </div>
 
@@ -65,7 +66,7 @@ const Header = () => {
           {/* Left column - Logo */}
           <div className="flex items-center">
             <a href="/" className="text-2xl font-semibold text-white hover:opacity-90 transition-opacity">
-              CONSTRUCTA
+              <SidebarBrand />
             </a>
           </div>
 

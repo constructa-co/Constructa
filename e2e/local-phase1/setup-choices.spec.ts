@@ -282,6 +282,119 @@ test.describe("phone 390x844", () => {
         await assertRefusedTradeSaveThenRetry(page);
         expect(await page.evaluate(() => window.__phase1Local.calls.length)).toBe(2);
     });
+
+    test("refused trade save keeps draft and pinned retry reachable after scrolling, then acknowledged retry reaches the business heading and form", async ({ page }) => {
+        // The actual heading element on each step is the h1 inside the legend
+        // (legend.session_heading), not the legend itself.
+        const tradeHeading = page.getByRole("heading", { name: "What kind of work do you do?", exact: true });
+        const businessHeading = page.getByRole("heading", { name: "Let's make it yours.", exact: true });
+        const work = page.locator("#setup-work");
+        const roofing = suggestionGroup(page).getByRole("button", { name: "Roofing", exact: true });
+
+        // Geometry collector local to this case only. Every measurement is
+        // attached as JSON data; this case asserts behaviour, never sizes,
+        // positions, or whole-page height caps.
+        const collectGeometry = async (label: string) => {
+            const geometry = await page.evaluate(() => {
+                const rectOf = (element: Element | null) => {
+                    if (!element) return null;
+                    const rect = element.getBoundingClientRect();
+                    const style = getComputedStyle(element);
+                    return {
+                        top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right,
+                        width: rect.width, height: rect.height, position: style.position,
+                    };
+                };
+                return {
+                    viewport: { width: window.innerWidth, height: window.innerHeight },
+                    document: {
+                        scrollHeight: document.documentElement.scrollHeight,
+                        clientHeight: document.documentElement.clientHeight,
+                        scrollY: window.scrollY,
+                    },
+                    frameHeader: rectOf(document.querySelector(".session_header")),
+                    heading: rectOf(document.querySelector("legend.session_heading h1")),
+                    form: rectOf(document.querySelector("form.session_setupForm")),
+                    saveBar: rectOf(document.querySelector(".session_saveBar")),
+                    alert: rectOf(document.querySelector('[role="alert"]')),
+                    tryAgain: rectOf(document.querySelector(".session_saveBar button[type='submit']")),
+                };
+            });
+            await test.info().attach(`refused-retry-geometry-${label}`, {
+                body: JSON.stringify({ label, ...geometry }),
+                contentType: "application/json",
+            });
+        };
+
+        await work.fill("Exact custom trade answer");
+        await roofing.click();
+        await expect(work).toHaveValue(TRADE_ANSWER_FOR_SAVE);
+        await expect(roofing).toHaveAttribute("aria-pressed", "true");
+        await expect(tradeHeading).toBeVisible();
+        await collectGeometry("trade-initial");
+
+        await page.evaluate(() => {
+            window.__phase1Local.nextSave = "refused";
+        });
+        await page.getByRole("button", { name: "Save and continue", exact: true }).click();
+        await expect(page.getByRole("alert")).toHaveText("Local fixture: save not acknowledged.");
+
+        // Refusal retains the exact draft, the selected suggestion, the single
+        // attempted call, an untouched profile, and no navigation.
+        const tryAgain = page.getByRole("button", { name: "Try again", exact: true });
+        await expect(work).toHaveValue(TRADE_ANSWER_FOR_SAVE);
+        await expect(roofing).toHaveAttribute("aria-pressed", "true");
+        await expect(page.getByLabel("What kind of work do you do?", { exact: true })).toBeVisible();
+        await expect(tryAgain).toBeVisible();
+        await collectGeometry("trade-refused");
+
+        const afterRefusal: Pick<LocalCompanyFixture, "calls" | "profile" | "navigation"> = await page.evaluate(() => ({
+            calls: window.__phase1Local.calls,
+            profile: window.__phase1Local.profile,
+            navigation: window.__phase1Local.navigation,
+        }));
+        expect(afterRefusal.calls).toEqual([{ step: "trade", businessType: TRADE_ANSWER_FOR_SAVE }]);
+        expect(afterRefusal.profile.business_type).toBeUndefined();
+        expect(afterRefusal.navigation).toEqual([]);
+
+        // Scroll to the actual retry control; visibility at document top is not a gate.
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await expect(tradeHeading).toBeVisible();
+        await collectGeometry("refused-scrolled-top");
+
+        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+        await tryAgain.scrollIntoViewIfNeeded();
+        await expect(tryAgain).toBeVisible();
+        await expect(tryAgain).toBeInViewport();
+        await collectGeometry("refused-scrolled-to-control");
+
+        // Deliberate acknowledged retry: set the outcome explicitly, then act.
+        await page.evaluate(() => {
+            window.__phase1Local.nextSave = "acknowledged";
+        });
+        await tryAgain.click();
+
+        // The acknowledged retry reaches the existing business step header,
+        // heading, form, and saved-trade note.
+        await expect(businessHeading).toBeVisible();
+        await expect(page.getByText("Step 2 of 2", { exact: true })).toBeVisible();
+        await expect(page.getByLabel("Business or trading name")).toBeVisible();
+        await expect(page.getByText(`Saved: ${TRADE_ANSWER_FOR_SAVE}`)).toBeVisible();
+        await collectGeometry("business-after-retry");
+
+        const afterRetry: Pick<LocalCompanyFixture, "calls" | "profile" | "navigation"> = await page.evaluate(() => ({
+            calls: window.__phase1Local.calls,
+            profile: window.__phase1Local.profile,
+            navigation: window.__phase1Local.navigation,
+        }));
+        expect(afterRetry.calls).toEqual([
+            { step: "trade", businessType: TRADE_ANSWER_FOR_SAVE },
+            { step: "trade", businessType: TRADE_ANSWER_FOR_SAVE },
+        ]);
+        expect(afterRetry.profile.business_type).toBe(TRADE_ANSWER_FOR_SAVE);
+        expect(afterRetry.navigation).toEqual([]);
+        await page.screenshot({ path: path.join(output, "phone-refused-retry-scroll.png"), fullPage: true });
+    });
 });
 
 test.describe("narrow phone 320x844", () => {

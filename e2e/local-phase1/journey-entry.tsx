@@ -79,7 +79,7 @@ export interface LocalJourneyFixture {
     inclusionSaves: boolean[];
     proposalDraftSaves: number;
     publicationsAttempted: number;
-    proposalContext: { startDate: string | null; phases: unknown[] | null } | null;
+    proposalContext: { startDate: string | null; phases: unknown[] | null; workingPattern?: unknown } | null;
     routerRefreshes: number;
     programmeNextSave: "success" | "refused";
     projectRow: ReviewProject;
@@ -352,8 +352,11 @@ const saveProgramme: SaveProgramme = async (input) => {
         ...fixture.projectRow,
         start_date: input.timeBasis === "relative" ? null : input.startDate,
         programme_phases: buildProgrammePhases(input, fixture.projectRow.programme_phases),
+        ...(input.workingPattern === undefined ? {} : { programme_working_pattern: structuredClone(input.workingPattern) }),
     };
-    return { success: true };
+    return input.workingPattern === undefined
+        ? { success: true }
+        : { success: true, confirmedProject: { programme_working_pattern: structuredClone(fixture.projectRow.programme_working_pattern) } };
 };
 
 const saveInclusion: SaveProgrammeInclusion = async (include) => {
@@ -403,6 +406,9 @@ function renderProposal() {
     fixture.proposalContext = {
         startDate: fixture.projectRow.start_date ?? null,
         phases: structuredClone(fixture.projectRow.programme_phases ?? null),
+        ...(fixture.projectRow.programme_working_pattern === undefined ? {} : {
+            workingPattern: structuredClone(fixture.projectRow.programme_working_pattern),
+        }),
     };
     fixture.view = "proposal";
     root.render(<ReviewSendClient

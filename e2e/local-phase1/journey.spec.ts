@@ -221,3 +221,147 @@ test("company through first job, brief, seeded pricing, programme and draft PDF 
     await info.attach("scope", { body: JSON.stringify({ ...scope, requestId, requests }), contentType: "application/json" });
     await page.screenshot({ path: path.join(output, "joined-journey.png"), fullPage: true });
 });
+
+test("A059 weekend working days survive a refused programme save and carry into the proposal document", async ({ page }, info) => {
+    await page.getByLabel("What kind of work do you do?", { exact: true }).fill(WORK_TYPE);
+    await page.getByRole("button", { name: "Save and continue", exact: true }).click();
+    await page.getByLabel("Business or trading name").fill(COMPANY);
+    await page.getByLabel("Your name", { exact: false }).fill(OPERATOR);
+    await page.getByRole("button", { name: "Save and continue", exact: true }).click();
+    await expect(page.getByRole("heading", { name: COMPANY, exact: true })).toBeVisible();
+
+    await page.locator('[data-welcome-step="proposal"]').click();
+    await expect(page.getByRole("heading", { name: "Add your first job", exact: true })).toBeVisible();
+
+    await fillNewJob(page);
+    await page.getByRole("button", { name: CREATE, exact: true }).click();
+    await expect(page.getByText(`${JOB} for ${CLIENT}`, { exact: true })).toBeVisible();
+
+    const created = await snapshot(page);
+    const requestId = created.attempts[0].requestId;
+    expect(requestId).toMatch(UUID);
+    expect(created.jobId).toBe(requestId);
+
+    await page.getByLabel("Describe the job in your own words").fill(WORK);
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    const entry = page.getByLabel("Activity to add");
+    for (const activity of ACTIVITIES) {
+        await entry.fill(activity);
+        await page.getByRole("button", { name: "Add activity", exact: true }).click();
+    }
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    await expect(page.getByText(SITE, { exact: true })).toBeVisible();
+    await expect(page.locator("[data-brief-site-context]")).toContainText(START_SHOWN);
+    await page.getByRole("button", { name: "Save and build the price", exact: true }).click();
+
+    await expect(page.getByRole("heading", { name: "Build the price", exact: true })).toBeVisible();
+    await page.getByRole("link", { name: /Next: Programme/ }).click();
+    await expect(page.getByLabel("Start on site", { exact: true })).toBeVisible();
+
+    // A059: Friday 13 November 2026 start, three working days, with Saturday
+    // and Sunday explicitly included through the real workspace checkboxes.
+    // Three all-week working days from Friday land on Sunday 15 November; the
+    // default Monday-Friday week would land on Tuesday 17 November.
+    const FRIDAY_START = "2026-11-13";
+    const ALL_WEEK = { version: 1, weekdays: [0, 1, 2, 3, 4, 5, 6] };
+    await page.getByLabel("Start on site", { exact: true }).fill(FRIDAY_START);
+    await page.getByLabel("How long it takes", { exact: true }).fill("3");
+    await page.getByLabel("Days or weeks", { exact: true }).selectOption("days");
+    await page.getByLabel("Work on Saturdays", { exact: true }).check();
+    await page.getByLabel("Work on Sundays", { exact: true }).check();
+    await expect(page.locator("[data-programme-finish]")).toContainText("Sunday 15 November 2026");
+
+    // The weekend choice is local until an explicit save: no transport call,
+    // no project-row write, no proposal context.
+    const projectRowProbe = () => page.evaluate(() => {
+        const row = window.__journeyLocal.projectRow as unknown as {
+            programme_working_pattern?: unknown;
+            start_date?: string | null;
+            programme_phases?: unknown[] | null;
+        };
+        return {
+            workingPattern: row.programme_working_pattern ?? null,
+            startDate: row.start_date ?? null,
+            phases: row.programme_phases ?? null,
+        };
+    });
+    const untouched = await snapshot(page);
+    expect(untouched.programmeSaves).toHaveLength(0);
+    expect(untouched.proposalContext).toBeNull();
+    expect(await projectRowProbe()).toEqual({ workingPattern: null, startDate: START, phases: [] });
+
+    // First save is refused by the fixture. The refusal must not set the
+    // project row's working pattern, start date or phases, must not advance
+    // the proposal context, and the exact draft must remain on screen.
+    await page.evaluate(() => { window.__journeyLocal.programmeNextSave = "refused"; });
+    await page.locator("[data-programme-preview]").getByRole("button", { name: "Save programme", exact: true }).click();
+    await expect(page.locator("[data-programme-save-error]")).toContainText("programme save not acknowledged");
+
+    const refused = await snapshot(page);
+    expect(refused.view).toBe("programme");
+    expect(refused.proposalContext).toBeNull();
+    expect(refused.programmeSaves).toHaveLength(1);
+    expect(refused.programmeSaves[0]).toMatchObject({
+        startDate: FRIDAY_START,
+        workingPattern: ALL_WEEK,
+        stages: [{ name: "Works on site", workingDays: 3, unit: "days", source: null }],
+    });
+    expect(await projectRowProbe()).toEqual({ workingPattern: null, startDate: START, phases: [] });
+    await expect(page.locator("#programme-start")).toHaveValue(FRIDAY_START);
+    await expect(page.locator("#programme-duration")).toHaveValue("3");
+    await expect(page.getByLabel("Days or weeks", { exact: true })).toHaveValue("days");
+    await expect(page.getByLabel("Work on Saturdays", { exact: true })).toBeChecked();
+    await expect(page.getByLabel("Work on Sundays", { exact: true })).toBeChecked();
+    await expect(page.locator("[data-programme-finish]")).toContainText("Sunday 15 November 2026");
+
+    // Deliberate retry through the existing Try again seam. The acknowledged
+    // save must confirm the explicit version-1 all-weekdays pattern.
+    await page.locator("[data-programme-save-error]").getByRole("button", { name: "Try again", exact: true }).click();
+    await expect(page.locator("[data-programme-save-error]")).toBeHidden();
+    await expect(page.locator("[data-save-status='saved']")).toBeVisible();
+
+    const acknowledgedRow = await projectRowProbe();
+    expect(acknowledgedRow.workingPattern).toEqual(ALL_WEEK);
+    expect(acknowledgedRow.startDate).toBe(FRIDAY_START);
+    expect(acknowledgedRow.phases).toHaveLength(1);
+
+    const acknowledged = await snapshot(page);
+    expect(acknowledged.programmeSaves).toHaveLength(2);
+    expect(acknowledged.programmeSaves[1]).toMatchObject({ startDate: FRIDAY_START, workingPattern: ALL_WEEK });
+
+    // Next: Proposal opens only because the save was confirmed, and the real
+    // review document renders from the acknowledged store: a Sunday
+    // 15 November finish, not the Tuesday 17 November a Monday-Friday week
+    // would give.
+    await page.getByRole("button", { name: "Next: Proposal", exact: true }).click();
+    await page.getByRole("button", { name: "2. Review document", exact: true }).click();
+    const document = page.locator("[data-proposal-document]");
+    await expect(document).toBeVisible();
+    await expect(document).toContainText(/15 (?:November|Nov) 2026/);
+    await expect(document).not.toContainText(/17 (?:November|Nov) 2026/);
+
+    const finished = await snapshot(page);
+    expect(finished.view).toBe("proposal");
+    expect(finished.proposalContext?.startDate).toBe(FRIDAY_START);
+    expect(finished.proposalContext?.phases).toHaveLength(1);
+    // Named debug seam the fixture exposes for this carry-through; absent
+    // until the acknowledged save copies the pattern onward.
+    const context = finished.proposalContext as (typeof finished.proposalContext & { workingPattern?: unknown }) | null;
+    expect(context?.workingPattern).toEqual(ALL_WEEK);
+    expect(finished.programmeSaves).toHaveLength(2);
+    expect(finished.navigation).toEqual([
+        "/dashboard/projects/new",
+        briefPath(requestId),
+        pricingPath(requestId),
+        programmePath(requestId),
+        proposalPath(requestId),
+    ]);
+    expect(finished.publicationsAttempted).toBe(0);
+    expect(finished.unexpected).toEqual([]);
+    expect(requests).toEqual([]);
+    expect(pageErrors).toEqual([]);
+
+    await info.attach("scope", { body: JSON.stringify({ ...scope, requestId, requests }), contentType: "application/json" });
+    await page.screenshot({ path: path.join(output, "weekend-journey.png"), fullPage: true });
+});
+

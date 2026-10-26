@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Offline tests for the A023 signup server-action seam (Rob 15:05;
 // coordinator repair 15:46). Boundaries mocked, sequencing proven:
-//   - "@/lib/platform-signup-policy"      → the hard-OFF signup gate
+//   - "@/lib/platform-signup-policy"      → the source signup policy
 //   - "@/lib/supabase/server"             → the normal cookie-bound server client
 //   - "@/lib/platform-terms-acceptance"   → the consent recorder
 // The orchestration inside platformSignupAction runs for real: the gate is
@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => ({
     recordConsent: vi.fn(),
     // The policy module is mocked at module boundary; the flag makes the
     // real gate-check code path in the action reachable offline without
-    // touching the source guard (which stays hard-coded true).
+    // changing the real source policy (enabled per Rob's approval).
     gate: { disabled: true as boolean },
 }));
 
@@ -42,13 +42,13 @@ const VALID_INPUT = {
     revision: PLATFORM_TERMS_CURRENT_REVISION,
 };
 
-describe("signup gate (production behavior)", () => {
-    it("policy module hard-disables signup in source", async () => {
+describe("signup source policy and defensive gate", () => {
+    it("policy module enables signup in source", async () => {
         const actual =
             await vi.importActual<typeof import("@/lib/platform-signup-policy")>(
                 "@/lib/platform-signup-policy",
             );
-        expect(actual.isPlatformSignupDisabled()).toBe(true);
+        expect(actual.isPlatformSignupDisabled()).toBe(false);
     });
 
     it("refuses before the server client or recorder are consulted", async () => {

@@ -19,9 +19,9 @@ import { platformTermsConfirmationRedirect } from "@/lib/platform-terms-completi
 // Hard rules, matching the standing A023 boundaries:
 //
 //   - Signup gate: imported from platform-signup-policy.ts and hard-coded
-//     true — signup stays OFF per operator instruction. No env flag, no
-//     request-driven toggle; the gate cannot be enabled by config, payload
-//     or deployment settings.
+//     false per Rob's source-only approval. No env flag or request-driven
+//     toggle; policy changes require a deliberate code change. The
+//     defensive disabled branch remains before any account call.
 //   - Consent before account: refusal and unrecognized/false revision are
 //     returned before auth is consulted. No browser userId, timestamp,
 //     arbitrary revision or dependency object is ever read: identity comes
@@ -95,7 +95,7 @@ async function trustedEmailRedirect(): Promise<{ emailRedirectTo: string } | und
 }
 
 export async function platformSignupAction(input: PlatformSignupInput): Promise<PlatformSignupResult> {
-    // 1. Disabled signup gate — preserved exactly, checked before anything
+    // 1. Source signup policy — checked before anything
     //    else, including input validation.
     if (isPlatformSignupDisabled()) {
         return { ok: false, code: "signup-disabled" };

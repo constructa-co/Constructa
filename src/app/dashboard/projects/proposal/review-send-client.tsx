@@ -17,6 +17,7 @@ import ui from "@/components/proposal-workspace.module.css";
 import { newClientId } from "@/lib/client-id";
 import { copyTextWithFallback } from "@/lib/clipboard-copy";
 import { programmePlanForProject } from "@/lib/programme-plan";
+import { proposalPaymentSave } from "@/lib/proposal-payment-save";
 import { buildProposalDocument, paymentRows, vatLines, vatNote } from "@/lib/proposal-document";
 import { contentCheckCode, hashProposalContent, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
 import type { ReadinessKey, RecommendedKey } from "@/lib/proposal-readiness";
@@ -111,9 +112,9 @@ interface Props {
     now?: string;
 }
 
-function realServer(projectId: string): ReviewServer {
+function realServer(projectId: string, paymentSource: unknown[] | null): ReviewServer {
     return {
-        save: (payload) => saveProposalDraftAction(projectId, payload),
+        save: proposalPaymentSave(paymentSource, (payload, expected) => saveProposalDraftAction(projectId, payload, expected)),
         ask: (field, text) => suggestProposalWordingAction(projectId, field, text),
         publish: (input) => publishProposalAction(projectId, input),
         retry: (input) => retryProposalDeliveryAction(projectId, input),
@@ -144,7 +145,8 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     const s = workspaceStyles(isDark);
     const router = useRouter();
     const { project } = context;
-    const api = useMemo(() => server ?? realServer(project.id), [server, project.id]);
+    const [paymentSource] = useState(() => structuredClone(project.payment_schedule ?? null));
+    const api = useMemo(() => server ?? realServer(project.id, paymentSource), [server, project.id, paymentSource]);
 
     const [state, store] = useReducerStore(reviewReducer, () => {
         // Keys for saved rows are positional so the first render matches on

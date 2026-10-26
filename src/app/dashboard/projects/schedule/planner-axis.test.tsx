@@ -72,6 +72,28 @@ afterEach(() => {
 });
 
 describe("detailed planner calendar-axis geometry", () => {
+    it.each([{ delta: 1, offset: 0, date: "2027-10-19" }, { delta: 7, offset: 372, date: "2027-10-26" }])(
+        "moves a saved own-date from its painted calendar position at $delta pixels, not its stale stored offset",
+        ({ delta, offset, date }) => {
+            const saved = [{ ...phase(0, 1), start_date: "2027-10-19", color: "teal", dependsOn: [], pct_complete: 25 }];
+            const before = JSON.stringify(saved);
+            renderToStaticMarkup(<ClientSchedulePage project={{ id: "own-date", name: "Example", start_date: "2026-10-19",
+                programme_phases: saved, programme_working_pattern: { version: 1, weekdays: [1, 2, 3, 4, 5] } }} projectId="own-date" estimate={null} />);
+            const listeners = new Map<string, (event: { clientX: number }) => void>();
+            vi.stubGlobal("document", {
+                addEventListener: (name: string, callback: (event: { clientX: number }) => void) => listeners.set(name, callback),
+                removeEventListener: (name: string) => listeners.delete(name),
+            });
+            for (const effect of hooks.effects) { const cleanup = effect(); if (cleanup) cleanups.push(cleanup); }
+            hooks.refs[0].current = { getBoundingClientRect: () => ({ width: 371 }) };
+            hooks.callbacks[0]({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: 100 } as unknown as MouseEvent, 0, "move");
+            listeners.get("mousemove")!({ clientX: 100 + delta });
+            listeners.get("mouseup")!({ clientX: 100 + delta });
+            const updated = hooks.updates.filter((value): value is PlannerPhase[] => Array.isArray(value)).at(-1);
+            expect(updated).toEqual([{ ...saved[0], startOffset: offset, start_date: date }]);
+            expect(JSON.stringify(saved)).toBe(before);
+        },
+    );
     it.each(["move", "resize"] as const)(
         "restores a saved Wednesday one-day stage with manualDays null after %s drag away then back to the starting mouse X",
         type => {

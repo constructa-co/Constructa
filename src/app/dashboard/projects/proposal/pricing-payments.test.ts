@@ -4,7 +4,8 @@ import { fakeSupabase } from "@/lib/__fixtures__/fake-supabase";
 const access = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/supabase/project-resource-access", () => ({ requireEditableProjectAccess: access }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-import { savePricingPaymentStagesAction } from "./actions";
+import { savePricingPaymentStagesAction, saveProposalDraftAction } from "./actions";
+import { buildProposalPayload, draftFromProject } from "@/lib/proposal-review";
 
 const id = "22222222-2222-4222-8222-222222222222", userId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const stages = [{ id: "stage-1", stage: "First agreed stage", description: "At the agreed milestone", percentage: 40 }];
@@ -15,6 +16,49 @@ beforeEach(() => {
 });
 
 describe("payment-only save from pricing", () => {
+    it("does not let an older proposal draft overwrite stages just saved while pricing", async () => {
+        const built = buildProposalPayload(draftFromProject({ id, name: "Job", payment_schedule: null }, () => "draft-stage"));
+        if (!built.ok) throw Error("Invalid fixture");
+        const before = { ...db.tables.projects[0] };
+        expect((await savePricingPaymentStagesAction(id, null, stages)).success).toBe(true);
+        const result = await saveProposalDraftAction(id, { ...built.payload, scope: "Stale proposal scope" }, null);
+        expect(result).toMatchObject({ success: false, error: expect.stringMatching(/changed elsewhere/) });
+        expect(db.tables.projects[0]).toEqual({ ...before, payment_schedule: stages });
+        expect(db.updates).toHaveLength(1);
+    });
+    it("confirms guarded proposal payment edits and leaves the earlier pricing editor's stale source protected", async () => {
+        db.tables.projects[0].payment_schedule = stages;
+        const built = buildProposalPayload(draftFromProject({ id, name: "Job", payment_schedule: stages }, () => "draft-stage"));
+        if (!built.ok) throw Error("Invalid fixture");
+        const next = [{ ...stages[0], percentage: 55 }];
+        expect(await saveProposalDraftAction(id, { ...built.payload, paymentSchedule: next }, stages)).toEqual({ success: true });
+        expect(db.updates[0].filters).toEqual({ id, user_id: userId, payment_schedule: JSON.stringify(stages) });
+        expect(db.tables.projects[0].payment_schedule).toEqual(next);
+        expect(await savePricingPaymentStagesAction(id, stages, [])).toMatchObject({ success: false });
+        expect(db.tables.projects[0].payment_schedule).toEqual(next);
+    });
+    it("does not check or replace fixed-amount stages for a proposal save that omits payments", async () => {
+        const fixed = [{ stage: "Existing", amount: 250 }];
+        db.tables.projects[0].payment_schedule = fixed;
+        const built = buildProposalPayload(draftFromProject({ id, name: "Job", payment_schedule: fixed }, () => "draft-stage"));
+        if (!built.ok) throw Error("Invalid fixture");
+        expect(await saveProposalDraftAction(id, built.payload, fixed)).toEqual({ success: true });
+        expect(db.updates[0].values).not.toHaveProperty("payment_schedule");
+        expect(db.tables.projects[0].payment_schedule).toEqual(fixed);
+    });
+    it("keeps the pricing schedule and all proposal fields when payment stages race the guarded proposal write", async () => {
+        const built = buildProposalPayload(draftFromProject({ id, name: "Job", payment_schedule: null }, () => "draft-stage"));
+        if (!built.ok) throw Error("Invalid fixture");
+        const before = { ...db.tables.projects[0] }, original = db.client.from;
+        vi.spyOn(db.client, "from").mockImplementation(table => {
+            const builder = original(table), update = builder.update;
+            builder.update = values => { db.tables.projects[0].payment_schedule = stages; return update(values); };
+            return builder;
+        });
+        expect(await saveProposalDraftAction(id, { ...built.payload, scope: "Stale proposal scope" }, null)).toMatchObject({ success: false });
+        expect(db.tables.projects[0]).toEqual({ ...before, payment_schedule: stages });
+        expect(db.updates[0].filters.payment_schedule).toBeNull();
+    });
     it("saves only the contractor's stages, with owner and null-source guards and returned data", async () => {
         const before = { ...db.tables.projects[0] };
         expect(await savePricingPaymentStagesAction(id, null, stages)).toEqual({ success: true, paymentSchedule: stages });

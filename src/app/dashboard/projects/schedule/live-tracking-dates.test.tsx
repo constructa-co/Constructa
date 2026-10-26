@@ -42,6 +42,18 @@ beforeEach(() => {
 afterEach(() => { expect(hooks.write).not.toHaveBeenCalled(); expect(hooks.read).not.toHaveBeenCalled(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe("five-day Live Tracking date parity", () => {
+    it.each([{ days: 1, finish: "20 Oct" }, { days: 8, finish: "27 Oct" }])(
+        "keeps $days-day seven-day incomplete tracking on the existing calendar-span fallback, not a rounded week",
+        ({ days, finish }) => {
+            vi.setSystemTime(new Date("2026-10-28T10:00:00+04:00"));
+            const html = setup([phase("Valid", 0, days), phase("Missing duration", 28, 0)], "2026-10-19", 7,
+                { version: 1, weekdays: [0, 1, 2, 3, 4, 5, 6] }).html();
+            expect(html).toContain(`19 Oct \u2192 ${finish}`);
+            expect(html).toContain("Delayed</span>");
+            expect(html).toContain('text-red-400">1</p>');
+            expect(html).toContain("Missing duration");
+        },
+    );
     it("shows the same first/last working dates as the main chart and proposal, not the next Monday", () => {
         const phases = example(), before = JSON.stringify(phases), app = setup(phases), html = app.html();
         expect(html).toContain("19 Oct \u2192 23 Oct"); expect(html).toContain("26 Oct \u2192 30 Oct"); expect(html).toContain("2 Nov \u2192 6 Nov");

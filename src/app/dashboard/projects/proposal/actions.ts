@@ -101,10 +101,14 @@ const DraftSchema = z.object({
  * information is locked. Published versions are separate, immutable records
  * and are never touched by a draft save.
  */
-export async function saveProposalDraftAction(projectId: string, payload: ProposalDraftPayload): Promise<{ success: true } | Failure> {
+export async function saveProposalDraftAction(projectId: string, payload: ProposalDraftPayload, expectedPaymentSchedule?: unknown[] | null): Promise<{ success: true } | Failure> {
     const parsed = DraftSchema.safeParse({ projectId, ...payload });
     if (!parsed.success) return { success: false, error: "Some details could not be saved. Check them and try again." };
     const input = parsed.data;
+    const guardPayments = input.paymentSchedule !== null && expectedPaymentSchedule !== undefined;
+    if (guardPayments && !z.array(z.unknown()).nullable().safeParse(expectedPaymentSchedule).success) {
+        return { success: false, error: "The saved payment stages couldn't be checked. Keep your draft and reload the project." };
+    }
 
     const photos = input.photos.map((photo) => ({ url: safeImageUrl(photo.url), caption: photo.caption.trim() }));
     if (photos.some((photo) => photo.url === null)) {
@@ -116,6 +120,17 @@ export async function saveProposalDraftAction(projectId: string, payload: Propos
     const { access, error: accessError } = await editableAccess(input.projectId, "You can't change this proposal.");
     if (!access) return { success: false, error: accessError };
     const { user, supabase } = access;
+
+    if (guardPayments) {
+        const { data: current, error } = await supabase.from("projects").select("id, payment_schedule")
+            .eq("id", input.projectId).eq("user_id", user.id).single();
+        if (error || current?.id !== input.projectId) {
+            return { success: false, error: "The saved payment stages couldn't be checked. Keep your draft and reload the project." };
+        }
+        if (!isDeepStrictEqual(current.payment_schedule, expectedPaymentSchedule)) {
+            return { success: false, error: "Payment stages changed elsewhere. Keep your proposal draft and reload the saved project before trying again." };
+        }
+    }
 
     const update: Record<string, unknown> = {
         proposal_introduction: input.introduction.trim() || null,
@@ -130,16 +145,19 @@ export async function saveProposalDraftAction(projectId: string, payload: Propos
     };
     if (input.paymentSchedule !== null) update.payment_schedule = input.paymentSchedule;
 
-    const { data: saved, error } = await supabase
+    let query = supabase
         .from("projects")
         .update(update)
         .eq("id", input.projectId)
-        .eq("user_id", user.id)
-        .select("id")
-        .single();
-    if (error || !saved) {
+        .eq("user_id", user.id);
+    if (guardPayments) {
+        query = expectedPaymentSchedule === null ? query.is("payment_schedule", null)
+            : query.eq("payment_schedule", JSON.stringify(expectedPaymentSchedule));
+    }
+    const { data: saved, error } = await query.select("id, payment_schedule").single();
+    if (error || saved?.id !== input.projectId || (guardPayments && !isDeepStrictEqual(saved.payment_schedule, input.paymentSchedule))) {
         console.error("saveProposalDraftAction update failed", { projectId: input.projectId, code: error?.code });
-        return { success: false, error: DRAFT_SAVE_ERROR };
+        return { success: false, error: guardPayments ? "The proposal save wasn't confirmed. It may have saved. Keep your draft and reload to check before saving again." : DRAFT_SAVE_ERROR };
     }
 
     revalidatePath("/dashboard/projects/proposal");

@@ -128,4 +128,23 @@ describe("five-day detailed planner date presentation", () => {
         expect(html).toContain('value="Needs duration"');
         expect(html).not.toContain("working days / ");
     });
+
+    it("keeps a saved Sunday-only working week finishing on Sunday 25 October, not Saturday 17 October", () => {
+        vi.stubGlobal("window", {});
+        vi.stubGlobal("localStorage", { getItem: () => "6" });
+        const saved = [phase("Works", 0, 2)], before = JSON.stringify(saved);
+        const html = renderToStaticMarkup(<ClientSchedulePage project={{ id: "sunday-only", name: "Example", start_date: "2026-10-16",
+            programme_phases: saved, programme_working_pattern: { version: 1, weekdays: [0] } }} projectId="sunday-only" estimate={null} />);
+        expect(JSON.stringify(saved)).toBe(before);
+        expect(html).toContain('value="2026-10-16"');
+        expect(html).toContain("18 Oct – 25 Oct");
+        expect(html).not.toContain("17 Oct");
+        expect(html).toContain("2 weeks");
+        expect(html).toContain("2 working days / 8 calendar days");
+        expect(html).toContain('aria-label="W1: 2026-10-12 to 2026-10-18"');
+        expect(html).toContain('aria-label="W2: 2026-10-19 to 2026-10-25"');
+        expect([...html.matchAll(/data-planner-calendar-day="(\d)"/g)].slice(0, 7).map(match => Number(match[1]))).toEqual([1, 2, 3, 4, 5, 6, 0]);
+        for (const day of [1, 2, 3, 4, 5, 6, 0]) expect(html).toContain(`data-planner-calendar-day="${day}" data-working-day="${day === 0 ? "true" : "false"}"`);
+        expect(html).not.toContain("prog_dpw_");
+    });
 });

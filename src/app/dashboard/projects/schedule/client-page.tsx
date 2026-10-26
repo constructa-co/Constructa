@@ -128,6 +128,7 @@ interface DragState {
     originalValue: number;
     /** The stage as it was when the drag began. */
     originalPhase: Phase;
+    ownDateOffset: number | null;
     trackWidth: number;
     capturedTotalDays: number;
 }
@@ -430,11 +431,13 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 ? phase.startOffset
                 : (phase.manualDays ?? phase.calculatedDays),
             originalPhase: phase,
+            ownDateOffset: type === "move" && usesSavedCalendar && "start_date" in phase && typeof phase.start_date === "string"
+                ? plannerPhaseSpan(toInputDate(programmeStart), phase, workingPattern)?.startOffset ?? null : null,
             trackWidth: rect.width,
             capturedTotalDays: axisDaysRef.current,
         };
         setIsDragging(true);
-    }, [setIsDragging]);
+    }, [programmeStart, setIsDragging, usesSavedCalendar, workingPattern]);
 
     useEffect(() => {
         const onMouseMove = (e: MouseEvent) => {
@@ -452,7 +455,14 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
             if (drag.type === "move") {
                 // Move: snap to 7-day (calendar week) grid
-                const snapped = Math.max(0, Math.round((drag.originalValue + deltaDays) / 7) * 7);
+                const ownDateDelta = Math.round(deltaDays / 7) * 7;
+                if (drag.ownDateOffset !== null && ownDateDelta === 0) {
+                    setPhases(prev => prev[drag.phaseIndex] === drag.originalPhase ? prev
+                        : prev.map((p, i) => i === drag.phaseIndex ? drag.originalPhase : p));
+                    return;
+                }
+                const snapped = Math.max(0, drag.ownDateOffset !== null ? drag.ownDateOffset + ownDateDelta
+                    : Math.round((drag.originalValue + deltaDays) / 7) * 7);
                 setPhases((prev) => {
                     const u = [...prev];
                     u[drag.phaseIndex] = { ...u[drag.phaseIndex], startOffset: snapped,
@@ -1070,7 +1080,7 @@ function LiveTrackingPanel({
     const plannedDates = phases.map((phase, index) => {
         const stage = displayPlan?.stages[index];
         if (stage) return { start: new Date(stage.start_date + "T00:00:00"), end: new Date(stage.end_date + "T00:00:00") };
-        const calDur = Math.ceil((phase.manualDays ?? phase.calculatedDays) / daysPerWeek) * 7;
+        const calDur = toCalendarDays(phase.manualDays ?? phase.calculatedDays, daysPerWeek);
         const plannedStart = new Date(programmeStart);
         plannedStart.setDate(plannedStart.getDate() + phase.startOffset);
         const plannedEnd = new Date(plannedStart);
@@ -1080,7 +1090,7 @@ function LiveTrackingPanel({
     const delayed = phases.filter((p, index) => {
         const plannedEnd = displayPlan ? plannedDates[index].end : new Date(programmeStart);
         if (!displayPlan) {
-            const calDur = Math.ceil((p.manualDays ?? p.calculatedDays) / daysPerWeek) * 7;
+            const calDur = toCalendarDays(p.manualDays ?? p.calculatedDays, daysPerWeek);
             plannedEnd.setDate(plannedEnd.getDate() + p.startOffset + calDur);
         }
         return plannedEnd < today && (p.pct_complete ?? 0) < 100;

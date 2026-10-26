@@ -17,7 +17,9 @@ export default function ContactPage() {
           className="space-y-6"
         >
           <div>
+            <label htmlFor="contact-name" className="block text-sm font-medium text-gray-300 mb-2">Name</label>
             <input 
+              id="contact-name"
               type="text" 
               name="name" 
               placeholder="Your Name" 
@@ -27,7 +29,9 @@ export default function ContactPage() {
           </div>
           
           <div>
+            <label htmlFor="contact-email" className="block text-sm font-medium text-gray-300 mb-2">Email</label>
             <input 
+              id="contact-email"
               type="email" 
               name="email" 
               placeholder="Your Email" 
@@ -37,7 +41,9 @@ export default function ContactPage() {
           </div>
           
           <div>
+            <label htmlFor="contact-message" className="block text-sm font-medium text-gray-300 mb-2">Message</label>
             <textarea 
+              id="contact-message"
               name="message" 
               rows={5}
               placeholder="Your Message" 

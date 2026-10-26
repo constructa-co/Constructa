@@ -36,6 +36,24 @@ describe("declared readability checks, not a rendered accessibility certificatio
         expect(parseFloat(declarations(".eyebrow")["font-size"])).toBeGreaterThanOrEqual(12);
         expect(parseFloat(declarations(".eyebrow", true)["font-size"])).toBeGreaterThanOrEqual(12);
     });
+    it("keeps the explanatory illustration paper text at the established 12-13px label scale", () => {
+        for (const [selector, min] of [
+            [".paperTop > span", 12], [".paperKicker", 12], [".paperIntro", 13],
+            [".paperLines", 12], [".paperLines > div:last-child", 13], [".paperBottom", 12],
+        ] as const) {
+            expect(parseFloat(declarations(selector)["font-size"])).toBeGreaterThanOrEqual(min);
+        }
+    });
+    it("does not shrink the illustration paper text at phone and reflows the paper rows instead", () => {
+        for (const [selector, min] of [
+            [".paperTop > span", 12], [".paperKicker", 12], [".paperIntro", 13],
+            [".paperLines", 12], [".paperLines > div:last-child", 13], [".paperBottom", 12],
+        ] as const) {
+            expect(parseFloat(declarations(selector, true)["font-size"])).toBeGreaterThanOrEqual(min);
+        }
+        expect(declarations(".paperTop", true)["flex-wrap"]).toBe("wrap");
+        expect(declarations(".paperBottom", true)["flex-wrap"]).toBe("wrap");
+    });
     it("checks new sidebar foregrounds and focus outline against the actual declared black", () => {
         expect(sidebar).toContain("bg-[#0d0d0d]");
         for (const foreground of ["#b7c8bb", "#d6ded7", "#c9efcf"]) {

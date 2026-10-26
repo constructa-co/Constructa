@@ -41,18 +41,18 @@
 .paper { background: #f6f4ed; color: #28352b; padding: 30px; border-radius: 3px; box-shadow: 0 4px 18px #0003; }
 .paperTop { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding-bottom: 22px; border-bottom: 1px solid #cbd2c8; }
 .paperTop strong { font-size: 16px; letter-spacing: -.5px; }
-.paperTop > span { font-size: 8px; letter-spacing: 1.6px; }
-.paperKicker { margin: 25px 0 10px; font-size: 9px; text-transform: uppercase; letter-spacing: 1.8px; color: #526155; }
+.paperTop > span { font-size: 12px; letter-spacing: 1.2px; }
+.paperKicker { margin: 25px 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 1.4px; color: #526155; }
 .paper h2 { font-family: Georgia, serif; font-size: clamp(33px, 3.2vw, 49px); line-height: 1.06; letter-spacing: -1.5px; margin: 0 0 17px; font-weight: 400; }
-.paperIntro { font-size: 11px; color: #637066; line-height: 1.6; }
-.paperLines { margin-top: 24px; font-size: 10px; }
+.paperIntro { font-size: 13px; color: #637066; line-height: 1.6; }
+.paperLines { margin-top: 24px; font-size: 12px; }
 .paperLines > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 11px 0; border-top: 1px solid #d2d8cf; }
-.paperLines > div:last-child { margin-top: 2px; border-top: 1px solid #6b806e; font-size: 12px; }
+.paperLines > div:last-child { margin-top: 2px; border-top: 1px solid #6b806e; font-size: 13px; }
 .paperProgramme { display: grid; grid-template-columns: 60px repeat(3, 1fr); gap: 6px; margin-top: 18px; font-size: 9px; color: #526155; }
 .paperProgramme > span { grid-column: 1; }
 .paperProgramme i { border-radius: 2px; background: #96b79b; height: 7px; align-self: center; }
 .paperProgramme i:nth-of-type(1) { grid-column: 2; }.paperProgramme i:nth-of-type(2) { grid-column: 3; }.paperProgramme i:nth-of-type(3) { grid-column: 4; }
-.paperBottom { display: flex; align-items: center; justify-content: space-between; margin-top: 23px; padding-top: 14px; border-top: 1px solid #cbd2c8; font-size: 8px; color: #637066; }
+.paperBottom { display: flex; align-items: center; justify-content: space-between; margin-top: 23px; padding-top: 14px; border-top: 1px solid #cbd2c8; font-size: 12px; color: #637066; }
 .visual figcaption { font-size: 13px; line-height: 1.6; color: #b7c8bb; margin-top: 16px; text-align: center; }
 .chapterLine { max-width: 1456px; margin: 0 auto; padding: 23px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 20px; font-size: 12px; color: var(--muted); }
 .chapterLine > span:last-child { display: flex; align-items: center; gap: 22px; color: #d6ded7; }
@@ -100,5 +100,5 @@
 @media (max-width: 1600px) { .chapterLine, .invitation { margin-left: 4.5%; margin-right: 4.5%; } }
 @media (max-width: 1100px) { .hero { gap: 4%; padding-top: 65px; }.hero h1 { font-size: clamp(46px, 5.3vw, 62px); }.lede { font-size: 16px; }.visual { padding: 18px; }.paper { padding: 23px; }.journey { grid-template-columns: repeat(2, minmax(0, 1fr)); }.journey li:nth-child(2) { border-right: 0; }.journey li:nth-child(-n+2) { border-bottom: 1px solid var(--line); }.section { padding-top: 75px; padding-bottom: 75px; } }
 @media (max-width: 800px) { .headerInner { flex-wrap: wrap; gap: 12px; padding: 16px 5%; }.headerInner > .brand { margin-right: auto; }.nav { order: 3; flex-basis: 100%; gap: 25px; justify-content: flex-start; font-size: 13px; }.nav a { min-height: 44px; display: flex; align-items: center; }.hero { grid-template-columns: 1fr; gap: 38px; padding: 46px 6% 38px; }.hero h1 { font-size: clamp(43px, 8vw, 72px); }.heroCopy { max-width: 650px; }.visual { max-width: 540px; width: 100%; justify-self: center; }.chapterLine { flex-direction: column; align-items: flex-start; gap: 15px; }.chapterLine > span:last-child { flex-wrap: wrap; gap: 13px; }.sectionIntro, .story, .scope, .questions { grid-template-columns: 1fr; gap: 30px; }.sectionIntro { margin-bottom: 28px; }.sectionIntro .eyebrow { margin-bottom: 0; }.sectionIntro > p:last-child { margin: 0; }.story { padding-top: 0; }.photo img { aspect-ratio: 1.5; }.story h2 br { display: none; }.section { padding: 55px 6%; }.footerTop { flex-wrap: wrap; }.footerTop nav { max-width: none; }.footerBottom { flex-direction: column; }.pageIntro { padding: 50px 6% 35px; }.invitation { padding: 50px 20px; } }
-@media (max-width: 450px) { .brand { font-size: 22px; }.headerInner { column-gap: 8px; }.signIn { padding: 8px 12px; gap: 10px; }.eyebrow { font-size: 12px; letter-spacing: 1.2px; }.hero h1 { font-size: 45px; }.hero .lede { font-size: 16px; }.hero .actions { gap: 10px; }.visual { padding: 14px; }.visualHeader { flex-wrap: wrap; gap: 5px; margin-bottom: 13px; }.paper { padding: 22px 17px; }.paperTop strong { font-size: 14px; }.paperTop > span { font-size: 7px; letter-spacing: .8px; }.paper h2 { font-size: 39px; }.paperLines { font-size: 9px; }.paperLines > div:last-child { font-size: 11px; }.journey { grid-template-columns: 1fr; }.journey li { border-right: 0; border-bottom: 1px solid var(--line); }.stageTop { margin-bottom: 24px; }.journey h3 { font-size: 25px; }.footerTop { gap: 25px; }.pageIntro h1 { font-size: 41px; } }
+@media (max-width: 450px) { .brand { font-size: 22px; }.headerInner { column-gap: 8px; }.signIn { padding: 8px 12px; gap: 10px; }.eyebrow { font-size: 12px; letter-spacing: 1.2px; }.hero h1 { font-size: 45px; }.hero .lede { font-size: 16px; }.hero .actions { gap: 10px; }.visual { padding: 14px; }.visualHeader { flex-wrap: wrap; gap: 5px; margin-bottom: 13px; }.paper { padding: 22px 17px; }.paperTop { flex-wrap: wrap; row-gap: 6px; }.paperTop strong { font-size: 14px; }.paperTop > span { font-size: 12px; letter-spacing: 1.2px; }.paper h2 { font-size: 39px; }.paperIntro { font-size: 13px; }.paperLines { font-size: 12px; }.paperLines > div:last-child { font-size: 13px; }.paperBottom { flex-wrap: wrap; row-gap: 6px; font-size: 12px; }.journey { grid-template-columns: 1fr; }.journey li { border-right: 0; border-bottom: 1px solid var(--line); }.stageTop { margin-bottom: 24px; }.journey h3 { font-size: 25px; }.footerTop { gap: 25px; }.pageIntro h1 { font-size: 41px; } }
 @media (prefers-reduced-motion: reduce) { .heroCopy, .visual { animation: none; } }

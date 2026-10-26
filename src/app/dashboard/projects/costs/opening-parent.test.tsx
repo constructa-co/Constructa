@@ -39,6 +39,25 @@ beforeEach(() => {
     current.update.mockImplementation(async (_estimateId, id, input) => ({ ok: true, line: { id, ...input, line_total: input.quantity * input.unit_rate } }));
 });
 
+it("keeps the stale estimate-version handler fenced after the opening draft closes while a full-scope draft is still open", () => {
+    const scopedView = () => { current.cursor = 0; return EstimateClient({ estimates: [], project: { id: "job", name: "Room", client_name: "", brief_scope: "Prepare walls", proposal_introduction: "Opening", full_scope: { scope_text: "Scope", brief_scope: "Prepare walls" } } }); };
+    current.state!.estimates.push({ ...current.state!.estimates[0], id: "second", version_name: "Alternative" });
+    const before = JSON.stringify(current.state);
+    const staleVersion = nodes(scopedView()).find(n => n.props.id === "estimate-version")!;
+    const openingEditor = nodes(scopedView()).find(n => n.props.source === "Opening" && n.props.onWorkChange)!;
+    const scopeEditor = nodes(scopedView()).find(n => (n.props.source as { scope_text?: string } | undefined)?.scope_text === "Scope" && n.props.onWorkChange)!;
+    (openingEditor.props.onWorkChange as (open: boolean) => void)(true);
+    (scopeEditor.props.onWorkChange as (open: boolean) => void)(true);
+    (openingEditor.props.onWorkChange as (open: boolean) => void)(false);
+    expect(nodes(scopedView()).find(n => n.props.id === "estimate-version")!.props.disabled).toBe(true);
+    (staleVersion.props.onChange as (event: unknown) => void)({ target: { value: "second" } });
+    expect(current.state!.activeEstimateId).toBe("estimate");
+    expect(JSON.stringify(current.state)).toBe(before);
+    (scopeEditor.props.onWorkChange as (open: boolean) => void)(false);
+    expect(nodes(scopedView()).find(n => n.props.id === "estimate-version")!.props.disabled).toBe(false);
+    expect(current.update).not.toHaveBeenCalled(); expect(current.other).not.toHaveBeenCalled();
+});
+
 
 
 function opening() { return nodes(view()).find(n => n.props.source === "Opening" && n.props.onWorkChange)!; }

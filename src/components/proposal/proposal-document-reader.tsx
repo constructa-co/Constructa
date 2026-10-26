@@ -3,6 +3,7 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { DocSection, ProposalDocument } from "@/lib/proposal-document";
 import ProposalDocumentView from "./proposal-document-view";
+import ProposalWebPages from "./proposal-web-pages";
 import ui from "./proposal-document-reader.module.css";
 
 /**
@@ -85,6 +86,24 @@ export default function ProposalDocumentReader({ doc, children }: { doc: Proposa
     // Set when Previous or Next reaches the first or last page and so is disabled.
     const focusChooser = useRef(false);
     const [partChoice, setPartChoice] = useState({ page: "cover", index: 0 });
+    const [webLayout, setWebLayout] = useState<"section" | "pages">("section");
+    const paginated = webLayout === "pages";
+    const [webPage, setWebPage] = useState(0);
+    const [webPages, setWebPages] = useState(1);
+    const [webDocument, setWebDocument] = useState(doc);
+    if (webDocument !== doc) {
+        setWebDocument(doc);
+        setWebPage(0);
+        setWebPages(1);
+    }
+    const webIndex = Math.min(webPage, Math.max(0, webPages - 1));
+    if (webIndex !== webPage) setWebPage(webIndex);
+    const setLayout = (layout: "section" | "pages") => {
+        if (layout === webLayout) return;
+        setWebLayout(layout);
+        setWebPage(0);
+        setWebPages(1);
+    };
 
     // Only a change of page moves the view: a new page starts at its beginning.
     // Other renders of the same page leave scroll and focus where they are.
@@ -119,6 +138,29 @@ export default function ProposalDocumentReader({ doc, children }: { doc: Proposa
     return (
         <div ref={reader} className={ui.reader} data-document-reader>
             <nav ref={navigation} className={ui.navigation} aria-label="Document reading pages">
+                <div className={ui.controls} role="group" aria-label="Web reading layout">
+                    <button type="button" className={ui.button} aria-pressed={webLayout === "section"} onClick={() => setLayout("section")}>
+                        Section view
+                    </button>
+                    <button type="button" className={ui.button} aria-pressed={webLayout === "pages"} onClick={() => setLayout("pages")}>
+                        Paginated web view
+                    </button>
+                </div>
+                {paginated ? (
+                    <>
+                        <div className={ui.controls}>
+                            <button type="button" className={ui.button} disabled={webIndex === 0} onClick={() => { if (webIndex > 0) setWebPage(webIndex - 1); }}>
+                                Previous web page
+                            </button>
+                            <button type="button" className={ui.button} disabled={webIndex === webPages - 1} onClick={() => { if (webIndex < webPages - 1) setWebPage(webIndex + 1); }}>
+                                Next web page
+                            </button>
+                        </div>
+                        <p className={ui.position} role="status">Web page {webIndex + 1} of {webPages}</p>
+                        <p id={noteId} className={ui.note}>Web pages use measured CSS columns at the A4 proportion. PDF breaks may differ. Long clauses can continue on the next web page; indivisible oversized content can scroll locally. Nothing is saved or sent.</p>
+                    </>
+                ) : (
+                    <>
                 <div className={ui.controls}>
                     <button type="button" className={ui.button} disabled={index === 0} onClick={() => { if (index > 0) goTo(index - 1); }}>
                         Previous reading page
@@ -147,10 +189,23 @@ export default function ProposalDocumentReader({ doc, children }: { doc: Proposa
                         <p id={partNoteId} className={ui.note}>Moves to that place on this page. Nothing is hidden, split or left out.</p>
                     </div>
                 )}
+                    </>
+                )}
             </nav>
-            <div className={ui.paper}>
-                <ProposalDocumentView doc={doc} readingPage={current.key}>{children}</ProposalDocumentView>
-            </div>
+            <ProposalWebPages
+                active={paginated}
+                documentKey={doc}
+                pageIndex={webIndex}
+                paperClassName={ui.paper}
+                onPageIndex={setWebPage}
+                onPageCount={count => {
+                    const next = Math.max(1, count);
+                    setWebPages(n => n === next ? n : next);
+                    setWebPage(p => (p < next ? p : next - 1));
+                }}
+            >
+                <ProposalDocumentView doc={doc} readingPage={paginated ? undefined : current.key}>{children}</ProposalDocumentView>
+            </ProposalWebPages>
         </div>
     );
 }

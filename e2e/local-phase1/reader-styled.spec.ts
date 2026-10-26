@@ -359,3 +359,127 @@ test("Go to part with the inner reader not overflowing focuses the actual Clarif
     await expect(notIncluded).toBeVisible();
     await expect(clarifications).toBeVisible();
 });
+
+/**
+ * Whether a run of document text is actually painted inside the dialog: the
+ * range's client rect must survive every clipping ancestor up to the dialog.
+ * This reads real layout position, so a status counter alone cannot pass.
+ */
+async function textPainted(dialog: Locator, wanted: string, selector?: string) {
+    return dialog.evaluate((dialogEl, { text, selector }) => {
+        const root = selector ? dialogEl.querySelector(selector) : dialogEl;
+        if (!root) return false;
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        let node = walker.nextNode();
+        while (node) {
+            const start = node.textContent!.indexOf(text);
+            if (start >= 0) {
+                const range = document.createRange();
+                range.setStart(node, start);
+                range.setEnd(node, start + text.length);
+                const viewport = dialogEl.querySelector("[data-web-page-viewport]");
+                for (const rect of range.getClientRects()) {
+                    if (rect.width <= 0 || rect.height <= 0) continue;
+                    let visible = true;
+                    for (let el = node.parentElement; el && visible; el = el.parentElement) {
+                        const css = getComputedStyle(el);
+                        if (/(auto|scroll|hidden|clip)/.test(css.overflowX) || /(auto|scroll|hidden|clip)/.test(css.overflowY)) {
+                            const box = el.getBoundingClientRect();
+                            if (rect.bottom <= box.top || rect.top >= box.bottom || rect.right <= box.left || rect.left >= box.right) visible = false;
+                        }
+                        if (el === viewport) break;
+                    }
+                    if (visible) return true;
+                }
+            }
+            node = walker.nextNode();
+        }
+        return false;
+    }, { text: wanted, selector });
+}
+
+const flatten = (text: string | null) => (text ?? "").replace(/\s+/g, " ").trim();
+
+test("paginated web view splits the exact long terms into measured pages that really move on Next and Previous, keeping every word, the response mount and the section view", async ({ page }) => {
+    test.setTimeout(90000);
+    const { dialog } = await openReader(page, { theme: "system-c", longTerms: true }, { width: 390, height: 844 });
+    const termBody = await page.evaluate(() => window.__readerStyledLocal.termBody);
+    expect(termBody).toBeTruthy();
+    const firstLine = termBody!.split("\n")[0];
+    const coverTitle = (await dialog.locator("[data-proposal-document] > header h1").textContent())!;
+
+    // Section view first: the long terms are one retained, exact scrolling block.
+    await dialog.getByLabel("Reading page", { exact: true }).selectOption("terms");
+    const body = dialog.locator("[data-doc-section='terms'] ol > li > p");
+    expect(await body.textContent()).toBe(termBody);
+    const scroller = dialog.locator("[data-document-view-scroll]");
+    expect(await scroller.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true);
+    const sectionStatus = await dialog.getByRole("status").textContent();
+    expect(sectionStatus).toContain("Web reading page");
+
+    // Page mode contains the whole proposal, not just the previously selected section.
+    await dialog.getByRole("button", { name: "Paginated web view", exact: true }).click({ timeout: 5000 });
+    const status = dialog.getByRole("status").filter({ hasText: /^Web page \d+ of \d+/ });
+    await expect(status).toContainText(/Web page 1 of \d+/);
+    await expect.poll(async () => Number(/Web page 1 of (\d+)/.exec(await status.textContent() ?? "")?.[1])).toBeGreaterThan(1);
+    const total = Number(/Web page 1 of (\d+)/.exec(await status.textContent() ?? "")?.[1]);
+    // The split is measured from the real layout, asserted not assumed: N > 1.
+    expect(total).toBeGreaterThan(1);
+
+    // Page 1 paints the cover, not a counter over the unchanged terms section.
+    expect(await textPainted(dialog, coverTitle, "[data-proposal-document] > header h1")).toBe(true);
+    expect(await textPainted(dialog, "END OF SYNTHETIC STYLED TERMS")).toBe(false);
+
+    // Every word of the original terms and the response mount are still in the document.
+    const article = dialog.locator("[data-proposal-document]");
+    expect(flatten(await article.textContent())).toContain(flatten(termBody));
+    await expect(dialog.locator("[data-doc-section='response']")).toHaveCount(1);
+    await expect(dialog.getByRole("button", { name: /save|send|download|publish|accept/i })).toHaveCount(0);
+    // The section-mode controls are restored on explicit return below.
+
+    const next = dialog.getByRole("button", { name: "Next web page", exact: true });
+    const previous = dialog.getByRole("button", { name: "Previous web page", exact: true });
+    await expect(previous).toBeDisabled();
+    const backgroundY = await page.evaluate(() => window.scrollY);
+
+    // Prove the long terms span real distinct painted pages within the complete proposal.
+    let firstTermsPage = -1, finalTermsPage = -1;
+    for (let webPage = 2; webPage <= total; webPage++) {
+        await next.click();
+        await expect(status).toContainText(`Web page ${webPage} of ${total}`);
+        if (firstTermsPage < 0 && await textPainted(dialog, firstLine)) firstTermsPage = webPage;
+        if (await textPainted(dialog, "END OF SYNTHETIC STYLED TERMS")) finalTermsPage = webPage;
+    }
+    await expect(next).toBeDisabled();
+    expect(firstTermsPage).toBeGreaterThan(1);
+    expect(finalTermsPage).toBeGreaterThan(firstTermsPage);
+    expect(await textPainted(dialog, coverTitle, "[data-proposal-document] > header h1")).toBe(false);
+
+    // Still no action buttons, the full text and the response mount after paging.
+    await expect(dialog.getByRole("button", { name: /save|send|download|publish|accept/i })).toHaveCount(0);
+    expect(flatten(await article.textContent())).toContain(flatten(termBody));
+    await expect(dialog.locator("[data-doc-section='response']")).toHaveCount(1);
+
+    // Previous walks back to the first page and really repaints it.
+    for (let webPage = total - 1; webPage >= 1; webPage--) {
+        await previous.click();
+        await expect(status).toContainText(`Web page ${webPage} of ${total}`);
+    }
+    await expect(previous).toBeDisabled();
+    expect(await textPainted(dialog, coverTitle, "[data-proposal-document] > header h1")).toBe(true);
+    expect(await textPainted(dialog, "END OF SYNTHETIC STYLED TERMS")).toBe(false);
+
+    // The page behind the modal never moved during any of the page turns.
+    expect(await page.evaluate(() => window.scrollY)).toBe(backgroundY);
+
+    // Section view returns to the retained section controls with the original
+    // long terms still complete in one scrolling block.
+    await dialog.getByRole("button", { name: "Section view", exact: true }).click();
+    await expect(dialog.getByRole("status").filter({ hasText: /Web reading page/ })).toContainText(/Web reading page \d+ of \d+/);
+    await expect(dialog.getByLabel("Reading page", { exact: true })).toBeAttached();
+    expect(await body.textContent()).toBe(termBody);
+    expect(await scroller.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true);
+    await expect(dialog.locator("[data-proposal-document]")).toContainText("END OF SYNTHETIC STYLED TERMS");
+    await dialog.getByLabel("Reading page", { exact: true }).selectOption("cover");
+    await expect(dialog.locator("[data-proposal-document] > header")).toBeVisible();
+});

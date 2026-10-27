@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-10-27T19:36:36.621Z",
+  "updatedAt": "2026-10-27T19:50:08.470Z",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {
@@ -141,12 +141,13 @@
       "phase": "P1-Jan2027",
       "requested": "Add Constructa platform terms acceptance at signup, with an explicit checkbox and accessible full terms.",
       "status": "Partial",
-      "delivery": "Reviewed consent-table migration APPLIED to verified QA only on Rob21:50 authority; exact columns/constraints/RLS/policies/narrow grants metadata verified. No consent rows accessed in that operation. Current A023 signup/email/firstlogin not run. Later unintended legacy PR106 QA journey is a separate incident, not current-consent acceptance.",
+      "delivery": "Claude658 safeHELDoperatorconsentrunner integrated afterP1bounded-identityrepair and independentrecheck;21actualguardPASS/lint/typecheck+12oldpassesretained. AuthverifiessessionidentitybeforeownRLSrow/docread; capturesOFF; humanalonelegal/signup/email; hardruntimeholdTRUE. Build/scans/backupactuals inprivateacceptancereceipt; no currentruntimeacceptance. QAconsentschemaalreadyapplied/metadataverified; realcurrentconsentacceptance NOT_RUN.",
       "evidence": [
         "docs/delivery/2026-10-27/handoff.md",
         "docs/delivery/2026-10-27/changelog.md"
       ],
-      "previousDeliveryBeforeA079Evening20261027": "QA access and exact constructa-e2e-pr79 name-ref binding now VERIFIED in authenticated UI; public schema search finds no platform_terms_acceptances table. SQL/signup/Preview holds remain. Unsafe runner rejected, no real consent or canonical source landed; Partial."
+      "previousDeliveryBeforeA079Evening20261027": "QA access and exact constructa-e2e-pr79 name-ref binding now VERIFIED in authenticated UI; public schema search finds no platform_terms_acceptances table. SQL/signup/Preview holds remain. Unsafe runner rejected, no real consent or canonical source landed; Partial.",
+      "historyBeforeSafeRunner20261027": "Reviewed consent-table migration APPLIED to verified QA only on Rob21:50 authority; exact columns/constraints/RLS/policies/narrow grants metadata verified. No consent rows accessed in that operation. Current A023 signup/email/firstlogin not run. Later unintended legacy PR106 QA journey is a separate incident, not current-consent acceptance."
     },
     {
       "id": "A024",
@@ -363,12 +364,13 @@
       "phase": "P1-Jan2027",
       "requested": "Align Gantt bars with the date/week grid, durations and the proposal timeline.",
       "status": "Partial",
-      "delivery": "Bounded navigation failure/retry handling integrated from7e4; source acceptance uses local3case/lint/originalbuild/propersecret-scan receipt. A059Partial: no calendarSQL/realQAsave-reopen-readback or completedshiftintervalcapacity.",
+      "delivery": "Navigationrepairbacked05595c4 afterlocal3PASS/lint/build/scans/remoteMATCH. A059Partial: QAcalendarSQL/save-reopen andshiftintervalcapacityunfinished.",
       "evidence": [
         "docs/delivery/2026-10-27/handoff.md",
         "docs/delivery/2026-10-27/changelog.md"
       ],
-      "previousDeliveryBeforeNavigationBackup20261027": "SOURCE BACKED ba1c34c including aa6d349, Node24 original Next/TypeScript/QAguardPASS31pages1906readbacks0events/scans0/nonforcebackupremoteMATCH20:45:10. A059 remainsPartial: SQL and real QA save/reopen/readback NOT_RUN."
+      "previousDeliveryBeforeNavigationBackup20261027": "SOURCE BACKED ba1c34c including aa6d349, Node24 original Next/TypeScript/QAguardPASS31pages1906readbacks0events/scans0/nonforcebackupremoteMATCH20:45:10. A059 remainsPartial: SQL and real QA save/reopen/readback NOT_RUN.",
+      "historyBeforeSafeRunner20261027": "Bounded navigation failure/retry handling integrated from7e4; source acceptance uses local3case/lint/originalbuild/propersecret-scan receipt. A059Partial: no calendarSQL/realQAsave-reopen-readback or completedshiftintervalcapacity."
     },
     {
       "id": "A060",
@@ -569,12 +571,13 @@
       "phase": "P1-Jan2027",
       "requested": "Verify current-source units/build and full marketing-to-proposal flow at meaningful integration boundaries.",
       "status": "Partial",
-      "delivery": "Existing assertion repair679 remains backed; Kimi current About/proposal62PASS and actualbase7b planner91PASS. Friday draftPR106 automatically ran legacy hosted Phase1: 2PASS on real synthetic QA but unintended under holds, NOT accepted release evidence. PR106 closed/unmerged; Composer cloud source-only draft gate103f489 returned, independent check pending.",
+      "delivery": "Claude658 safeHELDoperatorconsentrunner integrated afterP1bounded-identityrepair and independentrecheck;21actualguardPASS/lint/typecheck+12oldpassesretained. AuthverifiessessionidentitybeforeownRLSrow/docread; capturesOFF; humanalonelegal/signup/email; hardruntimeholdTRUE. Build/scans/backupactuals inprivateacceptancereceipt; no currentruntimeacceptance. PriorA059navigation/sourceMOCKproofretained; fullrealmarketingjourneyNOTaccepted.",
       "evidence": [
         "docs/delivery/2026-10-27/handoff.md",
         "docs/delivery/2026-10-27/changelog.md"
       ],
-      "previousDeliveryBeforeA079Evening20261027": "Existing288c096..7b60157 scoped MOCK integration diff reviewed/accepted. Separate new one-assertion About-facts fix aligns exact five existing credentials; actual priorRED -> ONLYfailedcasePASS1/lint0/32oldNOT_SELECTED, no product change. Packaging exact build/scans next; full real marketing/AuthDB/hosted still NOT_RUN."
+      "previousDeliveryBeforeA079Evening20261027": "Existing288c096..7b60157 scoped MOCK integration diff reviewed/accepted. Separate new one-assertion About-facts fix aligns exact five existing credentials; actual priorRED -> ONLYfailedcasePASS1/lint0/32oldNOT_SELECTED, no product change. Packaging exact build/scans next; full real marketing/AuthDB/hosted still NOT_RUN.",
+      "historyBeforeSafeRunner20261027": "Existing assertion repair679 remains backed; Kimi current About/proposal62PASS and actualbase7b planner91PASS. Friday draftPR106 automatically ran legacy hosted Phase1: 2PASS on real synthetic QA but unintended under holds, NOT accepted release evidence. PR106 closed/unmerged; Composer cloud source-only draft gate103f489 returned, independent check pending."
     },
     {
       "id": "A092",

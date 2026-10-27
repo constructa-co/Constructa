@@ -1,3 +1,35 @@
+# Held Consent-Runner Source Delivery - 27 October 2026
+
+A059 navigation delivery is now backed as `05595c4` at23:39:56 UAE, with
+three actual integration cases passed,55 not selected, affected lint, original
+Node24 build/1,910 protected readbacks/zero events and proper secret scans.
+This includes the earlier A079 `c21457e` delivery and all original A059 changes.
+
+Claude's A091 source-only consent runner at `658904d` is now integrated after
+Composer closed its one P1. It observes the current server-action flow and
+leaves legal agreement, account creation, email confirmation and login to the
+human operator. Every outcome needs exact document/revision/server-time
+readback. Identity is verified FIRST through the current signed-in session;
+only that owner's row/document is queried, using anon plus its bearer session
+and RLS, not a broad service-role time-window query or admin user lookup.
+
+Necessary app-origin/current-project cookies and the access token are read
+once and held only in memory, immediately included in redaction. This is NOT
+described as credential-free runtime. Trace/video/screenshots and durable
+session recording remain off. The hardcoded runtime hold remains TRUE; default
+CI does not discover this operator-only runner. No browser, session, Auth,
+signup, terms, email or DB operation was performed in this source delivery.
+
+The final affected guard file passed21 tests/lint/typecheck after the repair;
+12 earlier env/no-publication passes are retained, not33 freshly run tests.
+Independent exact-P1 recheck cleared. A fresh original exact-input build and
+proper source/range scans gate backup; actual SHA/results live in its private
+acceptance receipt. A023/A091 stay Partial: real current consent acceptance is
+NOT_RUN, confirmation mailbox and metadata-probe privilege remain explicit
+future runtime blockers, Preview is held, and the legacy PR106 run is not proof.
+
+## Earlier Programme Record Retained
+
 # Programme Navigation Delivery - 27 October 2026
 
 The A079 block below is now backed as `c21457e`, independently remote-matched

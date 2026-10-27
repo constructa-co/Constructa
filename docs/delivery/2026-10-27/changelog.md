@@ -1,3 +1,17 @@
+# Held Consent-Runner Update - 27 October 2026
+
+- Integrate Claude's held A091 operator-assisted runner and offline safety
+  tests after independent review and repair of the identity-unbounded read.
+- Verify the current session identity before an owner/document-scoped RLS
+  readback. Keep transient token access explicit and redacted, capture off,
+  human-only legal/signup/email steps and runtime hold TRUE.
+- Retain21 affected guard passes plus12 earlier unchanged passes; no hosted
+  or legal execution, product/auth/schema change or Complete status claimed.
+- Record A059's actual backed05595c4 delivery. Fresh original build and proper
+  scans precede this next source backup; prior records remain exact suffixes.
+
+## Earlier Programme Change Log Retained
+
 # Programme Navigation Update - 27 October 2026
 
 - Integrate Composer's bounded post-save navigation exception handling, restore

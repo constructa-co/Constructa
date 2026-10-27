@@ -267,4 +267,23 @@ describe("timeline-first simple programme workspace", () => {
         );
         expect(hooks.router.refresh).toHaveBeenCalledTimes(1);
     });
+
+    it("restores leave protection and allows Next retry without another save when navigation fails", async () => {
+        two();
+        hooks.router.push.mockImplementation(() => {
+            throw new Error("navigation blocked");
+        });
+        const next = nodes(editor()).find(n => n.type === "button"
+            && String(Array.isArray(n.props.children) ? n.props.children[0] : n.props.children).startsWith("Next: Proposal"));
+        expect(next).toBeDefined();
+        (next!.props.onClick as () => void)();
+        await vi.waitFor(() => expect(renderToStaticMarkup(editor())).toContain("data-programme-leave-error"));
+        expect(hooks.slots[0]).toBe(false);
+        expect(hooks.save).not.toHaveBeenCalled();
+        hooks.router.push.mockImplementation(() => undefined);
+        (next!.props.onClick as () => void)();
+        await vi.waitFor(() => expect(hooks.router.push).toHaveBeenCalledTimes(2));
+        expect(hooks.save).not.toHaveBeenCalled();
+        expect(hooks.router.refresh).toHaveBeenCalledTimes(1);
+    });
 });

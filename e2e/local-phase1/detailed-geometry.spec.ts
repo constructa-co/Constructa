@@ -4,11 +4,14 @@ import path from "node:path";
 import type { LocalDetailedGeometryFixture } from "./detailed-geometry-entry";
 
 // A059: the actual detailed planner's week grid and bars, measured against its
-// own grid lane under the actual compiled Tailwind stylesheet, on the current
-// five-day basis. Build with `build-brief-price.mjs <out> detailed-geometry`
-// (A059-DETAILED-GEOMETRY-0035 compiler hunk). Expected facts are worked out
-// by hand on the same Mon-Fri calendar and written as literals; the policy
-// (minimum four-week axis, whole-week display rounding, grouping) is unchanged.
+// own grid lane under the actual compiled Tailwind stylesheet. The short/long
+// cases stay on the current five-day basis; one added saved7 case works its
+// facts on an explicitly saved version-1 all-weekdays calendar. Build with
+// `build-brief-price.mjs <out> detailed-geometry` (A059-DETAILED-GEOMETRY-0035
+// compiler hunk). Expected facts are worked out by hand on the same calendar
+// the page saves (Mon-Fri for short/long, every weekday for saved7) and
+// written as literals; the policy (minimum four-week axis, whole-week display
+// rounding, grouping) is unchanged.
 const output = process.env.CONSTRUCTA_LOCAL_PHASE1_OUTPUT!;
 const bundle = readFileSync(path.join(output, "components.js"), "utf8");
 const css = readFileSync(path.join(output, "components.css"), "utf8");
@@ -16,10 +19,10 @@ let requests: string[] = [];
 let pageErrors: string[] = [];
 
 const scope = {
-    component: "REAL ClientSchedulePage mounted over synthetic saved five-day phases",
+    component: "REAL ClientSchedulePage mounted over synthetic saved five-day phases, plus one saved seven-day-pattern scenario",
     styles: "Actual compiled Tailwind (globals.css + tailwind.config.js, installed v3), as the A003 leg",
-    transport: "Planner actions recorded and REFUSED; 5-day localStorage stand-in",
-    notClaimed: "Non-five-day weeks, legacy timelines, drag behaviour, phone layout, served page, hosted, Auth/DB, save",
+    transport: "Planner actions recorded and REFUSED; 5-day localStorage stand-in (the saved7 case proves the SAVED pattern wins over it)",
+    notClaimed: "Non-five-day weeks beyond the one saved seven-day case, legacy timelines, drag behaviour, phone layout, served page, hosted, Auth/DB, save",
 };
 // Tailwind v3 default palette for the first three PHASE_COLORS.
 const FILLS = ["rgb(59, 130, 246)", "rgb(16, 185, 129)", "rgb(249, 115, 22)"];
@@ -70,7 +73,7 @@ const measure = (page: Page): Promise<Measured> => page.evaluate(() => {
 async function open(page: Page, plan: LocalDetailedGeometryFixture["plan"]) {
     await page.evaluate(value => { window.__detailedGeometryOptions = { plan: value }; }, plan);
     await page.addScriptTag({ content: bundle });
-    await expect(page.locator("[data-planner-duration]")).toHaveCount(plan === "short" ? 3 : 2);
+    await expect(page.locator("[data-planner-duration]")).toHaveCount(plan === "short" ? 3 : plan === "long" ? 2 : 1);
 }
 
 /** Every bar sits on its own row at its dated offset and calendar span, as fractions of the actual grid lane. */
@@ -237,4 +240,41 @@ test("on a native phone390x844 viewport, the grouped fifteen-week 105-day axis s
     expect(visibleBar!.width).toBeGreaterThan(0);
     expect(visibleBar!.x).toBeGreaterThanOrEqual(scroll.left);
     expect(visibleBar!.x + visibleBar!.width).toBeLessThanOrEqual(scroll.right);
+});
+
+test("with a saved all-weekdays version-1 pattern, a three-working-day stage from Friday 13 Nov paints three calendar days starting four days into the Monday 9 Nov axis, finishing Sunday 15 Nov", async ({ page }) => {
+    await open(page, "saved7");
+    // Saved calendar (programme_working_pattern, version 1, all seven weekdays):
+    // the Friday start is kept (no legacy Monday shift), so the axis begins
+    // Monday 9 Nov and axisLead is 4. The canonical plan — the same
+    // computeProgrammePlan proposals publish — runs Fri 13 Nov + 3 working days
+    // to Sun 15 Nov: 3 working days / 3 calendar days, span_days 3. The dated
+    // fill therefore starts 4 calendar days from the axis origin, not the old
+    // Mon-Fri outcome (start shifted to Mon 16 Nov, finish Tue 17 Nov) that the
+    // 5-day localStorage stand-in would give.
+    await expect(page.locator("[data-planner-saved-working-days]")).toHaveText("Sun, Mon, Tue, Wed, Thu, Fri, Sat");
+    await expect(page.locator('input[type="date"]')).toHaveValue("2026-11-13");
+    await expect(page.getByText("3 working days / 3 calendar days", { exact: true })).toBeVisible();
+    await expect(page.getByText("13 Nov – 15 Nov", { exact: true })).toBeVisible();
+    await expect(page.getByText("13 Nov 26", { exact: true })).toBeVisible(); // summary Start
+    await expect(page.getByText("15 Nov 26", { exact: true })).toBeVisible(); // summary Completion
+    await expect(page.getByText(/Grid columns group up to/)).toHaveCount(0);
+    // The first week's header day strip marks all seven days as working.
+    await expect(page.locator('[data-planner-week-start="1"] [data-planner-calendar-day][data-working-day="true"]')).toHaveCount(7);
+
+    const m = await measure(page);
+    expectGrid(m, 4, [
+        { start: 1, span: 1, label: "W1", date: "9 Nov", range: "W1: 2026-11-09 to 2026-11-15" },
+        { start: 2, span: 1, label: "W2", date: "16 Nov", range: "W2: 2026-11-16 to 2026-11-22" },
+        { start: 3, span: 1, label: "W3", date: "23 Nov", range: "W3: 2026-11-23 to 2026-11-29" },
+        { start: 4, span: 1, label: "W4", date: "30 Nov", range: "W4: 2026-11-30 to 2026-12-06" },
+    ]);
+    expectBars(m, 28, [{ offset: 4, days: 3, label: "3d" }]);
+    // The fill starts exactly 4 calendar days from the Monday 9 Nov axis origin
+    // (the W1 grid line is day 0) and its three-day span ends on the W2 line.
+    const bar = m.bars[0]!;
+    expect(Math.abs(bar.wrapper.left - (m.gridLines[0]!.left + (4 / 28) * m.lane.width)), "fill starts 4 days from the axis origin").toBeLessThan(NEAR);
+    expect(Math.abs(bar.wrapper.left + bar.wrapper.width - m.gridLines[1]!.left), "fill ends on the W2 line").toBeLessThan(NEAR);
+    // Three of the first week column's seven days — not the legacy 7-day span.
+    expect(Math.abs(bar.fill.width - (3 / 7) * (m.gridLines[1]!.left - m.gridLines[0]!.left)), "fill is three sevenths of the W1 column").toBeLessThan(NEAR * 3);
 });

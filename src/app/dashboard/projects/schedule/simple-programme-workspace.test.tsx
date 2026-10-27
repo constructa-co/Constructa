@@ -259,7 +259,7 @@ describe("timeline-first simple programme workspace", () => {
     it("refreshes the proposal route after Next: Proposal so saved working days are not stale", async () => {
         two();
         const next = nodes(editor()).find(n => n.type === "button"
-            && String(n.props.children?.[0] ?? "").startsWith("Next: Proposal"));
+            && String(Array.isArray(n.props.children) ? n.props.children[0] : n.props.children).startsWith("Next: Proposal"));
         expect(next).toBeDefined();
         await (next!.props.onClick as () => void)();
         expect(hooks.router.push).toHaveBeenCalledWith(

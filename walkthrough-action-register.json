@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-10-27T19:03:54.581Z",
+  "updatedAt": "2026-10-27T19:36:36.621Z",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {
@@ -363,11 +363,12 @@
       "phase": "P1-Jan2027",
       "requested": "Align Gantt bars with the date/week grid, durations and the proposal timeline.",
       "status": "Partial",
-      "delivery": "SOURCE BACKED ba1c34c including aa6d349, Node24 original Next/TypeScript/QAguardPASS31pages1906readbacks0events/scans0/nonforcebackupremoteMATCH20:45:10. A059 remainsPartial: SQL and real QA save/reopen/readback NOT_RUN.",
+      "delivery": "Bounded navigation failure/retry handling integrated from7e4; source acceptance uses local3case/lint/originalbuild/propersecret-scan receipt. A059Partial: no calendarSQL/realQAsave-reopen-readback or completedshiftintervalcapacity.",
       "evidence": [
         "docs/delivery/2026-10-27/handoff.md",
         "docs/delivery/2026-10-27/changelog.md"
-      ]
+      ],
+      "previousDeliveryBeforeNavigationBackup20261027": "SOURCE BACKED ba1c34c including aa6d349, Node24 original Next/TypeScript/QAguardPASS31pages1906readbacks0events/scans0/nonforcebackupremoteMATCH20:45:10. A059 remainsPartial: SQL and real QA save/reopen/readback NOT_RUN."
     },
     {
       "id": "A060",
@@ -488,13 +489,14 @@
       "phase": "P1-Jan2027",
       "requested": "Fully preserve both exact deployed repositories, history and assets with a separately verified backup.",
       "status": "Partial",
-      "delivery": "Claude A079 repaired three-file recovery runbook/manifest checker d1acd99 integrated exactly; 24 offline tests and lint PASS, independent Composer findings recheck cleared. Exact-input build/secret scans/backup pending. No actual export/restore; original full recoverability remains Partial.",
+      "delivery": "Reviewed source-only recovery runbook/checker BACKED c21457e;24tests/lint/originalbuild/scans/remoteMATCH. No actual independent DB/Auth/Storage/refs/assets/privatework recovery; originalA079Partial.",
       "evidence": [
         "docs/delivery/2026-10-27/handoff.md",
         "docs/delivery/2026-10-27/changelog.md",
         "docs/recovery/a079-recovery-runbook.md"
       ],
-      "previousDeliveryBeforeA079Evening20261027": "Partial. Actual QA overview says LAST BACKUP No backups, not a Production/private-export verdict. Independent DB/Auth/Storage restore, refs/history/assets/private-unsaved reconciliation and constructa-ops export remain unproved; no export/restore executed."
+      "previousDeliveryBeforeA079Evening20261027": "Partial. Actual QA overview says LAST BACKUP No backups, not a Production/private-export verdict. Independent DB/Auth/Storage restore, refs/history/assets/private-unsaved reconciliation and constructa-ops export remain unproved; no export/restore executed.",
+      "previousDeliveryBeforeNavigationBackup20261027": "Claude A079 repaired three-file recovery runbook/manifest checker d1acd99 integrated exactly; 24 offline tests and lint PASS, independent Composer findings recheck cleared. Exact-input build/secret scans/backup pending. No actual export/restore; original full recoverability remains Partial."
     },
     {
       "id": "A080",

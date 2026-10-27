@@ -373,6 +373,9 @@ export function draftPlan(draft: ProgrammeDraft): DisplayProgrammePlan | null {
 export const PROGRAMME_SAVE_ERROR =
     "The programme couldn't be saved. Nothing you typed has been lost. Check your connection and try again.";
 
+export const PROGRAMME_NAVIGATION_ERROR =
+    "The proposal couldn't be opened. Your last save is still on record; edits made since then are not saved yet. Try Next: Proposal again.";
+
 export interface ProgrammeState {
     draft: ProgrammeDraft;
     /** The draft as the server last confirmed it. */
@@ -558,14 +561,18 @@ export async function saveProgramme(store: ProgrammeStore, save: SaveProgramme):
 export async function continueToProposal(
     store: ProgrammeStore,
     save: SaveProgramme,
-    navigate: () => void,
-): Promise<"navigated" | ProgrammeSaveOutcome> {
+    navigate: () => void | Promise<void>,
+): Promise<"navigated" | "navigation-failed" | ProgrammeSaveOutcome> {
     if (!isProgrammeSaved(store.getState())) {
         const outcome = await saveProgramme(store, save);
         if (outcome !== "saved") return outcome;
         if (!isProgrammeSaved(store.getState())) return "busy";
     }
-    navigate();
+    try {
+        await navigate();
+    } catch {
+        return "navigation-failed";
+    }
     return "navigated";
 }
 

@@ -21,6 +21,7 @@ import { resolveJobWorkingPattern } from "@/lib/job-working-pattern";
 import {
     MAX_STAGES,
     MIN_STAGES,
+    PROGRAMME_NAVIGATION_ERROR,
     PROGRAMME_STATUS_LABEL,
     continueToProposal,
     draftPlan,
@@ -350,6 +351,7 @@ function ProgrammeEditor({
     const router = useRouter();
     const [state, store] = useReducerStore(programmeReducer, () => initialProgrammeState(initial.draft, initial.hasSaved));
     const [leaving, setLeaving] = useState(false);
+    const [leaveError, setLeaveError] = useState<string | null>(null);
     const { draft, fieldErrors } = state;
     const estimateActivities = programmeEstimateActivities(project.id, estimate);
     const status = programmeSaveStatus(state);
@@ -389,11 +391,19 @@ function ProgrammeEditor({
     }, [failed]);
 
     const handleSave = () => void saveProgramme(store, save);
-    const handleNext = () => void continueToProposal(store, save, () => {
-        setLeaving(true);
-        router.push(proposalPathForProject(project.id));
-        router.refresh();
-    });
+    const handleNext = () => {
+        setLeaveError(null);
+        void continueToProposal(store, save, () => {
+            setLeaving(true);
+            router.push(proposalPathForProject(project.id));
+            router.refresh();
+        }).then((outcome) => {
+            if (outcome === "navigation-failed") {
+                setLeaving(false);
+                setLeaveError(PROGRAMME_NAVIGATION_ERROR);
+            }
+        });
+    };
 
     const unitSelect = (id: string, value: DurationUnit, onChange: (unit: DurationUnit) => void, label: string) => (
         <select
@@ -427,6 +437,14 @@ function ProgrammeEditor({
                     <AlertTriangle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
                     <p className="flex-1 min-w-[12rem]">{state.save.error}</p>
                     <button type="button" onClick={handleSave} className={`${s.secondaryButton} min-h-11 text-sm`}>Try again</button>
+                </div>
+            )}
+
+            {leaveError && (
+                <div role="alert" className={`${s.errorBox} flex flex-wrap items-center gap-3 text-sm scroll-mt-20`} data-programme-leave-error>
+                    <AlertTriangle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                    <p className="flex-1 min-w-[12rem]">{leaveError}</p>
+                    <button type="button" onClick={handleNext} className={`${s.secondaryButton} min-h-11 text-sm`}>Try again</button>
                 </div>
             )}
 

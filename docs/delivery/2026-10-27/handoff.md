@@ -1,3 +1,34 @@
+# Programme Navigation Delivery - 27 October 2026
+
+The A079 block below is now backed as `c21457e`, independently remote-matched
+23:08:45 UAE. Its original build passed with 1,910 protected readbacks and zero
+events; source/range scans were clean. The original A079 scope remains Partial.
+
+This next logical delivery integrates Composer cloud A059 source `7e4c5a8`:
+navigation failure after a confirmed programme save no longer leaves the page
+in its leaving state or emits an unhandled rejection. Deliberate Next retries
+reuse an unchanged confirmed save; newer edits are saved deliberately. The
+banner distinguishes the last save from later unsaved edits. Successful
+navigation remains push then refresh. Calendar maths/storage/CAS, money and
+project identity are unchanged.
+
+Cloud reported 58 affected passes; one existing new case was extended for the
+reviewer's stale-copy finding and passed again. That is not 59 distinct cases:
+the other 57 were retained. Cloud typecheck/build passed on final bytes; its
+rg-only secret check is NOT gitleaks certification. Local integration acceptance
+uses the three introduced navigation cases, affected lint, a fresh original
+Node24 build and proper source/outgoing-range gitleaks before non-force backup.
+Exact results and commit belong to the private acceptance receipt, not a
+guessed source SHA here. A059 remains Partial: calendar SQL and real QA
+save/reopen/readback are not run, and shifts/interval/capacity scope is open.
+
+Claude's new A091 held operator-runner candidate `261038b` returned 28 offline
+passes but is NOT integrated: independent review found an identity-unbounded
+consent time-window read. Claude is repairing only that finding. Runtime hold
+stays true; no signup, legal consent, email or DB operation is authorised.
+
+## Earlier Evening Record Retained
+
 # Current Evening Delivery - 27 October 2026
 
 This block supersedes older pending labels below; earlier text is retained.

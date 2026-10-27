@@ -1,3 +1,16 @@
+# Programme Navigation Update - 27 October 2026
+
+- Integrate Composer's bounded post-save navigation exception handling, restore
+  leave protection and permit explicit retry without replaying a confirmed save.
+- Resolve the independent stale-banner finding with truthful last-save versus
+  newer-unsaved-edit copy and an extended mounted regression. No calendar,
+  storage, money, default or project-identity change.
+- Keep A059 Partial. Record A079's actual backed `c21457e` source delivery and
+  keep its original recoverability scope Partial. A091's new privacy finding
+  is returned to Claude; unsafe held code is not integrated.
+
+## Earlier Evening Change Log Retained
+
 # Evening Update - 27 October 2026
 
 - Integrate Claude's repaired A079 runbook and offline manifest validator:

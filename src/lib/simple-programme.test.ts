@@ -333,4 +333,31 @@ describe("continuing to the proposal", () => {
         await expect(continueToProposal(store, vi.fn(), navigate)).resolves.toBe("invalid");
         expect(navigate).not.toHaveBeenCalled();
     });
+
+    it("reports navigation failure without mutating a programme the server already holds", async () => {
+        const store = storeFor(initialProgrammeState(whole, true));
+        const save = vi.fn();
+        const navigate = vi.fn(() => {
+            throw new Error("router push failed");
+        });
+        await expect(continueToProposal(store, save, navigate)).resolves.toBe("navigation-failed");
+        expect(save).not.toHaveBeenCalled();
+        expect(isProgrammeSaved(store.getState())).toBe(true);
+        expect(store.getState().draft).toEqual(store.getState().saved);
+    });
+
+    it("does not save again when Next is retried after navigation fails post-save", async () => {
+        const store = storeFor(initialProgrammeState(whole, false));
+        const save = vi.fn().mockResolvedValue({ success: true });
+        let attempts = 0;
+        const navigate = vi.fn(() => {
+            attempts += 1;
+            if (attempts === 1) throw new Error("router push failed");
+        });
+        await expect(continueToProposal(store, save, navigate)).resolves.toBe("navigation-failed");
+        expect(save).toHaveBeenCalledTimes(1);
+        await expect(continueToProposal(store, save, navigate)).resolves.toBe("navigated");
+        expect(save).toHaveBeenCalledTimes(1);
+        expect(navigate).toHaveBeenCalledTimes(2);
+    });
 });

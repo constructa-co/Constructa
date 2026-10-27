@@ -1,3 +1,27 @@
+# Programme Navigation Follow-Through - 28 October 2026
+
+Kimi's new refresh-after-successful-push exception/retry case is independently
+accepted. The earlier push-failure case now checks the actual leaving state.
+Error wording explicitly conditions newer-unsaved edits. Two affected mounted
+cases pass;17 other cases not selected; affected lint passes. Old/new source-
+string copy contrast is NOT a failing pre-change Vitest run. Original Kimi
+slot/lint-command failures are retained. Grok's promise premise is rejected
+against actual AppRouter push/refresh void API; no routing/save change.
+
+This SIX-file block is based on backed f850da7. Required exact original Node24
+build/TypeScript/target guard, scans and normal backup are pending at metadata
+freeze. Final result/SHA: private a059-final-source-backup-20261028.json.
+Earlier f850/055 receipts do not certify changed candidate bytes.
+
+PR104 readiness/curation report is in the Constructa inbox. Friday proposal is
+six A002+draft-guard files, not broad PR104 or wholesale backup. Before any PR,
+inspect workflows and post effects first. PR106 stays closed; no hosted rerun.
+A059/A023/A079/A091 remain Partial; Preview HOLD/signup OFF; no main merge,
+deploy/settings/keys/calendar SQL/export-restore permission is inferred.
+
+## Earlier Handoff Retained
+
+
 # Held Consent-Runner Source Delivery - 27 October 2026
 
 A059 navigation delivery is now backed as `05595c4` at23:39:56 UAE, with

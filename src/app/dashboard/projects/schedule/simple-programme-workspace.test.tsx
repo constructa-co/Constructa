@@ -279,7 +279,11 @@ describe("timeline-first simple programme workspace", () => {
         (next!.props.onClick as () => void)();
         await vi.waitFor(() => expect(renderToStaticMarkup(editor())).toContain("data-programme-leave-error"));
         await vi.waitFor(() => expect(hooks.save).not.toHaveBeenCalled());
-        expect(hooks.slots[0]).toBe(false);
+        expect(hooks.slots[7]).toBe(false);
+        const beforeEdit = renderToStaticMarkup(editor());
+        expect(beforeEdit).toMatch(/If you have made newer edits/i);
+        expect(beforeEdit).not.toMatch(/edits made since then/i);
+        expect(beforeEdit).not.toMatch(/still saved here/i);
         const savesBeforeEdit = hooks.save.mock.calls.length;
         const stageDuration = nodes(editor()).find(n => n.props.id === "stage-saved-0-duration");
         expect(stageDuration).toBeDefined();
@@ -294,5 +298,53 @@ describe("timeline-first simple programme workspace", () => {
         await vi.waitFor(() => expect(hooks.router.push).toHaveBeenCalledTimes(2));
         expect(hooks.save).toHaveBeenCalledTimes(savesBeforeEdit + 1);
         expect(hooks.router.refresh).toHaveBeenCalledTimes(1);
+    });
+
+    it("restores leave protection when refresh fails after a successful push, then retries in order without replaying the save", async () => {
+        two();
+        hooks.router.refresh.mockImplementation(() => {
+            throw new Error("refresh failed");
+        });
+        const next = nodes(editor()).find(n => n.type === "button"
+            && String(Array.isArray(n.props.children) ? n.props.children[0] : n.props.children).startsWith("Next: Proposal"));
+        expect(next).toBeDefined();
+        (next!.props.onClick as () => void)();
+        await vi.waitFor(() => expect(renderToStaticMarkup(editor())).toContain("data-programme-leave-error"));
+        // The push succeeded exactly once for the right project before the
+        // refresh threw; nothing saved again and no automatic second navigation.
+        expect(hooks.router.push).toHaveBeenCalledTimes(1);
+        expect(hooks.router.push).toHaveBeenCalledWith(
+            "/dashboard/projects/proposal?projectId=11111111-1111-4111-8111-111111111111",
+        );
+        expect(hooks.router.refresh).toHaveBeenCalledTimes(1);
+        expect(hooks.router.push.mock.invocationCallOrder[0]).toBeLessThan(hooks.router.refresh.mock.invocationCallOrder[0]);
+        await vi.waitFor(() => expect(hooks.save).not.toHaveBeenCalled());
+        expect(hooks.slots[7]).toBe(false);
+        // The failure copy stays honest once a newer unsaved copy exists.
+        const stageDuration = nodes(editor()).find(n => n.props.id === "stage-saved-0-duration");
+        expect(stageDuration).toBeDefined();
+        (stageDuration!.props.onChange as (event: { target: { value: string } }) => void)({ target: { value: "4" } });
+        const afterEdit = renderToStaticMarkup(editor());
+        expect(afterEdit).not.toMatch(/still saved here/i);
+        expect(afterEdit).toMatch(/last save/i);
+        expect(afterEdit).toMatch(/newer edits|not saved yet/i);
+        expect(hooks.save).not.toHaveBeenCalled();
+        // Clear the refresh failure and retry deliberately: one save of the
+        // edited draft, then push, then refresh; no replay of the confirmed save.
+        hooks.router.refresh.mockImplementation(() => undefined);
+        const retry = nodes(editor()).find(n => n.type === "button" && renderToStaticMarkup(n).includes("Try again"))!;
+        (retry.props.onClick as () => void)();
+        await vi.waitFor(() => expect(hooks.save).toHaveBeenCalledTimes(1));
+        expect(hooks.save).toHaveBeenCalledExactlyOnceWith({ startDate: "2026-10-19", stages: [
+            { name: "Remove old kitchen", workingDays: 4, unit: "days", source: 0 },
+            { name: "Fit new kitchen", workingDays: 5, unit: "weeks", source: 1 },
+        ] });
+        await vi.waitFor(() => expect(hooks.router.push).toHaveBeenCalledTimes(2));
+        expect(hooks.router.refresh).toHaveBeenCalledTimes(2);
+        expect(hooks.save.mock.invocationCallOrder[0]).toBeLessThan(hooks.router.push.mock.invocationCallOrder[1]);
+        expect(hooks.router.push.mock.invocationCallOrder[1]).toBeLessThan(hooks.router.refresh.mock.invocationCallOrder[1]);
+        await vi.waitFor(() => expect(renderToStaticMarkup(editor())).not.toContain("data-programme-leave-error"));
+        expect(hooks.slots[7]).toBe(true);
+        expect(hooks.save).toHaveBeenCalledTimes(1);
     });
 });

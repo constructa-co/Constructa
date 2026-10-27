@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-10-27T19:50:08.470Z",
+  "updatedAt": "2026-10-27T20:32:53.315Z",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {
@@ -364,13 +364,15 @@
       "phase": "P1-Jan2027",
       "requested": "Align Gantt bars with the date/week grid, durations and the proposal timeline.",
       "status": "Partial",
-      "delivery": "Navigationrepairbacked05595c4 afterlocal3PASS/lint/build/scans/remoteMATCH. A059Partial: QAcalendarSQL/save-reopen andshiftintervalcapacityunfinished.",
+      "delivery": "28Oct: Kimi ONE new refresh-after-successful-push failure/retry case independently accepted;48line addition exact. Composer explicitly conditions newer-edits warning and fixes actual leaving-state test slot. Actual2affected mounted cases PASS/17NOT_SELECTED, lintPASS. Grok SAMEsession: promise finding rejected against actual AppRouter void API; conditional-copy clarity accepted, held-consent scopedsourceNNF only. Exact originalbuild/scans/normalbackup PENDING at metadata freeze; no new Complete or hosted acceptance.",
       "evidence": [
-        "docs/delivery/2026-10-27/handoff.md",
-        "docs/delivery/2026-10-27/changelog.md"
+        "a059-final-independent-disposition-20261028.json",
+        "CURSOR-A059-FINAL-INTEGRATION-RETURN-20261028.md",
+        "grok-f850-independent-disposition-20261028.json"
       ],
       "previousDeliveryBeforeNavigationBackup20261027": "SOURCE BACKED ba1c34c including aa6d349, Node24 original Next/TypeScript/QAguardPASS31pages1906readbacks0events/scans0/nonforcebackupremoteMATCH20:45:10. A059 remainsPartial: SQL and real QA save/reopen/readback NOT_RUN.",
-      "historyBeforeSafeRunner20261027": "Bounded navigation failure/retry handling integrated from7e4; source acceptance uses local3case/lint/originalbuild/propersecret-scan receipt. A059Partial: no calendarSQL/realQAsave-reopen-readback or completedshiftintervalcapacity."
+      "historyBeforeSafeRunner20261027": "Bounded navigation failure/retry handling integrated from7e4; source acceptance uses local3case/lint/originalbuild/propersecret-scan receipt. A059Partial: no calendarSQL/realQAsave-reopen-readback or completedshiftintervalcapacity.",
+      "previousDeliveryBefore20261028": "Navigationrepairbacked05595c4 afterlocal3PASS/lint/build/scans/remoteMATCH. A059Partial: QAcalendarSQL/save-reopen andshiftintervalcapacityunfinished."
     },
     {
       "id": "A060",

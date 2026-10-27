@@ -1,3 +1,19 @@
+# Programme Navigation Follow-Through - 28 October 2026
+
+- Accept Kimi's single refresh-after-push regression; explicitly condition the
+  last-save/newer-edits warning and correct the earlier leaving-state assertion.
+- Two actual affected mounted cases PASS/17NOT_SELECTED; lint PASS. No fake
+  pre-change VitestRED; original failures and all earlier evidence retained.
+- Reject promise premise against actual AppRouter void API. No router/model/
+  save/calendar/money/Auth/legal/runtime-hold behavior changed.
+- Record autonomous routine app authority and mandatory workflow-effects
+  preflight before any PR; PR106closed/nohostedrerun.
+- Exact current build/scans/backup final result belongs in the private source
+  receipt; all118statuses unchanged and unfinished scopes remain Partial.
+
+## Earlier Changelog Retained
+
+
 # Held Consent-Runner Update - 27 October 2026
 
 - Integrate Claude's held A091 operator-assisted runner and offline safety

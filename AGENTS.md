@@ -11,11 +11,18 @@ Preserve existing sessions and drafts. Never use blanket Always Allow/Bypass
 or approve an unknown action. Higher-priority action-time confirmation rules
 and existing production, credential, financial and release boundaries remain.
 
-App access is not a task assignment or spending allocation. Current Constructa
-pacing is no Grok jobs, no Antigravity, and bounded Composer app work. The
-27 October 20:15 CTO entry reserves Claude work until after 22:00 unless Rob
-changes that instruction. Do not infer CLI authentication from desktop state
-or substitute separately authenticated CLIs for the requested app route.
+App access is not a task assignment or spending allocation. Obey the latest
+exact dated Constructa inbox task for model choice, usage limits and pacing;
+do not freeze stale "no Grok" or time-of-day rules when a newer dated task
+supersedes them. Existing authorised app access never creates a job by itself
+and is never a reason to substitute a separately authenticated CLI for the
+requested desktop route. Do not infer CLI authentication from desktop state.
+
+Before creating, reopening, or marking ready any pull request (including
+draft), inspect the actual head/base workflow triggers and effects on that
+branch and post the result in the Constructa inbox. CI success is not
+authority for signup, publication, or data-write actions. PR 106 stays
+closed and unmerged; do not reopen it or treat it as current-flow evidence.
 
 ## Workspace And Inbox
 

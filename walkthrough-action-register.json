@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-10-27T16:29:35.280Z",
+  "updatedAt": "2026-10-27T16:54:13.429Z",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {
@@ -141,7 +141,7 @@
       "phase": "P1-Jan2027",
       "requested": "Add Constructa platform terms acceptance at signup, with an explicit checkbox and accessible full terms.",
       "status": "Partial",
-      "delivery": "27 Oct Composer app QA-runner source returned/rejected before integration: wrong browser/server signup seam, absent confirmation handoff and skipped readback, unsafe failure capture, missing exact document/server timestamp checks. Product source coverage retained; actual QA target/access/SQL/signup boundaries remain held. Partial.",
+      "delivery": "QA access and exact constructa-e2e-pr79 name-ref binding now VERIFIED in authenticated UI; public schema search finds no platform_terms_acceptances table. SQL/signup/Preview holds remain. Unsafe runner rejected, no real consent or canonical source landed; Partial.",
       "evidence": [
         "docs/delivery/2026-10-27/handoff.md",
         "docs/delivery/2026-10-27/changelog.md"
@@ -362,7 +362,7 @@
       "phase": "P1-Jan2027",
       "requested": "Align Gantt bars with the date/week grid, durations and the proposal timeline.",
       "status": "Partial",
-      "delivery": "27 Oct authorised aa6d349 production refresh plus TWO saved7 Gantt test files. Kimi targeted108PASS/new review casePASS; broad review suite adds one unrelated old About-credentials failure, not clean141. Backup packaging pending exact build/scans; Partial/no real QA.",
+      "delivery": "SOURCE BACKED ba1c34c including aa6d349, Node24 original Next/TypeScript/QAguardPASS31pages1906readbacks0events/scans0/nonforcebackupremoteMATCH20:45:10. A059 remainsPartial: SQL and real QA save/reopen/readback NOT_RUN.",
       "evidence": [
         "docs/delivery/2026-10-27/handoff.md",
         "docs/delivery/2026-10-27/changelog.md"
@@ -487,7 +487,7 @@
       "phase": "P1-Jan2027",
       "requested": "Fully preserve both exact deployed repositories, history and assets with a separately verified backup.",
       "status": "Partial",
-      "delivery": "27 Oct: remains Partial; DB/Auth/Storage independent restore, required refs/history/assets/private-unsaved reconciliation and constructa-ops export remain unproved. No new export/restore performed.",
+      "delivery": "Partial. Actual QA overview says LAST BACKUP No backups, not a Production/private-export verdict. Independent DB/Auth/Storage restore, refs/history/assets/private-unsaved reconciliation and constructa-ops export remain unproved; no export/restore executed.",
       "evidence": [
         "docs/delivery/2026-10-27/handoff.md",
         "docs/delivery/2026-10-27/changelog.md"
@@ -564,7 +564,7 @@
       "phase": "P1-Jan2027",
       "requested": "Verify current-source units/build and full marketing-to-proposal flow at meaningful integration boundaries.",
       "status": "Partial",
-      "delivery": "27 Oct: exact288c096..7b60157 patch posted for review; Codex accepts bounded MOCK refusal/retry/calendar carry seam, not full real marketing/AuthDB/hosted acceptance.",
+      "delivery": "Existing288c096..7b60157 scoped MOCK integration diff reviewed/accepted. Separate new one-assertion About-facts fix aligns exact five existing credentials; actual priorRED -> ONLYfailedcasePASS1/lint0/32oldNOT_SELECTED, no product change. Packaging exact build/scans next; full real marketing/AuthDB/hosted still NOT_RUN.",
       "evidence": [
         "docs/delivery/2026-10-27/handoff.md",
         "docs/delivery/2026-10-27/changelog.md"

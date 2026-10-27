@@ -137,7 +137,16 @@ describe("Review and Send", () => {
         expect(snapshot).not.toBeNull();
         const about = buildProposalDocument(snapshot!).sections.find(section => section.id === "about");
         expect(about).toBeDefined();
-        expect(about!.blocks).toContainEqual({ type: "facts", items: [{ label: "Years trading", value: "12" }] });
+        expect(about!.blocks).toContainEqual({
+            type: "facts",
+            items: [
+                { label: "Type of work", value: "Bathroom refurbishment" },
+                { label: "Years trading", value: "12" },
+                { label: "Specialisms", value: "Bathrooms, Kitchens, Tiling" },
+                { label: "Accreditations", value: "Example Trade Register member" },
+                { label: "Insurance", value: "Public liability cover, certificate available on request" },
+            ],
+        });
         const page = review({ context: current });
         const summary = page.slice(page.indexOf('id="review-about"'), page.indexOf('id="review-experience"'));
         expect(summary).toContain("No company introduction is saved. Other company details may still appear in the draft preview below.");

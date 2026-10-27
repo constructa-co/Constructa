@@ -107,6 +107,20 @@ describe("Review and Send", () => {
         expect(html).toContain("12 terms are shown to the client");
     });
 
+    it("shows a saved all-week working pattern in the programme section, not the default Monday–Friday finish", () => {
+        const weekend = review({
+            context: context({
+                start_date: "2026-11-13",
+                programme_working_pattern: { version: 1, weekdays: [0, 1, 2, 3, 4, 5, 6] },
+                programme_phases: [{ name: "Works on site", manualDays: 3, calculatedDays: 3, startOffset: 0 }],
+            }),
+        });
+        const programme = weekend.slice(weekend.indexOf('id="review-programme"'), weekend.indexOf('id="review-terms"'));
+        expect(programme).toContain("Sunday 15 November 2026");
+        expect(programme).not.toContain("Tuesday 17 November 2026");
+        expect(programme).toContain("Bank holidays are not allowed for.");
+    });
+
     it("distinguishes project details from the company profile on the cover", () => {
         const cover = html.slice(html.indexOf('id="review-cover"'), html.indexOf('id="review-about"'));
         expect(cover).toContain("Job, client and site come from the project. Your company name comes from your profile.");

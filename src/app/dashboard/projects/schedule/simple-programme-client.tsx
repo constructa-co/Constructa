@@ -392,6 +392,7 @@ function ProgrammeEditor({
     const handleNext = () => void continueToProposal(store, save, () => {
         setLeaving(true);
         router.push(proposalPathForProject(project.id));
+        router.refresh();
     });
 
     const unitSelect = (id: string, value: DurationUnit, onChange: (unit: DurationUnit) => void, label: string) => (

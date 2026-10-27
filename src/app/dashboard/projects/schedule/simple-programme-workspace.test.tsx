@@ -3,7 +3,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { ReactElement } from "react";
 import { emptyProgrammeDraft, initialProgrammeState, programmeReducer, viewForProject, type ProgrammeState } from "@/lib/simple-programme";
 
-const hooks = vi.hoisted(() => ({ state: null as ProgrammeState | null, slots: [] as unknown[], cursor: 0, save: vi.fn(), dispatch: vi.fn(), theme: "dark" }));
+const hooks = vi.hoisted(() => ({
+    state: null as ProgrammeState | null, slots: [] as unknown[], cursor: 0, save: vi.fn(), dispatch: vi.fn(), theme: "dark",
+    router: { push: vi.fn(), refresh: vi.fn() },
+}));
 vi.mock("react", async original => ({ ...await original<typeof import("react")>(),
     useMemo: (read: () => unknown) => read(), useEffect: () => undefined,
     useRef: (initial: unknown) => ({ current: initial }), useTransition: () => [false, (fn: () => void) => fn()],
@@ -11,7 +14,7 @@ vi.mock("react", async original => ({ ...await original<typeof import("react")>(
         return [hooks.slots[i], (next: unknown) => { hooks.slots[i] = typeof next === "function" ? next(hooks.slots[i]) : next; }]; },
 }));
 vi.mock("@/lib/theme-context", () => ({ useTheme: () => ({ theme: hooks.theme }) }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => hooks.router }));
 vi.mock("@/lib/use-unsaved-guard", () => ({ useUnsavedGuard: vi.fn() }));
 vi.mock("@/lib/use-reducer-store", () => ({ useReducerStore: () => [hooks.state, { getState: () => hooks.state, dispatch: hooks.dispatch }] }));
 vi.mock("./simple-actions", () => ({ saveSimpleProgrammeAction: hooks.save }));
@@ -39,7 +42,9 @@ function two() {
 }
 beforeEach(() => {
     hooks.state = initialProgrammeState(emptyProgrammeDraft(project.start_date), false);
-    hooks.slots = []; hooks.cursor = 0; hooks.theme = "dark"; hooks.save.mockReset(); hooks.dispatch.mockReset();
+    hooks.slots = []; hooks.cursor = 0; hooks.theme = "dark";
+    hooks.router.push.mockReset(); hooks.router.refresh.mockReset();
+    hooks.save.mockReset(); hooks.dispatch.mockReset();
     hooks.dispatch.mockImplementation(action => { hooks.state = programmeReducer(hooks.state!, action); });
     hooks.save.mockResolvedValue({ success: true });
 });
@@ -249,5 +254,17 @@ describe("timeline-first simple programme workspace", () => {
         expect(dayBox(6).props.checked).toBe(false);
         expect(renderToStaticMarkup(editor())).toContain("18 October 2026");
         expect(hooks.save).not.toHaveBeenCalled();
+    });
+
+    it("refreshes the proposal route after Next: Proposal so saved working days are not stale", async () => {
+        two();
+        const next = nodes(editor()).find(n => n.type === "button"
+            && String(n.props.children?.[0] ?? "").startsWith("Next: Proposal"));
+        expect(next).toBeDefined();
+        await (next!.props.onClick as () => void)();
+        expect(hooks.router.push).toHaveBeenCalledWith(
+            "/dashboard/projects/proposal?projectId=11111111-1111-4111-8111-111111111111",
+        );
+        expect(hooks.router.refresh).toHaveBeenCalledTimes(1);
     });
 });

@@ -1,3 +1,20 @@
+# Evening Update - 27 October 2026
+
+- Integrate Claude's repaired A079 runbook and offline manifest validator:
+  24 affected cases and lint passed; independent exact-finding recheck cleared.
+  No actual export/restore or full-recovery completion is claimed.
+- Apply only the separately authorised QA consent migration and verify schema
+  metadata. Current A023 acceptance and A059 calendar storage remain open.
+- Record the real Friday cloud candidate, local/cloud read-only browser passes
+  and GitHub health pass. Contain the unintended automatic legacy QA E2E run
+  by closing draft PR106 unmerged; preserve its actual signup/publication
+  evidence and do not count it as current-flow acceptance. A cloud workflow
+  draft-write guard is returned separately for independent review.
+- Preserve all earlier statuses and history. This logical delivery is backed
+  only after the fresh original exact-input build and source/range scans pass.
+
+## Earlier Change Log Retained
+
 # Constructa Change Log - 27 October 2026
 
 - A059: retain the authorised `aa6d349` production navigation refresh and its

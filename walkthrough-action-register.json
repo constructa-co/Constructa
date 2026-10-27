@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-10-27T16:54:13.429Z",
+  "updatedAt": "2026-10-27T19:03:54.581Z",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {
@@ -141,11 +141,12 @@
       "phase": "P1-Jan2027",
       "requested": "Add Constructa platform terms acceptance at signup, with an explicit checkbox and accessible full terms.",
       "status": "Partial",
-      "delivery": "QA access and exact constructa-e2e-pr79 name-ref binding now VERIFIED in authenticated UI; public schema search finds no platform_terms_acceptances table. SQL/signup/Preview holds remain. Unsafe runner rejected, no real consent or canonical source landed; Partial.",
+      "delivery": "Reviewed consent-table migration APPLIED to verified QA only on Rob21:50 authority; exact columns/constraints/RLS/policies/narrow grants metadata verified. No consent rows accessed in that operation. Current A023 signup/email/firstlogin not run. Later unintended legacy PR106 QA journey is a separate incident, not current-consent acceptance.",
       "evidence": [
         "docs/delivery/2026-10-27/handoff.md",
         "docs/delivery/2026-10-27/changelog.md"
-      ]
+      ],
+      "previousDeliveryBeforeA079Evening20261027": "QA access and exact constructa-e2e-pr79 name-ref binding now VERIFIED in authenticated UI; public schema search finds no platform_terms_acceptances table. SQL/signup/Preview holds remain. Unsafe runner rejected, no real consent or canonical source landed; Partial."
     },
     {
       "id": "A024",
@@ -487,11 +488,13 @@
       "phase": "P1-Jan2027",
       "requested": "Fully preserve both exact deployed repositories, history and assets with a separately verified backup.",
       "status": "Partial",
-      "delivery": "Partial. Actual QA overview says LAST BACKUP No backups, not a Production/private-export verdict. Independent DB/Auth/Storage restore, refs/history/assets/private-unsaved reconciliation and constructa-ops export remain unproved; no export/restore executed.",
+      "delivery": "Claude A079 repaired three-file recovery runbook/manifest checker d1acd99 integrated exactly; 24 offline tests and lint PASS, independent Composer findings recheck cleared. Exact-input build/secret scans/backup pending. No actual export/restore; original full recoverability remains Partial.",
       "evidence": [
         "docs/delivery/2026-10-27/handoff.md",
-        "docs/delivery/2026-10-27/changelog.md"
-      ]
+        "docs/delivery/2026-10-27/changelog.md",
+        "docs/recovery/a079-recovery-runbook.md"
+      ],
+      "previousDeliveryBeforeA079Evening20261027": "Partial. Actual QA overview says LAST BACKUP No backups, not a Production/private-export verdict. Independent DB/Auth/Storage restore, refs/history/assets/private-unsaved reconciliation and constructa-ops export remain unproved; no export/restore executed."
     },
     {
       "id": "A080",
@@ -564,11 +567,12 @@
       "phase": "P1-Jan2027",
       "requested": "Verify current-source units/build and full marketing-to-proposal flow at meaningful integration boundaries.",
       "status": "Partial",
-      "delivery": "Existing288c096..7b60157 scoped MOCK integration diff reviewed/accepted. Separate new one-assertion About-facts fix aligns exact five existing credentials; actual priorRED -> ONLYfailedcasePASS1/lint0/32oldNOT_SELECTED, no product change. Packaging exact build/scans next; full real marketing/AuthDB/hosted still NOT_RUN.",
+      "delivery": "Existing assertion repair679 remains backed; Kimi current About/proposal62PASS and actualbase7b planner91PASS. Friday draftPR106 automatically ran legacy hosted Phase1: 2PASS on real synthetic QA but unintended under holds, NOT accepted release evidence. PR106 closed/unmerged; Composer cloud source-only draft gate103f489 returned, independent check pending.",
       "evidence": [
         "docs/delivery/2026-10-27/handoff.md",
         "docs/delivery/2026-10-27/changelog.md"
-      ]
+      ],
+      "previousDeliveryBeforeA079Evening20261027": "Existing288c096..7b60157 scoped MOCK integration diff reviewed/accepted. Separate new one-assertion About-facts fix aligns exact five existing credentials; actual priorRED -> ONLYfailedcasePASS1/lint0/32oldNOT_SELECTED, no product change. Packaging exact build/scans next; full real marketing/AuthDB/hosted still NOT_RUN."
     },
     {
       "id": "A092",

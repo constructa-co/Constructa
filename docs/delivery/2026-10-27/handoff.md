@@ -1,3 +1,57 @@
+# Current Evening Delivery - 27 October 2026
+
+This block supersedes older pending labels below; earlier text is retained.
+
+A079: Claude's repaired cumulative three-file tree from local `d1acd99` is
+integrated without cherry-picking the earlier synthetic-fixture secret-scan
+finding into outgoing history. All 24 offline manifest cases and affected lint
+passed; Composer independently rechecked the exact accepted findings. The
+runbook separates DB, Auth, Storage bytes/policies, Git refs and private work;
+it requires managed-schema customisation inventory, version/key boundaries,
+source count reconciliation and an actual independent restore. A079 remains
+Partial. No export, restore or credential operation was performed. A fresh
+original exact-input build and source/range scans precede this block's backup;
+the actual SHA is recorded in the private acceptance receipt, not guessed here.
+
+A023: on Rob's later explicit QA-only authority, the reviewed consent-table
+migration was applied to the independently verified QA project. Metadata-only
+readback confirmed columns, constraints, RLS, owner policies and narrow grants.
+The calendar migration was NOT applied. The current A023 signup, email
+confirmation, first login and consent-row acceptance remain unverified.
+
+Friday's five-product-file wordmark candidate was reproduced in Composer cloud
+as `25d34e0`, with the exact local `e835565` tree. Local and cloud read-only
+desktop/phone recovery-page checks passed without reset submission. GitHub
+health passed. However, opening draft PR106 also unintentionally triggered the
+legacy real synthetic-QA Phase1 journey because its write gate named only
+three older review branches. Two journeys passed, including QA signup,
+publication and non-binding responses; provider calls used local stubs. This
+was not an authorised acceptance run and does not validate current A023 code.
+The run had completed before containment; PR106 was CLOSED, DRAFT and UNMERGED.
+No cleanup or absence of retained synthetic QA records is claimed.
+
+Composer returned a separate workflow-only draft-write guard `103f489` on that
+same review branch. It is not yet independently accepted in this block. Do not
+reopen or rerun hosted work until the guard is verified; no ready-for-review,
+manual hosted dispatch or merge without the applicable explicit authority.
+The proposed merge remains one small slice, now with a necessary CI safety
+supporting change if accepted. It is not a merge or release approval.
+
+Today's latest-backup Preview read-only check was ERROR before compilation:
+the non-production Supabase reference and public URL failed validation.
+No environment values, settings or redeploy were changed. Preview HOLD and
+Production holds remain; the unintended legacy QA CI execution is explicitly
+recorded above, not hidden by a blanket "no signup" claim.
+
+Actual tools after 22:00: Claude Desktop Opus 5.5 High authored A079; Composer
+cloud built Friday's candidate and its workflow repair; Composer Desktop
+independently reviewed A079; Grok CLI performed its one scoped source review.
+Kimi's earlier current/base verification is retained. No Gemini/Antigravity.
+Routine task-bound app operations use Rob's standing approval without repeated
+questions. The backup branch remains the only integration push destination.
+
+## Earlier Delivery Record Retained
+
 # Constructa Delivery Handoff - 27 October 2026
 
 ## A059 Candidate

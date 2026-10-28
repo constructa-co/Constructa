@@ -7,8 +7,9 @@ import type { AssistantTurnMessage } from "@/lib/assistant-transport";
  * A055 generation seam for the job assistant: one approved configuration, a
  * provider transport and a usage ledger, all chosen by the server. It is wired
  * into the pricing, planning and Brief request paths through
- * `job-assistant-transport.ts`, and it is OFF: no configuration is approved,
- * and there is no transport or ledger, so every activation point returns null.
+ * `job-assistant-transport.ts`. Production adapters (transport + RPC ledger) exist,
+ * but activation is OFF: `APPROVED_GENERATION` is null for every feature, so each
+ * activation point returns null until an approval is configured.
  *
  * An attempt runs: bounds check, including the worst-case cost of this exact
  * request at the approved prices, which the reservation must cover ->
@@ -180,10 +181,9 @@ export function createJobAssistantGenerator<C>(feature: JobAssistantFeature, dep
         return result.raw;
     };
     generate.conclude = async (attemptId, outcome) => {
-        if (!confirmedReservations.has(attemptId)) return true;
+        if (!confirmedReservations.delete(attemptId)) return false;
         try {
             await ledger.conclude(attemptId, outcome);
-            confirmedReservations.delete(attemptId);
             return true;
         } catch {
             return false;

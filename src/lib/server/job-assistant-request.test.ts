@@ -650,7 +650,8 @@ describe("A055 confirmed reservation: conclude only this generator's holds", () 
             messages: [{ role: "user", content: "One" }, { role: "user", content: "Two" }],
         })).rejects.toMatchObject({ reason: "bounds" });
         expect(l.reserve).not.toHaveBeenCalled();
-        expect(await bounds.conclude!(ATTEMPT, "unavailable")).toBe(true);
+        expect(await bounds.conclude!(ATTEMPT, "unavailable")).toBe(false);
+        expect(await bounds.conclude!(ATTEMPT, "reply")).toBe(false);
         expect(l.conclude).not.toHaveBeenCalled();
 
         const expensive = ledger();
@@ -659,14 +660,52 @@ describe("A055 confirmed reservation: conclude only this generator's holds", () 
         })!;
         await expect(overCap(turnInput())).rejects.toMatchObject({ reason: "cost" });
         expect(expensive.reserve).not.toHaveBeenCalled();
-        expect(await overCap.conclude!(ATTEMPT, "unavailable")).toBe(true);
+        expect(await overCap.conclude!(ATTEMPT, "unavailable")).toBe(false);
         expect(expensive.conclude).not.toHaveBeenCalled();
 
         const refused = ledger({ reserve: vi.fn(async () => ({ ok: false })) });
         const blocked = pricing(refused, async () => ({ kind: "reply", raw: reply, costPence: 1 }));
         await expect(blocked(turnInput())).rejects.toMatchObject({ reason: "reservation" });
-        expect(await blocked.conclude!(ATTEMPT, "unavailable")).toBe(true);
+        expect(await blocked.conclude!(ATTEMPT, "unavailable")).toBe(false);
         expect(refused.conclude).not.toHaveBeenCalled();
+    });
+
+    it("returns false without RPC for unknown, repeated, or foreign conclude after eligibility is consumed", async () => {
+        const l = ledger();
+        const generate = pricing(l, async () => ({ kind: "reply", raw: reply, costPence: 1 }));
+        expect(await generate.conclude!("cccccccc-cccc-4ccc-8ccc-cccccccccccc", "reply")).toBe(false);
+        expect(l.conclude).not.toHaveBeenCalled();
+        await generate(turnInput());
+        expect(await generate.conclude!(ATTEMPT, "reply")).toBe(true);
+        expect(l.conclude).toHaveBeenCalledTimes(1);
+        expect(await generate.conclude!(ATTEMPT, "reply")).toBe(false);
+        expect(l.conclude).toHaveBeenCalledTimes(1);
+        expect(await generate.conclude!(ATTEMPT, "unavailable")).toBe(false);
+        expect(l.conclude).toHaveBeenCalledTimes(1);
+    });
+
+    it("allows only one ledger.conclude RPC when two conclude calls run concurrently for the same owned attempt", async () => {
+        let release!: () => void;
+        const gate = new Promise<void>(resolve => { release = resolve; });
+        const l = ledger({ conclude: vi.fn(async () => { await gate; }) });
+        const generate = pricing(l, async () => ({ kind: "reply", raw: reply, costPence: 1 }));
+        await generate(turnInput());
+        const first = generate.conclude!(ATTEMPT, "reply");
+        const second = generate.conclude!(ATTEMPT, "stale");
+        release();
+        const results = await Promise.all([first, second]);
+        expect(results.sort()).toEqual([false, true]);
+        expect(l.conclude).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not retry conclude after a ledger failure; a second call stays false with no extra RPC", async () => {
+        const l = ledger({ conclude: vi.fn(async () => { throw new Error("db"); }) });
+        const generate = pricing(l, async () => ({ kind: "reply", raw: reply, costPence: 1 }));
+        await generate(turnInput());
+        expect(await generate.conclude!(ATTEMPT, "reply")).toBe(false);
+        expect(l.conclude).toHaveBeenCalledTimes(1);
+        expect(await generate.conclude!(ATTEMPT, "reply")).toBe(false);
+        expect(l.conclude).toHaveBeenCalledTimes(1);
     });
 
     it("two generators share one ledger: a duplicate reserve must not conclude the first settled attempt", async () => {
@@ -680,7 +719,7 @@ describe("A055 confirmed reservation: conclude only this generator's holds", () 
         expect(l.settle).toHaveBeenCalledWith(ATTEMPT, 1);
         expect(l.conclude).not.toHaveBeenCalled();
         await expect(second(input)).rejects.toMatchObject({ reason: "reservation" });
-        expect(await second.conclude!(ATTEMPT, "unavailable")).toBe(true);
+        expect(await second.conclude!(ATTEMPT, "unavailable")).toBe(false);
         expect(l.conclude).not.toHaveBeenCalled();
         expect(await first.conclude!(ATTEMPT, "reply")).toBe(true);
         expect(l.conclude).toHaveBeenCalledTimes(1);

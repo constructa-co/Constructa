@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { MAX_SCOPE_LENGTH } from "@/lib/guided-brief";
 import type { AssistantTurnResult } from "@/lib/assistant-transport";
@@ -11,6 +11,7 @@ import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-ac
 import { toEstimate } from "@/app/dashboard/projects/costs/estimate-mapping";
 import type { Estimate } from "@/app/dashboard/projects/costs/types";
 import type { ServerPricingGenerator } from "./job-assistant-transport";
+import type { AttemptOutcome } from "./job-assistant-generation";
 
 const CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/;
 
@@ -71,19 +72,30 @@ export async function handlePricingTurn(input: unknown, generate?: ServerPricing
     const verified = await verifyPricingRequest(request);
     if (!verified.ok) return verified.result;
     if (!generate) return { status: "off", message: PRICING_CONVERSATION_OFF };
+    // The attempt identifier is the server's; every outcome below is recorded against it.
+    const attemptId = randomUUID();
+    const conclude = (outcome: AttemptOutcome) => generate.conclude?.(attemptId, outcome) ?? Promise.resolve(true);
     let raw: unknown;
     try {
-        raw = await generate({ userId: verified.userId, context: pricingModelData(verified.context),
+        raw = await generate({ userId: verified.userId, projectId: request.projectId, revision: verified.revision, attemptId,
+            context: pricingModelData(verified.context),
             messages: [...history, { role: "user", content: request.message }], signal: new AbortController().signal });
     } catch {
+        await conclude("unavailable");
         return { status: "unavailable", message: FAILED };
     }
     const review = reviewPricingSuggestion(verified.context, raw);
-    if (!review.ok) return { status: "rejected", message: review.error };
+    if (!review.ok) {
+        await conclude("rejected");
+        return { status: "rejected", message: review.error };
+    }
     // The saved job may have moved while the reply was being prepared.
     const after = await verifyPricingRequest(request);
-    if (!after.ok) return after.result;
-    if (after.revision !== verified.revision) return stale();
+    if (!after.ok || after.revision !== verified.revision) {
+        await conclude(after.ok ? "stale" : after.result.status === "stale" ? "stale" : "unavailable");
+        return after.ok ? stale() : after.result;
+    }
+    if (!await conclude("reply")) return { status: "unavailable", message: FAILED };
     return {
         status: "reply",
         reply: { message: review.value.message, suggestions: review.value.suggestions.map(({ source, start, end }) => ({ source, start, end })) },

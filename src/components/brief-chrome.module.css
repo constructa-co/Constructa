@@ -5,8 +5,8 @@
     --brief-line: #c9d3c7;
     --brief-accent: #203d2b;
     --brief-accent-text: #f3fff2;
-    max-width: 1100px;
-    margin: 24px auto;
+    max-width: 100%;
+    margin: 0 auto 24px;
     padding: clamp(20px, 4vw, 48px);
     border: 1px solid var(--brief-line);
     border-radius: 24px;

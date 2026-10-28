@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import DashboardRouteShell from "@/components/dashboard-route-shell";
 import ProjectNavBar from "@/components/project-navbar";
 import ProjectEntry from "@/components/project-entry";
 import EstimateClient from "./estimate-client";
@@ -56,9 +57,7 @@ export default async function EstimatingPage(props: { searchParams: Promise<{ pr
     const experience = await loadPricingExperienceSource(supabase, user.id, project.selected_case_study_ids);
 
     return (
-        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-8 pt-4 sm:pt-8 pb-16">
-            <ProjectNavBar projectId={activeProjectId} projectName={project.name || ""} activeTab="estimating" />
-
+        <DashboardRouteShell header={<ProjectNavBar projectId={activeProjectId} projectName={project.name || ""} activeTab="estimating" />}>
             <EstimateClient
                 key={project.id}
                 defaultTabId={searchParams.tab}
@@ -80,6 +79,6 @@ export default async function EstimatingPage(props: { searchParams: Promise<{ pr
                     },
                 }}
             />
-        </div>
+        </DashboardRouteShell>
     );
 }

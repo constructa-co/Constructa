@@ -43,53 +43,55 @@ function copy(current = context()) { (button(current).onClick as () => void)(); 
 beforeEach(() => { replay.state = null; replay.slots = []; replay.cursor = 0; replay.save.mockReset().mockResolvedValue({ success: true }); replay.ask.mockReset(); replay.publish.mockReset(); });
 
 describe("company closing source on the real proposal parent", () => {
-    it("starts closed with source attribution and an unsaved md_message draft, with no save or AI call", () => {
+    it("starts closed with actual source attribution and an empty draft, with no action call", () => {
         const source = nodes(view()).find(node => node.props["data-company-closing-source"])!;
         expect(source.type).toBe("details"); expect(source.props.open).toBeUndefined();
         const html = renderToStaticMarkup(source); expect(html).toContain("From your saved company profile."); expect(html).toContain("No new text is generated here."); expect(html).toContain(sourceText);
-        expect(closing().value).toBe(sourceText); expect(button().disabled).toBe(true);
+        expect(closing().value).toBe(""); expect(button().type).toBe("button");
         expect(replay.save).not.toHaveBeenCalled(); expect(replay.ask).not.toHaveBeenCalled(); expect(replay.publish).not.toHaveBeenCalled();
     });
-    it("explicitly fills only the draft when legacy saved blank blocked auto seed, then uses Save", async () => {
-        const legacy = context("", sourceText);
-        copy(legacy); expect(closing(legacy).value).toBe(sourceText); expect(replay.save).not.toHaveBeenCalled();
-        (closing(legacy).onChange as (event: unknown) => void)({ target: { value: "Job-specific closing" } });
-        const form = nodes(view(legacy)).find(node => node.type === "form")!;
+    it("explicitly fills only the draft, allows contractor editing, then uses the existing Save handler", async () => {
+        copy(); expect(closing().value).toBe(sourceText); expect(replay.save).not.toHaveBeenCalled();
+        (closing().onChange as (event: unknown) => void)({ target: { value: "Job-specific closing" } });
+        const form = nodes(view()).find(node => node.type === "form")!;
         (form.props.onSubmit as (event: unknown) => void)({ preventDefault() {} }); await Promise.resolve(); await Promise.resolve();
         expect(replay.save).toHaveBeenCalledOnce(); expect(replay.save).toHaveBeenCalledWith(expect.objectContaining({ closing: "Job-specific closing" }));
         expect(replay.ask).not.toHaveBeenCalled(); expect(replay.publish).not.toHaveBeenCalled();
     });
     it("protects typing from a source click captured before the latest edit", () => {
-        const legacy = context("", sourceText);
-        const staleClick = button(legacy).onClick as () => void;
-        (closing(legacy).onChange as (event: unknown) => void)({ target: { value: "Newer proposal wording" } });
-        staleClick(); expect(closing(legacy).value).toBe("Newer proposal wording"); expect(button(legacy).disabled).toBe(true); expect(replay.save).not.toHaveBeenCalled();
+        const staleClick = button().onClick as () => void;
+        (closing().onChange as (event: unknown) => void)({ target: { value: "Newer proposal wording" } });
+        staleClick(); expect(closing().value).toBe("Newer proposal wording"); expect(button().disabled).toBe(true); expect(replay.save).not.toHaveBeenCalled();
     });
     it("keeps saved proposal overrides and remains disabled after an unsaved clear", () => {
         const current = context("Saved job-specific closing"); expect(button(current).disabled).toBe(true);
         (closing(current).onChange as (event: unknown) => void)({ target: { value: "" } });
         copy(current); expect(closing(current).value).toBe(""); expect(replay.save).not.toHaveBeenCalled();
     });
-    it("prefills unset closings from md_message", () => {
-        view(context(null)); expect(closing(context(null)).value).toBe(sourceText); expect(replay.save).not.toHaveBeenCalled();
+    it("does not refill legacy null or empty closings until the contractor explicitly chooses to use source text", () => {
+        view(context(null)); expect(closing(context(null)).value).toBe("");
+        view(context("", "Updated profile message")); expect(closing(context("", "Updated profile message")).value).toBe(""); expect(replay.save).not.toHaveBeenCalled();
     });
-    it("keeps legacy empty-string saved blanks empty", () => {
+    it("reopening after normalized-null saved blank does not silently refill from md_message", () => {
+        const normalizedNull = context(null, sourceText);
+        view(normalizedNull);
+        expect(closing(normalizedNull).value).toBe("");
         replay.state = null;
-        view(context("", "Updated profile message")); expect(closing(context("", "Updated profile message")).value).toBe("");
+        view(normalizedNull);
+        expect(closing(normalizedNull).value).toBe("");
+        expect(button(normalizedNull).disabled).toBe(false);
         expect(replay.save).not.toHaveBeenCalled();
     });
-    it("does not replace an already-seeded draft when the profile message changes", () => {
-        view(context(null, sourceText));
-        view(context(null, "A newer company message"));
+    it("does not update an already-copied draft when the profile changes", () => {
+        copy(); view(context(null, "A newer company message"));
         expect(closing(context(null, "A newer company message")).value).toBe(sourceText); expect(replay.save).not.toHaveBeenCalled();
     });
     it("refuses a source click during a pending Save, including a stale enabled button", async () => {
-        const legacy = context("", sourceText);
-        const staleClick = button(legacy).onClick as () => void;
+        const staleClick = button().onClick as () => void;
         replay.save.mockReturnValueOnce(new Promise(() => {}));
-        const form = nodes(view(legacy)).find(node => node.type === "form")!;
+        const form = nodes(view()).find(node => node.type === "form")!;
         (form.props.onSubmit as (event: unknown) => void)({ preventDefault() {} }); await Promise.resolve();
-        staleClick(); expect(closing(legacy).value).toBe(""); expect(button(legacy).disabled).toBe(true); expect(replay.save).toHaveBeenCalledOnce();
+        staleClick(); expect(closing().value).toBe(""); expect(button().disabled).toBe(true); expect(replay.save).toHaveBeenCalledOnce();
     });
     it("does not copy into a locked proposal", () => {
         expect(button(context(), true).disabled).toBe(true); (button(context(), true).onClick as () => void)();

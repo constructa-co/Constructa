@@ -122,34 +122,6 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 const hasFixedAmount = (row: unknown) => Number(asRecord(row).amount) > 0;
 
-/**
- * Closing draft seed from the company profile, parallel to scope from the brief.
- * Legacy saved blank uses an empty string in the database and is left empty.
- * Null or missing closing_statement may seed from md_message when it fits the limit.
- * Saved non-empty overrides always win. Intentional saved blank stored as null
- * cannot be distinguished from never-set without a provenance field.
- */
-export function companyClosingForDraft(
-    project: ReviewProject,
-    profile: ProposalPublicationProfileInput,
-): string {
-    const saved = project.closing_statement;
-    if (typeof saved === "string") {
-        if (saved.trim()) return saved;
-        if (saved === "") return "";
-    }
-    const message = profile.md_message ?? "";
-    if (!message.trim() || message.length > TEXT_LIMITS.closing) return "";
-    return message;
-}
-
-export function draftFromReviewContext(context: ReviewContext, makeKey: () => string): ProposalDraft {
-    const draft = draftFromProject(context.project, makeKey);
-    if (draft.closing.trim()) return draft;
-    const closing = companyClosingForDraft(context.project, context.profile);
-    return closing ? { ...draft, closing } : draft;
-}
-
 export function draftFromProject(project: ReviewProject, makeKey: () => string): ProposalDraft {
     const schedule = Array.isArray(project.payment_schedule) ? project.payment_schedule : [];
     const fixed = schedule.some(hasFixedAmount);

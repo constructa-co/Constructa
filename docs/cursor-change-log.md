@@ -1,15 +1,15 @@
 # Cursor change log
 
-## 2026-10-28 — A069 MD message → closing auto-prefill (Composer Rob28Oct)
+## 2026-10-28 — A069 correction: revert unsafe null→MD auto-seed (Composer Rob28Oct)
 
 | File | Lines (approx.) | Change | Intent |
 |------|-----------------|--------|--------|
-| `src/lib/proposal-review.ts` | ~123–151 | Add `companyClosingForDraft`, `draftFromReviewContext` | Seed Review & Send closing draft from `profiles.md_message` when `closing_statement` is unset (null/missing), mirroring scope-from-brief; legacy `""` saved blanks stay empty |
-| `src/app/dashboard/projects/proposal/review-send-client.tsx` | ~151–162 | Initial review state uses `draftFromReviewContext` when editable | Automatic unsaved prefill on proposal open; locked proposals skip seeding |
-| `src/lib/company-closing.test.ts` | setup + expectations | Cover auto-seed, legacy blank, explicit Use-company-message path | Lock A069 behaviour without save-on-read |
-| `src/app/dashboard/projects/proposal/company-closing-entry.test.tsx` | several cases | Expect auto-prefill on null; legacy `""` and explicit button paths retained | Parent UI tests aligned with real ReviewSendClient |
+| `src/lib/proposal-review.ts` | removed ~125–151 | Delete `companyClosingForDraft`, `draftFromReviewContext` | Codex reject: null `closing_statement` matches deliberately saved empty (`trim \|\| null`); auto-seed refills intentional clears |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | ~152–159 | Restore `draftFromProject` only for initial state | No silent prefill on open; explicit **Use company message** unchanged |
+| `src/lib/company-closing.test.ts` | + `A069_MISSING_DURABLE_PROVENANCE`, reopen describe | Regression: normalized-null reopen stays empty; explicit apply path retained | **originalGap:** missingDurableProvenance — no safe auto-prefill without new durable field/policy |
+| `src/app/dashboard/projects/proposal/company-closing-entry.test.tsx` | reopen test | Parent remount after null closing must not fill MD text | UI-level guard against reintroducing auto-seed |
 
-**Blocker (unchanged):** intentional saved blank stored as `closing_statement = null` (current save policy) cannot be distinguished from never-set; revisiting Review & Send may re-seed from `md_message` until a provenance field exists. No schema/SQL added.
+Reverts unsafe portion of `903b52d`. A069 remains **not Complete** for automatic prefill until provenance exists.
 
 ## 2026-10-27 — A059 weekend pattern → proposal refresh (Composer a059)
 

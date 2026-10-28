@@ -25,6 +25,8 @@ interface Props {
     respond?: typeof respondToProposalAction;
 }
 
+const UNCONFIRMED = "Your response could not be confirmed. Refresh this page to check whether it was recorded before trying again, or contact the contractor.";
+
 function formatDate(value: string): string {
     return new Date(value).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/London" });
 }
@@ -62,8 +64,13 @@ export default function ResponseClient({
         setError("");
         try {
             const result = await respond(token, name, email);
-            if (result?.success) {
-                setRecorded({ status: result.status || "acknowledged", at: result.respondedAt || new Date().toISOString(), by: name.trim() });
+            // Only the acknowledgement this page asks for, with the server's own
+            // time, is shown as recorded. Anything else is not invented locally.
+            if (result?.success && result.status === "acknowledged"
+                && typeof result.respondedAt === "string" && Number.isFinite(Date.parse(result.respondedAt))) {
+                setRecorded({ status: result.status, at: result.respondedAt, by: name.trim() });
+            } else if (result?.success || result?.unconfirmed) {
+                setError(result.unconfirmed && result.error ? result.error : UNCONFIRMED);
             } else {
                 setError(result?.error || "Your response could not be recorded. Please try again.");
             }

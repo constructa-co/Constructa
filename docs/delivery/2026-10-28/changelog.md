@@ -63,6 +63,16 @@
 - Focused **24/24** PASS; eslint **0 errors** on touched production paths. Receipt
   `checkpoint1435-a038-integrated-source-backup-20261028.json`.
 
+## CHECKPOINT1450 A114 Green Integration - 28 October 2026
+
+- Parent **`335a56a`**: integrate Claude **`c3a0d2f`** five paths only (public
+  `respondToProposalAction` + `ResponseClient` honest confirmed/refused/unconfirmed;
+  type-only `proposalReference` signature; **26** new vitest). **No** SQL apply, real
+  mail, Won policy, or binding acceptance. **A114 Partial** unchanged.
+- Independent source review: `checkpoint1450-a114-independent-review-20261028.md`.
+  Affected **543** / **2 base failures** retained from Claude evidence; not rerun.
+- Receipt `checkpoint1450-a114-integrated-source-backup-20261028.json`.
+
 ## Earlier Changelog Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

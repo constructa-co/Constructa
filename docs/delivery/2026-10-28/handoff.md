@@ -90,3 +90,16 @@ six A002+draft-guard files, not broad PR104 or wholesale backup. Before any PR,
 inspect workflows and post effects first. PR106 stays closed; no hosted rerun.
 A059/A023/A079/A091 remain Partial; Preview HOLD/signup OFF; no main merge,
 deploy/settings/keys/calendar SQL/export-restore permission is inferred.
+
+## CHECKPOINT1450 A114 Green Integration - 28 October 2026
+
+Claude source **`c3a0d2f`** (base 1839) independently reviewed and integrated on
+parent **`335a56a`** without stale whole-file drops: A038 case-library bytes and
+A075 proposal-document body preserved; only the reviewed type hunk on
+`proposalReference`. Server path distinguishes confirmed / refused / unconfirmed;
+optional receipts cannot undo a valid commit; client no longer fabricates status or time.
+
+Focused **26/26** on integrated bytes; eslint clean (one pre-existing unused warning).
+Fresh ROOT guarded build + non-force backup: private
+`checkpoint1450-a114-integrated-source-backup-20261028.json`. **A114 Partial** only;
+66C/32P/19N/1B unchanged. No 543-suite rerun; two known affected base failures retained.

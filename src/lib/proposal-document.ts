@@ -382,7 +382,10 @@ function closingSection(snapshot: ProposalPublicationSnapshot): DocSection | nul
 
 // ── Build ────────────────────────────────────────────────────────────────────
 
-export function proposalReference(snapshot: Pick<ProposalPublicationSnapshot, "project" | "publication">): string {
+export function proposalReference(snapshot: {
+    project: Pick<ProposalPublicationSnapshot["project"], "id">;
+    publication: Pick<ProposalPublicationSnapshot["publication"], "version_number">;
+}): string {
     return `${snapshot.project.id.substring(0, 8).toUpperCase()}-V${snapshot.publication.version_number}`;
 }
 

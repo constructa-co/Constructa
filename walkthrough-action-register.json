@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-10-28T19:30:00.000Z",
+  "updatedAt": "2026-10-28T20:15:00.000Z",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {
@@ -717,13 +717,13 @@
       "id": "A114",
       "phase": "P1-Jan2027",
       "requested": "Review and verify the existing client-response-to-Won journey and distinguish preview restrictions from missing functionality.",
-      "status": "Partial"
+      "status": "Complete"
     },
     {
       "id": "A115",
       "phase": "P1-Jan2027",
       "requested": "Reconcile pipeline actions with saved workflow state, publication/readiness and confirmed mutation results.",
-      "status": "Partial"
+      "status": "Complete"
     },
     {
       "id": "A116",

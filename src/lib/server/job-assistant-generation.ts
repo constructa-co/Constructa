@@ -10,10 +10,14 @@ import type { AssistantTurnMessage } from "@/lib/assistant-transport";
  * `job-assistant-transport.ts`, and it is OFF: no configuration is approved,
  * and there is no transport or ledger, so every activation point returns null.
  *
- * An attempt runs: bounds check -> reservation -> one provider call under the
- * configured timeout -> settle (the provider reported the cost), release (the
- * provider confirmed nothing was sent) or retain (the paid outcome is unknown,
- * so the whole reservation is kept) -> the request path records its outcome.
+ * An attempt runs: bounds check, including the worst-case cost of this exact
+ * request at the approved prices, which the reservation must cover ->
+ * reservation -> one provider call under the configured timeout -> settle (the
+ * provider reported the cost), release (the provider confirmed nothing was
+ * sent) or retain (the paid outcome is unknown, so the whole reservation is
+ * kept) -> the request path records its outcome. A reported cost above the
+ * reservation is recorded as charged, counts against the caps, and the reply
+ * is refused: there is no refund or cancellation guarantee.
  * Any missing piece or failed step refuses the reply; nothing is written to the
  * job and the existing review-before-apply rules are unchanged.
  */
@@ -37,6 +41,12 @@ const ConfigSchema = z.object({
     timeoutMs: z.number().int().positive().max(CEILING.timeoutMs),
     maxMessages: z.number().int().positive().max(CEILING.messages),
     maxInputChars: z.number().int().positive().max(CEILING.inputChars),
+    // Approved provider prices, in pence per million tokens. Not defaults: an
+    // approval states them, and the worst-case cost below is computed from them.
+    prices: z.object({
+        inputPencePerMillionTokens: z.number().positive().max(1_000_000),
+        outputPencePerMillionTokens: z.number().positive().max(1_000_000),
+    }).strict(),
     // Whole pence. One attempt reserves `attemptPence`; the ledger holds the caps.
     attemptPence: z.number().int().positive(),
     perJobPence: z.number().int().positive(),
@@ -48,11 +58,19 @@ export type TransportResult =
     | { kind: "reply"; raw: unknown; costPence: number }
     // Only when the provider confirms the request was never sent or charged.
     | { kind: "not_sent" };
+export type TransportRequest = {
+    provider: string; model: string; maxOutputTokens: number; prices: JobAssistantGenerationConfig["prices"];
+    context: unknown; messages: AssistantTurnMessage[]; signal: AbortSignal;
+};
 export interface JobAssistantTransport {
-    send(request: {
-        provider: string; model: string; maxOutputTokens: number;
-        context: unknown; messages: AssistantTurnMessage[]; signal: AbortSignal;
-    }): Promise<TransportResult>;
+    /** An upper bound on the input tokens `send` would bill for this exact request, prompt included. */
+    maxInputTokens(request: Pick<TransportRequest, "context" | "messages">): number;
+    send(request: TransportRequest): Promise<TransportResult>;
+}
+
+/** Whole pence, rounded up, for the given token counts at the approved prices. */
+export function costPence(prices: JobAssistantGenerationConfig["prices"], inputTokens: number, outputTokens: number): number {
+    return Math.ceil((inputTokens * prices.inputPencePerMillionTokens + outputTokens * prices.outputPencePerMillionTokens) / 1_000_000);
 }
 
 export type AttemptOutcome = "reply" | "rejected" | "stale" | "unavailable";
@@ -82,7 +100,7 @@ export interface JobAssistantGenerator<C> {
 
 /** Thrown when an attempt is refused; the request path answers "unavailable". */
 export class GenerationRefused extends Error {
-    constructor(readonly reason: "bounds" | "reservation" | "transport" | "not_sent" | "usage" | "cancelled" | "ledger") {
+    constructor(readonly reason: "bounds" | "cost" | "reservation" | "transport" | "not_sent" | "usage" | "overspend" | "cancelled" | "ledger") {
         super(`Job assistant generation refused: ${reason}`);
         this.name = "GenerationRefused";
     }
@@ -96,7 +114,8 @@ export function createJobAssistantGenerator<C>(feature: JobAssistantFeature, dep
     config: unknown; transport: JobAssistantTransport | null; ledger: UsageLedger | null;
 }): JobAssistantGenerator<C> | null {
     const parsed = ConfigSchema.safeParse(deps.config);
-    if (!parsed.success || parsed.data.feature !== feature || !deps.transport || !deps.ledger) return null;
+    if (!parsed.success || parsed.data.feature !== feature || !deps.transport || !deps.ledger
+        || typeof deps.transport.maxInputTokens !== "function" || typeof deps.transport.send !== "function") return null;
     const config = parsed.data;
     const transport = deps.transport;
     const ledger = deps.ledger;
@@ -105,6 +124,14 @@ export function createJobAssistantGenerator<C>(feature: JobAssistantFeature, dep
         const size = JSON.stringify(input.context ?? null).length + input.messages.reduce((total, item) => total + item.content.length, 0);
         if (!UUID.test(input.attemptId) || !UUID.test(input.projectId) || !SHA256.test(input.revision) || !input.userId
             || !input.messages.length || input.messages.length > config.maxMessages || size > config.maxInputChars) throw new GenerationRefused("bounds");
+        // P2-3: the reservation must cover the worst this exact request can cost, before anything is held or sent.
+        let worst = Number.NaN;
+        try {
+            worst = costPence(config.prices, transport.maxInputTokens({ context: input.context, messages: input.messages }), config.maxOutputTokens);
+        } catch {
+            worst = Number.NaN;
+        }
+        if (!Number.isFinite(worst) || worst > config.attemptPence) throw new GenerationRefused("cost");
 
         let held = false;
         try {
@@ -126,7 +153,7 @@ export function createJobAssistantGenerator<C>(feature: JobAssistantFeature, dep
         try {
             if (signal.aborted) throw new Error("aborted");
             result = await transport.send({
-                provider: config.provider, model: config.model, maxOutputTokens: config.maxOutputTokens,
+                provider: config.provider, model: config.model, maxOutputTokens: config.maxOutputTokens, prices: config.prices,
                 context: input.context, messages: input.messages, signal,
             });
         } catch {
@@ -142,7 +169,9 @@ export function createJobAssistantGenerator<C>(feature: JobAssistantFeature, dep
             await record(() => ledger.retain(input.attemptId, "unreadable_usage"));
             throw new GenerationRefused("usage");
         }
+        // Recorded as charged even above the reservation, so it counts against the caps.
         await record(() => ledger.settle(input.attemptId, result.costPence));
+        if (result.costPence > config.attemptPence) throw new GenerationRefused("overspend");
         // Paid for, but the request was cancelled meanwhile: do not use the reply.
         if (signal.aborted) throw new GenerationRefused("cancelled");
         return result.raw;

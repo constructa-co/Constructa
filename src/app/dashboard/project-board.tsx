@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition, useState, useRef } from "react";
+import { useEffect, useTransition, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { updateStatusAction, markAsWonAction } from "./board-actions";
 import { Card, CardContent } from "@/components/ui/card";
@@ -85,6 +85,10 @@ function getDaysInStage(createdAt: string | null): number {
     return Math.floor((Date.now() - new Date(createdAt).getTime()) / 86400000);
 }
 
+function formatPlatformSendAt(iso: string): string {
+    return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
 function hasRecordedWin(project: { proposal_accepted_at?: string | null; proposal_status?: string | null }): boolean {
     if (project.proposal_accepted_at) return true;
     return project.proposal_status?.toLowerCase() === "accepted";
@@ -99,10 +103,28 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
 
     // Optimistic status: cards move instantly without waiting for server
     const [optimisticStatus, setOptimisticStatus] = useState<{ source: typeof projects; stages: Record<string, string> }>({ source: projects, stages: {} });
+    /** Ephemeral: confirmed Mark as Won ACK for this projects snapshot until server props catch up. */
+    const [confirmedWins, setConfirmedWins] = useState<Record<string, true>>({});
     const [moveNotice, setMoveNotice] = useState<{ kind: "error" | "warning"; text: string } | null>(null);
     const moveInFlight = useRef(false);
 
+    useEffect(() => {
+        setConfirmedWins(prev => {
+            let next: Record<string, true> | null = null;
+            for (const row of projects) {
+                if (hasRecordedWin(row) && prev[row.id]) {
+                    if (!next) next = { ...prev };
+                    delete next[row.id];
+                }
+            }
+            return next ?? prev;
+        });
+    }, [projects]);
+
     const getStatus = (p: any): string => (optimisticStatus.source === projects ? optimisticStatus.stages[p.id] : undefined) ?? p.status ?? "Lead";
+
+    const showsRecordedWin = (p: { id: string; proposal_accepted_at?: string | null; proposal_status?: string | null }) =>
+        hasRecordedWin(p) || confirmedWins[p.id] === true;
 
     const move = (projectId: string, newStatus: string, intent: "default" | "recordWin" = "default") => {
         if (moveInFlight.current) return;
@@ -129,6 +151,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                     return;
                 }
                 confirmed = true;
+                if (useWonMutation) setConfirmedWins(prev => ({ ...prev, [projectId]: true }));
                 if (result.warning) setMoveNotice({ kind: "warning", text: result.warning });
                 router.refresh();
             } catch {
@@ -242,11 +265,23 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                     htmlFor={`stage-change-${p.id}`}
                                                     className={`block text-[9px] font-bold uppercase tracking-wide ${isDark ? "text-[#a0a0a0]" : "text-gray-600"}`}
                                                 >
-                                                    Change stage
+                                                    Operational stage
                                                 </label>
                                                 <p className={`text-[9px] leading-snug ${isDark ? "text-[#707070]" : "text-gray-500"}`}>
-                                                    Saves immediately when you pick a stage.
+                                                    Changes save immediately.
                                                 </p>
+                                                <p className={`text-[9px] leading-snug ${isDark ? "text-[#707070]" : "text-gray-500"}`}>
+                                                    Tracks where you put this job on the board. It does not send, publish, or accept the proposal document.
+                                                </p>
+                                                {p.proposal_sent_at ? (
+                                                    <p className={`text-[9px] leading-snug ${isDark ? "text-emerald-400/90" : "text-emerald-700"}`} data-board-proposal-sent-at>
+                                                        Platform send recorded {formatPlatformSendAt(p.proposal_sent_at)}.
+                                                    </p>
+                                                ) : status === "Proposal Sent" ? (
+                                                    <p className={`text-[9px] leading-snug ${isDark ? "text-amber-400/90" : "text-amber-700"}`}>
+                                                        No platform send recorded yet — use Send in the proposal editor when ready.
+                                                    </p>
+                                                ) : null}
                                                 <Select value={status} onValueChange={(val) => move(p.id, val)} disabled={isPending}>
                                                     <SelectTrigger id={`stage-change-${p.id}`} aria-label={`Stage of ${p.name}`} className={`h-11 lg:h-7 text-[10px] font-bold transition-colors ${
                                                         isDark
@@ -301,11 +336,11 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                             : "bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"
                                                     }`}
                                                 >
-                                                    Mark proposal sent <ArrowRight className="w-3 h-3" />
+                                                    Proposal sent stage <ArrowRight className="w-3 h-3" />
                                                 </button>
                                             ) : status === "Active" ? (
                                                 <div className="space-y-1.5">
-                                                    {!hasRecordedWin(p) && (
+                                                    {!showsRecordedWin(p) && (
                                                         <button
                                                             type="button"
                                                             onClick={() => move(p.id, "Active", "recordWin")}

@@ -9,7 +9,9 @@ vi.mock("@/lib/supabase/server", () => mocks);
 
 import { handleBriefTurn } from "./brief-request";
 import { approvedBriefGenerator, jobAssistantAvailability, type ServerBriefGenerator } from "./job-assistant-transport";
-import { createJobAssistantGenerator, type JobAssistantTransport, type UsageLedger } from "./job-assistant-generation";
+import { createJobAssistantGenerator, type JobAssistantTransport, type TransportRequest, type UsageLedger } from "./job-assistant-generation";
+import { BRIEF_SYSTEM_PROMPT } from "./job-assistant-prompts";
+import { createOpenAIJobAssistantTransport, type ChatClient } from "./openai-job-assistant-transport";
 import { briefAssistantTurnAction } from "@/app/dashboard/projects/brief/assistant-actions";
 import { BRIEF_OFF, BRIEF_SERVER_CHANGED, briefContextFromProject, createBriefConversation } from "@/lib/brief-conversation";
 import { createBriefRequestGenerator } from "@/lib/job-assistant-client";
@@ -147,13 +149,14 @@ describe("A055 Brief: browser conversation against the real handler", () => {
 describe("A055 Brief: the generation seam on the Brief request path", () => {
     const config = { feature: "brief", approval: { ref: "TEST-ONLY", approvedBy: "test", approvedAt: "2026-10-28T00:00:00Z" },
         provider: "stub", model: "stub-model", maxOutputTokens: 500, timeoutMs: 1000, maxMessages: 6, maxInputChars: 5000,
+        prices: { inputPencePerMillionTokens: 100, outputPencePerMillionTokens: 400 },
         attemptPence: 2, perJobPence: 10, monthlyPence: 100 };
     const ledger = () => ({ reserve: vi.fn(async () => ({ ok: true })), settle: vi.fn(async () => {}), release: vi.fn(async () => {}), retain: vi.fn(async () => {}), conclude: vi.fn<(attemptId: string, outcome: string) => Promise<void>>(async () => {}) });
 
     it("reserves against the saved brief revision, sends only the minimal context, and records a reply or an overtaken one", async () => {
         const f = fixture(); const l = ledger();
         const send = vi.fn<JobAssistantTransport["send"]>(async () => ({ kind: "reply", raw: reply, costPence: 1 }));
-        const generate = createJobAssistantGenerator<unknown>("brief", { config, transport: { send }, ledger: l as unknown as UsageLedger })!;
+        const generate = createJobAssistantGenerator<unknown>("brief", { config, transport: { send, maxInputTokens: () => 100 }, ledger: l as unknown as UsageLedger })!;
         expect(await handleBriefTurn(f.request(), generate)).toEqual({ status: "reply", reply, provenance: { projectId: PROJECT, revision: f.revision() } });
         const id = l.conclude.mock.calls[0][0];
         expect(l.reserve).toHaveBeenCalledWith(expect.objectContaining({ attemptId: id, feature: "brief", userId: USER, projectId: PROJECT, revision: f.revision(), pence: 2 }));
@@ -164,9 +167,51 @@ describe("A055 Brief: the generation seam on the Brief request path", () => {
         const overtaken = ledger();
         const request = f.request();
         const late = createJobAssistantGenerator<unknown>("brief", { config, ledger: overtaken as unknown as UsageLedger,
-            transport: { send: async () => { f.project.brief_trade_sections = ["Roofing", "Guttering"]; return { kind: "reply", raw: reply, costPence: 1 }; } } })!;
+            transport: { maxInputTokens: () => 100, send: async () => { f.project.brief_trade_sections = ["Roofing", "Guttering"]; return { kind: "reply", raw: reply, costPence: 1 }; } } })!;
         expect(await handleBriefTurn(request, late)).toEqual({ status: "stale", message: BRIEF_SERVER_CHANGED });
         expect(overtaken.settle).toHaveBeenCalledTimes(1);
         expect(overtaken.conclude.mock.calls).toEqual([[overtaken.conclude.mock.calls[0][0], "stale"]]);
+    });
+});
+
+describe("A055 Brief OpenAI transport wiring (fake SDK only)", () => {
+    const prices = { inputPencePerMillionTokens: 100, outputPencePerMillionTokens: 400 };
+    function fakeSdk(answer: () => Promise<unknown>) {
+        const create = vi.fn(() => answer());
+        const factory = vi.fn(() => ({ chat: { completions: { create } } }) as unknown as ChatClient);
+        return { create, factory };
+    }
+    const transportRequest = (patch: Partial<TransportRequest> = {}): TransportRequest => ({
+        provider: "openai", model: "stub-model", maxOutputTokens: 500, prices,
+        context: { job: { id: PROJECT }, work: "Replace the roof.", clientType: "domestic", trades: ["Roofing"] },
+        messages: [{ role: "user", content: "What should I clarify?" }], signal: new AbortController().signal, ...patch,
+    });
+
+    it("SOURCE: job-assistant-transport maps brief to BRIEF_SYSTEM_PROMPT through the shared adapter", () => {
+        const source = readFileSync(join(process.cwd(), "src/lib/server/job-assistant-transport.ts"), "utf8");
+        expect(source).toMatch(/brief: BRIEF_SYSTEM_PROMPT/);
+        expect(BRIEF_SYSTEM_PROMPT).toMatch(/scope.*exclusion.*client-question/);
+        expect(BRIEF_SYSTEM_PROMPT).toMatch(/Never invent scope, rates, amounts/);
+    });
+
+    it("sends Brief rules, minimal saved context as data and maps strict JSON for reviewBriefReply", async () => {
+        const sdk = fakeSdk(async () => ({
+            model: "stub-model-2026-01-01", usage: { prompt_tokens: 600, completion_tokens: 90 },
+            choices: [{ finish_reason: "stop", message: { content: JSON.stringify(reply) } }],
+        }));
+        const transport = createOpenAIJobAssistantTransport({ systemPrompt: BRIEF_SYSTEM_PROMPT, client: sdk.factory });
+        const sent = transportRequest();
+        expect(await transport.send(sent)).toEqual({ kind: "reply", raw: reply, costPence: 1 });
+        expect(sdk.create).toHaveBeenCalledTimes(1);
+        const body = (sdk.create.mock.calls as unknown as [[Record<string, unknown>, unknown]])[0][0];
+        expect(body).toEqual({
+            model: "stub-model", max_completion_tokens: 500, response_format: { type: "json_object" },
+            messages: [
+                { role: "system", content: BRIEF_SYSTEM_PROMPT },
+                { role: "user", content: `Saved job data (JSON):\n${JSON.stringify(sent.context)}` },
+                { role: "user", content: "What should I clarify?" },
+            ],
+        });
+        expect(JSON.stringify(sent.context)).not.toMatch(/Private|1234|18000/);
     });
 });

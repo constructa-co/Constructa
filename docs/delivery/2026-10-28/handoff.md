@@ -204,3 +204,8 @@ policy approved in register metadata only; **73709** not on ROOT. Receipt
 
 **Parent `c5e61a0`:** pin **bb8d1f** seven server/test paths. ROOT **62/62**. **A055 Partial**. Receipt
 `rob2325-a055-integrated-source-backup-20261028.json`.
+
+## ROB0015 Phase 1A — 29 October 2026
+
+**Parent `067e44a`:** **31fbf420** + **559d2186** (12 paths). ROOT **98/98**. **A114/A115 Complete** original; **A055/A063 Partial**. Receipt
+`rob0015-phase1a-integrated-source-backup-20261029.json`.

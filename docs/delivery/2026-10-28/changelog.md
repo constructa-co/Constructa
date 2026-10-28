@@ -193,3 +193,9 @@
 - Parent **c5e61a0**: **fe241a0** five server files + **bb8d1f** two-test P2 repair (seven paths, base **6a..bb**).
 - ROOT **62/62** on two request test modules; generators **NULL** / pages **false**; **A055 Partial**.
 - Receipt **`rob2325-a055-integrated-source-backup-20261028.json`**; fresh ROOT build (not c5 **1985** / author **1984** reuse).
+
+## ROB0015 Phase 1A conditional closure — 29 October 2026
+
+- Parent **067e44a**: **31fbf420** four A115 paths + **559d2186** eight A055/A063 paths (12 total; SQL SOURCE NOT_APPLIED).
+- ROOT **98/98** focused modules; **A114+A115 Complete** original scope with explicit hosted/legal HELD; **A055/A063 Partial** OFF.
+- Receipt **`rob0015-phase1a-integrated-source-backup-20261029.json`**; counts **76C 22P 19N 1B**.

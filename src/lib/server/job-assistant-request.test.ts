@@ -10,7 +10,10 @@ vi.mock("@/lib/supabase/server", () => mocks);
 import { handlePricingTurn } from "./pricing-request";
 import { handlePlanningTurn } from "./planning-request";
 import { approvedBriefGenerator, approvedPlanningGenerator, approvedPricingGenerator, jobAssistantAvailability, type ServerPlanningGenerator, type ServerPricingGenerator } from "./job-assistant-transport";
-import { createJobAssistantGenerator, type JobAssistantTransport, type UsageLedger } from "./job-assistant-generation";
+import { costPence, createJobAssistantGenerator, type JobAssistantTransport, type TransportRequest, type UsageLedger } from "./job-assistant-generation";
+import { createOpenAIJobAssistantTransport, type ChatClient } from "./openai-job-assistant-transport";
+import { createRpcUsageLedger } from "./job-assistant-ledger";
+import { PLANNING_SYSTEM_PROMPT, PRICING_SYSTEM_PROMPT } from "./job-assistant-prompts";
 import { pricingAssistantTurnAction } from "@/app/dashboard/projects/costs/assistant-actions";
 import { planningAssistantTurnAction } from "@/app/dashboard/projects/schedule/assistant-actions";
 import { buildPricingReviewContext, PRICING_REVIEW_STALE } from "@/lib/pricing-review";
@@ -297,6 +300,7 @@ describe("A055 generation seam: reservation, transport and provenance on the rea
     const config = (patch: Row = {}) => ({
         feature: "pricing", approval: { ref: "TEST-ONLY", approvedBy: "test", approvedAt: "2026-10-28T00:00:00Z" },
         provider: "stub", model: "stub-model", maxOutputTokens: 500, timeoutMs: 1000, maxMessages: 6, maxInputChars: 5000,
+        prices: { inputPencePerMillionTokens: 100, outputPencePerMillionTokens: 400 },
         attemptPence: 2, perJobPence: 10, monthlyPence: 100, ...patch,
     });
     function ledger(patch: Partial<Record<keyof UsageLedger, (...args: never[]) => Promise<unknown>>> = {}) {
@@ -305,7 +309,7 @@ describe("A055 generation seam: reservation, transport and provenance on the rea
             retain: vi.fn(async () => {}), conclude: vi.fn(async () => {}), ...patch,
         } as unknown as { [K in keyof UsageLedger]: ReturnType<typeof vi.fn> };
     }
-    const stub = (send: JobAssistantTransport["send"]) => ({ send: vi.fn(send) });
+    const stub = (send: JobAssistantTransport["send"], maxInputTokens: JobAssistantTransport["maxInputTokens"] = () => 100) => ({ send: vi.fn(send), maxInputTokens });
     const pricing = (l: ReturnType<typeof ledger>, send: JobAssistantTransport["send"], patch: Row = {}) =>
         createJobAssistantGenerator<unknown>("pricing", { config: config(patch), transport: stub(send), ledger: l as unknown as UsageLedger })!;
     const attempt = (l: ReturnType<typeof ledger>) => l.conclude.mock.calls[0]?.[0] as string;
@@ -322,6 +326,8 @@ describe("A055 generation seam: reservation, transport and provenance on the rea
             [config({ feature: "planning" }), transport, l], [config({ budget: 5 }), transport, l],
             [config({ attemptPence: 11 }), transport, l], [config({ perJobPence: 101 }), transport, l],
             [config({ maxMessages: 25 }), transport, l], [config({ attemptPence: 0.5 }), transport, l],
+            [config({ prices: undefined }), transport, l], [config({ prices: { inputPencePerMillionTokens: 0, outputPencePerMillionTokens: 1 } }), transport, l],
+            [config(), { send: transport.send } as unknown as JobAssistantTransport, l],
         ] as const) expect(createJobAssistantGenerator("pricing", { config: value, transport: t, ledger: ld })).toBeNull();
     });
 
@@ -420,11 +426,237 @@ describe("A055 generation seam: reservation, transport and provenance on the rea
     it("runs the same seam on the planning request path, bound to the saved programme revision", async () => {
         const f = fixture(); const l = ledger();
         const send = vi.fn<JobAssistantTransport["send"]>(async () => ({ kind: "reply", raw: planningReply, costPence: 1 }));
-        const generate = createJobAssistantGenerator<unknown>("planning", { config: config({ feature: "planning" }), transport: { send }, ledger: l as unknown as UsageLedger })!;
+        const generate = createJobAssistantGenerator<unknown>("planning", { config: config({ feature: "planning" }), transport: { send, maxInputTokens: () => 100 }, ledger: l as unknown as UsageLedger })!;
         const result = await handlePlanningTurn(f.planning(), generate);
         expect(result).toMatchObject({ status: "reply", provenance: { projectId: PROJECT, revision: f.planningRevision() } });
         expect(l.reserve).toHaveBeenCalledWith(expect.objectContaining({ feature: "planning", projectId: PROJECT, revision: f.planningRevision(), userId: USER }));
         expect(send.mock.calls[0][0]).toMatchObject({ model: "stub-model", maxOutputTokens: 500, context: buildPlanningContext(f.project as never) });
         expect(l.conclude.mock.calls).toEqual([[attempt(l), "reply"]]);
+    });
+});
+
+describe("A063 planning transport, worst-case cost and usage ledger (fake SDK and fake database only)", () => {
+    const prices = { inputPencePerMillionTokens: 100, outputPencePerMillionTokens: 400 };
+    const config = (patch: Row = {}) => ({
+        feature: "planning", approval: { ref: "TEST-ONLY", approvedBy: "test", approvedAt: "2026-10-28T00:00:00Z" },
+        provider: "openai", model: "stub-model", maxOutputTokens: 500, timeoutMs: 1000, maxMessages: 6, maxInputChars: 5000,
+        prices, attemptPence: 2, perJobPence: 10, monthlyPence: 100, ...patch,
+    });
+    const memoryLedger = () => ({
+        reserve: vi.fn(async () => ({ ok: true })), settle: vi.fn(async () => {}), release: vi.fn(async () => {}),
+        retain: vi.fn(async () => {}), conclude: vi.fn<(id: string, outcome: string) => Promise<void>>(async () => {}),
+    });
+    const completion = (patch: Row = {}) => ({
+        model: "stub-model-2026-01-01", usage: { prompt_tokens: 1000, completion_tokens: 200 },
+        choices: [{ finish_reason: "stop", message: { content: JSON.stringify(planningReply) } }], ...patch,
+    });
+    function fakeSdk(answer: () => Promise<unknown>) {
+        const create = vi.fn<(body: Record<string, unknown>, options: Record<string, unknown>) => Promise<unknown>>(() => answer());
+        const factory = vi.fn(() => ({ chat: { completions: { create } } }) as unknown as ChatClient);
+        return { create, factory };
+    }
+    /** A stand-in for the job_assistant_* functions: records calls and answers like the SQL. */
+    function fakeDatabase(reserveStatus = "reserved") {
+        const calls: [string, Record<string, unknown>][] = [];
+        const rpc = vi.fn(async (fn: string, args: Record<string, unknown>) => {
+            calls.push([fn, args]);
+            return { data: fn === "job_assistant_reserve" ? { status: reserveStatus } : true, error: null };
+        });
+        return { calls, rpc, client: vi.fn(() => ({ rpc })) };
+    }
+    const request = (patch: Partial<TransportRequest> = {}): TransportRequest => ({
+        provider: "openai", model: "stub-model", maxOutputTokens: 500, prices,
+        context: { job: { id: PROJECT } }, messages: [{ role: "user", content: "When should I order the worktops?" }],
+        signal: new AbortController().signal, ...patch,
+    });
+
+    it("refuses before reserving when this request's worst-case cost at the approved prices exceeds the reservation", async () => {
+        const f = fixture();
+        for (const maxInputTokens of [() => 10_000_000, () => { throw new Error("unknown"); }, () => Number.NaN]) {
+            const l = memoryLedger(); const send = vi.fn();
+            const generate = createJobAssistantGenerator<unknown>("planning", { config: config(), transport: { send, maxInputTokens }, ledger: l as unknown as UsageLedger })!;
+            expect(await handlePlanningTurn(f.planning(), generate)).toMatchObject({ status: "unavailable" });
+            expect(l.reserve).not.toHaveBeenCalled(); expect(send).not.toHaveBeenCalled();
+            expect(l.conclude.mock.calls.map(call => call[1])).toEqual(["unavailable"]);
+        }
+        expect(costPence(prices, 1000, 200)).toBe(1);
+        expect(costPence(prices, 10_000, 5_000)).toBe(3);
+    });
+
+    it("records a reported cost above the reservation as charged and refuses the reply", async () => {
+        const f = fixture(); const l = memoryLedger();
+        const generate = createJobAssistantGenerator<unknown>("planning", { config: config(), ledger: l as unknown as UsageLedger,
+            transport: { maxInputTokens: () => 100, send: async () => ({ kind: "reply", raw: planningReply, costPence: 5 }) } })!;
+        expect(await handlePlanningTurn(f.planning(), generate)).toMatchObject({ status: "unavailable" });
+        const id = l.conclude.mock.calls[0][0];
+        expect(l.settle).toHaveBeenCalledWith(id, 5);
+        expect(l.retain).not.toHaveBeenCalled(); expect(l.release).not.toHaveBeenCalled();
+        expect(l.conclude.mock.calls).toEqual([[id, "unavailable"]]);
+    });
+
+    it("makes no SDK client until a send, and refuses before any client for another provider or a cancelled request", async () => {
+        const sdk = fakeSdk(async () => completion());
+        const transport = createOpenAIJobAssistantTransport({ systemPrompt: PLANNING_SYSTEM_PROMPT, client: sdk.factory });
+        expect(transport.maxInputTokens(request())).toBeGreaterThan(0);
+        const cancelled = new AbortController(); cancelled.abort();
+        expect(await transport.send(request({ provider: "anthropic" }))).toEqual({ kind: "not_sent" });
+        expect(await transport.send(request({ signal: cancelled.signal }))).toEqual({ kind: "not_sent" });
+        expect(sdk.factory).not.toHaveBeenCalled();
+    });
+
+    it("sends the planning rules, the saved context as data and the conversation once, and maps usage to approved-price pence", async () => {
+        const sdk = fakeSdk(async () => completion());
+        const transport = createOpenAIJobAssistantTransport({ systemPrompt: PLANNING_SYSTEM_PROMPT, client: sdk.factory });
+        const sent = request({ messages: [{ role: "user", content: "One" }, { role: "assistant", content: "Two" }, { role: "user", content: "Three £" }] });
+        expect(await transport.send(sent)).toEqual({ kind: "reply", raw: planningReply, costPence: 1 });
+        expect(sdk.create).toHaveBeenCalledTimes(1);
+        const [body, options] = sdk.create.mock.calls[0];
+        expect(body).toEqual({
+            model: "stub-model", max_completion_tokens: 500, response_format: { type: "json_object" },
+            messages: [
+                { role: "system", content: PLANNING_SYSTEM_PROMPT },
+                { role: "user", content: `Saved job data (JSON):\n${JSON.stringify(sent.context)}` },
+                { role: "user", content: "One" }, { role: "assistant", content: "Two" }, { role: "user", content: "Three £" },
+            ],
+        });
+        expect(options).toEqual({ signal: sent.signal, maxRetries: 0 });
+        const bytes = (body.messages as { content: string }[]).reduce((total, item) => total + Buffer.byteLength(item.content, "utf8"), 0);
+        expect(transport.maxInputTokens(sent)).toBeGreaterThanOrEqual(bytes);
+        expect(PLANNING_SYSTEM_PROMPT).toMatch(/Never invent a stage, date, duration, lead time, quantity, price, rate or amount of money/);
+    });
+
+    it("maps unusable replies to a rejected null and unknown usage to an unreadable cost, and lets SDK failures through", async () => {
+        const send = async (answer: Row) => createOpenAIJobAssistantTransport({ systemPrompt: "rules", client: fakeSdk(async () => completion(answer)).factory }).send(request());
+        expect(await send({ choices: [{ finish_reason: "length", message: { content: JSON.stringify(planningReply) } }] })).toEqual({ kind: "reply", raw: null, costPence: 1 });
+        expect(await send({ choices: [{ finish_reason: "stop", message: { content: "not json" } }] })).toEqual({ kind: "reply", raw: null, costPence: 1 });
+        for (const answer of [{ usage: undefined }, { usage: { prompt_tokens: 10 } }, { model: "other-model" }, { model: "stub-modelx" }])
+            expect((await send(answer)) as { costPence: number }).toMatchObject({ kind: "reply", costPence: Number.NaN });
+        const failing = createOpenAIJobAssistantTransport({ systemPrompt: "rules", client: fakeSdk(async () => { throw new Error("socket"); }).factory });
+        await expect(failing.send(request())).rejects.toThrow("socket");
+    });
+
+    it("maps the ledger to the database functions, refuses any non-reserved answer, and fails closed on any unrecorded step", async () => {
+        const db = fakeDatabase();
+        const ledger = createRpcUsageLedger(db.client);
+        expect(db.client).not.toHaveBeenCalled();
+        const reservation = { attemptId: OTHER, feature: "planning" as const, userId: USER, projectId: PROJECT, revision: "a".repeat(64),
+            provider: "openai", model: "stub-model", approvalRef: "TEST-ONLY", pence: 2, caps: { perJobPence: 10, monthlyPence: 100 } };
+        expect(await ledger.reserve(reservation)).toEqual({ ok: true });
+        await ledger.settle(OTHER, 1); await ledger.release(OTHER); await ledger.retain(OTHER, "failed"); await ledger.conclude(OTHER, "reply");
+        expect(db.calls).toEqual([
+            ["job_assistant_reserve", { p_attempt_id: OTHER, p_user_id: USER, p_project_id: PROJECT, p_feature: "planning", p_revision: "a".repeat(64),
+                p_provider: "openai", p_model: "stub-model", p_approval_ref: "TEST-ONLY", p_pence: 2, p_per_job_cap_pence: 10, p_monthly_cap_pence: 100 }],
+            ["job_assistant_settle", { p_attempt_id: OTHER, p_charged_pence: 1 }],
+            ["job_assistant_release", { p_attempt_id: OTHER }],
+            ["job_assistant_retain", { p_attempt_id: OTHER, p_reason: "failed" }],
+            ["job_assistant_conclude", { p_attempt_id: OTHER, p_outcome: "reply" }],
+        ]);
+        for (const status of ["disabled", "duplicate", "not-owner", "over-ceiling", "job-cap", "monthly-cap"])
+            expect(await createRpcUsageLedger(fakeDatabase(status).client).reserve(reservation)).toEqual({ ok: false });
+        const broken = (data: unknown, error: unknown = null) => createRpcUsageLedger(() => ({ rpc: async () => ({ data, error }) }));
+        await expect(broken(null, { message: "down" }).reserve(reservation)).rejects.toThrow();
+        for (const [data, error] of [[false, null], [null, null], [true, { message: "down" }], ["true", null]] as const) {
+            await expect(broken(data, error).settle(OTHER, 1)).rejects.toThrow();
+            await expect(broken(data, error).conclude(OTHER, "reply")).rejects.toThrow();
+        }
+    });
+
+    it("runs a planning turn end to end through the real transport and ledger adapters, and never sends a duplicate attempt", async () => {
+        const f = fixture(); const db = fakeDatabase(); const sdk = fakeSdk(async () => completion());
+        const generate = createJobAssistantGenerator<unknown>("planning", { config: config(),
+            transport: createOpenAIJobAssistantTransport({ systemPrompt: PLANNING_SYSTEM_PROMPT, client: sdk.factory }), ledger: createRpcUsageLedger(db.client) })!;
+        const result = await handlePlanningTurn(f.planning(), generate);
+        expect(result).toMatchObject({ status: "reply", provenance: { projectId: PROJECT, revision: f.planningRevision() } });
+        expect(db.calls.map(([fn]) => fn)).toEqual(["job_assistant_reserve", "job_assistant_settle", "job_assistant_conclude"]);
+        const id = db.calls[0][1].p_attempt_id;
+        expect(db.calls[0][1]).toMatchObject({ p_feature: "planning", p_project_id: PROJECT, p_user_id: USER, p_revision: f.planningRevision(), p_pence: 2 });
+        expect(db.calls.slice(1).map(([, args]) => args)).toEqual([{ p_attempt_id: id, p_charged_pence: 1 }, { p_attempt_id: id, p_outcome: "reply" }]);
+        const data = (sdk.create.mock.calls[0][0].messages as { content: string }[])[1].content;
+        expect(data).toBe(`Saved job data (JSON):\n${JSON.stringify(buildPlanningContext(f.project as never))}`);
+
+        const duplicate = fakeDatabase("duplicate"); const quiet = fakeSdk(async () => completion());
+        const again = createJobAssistantGenerator<unknown>("planning", { config: config(),
+            transport: createOpenAIJobAssistantTransport({ systemPrompt: PLANNING_SYSTEM_PROMPT, client: quiet.factory }), ledger: createRpcUsageLedger(duplicate.client) })!;
+        expect(await handlePlanningTurn(f.planning(), again)).toMatchObject({ status: "unavailable" });
+        expect(quiet.factory).not.toHaveBeenCalled();
+        expect(duplicate.calls.map(([fn]) => fn)).toEqual(["job_assistant_reserve", "job_assistant_conclude"]);
+    });
+
+    it("keeps every feature OFF: approved configuration is null while all three transports are wired", () => {
+        expect(approvedPlanningGenerator()).toBeNull();
+        expect(jobAssistantAvailability()).toEqual({ pricing: false, planning: false, brief: false });
+        const source = readFileSync(join(process.cwd(), "src/lib/server/job-assistant-transport.ts"), "utf8");
+        expect(source).toMatch(/const APPROVED_GENERATION: Record<JobAssistantFeature, unknown> = \{ pricing: null, planning: null, brief: null \};/);
+        expect(source).toMatch(/FEATURE_PROMPTS/);
+        for (const prompt of ["PRICING_SYSTEM_PROMPT", "PLANNING_SYSTEM_PROMPT", "BRIEF_SYSTEM_PROMPT"]) expect(source).toContain(prompt);
+        expect(source).toMatch(/createOpenAIJobAssistantTransport\(\{ systemPrompt \}\)/);
+        expect(source).toMatch(/return createRpcUsageLedger\(\);/);
+        expect(source).not.toMatch(/process\.env|gpt-|OPENAI_API_KEY/);
+    });
+
+    it("the source ledger migration is disabled, service-role only, stores no text, and caps all features together (static source check, not Postgres)", () => {
+        const sql = readFileSync(join(process.cwd(), "supabase/migrations/20261028233000_job_assistant_usage_ledger.sql"), "utf8");
+        const code = sql.replace(/--.*$/gm, "");
+        expect(code).toMatch(/enabled boolean NOT NULL DEFAULT false/);
+        expect(code).toMatch(/INSERT INTO public\.job_assistant_usage_settings \(id, enabled\) VALUES \(1, false\);/);
+        expect(code).not.toMatch(/enabled\s*=\s*true|VALUES \(1, true/i);
+        expect(code.indexOf("'job_assistant:global'")).toBeLessThan(code.indexOf("'job_assistant:project:'"));
+        expect(code.indexOf("'duplicate'")).toBeLessThan(code.indexOf("INSERT INTO public.job_assistant_attempts"));
+        expect(code).toMatch(/FROM public\.job_assistant_attempts WHERE project_id = p_project_id;/);
+        expect(code).toMatch(/FROM public\.job_assistant_attempts\s+WHERE created_at >= date_trunc\('month'/);
+        expect(code).not.toMatch(/WHERE[^;]*feature = p_feature/);
+        expect(code).toMatch(/WHEN 'released' THEN 0 WHEN 'settled' THEN p_charged ELSE p_reserved END/);
+        expect(code).toMatch(/ENABLE ROW LEVEL SECURITY;[\s\S]*job_assistant_attempts ENABLE ROW LEVEL SECURITY;/);
+        expect(code).toMatch(/REVOKE ALL PRIVILEGES ON TABLE public\.job_assistant_usage_settings, public\.job_assistant_attempts FROM PUBLIC, anon, authenticated;/);
+        expect(code).not.toMatch(/TO (anon|authenticated|PUBLIC)\b/);
+        expect(code).not.toMatch(/CREATE POLICY|SECURITY DEFINER/i);
+        expect(code).not.toMatch(/\b(prompt|reply_text|response|content|api_key|secret)\b/i);
+        for (const fn of ["job_assistant_reserve", "job_assistant_settle", "job_assistant_release", "job_assistant_retain", "job_assistant_conclude"]) {
+            expect(code).toMatch(new RegExp(`CREATE FUNCTION public\\.${fn}\\(`));
+            expect(code).toMatch(new RegExp(`GRANT EXECUTE ON FUNCTION public\\.${fn}\\([^)]*\\) TO service_role;`));
+        }
+        for (const step of ["settle", "release", "retain"]) expect(code).toMatch(new RegExp(`job_assistant_${step}[\\s\\S]*?WHERE id = p_attempt_id AND state = 'reserved';`));
+    });
+});
+
+describe("A055 pricing OpenAI transport wiring (fake SDK only)", () => {
+    const prices = { inputPencePerMillionTokens: 100, outputPencePerMillionTokens: 400 };
+    const pricingModelReply = { message: "Start with the cabinets.", suggestions: [{ source: "briefWork", start: 0, end: 24 }] };
+    function fakeSdk(answer: () => Promise<unknown>) {
+        const create = vi.fn(() => answer());
+        const factory = vi.fn(() => ({ chat: { completions: { create } } }) as unknown as ChatClient);
+        return { create, factory };
+    }
+    const transportRequest = (patch: Partial<TransportRequest> = {}): TransportRequest => ({
+        provider: "openai", model: "stub-model", maxOutputTokens: 500, prices,
+        context: { work: "Install kitchen cabinets. Tile splashback.", contractorMessage: "Help me organise this.", existingWork: [{ description: "Cabinets", section: "Kitchen" }] },
+        messages: [{ role: "user", content: "Where should I start?" }], signal: new AbortController().signal, ...patch,
+    });
+
+    it("SOURCE: job-assistant-transport maps pricing to PRICING_SYSTEM_PROMPT through the shared adapter", () => {
+        const source = readFileSync(join(process.cwd(), "src/lib/server/job-assistant-transport.ts"), "utf8");
+        expect(source).toMatch(/pricing: PRICING_SYSTEM_PROMPT/);
+        expect(PRICING_SYSTEM_PROMPT).toMatch(/briefWork.*contractorMessage/);
+        expect(PRICING_SYSTEM_PROMPT).toMatch(/Never invent a rate, price, amount/);
+    });
+
+    it("sends pricing rules, saved context as data and maps strict JSON for reviewPricingSuggestion", async () => {
+        const sdk = fakeSdk(async () => ({
+            model: "stub-model-2026-01-01", usage: { prompt_tokens: 800, completion_tokens: 120 },
+            choices: [{ finish_reason: "stop", message: { content: JSON.stringify(pricingModelReply) } }],
+        }));
+        const transport = createOpenAIJobAssistantTransport({ systemPrompt: PRICING_SYSTEM_PROMPT, client: sdk.factory });
+        const sent = transportRequest();
+        expect(await transport.send(sent)).toEqual({ kind: "reply", raw: pricingModelReply, costPence: costPence(prices, 800, 120) });
+        expect(sdk.create).toHaveBeenCalledTimes(1);
+        const body = (sdk.create.mock.calls as unknown as [[Record<string, unknown>, unknown]])[0][0];
+        expect(body).toEqual({
+            model: "stub-model", max_completion_tokens: 500, response_format: { type: "json_object" },
+            messages: [
+                { role: "system", content: PRICING_SYSTEM_PROMPT },
+                { role: "user", content: `Saved job data (JSON):\n${JSON.stringify(sent.context)}` },
+                { role: "user", content: "Where should I start?" },
+            ],
+        });
     });
 });

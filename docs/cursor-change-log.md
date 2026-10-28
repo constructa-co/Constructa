@@ -1,5 +1,11 @@
 # Cursor change log
 
+## 2026-10-28 — ROB0015 Phase 1A (Cursor integration)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| 4 dashboard A115 + 8 server A055/A063 | Reviewed deltas **31fbf** + **559d2186** | Conditional **A114/A115 Complete**; OFF seam Partial |
+
 ## 2026-10-28 — ROB2325 A055 OFF-seam server (Cursor integration)
 
 | File | Change | Intent |

@@ -5,6 +5,10 @@
  * programme or proposal wording is seeded from any template: the payload for
  * the atomic `create_phase1_project_graph` RPC is built here so that promise
  * can be tested without a database.
+ *
+ * One exception is made by the database, not this payload (A069): the
+ * redefined function copies the owner's own saved managing director's message
+ * as a NEW job's closing. The browser never sends closing wording.
  */
 
 import { z } from "zod";

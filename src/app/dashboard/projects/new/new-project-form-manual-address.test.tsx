@@ -2,7 +2,9 @@ import type { ComponentProps, FormEvent, ReactElement, ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MANUAL_ADDRESS_MAX_LENGTH } from "@/lib/manual-address";
+import JobAddressField from "@/components/job-address-field";
 import ManualAddressEntry from "@/components/manual-address-entry";
+import PostcodeAddressPicker from "@/components/postcode-address-picker";
 
 const MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE = "You have address parts that are not applied yet. Choose Use this address for each structured entry, or clear those parts, before creating the job.";
 
@@ -56,6 +58,12 @@ function mountTree(value: ReactNode): ReactNode {
     if (Array.isArray(value)) return value.map(mountTree);
     if (!value || typeof value !== "object" || !("props" in value)) return value;
     const node = value as ReactElement<{ children?: ReactNode }>;
+    if (node.type === JobAddressField) {
+        return mountTree(JobAddressField(node.props as ComponentProps<typeof JobAddressField>));
+    }
+    if (node.type === PostcodeAddressPicker) {
+        return mountTree(PostcodeAddressPicker(node.props as ComponentProps<typeof PostcodeAddressPicker>));
+    }
     if (node.type === ManualAddressEntry) {
         return mountTree(ManualAddressEntry(node.props as ComponentProps<typeof ManualAddressEntry>));
     }
@@ -67,6 +75,12 @@ function nodes(value: ReactNode): Node[] {
     if (Array.isArray(value)) return value.flatMap(nodes);
     if (!value || typeof value !== "object" || !("props" in value)) return [];
     const node = value as ReactElement<{ children?: ReactNode }>;
+    if (node.type === JobAddressField) {
+        return nodes(JobAddressField(node.props as ComponentProps<typeof JobAddressField>));
+    }
+    if (node.type === PostcodeAddressPicker) {
+        return nodes(PostcodeAddressPicker(node.props as ComponentProps<typeof PostcodeAddressPicker>));
+    }
     if (node.type === ManualAddressEntry) {
         return nodes(ManualAddressEntry(node.props as ComponentProps<typeof ManualAddressEntry>));
     }

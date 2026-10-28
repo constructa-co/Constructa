@@ -17,8 +17,9 @@ import {
 } from "@/lib/blank-project";
 import { MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE } from "@/lib/manual-address";
 import { createBlankProjectAction } from "./actions";
-import ManualAddressEntry from "@/components/manual-address-entry";
+import JobAddressField from "@/components/job-address-field";
 import NewJobFrame from "@/components/new-job-frame";
+import type { PostcodeLookupFn } from "@/lib/postcode-address";
 import ui from "@/components/new-job.module.css";
 
 type FieldErrors = Partial<Record<BlankProjectField, string>>;
@@ -27,9 +28,15 @@ interface Props {
     isFirstProject: boolean;
     /** Defaults to the real server action; replaced only by tests and evidence capture. */
     createProject?: (formData: FormData) => Promise<CreateBlankProjectResult>;
+    /** Synthetic QA only — live address search is not activated in production. */
+    postcodeLookup?: PostcodeLookupFn;
 }
 
-export default function NewProjectForm({ isFirstProject, createProject = createBlankProjectAction }: Props) {
+export default function NewProjectForm({
+    isFirstProject,
+    createProject = createBlankProjectAction,
+    postcodeLookup,
+}: Props) {
     const router = useRouter();
     const { theme } = useTheme();
     const isDark = theme === "dark";
@@ -239,52 +246,50 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
                                 </div>
                             </div>
 
-                            <div>
-                                <label htmlFor="new-project-siteAddress" className={labelCls}>Where is the job?</label>
-                                <textarea
-                                    {...field("siteAddress")}
-                                    value={form.siteAddress}
-                                    onChange={(e) => set("siteAddress", e.target.value)}
-                                    rows={2}
-                                    maxLength={500}
-                                    placeholder="Site address and postcode"
-                                    className={`${textareaCls} mt-1.5`}
-                                />
-                                {fieldError("siteAddress")}
-                                <ManualAddressEntry
-                                    idPrefix="new-project-site-manual"
-                                    disabled={creating}
-                                    onApply={(preview) => set("siteAddress", preview)}
-                                    onPendingChange={(pending) => setStructuredAddressDraft("site", pending)}
-                                    isDark={isDark}
-                                    labelCls={labelCls}
-                                    inputCls={inputCls}
-                                    muted={muted}
-                                />
-                            </div>
+                            <JobAddressField
+                                idPrefix="new-project-site"
+                                textareaId="new-project-siteAddress"
+                                label="Where is the job?"
+                                placeholder="Site address (type, pick from search, or use structured parts)"
+                                disabled={creating}
+                                value={form.siteAddress}
+                                onChange={(value) => set("siteAddress", value)}
+                                onStructuredPendingChange={(pending) => setStructuredAddressDraft("site", pending)}
+                                lookup={postcodeLookup}
+                                isDark={isDark}
+                                labelCls={labelCls}
+                                inputCls={inputCls}
+                                textareaCls={textareaCls}
+                                muted={muted}
+                                showUnusualSiteFallback
+                                fieldError={fieldError("siteAddress")}
+                                textareaAria={{
+                                    "aria-invalid": field("siteAddress")["aria-invalid"],
+                                    "aria-describedby": field("siteAddress")["aria-describedby"],
+                                }}
+                            />
 
-                            <div>
-                                <label htmlFor="new-project-clientAddress" className={labelCls}>Client&apos;s address, if different</label>
-                                <textarea
-                                    {...field("clientAddress")}
-                                    value={form.clientAddress}
-                                    onChange={(e) => set("clientAddress", e.target.value)}
-                                    rows={2}
-                                    maxLength={500}
-                                    className={`${textareaCls} mt-1.5`}
-                                />
-                                {fieldError("clientAddress")}
-                                <ManualAddressEntry
-                                    idPrefix="new-project-client-manual"
-                                    disabled={creating}
-                                    onApply={(preview) => set("clientAddress", preview)}
-                                    onPendingChange={(pending) => setStructuredAddressDraft("client", pending)}
-                                    isDark={isDark}
-                                    labelCls={labelCls}
-                                    inputCls={inputCls}
-                                    muted={muted}
-                                />
-                            </div>
+                            <JobAddressField
+                                idPrefix="new-project-client"
+                                textareaId="new-project-clientAddress"
+                                label="Client&apos;s address, if different"
+                                placeholder="Client billing or correspondence address"
+                                disabled={creating}
+                                value={form.clientAddress}
+                                onChange={(value) => set("clientAddress", value)}
+                                onStructuredPendingChange={(pending) => setStructuredAddressDraft("client", pending)}
+                                lookup={postcodeLookup}
+                                isDark={isDark}
+                                labelCls={labelCls}
+                                inputCls={inputCls}
+                                textareaCls={textareaCls}
+                                muted={muted}
+                                fieldError={fieldError("clientAddress")}
+                                textareaAria={{
+                                    "aria-invalid": field("clientAddress")["aria-invalid"],
+                                    "aria-describedby": field("clientAddress")["aria-describedby"],
+                                }}
+                            />
 
                             <div>
                                 <label htmlFor="new-project-projectType" className={labelCls}>Type of job</label>

@@ -9,6 +9,7 @@ import { SETTINGS_LEAVE_WARNING, settingsFormSignature } from "./form-state";
 import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import ManualAddressEntry from "@/components/manual-address-entry";
+import PostcodeAddressPicker from "@/components/postcode-address-picker";
 
 // --- Inline UI Components ---
 function Card({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -311,6 +312,14 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                         </div>
                         <div className="space-y-1.5">
                             <Label htmlFor="client_address">Client Address</Label>
+                            <PostcodeAddressPicker
+                                idPrefix="settings-client-picker"
+                                disabled={!!lockReason || isPending}
+                                onSelect={(preview) => applyAddressField("client_address", preview)}
+                                isDark={isDark}
+                                inputCls={inputCls}
+                                muted={muted}
+                            />
                             <Textarea
                                 id="client_address"
                                 name="client_address"
@@ -331,6 +340,25 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                         </div>
                         <div className="space-y-1.5">
                             <Label htmlFor="site_address">Site Address (if different)</Label>
+                            <PostcodeAddressPicker
+                                idPrefix="settings-site-picker"
+                                disabled={!!lockReason || isPending}
+                                onSelect={(preview) => applyAddressField("site_address", preview)}
+                                isDark={isDark}
+                                inputCls={inputCls}
+                                muted={muted}
+                            />
+                            <details
+                                className={`rounded-lg border px-3 py-2 ${isDark ? "border-slate-600" : "border-slate-200"}`}
+                                data-unusual-site-fallback="settings-site"
+                            >
+                                <summary className={`cursor-pointer text-sm font-semibold ${isDark ? "text-slate-200" : "text-slate-800"}`}>
+                                    Unusual site (no normal postal address)
+                                </summary>
+                                <p className={`mt-2 text-sm ${muted}`}>
+                                    Describe the works location in the site box below. Client billing address is kept separate.
+                                </p>
+                            </details>
                             <Textarea
                                 id="site_address"
                                 name="site_address"

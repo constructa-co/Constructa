@@ -89,6 +89,16 @@
   register validation); **703da744** draft-PR E2E guard (2 files). **A091 Partial**.
 - Counts **69C / 29P / 19N / 1B**. Receipt `checkpoint1545-closures-guard-integrated-source-backup-20261028.json`.
 
+## CHECKPOINT1605 A041 closure + legacy write hold — 28 October 2026
+
+- Parent **`14f78f8`**: **A041** Partial→**Complete** (original custom types + eight shared
+  examples on create/settings/proposal display; product pin **549583f** unchanged on tree).
+  Integrate **ed7aff353** legacy hosted Phase 1 write hold only (four paths: guard module,
+  tests, `playwright.config.ts`, `global-setup.ts`). **703** draft-PR guard and excluded
+  review heads unchanged. **A091 Partial** (source safety only, not hosted acceptance).
+- Focused **4/4** legacy guard vitest; no A041 runtime reruns. Counts **70C / 28P / 19N / 1B**.
+  Receipt `checkpoint1605-a041-legacy-guard-integrated-source-backup-20261028.json`.
+
 ## Earlier Changelog Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

@@ -121,3 +121,13 @@ Focused checks on integrated bytes; fresh guarded build and backup in private
 Integrate guard pin **`703da744`** only: `.github/workflows/e2e.yml` + `review-branch-ci.test.ts`
 (draft PR NOT_RUN / phase1 blocked until ready). **A091 Partial** unchanged. Receipt
 `checkpoint1545-closures-guard-integrated-source-backup-20261028.json`.
+
+## CHECKPOINT1605 A041 + legacy guard — 28 October 2026
+
+**Parent `14f78f8`:** **A041** original-scope **Complete** (free-text types, eight optional
+datalist examples, create graph **Other** for blank create; settings null→Extension display
+legacy documented). No product code change for A041 on this commit. **ed7aff353** four-file
+legacy harness hold: default `playwright.config.ts` / global setup refuse **NOT_RUN** before
+env or auth fetch when write hold is literal true (Ready/manual dispatch class gap). **703**
+draft guard preserved. **A091 Partial**. Register **70C 28P 19N 1B**. Private grade/validation
+and receipt `checkpoint1605-a041-legacy-guard-integrated-source-backup-20261028.json`.

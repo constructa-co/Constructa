@@ -2,7 +2,8 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { budgetInspector } from "./backend";
 import { assertBriefAiPrerequisites, readBriefAiMode } from "./brief-ai-mode";
-import { APPROVED_DISPOSABLE_PROJECT, E2EConfigurationError, readE2EEnv } from "./env";
+import { APPROVED_DISPOSABLE_PROJECT, E2EConfigurationError } from "./env";
+import { readLegacyHostedPhase1Env } from "./legacy-hosted-phase1-guard";
 
 const SUPABASE_HOST = /\b([a-z0-9]{20})\.supabase\.co\b/g;
 
@@ -26,7 +27,7 @@ function supabaseRefsInBuild(dir: string, found = new Set<string>()): Set<string
  * project stops the run before a single write.
  */
 export default async function globalSetup() {
-    const env = readE2EEnv();
+    const env = readLegacyHostedPhase1Env();
     const approved = APPROVED_DISPOSABLE_PROJECT.ref;
 
     const refs = [...supabaseRefsInBuild(path.resolve(".next"))];

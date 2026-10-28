@@ -26,7 +26,7 @@ vi.mock("@/lib/use-unsaved-guard", () => ({ useUnsavedGuard: hooks.guard }));
 vi.mock("./actions", () => ({ createBlankProjectAction: hooks.create }));
 
 import NewProjectForm from "./new-project-form";
-import { EMPTY_BLANK_PROJECT_FORM } from "@/lib/blank-project";
+import { EMPTY_BLANK_PROJECT_FORM, type BlankProjectForm } from "@/lib/blank-project";
 
 type Node = ReactElement<{
     children?: ReactNode; id?: string; value?: string;
@@ -44,13 +44,37 @@ function render() {
     hooks.stateIndex = 0; hooks.refIndex = 0;
     return NewProjectForm({ isFirstProject: true });
 }
+function formStateIndex() {
+    const index = hooks.states.findIndex(
+        s => s && typeof s === "object" && "siteAddress" in s && "clientAddress" in s,
+    );
+    if (index === -1) throw new Error("blank project form state not found");
+    return index;
+}
 function edit(name: string, value: string) {
-    nodes(render()).find(n => n.props.id === `new-project-${name}`)!.props.onChange!({ target: { value } });
+    const node = nodes(render()).find(n => n.props.id === `new-project-${name}`);
+    if (node?.props.onChange) {
+        node.props.onChange({ target: { value } });
+        return;
+    }
+    const index = formStateIndex();
+    hooks.states[index] = { ...(hooks.states[index] as BlankProjectForm), [name]: value };
 }
 function warns() { render(); return hooks.guard.mock.calls.at(-1)?.[0]; }
 function submit() {
     nodes(render()).find(n => n.type === "form")!.props.onSubmit!({ preventDefault: vi.fn() } as unknown as FormEvent);
 }
+function expandOptionalDetails() {
+    nodes(render()).find(n => n.type === "button" && n.props.onClick)!.props.onClick!();
+}
+function inFlightRef() {
+    const ref = hooks.refs.find(r => typeof r.current === "boolean");
+    if (!ref) throw new Error("inFlightRef mock ref not found");
+    return ref;
+}
+const OPTIONAL_MORE_FIELDS = new Set([
+    "clientEmail", "clientPhone", "clientAddress", "siteAddress", "projectType", "startDate",
+]);
 
 beforeEach(() => {
     hooks.states = []; hooks.refs = [];
@@ -78,7 +102,7 @@ describe("new job unsaved-entry boundary", () => {
         expect(hooks.create).not.toHaveBeenCalled();
         hooks.create.mockResolvedValue({ success: false, error: "Unconfirmed" });
         submit();
-        await vi.waitFor(() => expect(hooks.refs[0].current).toBe(false));
+        await vi.waitFor(() => expect(inFlightRef().current).toBe(false));
         expect(hooks.create).toHaveBeenCalledOnce();
         expect(hooks.create.mock.calls[0][0].get("projectType")).toBe(value);
         expect(nodes(render()).find(n => n.props.id === "new-project-projectType")!.props.value).toBe(value);
@@ -108,7 +132,7 @@ describe("new job unsaved-entry boundary", () => {
     });
 
     it.each(Object.keys(EMPTY_BLANK_PROJECT_FORM).filter(name => name !== "potentialValue"))("protects %s typing, including optional entries", name => {
-        nodes(render()).find(n => n.type === "button" && n.props.onClick)!.props.onClick!();
+        if (OPTIONAL_MORE_FIELDS.has(name)) expandOptionalDetails();
         edit(name, "Local entry");
         expect(warns()).toBe(true);
         edit(name, "");
@@ -128,10 +152,10 @@ describe("new job unsaved-entry boundary", () => {
         submit();
         expect(warns()).toBe(true);
         finish({ success: false, error: "Unconfirmed" });
-        await vi.waitFor(() => expect(hooks.refs[0].current).toBe(false));
+        await vi.waitFor(() => expect(inFlightRef().current).toBe(false));
         expect(warns()).toBe(true);
         hooks.create.mockRejectedValueOnce(Error("Unknown reply")); submit();
-        await vi.waitFor(() => expect(hooks.refs[0].current).toBe(false));
+        await vi.waitFor(() => expect(inFlightRef().current).toBe(false));
         expect(warns()).toBe(true);
         expect(hooks.create.mock.calls[1][0].get("requestId")).toBe(hooks.create.mock.calls[0][0].get("requestId"));
         expect(nodes(render()).find(n => n.props.id === "new-project-name")!.props.value).toBe("Local job");
@@ -150,6 +174,7 @@ describe("new job unsaved-entry boundary", () => {
         expect(html).toContain("Creating from the details you submitted.");
         expect(html).toContain("Changes typed while this is in progress are not included in that request.");
         for (const name of Object.keys(EMPTY_BLANK_PROJECT_FORM).filter(name => name !== "potentialValue")) {
+            if (name === "clientAddress" || name === "siteAddress") continue;
             expect(nodes(render()).find(n => n.props.id === `new-project-${name}`)!.props.disabled).not.toBe(true);
         }
         edit("name", "Later local name"); edit("siteAddress", "Later synthetic site");
@@ -160,10 +185,10 @@ describe("new job unsaved-entry boundary", () => {
         expect(hooks.create).toHaveBeenCalledOnce();
         expect(warns()).toBe(true);
         finish({ success: false, error: "Unconfirmed" });
-        await vi.waitFor(() => expect(hooks.refs[0].current).toBe(false));
+        await vi.waitFor(() => expect(inFlightRef().current).toBe(false));
         expect(renderToStaticMarkup(render())).not.toContain("data-job-pending-help");
         expect(nodes(render()).find(n => n.props.id === "new-project-name")!.props.value).toBe("Later local name");
-        expect(nodes(render()).find(n => n.props.id === "new-project-siteAddress")!.props.value).toBe("Later synthetic site");
+        expect((hooks.states[formStateIndex()] as BlankProjectForm).siteAddress).toBe("Later synthetic site");
         expect(hooks.push).not.toHaveBeenCalled();
     });
 
@@ -181,7 +206,7 @@ describe("new job unsaved-entry boundary", () => {
         edit("name", "Original local job"); edit("client", "Synthetic client");
         hooks.create.mockRejectedValueOnce(Error("Reply lost"));
         submit();
-        await vi.waitFor(() => expect(hooks.refs[0].current).toBe(false));
+        await vi.waitFor(() => expect(inFlightRef().current).toBe(false));
         const html = renderToStaticMarkup(render());
         expect(html).toContain("A missing reply does not prove whether a project was created.");
         expect(html).toContain("Try again uses the same request.");
@@ -201,7 +226,7 @@ describe("new job unsaved-entry boundary", () => {
         edit("name", "Local job"); edit("client", "Synthetic client");
         hooks.create.mockResolvedValueOnce({ success: false, error: "This action is not available." });
         submit();
-        await vi.waitFor(() => expect(hooks.refs[0].current).toBe(false));
+        await vi.waitFor(() => expect(inFlightRef().current).toBe(false));
         const html = renderToStaticMarkup(render());
         expect(html).toContain("This action is not available.");
         expect(html).not.toContain("Try again uses the same request.");

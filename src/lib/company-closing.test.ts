@@ -1,7 +1,23 @@
 import { describe, expect, it, vi } from "vitest";
 import { minimalInput } from "./__fixtures__/proposal";
 import { buildProposalDocument } from "./proposal-document";
-import { applyCompanyClosingMessage, buildPreviewSnapshot, draftFromProject, initialReviewState, isReviewDirty, reviewReducer, saveDraft, savedDraftFromProject, type ReviewAction, type ReviewContext } from "./proposal-review";
+import {
+    applyCompanyClosingMessage,
+    buildPreviewSnapshot,
+    buildProposalPayload,
+    draftFromProject,
+    initialReviewState,
+    isReviewDirty,
+    reviewReducer,
+    saveDraft,
+    savedDraftFromProject,
+    type ReviewAction,
+    type ReviewContext,
+} from "./proposal-review";
+
+/** A069 cannot auto-prefill on null closing: save normalizes blank to null (same as never-set). */
+export const A069_MISSING_DURABLE_PROVENANCE =
+    "closing_statement null does not record deliberate blank vs never-set; auto-seed from md_message is unsafe until durable provenance exists";
 
 const message = "We look forward to working with you.\n\nAlex, managing director";
 function setup(savedClosing: string | null = null) {
@@ -10,6 +26,12 @@ function setup(savedClosing: string | null = null) {
     const store = { getState: () => state, dispatch: (action: ReviewAction) => { state = reviewReducer(state, action); } };
     return { store, context };
 }
+function reopenReview(context: ReviewContext) {
+    const draft = draftFromProject(context.project, () => "key");
+    const saved = savedDraftFromProject(context.project, () => "key");
+    return initialReviewState(draft, saved);
+}
+
 describe("reviewed company message to closing draft", () => {
     it("does not populate or save on reading a profile or opening a proposal", () => {
         const { store } = setup(); expect(store.getState().draft.closing).toBe(""); expect(store.getState().saved.closing).toBe("");
@@ -69,5 +91,31 @@ describe("reviewed company message to closing draft", () => {
         expect(await saveDraft(store, save)).toBe("failed"); expect(store.getState().draft.closing).toBe(message);
         store.dispatch({ type: "draft/change", patch: { closing: "" } });
         expect(draftFromProject({ ...context.project, closing_statement: null }, () => "key").closing).toBe("");
+    });
+});
+
+describe("A069 normalized-null reopen (originalGap: missingDurableProvenance)", () => {
+    it("records that blank save payload normalizes to null on the project row", () => {
+        const blank = buildProposalPayload({ ...draftFromProject(minimalInput().project, () => "k"), closing: "  " });
+        expect(blank.ok && blank.payload.closing).toBe("");
+    });
+    it("does not auto-seed md_message when reopening after closing_statement is null with profile message present", () => {
+        const input = minimalInput();
+        const afterSave: ReviewContext = {
+            project: { ...input.project, closing_statement: null },
+            profile: { ...input.profile, md_message: message },
+            estimate: input.estimate,
+            nextVersion: 1,
+        };
+        const first = reopenReview(afterSave);
+        const second = reopenReview(afterSave);
+        expect(first.draft.closing).toBe("");
+        expect(first.saved.closing).toBe("");
+        expect(second.draft.closing).toBe("");
+        expect(applyCompanyClosingMessage(
+            { getState: () => first, dispatch: () => {} },
+            message,
+            true,
+        ).ok).toBe(true);
     });
 });

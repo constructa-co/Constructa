@@ -22,16 +22,17 @@ describe("compact setup work suggestion chrome (A007)", () => {
         expect(css).not.toMatch(/\.input\s*\{[^}]*font-size:\s*14px/);
     });
 
-    it("tightens only the phone setup frame around the unchanged choices (A008)", () => {
+    it("composes the phone journey step frame without retouching choice chips (A008)", () => {
         const css = readFileSync(new URL("../../components/first-session.module.css", import.meta.url), "utf8");
         const phone = css.slice(css.indexOf("@media (max-width: 650px)"), css.indexOf("/* Welcome-only layout"));
-        expect(phone).toMatch(/\.formSide:has\(\.setupForm\)\s*\{\s*padding-top:\s*22px;\s*padding-bottom:\s*22px;\s*\}/);
-        expect(phone).toMatch(/\.formSide \.setupForm\s*\{\s*margin-top:\s*18px;\s*\}/);
+        expect(phone).toMatch(/\.formSide:has\(\.journeyStepForm\)\s*\{\s*padding-top:\s*22px;\s*padding-bottom:\s*22px;\s*\}/);
+        expect(phone).toMatch(/\.formSide \.journeyStepForm\s*\{\s*margin-top:\s*18px;\s*\}/);
         expect(phone).toMatch(/\.setupForm \.heading\s*\{\s*font-size:\s*26px;/);
+        expect(phone).toMatch(/\.setupForm \.workSuggestions\s*\{[^}]*overflow-y:\s*auto/);
         // The choices themselves, and every horizontal padding, are left as they were.
-        expect(phone).not.toMatch(/setupForm[^{]*\.workSuggestion/);
+        expect(phone).not.toMatch(/\.setupForm \.workSuggestion\s*\{/);
         expect(phone).not.toMatch(/setupForm[^{]*\{[^}]*padding-(left|right)/);
         const client = readFileSync(new URL("./onboarding-client.tsx", import.meta.url), "utf8");
-        expect(client).toContain("className={`mt-8 ${ui.setupForm}`}");
+        expect(client).toMatch(/className=\{`\$\{ui\.journeyStepForm\} \$\{ui\.setupForm\}`\}/);
     });
 });

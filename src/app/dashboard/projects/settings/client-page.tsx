@@ -9,6 +9,7 @@ import { SETTINGS_LEAVE_WARNING, settingsFormSignature } from "./form-state";
 import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import ManualAddressEntry from "@/components/manual-address-entry";
+import PostcodeAddressPicker from "@/components/postcode-address-picker";
 import { coreFocusRing } from "@/lib/core-editing-palette";
 
 // --- Inline UI Components ---
@@ -59,7 +60,13 @@ function Select({ children, ...props }: React.SelectHTMLAttributes<HTMLSelectEle
 
 const PAYMENT_TERMS = ["14 days", "21 days", "28 days", "30 days", "Stage payments"];
 
-export default function ClientProjectSettings({ project }: { project: any }) {
+export default function ClientProjectSettings({
+    project,
+    jobTypeDatalistOptions = JOB_TYPE_EXAMPLES,
+}: {
+    project: any;
+    jobTypeDatalistOptions?: readonly string[];
+}) {
     const [isPending, startTransition] = useTransition();
     const [dirty, setDirty] = useState(false);
     const [feedback, setFeedback] = useState<"idle" | "saved" | "error">("idle");
@@ -233,7 +240,7 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                                     <Input id="project_type" name="project_type" type="text" list="settings-job-type-examples" defaultValue={project.project_type || "Extension"} />
                                 )}
                                 <datalist id="settings-job-type-examples">
-                                    {JOB_TYPE_EXAMPLES.map(t => <option key={t} value={t} />)}
+                                    {jobTypeDatalistOptions.map(t => <option key={t} value={t} />)}
                                 </datalist>
                                 <p className="text-sm text-slate-500">{/[\r\n]/.test(project.project_type || "")
                                     ? "This saved multi-line type is retained. Choose an example to replace it."
@@ -312,6 +319,14 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                         </div>
                         <div className="space-y-1.5">
                             <Label htmlFor="client_address">Client Address</Label>
+                            <PostcodeAddressPicker
+                                idPrefix="settings-client-picker"
+                                disabled={!!lockReason || isPending}
+                                onSelect={(preview) => applyAddressField("client_address", preview)}
+                                isDark={isDark}
+                                inputCls={inputCls}
+                                muted={muted}
+                            />
                             <Textarea
                                 id="client_address"
                                 name="client_address"
@@ -332,6 +347,25 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                         </div>
                         <div className="space-y-1.5">
                             <Label htmlFor="site_address">Site Address (if different)</Label>
+                            <PostcodeAddressPicker
+                                idPrefix="settings-site-picker"
+                                disabled={!!lockReason || isPending}
+                                onSelect={(preview) => applyAddressField("site_address", preview)}
+                                isDark={isDark}
+                                inputCls={inputCls}
+                                muted={muted}
+                            />
+                            <details
+                                className={`rounded-lg border px-3 py-2 ${isDark ? "border-slate-600" : "border-slate-200"}`}
+                                data-unusual-site-fallback="settings-site"
+                            >
+                                <summary className={`cursor-pointer text-sm font-semibold ${isDark ? "text-slate-200" : "text-slate-800"}`}>
+                                    Unusual site (no normal postal address)
+                                </summary>
+                                <p className={`mt-2 text-sm ${muted}`}>
+                                    Describe the works location in the site box below. Client billing address is kept separate.
+                                </p>
+                            </details>
                             <Textarea
                                 id="site_address"
                                 name="site_address"

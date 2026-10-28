@@ -174,7 +174,11 @@ export default function LoginPage() {
                         <button type="button" disabled={loading} aria-pressed={isSignUp} onClick={() => switchMode("signup")}>Get started</button>
                         <button type="button" disabled={loading} aria-pressed={!isSignUp} onClick={() => switchMode("signin")}>Sign in</button>
                     </div>
-                    <form onSubmit={isSignUp ? handleSignUp : handleSignIn} aria-busy={loading}>
+                    <form
+                        onSubmit={isSignUp ? handleSignUp : handleSignIn}
+                        className={isSignUp ? ui.journeyStepForm : undefined}
+                        aria-busy={loading}
+                    >
                         <div className={ui.field}>
                             <label htmlFor="email" className={ui.label}>Email address</label>
                             <input

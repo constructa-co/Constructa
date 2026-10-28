@@ -72,6 +72,16 @@ describe("company closing source on the real proposal parent", () => {
         view(context(null)); expect(closing(context(null)).value).toBe("");
         view(context("", "Updated profile message")); expect(closing(context("", "Updated profile message")).value).toBe(""); expect(replay.save).not.toHaveBeenCalled();
     });
+    it("reopening after normalized-null saved blank does not silently refill from md_message", () => {
+        const normalizedNull = context(null, sourceText);
+        view(normalizedNull);
+        expect(closing(normalizedNull).value).toBe("");
+        replay.state = null;
+        view(normalizedNull);
+        expect(closing(normalizedNull).value).toBe("");
+        expect(button(normalizedNull).disabled).toBe(false);
+        expect(replay.save).not.toHaveBeenCalled();
+    });
     it("does not update an already-copied draft when the profile changes", () => {
         copy(); view(context(null, "A newer company message"));
         expect(closing(context(null, "A newer company message")).value).toBe(sourceText); expect(replay.save).not.toHaveBeenCalled();

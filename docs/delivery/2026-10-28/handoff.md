@@ -18,6 +18,20 @@ day28-first-green-source-backup-20261028.json in private verification. PR106
 Preview HOLD and signup OFF unchanged. No main, PR, deploy, keys, SQL or
 operator consent execution.
 
+## DAY28 Second Green Integration - 28 October 2026
+
+Five accepted Composer second-wave pins integrated as cumulative hunks onto first-green HEAD
+00dcaa5470ceaaeacecb596dfe6eed82b99440a1: running-total preview dock, postcode picker and
+job address field, explicit job-type datalist wiring, first-session step-frame CSS, and A069
+test-only closing prefill deltas. Palette and route-shell work from the first green block is
+preserved; production proposal-review paths were not replaced with transient 903 unsafe history.
+
+Focused verification on combined bytes: retained pin suites plus one new/settings seam pass
+(43/43 new-job folder after honest unsaved-entry fixture repair). No full suite, hosted signup,
+or first-green check rerun. Fresh Node24 guarded build and non-force backup receipts live in
+private `day28-second-green-source-backup-20261028.json`. Five integrated actions stay Partial;
+no new Complete rows.
+
 ## Earlier Handoff Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

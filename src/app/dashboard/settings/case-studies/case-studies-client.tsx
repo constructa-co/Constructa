@@ -10,6 +10,7 @@ import { pendingFrom, sectionState, settle, type PendingCaseStudySuggestion } fr
 import { uploadProfileImageAction } from "@/app/storage/actions";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { SAVE_MESSAGES, initialSaveState, needsLeaveWarning, requestOf, saveReducer, statusLine, type SaveAction, type SaveCaseStudiesResult, type SaveState } from "./save-state";
+import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
 
 type Enhance = (whatWeDelivered: string, valueAdded: string, projectName: string, projectType: string) => Promise<CaseStudyResult>;
 type Save = (caseStudies: unknown) => Promise<SaveCaseStudiesResult>;
@@ -138,6 +139,9 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
             const index = event.target.closest<HTMLElement>("[data-work-index]")?.dataset.workIndex;
             focusedCard.current = index === undefined ? null : Number(index);
         }}>
+            <datalist id="case-study-job-type-examples">
+                {JOB_TYPE_EXAMPLES.map(type => <option key={type} value={type} />)}
+            </datalist>
             {caseStudies.length === 0 && (
                 <div className={ui.empty}>
                     <Briefcase className="w-10 h-10" aria-hidden />
@@ -308,7 +312,7 @@ function CaseStudyCard({
                         </div>
                         <div>
                             <label htmlFor={`${fieldId}-type`} className={labelCls}>Project Type</label>
-                            <input id={`${fieldId}-type`} className={inputCls} value={cs.projectType} onChange={e => onChange("projectType", e.target.value)} placeholder="e.g. Residential Extension" />
+                            <input id={`${fieldId}-type`} className={inputCls} list="case-study-job-type-examples" value={cs.projectType} onChange={e => onChange("projectType", e.target.value)} placeholder="Not sure yet" />
                         </div>
                         <div>
                             <label htmlFor={`${fieldId}-value`} className={labelCls}>Contract Value</label>

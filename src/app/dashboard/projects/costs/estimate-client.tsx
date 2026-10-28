@@ -26,6 +26,7 @@ import {
     removePriceLine,
     submitAdjustments,
     submitPriceLine,
+    previewSummaryWithOpenLineDrafts,
     summarisePrice,
     unitOptions,
     type AdjustmentKey,
@@ -138,6 +139,7 @@ export default function EstimateClient({
     const estimate = currentEstimate(state);
     const lines = useMemo(() => estimate?.estimate_lines ?? [], [estimate]);
     const summary = useMemo(() => summarisePrice(estimate, lines), [estimate, lines]);
+    const lineDraftPreview = useMemo(() => previewSummaryWithOpenLineDrafts(state), [state]);
     const newOp = state.ops[NEW_LINE_KEY];
     const [priceFind, setPriceFind] = useState<PriceFindState>(EMPTY_PRICE_FIND);
     const priceFindRef = useRef(EMPTY_PRICE_FIND);
@@ -745,6 +747,7 @@ export default function EstimateClient({
             {/* Running total. In the page flow, so it never sits over a row or a button. */}
             <TotalCard
                 summary={summary}
+                lineDraftPreview={lineDraftPreview}
                 estimate={estimate}
                 lines={lines}
                 state={state.adjustments}
@@ -798,11 +801,21 @@ export default function EstimateClient({
 
             <aside className={ui.totalDock} aria-label="Estimate total kept in view" data-running-total>
                 <details open data-running-total-disclosure>
-                    <summary className={ui.totalDockToggle}>Estimate total</summary>
+                    <summary className={ui.totalDockToggle}>
+                        Estimate total
+                        <strong className={ui.totalDockFoldedSum} data-in-view-contract-sum>{formatGBP(summary.contractSum)}</strong>
+                    </summary>
                     <div className={ui.totalDockValues} data-running-total-values>
-                        <span>Total before VAT</span>
+                        <span>Saved total before VAT</span>
                         <strong data-in-view-contract-sum>{formatGBP(summary.contractSum)}</strong>
-                        <p>May include changes not yet confirmed.</p>
+                        {lineDraftPreview ? (
+                            <p data-running-total-draft-preview>
+                                Not saved yet. With your open line edits, the total before VAT would be{" "}
+                                <strong data-in-view-draft-contract-sum>{formatGBP(lineDraftPreview.contractSum)}</strong>.
+                            </p>
+                        ) : (
+                            <p>May include changes not yet confirmed.</p>
+                        )}
                     </div>
                 </details>
             </aside>
@@ -1347,9 +1360,10 @@ function LineForm({
 const ADJUSTMENT_ORDER: AdjustmentKey[] = ["prelims", "overhead", "risk", "profit", "discount"];
 
 function TotalCard({
-    summary, estimate, lines, state, s, onToggle, onChange, onSave,
+    summary, lineDraftPreview, estimate, lines, state, s, onToggle, onChange, onSave,
 }: {
     summary: PriceSummary;
+    lineDraftPreview: PriceSummary | null;
     estimate: Estimate | null;
     lines: EstimateLine[];
     state: {
@@ -1386,9 +1400,18 @@ function TotalCard({
                     </div>
                 ))}
                 <div className={`${row} pt-2 border-t ${s.divider}`}>
-                    <dt className={`text-base font-bold ${s.heading}`}>Total before VAT</dt>
+                    <dt className={`text-base font-bold ${s.heading}`}>Saved total before VAT</dt>
                     <dd className={`text-xl font-bold ${s.heading}`} data-contract-sum>{formatGBP(summary.contractSum)}</dd>
                 </div>
+                {lineDraftPreview && (
+                    <div className={`${row} pt-1`} data-running-total-draft-preview>
+                        <dt className={`text-sm ${s.muted}`}>Not saved yet</dt>
+                        <dd className={`text-sm font-semibold ${s.body}`}>
+                            With your open line edits, the total before VAT would be{" "}
+                            <strong data-in-view-draft-contract-sum>{formatGBP(lineDraftPreview.contractSum)}</strong>.
+                        </dd>
+                    </div>
+                )}
                 <div className={row}>
                     <dt className={`text-sm ${s.muted}`}>VAT (20%)</dt>
                     <dd className={`text-sm ${s.muted}`}>{formatGBP(summary.vat)}</dd>

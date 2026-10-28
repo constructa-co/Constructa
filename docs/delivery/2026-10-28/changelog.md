@@ -15,6 +15,16 @@
   private day28-first-green-source-backup-20261028.json. A001/A005/A063 remain
   Partial pending parent original-grade criteria; no self-Complete.
 
+## DAY28 Second Green Integration - 28 October 2026
+
+- Integrate second-wave pins on parent `00dcaa5` (keeps A001/A005/A063): A054
+  `fb80a21`, A040 `aa7a32bc`, A041 `549583f`, A008 `852d9fcd`, A069 tests-only
+  `a3954b1`. Excluded A115/A024/A075/A038; no 903 proposal-review overwrite.
+- Merged A040+A041 into new job/settings with A001 palette preserved; adapted
+  `unsaved-entry.test.tsx` fixtures only (inFlight ref + JobAddressField tree).
+- Focused combined checks; receipt `day28-second-green-source-backup-20261028.json`.
+  Five actions Partial; counts 66C/32P/19N/1B unchanged.
+
 ## Earlier Changelog Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

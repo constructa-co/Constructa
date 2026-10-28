@@ -99,15 +99,13 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
 
     const getStatus = (p: any): string => (optimisticStatus.source === projects ? optimisticStatus.stages[p.id] : undefined) ?? p.status ?? "Lead";
 
-    const move = (projectId: string, newStatus: string) => {
+    const move = (projectId: string, newStatus: string, intent: "default" | "recordWin" = "default") => {
         if (moveInFlight.current) return;
         moveInFlight.current = true;
         setMoveNotice(null);
-        const priorStatus = projects.find(p => p.id === projectId)?.status ?? "Lead";
-        const fromStage = (optimisticStatus.source === projects ? optimisticStatus.stages[projectId] : undefined) ?? priorStatus;
-        // Baseline: any move to Active still uses the legacy Won write except
-        // Completed→Active reopen, which must not rewrite acceptance fields.
-        const useWonMutation = newStatus === "Active" && fromStage !== "Completed";
+        // A115: only the explicit Mark as Won control records acceptance; Active
+        // via stage picker or reopen is operational status only.
+        const useWonMutation = intent === "recordWin";
         setOptimisticStatus(prev => ({ source: projects, stages: { ...(prev.source === projects ? prev.stages : {}), [projectId]: newStatus } }));
         const restore = () => setOptimisticStatus(prev => {
             const stages = { ...prev.stages };
@@ -266,7 +264,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                             {status === "Proposal Sent" ? (
                                                 // Mark as Won — special emerald treatment
                                                 <button
-                                                    onClick={() => move(p.id, "Active")}
+                                                    onClick={() => move(p.id, "Active", "recordWin")}
                                                     disabled={isPending}
                                                     className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
                                                         isDark

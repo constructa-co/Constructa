@@ -88,12 +88,19 @@ describe("actual pipeline move handler", () => {
         expect(current.ordinary).toHaveBeenCalledExactlyOnceWith("job", "Active");
         expect(current.won).not.toHaveBeenCalled();
     });
-    it("keeps the baseline Active mutation for other stage picks (policy not re-approved here)", async () => {
+    it("A115: stage picker Active is operational only and does not record a win", async () => {
         projects = [{ ...project, status: "Estimating" }];
         chooseStage("Active");
         await settle();
-        expect(current.won).toHaveBeenCalledExactlyOnceWith("job");
-        expect(current.ordinary).not.toHaveBeenCalled();
+        expect(current.ordinary).toHaveBeenCalledExactlyOnceWith("job", "Active");
+        expect(current.won).not.toHaveBeenCalled();
+    });
+    it("A115: Proposal Sent dropdown to Active is operational only, not Mark as Won", async () => {
+        projects = [{ ...project, status: "Proposal Sent" }];
+        chooseStage("Active");
+        await settle();
+        expect(current.ordinary).toHaveBeenCalledExactlyOnceWith("job", "Active");
+        expect(current.won).not.toHaveBeenCalled();
     });
     it("preserves a confirmed move but gives a warning if refresh fails", async () => {
         current.refresh.mockImplementation(() => { throw Error("refresh failure"); });

@@ -58,7 +58,13 @@ function Select({ children, ...props }: React.SelectHTMLAttributes<HTMLSelectEle
 
 const PAYMENT_TERMS = ["14 days", "21 days", "28 days", "30 days", "Stage payments"];
 
-export default function ClientProjectSettings({ project }: { project: any }) {
+export default function ClientProjectSettings({
+    project,
+    jobTypeDatalistOptions = JOB_TYPE_EXAMPLES,
+}: {
+    project: any;
+    jobTypeDatalistOptions?: readonly string[];
+}) {
     const [isPending, startTransition] = useTransition();
     const [dirty, setDirty] = useState(false);
     const [feedback, setFeedback] = useState<"idle" | "saved" | "error">("idle");
@@ -232,7 +238,7 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                                     <Input id="project_type" name="project_type" type="text" list="settings-job-type-examples" defaultValue={project.project_type || "Extension"} />
                                 )}
                                 <datalist id="settings-job-type-examples">
-                                    {JOB_TYPE_EXAMPLES.map(t => <option key={t} value={t} />)}
+                                    {jobTypeDatalistOptions.map(t => <option key={t} value={t} />)}
                                 </datalist>
                                 <p className="text-sm text-slate-500">{/[\r\n]/.test(project.project_type || "")
                                     ? "This saved multi-line type is retained. Choose an example to replace it."

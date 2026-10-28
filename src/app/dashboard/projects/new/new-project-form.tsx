@@ -25,11 +25,13 @@ type FieldErrors = Partial<Record<BlankProjectField, string>>;
 
 interface Props {
     isFirstProject: boolean;
+    /** Explicit-history + text-matched standard examples; defaults to the eight static suggestions. */
+    jobTypeDatalistOptions?: readonly string[];
     /** Defaults to the real server action; replaced only by tests and evidence capture. */
     createProject?: (formData: FormData) => Promise<CreateBlankProjectResult>;
 }
 
-export default function NewProjectForm({ isFirstProject, createProject = createBlankProjectAction }: Props) {
+export default function NewProjectForm({ isFirstProject, jobTypeDatalistOptions = PROJECT_TYPE_OPTIONS, createProject = createBlankProjectAction }: Props) {
     const router = useRouter();
     const { theme } = useTheme();
     const isDark = theme === "dark";
@@ -298,7 +300,7 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
                                     className={`${inputCls} mt-1.5`}
                                 />
                                 <datalist id="new-project-type-examples">
-                                    {PROJECT_TYPE_OPTIONS.map((type) => (
+                                    {jobTypeDatalistOptions.map((type) => (
                                         <option key={type} value={type} />
                                     ))}
                                 </datalist>

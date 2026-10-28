@@ -280,8 +280,7 @@ export default function EstimateClient({
     const refuseDraftPreview =
         hasUnconfirmedLineChanges ||
         Object.values(activityWork).includes("uncertain") ||
-        (state.advancedOpen &&
-            Object.values(resourceSaveStates).some((status) => status === "saving" || status === "uncertain"));
+        Object.values(resourceSaveStates).some((status) => status === "saving" || status === "uncertain");
     const draftPreview = useMemo(
         () =>
             previewRunningTotal(state, {

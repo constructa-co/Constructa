@@ -71,8 +71,11 @@ describe("Terms in the client's web document", () => {
 
     it("applies the change to term wording only, leaving the other sections as they were", () => {
         const { snapshot, html } = render();
-        const kept = html.match(/whitespace-pre-wrap/g) ?? [];
-        expect(kept).toHaveLength(snapshot.terms.clauses.length);
+        const rendered = clauses(html);
+        expect(rendered).toHaveLength(snapshot.terms.clauses.length);
+        for (const clause of rendered) {
+            expect(clause.cls.split(" ")).toContain("whitespace-pre-wrap");
+        }
     });
 
     it("leaves the existing standard terms reading the same", () => {

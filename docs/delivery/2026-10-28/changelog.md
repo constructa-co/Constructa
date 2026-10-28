@@ -73,6 +73,16 @@
   Affected **543** / **2 base failures** retained from Claude evidence; not rerun.
 - Receipt `checkpoint1450-a114-integrated-source-backup-20261028.json`.
 
+## CHECKPOINT1530 Pair Green Integration - 28 October 2026
+
+- Parent **`1c02580`**: integrate **3714852** two proposal CI test extractions (scope
+  `whitespace-pre-wrap` to `<ol data-doc-terms>` clause bodies; **12/4** counts and
+  original assertions retained) and **48ade269** A054 fence (refuse draft preview when
+  resource save is saving/uncertain after Advanced close — one line in `estimate-client.tsx`).
+- Focused **16/16** proposal tests + **46/46** in three files including one new inline-price
+  case; **543** affected suite **not** rerun. **A054** and **A091** Partial unchanged.
+- Receipt `checkpoint1530-pair-integrated-source-backup-20261028.json`.
+
 ## Earlier Changelog Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

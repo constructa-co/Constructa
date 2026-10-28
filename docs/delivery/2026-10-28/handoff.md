@@ -103,3 +103,13 @@ Focused **26/26** on integrated bytes; eslint clean (one pre-existing unused war
 Fresh ROOT guarded build + non-force backup: private
 `checkpoint1450-a114-integrated-source-backup-20261028.json`. **A114 Partial** only;
 66C/32P/19N/1B unchanged. No 543-suite rerun; two known affected base failures retained.
+
+## CHECKPOINT1530 Pair Green Integration - 28 October 2026
+
+Two scoped source returns on parent **`1c02580`**: Perplexity **3714852** fixes proposal
+CI tests that counted global `whitespace-pre-wrap` (About facts inflated 17 vs 12); **48ade269**
+closes reachable A054 gap where uncertain non-line resource markers could still drive draft
+preview after Advanced close. Four product/test files only; no branch changelog merge.
+
+Focused checks on integrated bytes; fresh guarded build and backup in private
+`checkpoint1530-pair-integrated-source-backup-20261028.json`. A054/A091 stay Partial; counts unchanged.

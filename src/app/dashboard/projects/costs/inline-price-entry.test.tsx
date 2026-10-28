@@ -215,6 +215,28 @@ describe("expanded estimating table inline rate editing", () => {
         expect(JSON.stringify(warning?.props.children)).toContain("Displayed totals include unconfirmed line edits");
     });
 
+    it("withholds running-total draft preview after Advanced close while a non-line resource save stays uncertain", async () => {
+        current.other.mockResolvedValueOnce({ ok: true, data: { costLibrary: [], orgId: "org", rateBuildups: [], labourRates: [], preferredTrades: [] } });
+        const toggle = () => nodes(view()).find(node => node.props["aria-controls"] === "advanced-estimating")!;
+        (toggle().props.onClick as () => void)();
+        await Promise.resolve(); await Promise.resolve();
+        const panel = () => nodes(view()).find(node => node.props.onResourceSaveStateChanged)!;
+        const update = panel().props.onResourceSaveStateChanged as (id: string, state: string) => void;
+        update("apply:one", "uncertain");
+        (toggle().props.onClick as () => void)();
+        expect(current.state!.advancedOpen).toBe(false);
+        (toggle().props.onClick as () => void)();
+        await Promise.resolve(); await Promise.resolve();
+        expect(panel().props.resourceSaveStates).toEqual({ "apply:one": "uncertain" });
+        (toggle().props.onClick as () => void)();
+        expect(current.state!.advancedOpen).toBe(false);
+        current.dispatch({ type: "adjustments/change", patch: { overhead: "10", profit: "15" } });
+        const html = renderToStaticMarkup(view());
+        expect(html).not.toContain("data-in-view-draft-contract-sum");
+        expect(html).not.toContain("data-running-total-draft-preview");
+        expect(html).toContain("May include changes not yet confirmed.");
+    });
+
     it("keeps pending resource work open and retains uncertainty across Advanced close/reopen", async () => {
         current.other.mockResolvedValueOnce({ ok: true, data: { costLibrary: [], orgId: "org", rateBuildups: [], labourRates: [], preferredTrades: [] } });
         const toggle = () => nodes(view()).find(node => node.props["aria-controls"] === "advanced-estimating")!;

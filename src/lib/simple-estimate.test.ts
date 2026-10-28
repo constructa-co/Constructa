@@ -14,6 +14,7 @@ import {
     currentSummary,
     draftFromLine,
     draftLineTotal,
+    previewSummaryWithOpenLineDrafts,
     estimatingReducer,
     initialEstimatingState,
     isSimpleEditable,
@@ -200,6 +201,34 @@ describe("canonical totals", () => {
 
     it("is zero for a blank project", () => {
         expect(summarisePrice(null, [])).toMatchObject({ linesTotal: 0, contractSum: 0, vat: 0, totalIncVat: 0, adjustments: [] });
+    });
+});
+
+describe("previewSummaryWithOpenLineDrafts", () => {
+    const estimate = () => ({
+        id: "estimate", project_id: "job", version_name: "Estimate", is_active: true,
+        overhead_pct: 0, profit_pct: 0, risk_pct: 0, prelims_pct: 0, discount_pct: 0,
+        discount_reason: "", total_cost: 0,
+        estimate_lines: [line({ id: "one", line_total: 400, unit_rate: 40, quantity: 10 })],
+    });
+
+    it("returns null when no ops are open", () => {
+        const state = initialEstimatingState([estimate()], { pendingEstimateId: "pending" });
+        expect(previewSummaryWithOpenLineDrafts(state)).toBeNull();
+    });
+
+    it("previews a valid add draft without changing saved totals", () => {
+        let state = initialEstimatingState([estimate()], { pendingEstimateId: "pending" });
+        state = estimatingReducer(state, { type: "op/open", key: NEW_LINE_KEY, kind: "add", lineId: "new-line", draft: { ...EMPTY_PRICE_LINE_DRAFT, description: "Extra", amount: "100" } });
+        expect(currentSummary(state).contractSum).toBe(400);
+        expect(previewSummaryWithOpenLineDrafts(state)?.contractSum).toBe(500);
+    });
+
+    it("returns null while a save is in flight", () => {
+        let state = initialEstimatingState([estimate()], { pendingEstimateId: "pending" });
+        state = estimatingReducer(state, { type: "op/open", key: NEW_LINE_KEY, kind: "add", lineId: "new-line", draft: { ...EMPTY_PRICE_LINE_DRAFT, description: "Extra", amount: "100" } });
+        state = estimatingReducer(state, { type: "op/saving", key: NEW_LINE_KEY });
+        expect(previewSummaryWithOpenLineDrafts(state)).toBeNull();
     });
 });
 

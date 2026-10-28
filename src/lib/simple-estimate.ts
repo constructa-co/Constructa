@@ -373,6 +373,52 @@ export function currentSummary(state: EstimatingState): PriceSummary {
     return summarisePrice(estimate, estimate?.estimate_lines ?? []);
 }
 
+type LineTotalRow = Pick<EstimateLine, "trade_section" | "line_total"> & { id: string };
+
+/**
+ * If open simple line drafts all validate and none are in-flight, the contract
+ * sum after applying them on top of saved lines. Saved lines and totals are
+ * never mutated; null means do not show an unconfirmed preview.
+ */
+export function previewSummaryWithOpenLineDrafts(state: EstimatingState): PriceSummary | null {
+    if (state.advancedOpen) return null;
+    const estimate = currentEstimate(state);
+    if (!estimate) return null;
+
+    const ops = Object.values(state.ops);
+    if (ops.length === 0 || ops.some((op) => op.status === "saving")) return null;
+
+    let lines: LineTotalRow[] = estimate.estimate_lines.map((line) => ({
+        id: line.id,
+        trade_section: line.trade_section,
+        line_total: line.line_total,
+    }));
+
+    for (const op of ops) {
+        if (op.kind === "delete") {
+            lines = lines.filter((line) => line.id !== op.lineId);
+            continue;
+        }
+        const built = buildPriceLine(op.draft);
+        if (!built.ok) return null;
+        const line_total = lineTotal(built.line.quantity, built.line.unit_rate);
+        if (op.kind === "add") {
+            if (lines.some((line) => line.id === op.lineId)) {
+                lines = lines.map((line) => (line.id === op.lineId ? { ...line, line_total } : line));
+            } else {
+                lines.push({ id: op.lineId, trade_section: SIMPLE_LINE_SECTION, line_total });
+            }
+            continue;
+        }
+        if (!lines.some((line) => line.id === op.lineId)) return null;
+        lines = lines.map((line) => (line.id === op.lineId ? { ...line, line_total } : line));
+    }
+
+    const saved = summarisePrice(estimate, estimate.estimate_lines);
+    const preview = summarisePrice(estimate, lines);
+    return preview.contractSum === saved.contractSum ? null : preview;
+}
+
 export type EstimatingAction =
     | { type: "op/open"; key: string; kind: LineOp["kind"]; draft: PriceLineDraft; lineId: string }
     | { type: "op/change"; key: string; patch: Partial<PriceLineDraft> }

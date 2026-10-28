@@ -199,3 +199,9 @@
 - Parent **067e44a**: **31fbf420** four A115 paths + **559d2186** eight A055/A063 paths (12 total; SQL SOURCE NOT_APPLIED).
 - ROOT **98/98** focused modules; **A114+A115 Complete** original scope with explicit hosted/legal HELD; **A055/A063 Partial** OFF.
 - Receipt **`rob0015-phase1a-integrated-source-backup-20261029.json`**; counts **76C 22P 19N 1B**.
+
+## ROB0045 A069 blank-rule parity — 29 October 2026
+
+- Parent **778fcb1**: pin **a394caee** two paths (migration SOURCE NOT_APPLIED + **53/53** `new-job-closing.test.ts`).
+- Rejects **1438** unsupported regex; **A069 Partial** unchanged; counts **76C 22P 19N 1B**.
+- Receipt **`rob0045-a069-integrated-source-backup-20261029.json`**.

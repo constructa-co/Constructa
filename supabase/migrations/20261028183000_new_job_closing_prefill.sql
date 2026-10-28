@@ -141,12 +141,19 @@ BEGIN
     -- read here in the same transaction under the caller's RLS. A retry has
     -- already returned above, so an existing job is never changed. A blank or
     -- over-long message leaves the closing empty, as the explicit "Use company
-    -- message" choice does; nothing is shortened or reworded.
+    -- message" choice does (ECMAScript String.prototype.trim on the saved text,
+    -- not POSIX locale space classes); nothing is shortened or reworded.
+    -- Blank eligibility only (ECMAScript trim set, each code point enumerated):
+    -- U+0009,U+000A,U+000B,U+000C,U+000D,U+0020,U+00A0,U+1680,U+2000,U+2001,
+    -- U+2002,U+2003,U+2004,U+2005,U+2006,U+2007,U+2008,U+2009,U+200A,U+2028,
+    -- U+2029,U+202F,U+205F,U+3000,U+FEFF. U+200B and U+180E are not blank.
     SELECT p.md_message
       INTO v_closing
       FROM public.profiles p
      WHERE p.id = v_user_id;
-    IF v_closing IS NULL OR v_closing !~ '[^[:space:]]' OR length(v_closing) > 20000 THEN
+    IF v_closing IS NULL
+       OR v_closing !~ U&'[^\0009\000A\000B\000C\000D\0020\00A0\1680\2000\2001\2002\2003\2004\2005\2006\2007\2008\2009\200A\2028\2029\202F\205F\3000\FEFF]' UESCAPE '\'
+       OR length(v_closing) > 20000 THEN
         v_closing := NULL;
     ELSIF (SELECT pg_catalog.sum(CASE WHEN pg_catalog.ascii(chars.ch) > 65535 THEN 2 ELSE 1 END)
              FROM pg_catalog.regexp_split_to_table(v_closing, '') AS chars(ch)) > 20000 THEN

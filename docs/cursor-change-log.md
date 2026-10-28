@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-10-28 — ROB0045 A069 blank guard (Cursor integration)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `20261028183000_new_job_closing_prefill.sql` | U& 25-char ECMA trim class | Pin **a394caee**; NOT APPLIED |
+| `new-job-closing.test.ts` | **53** SOURCE parity cases | Actual SQL literal decode |
+
 ## 2026-10-28 — ROB0015 Phase 1A (Cursor integration)
 
 | Paths | Change | Intent |

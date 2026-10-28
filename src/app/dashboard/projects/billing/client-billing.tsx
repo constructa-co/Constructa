@@ -759,7 +759,7 @@ export default function ClientBilling({
                         </div>
 
                         <DialogFooter>
-                            <Button type="submit" disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold h-11">
+                            <Button type="submit" disabled={isPending} className={`w-full font-semibold h-11 disabled:opacity-70 disabled:cursor-not-allowed ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
                                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : `Post AFP — Net Due ${gbp(netDue)}`}
                             </Button>
                         </DialogFooter>
@@ -809,7 +809,7 @@ export default function ClientBilling({
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button type="submit" disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold h-11">
+                            <Button type="submit" disabled={isPending} className={`w-full font-semibold h-11 disabled:opacity-70 disabled:cursor-not-allowed ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
                                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add Milestone"}
                             </Button>
                         </DialogFooter>

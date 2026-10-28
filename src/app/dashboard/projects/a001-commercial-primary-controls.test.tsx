@@ -65,7 +65,7 @@ import ClientVariations from "./variations/client-variations";
 import FinalAccountClient from "./final-account/final-account-client";
 import { createAfpAction, createMilestoneAction } from "./billing/actions";
 import { createVariationAction } from "./variations/actions";
-import { createAdjustmentAction } from "./final-account/actions";
+import { createAdjustmentAction, upsertFinalAccountAction } from "./final-account/actions";
 
 type Element = ReactElement<Record<string, unknown>>;
 
@@ -138,6 +138,7 @@ beforeEach(() => {
     vi.mocked(createMilestoneAction).mockClear();
     vi.mocked(createVariationAction).mockClear();
     vi.mocked(createAdjustmentAction).mockClear();
+    vi.mocked(upsertFinalAccountAction).mockClear();
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -197,5 +198,34 @@ describe("A001 commercial workflow primary controls", () => {
         expect(className(addAdjToolbar)).toContain("border-slate-600");
         expect(className(addAdjToolbar)).not.toMatch(/\bbg-blue-600\b/);
         expect(els.some(e => className(e).includes("text-blue-400"))).toBe(true);
+    });
+});
+
+describe("A001 commercial dialog primary submits", () => {
+    it("billing: Post AFP and Add Milestone dialog submits use brand primary; actions not called without form submit", () => {
+        current.seed = new Map([[1, true]]);
+        let els = tree(<ClientBilling {...billingProps} /> as Element);
+        const postAfp = submitButton(els, /Post AFP/);
+        expectBrandPrimary(postAfp);
+        expect(postAfp.props.disabled).toBe(false);
+        expect(createAfpAction).not.toHaveBeenCalled();
+
+        current.cursor = 0;
+        current.slots = [];
+        current.seed = new Map([[6, true]]);
+        els = tree(<ClientBilling {...billingProps} /> as Element);
+        const addMs = submitButton(els, /^Add Milestone$/);
+        expectBrandPrimary(addMs);
+        expect(addMs.props.disabled).toBe(false);
+        expect(createMilestoneAction).not.toHaveBeenCalled();
+    });
+
+    it("final account: Save status dialog submit uses brand primary; upsert not called without submit", () => {
+        current.seed = new Map([[5, true]]);
+        const els = tree(<FinalAccountClient {...finalAccountProps} /> as Element);
+        const save = submitButton(els, /^Save$/);
+        expectBrandPrimary(save);
+        expect(save.props.disabled).toBe(false);
+        expect(upsertFinalAccountAction).not.toHaveBeenCalled();
     });
 });

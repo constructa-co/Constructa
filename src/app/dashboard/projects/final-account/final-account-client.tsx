@@ -507,7 +507,7 @@ export default function FinalAccountClient({
                         </>)}
 
                         <DialogFooter>
-                            <button type="submit" disabled={isPending} className="w-full h-11 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors">
+                            <button type="submit" disabled={isPending} className={`w-full h-11 font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-70 disabled:cursor-not-allowed ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
                                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
                             </button>
                         </DialogFooter>

@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-10-28 — CHECKPOINT1710 SW privacy (Claude 9be3182, Cursor integration)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `public/sw.js` | Network-only dynamic pages; v2 precache; v1 delete-only activate | Stop caching/replaying private HTML |
+| `src/app/offline/page.tsx` | Remove false “recently visited” promise | Honest offline UX |
+| `src/lib/service-worker.test.ts` | 11 VM tests loading real worker | Privacy boundaries without browser deploy |
+
 ## 2026-10-28 — CHECKPOINT1625 Brief path, CI fixtures, manifest checker (Composer integration)
 
 | File | Lines (approx.) | Change | Intent |

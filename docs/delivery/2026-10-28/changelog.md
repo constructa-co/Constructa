@@ -108,6 +108,13 @@
   and prior suites not rerun. Receipt
   `checkpoint1625-brief-fixtures-recovery-integrated-source-backup-20261028.json`.
 
+## CHECKPOINT1710 SW privacy (A091 cache) — 28 October 2026
+
+- Parent **`f44efb3`**: Claude **`9be3182`** three paths only (`public/sw.js`, honest offline copy,
+  `service-worker.test.ts`). No live worker/cache/customer-data actions. **A091 Partial**, **A093
+  Blocked** unchanged. ROOT **11/11** vitest; **1971** readbacks. Receipt
+  `checkpoint1710-sw-privacy-integrated-source-backup-20261028.json`.
+
 ## Earlier Changelog Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

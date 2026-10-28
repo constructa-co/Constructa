@@ -140,3 +140,11 @@ twelve CI fixture repairs + Composer **`20bb160`** manifest duplicate-ref SHA co
 **703** / legacy NOT_RUN / **1605** guards preserved. Register metadata only (A055/A063/A079/A091);
 **70C 28P 19N 1B** unchanged. Receipt
 `checkpoint1625-brief-fixtures-recovery-integrated-source-backup-20261028.json`.
+
+## CHECKPOINT1710 Service worker privacy — 28 October 2026
+
+**Parent `f44efb3`:** Claude **`9be3182`** confidential-cache source repair (3 files): no runtime
+`cache.put` for private navigations; anonymous **`constructa-static-v2`** precache only; delete
+**`constructa-v1`** on activate; offline copy honest. Independent review **run-c187f01f** — no P1.
+**NOT** deployed live SW/cache cleanup. **A091 Partial**, **A093 Blocked**, counts unchanged.
+Receipt `checkpoint1710-sw-privacy-integrated-source-backup-20261028.json`.

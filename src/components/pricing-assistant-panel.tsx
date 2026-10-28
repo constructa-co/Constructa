@@ -5,7 +5,7 @@ import { MAX_SCOPE_LENGTH } from "@/lib/guided-brief";
 import type { PricingAssistantSession } from "@/lib/pricing-assistant-session";
 import ui from "./estimating.module.css";
 
-export default function PricingAssistantPanel({ session, blocked }: { session: PricingAssistantSession; blocked: boolean }) {
+export default function PricingAssistantPanel({ session, blocked, blockedNote }: { session: PricingAssistantSession; blocked: boolean; blockedNote?: string }) {
     const state = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
     const id = useId();
     const pending = state.conversation.status === "pending";
@@ -37,7 +37,7 @@ export default function PricingAssistantPanel({ session, blocked }: { session: P
                             <textarea id={`${id}-message`} value={state.message} maxLength={MAX_SCOPE_LENGTH}
                                 disabled={blocked} aria-describedby={`${id}-help${blocked ? ` ${id}-blocked` : ""}`}
                                 onChange={event => session.setMessage(event.target.value)} rows={3} />
-                            {blocked && <p id={`${id}-blocked`}>Finish or cancel open estimating work first. Client BoQs use their existing workflow.</p>}
+                            {blocked && <p id={`${id}-blocked`}>{blockedNote ?? "Finish or cancel open estimating work first. Client BoQs use their existing workflow."}</p>}
                             <div className={ui.assistantActions}>
                                 <button type="submit" disabled={blocked || pending || !state.message.trim() || state.message.length > MAX_SCOPE_LENGTH}>
                                     {pending ? "Waiting for reply" : "Send message"}

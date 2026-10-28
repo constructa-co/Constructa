@@ -44,6 +44,14 @@ Focused file-level checks after integration; full suite not rerun where c6 PDF/b
 the reviewed parent. Guarded build and backup receipt:
 `resume1300-next-green-source-backup-20261028.json`. A075 and A115 stay Partial.
 
+## RESUME1300 A055 Green Integration - 28 October 2026
+
+Claude job-assistant request path integrated on `ebf6a81`: nineteen files at pin `f1c7a255` (Estimate +
+Programme UI to lazy Server Actions, server-rebuilt context, revision provenance). Activation factory
+still returns null; planning provider/model/budget and Won/privacy policy decisions remain held. Fifty
+focused tests pass on combined bytes; no 1768-suite rerun. Guarded build and backup receipt:
+`resume1300-a055-integrated-source-backup-20261028.json`.
+
 ## Earlier Handoff Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

@@ -70,6 +70,8 @@ import type { PricingExperienceSource } from "@/lib/pricing-experience";
 import type { PricingFullScopeSource } from "@/lib/pricing-full-scope";
 import type { PricingScopeNotesSource } from "@/lib/pricing-scope-notes";
 import { createPricingAssistantSession } from "@/lib/pricing-assistant-session";
+import { createPricingRequestGenerator } from "@/lib/job-assistant-client";
+import { pricingAssistantTurnAction } from "./assistant-actions";
 import type { PricingConversationGenerator } from "@/lib/pricing-conversation";
 import { buildPricingReviewContext, prepareReviewedPriceDraft, reviewPricingSuggestion, PRICING_REVIEW_OPEN, PRICING_REVIEW_STALE, type PendingPricingReview } from "@/lib/pricing-review";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
@@ -106,8 +108,10 @@ interface Props {
     /** Default to the real server actions; replaced only by tests and evidence capture. */
     server?: EstimatingServer;
     loadAdvancedData?: LoadAdvancedData;
-    /** No default transport. A future adapter needs separate server auth, budget and data approval. */
+    /** Test seam only. The page uses the real request path when the server says it is switched on. */
     pricingGenerator?: PricingConversationGenerator;
+    /** Set by the server from its approved activation point (A055). Off until a feature is approved. */
+    pricingAssistantEnabled?: boolean;
 }
 
 const REAL_SERVER: EstimatingServer = {
@@ -128,6 +132,7 @@ export default function EstimateClient({
     server = REAL_SERVER,
     loadAdvancedData = loadAdvancedEstimatingDataAction,
     pricingGenerator,
+    pricingAssistantEnabled = false,
 }: Props) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
@@ -268,7 +273,12 @@ export default function EstimateClient({
         { status: "idle", data: null, error: "" },
     );
 
-    // Local conversation/review only: no default provider or persistence.
+    // A055: the real request path. The server rebuilds the saved job and
+    // selected estimate, compares the fingerprint and chooses the generator.
+    const pricingTransport = useMemo(() => pricingGenerator ?? (pricingAssistantEnabled ? createPricingRequestGenerator(() => ({
+        project: { id: project.id, brief_scope: project.brief_scope }, estimate: currentEstimate(store.getState()),
+    }), pricingAssistantTurnAction) : undefined), [pricingGenerator, pricingAssistantEnabled, project.id, project.brief_scope, store]);
+    // Conversation and review stay in this page; nothing is stored or saved.
     const pricingAssistant = useMemo(() => createPricingAssistantSession(
         () => {
             const fresh = store.getState();
@@ -282,8 +292,8 @@ export default function EstimateClient({
             if (!draft.ok) return draft;
             store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: draft.value, lineId: newClientId() });
             return { ok: true };
-        }, pricingGenerator,
-    ), [project.id, project.brief_scope, store, pricingGenerator]);
+        }, pricingTransport,
+    ), [project.id, project.brief_scope, store, pricingTransport]);
     useEffect(() => () => pricingAssistant.detach(), [pricingAssistant]);
     useEffect(() => { pricingAssistant.refresh(); }, [pricingAssistant, state]);
 
@@ -577,7 +587,8 @@ export default function EstimateClient({
             {project.proposal_introduction !== undefined && <PricingOpeningEditor key={project.id} projectId={project.id} source={project.proposal_introduction}
                 lockReason={project.payment_lock_reason ?? null} styles={s} onWorkChange={openingWorkChanged} />}
 
-            <PricingAssistantPanel session={pricingAssistant} blocked={hasOpenWork || state.advancedOpen || !!estimate?.is_client_boq} />
+            <PricingAssistantPanel session={pricingAssistant} blocked={hasOpenWork || state.advancedOpen || !!estimate?.is_client_boq || !!project.payment_lock_reason}
+                blockedNote={project.payment_lock_reason ? `${project.payment_lock_reason} The pricing assistant is not available for this job.` : undefined} />
 
             {pricingContext.ok && <PriceWorkList data-price-work-list context={pricingContext.value} styles={s}
                 blocked={hasOpenEstimateWork(state) || state.advancedOpen || Object.keys(resourceSaveStates).length > 0 || paymentWork || scopeNotesWork || experienceWork || fullScopeWork || openingWork || activityBusy || pricingContext.value.clientBoQ}

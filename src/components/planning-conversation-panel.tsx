@@ -10,7 +10,7 @@ const TOPIC_LABEL: Record<PlanningTopic, string> = {
     "client-decision": "Client decision",
 };
 
-export default function PlanningConversationPanel({ session, blocked, s }: { session: PlanningConversation; blocked: boolean; s: WorkspaceStyles }) {
+export default function PlanningConversationPanel({ session, blocked, blockedNote, s }: { session: PlanningConversation; blocked: boolean; blockedNote?: string; s: WorkspaceStyles }) {
     const state = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
     const id = useId();
     const pending = state.status === "pending";
@@ -71,7 +71,7 @@ export default function PlanningConversationPanel({ session, blocked, s }: { ses
                             <textarea id={`${id}-message`} className={s.textarea} value={state.message} maxLength={PLANNING_MESSAGE_LIMIT} rows={3}
                                 disabled={blocked || pending} aria-describedby={`${id}-help${blocked ? ` ${id}-blocked` : ""}`}
                                 onChange={event => session.setMessage(event.target.value)} />
-                            {blocked && <p id={`${id}-blocked`} className={`text-sm ${s.muted}`}>Save or discard your programme changes first. The conversation only uses your saved programme.</p>}
+                            {blocked && <p id={`${id}-blocked`} className={`text-sm ${s.muted}`}>{blockedNote ?? "Save or discard your programme changes first. The conversation only uses your saved programme."}</p>}
                             <div className="flex flex-wrap gap-2">
                                 <button type="submit" className={s.primaryButton} disabled={blocked || pending || !state.message.trim() || state.message.length > PLANNING_MESSAGE_LIMIT}>
                                     {pending ? "Waiting for reply" : "Send message"}

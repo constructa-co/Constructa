@@ -19,6 +19,7 @@
  * amount of money. A timing nobody stated becomes an open question.
  */
 import { z } from "zod";
+import { AssistantTransportError } from "./assistant-transport";
 import { resolveJobWorkingPattern } from "./job-working-pattern";
 import { formatPlanDate, formatWorkingDuration } from "./programme-plan";
 import { readProgrammeInclusion } from "./programme-inclusion";
@@ -31,6 +32,7 @@ export const PLANNING_OPEN_WORK = "Save or discard your programme changes first.
 export const PLANNING_NO_CONTEXT = "Check this job's saved programme before discussing it. Nothing has been sent.";
 export const PLANNING_FAILED = "The assistant couldn't complete this reply. Nothing has been changed. You can try again.";
 export const PLANNING_NOT_USABLE = "The reply mentioned a stage, date, lead time or amount that this job and conversation don't contain, so it was dropped. Nothing has changed.";
+export const PLANNING_SERVER_CHANGED = "This job's saved programme no longer matches this page. Reload the page to discuss the current programme. Nothing has been changed.";
 export const PLANNING_CHANGED = "This job's saved programme changed, so the conversation started again. Nothing has been changed.";
 export const PLANNING_STOPPED = "Stopped waiting for a reply. Your programme is unchanged.";
 export const PLANNING_CLEARED = "Conversation cleared on this page. Your programme is unchanged.";
@@ -102,7 +104,8 @@ export type PlanningGenerator = (input: {
     signal: AbortSignal;
 }) => Promise<unknown>;
 
-const ReplySchema = z.strictObject({
+/** The reply shape; also used by the server to return only what it checked. */
+export const PlanningReplySchema = z.strictObject({
     message: z.string().trim().min(1).max(1500),
     questions: z.array(z.string().trim().min(1).max(300)).max(5).default([]),
     suggestions: z.array(z.strictObject({
@@ -128,7 +131,7 @@ export type ReviewedReply = { ok: true; value: Extract<PlanningMessage, { role: 
 
 /** Checks one reply against the job and the contractor's own words. */
 export function reviewPlanningReply(context: PlanningContext, userMessages: string[], raw: unknown): ReviewedReply {
-    const parsed = ReplySchema.safeParse(raw);
+    const parsed = PlanningReplySchema.safeParse(raw);
     if (!parsed.success) return { ok: false };
     const sources = norm([JSON.stringify(context), ...userMessages].join("\n"));
     const said = norm(userMessages.join("\n"));
@@ -238,7 +241,7 @@ export function createPlanningConversation(
         const reply = Promise.resolve().then(async () => {
             if (request.controller.signal.aborted) return { cancelled: true as const };
             try { return { value: await generate({ context: structuredClone(now.context), messages: transcript, signal: request.controller.signal }) }; }
-            catch { return { failed: true as const }; }
+            catch (error) { return error instanceof AssistantTransportError ? { transport: error } : { failed: true as const }; }
         });
         const result = await Promise.race([reply, cancelled]);
         if (mine !== token || active !== request || "cancelled" in result) return "cancelled";
@@ -246,6 +249,14 @@ export function createPlanningConversation(
         const after = current();
         if (!after || after.revision !== now.revision) { clear(PLANNING_CHANGED, true); publish(); return "stale"; }
         if (after.hasOpenWork) { status = "error"; error = PLANNING_OPEN_WORK; failed = submitted; publish(); return "blocked"; }
+        if ("transport" in result && result.transport) {
+            // A request adapter's answer: the server is off, its saved job differs, or it refused.
+            const reason = result.transport.status;
+            if (reason === "stale") { clear(PLANNING_SERVER_CHANGED, true); publish(); return "stale"; }
+            if (reason === "off") { status = "error"; error = PLANNING_OFF; publish(); return "off"; }
+            status = "error"; error = reason === "rejected" ? PLANNING_NOT_USABLE : PLANNING_FAILED; failed = submitted; publish();
+            return reason === "rejected" ? "rejected" : "failed";
+        }
         if ("failed" in result) { status = "error"; error = PLANNING_FAILED; failed = submitted; publish(); return "failed"; }
         const reviewed = reviewPlanningReply(now.context, sent.flatMap(item => item.role === "user" ? [item.content] : []), result.value);
         if (!reviewed.ok) { status = "error"; error = PLANNING_NOT_USABLE; failed = submitted; publish(); return "rejected"; }

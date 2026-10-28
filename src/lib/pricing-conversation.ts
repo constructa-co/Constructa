@@ -1,4 +1,5 @@
 import type { Estimate } from "@/app/dashboard/projects/costs/types";
+import { AssistantTransportError } from "./assistant-transport";
 import { MAX_SCOPE_LENGTH } from "./guided-brief";
 import {
     buildPricingReviewContext, pricingModelData, reviewPricingSuggestion,
@@ -7,9 +8,11 @@ import {
 
 export const PRICING_CONVERSATION_LIMIT = 12;
 export const PRICING_CONVERSATION_OFF = "The pricing assistant isn't switched on yet. You can continue pricing manually.";
+/** The server's saved job or estimate differs from this page (another tab, or a save not yet shown here). */
+export const PRICING_SERVER_STALE = "The saved job or estimate no longer matches this page. Reload the page to see the current work. Nothing has been changed.";
 const UNAVAILABLE = "The assistant couldn't complete this reply. Nothing has been changed. You can try again.";
 type Message = { role: "user" | "assistant"; content: string };
-type GenerationResult = { value: unknown } | { failed: true } | { cancelled: true };
+type GenerationResult = { value: unknown } | { failed: true } | { cancelled: true } | { transport: AssistantTransportError };
 export interface PricingConversationSnapshot {
     project: { id: string; brief_scope: string };
     estimate: Estimate | null;
@@ -114,7 +117,7 @@ export function createPricingConversation(
             try {
                 const value = await generate({ context: pricingModelData(snapshot.context), messages: messages.map(item => ({ ...item })), signal: request.controller.signal });
                 return { value };
-            } catch { return { failed: true }; }
+            } catch (error) { return error instanceof AssistantTransportError ? { transport: error } : { failed: true }; }
         });
         const result = await Promise.race([reply, cancelled]);
         if (active !== request || disposed || "cancelled" in result) return "cancelled";
@@ -124,6 +127,18 @@ export function createPricingConversation(
         if (now.hasOpenWork) {
             state = { ...state, status: "error", pending: null, error: PRICING_REVIEW_OPEN };
             return "stale";
+        }
+        if ("transport" in result) {
+            // A request adapter's answer: the server is off, its saved job differs, or it refused.
+            const { status, message } = result.transport;
+            if (status === "off") {
+                clear();
+                state = { ...state, status: "off", error: PRICING_CONVERSATION_OFF };
+                return "off";
+            }
+            if (status === "stale") { clear(PRICING_SERVER_STALE); return "stale"; }
+            state = { ...state, status: "error", pending: null, error: message || UNAVAILABLE };
+            return status === "rejected" || status === "invalid" ? "invalid" : "failed";
         }
         if ("failed" in result) {
             state = { ...state, status: "error", pending: null, error: UNAVAILABLE };

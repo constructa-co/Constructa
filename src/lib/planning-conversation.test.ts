@@ -256,7 +256,12 @@ describe("no hidden writes or reused authority", () => {
         const page = readFileSync(new URL("../app/dashboard/projects/schedule/page.tsx", import.meta.url), "utf8");
         const client = readFileSync(new URL("../app/dashboard/projects/schedule/simple-programme-client.tsx", import.meta.url), "utf8");
         expect(page).not.toContain("planningGenerator");
-        expect(client).toContain("createPlanningConversation(() => source, planningGenerator)");
+        // A055: the page passes only the server's availability; the real request
+        // path is used only when that is on, and a test generator only when injected.
+        expect(page).toContain("planningAssistantEnabled={jobAssistantAvailability().planning}");
+        expect(client).toContain("planningGenerator ?? (planningAssistantEnabled\n        ? createPlanningRequestGenerator(planningAssistantTurnAction) : undefined)");
+        expect(client).toContain("createPlanningConversation(() => source, planningTransport)");
+        expect(client).toMatch(/planningAssistantEnabled = false/);
         expect(client).not.toMatch(/planningGenerator\s*=/);
     });
 });

@@ -36,6 +36,15 @@
   (+2 new). No full PDF/pipeline suite rerun when pre-patch base matched tested parent.
 - Receipt `resume1300-next-green-source-backup-20261028.json`. A075/A115 remain Partial.
 
+## RESUME1300 A055 Green Integration - 28 October 2026
+
+- Parent `ebf6a81`: integrate Claude **A055** `f1c7a255` exact **19** product/test files vs `c6cd984`
+  (non-overlapping with A075 PDF / A115 board). Generators remain **null**; pages **off**; no provider,
+  model, budget, Brief panel, or Complete claim.
+- Focused **50/50** PASS on integrated bytes (3 files); eslint production subset clean. Fresh ROOT
+  guarded build + backup `resume1300-a055-integrated-source-backup-20261028.json`. **A055 Partial**
+  unchanged; 66C/32P/19N/1B unchanged.
+
 ## Earlier Changelog Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

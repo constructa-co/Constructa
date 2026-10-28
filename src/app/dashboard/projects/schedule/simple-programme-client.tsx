@@ -17,6 +17,8 @@ import ui from "@/components/programme.module.css";
 import { newClientId } from "@/lib/client-id";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
 import { createPlanningConversation, type PlanningGenerator } from "@/lib/planning-conversation";
+import { createPlanningRequestGenerator } from "@/lib/job-assistant-client";
+import { planningAssistantTurnAction } from "./assistant-actions";
 import { formatPlanDate, formatWorkingDuration, PROGRAMME_BASIS_NOTE } from "@/lib/programme-plan";
 import { hasRelativeProgramme, programmeBasisNote, RELATIVE_PROGRAMME_BASIS, RELATIVE_PROGRAMME_NOTE } from "@/lib/relative-programme";
 import { resolveJobWorkingPattern } from "@/lib/job-working-pattern";
@@ -78,11 +80,13 @@ interface Props {
     /** Defaults to the real server action; replaced only by tests and evidence capture. */
     save?: SaveProgramme;
     saveInclusion?: SaveProgrammeInclusion;
-    /** No default: the planning conversation stays off until an authorised server adapter is supplied. */
+    /** Test seam only. The page uses the real request path when the server says it is switched on. */
     planningGenerator?: PlanningGenerator;
+    /** Set by the server from its approved activation point (A055). Off until a feature is approved. */
+    planningAssistantEnabled?: boolean;
 }
 
-export default function SimpleProgrammeClient({ project: incomingProject, lockReason, estimate, save, saveInclusion, planningGenerator }: Props) {
+export default function SimpleProgrammeClient({ project: incomingProject, lockReason, estimate, save, saveInclusion, planningGenerator, planningAssistantEnabled = false }: Props) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
     const s = workspaceStyles(isDark);
@@ -116,12 +120,16 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
     // Discussion only, in this page's memory: it reads the saved project and
     // never writes. Unsaved or in-progress programme work blocks a new turn.
     const planningOpenWork = unsavedSimple || inclusionBusy || detailedOpen || refreshing;
+    // A055: the real request path. The server rebuilds the saved programme,
+    // compares the fingerprint and chooses the generator.
+    const planningTransport = useMemo(() => planningGenerator ?? (planningAssistantEnabled
+        ? createPlanningRequestGenerator(planningAssistantTurnAction) : undefined), [planningGenerator, planningAssistantEnabled]);
     const planning = useMemo(() => {
         const source = { project: incomingProject as ProgrammeProject, hasOpenWork: false };
-        return { source, session: createPlanningConversation(() => source, planningGenerator) };
+        return { source, session: createPlanningConversation(() => source, planningTransport) };
         // A different job remounts this page; the session is per job and generator.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [incomingProject.id, planningGenerator]);
+    }, [incomingProject.id, planningTransport]);
     useEffect(() => {
         Object.assign(planning.source, { project, hasOpenWork: planningOpenWork });
         planning.session.refresh();
@@ -282,7 +290,8 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
                         }} s={s}
                     />}
                     {!lockReason && inclusion.intent === "include" && detailedSection}
-                    {inclusion.intent !== "invalid" && <PlanningConversationPanel session={planning.session} blocked={planningOpenWork} s={s} />}
+                    {inclusion.intent !== "invalid" && <PlanningConversationPanel session={planning.session} blocked={planningOpenWork || !!lockReason}
+                        blockedNote={lockReason ? `${lockReason} The planning conversation is not available for this job.` : undefined} s={s} />}
                 </>
             )}
         </div>

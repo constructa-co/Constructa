@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeLibrary } from "./__fixtures__/fake-library";
-import { approvedValue, newDraft, type CaseStudyContent } from "./content";
+import { approvedValue, LEGACY_WIRE_CONTENT_KEYS, newDraft, type CaseStudyContent } from "./content";
 import { LIBRARY_MESSAGES as M } from "./messages";
 import { approveStudy, archiveDiscipline, archiveStudy, createStudy, loadForApproval, saveDiscipline, saveStudy, startFromOlder, type LibraryContext } from "./service";
 
@@ -61,10 +61,19 @@ describe("validation happens before anything privileged", () => {
     });
 
     it("unknown keys in what is sent are dropped, never stored", async () => {
-        const result = await createStudy(me, { content: { ...content("Job"), approved: true, user_id: OTHER, photos: ["https://elsewhere.example/x.jpg"] }, disciplineIds: [] });
+        const result = await createStudy(me, { content: { ...content("Job"), approved: true, user_id: OTHER }, disciplineIds: [] });
         expect(result.status).toBe("saved");
-        expect(Object.keys(stored(result.id!).draft).sort()).toEqual(Object.keys(newDraft("x")).sort());
+        const createCall = db.rpcCalls.find((call) => call.name === "case_study_create");
+        expect(Object.keys(createCall!.args.p_content as object).sort()).toEqual([...LEGACY_WIRE_CONTENT_KEYS].sort());
+        expect(stored(result.id!).draft).toEqual(content("Job"));
         expect(stored(result.id!).user_id).toBe(ME);
+    });
+
+    it("a picture url is refused until photo storage is available", async () => {
+        const result = await createStudy(me, { content: { ...content("Job"), photos: ["https://elsewhere.example/x.jpg"] }, disciplineIds: [] });
+        expect(result.status).toBe("invalid");
+        expect(result.field).toBe("photos");
+        expect(adminMade).toBe(0);
     });
 
     it("every database call carries the session's contractor and nobody else's", async () => {

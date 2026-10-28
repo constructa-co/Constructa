@@ -51,6 +51,7 @@ const FIELD_MESSAGES: Record<string, string> = {
     duration_text: "Keep how long it took to 100 characters.",
     delivered: "Keep what you did to 5,000 characters.",
     value_added: "Keep what it meant for the client to 5,000 characters.",
+    photos: "Pictures can't be saved to the library yet. Your other wording can still be saved without them.",
     client_text_missing: "Say how to refer to the client, or choose not to mention them.",
     client_not_confirmed: "To name the client, confirm that they've agreed to be named. Or choose not to name them.",
     value_text_missing: "Enter the price to show, or choose not to show one.",

@@ -14,7 +14,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { approvalProblem, approvedProblem, approvedValue, contentFromInput, contentProblem, labelProblem, type ApprovedCaseStudy, type CaseStudyContent } from "./content";
+import { approvalProblem, approvedProblem, approvedValue, contentFromInput, contentProblem, hasCaseStudyPhoto, labelProblem, toLegacyWireContent, type ApprovedCaseStudy, type CaseStudyContent } from "./content";
 import { normalisePhotoSlots } from "./photos";
 import { cleanLabel } from "./labels";
 import { draftFromLegacy } from "./legacy";
@@ -68,8 +68,8 @@ const fieldEqual = (key: (typeof CONTENT_KEYS)[number], a: CaseStudyContent, b: 
     key === "photos" ? JSON.stringify(normalisePhotoSlots(a.photos)) === JSON.stringify(normalisePhotoSlots(b.photos)) : a[key] === b[key];
 
 export function sameContent(a: unknown, b: CaseStudyContent): boolean {
-    if (contentProblem(a) !== null) return false;
-    const saved = a as CaseStudyContent;
+    const saved = contentFromInput(a);
+    if (contentProblem(saved) !== null) return false;
     return CONTENT_KEYS.every((key) => fieldEqual(key, saved, b));
 }
 export function sameTags(a: readonly string[], b: readonly string[]): boolean {
@@ -81,7 +81,7 @@ export function viewOf(study: StoredStudy, disciplines: readonly StoredDisciplin
     return {
         id: study.id,
         revision: study.revision,
-        content: contentProblem(study.draft) === null ? (study.draft as CaseStudyContent) : contentFromInput(study.draft),
+        content: contentFromInput(study.draft),
         disciplineIds: study.disciplineIds.filter((id) => active.has(id)),
         approved: study.approved === null || study.approved === undefined ? null : (study.approved as ApprovedCaseStudy),
         approvedRevision: study.approvedRevision,
@@ -159,9 +159,10 @@ export async function createStudy(context: LibraryContext, input: { content: unk
     const content = contentFromInput(input?.content);
     const problem = contentProblem(content);
     if (problem) return { status: "invalid", message: fieldMessage(problem), field: fieldOf(problem) };
+    if (hasCaseStudyPhoto(content)) return { status: "invalid", message: fieldMessage("photos"), field: "photos" };
     if (!validTags(input?.disciplineIds)) return { status: "invalid", message: M.tooManyTags, field: "disciplines" };
 
-    const answer = await call(context, "case_study_create", { p_content: content, p_legacy_index: null });
+    const answer = await call(context, "case_study_create", { p_content: toLegacyWireContent(content), p_legacy_index: null });
     if (answer.kind === "missing") return unavailable();
     if (answer.kind === "no-answer") return { status: "unknown", message: M.unknownCreate };
     const { outcome } = answer.data;
@@ -186,6 +187,7 @@ export async function saveStudy(context: LibraryContext, input: { id: unknown; r
     const content = contentFromInput(input.content);
     const problem = contentProblem(content);
     if (problem) return { status: "invalid", message: fieldMessage(problem), field: fieldOf(problem) };
+    if (hasCaseStudyPhoto(content)) return { status: "invalid", message: fieldMessage("photos"), field: "photos" };
     if (!validTags(input.disciplineIds)) return { status: "invalid", message: M.tooManyTags, field: "disciplines" };
     const { id } = input;
     const wanted = input.disciplineIds;
@@ -210,7 +212,7 @@ export async function saveStudy(context: LibraryContext, input: { id: unknown; r
 
     let wordingSaved = false;
     if (!wordingSame) {
-        const answer = await call(context, "case_study_save_draft", { p_id: id, p_expected_revision: revision, p_content: content });
+        const answer = await call(context, "case_study_save_draft", { p_id: id, p_expected_revision: revision, p_content: toLegacyWireContent(content) });
         if (answer.kind === "missing") return unavailable();
         if (answer.kind === "answer") {
             const { outcome } = answer.data;
@@ -413,7 +415,7 @@ export async function startFromOlder(context: LibraryContext, input: { index: un
     const draft = draftFromLegacy(entry.value);
     if (contentProblem(draft) !== null) return { status: "invalid", message: M.olderNoTitle };
 
-    const answer = await call(context, "case_study_create", { p_content: draft, p_legacy_index: index });
+    const answer = await call(context, "case_study_create", { p_content: toLegacyWireContent(draft), p_legacy_index: index });
     if (answer.kind === "missing") return unavailable();
     if (answer.kind === "no-answer") return { status: "unknown", message: M.unknownCreate };
     switch (answer.data.outcome) {

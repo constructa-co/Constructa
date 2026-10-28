@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contentFromInput, newDraft } from "@/lib/case-library/content";
+import { contentFromInput, newDraft, toLegacyWireContent } from "@/lib/case-library/content";
 import { draftFromLegacy } from "@/lib/case-library/legacy";
 import { normalisePhotoSlots, proposalPhotoUrls } from "@/lib/case-library/photos";
 import { resolveSelectedCaseStudies } from "@/lib/case-library/resolve";
@@ -17,10 +17,10 @@ describe("case study photo journey seams", () => {
         expect(chosen[0]?.photos).toEqual(["https://images.example.test/a.jpg", "https://images.example.test/b.jpg"]);
     });
 
-    it("library content drops unknown keys and normalises three photo slots", () => {
+    it("library editor state normalises photo slots but the database wire omits them until storage exists", () => {
         const content = contentFromInput({ ...newDraft("Job"), photos: [{ url: "https://images.example.test/x.jpg", caption: "Before" }] });
         expect(normalisePhotoSlots(content.photos)[0]).toEqual({ url: "https://images.example.test/x.jpg", caption: "Before" });
-        expect(contentFromInput({ ...newDraft("Job"), extra: true }).photos).toEqual(normalisePhotoSlots(undefined));
+        expect(toLegacyWireContent(content)).not.toHaveProperty("photos");
     });
 
     it("starting a library version from older work does not reuse pictures without an explicit choice", () => {
@@ -28,10 +28,26 @@ describe("case study photo journey seams", () => {
         expect(proposalPhotoUrls(draft.photos)).toEqual([]);
     });
 
-    it("approved library studies expose safe urls to the shared resolver", () => {
-        const content = { ...newDraft("Library kitchen"), delivered: "Done.", photos: normalisePhotoSlots([{ url: "https://images.example.test/lib.jpg", caption: "Finished" }]) };
-        const approved = approvedValue(content, ["Kitchens"]);
+    it("approved copy on the applied database contract omits photos; the resolver publishes no urls yet", () => {
+        const approved = approvedValue({ ...newDraft("Library kitchen"), delivered: "Done." }, ["Kitchens"]);
+        expect(approved).not.toHaveProperty("photos");
         const id = "00000000-0000-4000-8000-000000000010";
+        const resolved = resolveSelectedCaseStudies({
+            userId: "user",
+            olderStored: [],
+            libraryRows: [{ id, user_id: "user", approved, approved_revision: 1, archived_at: null }],
+            selected: [`lib:${id}`],
+        });
+        expect(resolved.sendable).toBe(true);
+        if (resolved.sendable) expect(resolved.studies[0]?.photos).toEqual([]);
+    });
+
+    it("when an approved row carries photo slots, the resolver publishes safe urls only", () => {
+        const approved = {
+            ...approvedValue({ ...newDraft("Library kitchen"), delivered: "Done." }, ["Kitchens"]),
+            photos: normalisePhotoSlots([{ url: "https://images.example.test/lib.jpg", caption: "Finished" }]),
+        };
+        const id = "00000000-0000-4000-8000-000000000011";
         const resolved = resolveSelectedCaseStudies({
             userId: "user",
             olderStored: [],

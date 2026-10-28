@@ -6,6 +6,12 @@
 - Older `profiles.case_studies` path unchanged (three url slots, existing enhance/upload actions). Adoption from older records still does not copy pictures without explicit choice.
 - Tests: `photos.test.ts`, `case-study-photo-journey.test.ts`, contract vectors updated; A038 remains Partial until independent review and migration apply.
 
+## Post-review wire backcompat (28 Oct 2026)
+
+**Bug verified:** Applied SQL `case_library_content_problem` accepts exactly **12** keys (no `photos`). In-app drafts always included `photos`, so every `case_study_create` / `case_study_save_draft` would return `invalid` / `keys` until the photos migration runs.
+
+**Fix:** `toLegacyWireContent()` on RPC payloads; `hasCaseStudyPhoto()` refuses create/save with an explicit photos field message; approved copy stays 12-key wire (+ `disciplines`); resolver normalises missing photo slots; offline `content-wire.test.ts` + handler tests.
+
 ## Cursor change log (A038)
 
 | File | Lines (approx) | Change | Intent |

@@ -56,7 +56,27 @@ export interface ApprovedCaseStudy extends CaseStudyContent {
     disciplines: string[];
 }
 
-const CONTENT_KEYS = ["client_display", "client_named_ok", "client_text", "delivered", "duration_text", "photos", "place", "show_value", "title", "value_added", "value_text", "version", "work_type"];
+/** Keys the applied case-library migration validates on `draft` jsonb. Photos are not stored until `20261028120000_case_library_photos.sql` is applied. */
+export const LEGACY_WIRE_CONTENT_KEYS = ["client_display", "client_named_ok", "client_text", "delivered", "duration_text", "place", "show_value", "title", "value_added", "value_text", "version", "work_type"] as const;
+
+/** In-app draft shape (includes photo slots for the editor). Same sort order as `Object.keys(...).sort()`. */
+const CONTENT_KEYS = [
+    "client_display",
+    "client_named_ok",
+    "client_text",
+    "delivered",
+    "duration_text",
+    "photos",
+    "place",
+    "show_value",
+    "title",
+    "value_added",
+    "value_text",
+    "version",
+    "work_type",
+] as const;
+
+export type LegacyWireContent = Pick<CaseStudyContent, (typeof LEGACY_WIRE_CONTENT_KEYS)[number]>;
 
 const SINGLE_LINE_CONTROL = /[\u0001-\u001F\u007F]/;
 /** Line breaks and tabs are allowed; other control characters are not. */
@@ -84,13 +104,9 @@ export function labelProblem(label: unknown): "label" | null {
     return null;
 }
 
-/** Null when the value is acceptable CaseStudyContent v1, otherwise the code of the first rule it breaks. */
-export function contentProblem(value: unknown): string | null {
-    if (!isObject(value)) return "not-object";
-    const keys = Object.keys(value).sort();
-    if (keys.length !== CONTENT_KEYS.length || keys.some((key, index) => key !== CONTENT_KEYS[index])) return "keys";
+function contentFieldsProblem(value: Record<string, unknown>): string | null {
     if (value.version !== 1) return "version";
-    if (!textOk(value.title, 1, CONTENT_LIMITS.title, false) || value.title !== trimSpaces(value.title)) return "title";
+    if (!textOk(value.title, 1, CONTENT_LIMITS.title, false) || value.title !== trimSpaces(value.title as string)) return "title";
     if (!textOk(value.work_type, 0, CONTENT_LIMITS.work_type, false)) return "work_type";
     if (!textOk(value.place, 0, CONTENT_LIMITS.place, false)) return "place";
     if (typeof value.client_display !== "string" || !["hidden", "described", "named"].includes(value.client_display)) return "client_display";
@@ -101,16 +117,54 @@ export function contentProblem(value: unknown): string | null {
     if (!textOk(value.duration_text, 0, CONTENT_LIMITS.duration_text, false)) return "duration_text";
     if (!textOk(value.delivered, 0, CONTENT_LIMITS.delivered, true)) return "delivered";
     if (!textOk(value.value_added, 0, CONTENT_LIMITS.value_added, true)) return "value_added";
-    const photos = normalisePhotoSlots(value.photos);
-    if (photoSlotsProblem(photos) !== null) return "photos";
     return null;
+}
+
+function keysProblem(value: Record<string, unknown>, expected: readonly string[]): string | null {
+    const keys = Object.keys(value).sort();
+    if (keys.length !== expected.length || keys.some((key, index) => key !== expected[index])) return "keys";
+    return null;
+}
+
+/**
+ * Null when the value matches what the applied database migration accepts on
+ * `p_content`. The `photos` key must not be present.
+ */
+export function contentProblemLegacy(value: unknown): string | null {
+    if (!isObject(value)) return "not-object";
+    const keys = keysProblem(value, LEGACY_WIRE_CONTENT_KEYS);
+    if (keys) return keys;
+    return contentFieldsProblem(value);
+}
+
+/** Null when the in-app draft is acceptable, otherwise the code of the first rule it breaks. */
+export function contentProblem(value: unknown): string | null {
+    if (!isObject(value)) return "not-object";
+    const keys = keysProblem(value, CONTENT_KEYS);
+    if (keys) return keys;
+    const fields = contentFieldsProblem(value);
+    if (fields) return fields;
+    if (photoSlotsProblem(normalisePhotoSlots(value.photos)) !== null) return "photos";
+    return null;
+}
+
+/** True when the contractor chose at least one picture url (storage may still refuse the write). */
+export function hasCaseStudyPhoto(content: CaseStudyContent): boolean {
+    return normalisePhotoSlots(content.photos).some((slot) => trimSpaces(slot.url) !== "");
+}
+
+/** Shape sent to `case_study_create` / `case_study_save_draft` while the photos migration is not applied. */
+export function toLegacyWireContent(content: CaseStudyContent): LegacyWireContent {
+    const { photos: _photos, ...wire } = content;
+    return wire;
 }
 
 /** What must also be true before a draft can be approved. Null when it can. */
 export function approvalProblem(value: unknown): string | null {
-    const problem = contentProblem(value);
+    if (!isObject(value)) return "not-object";
+    const content = contentFromInput(value);
+    const problem = contentProblem(content);
     if (problem) return problem;
-    const content = value as CaseStudyContent;
     if (content.client_display !== "hidden" && trimSpaces(content.client_text) === "") return "client_text_missing";
     if (content.client_display === "named" && content.client_named_ok !== true) return "client_not_confirmed";
     if (content.show_value && trimSpaces(content.value_text) === "") return "value_text_missing";
@@ -123,24 +177,30 @@ export function approvalProblem(value: unknown): string | null {
  * reads can carry them.
  */
 export function approvedValue(content: CaseStudyContent, labels: readonly string[]): ApprovedCaseStudy {
+    const draft = contentFromInput(content);
+    const wire = toLegacyWireContent(draft);
     return {
-        ...content,
-        client_text: content.client_display === "hidden" ? "" : content.client_text,
-        client_named_ok: content.client_display === "named",
-        value_text: content.show_value ? content.value_text : "",
+        ...wire,
+        client_text: draft.client_display === "hidden" ? "" : draft.client_text,
+        client_named_ok: draft.client_display === "named",
+        value_text: draft.show_value ? draft.value_text : "",
         disciplines: [...labels],
-    };
+    } as ApprovedCaseStudy;
 }
 
 /** Null when a stored approved copy is well formed. */
 export function approvedProblem(value: unknown): string | null {
     if (!isObject(value)) return "not-object";
-    const { disciplines, ...content } = value;
+    const { disciplines, ...raw } = value;
     if (!Array.isArray(disciplines) || disciplines.length > CONTENT_LIMITS.disciplinesPerStudy) return "disciplines";
     if (disciplines.some((label) => labelProblem(label) !== null)) return "disciplines";
-    const problem = approvalProblem(content);
+    const problem = "photos" in raw ? contentProblem(contentFromInput(raw)) : contentProblemLegacy(raw);
     if (problem) return problem;
-    const approved = content as unknown as CaseStudyContent;
+    const content = contentFromInput(raw);
+    if (content.client_display !== "hidden" && trimSpaces(content.client_text) === "") return "client_text_missing";
+    if (content.client_display === "named" && content.client_named_ok !== true) return "client_not_confirmed";
+    if (content.show_value && trimSpaces(content.value_text) === "") return "value_text_missing";
+    const approved = content;
     if (approved.client_display === "hidden" && approved.client_text !== "") return "client_text_hidden";
     if (!approved.show_value && approved.value_text !== "") return "value_text_hidden";
     return null;

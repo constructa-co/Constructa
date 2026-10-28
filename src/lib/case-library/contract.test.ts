@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import vectors from "./__fixtures__/contract-vectors.json";
-import { approvalProblem, approvedProblem, approvedValue, contentFromInput, contentProblem, labelProblem, newDraft, type CaseStudyContent } from "./content";
+import { approvalProblem, approvedProblem, approvedValue, contentFromInput, contentProblem, contentProblemLegacy, labelProblem, newDraft, toLegacyWireContent, type CaseStudyContent } from "./content";
 import { labelKey } from "./labels";
 
 /**
@@ -10,7 +10,7 @@ import { labelKey } from "./labels";
  */
 describe("case study content: the application's rules, on the shared vectors", () => {
     it.each(vectors.content as Array<[string, unknown, string | null]>)("content: %s", (_name, value, problem) => {
-        expect(contentProblem(value)).toBe(problem);
+        expect(contentProblemLegacy(value)).toBe(problem);
     });
 
     it.each(vectors.approval as Array<[string, unknown, string | null]>)("approval: %s", (_name, value, problem) => {
@@ -34,9 +34,16 @@ describe("case study content: the application's rules, on the shared vectors", (
 
     it("covers every rule code the validator can return", () => {
         const seen = new Set([...vectors.content, ...vectors.approval, ...vectors.approved].map((entry) => entry[2]).filter(Boolean));
-        for (const code of ["not-object", "keys", "version", "title", "work_type", "place", "client_display", "client_text", "client_named_ok", "value_text", "show_value", "duration_text", "delivered", "value_added", "photos", "client_text_missing", "client_not_confirmed", "value_text_missing", "disciplines", "client_text_hidden", "value_text_hidden"]) {
+        for (const code of ["not-object", "keys", "version", "title", "work_type", "place", "client_display", "client_text", "client_named_ok", "value_text", "show_value", "duration_text", "delivered", "value_added", "client_text_missing", "client_not_confirmed", "value_text_missing", "disciplines", "client_text_hidden", "value_text_hidden"]) {
             expect(seen, code).toContain(code);
         }
+    });
+
+    it("the wire shape sent while the photos migration is not applied omits photos", () => {
+        const draft = newDraft("Kitchen");
+        expect(Object.keys(toLegacyWireContent(draft)).sort()).toEqual([...Object.keys(draft).filter((k) => k !== "photos")].sort());
+        expect(contentProblemLegacy(toLegacyWireContent(draft))).toBeNull();
+        expect(contentProblemLegacy({ ...toLegacyWireContent(draft), photos: [] })).toBe("keys");
     });
 });
 

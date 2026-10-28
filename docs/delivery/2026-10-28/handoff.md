@@ -180,3 +180,9 @@ readability harness. ROOT **10** vitest + **9** Playwright (existing Edge; no in
 **A111** original cumulative **Complete**; **A001 Partial**. **74C 24P 19N 1B**. Cloud A111
 9PASS runtime **not** accepted (forbidden install incident). Receipt
 `checkpoint1915-brand-readability-integrated-source-backup-20261028.json`.
+
+## CHECKPOINT2050 A001 final — 28 October 2026
+
+**Parent `e2e1e36`:** **95f95c** settings four controls + **6e6df2** workflow four controls (ten
+paths). ROOT **4** source-contract RED then **13** GREEN; **A001 Partial** unchanged. Receipt
+`checkpoint2050-a001-integrated-source-backup-20261028.json`.

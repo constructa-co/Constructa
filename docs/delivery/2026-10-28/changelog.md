@@ -149,6 +149,12 @@
 - **A111** original cumulative **Complete**; **A001** **Partial**. Counts **74C / 24P / 19N / 1B**.
   Receipt `checkpoint1915-brand-readability-integrated-source-backup-20261028.json`.
 
+## CHECKPOINT2050 A001 final bounded deltas — 28 October 2026
+
+- Parent **`e2e1e36`**: **95f95c** four settings controls + **6e6df2** four workflow controls (ten
+  code/test paths). ROOT **4/4** material source-contract RED then **13/13** GREEN; fresh guarded
+  build. **A001 Partial** unchanged. Receipt `checkpoint2050-a001-integrated-source-backup-20261028.json`.
+
 ## Earlier Changelog Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

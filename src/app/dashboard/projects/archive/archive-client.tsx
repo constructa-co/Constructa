@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { restoreProjectAction } from "./actions";
 import { toast } from "sonner";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -396,7 +397,7 @@ export default function ArchiveClient({ projects }: Props) {
                           </Button>
                           <Button
                             size="sm"
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            className={`${corePrimaryButton} ${coreFocusVisibleRing}`}
                             disabled={isPending}
                             onClick={() => handleRestore(project.id)}
                           >

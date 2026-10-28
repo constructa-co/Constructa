@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-10-28 — CHECKPOINT2050 A001 final (Composer 95f95c + Claude 6e6df2, Cursor integration)
+
+| File | Change | Intent |
+|------|--------|--------|
+| Four settings TSX + `a001-four-settings-brand-actions.test.ts` | Sage palette on primary/focus | Composer cloud 95f95c bounded slice |
+| Four workflow TSX + `a001-workflow-brand-controls.test.tsx` | Nav/error/drawings/archive brand controls | Claude 6e6df2 bounded slice |
+
 ## 2026-10-28 — CHECKPOINT1915 brand readability (Composer integration)
 
 | File | Change | Intent |

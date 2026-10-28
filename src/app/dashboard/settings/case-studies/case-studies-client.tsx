@@ -11,6 +11,13 @@ import { uploadProfileImageAction } from "@/app/storage/actions";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { SAVE_MESSAGES, initialSaveState, needsLeaveWarning, requestOf, saveReducer, statusLine, type SaveAction, type SaveCaseStudiesResult, type SaveState } from "./save-state";
 import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
+import {
+    coreFocusRing,
+    coreFocusVisibleRing,
+    coreProfileFieldBase,
+    coreProfileTextarea,
+    coreSuggestionPrimary,
+} from "@/lib/core-editing-palette";
 
 type Enhance = (whatWeDelivered: string, valueAdded: string, projectName: string, projectType: string) => Promise<CaseStudyResult>;
 type Save = (caseStudies: unknown) => Promise<SaveCaseStudiesResult>;
@@ -118,7 +125,7 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
         }
     };
 
-    const inputCls = "w-full h-10 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600";
+    const inputCls = `${coreProfileFieldBase} h-10 ${coreFocusRing}`;
     const labelCls = "text-xs font-medium text-slate-400 block mb-1";
     const editor = useRef<HTMLDivElement>(null);
     const previousCount = useRef(caseStudies.length);
@@ -171,7 +178,7 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
                 <button
                     onClick={addCaseStudy}
                     data-add-example
-                    className="flex items-center gap-2 text-sm font-semibold text-blue-400 hover:text-blue-300 bg-blue-900/20 hover:bg-blue-900/40 border border-blue-700/40 rounded-lg px-4 py-2.5 transition-colors"
+                    className={`flex items-center gap-2 text-sm font-semibold text-emerald-200 hover:text-emerald-100 bg-emerald-950/30 hover:bg-emerald-950/50 border border-emerald-600/40 rounded-lg px-4 py-2.5 transition-colors ${coreFocusVisibleRing}`}
                 >
                     <Plus className="w-4 h-4" />
                     Add another example
@@ -257,7 +264,7 @@ function CaseStudyCard({
                 )}
                 <p className="text-sm text-slate-100 whitespace-pre-wrap break-words">{suggestion}</p>
                 <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={() => { onChange(section, suggestion); setPending(settle(pending, section)); }} className="min-h-11 px-3 rounded-lg bg-blue-700 hover:bg-blue-800 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+                    <button type="button" onClick={() => { onChange(section, suggestion); setPending(settle(pending, section)); }} className={`${coreSuggestionPrimary} ${coreFocusVisibleRing}`}>
                         {state === "stale" ? "Replace what I have now with this" : "Use this wording"}
                     </button>
                     <button type="button" onClick={() => setPending(settle(pending, section))} className="min-h-11 px-3 rounded-lg border border-slate-400 text-sm font-semibold text-slate-100 hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
@@ -336,7 +343,7 @@ function CaseStudyCard({
                         <label htmlFor={`${fieldId}-delivered`} className={labelCls}>What We Delivered</label>
                         <textarea
                             id={`${fieldId}-delivered`}
-                            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className={coreProfileTextarea}
                             rows={3}
                             aria-label="What We Delivered"
                             value={cs.whatWeDelivered}
@@ -350,7 +357,7 @@ function CaseStudyCard({
                         <label htmlFor={`${fieldId}-added`} className={labelCls}>Value Added</label>
                         <textarea
                             id={`${fieldId}-added`}
-                            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className={coreProfileTextarea}
                             rows={3}
                             aria-label="Value Added"
                             value={cs.valueAdded}

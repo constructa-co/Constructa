@@ -1,3 +1,22 @@
+## DAY28 A091 draft E2E workflow guard - 28 October 2026
+
+- Branch `codex/a091-draft-workflow-safety-20261028` from
+  `1c02580983b204b43a5150f2130d59fa17410633`.
+- **Gap confirmed:** base `.github/workflows/e2e.yml` ran `phase1` on every
+  `pull_request` (including **draft**), with no `draft-pull-request-status`
+  NOT_RUN job. Approved pin `103f489a6dc1ec788100afdf58048a8cc2d3d193` adds
+  fail-closed draft blocking only.
+- **Ported (103f489 hunk, compatible with base `E2E_BRIEF_AI_MODE`):** new
+  `draft-pull-request-status` job; `phase1` `if` requires
+  `pull_request.draft == false` alongside existing three excluded heads;
+  `workflow_dispatch` and manual/evidence inputs unchanged.
+- **`review-branch-ci.test.ts`:** extend existing truth-table `enabled()` with
+  `github.event.pull_request.draft` substitution; one test for draft NOT_RUN +
+  ready-for-review path (8/8 PASS). No new harness.
+- **Trigger safety before push:** `e2e.yml` has no `on.push`; `ci.yml` push is
+  `main` only — pushing this codex branch does not start hosted Phase 1 or main
+  CI. Open draft PR would record NOT_RUN, not signup/publication.
+
 # DAY28 First Green Integration - 28 October 2026
 
 - Integrate accepted product pins only: A001 core editing palette (`5aa12e6`),

@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
     coreFocusRing,
     coreFocusVisibleRing,
+    coreFormAccent,
     corePrimaryButton,
+    coreProfileField,
     coreSelectedChoiceBorder,
 } from "./core-editing-palette";
 
@@ -18,6 +20,12 @@ describe("core editing palette tokens", () => {
         expect(corePrimaryButton).toContain("#c9efcf");
         expect(corePrimaryButton).toContain("#182c1b");
         expect(corePrimaryButton).not.toMatch(/blue/);
+    });
+
+    it("profile field and checkbox accent tokens avoid brand blue", () => {
+        expect(coreProfileField).toContain("emerald-600");
+        expect(coreProfileField).not.toMatch(/blue/);
+        expect(coreFormAccent).toBe("accent-emerald-600");
     });
 
     it.each([

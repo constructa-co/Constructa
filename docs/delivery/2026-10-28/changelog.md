@@ -141,6 +141,14 @@
   Counts **73C / 25P / 19N / 1B** unchanged. Receipt
   `checkpoint1905-a069-final-integrated-source-backup-20261028.json`.
 
+## CHECKPOINT1915 Brand readability — 28 October 2026
+
+- Parent **`d341bdd`**: **A001** **`98c4345`** six bounded sage action paths (A031 profile
+  preserved); **A111** **`06368bd`** four harness paths. ROOT **10/10** vitest + **9/9**
+  Playwright on existing Edge (**no** install; cloud runtime incident not accepted).
+- **A111** original cumulative **Complete**; **A001** **Partial**. Counts **74C / 24P / 19N / 1B**.
+  Receipt `checkpoint1915-brand-readability-integrated-source-backup-20261028.json`.
+
 ## Earlier Changelog Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

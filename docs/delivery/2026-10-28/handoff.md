@@ -172,3 +172,11 @@ independent exact-hunk acceptance; SQL SOURCE ONLY. All **118** statuses unchang
 **19/19** focused contract tests; SQL **not applied**; runtime unchanged. **A069 Partial**;
 counts **73C 25P 19N 1B**. Receipt
 `checkpoint1905-a069-final-integrated-source-backup-20261028.json`.
+
+## CHECKPOINT1915 Brand readability — 28 October 2026
+
+**Parent `d341bdd`:** **A001** six-path sage brand actions + **A111** four-path rendered
+readability harness. ROOT **10** vitest + **9** Playwright (existing Edge; no install).
+**A111** original cumulative **Complete**; **A001 Partial**. **74C 24P 19N 1B**. Cloud A111
+9PASS runtime **not** accepted (forbidden install incident). Receipt
+`checkpoint1915-brand-readability-integrated-source-backup-20261028.json`.

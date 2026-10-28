@@ -1,5 +1,14 @@
 # Cursor change log
 
+## 2026-10-28 — CHECKPOINT1915 brand readability (Composer integration)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `core-editing-palette.ts` + tests | Sage focus/action tokens | A001 bounded brand actions |
+| `profile-form.tsx` + brand test | Palette wiring; A031 preserved | Profile/import primary accents |
+| `import-client.tsx` + test | Matching sage accents | Import flow consistency |
+| `a111-readability-*` + `build-brief-price.mjs` + playwright config | Offline computed-style harness | ROOT 9/9 contrast proof; no product style edits |
+
 ## 2026-10-28 — CHECKPOINT1905 A069 final source (Claude 1cc9d39, Composer integration)
 
 | File | Change | Intent |

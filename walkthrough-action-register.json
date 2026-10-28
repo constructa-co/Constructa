@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-10-28T15:03:00.000Z",
+  "updatedAt": "2026-10-28T15:18:00.000Z",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {
@@ -699,7 +699,7 @@
       "id": "A111",
       "phase": "P1-Jan2027",
       "requested": "Improve small marketing/sidebar text and measure contrast across real rendered states.",
-      "status": "Partial"
+      "status": "Complete"
     },
     {
       "id": "A112",

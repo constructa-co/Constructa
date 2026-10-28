@@ -43,7 +43,14 @@ describe("A069 creation RPC source contract (static, no database)", () => {
         expect(latest).toContain(`length(v_closing) > ${TEXT_LIMITS.closing}`);
         expect(latest).toMatch(/v_closing !~ '\[\^\[:space:\]\]'/);
         const assignment = latest.slice(latest.indexOf("SELECT p.md_message"), latest.indexOf("INSERT INTO public.projects"));
-        expect(assignment).not.toMatch(/trim|left\(|substr|regexp_replace|overlay/i);
+        expect(assignment).not.toMatch(/trim|left\(|substr|regexp_replace|overlay|octet_length|convert_to|normalize/i);
+    });
+
+    it("also refuses a message over 20,000 UTF-16 code units, the unit the editor's limit uses (P2 follow-through)", () => {
+        const guard = latest.slice(latest.indexOf("SELECT p.md_message"), latest.indexOf("INSERT INTO public.projects"));
+        // The cheap character guard runs first, so the split never sees empty or unbounded text.
+        expect(guard.indexOf(`length(v_closing) > ${TEXT_LIMITS.closing}`)).toBeLessThan(guard.indexOf("ELSIF"));
+        expect(guard).toMatch(/ELSIF \(SELECT pg_catalog\.sum\(CASE WHEN pg_catalog\.ascii\(chars\.ch\) > 65535 THEN 2 ELSE 1 END\)\s+FROM pg_catalog\.regexp_split_to_table\(v_closing, ''\) AS chars\(ch\)\) > 20000 THEN\s+[\s\S]*?v_closing := NULL;/);
     });
 
     it("never touches an existing job: a retry returns before the message is read, and nothing updates projects", () => {
@@ -67,6 +74,40 @@ describe("A069 creation RPC source contract (static, no database)", () => {
         expect(sql).toContain("REVOKE ALL ON FUNCTION public.create_phase1_project_graph(uuid, jsonb, jsonb)\n    FROM PUBLIC, anon;");
         expect(sql).toContain("GRANT EXECUTE ON FUNCTION public.create_phase1_project_graph(uuid, jsonb, jsonb)\n    TO authenticated;");
         expect(sql).not.toMatch(/ALTER TABLE|CREATE TABLE|ADD COLUMN|DROP /i);
+    });
+});
+
+// A TypeScript reference of the SQL seed rule above: characters as Postgres
+// splits them (code points), each above U+FFFF counting two. This checks the
+// FORMULA against the editor's existing rule; it does not execute the SQL.
+function seedsReference(message: string | null): boolean {
+    if (message === null || !/[^\s]/.test(message) || [...message].length > TEXT_LIMITS.closing) return false;
+    return [...message].reduce((units, ch) => units + (ch.codePointAt(0)! > 0xffff ? 2 : 1), 0) <= TEXT_LIMITS.closing;
+}
+function editorAccepts(message: string): boolean {
+    const input = minimalInput();
+    const project = { ...input.project, closing_statement: null };
+    let state = initialReviewState(draftFromProject(project, () => "key"), savedDraftFromProject(project, () => "key"));
+    const store = { getState: () => state, dispatch: (action: ReviewAction) => { state = reviewReducer(state, action); } };
+    return applyCompanyClosingMessage(store, message, true).ok;
+}
+
+describe("A069 UTF-16 limit: reference formula against the editor's existing rule (no SQL execution)", () => {
+    const emoji = "\u{1F3D7}"; // outside the BMP: 1 code point, 2 UTF-16 units
+    it.each([
+        ["20,000 ordinary characters", "a".repeat(20000), true],
+        ["20,001 ordinary characters", "a".repeat(20001), false],
+        ["accented BMP text at 20,000", "\u00e9".repeat(20000), true],
+        ["10,000 emoji (20,000 units)", emoji.repeat(10000), true],
+        ["10,000 emoji and one letter (20,001 units, 10,001 characters)", emoji.repeat(10000) + "a", false],
+        ["19,999 letters and one emoji (20,001 units, 20,000 characters)", "a".repeat(19999) + emoji, false],
+        ["19,998 letters and one emoji (20,000 units)", "a".repeat(19998) + emoji, true],
+        ["empty", "", false],
+        ["whitespace only", "  \n\t ", false],
+    ])("%s: seeded exactly when the editor's company-message rule accepts it", (_label, message, expected) => {
+        expect(message.length <= TEXT_LIMITS.closing && !!message.trim()).toBe(expected);
+        expect(seedsReference(message)).toBe(expected);
+        expect(editorAccepts(message)).toBe(expected);
     });
 });
 

@@ -148,6 +148,11 @@ BEGIN
      WHERE p.id = v_user_id;
     IF v_closing IS NULL OR v_closing !~ '[^[:space:]]' OR length(v_closing) > 20000 THEN
         v_closing := NULL;
+    ELSIF (SELECT pg_catalog.sum(CASE WHEN pg_catalog.ascii(chars.ch) > 65535 THEN 2 ELSE 1 END)
+             FROM pg_catalog.regexp_split_to_table(v_closing, '') AS chars(ch)) > 20000 THEN
+        -- The editor's 20,000 limit counts UTF-16 code units, as JavaScript
+        -- does: a character above U+FFFF counts as two. Skip, never shorten.
+        v_closing := NULL;
     END IF;
 
     INSERT INTO public.projects (

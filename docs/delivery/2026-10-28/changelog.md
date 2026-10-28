@@ -138,3 +138,10 @@
   preflight before any PR; PR106closed/nohostedrerun.
 - Exact current build/scans/backup final result belongs in the private source
   receipt; all118statuses unchanged and unfinished scopes remain Partial.
+
+## A111 rendered readability (browser computed contrast) - 28 October 2026
+
+- Branch `codex/a111-rendered-readability-20261028` from `25fc273419017439f42fc13667ffe010c38ef3e8`.
+- Added offline Playwright leg: `e2e/local-phase1/a111-readability-entry.tsx`, `a111-readability.spec.ts`, `playwright.local-a111-readability.config.ts`; extended `build-brief-price.mjs` scenario `a111-readability` (compiled Tailwind + CSS modules, stable `useSearchParams` stub for phone menu).
+- Nine bounded cases: sidebar section/idle nav (system-c + dark), phone drawer label, marketing paper/journey text, gradient-bounded hero review note, focus outline. Network requests 0; no product colour changes (measurement PASS on current styles).
+- Compiler `read()` GNU/Linux stat fallback in `build-brief-price.mjs` (lines ~26–32) so local-phase1 builds run on Linux agents without changing macOS dataless detection intent.

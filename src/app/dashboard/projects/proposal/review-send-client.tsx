@@ -36,6 +36,7 @@ import {
     buildProposalPayload,
     depositBalancePayments,
     draftFromProject,
+    draftFromReviewContext,
     initialReviewState,
     isSuggestionStale,
     paymentPresetOf,
@@ -155,7 +156,10 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
             let n = 0;
             return () => `saved-${n++}`;
         };
-        return initialReviewState(draftFromProject(project, positional()), savedDraftFromProject(project, positional()));
+        const draft = lockReason === null
+            ? draftFromReviewContext(context, positional())
+            : draftFromProject(project, positional());
+        return initialReviewState(draft, savedDraftFromProject(project, positional()));
     });
     const { draft, fieldErrors } = state;
     const status = reviewSaveStatus(state);

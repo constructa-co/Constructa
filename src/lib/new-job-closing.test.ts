@@ -24,22 +24,68 @@ function definition(sql: string): string {
 const files = readdirSync(DIR).filter(name => name.endsWith(".sql")).sort();
 const latestFile = [...files].reverse().find(name => readFileSync(join(DIR, name), "utf8").includes(START))!;
 const latest = definition(readFileSync(join(DIR, latestFile), "utf8"));
+const latestMigrationSql = readFileSync(join(DIR, latestFile), "utf8");
 const original = definition(readFileSync(join(DIR, ORIGINAL_FILE), "utf8"));
 
-/** ECMAScript trim whitespace (same finite set as A069 SQL blank guard). */
-const ECMA_TRIM_WHITESPACE_CLASS =
-    "\u0009\u000A\u000B\u000C\u000D\u0020\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF";
-const A069_SQL_NONBLANK_PATTERN = new RegExp(`[^${ECMA_TRIM_WHITESPACE_CLASS}]`);
-/** Auditable literal expected in the unapplied migration (locale-independent, not POSIX [:space:]). */
-const A069_SQL_NONBLANK_PATTERN_LITERAL =
-    "'[^[\\x{9}-\\x{d}\\x{20}\\x{a0}\\x{1680}\\x{2000}-\\x{200a}\\x{2028}-\\x{2029}\\x{202f}\\x{205f}\\x{3000}\\x{feff}]]'";
+/** Decode PostgreSQL U&'' body (four-hex code points after UESCAPE). Not a general SQL parser. */
+function decodePostgresUString(body: string, uescape: string): string {
+    let out = "";
+    for (let i = 0; i < body.length; i++) {
+        const ch = body[i]!;
+        if (ch === uescape && i + 4 < body.length && /^[0-9A-Fa-f]{4}$/.test(body.slice(i + 1, i + 5))) {
+            out += String.fromCodePoint(Number.parseInt(body.slice(i + 1, i + 5), 16));
+            i += 4;
+            continue;
+        }
+        if (ch === uescape && body[i + 1] === uescape) {
+            out += uescape;
+            i += 1;
+            continue;
+        }
+        out += ch;
+    }
+    return out;
+}
+
+const A069_GUARD_RE =
+    /v_closing\s+!~\s+U&'((?:[^']|'')*)'\s+UESCAPE\s+'(.)'/;
+
+function parseA069BlankGuardFromMigration(sql: string) {
+    const m = sql.match(A069_GUARD_RE);
+    if (!m) throw new Error("A069 blank guard U& literal not found");
+    const uBody = m[1]!.replace(/''/g, "'");
+    const uescape = m[2]!;
+    const decodedPattern = decodePostgresUString(uBody, uescape);
+    return { uBody, decodedPattern, jsRegExp: new RegExp(decodedPattern) };
+}
+
+function assertSupportedA069BlankGuardShape(decodedPattern: string, uBody: string): void {
+    if (/\\x\{/.test(uBody)) throw new Error("A069 guard must not use PCRE \\x{...} escapes");
+    if (!decodedPattern.startsWith("[^") || !decodedPattern.endsWith("]")) {
+        throw new Error("A069 guard must be a single negated character class [^...]");
+    }
+    if (decodedPattern.startsWith("[^[")) throw new Error("A069 guard must not use nested [[");
+    const inner = decodedPattern.slice(2, -1);
+    if (inner.includes("[") || inner.includes("]")) {
+        throw new Error("A069 class must enumerate code points only");
+    }
+}
+
+const a069BlankGuard = parseA069BlankGuardFromMigration(latest);
+assertSupportedA069BlankGuardShape(a069BlankGuard.decodedPattern, a069BlankGuard.uBody);
+
+/** Reference list for generating samples only; parity uses decoded migration pattern. */
+const ECMA_TRIM_CODEPOINTS = [
+    0x0009, 0x000a, 0x000b, 0x000c, 0x000d, 0x0020, 0x00a0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003,
+    0x2004, 0x2005, 0x2006, 0x2007, 0x2008, 0x2009, 0x200a, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000, 0xfeff,
+] as const;
 
 function closingEligibleByEcmascriptTrim(message: string | null): boolean {
     return message !== null && !!message.trim();
 }
 
-function closingEligibleByA069SqlPattern(message: string | null): boolean {
-    return message !== null && A069_SQL_NONBLANK_PATTERN.test(message);
+function closingEligibleByDecodedMigrationPattern(message: string | null): boolean {
+    return message !== null && a069BlankGuard.jsRegExp.test(message);
 }
 
 describe("A069 creation RPC source contract (static, no database)", () => {
@@ -58,7 +104,12 @@ describe("A069 creation RPC source contract (static, no database)", () => {
     it("copies it exactly, and leaves the closing empty for a blank or over-long message", () => {
         expect(latest).toContain(`length(v_closing) > ${TEXT_LIMITS.closing}`);
         expect(latest).not.toMatch(/v_closing !~ '\[\^\[:space:\]\]'/);
-        expect(latest).toContain(`v_closing !~ ${A069_SQL_NONBLANK_PATTERN_LITERAL}`);
+        expect(latest).toMatch(/v_closing\s+!~\s+U&'/);
+        expect(latest).not.toMatch(/\\x\{/);
+        expect(latest).not.toMatch(/'\[\^\\[\[]/);
+        expect(latestMigrationSql).toMatch(A069_GUARD_RE);
+        assertSupportedA069BlankGuardShape(a069BlankGuard.decodedPattern, a069BlankGuard.uBody);
+        expect([...a069BlankGuard.decodedPattern.slice(2, -1)].map(ch => ch.codePointAt(0)!)).toEqual([...ECMA_TRIM_CODEPOINTS]);
         expect(latest).toMatch(/ECMAScript String\.prototype\.trim/i);
         const assignment = latest.slice(latest.indexOf("SELECT p.md_message"), latest.indexOf("INSERT INTO public.projects"));
         expect(assignment).not.toMatch(/trim|left\(|substr|regexp_replace|overlay|octet_length|convert_to|normalize/i);
@@ -109,7 +160,15 @@ function editorAccepts(message: string): boolean {
     return applyCompanyClosingMessage(store, message, true).ok;
 }
 
-describe("A069 blank eligibility: ECMAScript trim matches SQL source predicate (SOURCE contract, no Postgres)", () => {
+describe("A069 blank eligibility: decoded migration guard vs ECMAScript trim (SOURCE contract, no Postgres)", () => {
+    it.each(ECMA_TRIM_CODEPOINTS.map(cp => [`U+${cp.toString(16).toUpperCase().padStart(4, "0")}`, String.fromCodePoint(cp), false] as const))(
+        "each ECMA trim whitespace %s is ineligible",
+        (_label, message, eligible) => {
+            expect(closingEligibleByEcmascriptTrim(message)).toBe(eligible);
+            expect(closingEligibleByDecodedMigrationPattern(message)).toBe(eligible);
+        },
+    );
+
     it.each([
         ["empty", "", false],
         ["ASCII whitespace only", "  \n\t\r\f\v ", false],
@@ -121,15 +180,15 @@ describe("A069 blank eligibility: ECMAScript trim matches SQL source predicate (
         ["non-BMP letter", "\u{1F3D7}", true],
     ])("%s", (_label, message, eligible) => {
         expect(closingEligibleByEcmascriptTrim(message)).toBe(eligible);
-        expect(closingEligibleByA069SqlPattern(message)).toBe(eligible);
+        expect(closingEligibleByDecodedMigrationPattern(message)).toBe(eligible);
         expect(!!message.trim()).toBe(eligible);
     });
 
-    it("applyCompanyClosingMessage agrees with trim eligibility on white-only and mixed samples", () => {
+    it("applyCompanyClosingMessage agrees with decoded guard on white-only and mixed samples", () => {
         const samples = ["", " \t", "\u00A0\uFEFF", "\u200B", "\u180E", "x", " \nx\n ", "\u00A0Hi"];
         for (const message of samples) {
             const trimEligible = closingEligibleByEcmascriptTrim(message);
-            expect(closingEligibleByA069SqlPattern(message)).toBe(trimEligible);
+            expect(closingEligibleByDecodedMigrationPattern(message)).toBe(trimEligible);
             expect(editorAccepts(message)).toBe(trimEligible && seedsReference(message));
         }
     });

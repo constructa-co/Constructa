@@ -11,12 +11,6 @@ const TARGETS = [
     "integrations/integrations-client.tsx",
 ] as const;
 
-/** Brand-action blues removed at e2e1e36; syntax/docs/status blues intentionally kept. */
-const ALLOWED_BLUE = [
-    /text-blue-400/, // API param names, sync direction glyphs, rate-limit labels
-    /text-blue-200/, // case-study editor navigation underlines (not primary buttons)
-];
-
 function forbiddenBrandBlue(source: string): string[] {
     const hits: string[] = [];
     const patterns = [

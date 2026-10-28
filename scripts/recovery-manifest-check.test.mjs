@@ -146,6 +146,34 @@ test("a declared bytes file with no storage.objects row is refused", () => {
     assert.ok(checkManifest(value).errors.includes("storage-object-bytes/orphan.bin: storage-object-bytes entry has no storage.objects row"));
 });
 
+test("conflicting duplicate git ref keys are refused before requiredRefs can match the last sha only", () => {
+    const value = manifest();
+    const firstSha = "1".repeat(40);
+    const secondSha = "2".repeat(40);
+    value.git.refs = [
+        { repository: "app", ref: "refs/heads/backup", sha: firstSha },
+        { repository: "app", ref: "refs/heads/backup", sha: secondSha },
+    ];
+    value.git.requiredRefs = [{ repository: "app", ref: "refs/heads/backup", sha: secondSha }];
+    const report = checkManifest(value);
+    assert.equal(report.verdict, "INVALID");
+    assert.ok(report.errors.some(error => error.includes("conflicting") && error.includes("refs/heads/backup")));
+});
+
+test("the same ref name in different repositories remains valid", () => {
+    const value = manifest();
+    const programmeSha = "3".repeat(40);
+    value.git.refs = [
+        { repository: "app", ref: "refs/heads/backup", sha: appSha },
+        { repository: "programme", ref: "refs/heads/backup", sha: programmeSha },
+    ];
+    value.git.requiredRefs = [
+        { repository: "app", ref: "refs/heads/backup", sha: appSha },
+        { repository: "programme", ref: "refs/heads/backup", sha: programmeSha },
+    ];
+    assert.equal(checkManifest(value).verdict, "COMPLETE_SET");
+});
+
 test("required Git refs must be recorded at the expected commit with safe names", () => {
     const value = manifest();
     value.git.requiredRefs.push({ repository: "programme", ref: "refs/heads/backup", sha: "3".repeat(40) });

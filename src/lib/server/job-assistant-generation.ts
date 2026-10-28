@@ -119,6 +119,8 @@ export function createJobAssistantGenerator<C>(feature: JobAssistantFeature, dep
     const config = parsed.data;
     const transport = deps.transport;
     const ledger = deps.ledger;
+    /** Attempt ids this generator instance successfully reserved; only those may be concluded here. */
+    const confirmedReservations = new Set<string>();
 
     const generate: JobAssistantGenerator<C> = async input => {
         const size = JSON.stringify(input.context ?? null).length + input.messages.reduce((total, item) => total + item.content.length, 0);
@@ -144,6 +146,7 @@ export function createJobAssistantGenerator<C>(feature: JobAssistantFeature, dep
             held = false;
         }
         if (!held) throw new GenerationRefused("reservation");
+        confirmedReservations.add(input.attemptId);
 
         const signal = AbortSignal.any([input.signal, AbortSignal.timeout(config.timeoutMs)]);
         const record = async (step: () => Promise<void>) => {
@@ -177,8 +180,10 @@ export function createJobAssistantGenerator<C>(feature: JobAssistantFeature, dep
         return result.raw;
     };
     generate.conclude = async (attemptId, outcome) => {
+        if (!confirmedReservations.has(attemptId)) return true;
         try {
             await ledger.conclude(attemptId, outcome);
+            confirmedReservations.delete(attemptId);
             return true;
         } catch {
             return false;

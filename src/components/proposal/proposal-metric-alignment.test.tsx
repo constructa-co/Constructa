@@ -104,7 +104,13 @@ describe("web proposal key facts share label and value rows", () => {
     it("changes only the key-facts markup: terms wording and the cover facts keep their classes", () => {
         const snapshot = representative();
         const markup = html(buildProposalDocument(snapshot));
-        expect(markup.match(/whitespace-pre-wrap/g)).toHaveLength(snapshot.terms.clauses.length);
+        const termsList = markup.match(/<ol[^>]*data-doc-terms[^>]*>([\s\S]*?)<\/ol>/)?.[1];
+        expect(termsList, "the terms list is rendered").toBeDefined();
+        const termBodyClasses = [...termsList!.matchAll(/<p class="([^"]*)">/g)].map(([, cls]) => cls);
+        expect(termBodyClasses).toHaveLength(snapshot.terms.clauses.length);
+        for (const cls of termBodyClasses) {
+            expect(cls.split(" ")).toContain("whitespace-pre-wrap");
+        }
         expect(markup).toContain('<dl class="mt-6 flex flex-wrap gap-x-8 gap-y-2 text-sm text-stone-600">');
         const source = readFileSync(path.join(process.cwd(), "src/components/proposal/proposal-document-view.tsx"), "utf8");
         expect(source.match(/grid-rows-\[subgrid\]/g)).toHaveLength(1);

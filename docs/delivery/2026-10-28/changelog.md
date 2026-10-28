@@ -1,3 +1,22 @@
+## DAY28 Proposal term whitespace CI fixtures - 28 October 2026
+
+- Branch `codex/proposal-two-ci-fixtures-20261028` from
+  `1c02580983b204b43a5150f2130d59fa17410633`.
+- **Root cause (tests only):** two guards counted every `whitespace-pre-wrap` in
+  the full document HTML. Approved layout also applies that class to About-section
+  fact values (`Facts` with `multilineValues` on `sectionId === "about"`), so
+  representative output had 17 matches vs 12 term clauses (and 9 vs 4 in the
+  custom four-clause fixture). Product terms markup unchanged
+  (`<p className="mt-0.5 whitespace-pre-wrap">{clause.body}</p>`).
+- **`proposal-metric-alignment.test.tsx` (~107):** scope pre-wrap assertions to
+  `<ol data-doc-terms>` clause `<p>` classes only; still require one pre-wrap body
+  per stored clause (length 12 for representative).
+- **`proposal-term-whitespace.test.tsx` (~72–76):** use existing `clauses(html)`
+  traversal instead of document-wide regex; same per-clause pre-wrap and length
+  checks. All original term body/heading/escape/standard-terms assertions kept.
+- **No product edits.** Focused vitest: 2 files 16/16 PASS (baseline 14 PASS /
+  2 FAIL); eslint on touched tests 0 errors; `tsc --noEmit` 0 errors.
+
 # DAY28 First Green Integration - 28 October 2026
 
 - Integrate accepted product pins only: A001 core editing palette (`5aa12e6`),

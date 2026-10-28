@@ -8,6 +8,7 @@ vi.mock("@/lib/case-library/proposal-read", () => ({ readProposalLibrary: mocks.
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw Error("REDIRECT:" + path); } }));
 vi.mock("@/components/project-navbar", () => ({ default: () => null }));
 vi.mock("./estimate-client", () => ({ default: () => null }));
+import { dashboardRouteShellBody } from "@/lib/__fixtures__/dashboard-route-shell-page";
 import EstimatingPage from "./page";
 let db: ReturnType<typeof fakeSupabase>;
 beforeEach(() => {
@@ -18,7 +19,7 @@ beforeEach(() => {
 describe("actual pricing page owned experience source wiring", () => {
     it("loads existing selection and only the signed-in owner's profile,without activating library", async () => {
         const page = await EstimatingPage({ searchParams: Promise.resolve({ projectId: "job" }) });
-        const source = page.props.children[1].props.project.experience;
+        const source = dashboardRouteShellBody(page).props.project.experience;
         expect(source.selected).toEqual(["missing"]); expect(source.retained).toEqual(["missing"]);
         expect(source.options).toEqual([{ tick: "past", title: "Actual saved job", detail: "" }]);
         expect(mocks.library).not.toHaveBeenCalled(); expect(db.updates).toEqual([]);
@@ -30,6 +31,6 @@ describe("actual pricing page owned experience source wiring", () => {
     it("does not substitute a different profile or an empty catalog if the owner profile is unreadable", async () => {
         db.tables.profiles[0].id = "other";
         const page = await EstimatingPage({ searchParams: Promise.resolve({ projectId: "job" }) });
-        expect(page.props.children[1].props.project.experience).toBeNull(); expect(db.updates).toEqual([]);
+        expect(dashboardRouteShellBody(page).props.project.experience).toBeNull(); expect(db.updates).toEqual([]);
     });
 });

@@ -26,8 +26,9 @@ import {
     removePriceLine,
     submitAdjustments,
     submitPriceLine,
-    previewSummaryWithOpenLineDrafts,
+    previewRunningTotal,
     summarisePrice,
+    type AdvancedRunningTotalDraft,
     unitOptions,
     type AdjustmentKey,
     type EstimatingServer,
@@ -144,7 +145,7 @@ export default function EstimateClient({
     const estimate = currentEstimate(state);
     const lines = useMemo(() => estimate?.estimate_lines ?? [], [estimate]);
     const summary = useMemo(() => summarisePrice(estimate, lines), [estimate, lines]);
-    const lineDraftPreview = useMemo(() => previewSummaryWithOpenLineDrafts(state), [state]);
+    const [advancedRunningDraft, setAdvancedRunningDraft] = useState<AdvancedRunningTotalDraft | null>(null);
     const newOp = state.ops[NEW_LINE_KEY];
     const [priceFind, setPriceFind] = useState<PriceFindState>(EMPTY_PRICE_FIND);
     const priceFindRef = useRef(EMPTY_PRICE_FIND);
@@ -272,6 +273,27 @@ export default function EstimateClient({
     const [advanced, setAdvanced] = useState<{ status: "idle" | "loading" | "failed" | "ready"; data: AdvancedEstimatingData | null; error: string }>(
         { status: "idle", data: null, error: "" },
     );
+    const catalogueContextToken = useMemo(() => {
+        if (!state.advancedOpen || advanced.status !== "ready" || !estimate || !advanced.data) return null;
+        return JSON.stringify([project.id, advanced.data.orgId, estimate.id, estimate, advanced.data.costLibrary]);
+    }, [state.advancedOpen, advanced.status, advanced.data, estimate, project.id]);
+    const refuseDraftPreview =
+        hasUnconfirmedLineChanges ||
+        Object.values(activityWork).includes("uncertain") ||
+        (state.advancedOpen &&
+            Object.values(resourceSaveStates).some((status) => status === "saving" || status === "uncertain"));
+    const draftPreview = useMemo(
+        () =>
+            previewRunningTotal(state, {
+                advanced: state.advancedOpen ? advancedRunningDraft : null,
+                catalogueContextToken,
+                refusePreview: refuseDraftPreview,
+            }),
+        [state, advancedRunningDraft, catalogueContextToken, refuseDraftPreview],
+    );
+    useEffect(() => {
+        if (!state.advancedOpen) setAdvancedRunningDraft(null);
+    }, [state.advancedOpen]);
 
     // A055: the real request path. The server rebuilds the saved job and
     // selected estimate, compares the fingerprint and chooses the generator.
@@ -520,6 +542,7 @@ export default function EstimateClient({
                                         resourceSaveStates={resourceSaveStates}
                                         onResourceSaveStateChanged={resourceSaveStateChanged}
                                         onLineSaveStateChanged={(lineId, status) => resourceSaveStateChanged(`line:${lineId}`, status)}
+                                        onRunningTotalDraftChange={setAdvancedRunningDraft}
                                     />
                                 </div>
                             </div>
@@ -758,7 +781,7 @@ export default function EstimateClient({
             {/* Running total. In the page flow, so it never sits over a row or a button. */}
             <TotalCard
                 summary={summary}
-                lineDraftPreview={lineDraftPreview}
+                draftPreview={draftPreview}
                 estimate={estimate}
                 lines={lines}
                 state={state.adjustments}
@@ -819,10 +842,10 @@ export default function EstimateClient({
                     <div className={ui.totalDockValues} data-running-total-values>
                         <span>Saved total before VAT</span>
                         <strong data-in-view-contract-sum>{formatGBP(summary.contractSum)}</strong>
-                        {lineDraftPreview ? (
+                        {draftPreview ? (
                             <p data-running-total-draft-preview>
-                                Not saved yet. With your open line edits, the total before VAT would be{" "}
-                                <strong data-in-view-draft-contract-sum>{formatGBP(lineDraftPreview.contractSum)}</strong>.
+                                Not saved yet. With your open edits, the total before VAT would be{" "}
+                                <strong data-in-view-draft-contract-sum>{formatGBP(draftPreview.contractSum)}</strong>.
                             </p>
                         ) : (
                             <p>May include changes not yet confirmed.</p>
@@ -1371,10 +1394,10 @@ function LineForm({
 const ADJUSTMENT_ORDER: AdjustmentKey[] = ["prelims", "overhead", "risk", "profit", "discount"];
 
 function TotalCard({
-    summary, lineDraftPreview, estimate, lines, state, s, onToggle, onChange, onSave,
+    summary, draftPreview, estimate, lines, state, s, onToggle, onChange, onSave,
 }: {
     summary: PriceSummary;
-    lineDraftPreview: PriceSummary | null;
+    draftPreview: PriceSummary | null;
     estimate: Estimate | null;
     lines: EstimateLine[];
     state: {
@@ -1414,12 +1437,12 @@ function TotalCard({
                     <dt className={`text-base font-bold ${s.heading}`}>Saved total before VAT</dt>
                     <dd className={`text-xl font-bold ${s.heading}`} data-contract-sum>{formatGBP(summary.contractSum)}</dd>
                 </div>
-                {lineDraftPreview && (
+                {draftPreview && (
                     <div className={`${row} pt-1`} data-running-total-draft-preview>
                         <dt className={`text-sm ${s.muted}`}>Not saved yet</dt>
                         <dd className={`text-sm font-semibold ${s.body}`}>
-                            With your open line edits, the total before VAT would be{" "}
-                            <strong data-in-view-draft-contract-sum>{formatGBP(lineDraftPreview.contractSum)}</strong>.
+                            With your open edits, the total before VAT would be{" "}
+                            <strong data-in-view-draft-contract-sum>{formatGBP(draftPreview.contractSum)}</strong>.
                         </dd>
                     </div>
                 )}

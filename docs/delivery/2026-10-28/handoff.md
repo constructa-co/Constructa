@@ -52,6 +52,15 @@ still returns null; planning provider/model/budget and Won/privacy policy decisi
 focused tests pass on combined bytes; no 1768-suite rerun. Guarded build and backup receipt:
 `resume1300-a055-integrated-source-backup-20261028.json`.
 
+## CHECKPOINT1400 Green Integration - 28 October 2026
+
+On parent **`693df2a`**, integrate scoped second-wave pins: A054 advanced preview with accepted
+A055-preserving coupling on estimate client, A115 pipeline type-write acknowledgement tests only,
+address pending-create plain-field fix, DashboardRouteShell page test fixtures, and one A008 offline
+scroll-bound choice case. A038 excluded. Generators stay null; no hosted signup or SQL. Retained
+vitest/playwright counts documented in private check receipt; fresh guarded build and backup:
+`checkpoint1400-integrated-source-backup-20261028.json`.
+
 ## Earlier Handoff Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

@@ -69,6 +69,14 @@ export interface PriceLineInput {
     unit_rate: number;
 }
 
+/** Same finite-decimal parse used by Advanced quantity and rate drafts before save. */
+export function parseAdvancedQuantityDraft(raw: string): number | null {
+    const value = raw.trim();
+    if (!/^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(value)) return null;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+}
+
 /** Plain digits with optional decimals. No sign, exponent or hex forms. */
 function parseDecimal(raw: string, maxDecimals: number): number | null {
     const cleaned = raw.trim().replace(/[£,\s]/g, "");
@@ -375,19 +383,21 @@ export function currentSummary(state: EstimatingState): PriceSummary {
 
 type LineTotalRow = Pick<EstimateLine, "trade_section" | "line_total"> & { id: string };
 
-/**
- * If open simple line drafts all validate and none are in-flight, the contract
- * sum after applying them on top of saved lines. Saved lines and totals are
- * never mutated; null means do not show an unconfirmed preview.
- */
-export function previewSummaryWithOpenLineDrafts(state: EstimatingState): PriceSummary | null {
-    if (state.advancedOpen) return null;
-    const estimate = currentEstimate(state);
-    if (!estimate) return null;
+export interface AdvancedRunningTotalDraft {
+    estimateId: string;
+    contextToken: string;
+    lineTotals: Record<string, number>;
+}
 
-    const ops = Object.values(state.ops);
-    if (ops.length === 0 || ops.some((op) => op.status === "saving")) return null;
+export interface PreviewRunningTotalOptions {
+    advanced?: AdvancedRunningTotalDraft | null;
+    /** Must match Advanced catalogueContext when advanced is open. */
+    catalogueContextToken?: string | null;
+    /** Withhold preview when line saves are uncertain or other guarded work is open. */
+    refusePreview?: boolean;
+}
 
+function applySimpleLineOps(estimate: Estimate, ops: LineOp[]): LineTotalRow[] | null {
     let lines: LineTotalRow[] = estimate.estimate_lines.map((line) => ({
         id: line.id,
         trade_section: line.trade_section,
@@ -414,9 +424,83 @@ export function previewSummaryWithOpenLineDrafts(state: EstimatingState): PriceS
         lines = lines.map((line) => (line.id === op.lineId ? { ...line, line_total } : line));
     }
 
+    return lines;
+}
+
+function applyAdvancedLineTotals(lines: LineTotalRow[], advanced: AdvancedRunningTotalDraft): LineTotalRow[] | null {
+    const next: LineTotalRow[] = [];
+    for (const line of lines) {
+        const proposed = advanced.lineTotals[line.id];
+        if (proposed === undefined) {
+            next.push(line);
+            continue;
+        }
+        if (!Number.isFinite(proposed)) return null;
+        next.push({ ...line, line_total: proposed });
+    }
+    return next;
+}
+
+/**
+ * Contract-sum preview from open simple line drafts, Advanced quantity/rate
+ * drafts, and/or unsaved adjustment percentages. Saved lines and percentages
+ * are never mutated; null means do not show an unconfirmed preview.
+ */
+export function previewRunningTotal(state: EstimatingState, options: PreviewRunningTotalOptions = {}): PriceSummary | null {
+    if (options.refusePreview) return null;
+    const estimate = currentEstimate(state);
+    if (!estimate) return null;
+
+    const ops = Object.values(state.ops);
+    if (ops.some((op) => op.status === "saving") || state.adjustments.status === "saving") return null;
+
+    const advanced = options.advanced;
+    if (state.advancedOpen) {
+        if (ops.length > 0) return null;
+        if (!advanced || advanced.estimateId !== estimate.id) return null;
+        if (!options.catalogueContextToken || advanced.contextToken !== options.catalogueContextToken) return null;
+    }
+
+    let lines: LineTotalRow[] = estimate.estimate_lines.map((line) => ({
+        id: line.id,
+        trade_section: line.trade_section,
+        line_total: line.line_total,
+    }));
+
+    if (state.advancedOpen && advanced) {
+        const withAdvanced = applyAdvancedLineTotals(lines, advanced);
+        if (!withAdvanced) return null;
+        lines = withAdvanced;
+    } else if (ops.length > 0) {
+        const withOps = applySimpleLineOps(estimate, ops);
+        if (!withOps) return null;
+        lines = withOps;
+    }
+
+    const hasLineDraft = state.advancedOpen
+        ? !!advanced && Object.keys(advanced.lineTotals).length > 0
+        : ops.length > 0;
+    const hasAdjustmentsDraft = state.adjustments.draft !== null;
+
+    if (!hasLineDraft && !hasAdjustmentsDraft) return null;
+
+    let estimateForSummary: Estimate = estimate;
+    if (hasAdjustmentsDraft) {
+        const built = buildAdjustments(state.adjustments.draft!);
+        if (!built.ok) return null;
+        estimateForSummary = { ...estimate, ...built.input };
+    }
+
     const saved = summarisePrice(estimate, estimate.estimate_lines);
-    const preview = summarisePrice(estimate, lines);
+    const preview = summarisePrice(estimateForSummary, lines);
     return preview.contractSum === saved.contractSum ? null : preview;
+}
+
+/**
+ * Simple line drafts only. Prefer {@link previewRunningTotal} for the full dock.
+ */
+export function previewSummaryWithOpenLineDrafts(state: EstimatingState): PriceSummary | null {
+    return previewRunningTotal(state);
 }
 
 export type EstimatingAction =

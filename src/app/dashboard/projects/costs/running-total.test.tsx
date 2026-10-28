@@ -85,4 +85,14 @@ describe("in-view estimate total", () => {
         expect(html).not.toContain("data-in-view-draft-contract-sum");
         expect(html).toContain("May include changes not yet confirmed.");
     });
+
+    it("labels a valid unsaved adjustment draft in the dock without changing saved contract sums", () => {
+        let state = savedState();
+        state = estimatingReducer(state, { type: "adjustments/change", patch: { overhead: "10", profit: "15" } });
+        const html = markup(state);
+        expect(html.match(/data-in-view-contract-sum[^>]*>([^<]+)/)?.[1]).toBe("£1,100.00");
+        expect(html.match(/data-contract-sum[^>]*>([^<]+)/)?.[1]).toBe("£1,100.00");
+        expect(html.match(/data-in-view-draft-contract-sum[^>]*>([^<]+)/)?.[1]).toBe("£1,391.50");
+        expect(html).toContain("data-running-total-draft-preview");
+    });
 });

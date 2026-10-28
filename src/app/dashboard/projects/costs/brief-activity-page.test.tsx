@@ -7,6 +7,7 @@ vi.mock("@/lib/case-library/gate", () => ({ caseLibraryEnabled: () => false }));
 vi.mock("next/navigation", () => ({ redirect: (route: string) => { throw Error("REDIRECT:" + route); } }));
 vi.mock("@/components/project-navbar", () => ({ default: () => null }));
 vi.mock("./estimate-client", () => ({ default: () => null }));
+import { dashboardRouteShellBody } from "@/lib/__fixtures__/dashboard-route-shell-page";
 import EstimatingPage from "./page";
 
 let db: ReturnType<typeof fakeSupabase>;
@@ -27,7 +28,7 @@ beforeEach(() => {
 describe("saved Brief activity source on the actual pricing page", () => {
     it("passes the current job's exact saved names using the same project read", async () => {
         const result = await EstimatingPage({ searchParams: Promise.resolve({ projectId: "a" }) });
-        const project = result.props.children[1].props.project;
+        const project = dashboardRouteShellBody(result).props.project;
         expect(project.brief_trade_sections).toEqual(["Protect kitchen", "Strip out cupboards"]);
         expect(project.brief_scope).toBe("Saved work");
         expect(projections).toHaveLength(2);
@@ -39,8 +40,8 @@ describe("saved Brief activity source on the actual pricing page", () => {
     it("does not carry another job's Brief names when switching resolved jobs", async () => {
         const first = await EstimatingPage({ searchParams: Promise.resolve({ projectId: "a" }) });
         const second = await EstimatingPage({ searchParams: Promise.resolve({ projectId: "b" }) });
-        expect(first.props.children[1].key).toBe("a"); expect(second.props.children[1].key).toBe("b");
-        expect(second.props.children[1].props.project.brief_trade_sections).toEqual(["Roof repairs"]);
+        expect(dashboardRouteShellBody(first).key).toBe("a"); expect(dashboardRouteShellBody(second).key).toBe("b");
+        expect(dashboardRouteShellBody(second).props.project.brief_trade_sections).toEqual(["Roof repairs"]);
         expect(db.updates).toEqual([]);
     });
 
@@ -54,7 +55,7 @@ describe("saved Brief activity source on the actual pricing page", () => {
     it.each([null, undefined])("keeps missing Brief names %j as an empty suggestion source", async value => {
         db.tables.projects[0].brief_trade_sections = value;
         const result = await EstimatingPage({ searchParams: Promise.resolve({ projectId: "a" }) });
-        expect(result.props.children[1].props.project.brief_trade_sections).toEqual([]);
+        expect(dashboardRouteShellBody(result).props.project.brief_trade_sections).toEqual([]);
         expect(db.updates).toEqual([]);
     });
 });

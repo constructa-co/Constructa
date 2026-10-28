@@ -1,6 +1,9 @@
-import type { FormEvent, ReactElement, ReactNode } from "react";
+import type { ComponentProps, FormEvent, ReactElement, ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import JobAddressField from "@/components/job-address-field";
+import ManualAddressEntry from "@/components/manual-address-entry";
+import PostcodeAddressPicker from "@/components/postcode-address-picker";
 
 const hooks = vi.hoisted(() => ({
     states: [] as unknown[], refs: [] as Array<{ current: unknown }>, stateIndex: 0, refIndex: 0,
@@ -19,6 +22,9 @@ vi.mock("react", async importOriginal => ({
         const index = hooks.refIndex++;
         return hooks.refs[index] ?? (hooks.refs[index] = { current: initial });
     },
+    useEffect: (fn: () => void | (() => void)) => {
+        fn();
+    },
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: hooks.push }) }));
 vi.mock("@/lib/theme-context", () => ({ useTheme: () => ({ theme: "dark" }) }));
@@ -34,16 +40,44 @@ type Node = ReactElement<{
     onClick?: () => void; onChange?: (event: { target: { value: string } }) => void;
     onSubmit?: (event: FormEvent) => void;
 }>;
+
+function mountTree(value: ReactNode): ReactNode {
+    if (Array.isArray(value)) return value.map(mountTree);
+    if (!value || typeof value !== "object" || !("props" in value)) return value;
+    const node = value as ReactElement<{ children?: ReactNode }>;
+    if (node.type === JobAddressField) {
+        return mountTree(JobAddressField(node.props as ComponentProps<typeof JobAddressField>));
+    }
+    if (node.type === PostcodeAddressPicker) {
+        return mountTree(PostcodeAddressPicker(node.props as ComponentProps<typeof PostcodeAddressPicker>));
+    }
+    if (node.type === ManualAddressEntry) {
+        return mountTree(ManualAddressEntry(node.props as ComponentProps<typeof ManualAddressEntry>));
+    }
+    return { ...node, props: { ...node.props, children: mountTree(node.props.children) } };
+}
+
 function nodes(value: ReactNode): Node[] {
     if (Array.isArray(value)) return value.flatMap(nodes);
     if (!value || typeof value !== "object" || !("props" in value)) return [];
-    const node = value as Node;
-    return [node, ...nodes(node.props.children)];
+    const node = value as ReactElement<{ children?: ReactNode }>;
+    if (node.type === JobAddressField) {
+        return nodes(JobAddressField(node.props as ComponentProps<typeof JobAddressField>));
+    }
+    if (node.type === PostcodeAddressPicker) {
+        return nodes(PostcodeAddressPicker(node.props as ComponentProps<typeof PostcodeAddressPicker>));
+    }
+    if (node.type === ManualAddressEntry) {
+        return nodes(ManualAddressEntry(node.props as ComponentProps<typeof ManualAddressEntry>));
+    }
+    return [node as Node, ...nodes(node.props.children)];
 }
+
 function render() {
     hooks.stateIndex = 0; hooks.refIndex = 0;
     return NewProjectForm({ isFirstProject: true });
 }
+
 function formStateIndex() {
     const index = hooks.states.findIndex(
         s => s && typeof s === "object" && "siteAddress" in s && "clientAddress" in s,
@@ -51,15 +85,16 @@ function formStateIndex() {
     if (index === -1) throw new Error("blank project form state not found");
     return index;
 }
+
 function edit(name: string, value: string) {
-    const node = nodes(render()).find(n => n.props.id === `new-project-${name}`);
-    if (node?.props.onChange) {
-        node.props.onChange({ target: { value } });
-        return;
+    const id = `new-project-${name}`;
+    const node = nodes(render()).find(n => n.props.id === id);
+    if (!node?.props.onChange) {
+        throw new Error(`editable node not found for ${name} (${id})`);
     }
-    const index = formStateIndex();
-    hooks.states[index] = { ...(hooks.states[index] as BlankProjectForm), [name]: value };
+    node.props.onChange({ target: { value } });
 }
+
 function warns() { render(); return hooks.guard.mock.calls.at(-1)?.[0]; }
 function submit() {
     nodes(render()).find(n => n.type === "form")!.props.onSubmit!({ preventDefault: vi.fn() } as unknown as FormEvent);
@@ -72,6 +107,7 @@ function inFlightRef() {
     if (!ref) throw new Error("inFlightRef mock ref not found");
     return ref;
 }
+
 const OPTIONAL_MORE_FIELDS = new Set([
     "clientEmail", "clientPhone", "clientAddress", "siteAddress", "projectType", "startDate",
 ]);
@@ -86,7 +122,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe("new job unsaved-entry boundary", () => {
     it("offers editable job wording with optional examples rather than requiring a dropdown choice", () => {
         nodes(render()).find(n => n.type === "button" && n.props.onClick)!.props.onClick!();
-        const html = renderToStaticMarkup(render());
+        const html = renderToStaticMarkup(mountTree(render()) as ReactElement);
         expect(html).toMatch(/<input[^>]*id="new-project-projectType"[^>]*list="new-project-type-examples"/);
         expect(html).not.toMatch(/<select[^>]*id="new-project-projectType"/);
         expect(html).toContain('placeholder="Not sure yet"');
@@ -115,7 +151,7 @@ describe("new job unsaved-entry boundary", () => {
         submit();
         expect(hooks.create).not.toHaveBeenCalled();
         expect(nodes(render()).find(n => n.props.id === "new-project-projectType")!.props.value).toBe("x".repeat(101));
-        expect(renderToStaticMarkup(render())).toContain("That job type is too long.");
+        expect(renderToStaticMarkup(mountTree(render()) as ReactElement)).toContain("That job type is too long.");
     });
 
     it("leaves a blank form clean", () => { expect(warns()).toBe(false); });
@@ -123,7 +159,7 @@ describe("new job unsaved-entry boundary", () => {
     it("offers no rough-value entry, keeping the existing blank creation default", async () => {
         nodes(render()).find(n => n.type === "button" && n.props.onClick)!.props.onClick!();
         expect(nodes(render()).find(n => n.props.id === "new-project-potentialValue")).toBeUndefined();
-        expect(renderToStaticMarkup(render())).not.toContain("Rough value");
+        expect(renderToStaticMarkup(mountTree(render()) as ReactElement)).not.toContain("Rough value");
         edit("name", "Local job"); edit("client", "Synthetic client");
         hooks.create.mockResolvedValueOnce({ success: true, projectId: "default-job" });
         submit();
@@ -163,20 +199,26 @@ describe("new job unsaved-entry boundary", () => {
     });
 
     it("explains the submitted snapshot while pending without locking or discarding later typing", async () => {
-        expect(renderToStaticMarkup(render())).not.toContain("data-job-pending-help");
+        expect(renderToStaticMarkup(mountTree(render()) as ReactElement)).not.toContain("data-job-pending-help");
         nodes(render()).find(n => n.type === "button" && n.props.onClick)!.props.onClick!();
         edit("name", "Submitted local job"); edit("client", "Synthetic client");
         let finish!: (result: { success: false; error: string }) => void;
         hooks.create.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
         submit();
-        const html = renderToStaticMarkup(render());
+        const html = renderToStaticMarkup(mountTree(render()) as ReactElement);
         expect(html).toContain('role="status"');
         expect(html).toContain("Creating from the details you submitted.");
         expect(html).toContain("Changes typed while this is in progress are not included in that request.");
         for (const name of Object.keys(EMPTY_BLANK_PROJECT_FORM).filter(name => name !== "potentialValue")) {
-            if (name === "clientAddress" || name === "siteAddress") continue;
-            expect(nodes(render()).find(n => n.props.id === `new-project-${name}`)!.props.disabled).not.toBe(true);
+            const id = `new-project-${name}`;
+            const field = nodes(render()).find(n => n.props.id === id);
+            if (!field) continue;
+            expect(field.props.disabled, `${name} plain field should stay editable while create is pending`).not.toBe(true);
         }
+        expect(nodes(render()).find(n => n.props.id === "new-project-site-picker-find")!.props.disabled).toBe(true);
+        expect(nodes(render()).find(n => n.props.id === "new-project-client-picker-find")!.props.disabled).toBe(true);
+        expect(nodes(render()).find(n => n.props.id === "new-project-site-manual-use")!.props.disabled).toBe(true);
+        expect(nodes(render()).find(n => n.props.id === "new-project-client-manual-use")!.props.disabled).toBe(true);
         edit("name", "Later local name"); edit("siteAddress", "Later synthetic site");
         const sent = hooks.create.mock.calls[0][0] as FormData;
         expect(sent.get("name")).toBe("Submitted local job");
@@ -186,8 +228,9 @@ describe("new job unsaved-entry boundary", () => {
         expect(warns()).toBe(true);
         finish({ success: false, error: "Unconfirmed" });
         await vi.waitFor(() => expect(inFlightRef().current).toBe(false));
-        expect(renderToStaticMarkup(render())).not.toContain("data-job-pending-help");
+        expect(renderToStaticMarkup(mountTree(render()) as ReactElement)).not.toContain("data-job-pending-help");
         expect(nodes(render()).find(n => n.props.id === "new-project-name")!.props.value).toBe("Later local name");
+        expect(nodes(render()).find(n => n.props.id === "new-project-siteAddress")!.props.value).toBe("Later synthetic site");
         expect((hooks.states[formStateIndex()] as BlankProjectForm).siteAddress).toBe("Later synthetic site");
         expect(hooks.push).not.toHaveBeenCalled();
     });
@@ -207,7 +250,7 @@ describe("new job unsaved-entry boundary", () => {
         hooks.create.mockRejectedValueOnce(Error("Reply lost"));
         submit();
         await vi.waitFor(() => expect(inFlightRef().current).toBe(false));
-        const html = renderToStaticMarkup(render());
+        const html = renderToStaticMarkup(mountTree(render()) as ReactElement);
         expect(html).toContain("A missing reply does not prove whether a project was created.");
         expect(html).toContain("Try again uses the same request.");
         expect(html).toContain("changes you made here afterwards are not applied to it.");
@@ -222,12 +265,12 @@ describe("new job unsaved-entry boundary", () => {
     });
 
     it("does not present the unknown-reply explanation for a different returned error", async () => {
-        expect(renderToStaticMarkup(render())).not.toContain("Try again uses the same request.");
+        expect(renderToStaticMarkup(mountTree(render()) as ReactElement)).not.toContain("Try again uses the same request.");
         edit("name", "Local job"); edit("client", "Synthetic client");
         hooks.create.mockResolvedValueOnce({ success: false, error: "This action is not available." });
         submit();
         await vi.waitFor(() => expect(inFlightRef().current).toBe(false));
-        const html = renderToStaticMarkup(render());
+        const html = renderToStaticMarkup(mountTree(render()) as ReactElement);
         expect(html).toContain("This action is not available.");
         expect(html).not.toContain("Try again uses the same request.");
     });

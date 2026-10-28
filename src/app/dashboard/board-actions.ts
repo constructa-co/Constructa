@@ -34,6 +34,31 @@ async function confirmedStageWrite(
     return { success: true };
 }
 
+async function confirmedProjectTypeWrite(
+    projectId: string,
+    projectType: string | null,
+    paths: string[],
+): Promise<PipelineMutationResult> {
+    try {
+        const { user, supabase } = await requireAuth();
+        const { data, error } = await supabase
+            .from("projects")
+            .update({ project_type: projectType })
+            .eq("id", projectId)
+            .eq("user_id", user.id)
+            .select("id, project_type")
+            .single();
+        if (error || !data || data.id !== projectId || data.project_type !== projectType) {
+            return { success: false, error: PIPELINE_CHANGE_UNCONFIRMED };
+        }
+    } catch {
+        return { success: false, error: PIPELINE_CHANGE_UNCONFIRMED };
+    }
+    try { paths.forEach(path => revalidatePath(path)); }
+    catch { return { success: true, warning: PIPELINE_REFRESH_UNCONFIRMED }; }
+    return { success: true };
+}
+
 export async function updateStatusAction(projectId: string, newStatus: string): Promise<PipelineMutationResult> {
     if (!VALID_STATUSES.includes(newStatus)) {
         return { success: false, error: "Invalid status" };
@@ -49,15 +74,9 @@ export async function markAsWonAction(projectId: string): Promise<PipelineMutati
         }, ["/dashboard", "/dashboard/live", "/dashboard/projects/p-and-l"]);
 }
 
-export async function updateTypeAction(formData: FormData) {
-    const { user, supabase } = await requireAuth();
+export async function updateTypeAction(formData: FormData): Promise<PipelineMutationResult> {
     const id = formData.get("id") as string;
-    const newType = formData.get("type") as string;
-
-    await supabase
-        .from("projects")
-        .update({ project_type: newType })
-        .eq("id", id)
-        .eq("user_id", user.id);
-    revalidatePath("/dashboard");
+    const rawType = formData.get("type");
+    const newType = typeof rawType === "string" ? rawType : null;
+    return confirmedProjectTypeWrite(id, newType, ["/dashboard"]);
 }

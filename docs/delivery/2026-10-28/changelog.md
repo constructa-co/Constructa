@@ -45,6 +45,16 @@
   guarded build + backup `resume1300-a055-integrated-source-backup-20261028.json`. **A055 Partial**
   unchanged; 66C/32P/19N/1B unchanged.
 
+## CHECKPOINT1400 Green Integration - 28 October 2026
+
+- Parent **`693df2a`**: integrate **A054** `47dc5d00` advanced running-total preview (coupling on
+  `estimate-client.tsx` preserves prior Claude **A055** transport; parent-accepted 21-line delta),
+  **A115** type-ack only `afaac1d..9bba165`, **address P2** `d7821ce`, **cf0608b** page fixture repair,
+  **A008** one scroll-bound offline case `195976`. **Excluded:** A038; no provider activation.
+- Retained focused passes (not rerun for volume): page fixtures **15**, A054 **52**, board-actions **26**,
+  unsaved-entry **23**, A008 one case **1** (Mac); no A055 **50** / **1768** rerun.
+- Receipt `checkpoint1400-integrated-source-backup-20261028.json`. Statuses Partial unchanged.
+
 ## Earlier Changelog Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

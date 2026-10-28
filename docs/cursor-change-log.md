@@ -1,5 +1,16 @@
 # Cursor change log
 
+## 2026-10-28 — A001 brand actions on company profile (Composer, codex/a001-brand-actions-20261028)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `src/lib/core-editing-palette.ts` | `coreProfileField`, `coreProfileTextarea`, `coreFormAccent`, secondary link + save/suggestion classes | Reuse approved sage/emerald focus and primary pair for P1 profile controls |
+| `src/app/dashboard/settings/profile/profile-form.tsx` | Replace inline blue rings/buttons/links with palette tokens; save defers to `company-profile.module.css` sage bar | Fix business_type and remaining profile form brand-action conflict at 25fc |
+| `src/app/dashboard/settings/profile/import/import-client.tsx` | `coreFormAccent` on permission/field checkboxes | Align website-import profile path with same accent token |
+| `*.brand-actions.test.ts`, `core-editing-palette.test.ts` | Source/token guards | RED-at-25fc: `focus:ring-blue-600`, `bg-blue-600`, `accent-blue-600` on profile/import |
+
+**Preserved (not edited):** PDF theme swatch hexes, violet AI suggestion panels, KPI/metric/status/trade/Gantt semantic colours elsewhere; SidebarNav typography; `phase-one.module.css`; A111 fixture; `profile-setup-navigation.test.tsx`.
+
 ## 2026-10-28 — CHECKPOINT1800 A031 literal discovery (Claude 72122a6)
 
 | File | Change | Intent |

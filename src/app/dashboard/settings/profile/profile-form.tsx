@@ -12,6 +12,14 @@ import { attemptProfileSave, profileFormSignature, PROFILE_LEAVE_WARNING, PROFIL
 import { Upload, Loader2, Sparkles } from "lucide-react";
 import { literalNameMatches } from "@/lib/trade-literal-match";
 import ui from "@/components/company-profile.module.css";
+import {
+    coreFormAccent,
+    coreProfileField,
+    coreProfileSaveSubmit,
+    coreProfileSecondaryLink,
+    coreProfileTextarea,
+    coreSuggestionPrimary,
+} from "@/lib/core-editing-palette";
 
 interface Profile {
     full_name?: string | null;
@@ -118,7 +126,7 @@ function ProfileSuggestion({ id, suggestion, onUse, onDiscard }: {
             <p className="text-xs font-semibold text-violet-200">Suggested wording. Check it says only what you wrote. Nothing changes unless you use it.</p>
             <p className="text-sm text-slate-100 whitespace-pre-wrap break-words">{suggestion}</p>
             <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={onUse} className="min-h-11 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-sm font-semibold text-white">Use this wording</button>
+                <button type="button" onClick={onUse} className={coreSuggestionPrimary}>Use this wording</button>
                 <button type="button" onClick={onDiscard} className="min-h-11 px-3 rounded-lg border border-slate-600 text-sm font-semibold text-slate-200 hover:bg-white/5">Keep my own</button>
             </div>
         </div>
@@ -378,7 +386,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                             id="company-company_name"
                             name="company_name"
                             defaultValue={profile?.company_name || ""}
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className={coreProfileField}
                             placeholder="Apex Construction Ltd"
                             required
                         />
@@ -393,7 +401,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                             onChange={event => setWorkDescription(event.target.value)}
                             maxLength={SETUP_LIMITS.businessType}
                             placeholder="e.g. Kitchen and bathroom fitting, tiling and small extensions"
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className={coreProfileField}
                         />
                     </div>
                     <div className="space-y-1.5">
@@ -402,7 +410,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                             id="company-company_number"
                             name="company_number"
                             defaultValue={profile?.company_number || ""}
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className={coreProfileField}
                             placeholder="12345678"
                         />
                     </div>
@@ -412,7 +420,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                             id="company-vat_number"
                             name="vat_number"
                             defaultValue={profile?.vat_number || ""}
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className={coreProfileField}
                             placeholder="GB 123 4567 89"
                         />
                     </div>
@@ -422,7 +430,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                             id="company-address"
                             name="address"
                             defaultValue={profile?.address || ""}
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className={coreProfileField}
                             placeholder="123 High Street, London, SW1A 1AA"
                         />
                     </div>
@@ -432,7 +440,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                             id="company-website"
                             name="website"
                             defaultValue={profile?.website || ""}
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className={coreProfileField}
                             placeholder="https://www.example.co.uk"
                         />
                     </div>
@@ -444,7 +452,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                             type="number"
                             min={0}
                             defaultValue={profile?.years_trading ?? ""}
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className={coreProfileField}
                             placeholder="15"
                         />
                     </div>
@@ -454,7 +462,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                             id="company-financial_year_start_month"
                             name="financial_year_start_month"
                             defaultValue={profile?.financial_year_start_month ?? 4}
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className={coreProfileField}
                         >
                             {[
                                 [1, "January"], [2, "February"], [3, "March"], [4, "April"],
@@ -475,7 +483,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                             name="insurance_details"
                         defaultValue={profile?.insurance_details || ""}
                         rows={2}
-                        className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        className={coreProfileTextarea}
                         placeholder="Public Liability: £5M, Employer's Liability: £10M"
                     />
                 </div>
@@ -486,7 +494,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                         id="company-accreditations"
                             name="accreditations"
                         defaultValue={profile?.accreditations || ""}
-                        className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        className={coreProfileField}
                         placeholder="CITB, FMB Member, NHBC Registered"
                     />
                 </div>
@@ -560,7 +568,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                         id="company-specialisms"
                             name="specialisms"
                         defaultValue={profile?.specialisms || ""}
-                        className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        className={coreProfileField}
                         placeholder="Brickwork, Extensions, Groundworks"
                     />
                     <p className="text-xs text-slate-500">Comma-separated list of your key trades/specialisms</p>
@@ -587,7 +595,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                         value={capabilityStatement}
                         onChange={(e) => setCapabilityStatement(e.target.value)}
                         rows={5}
-                        className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        className={coreProfileTextarea}
                         placeholder="We are a family-run business with over 20 years of experience in residential and commercial construction across the South East..."
                     />
                     <ProfileSuggestion id="capability-suggestion" suggestion={capabilitySuggestion}
@@ -610,7 +618,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                             id="company-full_name"
                             name="full_name"
                             defaultValue={profile?.full_name || ""}
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className={coreProfileField}
                             placeholder="John Smith"
                         />
                     </div>
@@ -629,7 +637,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                             id="company-phone"
                             name="phone"
                             defaultValue={profile?.phone || ""}
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className={coreProfileField}
                             placeholder="07700 900123"
                         />
                     </div>
@@ -640,7 +648,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                             name="sales_email"
                             type="email"
                             defaultValue={profile?.sales_email || ""}
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className={coreProfileField}
                             placeholder="sales@example.co.uk"
                         />
                     </div>
@@ -650,7 +658,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                             id="company-sales_phone"
                             name="sales_phone"
                             defaultValue={profile?.sales_phone || ""}
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className={coreProfileField}
                             placeholder="07700 900456"
                         />
                     </div>
@@ -661,7 +669,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                             name="accounts_email"
                             type="email"
                             defaultValue={profile?.accounts_email || ""}
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className={coreProfileField}
                             placeholder="accounts@example.co.uk"
                         />
                     </div>
@@ -718,7 +726,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                             id="company-md_name"
                             name="md_name"
                             defaultValue={profile?.md_name || ""}
-                            className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className={coreProfileField}
                             placeholder="John Smith, Managing Director"
                         />
                     </div>
@@ -744,7 +752,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                         value={mdMessage}
                         onChange={(e) => setMdMessage(e.target.value)}
                         rows={4}
-                        className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        className={coreProfileTextarea}
                         placeholder="Thank you for considering us for this project. We pride ourselves on delivering quality work on time and within budget..."
                     />
                     <ProfileSuggestion id="md-message-suggestion" suggestion={mdMessageSuggestion}
@@ -767,7 +775,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                         name="data_consent"
                         value="true"
                         defaultChecked={profile?.data_consent ?? false}
-                        className="mt-0.5 w-4 h-4 rounded accent-blue-600"
+                        className={`mt-0.5 w-4 h-4 rounded ${coreFormAccent}`}
                     />
                     <span className="text-sm text-slate-300 group-hover:text-white transition-colors">
                         I consent to contributing anonymised benchmark data from my archived projects
@@ -788,7 +796,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                 </p>
                 <Link
                     href={CASE_STUDIES_PATH}
-                    className="inline-flex items-center min-h-11 px-4 rounded-lg border border-blue-400 text-sm font-semibold text-blue-200 hover:bg-blue-900/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    className={coreProfileSecondaryLink}
                 >
                     Go to case studies
                 </Link>
@@ -803,7 +811,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                 <button
                     type="submit"
                     disabled={saving}
-                    className="w-full h-14 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-xl font-bold text-lg transition-all active:scale-[0.98]"
+                    className={coreProfileSaveSubmit}
                 >
                     {saving ? "Saving..." : "Save Company Profile"}
                 </button>

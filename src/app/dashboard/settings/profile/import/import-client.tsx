@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, Check, Loader2 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
+import { coreFormAccent } from "@/lib/core-editing-palette";
 import { workspaceStyles } from "@/lib/workspace-styles";
 import { PROFILE_PATH, PROPOSAL_READINESS_PATH } from "@/lib/first-session";
 import {
@@ -186,7 +187,7 @@ export default function ImportClient({
                             checked={chosen.includes(item.field)}
                             onChange={() => toggle(item.field)}
                             disabled={busy !== "idle"}
-                            className="w-6 h-6 flex-shrink-0 accent-blue-600"
+                            className={`w-6 h-6 flex-shrink-0 ${coreFormAccent}`}
                         />
                         {item.existing ? `Replace my ${spec.label.toLowerCase()} with this` : `Use this as my ${spec.label.toLowerCase()}`}
                     </label>
@@ -229,7 +230,7 @@ export default function ImportClient({
                             checked={permission}
                             onChange={(event) => { setPermission(event.target.checked); setCheckError(null); }}
                             disabled={busy !== "idle"}
-                            className="mt-0.5 w-6 h-6 flex-shrink-0 accent-blue-600"
+                            className={`mt-0.5 w-6 h-6 flex-shrink-0 ${coreFormAccent}`}
                         />
                         <span>This is my own business&apos;s website, and I&apos;m happy for Constructa to read it to suggest details for my profile.</span>
                     </label>

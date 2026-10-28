@@ -40,9 +40,16 @@ describe("in-view estimate total", () => {
         expect(dock).toContain("Total before VAT");
         expect(dock).toContain("May include changes not yet confirmed.");
         expect(dock).toMatch(/<details[^>]*open[^>]*data-running-total-disclosure/);
-        expect(dock).toMatch(/<summary[^>]*>Estimate total<\/summary>/);
+        expect(dock).toMatch(/<summary[^>]*>[\s\S]*Estimate total[\s\S]*data-in-view-contract-sum[^>]*>£1,100\.00[\s\S]*<\/summary>/);
         expect(dock).toMatch(/<div[^>]*data-running-total-values[\s\S]*Total before VAT[\s\S]*May include changes not yet confirmed\.[\s\S]*<\/div>\s*<\/details>/);
         expect(dock).not.toMatch(/<button|<input|<a /);
+    });
+
+    it("keeps the same contract sum on the summary and in the expanded panel", () => {
+        const html = markup(savedState());
+        const dock = html.match(/<aside[^>]*data-running-total[\s\S]*?<\/aside>/)?.[0] ?? "";
+        const amounts = [...dock.matchAll(/data-in-view-contract-sum[^>]*>([^<]+)/g)].map((m) => m[1]);
+        expect(amounts).toEqual(["£1,100.00", "£1,100.00"]);
     });
 
     it("does not add an unsaved simple line draft to either summary", () => {

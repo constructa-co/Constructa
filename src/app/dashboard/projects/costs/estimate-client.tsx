@@ -798,7 +798,10 @@ export default function EstimateClient({
 
             <aside className={ui.totalDock} aria-label="Estimate total kept in view" data-running-total>
                 <details open data-running-total-disclosure>
-                    <summary className={ui.totalDockToggle}>Estimate total</summary>
+                    <summary className={ui.totalDockToggle}>
+                        Estimate total
+                        <strong className={ui.totalDockFoldedSum} data-in-view-contract-sum>{formatGBP(summary.contractSum)}</strong>
+                    </summary>
                     <div className={ui.totalDockValues} data-running-total-values>
                         <span>Total before VAT</span>
                         <strong data-in-view-contract-sum>{formatGBP(summary.contractSum)}</strong>

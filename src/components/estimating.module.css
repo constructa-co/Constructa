@@ -51,8 +51,11 @@
     color: var(--price-accent-text);
     box-shadow: 0 -8px 24px #0002;
 }
-.totalDockToggle { min-height: 44px; box-sizing: border-box; padding-block: 10px; font-size: 14px; line-height: 24px; font-weight: 700; cursor: pointer; }
+.totalDockToggle { min-height: 44px; box-sizing: border-box; padding-block: 10px; font-size: 14px; line-height: 24px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.totalDockToggle::-webkit-details-marker { display: none; }
 .totalDockToggle:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 4px; }
+.totalDockFoldedSum { font-size: 22px; line-height: 1.2; white-space: nowrap; font-weight: 700; }
+.totalDock details[open] .totalDockFoldedSum { display: none; }
 .totalDockValues { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; }
 .totalDockValues > span { font-size: 14px; font-weight: 700; }
 .totalDockValues > strong { font-size: 22px; line-height: 1.2; white-space: nowrap; }

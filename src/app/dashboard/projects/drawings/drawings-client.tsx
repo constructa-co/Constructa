@@ -18,6 +18,7 @@ import {
 import type { DrawingExtraction, DrawingResultItem } from "./actions";
 import { analyzeDrawingPagesAction, addItemsToEstimateAction } from "./actions";
 import DrawingViewer from "./drawing-viewer";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -259,7 +260,7 @@ function ExtractionResultsPanel({
                 <button
                     onClick={handleAddToEstimate}
                     disabled={adding || selected.size === 0}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                    className={`flex items-center gap-2 px-4 py-2 ${corePrimaryButton} ${coreFocusVisibleRing} disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium rounded-lg transition-colors`}
                 >
                     {adding ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -373,7 +374,7 @@ function DrawingRegister({
                                             <button
                                                 onClick={() => handleQuickAdd(ex)}
                                                 disabled={addingFor === ex.id}
-                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/80 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors"
+                                                className={`flex items-center gap-1.5 px-3 py-1.5 ${corePrimaryButton} ${coreFocusVisibleRing} disabled:opacity-50 text-xs font-medium rounded-lg transition-colors`}
                                             >
                                                 {addingFor === ex.id ? (
                                                     <Loader2 className="w-3 h-3 animate-spin" />

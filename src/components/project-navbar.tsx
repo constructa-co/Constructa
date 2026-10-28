@@ -43,7 +43,11 @@ export default function ProjectNavBar({ projectId, projectName, activeTab }: Pro
       </nav>
     );
   }
-  const activeCls = isDark ? "border-blue-500 text-white" : "border-blue-600 text-gray-900";
+  const activeCls = isDark ? "border-[#c9efcf] text-white" : "border-emerald-700 text-gray-900";
+  // Same brand focus outline as the cohort breadcrumb link above.
+  const focusCls = isDark
+    ? "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c9efcf]"
+    : "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700";
   const idleCls = isDark
     ? "border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600"
     : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-400";
@@ -65,7 +69,7 @@ export default function ProjectNavBar({ projectId, projectName, activeTab }: Pro
           return (
             <Link key={key} href={href(projectId)}
               aria-current={isActive ? "page" : undefined}
-              className={`flex items-center gap-2 min-h-11 px-4 sm:px-5 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-2 min-h-11 px-4 sm:px-5 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${focusCls} ${
                 isActive ? activeCls : idleCls
               }`}>
               <Icon className="w-4 h-4" />

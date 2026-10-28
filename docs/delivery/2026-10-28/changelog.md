@@ -1,3 +1,28 @@
+## DAY28 Page fixture repair (DashboardRouteShell) - 28 October 2026
+
+- Branch `codex/day28-page-fixture-repair-20261028` from `ebf6a81e33644aa1a80682f908d2a21ce4250231`.
+- **Root cause (tests only):** cohort workflow pages now mount editors inside
+  `DashboardRouteShell` (`header` + single `children` body). Four page tests still
+  read `page.props.children[1]` from the pre-shell fragment layout, so the editor
+  was `undefined` and assertions failed (`props` / `key`).
+- **New fixture:** `src/lib/__fixtures__/dashboard-route-shell-page.ts` (lines 1–30)
+  — `dashboardRouteShellBody` / `dashboardRouteShellHeader` assert shell root type
+  and return the real body/header elements; `dashboard-route-shell-page.test.ts`
+  (lines 1–22) smoke-checks traversal.
+- **Tests updated (traversal only, assertions preserved):**
+  - `src/app/dashboard/projects/costs/page.test.ts` — `editor()` line ~18 uses
+    `dashboardRouteShellBody(page)` instead of `children[1]`.
+  - `src/app/dashboard/projects/schedule/page.test.ts` — same ~line 19.
+  - `src/app/dashboard/projects/costs/brief-activity-page.test.tsx` — lines ~31,
+    ~43–44, ~58: body helper for project/key/brief_trade_sections reads.
+  - `src/app/dashboard/projects/costs/experience-page.test.tsx` — lines ~22, ~34:
+    body helper for `project.experience`.
+- **No product changes.** `ProjectEntry` / guard paths unchanged (`entry.props.path`,
+  `projects`, db logs, read-only checks retained).
+- **Focused verification (Node 24.19):** vitest 5 files 15/15 PASS (baseline 10
+  FAIL / 4 PASS on same files); eslint direct on touched sources 0 errors; `tsc
+  --noEmit` 0 errors.
+
 # DAY28 First Green Integration - 28 October 2026
 
 - Integrate accepted product pins only: A001 core editing palette (`5aa12e6`),

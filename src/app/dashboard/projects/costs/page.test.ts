@@ -7,6 +7,7 @@ vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw Error(`N
 vi.mock("@/components/project-navbar", () => ({ default: () => null }));
 vi.mock("./estimate-client", () => ({ default: () => null }));
 
+import { dashboardRouteShellBody } from "@/lib/__fixtures__/dashboard-route-shell-page";
 import EstimatingPage from "./page";
 
 const projects = [{ id: "job-a", name: "First job" }, { id: "job-b", name: "Empty job" }];
@@ -14,7 +15,7 @@ const saved = { id: "estimate-a", project_id: "job-a", estimate_lines: [{ id: "l
 
 async function editor(projectId?: string) {
     const page = await EstimatingPage({ searchParams: Promise.resolve({ projectId }) });
-    return page.props.children[1];
+    return dashboardRouteShellBody(page);
 }
 
 describe("estimating project identity boundary", () => {

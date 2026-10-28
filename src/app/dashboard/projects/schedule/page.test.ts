@@ -6,6 +6,7 @@ vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw Error(`N
 vi.mock("@/components/project-navbar", () => ({ default: () => null }));
 vi.mock("./simple-programme-client", () => ({ default: () => null }));
 
+import { dashboardRouteShellBody } from "@/lib/__fixtures__/dashboard-route-shell-page";
 import SchedulePage from "./page";
 
 const projects = [
@@ -16,7 +17,7 @@ const estimate = { id: "estimate-a", is_active: true, project_id: "job-a" };
 
 async function editor(projectId?: string) {
     const page = await SchedulePage({ searchParams: Promise.resolve({ projectId }) });
-    return page.props.children[1];
+    return dashboardRouteShellBody(page);
 }
 
 describe("programme project identity boundary", () => {

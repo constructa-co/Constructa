@@ -35,7 +35,7 @@ function text(value: unknown): string {
     if (typeof value === "string" || typeof value === "number") return String(value);
     return value && typeof value === "object" && "props" in value ? text((value as Element).props.children) : "";
 }
-const project = { id: "job", name: "QA Example", status: "Lead", created_at: null, potential_value: 0, client_name: "Test" };
+const project = { id: "job", name: "QA Example", status: "Lead", created_at: null, potential_value: 0, client_name: "Test", proposal_status: null as string | null, proposal_accepted_at: null as string | null };
 let projects: typeof project[];
 function view() { current.cursor = 0; return ProjectBoard({ projects, financials: {} }); }
 function column(stage: string) { return nodes(view()).find(e => e.type === "div" && e.key === stage)!; }
@@ -101,6 +101,30 @@ describe("actual pipeline move handler", () => {
         await settle();
         expect(current.ordinary).toHaveBeenCalledExactlyOnceWith("job", "Active");
         expect(current.won).not.toHaveBeenCalled();
+    });
+    it("A115 P2: Active operational job without recorded win shows explicit Mark as Won", () => {
+        projects = [{ ...project, status: "Active", proposal_status: "sent", proposal_accepted_at: null }];
+        const wonButton = nodes(view()).find(e => e.type === "button" && text(e.props.children).includes("Mark as Won"));
+        expect(wonButton).toBeDefined();
+    });
+    it("A115 P2: after picker move to Active, Mark as Won remains available until win is recorded", async () => {
+        projects = [{ ...project, status: "Estimating", proposal_status: "sent", proposal_accepted_at: null }];
+        chooseStage("Active");
+        await settle();
+        expect(current.won).not.toHaveBeenCalled();
+        const wonButton = nodes(view()).find(e => e.type === "button" && text(e.props.children).includes("Mark as Won"));
+        expect(wonButton).toBeDefined();
+    });
+    it("A115 P2: deliberate Mark as Won on Active unwon calls won action only", async () => {
+        projects = [{ ...project, status: "Active", proposal_status: "sent", proposal_accepted_at: null }];
+        click("Mark as Won")(); await settle();
+        expect(current.won).toHaveBeenCalledExactlyOnceWith("job");
+        expect(current.ordinary).not.toHaveBeenCalled();
+    });
+    it("A115 P2: Active job with recorded win hides Mark as Won but keeps Mark Complete", () => {
+        projects = [{ ...project, status: "Active", proposal_status: "accepted", proposal_accepted_at: "2026-10-01T00:00:00Z" }];
+        expect(nodes(view()).some(e => e.type === "button" && text(e.props.children).includes("Mark as Won"))).toBe(false);
+        expect(nodes(view()).some(e => e.type === "button" && text(e.props.children).includes("Mark Complete"))).toBe(true);
     });
     it("preserves a confirmed move but gives a warning if refresh fails", async () => {
         current.refresh.mockImplementation(() => { throw Error("refresh failure"); });

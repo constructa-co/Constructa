@@ -179,3 +179,11 @@
   tsc PASS. **A001 Partial** metadata; Rob **22:10** Won policy approval on **A115/A114**
   metadata only — **73709** code not integrated.
 - Receipt **`rob2215-a001-integrated-source-backup-20261028.json`**; fresh build not 1983 reuse.
+
+## ROB2310 A115 approved Won policy — 28 October 2026
+
+- Parent **328876c**: pin **89c3ee07** (P2 child of **c245**) — **`project-board.tsx`** +
+  **`project-board-feedback.test.tsx`** only; **`board-actions.ts` unchanged**.
+- ROOT **18/18** feedback module; Rob-approved operational Active vs deliberate **Mark as Won**.
+- **A115 Partial** (full publication/readiness scope open); recheck **run-38b73c50**. Receipt
+  **`rob2310-a115-integrated-source-backup-20261028.json`**; fresh build not ROB2215 reuse.

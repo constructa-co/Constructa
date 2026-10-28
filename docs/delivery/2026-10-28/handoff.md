@@ -193,3 +193,9 @@ paths). ROOT **4** source-contract RED then **13** GREEN; **A001 Partial** uncha
 code/test paths). ROOT **9/9** on two modules; disposition **run-81132aa6**. **A115** Won
 policy approved in register metadata only; **73709** not on ROOT. Receipt
 `rob2215-a001-integrated-source-backup-20261028.json`.
+
+## ROB2310 A115 approved Won — 28 October 2026
+
+**Parent `328876c`:** **89c3ee07** pipeline Won policy (two files). ROOT **18/18** module.
+**A115 Partial** — not full original Complete. Receipt
+`rob2310-a115-integrated-source-backup-20261028.json`.

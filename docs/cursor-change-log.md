@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-10-28 — ROB2310 A115 approved Won policy (Cursor integration)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `project-board.tsx` | Operational Active vs explicit Mark as Won; `hasRecordedWin` | Pin **89c3ee07** approved policy + P2 |
+| `project-board-feedback.test.tsx` | **18** controlled handler cases | Source-fenced module only |
+
 ## 2026-10-28 — ROB2215 A001 guided library + commercial primaries (Cursor integration)
 
 | File | Lines / scope | Intent |

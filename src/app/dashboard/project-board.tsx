@@ -54,7 +54,7 @@ const PROJECT_TYPE_COLORS: Record<string, { light: string; dark: string }> = {
 const NEXT_STAGE: Record<string, string> = {
     "Lead":          "Estimating",
     "Estimating":    "Proposal Sent",
-    "Proposal Sent": "Active",   // Active moves use markAsWonAction except Completed reopen (see move())
+    "Proposal Sent": "Active",   // operational Active via move(); explicit Mark as Won uses recordWin (see move())
     "Active":        "Completed",
     "Lost":          "Proposal Sent", // reopen
     "Completed":     "Active",        // reopen
@@ -85,6 +85,11 @@ function getDaysInStage(createdAt: string | null): number {
     return Math.floor((Date.now() - new Date(createdAt).getTime()) / 86400000);
 }
 
+function hasRecordedWin(project: { proposal_accepted_at?: string | null; proposal_status?: string | null }): boolean {
+    if (project.proposal_accepted_at) return true;
+    return project.proposal_status?.toLowerCase() === "accepted";
+}
+
 export default function ProjectBoard({ projects, financials }: { projects: any[], financials: any }) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
@@ -99,15 +104,13 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
 
     const getStatus = (p: any): string => (optimisticStatus.source === projects ? optimisticStatus.stages[p.id] : undefined) ?? p.status ?? "Lead";
 
-    const move = (projectId: string, newStatus: string) => {
+    const move = (projectId: string, newStatus: string, intent: "default" | "recordWin" = "default") => {
         if (moveInFlight.current) return;
         moveInFlight.current = true;
         setMoveNotice(null);
-        const priorStatus = projects.find(p => p.id === projectId)?.status ?? "Lead";
-        const fromStage = (optimisticStatus.source === projects ? optimisticStatus.stages[projectId] : undefined) ?? priorStatus;
-        // Baseline: any move to Active still uses the legacy Won write except
-        // Completed→Active reopen, which must not rewrite acceptance fields.
-        const useWonMutation = newStatus === "Active" && fromStage !== "Completed";
+        // A115: only the explicit Mark as Won control records acceptance; Active
+        // via stage picker or reopen is operational status only.
+        const useWonMutation = intent === "recordWin";
         setOptimisticStatus(prev => ({ source: projects, stages: { ...(prev.source === projects ? prev.stages : {}), [projectId]: newStatus } }));
         const restore = () => setOptimisticStatus(prev => {
             const stages = { ...prev.stages };
@@ -266,7 +269,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                             {status === "Proposal Sent" ? (
                                                 // Mark as Won — special emerald treatment
                                                 <button
-                                                    onClick={() => move(p.id, "Active")}
+                                                    onClick={() => move(p.id, "Active", "recordWin")}
                                                     disabled={isPending}
                                                     className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
                                                         isDark
@@ -301,17 +304,34 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                     Mark proposal sent <ArrowRight className="w-3 h-3" />
                                                 </button>
                                             ) : status === "Active" ? (
-                                                <button
-                                                    onClick={() => move(p.id, "Completed")}
-                                                    disabled={isPending}
-                                                    className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
-                                                        isDark
-                                                            ? "bg-white/8 text-slate-300 hover:bg-white/12 border-white/10"
-                                                            : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border-zinc-200"
-                                                    }`}
-                                                >
-                                                    <CheckCircle2 className="w-3 h-3" /> Mark Complete
-                                                </button>
+                                                <div className="space-y-1.5">
+                                                    {!hasRecordedWin(p) && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => move(p.id, "Active", "recordWin")}
+                                                            disabled={isPending}
+                                                            className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
+                                                                isDark
+                                                                    ? "bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border-emerald-500/20"
+                                                                    : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200"
+                                                            }`}
+                                                        >
+                                                            <Trophy className="w-3 h-3" /> Mark as Won
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => move(p.id, "Completed")}
+                                                        disabled={isPending}
+                                                        className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
+                                                            isDark
+                                                                ? "bg-white/8 text-slate-300 hover:bg-white/12 border-white/10"
+                                                                : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border-zinc-200"
+                                                        }`}
+                                                    >
+                                                        <CheckCircle2 className="w-3 h-3" /> Mark Complete
+                                                    </button>
+                                                </div>
                                             ) : (status === "Completed" || status === "Lost") ? (
                                                 <button
                                                     onClick={() => move(p.id, status === "Lost" ? "Proposal Sent" : "Active")}

@@ -6,7 +6,7 @@ import {
     type JobAssistantTransport, type UsageLedger,
 } from "./job-assistant-generation";
 import { createRpcUsageLedger } from "./job-assistant-ledger";
-import { PLANNING_SYSTEM_PROMPT } from "./job-assistant-prompts";
+import { BRIEF_SYSTEM_PROMPT, PLANNING_SYSTEM_PROMPT, PRICING_SYSTEM_PROMPT } from "./job-assistant-prompts";
 import { createOpenAIJobAssistantTransport } from "./openai-job-assistant-transport";
 
 /**
@@ -19,15 +19,12 @@ import { createOpenAIJobAssistantTransport } from "./openai-job-assistant-transp
  * reservation, one provider call, settle/release/retain, recorded outcome.
  *
  * NOTHING IS APPROVED YET, so every activation point returns null and the
- * request handlers answer "off" after their checks. What exists (A063):
- *   - planning: the OpenAI transport with its prompt and reply mapping, and
- *     the database usage ledger (source migration, NOT applied, disabled);
- *   - pricing and Brief: the shared seam and ledger only. Their prompts and
- *     reply mapping are not written, so their transport stays null.
- * Switching planning on still needs: the owner's approved configuration below
- * (approval reference, provider, model, prices and caps), the ledger migration
- * applied and its settings row enabled with ceilings, and the provider key
- * configured for the server. None of those is done or assumed here.
+ * request handlers answer "off" after their checks. Each feature already has
+ * its OpenAI transport adapter and prompt here; reply JSON is mapped in
+ * `openai-job-assistant-transport` and reviewed on the request path. The usage
+ * ledger migration is source only (NOT applied, disabled). Turning a feature on
+ * still needs that feature's approved configuration below, the ledger applied
+ * and enabled, and the provider key on the server.
  * The existing `AiFeature` budgets (`brief.suggest`, the weekly client update
  * `schedule.programme-update` and the rest) are other features and must not be
  * borrowed. This module holds no secret or provider today.
@@ -35,8 +32,15 @@ import { createOpenAIJobAssistantTransport } from "./openai-job-assistant-transp
 const APPROVED_GENERATION: Record<JobAssistantFeature, unknown> = { pricing: null, planning: null, brief: null };
 
 // No client or key is made here: the transport makes its client only inside a send.
+const FEATURE_PROMPTS: Record<JobAssistantFeature, string> = {
+    pricing: PRICING_SYSTEM_PROMPT,
+    planning: PLANNING_SYSTEM_PROMPT,
+    brief: BRIEF_SYSTEM_PROMPT,
+};
+
 function serverTransport(feature: JobAssistantFeature): JobAssistantTransport | null {
-    return feature === "planning" ? createOpenAIJobAssistantTransport({ systemPrompt: PLANNING_SYSTEM_PROMPT }) : null;
+    const systemPrompt = FEATURE_PROMPTS[feature];
+    return systemPrompt ? createOpenAIJobAssistantTransport({ systemPrompt }) : null;
 }
 
 // The service-role client is made only inside a ledger step.

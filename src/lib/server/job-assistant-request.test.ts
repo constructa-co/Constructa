@@ -13,7 +13,7 @@ import { approvedBriefGenerator, approvedPlanningGenerator, approvedPricingGener
 import { costPence, createJobAssistantGenerator, type JobAssistantTransport, type TransportRequest, type UsageLedger } from "./job-assistant-generation";
 import { createOpenAIJobAssistantTransport, type ChatClient } from "./openai-job-assistant-transport";
 import { createRpcUsageLedger } from "./job-assistant-ledger";
-import { PLANNING_SYSTEM_PROMPT } from "./job-assistant-prompts";
+import { PLANNING_SYSTEM_PROMPT, PRICING_SYSTEM_PROMPT } from "./job-assistant-prompts";
 import { pricingAssistantTurnAction } from "@/app/dashboard/projects/costs/assistant-actions";
 import { planningAssistantTurnAction } from "@/app/dashboard/projects/schedule/assistant-actions";
 import { buildPricingReviewContext, PRICING_REVIEW_STALE } from "@/lib/pricing-review";
@@ -582,12 +582,14 @@ describe("A063 planning transport, worst-case cost and usage ledger (fake SDK an
         expect(duplicate.calls.map(([fn]) => fn)).toEqual(["job_assistant_reserve", "job_assistant_conclude"]);
     });
 
-    it("keeps planning OFF: every approved configuration is null, while the activation point is wired to the real adapters", () => {
+    it("keeps every feature OFF: approved configuration is null while all three transports are wired", () => {
         expect(approvedPlanningGenerator()).toBeNull();
         expect(jobAssistantAvailability()).toEqual({ pricing: false, planning: false, brief: false });
         const source = readFileSync(join(process.cwd(), "src/lib/server/job-assistant-transport.ts"), "utf8");
         expect(source).toMatch(/const APPROVED_GENERATION: Record<JobAssistantFeature, unknown> = \{ pricing: null, planning: null, brief: null \};/);
-        expect(source).toMatch(/createOpenAIJobAssistantTransport\(\{ systemPrompt: PLANNING_SYSTEM_PROMPT \}\)/);
+        expect(source).toMatch(/FEATURE_PROMPTS/);
+        for (const prompt of ["PRICING_SYSTEM_PROMPT", "PLANNING_SYSTEM_PROMPT", "BRIEF_SYSTEM_PROMPT"]) expect(source).toContain(prompt);
+        expect(source).toMatch(/createOpenAIJobAssistantTransport\(\{ systemPrompt \}\)/);
         expect(source).toMatch(/return createRpcUsageLedger\(\);/);
         expect(source).not.toMatch(/process\.env|gpt-|OPENAI_API_KEY/);
     });
@@ -614,5 +616,47 @@ describe("A063 planning transport, worst-case cost and usage ledger (fake SDK an
             expect(code).toMatch(new RegExp(`GRANT EXECUTE ON FUNCTION public\\.${fn}\\([^)]*\\) TO service_role;`));
         }
         for (const step of ["settle", "release", "retain"]) expect(code).toMatch(new RegExp(`job_assistant_${step}[\\s\\S]*?WHERE id = p_attempt_id AND state = 'reserved';`));
+    });
+});
+
+describe("A055 pricing OpenAI transport wiring (fake SDK only)", () => {
+    const prices = { inputPencePerMillionTokens: 100, outputPencePerMillionTokens: 400 };
+    const pricingModelReply = { message: "Start with the cabinets.", suggestions: [{ source: "briefWork", start: 0, end: 24 }] };
+    function fakeSdk(answer: () => Promise<unknown>) {
+        const create = vi.fn(() => answer());
+        const factory = vi.fn(() => ({ chat: { completions: { create } } }) as unknown as ChatClient);
+        return { create, factory };
+    }
+    const transportRequest = (patch: Partial<TransportRequest> = {}): TransportRequest => ({
+        provider: "openai", model: "stub-model", maxOutputTokens: 500, prices,
+        context: { work: "Install kitchen cabinets. Tile splashback.", contractorMessage: "Help me organise this.", existingWork: [{ description: "Cabinets", section: "Kitchen" }] },
+        messages: [{ role: "user", content: "Where should I start?" }], signal: new AbortController().signal, ...patch,
+    });
+
+    it("SOURCE: job-assistant-transport maps pricing to PRICING_SYSTEM_PROMPT through the shared adapter", () => {
+        const source = readFileSync(join(process.cwd(), "src/lib/server/job-assistant-transport.ts"), "utf8");
+        expect(source).toMatch(/pricing: PRICING_SYSTEM_PROMPT/);
+        expect(PRICING_SYSTEM_PROMPT).toMatch(/briefWork.*contractorMessage/);
+        expect(PRICING_SYSTEM_PROMPT).toMatch(/Never invent a rate, price, amount/);
+    });
+
+    it("sends pricing rules, saved context as data and maps strict JSON for reviewPricingSuggestion", async () => {
+        const sdk = fakeSdk(async () => ({
+            model: "stub-model-2026-01-01", usage: { prompt_tokens: 800, completion_tokens: 120 },
+            choices: [{ finish_reason: "stop", message: { content: JSON.stringify(pricingModelReply) } }],
+        }));
+        const transport = createOpenAIJobAssistantTransport({ systemPrompt: PRICING_SYSTEM_PROMPT, client: sdk.factory });
+        const sent = transportRequest();
+        expect(await transport.send(sent)).toEqual({ kind: "reply", raw: pricingModelReply, costPence: costPence(prices, 800, 120) });
+        expect(sdk.create).toHaveBeenCalledTimes(1);
+        const body = (sdk.create.mock.calls as unknown as [[Record<string, unknown>, unknown]])[0][0];
+        expect(body).toEqual({
+            model: "stub-model", max_completion_tokens: 500, response_format: { type: "json_object" },
+            messages: [
+                { role: "system", content: PRICING_SYSTEM_PROMPT },
+                { role: "user", content: `Saved job data (JSON):\n${JSON.stringify(sent.context)}` },
+                { role: "user", content: "Where should I start?" },
+            ],
+        });
     });
 });

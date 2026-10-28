@@ -1,5 +1,12 @@
 # DAY28 First Green Integration - 28 October 2026
 
+## A054 uncertain resource preview fence - 28 October 2026
+
+- `estimate-client.tsx` (`refuseDraftPreview`): refuse running-total draft preview
+  when any `resourceSaveStates` value is `saving` or `uncertain`, including after
+  Advanced is closed (non-`line:` keys such as `apply:*`). Close guard unchanged.
+- `inline-price-entry.test.tsx`: mounted Advanced close while `apply:one` uncertain.
+
 - Integrate accepted product pins only: A001 core editing palette (`5aa12e6`),
   A005 core route geometry (`5cb40a9`), Claude A063 pre-transport planning
   conversation core/UI (`71952dd`). Parent da8b8ee unchanged scope for rejected

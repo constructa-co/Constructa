@@ -19,6 +19,11 @@ import { uploadProfileImageAction } from "@/app/storage/actions";
 import { approveCaseStudyAction, checkCaseStudyAction, createCaseStudyAction, saveCaseStudyAction, saveDisciplineAction } from "../library-actions";
 import { enhanceCaseStudyAction } from "../actions";
 import CaseStudyPhotoSlots from "./case-study-photo-slots";
+import {
+    coreFocusVisibleRing,
+    corePrimaryButton,
+    coreSuggestionPrimary,
+} from "@/lib/core-editing-palette";
 
 export interface EditorServer {
     create: (input: { content: unknown; disciplineIds: unknown }) => Promise<LibraryResult>;
@@ -40,9 +45,12 @@ const card = "bg-slate-900 border border-slate-700 rounded-xl p-5 space-y-4";
 const label = "block text-base font-semibold text-slate-100";
 const hint = "text-sm text-slate-300";
 const input = "mt-2 w-full min-h-11 rounded-lg border border-slate-500 bg-slate-950 px-3 py-2 text-base text-slate-50 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
-const primary = "min-h-11 px-4 rounded-lg bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-base font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
-const secondary = "min-h-11 px-4 rounded-lg border border-slate-400 text-base font-semibold text-slate-100 hover:bg-white/5 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
-const chip = (on: boolean) => `min-h-11 px-3 rounded-full border text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${on ? "bg-blue-700 border-blue-400 text-white" : "border-slate-400 text-slate-100 hover:bg-white/5"}`;
+const primary = `min-h-11 px-4 rounded-lg disabled:opacity-60 text-base font-semibold ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`;
+const secondary = `min-h-11 px-4 rounded-lg border border-slate-400 text-base font-semibold text-slate-100 hover:bg-white/5 disabled:opacity-60 ${coreFocusVisibleRing}`;
+const chip = (on: boolean) =>
+    `min-h-11 px-3 rounded-full border text-sm font-semibold ${coreFocusVisibleRing} ${
+        on ? `${corePrimaryButton} border-emerald-600 text-[#182c1b]` : "border-slate-400 text-slate-100 hover:bg-white/5"
+    }`;
 
 /** An approved copy as a proposal would carry it, under the proposal's own headings. */
 export function ApprovedPreview({ approved }: { approved: ApprovedCaseStudy }) {
@@ -154,7 +162,7 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
                 )}
                 <p className="text-sm text-slate-100 whitespace-pre-wrap break-words">{suggestion}</p>
                 <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={() => { set({ [field]: suggestion }); setPending(settle(pending, legacySection)); }} className="min-h-11 px-3 rounded-lg bg-blue-700 hover:bg-blue-800 text-sm font-semibold text-white">
+                    <button type="button" onClick={() => { set({ [field]: suggestion }); setPending(settle(pending, legacySection)); }} className={coreSuggestionPrimary}>
                         {stateKind === "stale" ? "Replace what I have now with this" : "Use this wording"}
                     </button>
                     <button type="button" onClick={() => setPending(settle(pending, legacySection))} className="min-h-11 px-3 rounded-lg border border-slate-400 text-sm font-semibold text-slate-100 hover:bg-white/5">

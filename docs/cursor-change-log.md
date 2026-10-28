@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-10-28 — ROB2215 A001 guided library + commercial primaries (Cursor integration)
+
+| File | Lines / scope | Intent |
+|------|----------------|--------|
+| `library/guided-capture.tsx`, `library-panel.tsx`, `a001-guided-library-brand-actions.test.ts` | Primary/focus palette guards | Pin **eb764cd5** (Rob21:03 guided build) |
+| `billing/client-billing.tsx`, `variations/client-variations.tsx`, `final-account/final-account-client.tsx`, `a001-commercial-primary-controls.test.tsx` | Primary control presentation | Pin **6b743e61** commercial build |
+
 ## 2026-10-28 — CHECKPOINT2050 A001 final (Composer 95f95c + Claude 6e6df2, Cursor integration)
 
 | File | Change | Intent |

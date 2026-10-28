@@ -186,3 +186,10 @@ readability harness. ROOT **10** vitest + **9** Playwright (existing Edge; no in
 **Parent `e2e1e36`:** **95f95c** settings four controls + **6e6df2** workflow four controls (ten
 paths). ROOT **4** source-contract RED then **13** GREEN; **A001 Partial** unchanged. Receipt
 `checkpoint2050-a001-integrated-source-backup-20261028.json`.
+
+## ROB2215 A001 guided + commercial — 28 October 2026
+
+**Parent `6a19296`:** **eb764cd5** guided library + **6b743e61** commercial primaries (seven
+code/test paths). ROOT **9/9** on two modules; disposition **run-81132aa6**. **A115** Won
+policy approved in register metadata only; **73709** not on ROOT. Receipt
+`rob2215-a001-integrated-source-backup-20261028.json`.

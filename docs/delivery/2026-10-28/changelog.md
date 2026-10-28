@@ -169,3 +169,13 @@
   preflight before any PR; PR106closed/nohostedrerun.
 - Exact current build/scans/backup final result belongs in the private source
   receipt; all118statuses unchanged and unfinished scopes remain Partial.
+
+## ROB2215 A001 guided + commercial primaries — 28 October 2026
+
+- Parent **6a19296**: integrate independent review **run-81132aa6** pins **eb764cd5**
+  (guided library three TSX + four-case test) and **6b743e61** (billing, variations,
+  final-account + five-case commercial controls). Excluded guided RETURN markdown.
+- ROOT **9/9** vitest on two new modules only; eslint **0 errors** on five changed TSX;
+  tsc PASS. **A001 Partial** metadata; Rob **22:10** Won policy approval on **A115/A114**
+  metadata only — **73709** code not integrated.
+- Receipt **`rob2215-a001-integrated-source-backup-20261028.json`**; fresh build not 1983 reuse.

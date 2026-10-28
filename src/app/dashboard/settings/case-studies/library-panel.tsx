@@ -7,6 +7,7 @@ import type { LibraryResult, StudyView } from "@/lib/case-library/service";
 import { STATE_LABEL, studyState } from "@/lib/case-library/status";
 import type { StoredDiscipline } from "@/lib/case-library/store";
 import { archiveCaseStudyAction, archiveDisciplineAction, saveDisciplineAction, startFromOlderCaseStudyAction } from "./library-actions";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 export interface PanelServer {
     archiveStudy: (input: { id: unknown; revision: unknown; archived: unknown }) => Promise<LibraryResult>;
@@ -22,7 +23,7 @@ const card = "bg-slate-900 border border-slate-700 rounded-xl p-5 space-y-4";
 const hint = "text-sm text-slate-300";
 const input = "w-full min-h-11 rounded-lg border border-slate-500 bg-slate-950 px-3 py-2 text-base text-slate-50 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
 const ring = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
-const primary = `inline-flex items-center min-h-11 px-4 rounded-lg bg-blue-700 hover:bg-blue-800 text-base font-semibold text-white ${ring}`;
+const primary = `inline-flex items-center min-h-11 px-4 rounded-lg text-base font-semibold ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`;
 const secondary = `inline-flex items-center min-h-11 px-3 rounded-lg border border-slate-400 text-sm font-semibold text-slate-100 hover:bg-white/5 disabled:opacity-60 ${ring}`;
 
 /**

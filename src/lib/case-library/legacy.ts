@@ -96,5 +96,6 @@ export function draftFromLegacy(entry: unknown): CaseStudyContent {
         duration_text: text(row.programmeDuration).slice(0, 100),
         delivered: typeof row.whatWeDelivered === "string" ? row.whatWeDelivered.trim().slice(0, 5000) : "",
         value_added: typeof row.valueAdded === "string" ? row.valueAdded.trim().slice(0, 5000) : "",
+        photos: [],
     });
 }

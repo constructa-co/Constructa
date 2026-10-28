@@ -9,7 +9,7 @@
  * does.
  */
 
-import { approvalProblem, approvedValue, contentProblem, labelProblem, type CaseStudyContent } from "../content";
+import { approvalProblem, approvedValue, contentFromInput, contentProblemLegacy, labelProblem, type CaseStudyContent } from "../content";
 import { labelKey } from "../labels";
 import type { LibraryRow } from "../resolve";
 import type { LibraryReader, StoredDiscipline, StoredStudy } from "../store";
@@ -86,7 +86,7 @@ export function fakeLibrary(options: { olderByUser?: Record<string, unknown[]> }
         },
         case_study_create: ({ p_user_id, p_content, p_legacy_index }) => {
             const user = String(p_user_id);
-            const problem = contentProblem(p_content);
+            const problem = contentProblemLegacy(p_content);
             if (problem) return { outcome: "invalid", problem };
             if (studies.filter((study) => study.user_id === user && !study.archived).length >= 50) return { outcome: "limit" };
             let legacy: number | null = null;
@@ -96,17 +96,17 @@ export function fakeLibrary(options: { olderByUser?: Record<string, unknown[]> }
                 if (!Number.isInteger(legacy) || legacy < 0 || !entry || typeof entry !== "object" || Array.isArray(entry)) return { outcome: "legacy-missing" };
                 if (studies.some((study) => study.user_id === user && study.legacy_index === legacy && !study.archived)) return { outcome: "already-adopted" };
             }
-            const row: Study = { id: uuid(), user_id: user, revision: 1, draft: structuredClone(p_content) as CaseStudyContent, approved: null, approved_revision: null, approved_at: null, legacy_index: legacy, archived: false, created: clock++ };
+            const row: Study = { id: uuid(), user_id: user, revision: 1, draft: contentFromInput(p_content), approved: null, approved_revision: null, approved_at: null, legacy_index: legacy, archived: false, created: clock++ };
             studies.push(row);
             return { outcome: "saved", id: row.id, revision: 1 };
         },
         case_study_save_draft: ({ p_user_id, p_id, p_expected_revision, p_content }) => {
-            const problem = contentProblem(p_content);
+            const problem = contentProblemLegacy(p_content);
             if (problem) return { outcome: "invalid", problem };
             const row = studies.find((study) => study.id === p_id && study.user_id === p_user_id);
             if (!row) return { outcome: "not-found" };
             if (row.revision !== p_expected_revision) return { outcome: "conflict", revision: row.revision };
-            row.draft = structuredClone(p_content) as CaseStudyContent;
+            row.draft = contentFromInput(p_content);
             row.revision += 1;
             return { outcome: "saved", revision: row.revision };
         },
@@ -130,9 +130,10 @@ export function fakeLibrary(options: { olderByUser?: Record<string, unknown[]> }
             if (!row) return { outcome: "not-found" };
             if (row.archived) return { outcome: "archived" };
             if (row.revision !== p_expected_revision) return { outcome: "conflict", revision: row.revision };
-            const problem = approvalProblem(row.draft);
+            const draft = contentFromInput(row.draft);
+            const problem = approvalProblem(draft);
             if (problem) return { outcome: "not-approvable", problem };
-            row.approved = approvedValue(row.draft, activeLabels(row.id, user));
+            row.approved = approvedValue(draft, activeLabels(row.id, user));
             row.approved_revision = row.revision;
             row.approved_at = `2026-10-08T09:00:${String(clock++ % 60).padStart(2, "0")}Z`;
             return { outcome: "approved", revision: row.revision };

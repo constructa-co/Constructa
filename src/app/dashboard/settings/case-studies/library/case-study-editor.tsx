@@ -2,14 +2,23 @@
 
 import Link from "next/link";
 import { useEffect, useReducer, useRef, useState } from "react";
-import { newDraft, type ApprovedCaseStudy, type CaseStudyContent } from "@/lib/case-library/content";
+import { Loader2, Sparkles } from "lucide-react";
+import { toast } from "sonner";
+import { caseLibraryDraftPhotosOnWire, newDraft, type ApprovedCaseStudy, type CaseStudyContent } from "@/lib/case-library/content";
+import { fieldMessage } from "@/lib/case-library/messages";
 import { editorReducer, initialEditorState, isDirty, saveLine } from "@/lib/case-library/editor-state";
 import { questionOf } from "@/lib/case-library/guided";
 import { CANONICAL_WORK_NAMES } from "@/lib/case-library/labels";
+import { normalisePhotoSlots, type CaseStudyPhotoSlot } from "@/lib/case-library/photos";
 import type { ApprovalCheck, LibraryResult, StudyView } from "@/lib/case-library/service";
 import { asProposalCaseStudy, changesSinceApproval } from "@/lib/case-library/status";
 import type { StoredDiscipline } from "@/lib/case-library/store";
+import type { CaseStudyResult } from "@/lib/cohort-ai/case-study-enhance";
+import { pendingFrom, sectionState, settle, type PendingCaseStudySuggestion } from "@/lib/cohort-ai/case-study-suggestion";
+import { uploadProfileImageAction } from "@/app/storage/actions";
 import { approveCaseStudyAction, checkCaseStudyAction, createCaseStudyAction, saveCaseStudyAction, saveDisciplineAction } from "../library-actions";
+import { enhanceCaseStudyAction } from "../actions";
+import CaseStudyPhotoSlots from "./case-study-photo-slots";
 
 export interface EditorServer {
     create: (input: { content: unknown; disciplineIds: unknown }) => Promise<LibraryResult>;
@@ -20,6 +29,12 @@ export interface EditorServer {
 }
 
 const realServer: EditorServer = { create: createCaseStudyAction, save: saveCaseStudyAction, check: checkCaseStudyAction, approve: approveCaseStudyAction, addDiscipline: saveDisciplineAction };
+
+type Enhance = (whatWeDelivered: string, valueAdded: string, projectName: string, projectType: string) => Promise<CaseStudyResult>;
+type Upload = (formData: FormData) => Promise<{ url?: string; error?: string }>;
+
+type LibrarySection = "delivered" | "value_added";
+const librarySectionLabel: Record<LibrarySection, string> = { delivered: "What you did", value_added: "What it meant for the client" };
 
 const card = "bg-slate-900 border border-slate-700 rounded-xl p-5 space-y-4";
 const label = "block text-base font-semibold text-slate-100";
@@ -48,7 +63,7 @@ export function ApprovedPreview({ approved }: { approved: ApprovedCaseStudy }) {
     );
 }
 
-export default function CaseStudyEditor({ initial, disciplines: initialDisciplines, server = realServer, listHref, guidedBase, onCreated }: {
+export default function CaseStudyEditor({ initial, disciplines: initialDisciplines, server = realServer, listHref, guidedBase, onCreated, enhance = enhanceCaseStudyAction, upload = uploadProfileImageAction }: {
     initial: StudyView | null;
     disciplines: StoredDiscipline[];
     /** Defaults to the real server actions; replaced only by tests and the fixture harness. */
@@ -57,6 +72,8 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
     /** Where case studies live, so the questions for this one can be linked to. Without it no link is shown. */
     guidedBase?: string;
     onCreated?: (id: string) => void;
+    enhance?: Enhance;
+    upload?: Upload;
 }) {
     const [state, dispatch] = useReducer(editorReducer, undefined, () => initialEditorState(initial, newDraft("")));
     const [disciplines, setDisciplines] = useState(initialDisciplines);
@@ -68,6 +85,9 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
     const [checkNotice, setCheckNotice] = useState<string | null>(null);
     const [confirmed, setConfirmed] = useState(false);
     const [working, setWorking] = useState(false);
+    const [enhancing, setEnhancing] = useState(false);
+    const [enhanceNotice, setEnhanceNotice] = useState<string | null>(null);
+    const [pending, setPending] = useState<PendingCaseStudySuggestion | null>(null);
     const stateRef = useRef(state);
     useEffect(() => { stateRef.current = state; });
 
@@ -75,7 +95,75 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
     const content = state.draft.content;
     const active = disciplines.filter((entry) => !entry.archived);
     const busy = state.saving !== null || working;
-    const set = (patch: Partial<CaseStudyContent>) => { dispatch({ type: "edit", content: patch }); setCheck(null); };
+    const set = (patch: Partial<CaseStudyContent>) => { dispatch({ type: "edit", content: patch }); setCheck(null); setPending(null); };
+
+    const setPhoto = (slot: number, patch: Partial<CaseStudyPhotoSlot>) => {
+        const photos = normalisePhotoSlots(content.photos);
+        photos[slot] = { ...photos[slot], ...patch };
+        set({ photos });
+    };
+
+    const handlePhotoUpload = async (slot: number, file: File) => {
+        if (!caseLibraryDraftPhotosOnWire()) {
+            toast.error(fieldMessage("photos"));
+            return;
+        }
+        const formData = new FormData();
+        formData.set("file", file);
+        formData.set("purpose", "case-study");
+        const result = await upload(formData);
+        if (result.url) {
+            setPhoto(slot, { url: result.url });
+            toast.success("Photo uploaded");
+        } else {
+            toast.error(result.error || "Upload failed");
+        }
+    };
+
+    const handleEnhance = async () => {
+        if (enhancing) return;
+        if (!content.delivered && !content.value_added) return;
+        const askedFrom = { whatWeDelivered: content.delivered, valueAdded: content.value_added };
+        setEnhancing(true);
+        setEnhanceNotice(null);
+        setPending(null);
+        try {
+            const workType = active.find((entry) => state.draft.disciplineIds.includes(entry.id))?.label ?? content.work_type;
+            const result = await enhance(askedFrom.whatWeDelivered, askedFrom.valueAdded, content.title, workType);
+            const next = pendingFrom(result, askedFrom);
+            setPending(next);
+            if (!result.suggested) setEnhanceNotice(result.message ?? "The assistant isn't available right now. Nothing has been changed.");
+            else if (!next) setEnhanceNotice("The assistant had nothing to change. Your wording is as it was.");
+            else setEnhanceNotice("Suggested wording is shown below. Nothing changes unless you choose to use it.");
+        } catch {
+            setEnhanceNotice("The assistant isn't available right now. Nothing has been changed.");
+        }
+        setEnhancing(false);
+    };
+
+    const suggestionPanel = (section: LibrarySection, field: keyof CaseStudyContent) => {
+        const legacySection = section === "delivered" ? "whatWeDelivered" : "valueAdded";
+        const stateKind = sectionState(pending, legacySection, String(content[field] ?? ""));
+        if (stateKind === "none" || !pending) return null;
+        const suggestion = pending.suggestions[legacySection] ?? "";
+        return (
+            <div data-case-study-suggestion={section} data-state={stateKind} role="group" aria-label={`Suggested wording for ${librarySectionLabel[section]}`} className="mt-2 rounded-lg border border-dashed border-violet-300 bg-violet-950 p-3 space-y-2">
+                <p className="text-xs font-semibold text-violet-100">Suggested wording. Check it says only what you wrote. Nothing changes unless you use it.</p>
+                {stateKind === "stale" && (
+                    <p className="text-xs font-semibold text-amber-200">You have changed this since you asked. The suggestion was written from your earlier wording, not what is in the box now.</p>
+                )}
+                <p className="text-sm text-slate-100 whitespace-pre-wrap break-words">{suggestion}</p>
+                <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={() => { set({ [field]: suggestion }); setPending(settle(pending, legacySection)); }} className="min-h-11 px-3 rounded-lg bg-blue-700 hover:bg-blue-800 text-sm font-semibold text-white">
+                        {stateKind === "stale" ? "Replace what I have now with this" : "Use this wording"}
+                    </button>
+                    <button type="button" onClick={() => setPending(settle(pending, legacySection))} className="min-h-11 px-3 rounded-lg border border-slate-400 text-sm font-semibold text-slate-100 hover:bg-white/5">
+                        Keep my own
+                    </button>
+                </div>
+            </div>
+        );
+    };
 
     // Leaving with something typed and not saved asks first.
     useEffect(() => {
@@ -193,6 +281,13 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
                     <Link href={`${guidedBase}/${state.id ?? "new"}/guided`} data-guided-link className="inline-flex items-center min-h-11 text-base font-semibold text-blue-200 underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">{state.id ? "Go through the questions instead" : "Answer a few questions instead"}</Link>
                 )}
                 <p role="status" aria-live="polite" data-save-line className={`text-base font-semibold ${noticeTone}`}>{saveLine(state)}</p>
+                {(content.delivered || content.value_added) && (
+                    <button type="button" onClick={handleEnhance} disabled={enhancing || busy} className="inline-flex items-center gap-1.5 min-h-11 px-3 rounded-lg border border-purple-700 bg-purple-900/30 text-purple-200 text-sm font-bold disabled:opacity-60">
+                        {enhancing ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : <Sparkles className="w-4 h-4" aria-hidden />}
+                        {enhancing ? "Enhancing…" : "AI Enhance"}
+                    </button>
+                )}
+                <p role="status" aria-live="polite" data-case-study-notice className={enhanceNotice ? "text-sm font-semibold text-slate-100" : "sr-only"}>{enhanceNotice ?? ""}</p>
                 {approved && (
                     <p className="text-base text-slate-200" data-approval-line>
                         {sinceApproval.length === 0 && !dirty
@@ -249,12 +344,15 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
                     <label htmlFor="cs-delivered" className={label}>What did you do? <span className="font-normal text-slate-300">(optional)</span></label>
                     <p id="cs-delivered-help" className={hint}>{questionOf("delivered").help}</p>
                     <textarea id="cs-delivered" className={input} rows={5} aria-describedby="cs-delivered-help" value={content.delivered} maxLength={5000} onChange={(event) => set({ delivered: event.target.value })} {...invalid("delivered")} />
+                    {suggestionPanel("delivered", "delivered")}
                 </div>
                 <div>
                     <label htmlFor="cs-value-added" className={label}>What did it mean for the client? <span className="font-normal text-slate-300">(optional)</span></label>
                     <p id="cs-value-added-help" className={hint}>{questionOf("value_added").help}</p>
                     <textarea id="cs-value-added" className={input} rows={5} aria-describedby="cs-value-added-help" value={content.value_added} maxLength={5000} onChange={(event) => set({ value_added: event.target.value })} {...invalid("value_added")} />
+                    {suggestionPanel("value_added", "value_added")}
                 </div>
+                <CaseStudyPhotoSlots photos={normalisePhotoSlots(content.photos)} onChange={setPhoto} onUpload={handlePhotoUpload} cardIndex={0} persistenceAvailable={caseLibraryDraftPhotosOnWire()} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label htmlFor="cs-place" className={label}>Roughly where? <span className="font-normal text-slate-300">(optional)</span></label>
@@ -328,7 +426,7 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
                             <li>{check.wouldApprove.client_display === "hidden" ? "The client isn't mentioned." : check.wouldApprove.client_display === "named" ? "The client is named." : "The client is described, not named."}</li>
                             <li>{check.wouldApprove.show_value ? "A price is shown." : "No price is shown."}</li>
                             <li>Kinds of work, in this order: {check.labels.length > 0 ? check.labels.join(", ") : "none"}.</li>
-                            <li>Pictures can&apos;t be added to new case studies yet.</li>
+                            <li>{normalisePhotoSlots(check.wouldApprove.photos).some((slot) => slot.url.trim() !== "") ? "Up to three pictures may be shown, in the order you saved them." : "No pictures are shown for this job."}</li>
                         </ul>
                         {check.problem ? (
                             <p role="alert" className="text-base font-semibold text-amber-200">{check.problem}</p>

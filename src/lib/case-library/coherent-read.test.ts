@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeLibrary } from "./__fixtures__/fake-library";
-import { approvedValue, newDraft } from "./content";
+import { approvedValue, newDraft, toLegacyWireContent } from "./content";
 import { LIBRARY_MESSAGES as M } from "./messages";
 import { approveStudy, createStudy, loadForApproval, saveDiscipline, saveStudy, archiveDiscipline, viewOf, type LibraryContext } from "./service";
 import { COHERENT_READ_ATTEMPTS, readStudyAtOneRevision, type LibraryReader } from "./store";
@@ -61,7 +61,11 @@ const CHANGES: Record<string, () => Promise<unknown>> = {
     "a tag is archived": () => archiveDiscipline(me, { id: oldKind, revision: 1, archived: true }),
     "the tags are reordered": async () => { await db.admin.rpc("case_library_discipline_save", { p_user_id: ME, p_id: oldKind, p_expected_revision: 1, p_label: "Old label", p_position: 9 }); },
     "the tags are replaced": async () => { await db.admin.rpc("case_study_set_disciplines", { p_user_id: ME, p_id: studyId, p_expected_revision: stored().revision, p_discipline_ids: [otherKind] }); },
-    "the wording is edited": async () => { await db.admin.rpc("case_study_save_draft", { p_user_id: ME, p_id: studyId, p_expected_revision: stored().revision, p_content: { ...newDraft("Kitchen"), delivered: "Edited elsewhere." } }); },
+    "the wording is edited": async () => {
+        const draft = newDraft("Kitchen");
+        draft.delivered = "Edited elsewhere.";
+        await db.admin.rpc("case_study_save_draft", { p_user_id: ME, p_id: studyId, p_expected_revision: stored().revision, p_content: toLegacyWireContent(draft) });
+    },
 };
 const stored = () => db.studies.find((row) => row.id === studyId)!;
 
@@ -167,7 +171,11 @@ describe("when it will not settle, or cannot be read", () => {
                 revision: async (user, id) => {
                     total += 1;
                     revisionReads += 1;
-                    if (revisionReads % 2 === 0) await db.admin.rpc("case_study_save_draft", { p_user_id: ME, p_id: studyId, p_expected_revision: stored().revision, p_content: { ...newDraft("Kitchen"), delivered: `Edit ${revisionReads}` } });
+                    if (revisionReads % 2 === 0) {
+                        const draft = newDraft("Kitchen");
+                        draft.delivered = `Edit ${revisionReads}`;
+                        await db.admin.rpc("case_study_save_draft", { p_user_id: ME, p_id: studyId, p_expected_revision: stored().revision, p_content: toLegacyWireContent(draft) });
+                    }
                     return base.revision(user, id);
                 },
             },

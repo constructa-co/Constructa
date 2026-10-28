@@ -55,6 +55,14 @@
   unsaved-entry **23**, A008 one case **1** (Mac); no A055 **50** / **1768** rerun.
 - Receipt `checkpoint1400-integrated-source-backup-20261028.json`. Statuses Partial unchanged.
 
+## CHECKPOINT1435 A038 Green Integration - 28 October 2026
+
+- Parent **`1839edef`**: integrate **`441ddcf`** case-library photos (892 legacy wire + truthful disabled
+  library UI while `CASE_LIBRARY_DRAFT_PHOTOS_ON_WIRE=false`). SQL migration **SOURCE ONLY**, not applied;
+  default photo persist **HELD**. **A038 Partial**, not Complete.
+- Focused **24/24** PASS; eslint **0 errors** on touched production paths. Receipt
+  `checkpoint1435-a038-integrated-source-backup-20261028.json`.
+
 ## Earlier Changelog Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

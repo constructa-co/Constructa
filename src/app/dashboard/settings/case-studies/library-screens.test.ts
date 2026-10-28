@@ -68,6 +68,10 @@ describe("the editor", () => {
         expect(html).not.toContain("How should we refer to the client?");
         expect(html.match(/\(optional/g)!.length).toBeGreaterThanOrEqual(5);
         expect(html).toContain("Save your draft first.");
+        expect(html).toContain("Photos");
+        expect(html).toContain("not available yet");
+        expect(html).toContain("Pictures can&#x27;t be saved to the library yet");
+        expect(html).not.toContain("optional, up to 3");
         // Archived kinds of work are not offered.
         expect(html).toContain("Kitchen Installation");
         expect(html).not.toContain("Old trade");

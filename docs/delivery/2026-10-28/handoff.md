@@ -61,6 +61,13 @@ scroll-bound choice case. A038 excluded. Generators stay null; no hosted signup 
 vitest/playwright counts documented in private check receipt; fresh guarded build and backup:
 `checkpoint1400-integrated-source-backup-20261028.json`.
 
+## CHECKPOINT1435 A038 Green Integration - 28 October 2026
+
+Integrates pin **`441ddcf`**: legacy 12-key RPC wire (`toLegacyWireContent`), explicit photo URL refusal
+when wire contract false, library UI without upload controls until enablement, migration file in repo only.
+Profile photos and optional AI enhancement paths unchanged. No SQL apply or storage calls while contract off.
+Receipt: `checkpoint1435-a038-integrated-source-backup-20261028.json`. **Partial** only.
+
 ## Earlier Handoff Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

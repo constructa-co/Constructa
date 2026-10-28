@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import vectors from "./__fixtures__/contract-vectors.json";
-import { approvalProblem, approvedProblem, approvedValue, contentFromInput, contentProblem, labelProblem, newDraft, type CaseStudyContent } from "./content";
+import { approvalProblem, approvedProblem, approvedValue, contentFromInput, contentProblem, contentProblemLegacy, labelProblem, newDraft, toLegacyWireContent, type CaseStudyContent } from "./content";
 import { labelKey } from "./labels";
 
 /**
@@ -10,7 +10,7 @@ import { labelKey } from "./labels";
  */
 describe("case study content: the application's rules, on the shared vectors", () => {
     it.each(vectors.content as Array<[string, unknown, string | null]>)("content: %s", (_name, value, problem) => {
-        expect(contentProblem(value)).toBe(problem);
+        expect(contentProblemLegacy(value)).toBe(problem);
     });
 
     it.each(vectors.approval as Array<[string, unknown, string | null]>)("approval: %s", (_name, value, problem) => {
@@ -38,6 +38,13 @@ describe("case study content: the application's rules, on the shared vectors", (
             expect(seen, code).toContain(code);
         }
     });
+
+    it("the wire shape sent while the photos migration is not applied omits photos", () => {
+        const draft = newDraft("Kitchen");
+        expect(Object.keys(toLegacyWireContent(draft)).sort()).toEqual([...Object.keys(draft).filter((k) => k !== "photos")].sort());
+        expect(contentProblemLegacy(toLegacyWireContent(draft))).toBeNull();
+        expect(contentProblemLegacy({ ...toLegacyWireContent(draft), photos: [] })).toBe("keys");
+    });
 });
 
 describe("case study content: defaults and tidying", () => {
@@ -50,7 +57,7 @@ describe("case study content: defaults and tidying", () => {
 
     it("loose input is rebuilt from known fields only: nothing unknown is passed through", () => {
         const content = contentFromInput({ title: " Loft \r\n conversion ", delivered: "a\r\nb\rc", client_display: "everyone", client_named_ok: "yes", show_value: 1, photos: ["https://elsewhere.example/x.jpg"], approved: true, __proto__: { injected: true } });
-        expect(Object.keys(content).sort()).toEqual(["client_display", "client_named_ok", "client_text", "delivered", "duration_text", "place", "show_value", "title", "value_added", "value_text", "version", "work_type"]);
+        expect(Object.keys(content).sort()).toEqual(["client_display", "client_named_ok", "client_text", "delivered", "duration_text", "photos", "place", "show_value", "title", "value_added", "value_text", "version", "work_type"]);
         expect(content).toMatchObject({ title: "Loft   conversion", delivered: "a\nb\nc", client_display: "hidden", client_named_ok: false, show_value: false });
         expect(contentProblem(content)).toBeNull();
         expect(contentProblem(contentFromInput(null))).toBe("title");

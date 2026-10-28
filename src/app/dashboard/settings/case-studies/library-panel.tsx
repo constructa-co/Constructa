@@ -90,7 +90,7 @@ export default function LibraryPanel({ available, studies, disciplines: loadedDi
                         <Link href={`${basePath}/new/guided`} className={secondary}>Answer a few questions instead</Link>
                     </div>
                 </div>
-                <p className={hint}>Write a past job once, approve it, and choose it for any proposal. Pictures can&apos;t be added to these yet.</p>
+                <p className={hint}>Write a past job once, approve it, and choose it for any proposal. You can add up to three photos on the full form.</p>
                 <p role="status" aria-live="polite" data-library-notice className={notice ? "text-base font-semibold text-slate-100" : "sr-only"}>{notice ?? ""}</p>
 
                 {studies.length === 0 ? (

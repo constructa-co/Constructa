@@ -5,6 +5,7 @@ vi.mock("@/lib/supabase/auth-utils", () => ({ requireAuth: mocks.requireAuth }))
 
 import { createBlankProjectAction } from "./actions";
 import { BLANK_PROJECT_CREATE_ERROR } from "@/lib/blank-project";
+import { A069_BLOCKER_PHASE1_CREATE_RPC_NO_CLOSING_STATEMENT_SLOT } from "@/lib/a069-new-job-closing-seed";
 
 const REQUEST_ID = "3f0c1f4e-7c1b-4a55-9a43-0d0a6c0f7b11";
 
@@ -54,6 +55,16 @@ describe("createBlankProjectAction", () => {
         expect(Object.keys(args.p_project)).not.toEqual(
             expect.arrayContaining(["brief_scope", "scope_text", "programme_phases", "template_id"]),
         );
+        expect(args.p_project).not.toHaveProperty("closing_statement");
+    });
+
+    it("A069: cannot seed closing at create until create_phase1_project_graph persists closing_statement", async () => {
+        const rpc = idempotentRpc();
+        mocks.requireAuth.mockResolvedValue({ supabase: { rpc } });
+        await createBlankProjectAction(formData());
+        const [, args] = rpc.mock.calls[0] as unknown as [string, RpcArgs];
+        expect(args.p_project).not.toHaveProperty("closing_statement");
+        expect(A069_BLOCKER_PHASE1_CREATE_RPC_NO_CLOSING_STATEMENT_SLOT).toBe("create_phase1_project_graph");
     });
 
     it("ignores a template id sent by an old client", async () => {

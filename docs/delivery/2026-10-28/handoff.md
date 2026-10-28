@@ -32,6 +32,18 @@ or first-green check rerun. Fresh Node24 guarded build and non-force backup rece
 private `day28-second-green-source-backup-20261028.json`. Five integrated actions stay Partial;
 no new Complete rows.
 
+## RESUME1300 Next Green - 28 October 2026
+
+On parent `c6cd984064c170bd5c2252fe15684c7d30c219f7`, integrate scoped source only:
+A075 PDF page-structure/spacing (`dc23b492`, two files vs da8) and A115 Completed→Active
+reopen guard (`afaac1d`, board + feedback tests). Do not merge branch tips; do not take A038,
+address-lock P2, A054 advanced, or unreviewed A115 type-ack tip work. Generic Won policy remains
+a separate Rob decision; Estimating→Active baseline Won behaviour is unchanged.
+
+Focused file-level checks after integration; full suite not rerun where c6 PDF/board bytes matched
+the reviewed parent. Guarded build and backup receipt:
+`resume1300-next-green-source-backup-20261028.json`. A075 and A115 stay Partial.
+
 ## Earlier Handoff Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

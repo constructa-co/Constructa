@@ -54,7 +54,7 @@ const PROJECT_TYPE_COLORS: Record<string, { light: string; dark: string }> = {
 const NEXT_STAGE: Record<string, string> = {
     "Lead":          "Estimating",
     "Estimating":    "Proposal Sent",
-    "Proposal Sent": "Active",   // handled by markAsWonAction
+    "Proposal Sent": "Active",   // Active moves use markAsWonAction except Completed reopen (see move())
     "Active":        "Completed",
     "Lost":          "Proposal Sent", // reopen
     "Completed":     "Active",        // reopen
@@ -103,6 +103,11 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
         if (moveInFlight.current) return;
         moveInFlight.current = true;
         setMoveNotice(null);
+        const priorStatus = projects.find(p => p.id === projectId)?.status ?? "Lead";
+        const fromStage = (optimisticStatus.source === projects ? optimisticStatus.stages[projectId] : undefined) ?? priorStatus;
+        // Baseline: any move to Active still uses the legacy Won write except
+        // Completed→Active reopen, which must not rewrite acceptance fields.
+        const useWonMutation = newStatus === "Active" && fromStage !== "Completed";
         setOptimisticStatus(prev => ({ source: projects, stages: { ...(prev.source === projects ? prev.stages : {}), [projectId]: newStatus } }));
         const restore = () => setOptimisticStatus(prev => {
             const stages = { ...prev.stages };
@@ -112,7 +117,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
         startTransition(async () => {
             let confirmed = false;
             try {
-                const result = newStatus === "Active"
+                const result = useWonMutation
                     ? await markAsWonAction(projectId)
                     : await updateStatusAction(projectId, newStatus);
                 if (!result?.success) {

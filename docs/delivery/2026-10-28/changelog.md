@@ -25,6 +25,17 @@
 - Focused combined checks; receipt `day28-second-green-source-backup-20261028.json`.
   Five actions Partial; counts 66C/32P/19N/1B unchanged.
 
+## RESUME1300 Next Green - 28 October 2026
+
+- Parent `c6cd984`: integrate **A075** `dc23b492` PDF compact layout (2 product files
+  vs da8 parent; c6 PDF base matched da8) and **A115** `afaac1d` Completed→Active
+  reopen guard only (2 board files; baseline Active→Won retained, generic Won policy
+  still pending). **Excluded:** A038 until SQL compatibility return; unreviewed A115
+  `9bba165` type-ack; A054 advanced; address-lock P2 repair (separate, not integrated).
+- Focused checks: `proposal-brochure.test.ts` 38 PASS (+3 new); board feedback 13 PASS
+  (+2 new). No full PDF/pipeline suite rerun when pre-patch base matched tested parent.
+- Receipt `resume1300-next-green-source-backup-20261028.json`. A075/A115 remain Partial.
+
 ## Earlier Changelog Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

@@ -141,12 +141,18 @@ BEGIN
     -- read here in the same transaction under the caller's RLS. A retry has
     -- already returned above, so an existing job is never changed. A blank or
     -- over-long message leaves the closing empty, as the explicit "Use company
-    -- message" choice does; nothing is shortened or reworded.
+    -- message" choice does (ECMAScript String.prototype.trim on the saved text,
+    -- not POSIX locale space classes); nothing is shortened or reworded.
+    -- Blank eligibility only: code points U+0009,U+000A..U+000D,U+0020,U+00A0,
+    -- U+1680,U+2000..U+200A,U+2028,U+2029,U+202F,U+205F,U+3000,U+FEFF. U+200B
+    -- and U+180E are not treated as blank because JavaScript trim does not remove them.
     SELECT p.md_message
       INTO v_closing
       FROM public.profiles p
      WHERE p.id = v_user_id;
-    IF v_closing IS NULL OR v_closing !~ '[^[:space:]]' OR length(v_closing) > 20000 THEN
+    IF v_closing IS NULL
+       OR v_closing !~ '[^[\x{9}-\x{d}\x{20}\x{a0}\x{1680}\x{2000}-\x{200a}\x{2028}-\x{2029}\x{202f}\x{205f}\x{3000}\x{feff}]]'
+       OR length(v_closing) > 20000 THEN
         v_closing := NULL;
     ELSIF (SELECT pg_catalog.sum(CASE WHEN pg_catalog.ascii(chars.ch) > 65535 THEN 2 ELSE 1 END)
              FROM pg_catalog.regexp_split_to_table(v_closing, '') AS chars(ch)) > 20000 THEN

@@ -26,6 +26,22 @@ const latestFile = [...files].reverse().find(name => readFileSync(join(DIR, name
 const latest = definition(readFileSync(join(DIR, latestFile), "utf8"));
 const original = definition(readFileSync(join(DIR, ORIGINAL_FILE), "utf8"));
 
+/** ECMAScript trim whitespace (same finite set as A069 SQL blank guard). */
+const ECMA_TRIM_WHITESPACE_CLASS =
+    "\u0009\u000A\u000B\u000C\u000D\u0020\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF";
+const A069_SQL_NONBLANK_PATTERN = new RegExp(`[^${ECMA_TRIM_WHITESPACE_CLASS}]`);
+/** Auditable literal expected in the unapplied migration (locale-independent, not POSIX [:space:]). */
+const A069_SQL_NONBLANK_PATTERN_LITERAL =
+    "'[^[\\x{9}-\\x{d}\\x{20}\\x{a0}\\x{1680}\\x{2000}-\\x{200a}\\x{2028}-\\x{2029}\\x{202f}\\x{205f}\\x{3000}\\x{feff}]]'";
+
+function closingEligibleByEcmascriptTrim(message: string | null): boolean {
+    return message !== null && !!message.trim();
+}
+
+function closingEligibleByA069SqlPattern(message: string | null): boolean {
+    return message !== null && A069_SQL_NONBLANK_PATTERN.test(message);
+}
+
 describe("A069 creation RPC source contract (static, no database)", () => {
     it("is redefined by a later, additive migration rather than editing the applied one", () => {
         expect(latestFile > ORIGINAL_FILE).toBe(true);
@@ -41,7 +57,9 @@ describe("A069 creation RPC source contract (static, no database)", () => {
 
     it("copies it exactly, and leaves the closing empty for a blank or over-long message", () => {
         expect(latest).toContain(`length(v_closing) > ${TEXT_LIMITS.closing}`);
-        expect(latest).toMatch(/v_closing !~ '\[\^\[:space:\]\]'/);
+        expect(latest).not.toMatch(/v_closing !~ '\[\^\[:space:\]\]'/);
+        expect(latest).toContain(`v_closing !~ ${A069_SQL_NONBLANK_PATTERN_LITERAL}`);
+        expect(latest).toMatch(/ECMAScript String\.prototype\.trim/i);
         const assignment = latest.slice(latest.indexOf("SELECT p.md_message"), latest.indexOf("INSERT INTO public.projects"));
         expect(assignment).not.toMatch(/trim|left\(|substr|regexp_replace|overlay|octet_length|convert_to|normalize/i);
     });
@@ -77,11 +95,10 @@ describe("A069 creation RPC source contract (static, no database)", () => {
     });
 });
 
-// A TypeScript reference of the SQL seed rule above: characters as Postgres
-// splits them (code points), each above U+FFFF counting two. This checks the
-// FORMULA against the editor's existing rule; it does not execute the SQL.
+// TypeScript reference of the SQL seed rule: ECMAScript trim blankness, then
+// UTF-16 code-unit limit (Postgres splits code points; above U+FFFF counts two).
 function seedsReference(message: string | null): boolean {
-    if (message === null || !/[^\s]/.test(message) || [...message].length > TEXT_LIMITS.closing) return false;
+    if (message === null || !message.trim() || [...message].length > TEXT_LIMITS.closing) return false;
     return [...message].reduce((units, ch) => units + (ch.codePointAt(0)! > 0xffff ? 2 : 1), 0) <= TEXT_LIMITS.closing;
 }
 function editorAccepts(message: string): boolean {
@@ -91,6 +108,32 @@ function editorAccepts(message: string): boolean {
     const store = { getState: () => state, dispatch: (action: ReviewAction) => { state = reviewReducer(state, action); } };
     return applyCompanyClosingMessage(store, message, true).ok;
 }
+
+describe("A069 blank eligibility: ECMAScript trim matches SQL source predicate (SOURCE contract, no Postgres)", () => {
+    it.each([
+        ["empty", "", false],
+        ["ASCII whitespace only", "  \n\t\r\f\v ", false],
+        ["NBSP only (U+00A0)", "\u00A0", false],
+        ["BOM / ZWNBSP only (U+FEFF)", "\uFEFF", false],
+        ["zero-width space only (U+200B)", "\u200B", true],
+        ["Mongolian vowel separator (U+180E)", "\u180E", true],
+        ["leading/trailing trim ws with text", "  Hello\u00A0  ", true],
+        ["non-BMP letter", "\u{1F3D7}", true],
+    ])("%s", (_label, message, eligible) => {
+        expect(closingEligibleByEcmascriptTrim(message)).toBe(eligible);
+        expect(closingEligibleByA069SqlPattern(message)).toBe(eligible);
+        expect(!!message.trim()).toBe(eligible);
+    });
+
+    it("applyCompanyClosingMessage agrees with trim eligibility on white-only and mixed samples", () => {
+        const samples = ["", " \t", "\u00A0\uFEFF", "\u200B", "\u180E", "x", " \nx\n ", "\u00A0Hi"];
+        for (const message of samples) {
+            const trimEligible = closingEligibleByEcmascriptTrim(message);
+            expect(closingEligibleByA069SqlPattern(message)).toBe(trimEligible);
+            expect(editorAccepts(message)).toBe(trimEligible && seedsReference(message));
+        }
+    });
+});
 
 describe("A069 UTF-16 limit: reference formula against the editor's existing rule (no SQL execution)", () => {
     const emoji = "\u{1F3D7}"; // outside the BMP: 1 code point, 2 UTF-16 units

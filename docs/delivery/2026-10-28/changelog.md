@@ -12,6 +12,8 @@
 
 **Fix:** `toLegacyWireContent()` on RPC payloads; `hasCaseStudyPhoto()` refuses create/save with an explicit photos field message; approved copy stays 12-key wire (+ `disciplines`); resolver normalises missing photo slots; offline `content-wire.test.ts` + handler tests.
 
+**UX (same branch):** `CASE_LIBRARY_DRAFT_PHOTOS_ON_WIRE` / `caseLibraryDraftPhotosOnWire()` — library photo upload hidden and handler-guarded while legacy wire only; profile/older editor unchanged. `library-photo-persistence.test.ts` focused regression.
+
 ## Cursor change log (A038)
 
 | File | Lines (approx) | Change | Intent |
@@ -26,6 +28,12 @@
 | `supabase/migrations/20261028120000_case_library_photos.sql` | new | SOURCE ONLY SQL | DB parity when applied |
 | `src/lib/case-library/__fixtures__/contract-vectors.json` | bulk | `photos` on all drafts | TS/SQL vector parity |
 | Tests under `case-studies/` and `case-library/` | various | Seams, guided exclusion, FULL draft | Offline synthetic proof |
+| `src/lib/case-library/content.ts` | 59-210 | `LEGACY_WIRE_CONTENT_KEYS`, `toLegacyWireContent`, sorted `CONTENT_KEYS`, legacy `approvedValue` / `approvedProblem` | Old DB contract + in-app 13-key draft |
+| `src/lib/case-library/service.ts` | 158-215 | Wire omit + photo refusal on create/save | Fail closed, no silent drop |
+| `src/lib/case-library/content-wire.test.ts` | new | Legacy keys rejection; saveStudy wire | Offline regression on real handlers |
+| `src/lib/case-library/resolve.ts` | 81 | `normalisePhotoSlots` on approved | No crash when approved omits photos |
+| `src/lib/case-library/coherent-read.test.ts` | 64-174 | RPC fixtures use `toLegacyWireContent` | Fake DB matches applied SQL validator |
+| `src/lib/case-library/__fixtures__/fake-library.ts` | 87-136 | Legacy RPC validate; store `contentFromInput` draft | Tests match production wire vs in-memory draft |
 
 # DAY28 First Green Integration - 28 October 2026
 

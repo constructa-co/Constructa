@@ -14,7 +14,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { approvalProblem, approvedProblem, approvedValue, contentFromInput, contentProblem, hasCaseStudyPhoto, labelProblem, toLegacyWireContent, type ApprovedCaseStudy, type CaseStudyContent } from "./content";
+import { approvalProblem, approvedProblem, approvedValue, caseLibraryDraftPhotosOnWire, contentFromInput, contentProblem, hasCaseStudyPhoto, labelProblem, toLegacyWireContent, type ApprovedCaseStudy, type CaseStudyContent } from "./content";
 import { normalisePhotoSlots } from "./photos";
 import { cleanLabel } from "./labels";
 import { draftFromLegacy } from "./legacy";
@@ -159,7 +159,7 @@ export async function createStudy(context: LibraryContext, input: { content: unk
     const content = contentFromInput(input?.content);
     const problem = contentProblem(content);
     if (problem) return { status: "invalid", message: fieldMessage(problem), field: fieldOf(problem) };
-    if (hasCaseStudyPhoto(content)) return { status: "invalid", message: fieldMessage("photos"), field: "photos" };
+    if (!caseLibraryDraftPhotosOnWire() && hasCaseStudyPhoto(content)) return { status: "invalid", message: fieldMessage("photos"), field: "photos" };
     if (!validTags(input?.disciplineIds)) return { status: "invalid", message: M.tooManyTags, field: "disciplines" };
 
     const answer = await call(context, "case_study_create", { p_content: toLegacyWireContent(content), p_legacy_index: null });
@@ -187,7 +187,7 @@ export async function saveStudy(context: LibraryContext, input: { id: unknown; r
     const content = contentFromInput(input.content);
     const problem = contentProblem(content);
     if (problem) return { status: "invalid", message: fieldMessage(problem), field: fieldOf(problem) };
-    if (hasCaseStudyPhoto(content)) return { status: "invalid", message: fieldMessage("photos"), field: "photos" };
+    if (!caseLibraryDraftPhotosOnWire() && hasCaseStudyPhoto(content)) return { status: "invalid", message: fieldMessage("photos"), field: "photos" };
     if (!validTags(input.disciplineIds)) return { status: "invalid", message: M.tooManyTags, field: "disciplines" };
     const { id } = input;
     const wanted = input.disciplineIds;

@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useReducer, useRef, useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { newDraft, type ApprovedCaseStudy, type CaseStudyContent } from "@/lib/case-library/content";
+import { caseLibraryDraftPhotosOnWire, newDraft, type ApprovedCaseStudy, type CaseStudyContent } from "@/lib/case-library/content";
+import { fieldMessage } from "@/lib/case-library/messages";
 import { editorReducer, initialEditorState, isDirty, saveLine } from "@/lib/case-library/editor-state";
 import { questionOf } from "@/lib/case-library/guided";
 import { CANONICAL_WORK_NAMES } from "@/lib/case-library/labels";
@@ -103,6 +104,10 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
     };
 
     const handlePhotoUpload = async (slot: number, file: File) => {
+        if (!caseLibraryDraftPhotosOnWire()) {
+            toast.error(fieldMessage("photos"));
+            return;
+        }
         const formData = new FormData();
         formData.set("file", file);
         formData.set("purpose", "case-study");
@@ -347,7 +352,7 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
                     <textarea id="cs-value-added" className={input} rows={5} aria-describedby="cs-value-added-help" value={content.value_added} maxLength={5000} onChange={(event) => set({ value_added: event.target.value })} {...invalid("value_added")} />
                     {suggestionPanel("value_added", "value_added")}
                 </div>
-                <CaseStudyPhotoSlots photos={normalisePhotoSlots(content.photos)} onChange={setPhoto} onUpload={handlePhotoUpload} cardIndex={0} />
+                <CaseStudyPhotoSlots photos={normalisePhotoSlots(content.photos)} onChange={setPhoto} onUpload={handlePhotoUpload} cardIndex={0} persistenceAvailable={caseLibraryDraftPhotosOnWire()} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label htmlFor="cs-place" className={label}>Roughly where? <span className="font-normal text-slate-300">(optional)</span></label>

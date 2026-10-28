@@ -59,6 +59,20 @@ export interface ApprovedCaseStudy extends CaseStudyContent {
 /** Keys the applied case-library migration validates on `draft` jsonb. Photos are not stored until `20261028120000_case_library_photos.sql` is applied. */
 export const LEGACY_WIRE_CONTENT_KEYS = ["client_display", "client_named_ok", "client_text", "delivered", "duration_text", "place", "show_value", "title", "value_added", "value_text", "version", "work_type"] as const;
 
+/**
+ * Whether `case_study_create` / `case_study_save_draft` may carry a `photos` key on
+ * `p_content` for the database contract this build targets. Tied to
+ * {@link LEGACY_WIRE_CONTENT_KEYS}: false while only `20261012090000` is applied.
+ * Applying `supabase/migrations/20261028120000_case_library_photos.sql` on a host does
+ * not flip this at runtime — change this constant and the wire path when that migration
+ * is part of the applied contract for releases.
+ */
+export const CASE_LIBRARY_DRAFT_PHOTOS_ON_WIRE = false as const;
+
+export function caseLibraryDraftPhotosOnWire(): boolean {
+    return CASE_LIBRARY_DRAFT_PHOTOS_ON_WIRE;
+}
+
 /** In-app draft shape (includes photo slots for the editor). Same sort order as `Object.keys(...).sort()`. */
 const CONTENT_KEYS = [
     "client_display",

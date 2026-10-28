@@ -46,4 +46,19 @@ describe("A001 four settings controls brand actions", () => {
         expect(source).toMatch(/text-blue-400 font-mono/);
         expect(source).not.toMatch(/bg-blue-600/);
     });
+
+    it("case-studies Add another example keeps original flex geometry, not link helper sizing", () => {
+        const source = readFileSync(path.join(ROOT, "case-studies/case-studies-client.tsx"), "utf8");
+        const match = source.match(/data-add-example\s*\n\s*className=\{`([^`]+)`\}/);
+        expect(match, "data-add-example button className").toBeTruthy();
+        const cls = match![1];
+        expect(cls).toContain("flex items-center gap-2");
+        expect(cls).toContain("px-4 py-2.5");
+        expect(cls).toContain("transition-colors");
+        expect(cls).not.toContain("inline-flex");
+        expect(cls).not.toContain("min-h-11");
+        expect(cls).not.toContain("coreProfileSecondaryLink");
+        expect(cls).toMatch(/emerald/);
+        expect(cls).not.toMatch(/blue-[47]/);
+    });
 });

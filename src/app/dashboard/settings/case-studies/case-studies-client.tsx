@@ -15,7 +15,6 @@ import {
     coreFocusRing,
     coreFocusVisibleRing,
     coreProfileFieldBase,
-    coreProfileSecondaryLink,
     coreProfileTextarea,
     coreSuggestionPrimary,
 } from "@/lib/core-editing-palette";
@@ -179,7 +178,7 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
                 <button
                     onClick={addCaseStudy}
                     data-add-example
-                    className={`gap-2 ${coreProfileSecondaryLink}`}
+                    className={`flex items-center gap-2 text-sm font-semibold text-emerald-200 hover:text-emerald-100 bg-emerald-950/30 hover:bg-emerald-950/50 border border-emerald-600/40 rounded-lg px-4 py-2.5 transition-colors ${coreFocusVisibleRing}`}
                 >
                     <Plus className="w-4 h-4" />
                     Add another example

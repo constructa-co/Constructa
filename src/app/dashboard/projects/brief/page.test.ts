@@ -6,6 +6,7 @@ vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw Error(`N
 vi.mock("@/components/project-navbar", () => ({ default: () => null }));
 vi.mock("./brief-client", () => ({ default: () => null }));
 
+import { dashboardRouteShellBody } from "@/lib/__fixtures__/dashboard-route-shell-page";
 import BriefPage from "./page";
 
 const projects = {
@@ -15,7 +16,7 @@ const projects = {
 
 async function editor(projectId?: keyof typeof projects) {
     const page = await BriefPage({ searchParams: Promise.resolve({ projectId }) });
-    return page.props.children[1];
+    return dashboardRouteShellBody(page);
 }
 
 describe("brief project identity boundary", () => {

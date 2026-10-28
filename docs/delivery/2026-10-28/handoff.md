@@ -131,3 +131,12 @@ legacy harness hold: default `playwright.config.ts` / global setup refuse **NOT_
 env or auth fetch when write hold is literal true (Ready/manual dispatch class gap). **703**
 draft guard preserved. **A091 Partial**. Register **70C 28P 19N 1B**. Private grade/validation
 and receipt `checkpoint1605-a041-legacy-guard-integrated-source-backup-20261028.json`.
+
+## CHECKPOINT1625 Brief + fixtures + recovery checker — 28 October 2026
+
+**Parent `1bd4034`:** Claude **`a7038f0`** thirteen-path Brief assistant (shared transport,
+NULL generator, double review, saved-context only) + Composer **`43a3d56`** `dashboardRouteShellBody`
+twelve CI fixture repairs + Composer **`20bb160`** manifest duplicate-ref SHA conflict refusal.
+**703** / legacy NOT_RUN / **1605** guards preserved. Register metadata only (A055/A063/A079/A091);
+**70C 28P 19N 1B** unchanged. Receipt
+`checkpoint1625-brief-fixtures-recovery-integrated-source-backup-20261028.json`.

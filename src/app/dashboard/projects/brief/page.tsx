@@ -5,6 +5,7 @@ import ProjectNavBar from "@/components/project-navbar";
 import ProjectEntry from "@/components/project-entry";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import BriefClient from "./brief-client";
+import { jobAssistantAvailability } from "@/lib/server/job-assistant-transport";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Video analysis (20 frames → GPT-4o Vision) can take 20-40s
@@ -72,6 +73,7 @@ export default async function BriefPage(props: { searchParams: Promise<{ project
                     brief_completed: project.brief_completed || false,
                 }}
                 lockReason={getPrecontractEditLockReason(project)}
+                briefAssistantEnabled={jobAssistantAvailability().brief}
             />
         </DashboardRouteShell>
     );

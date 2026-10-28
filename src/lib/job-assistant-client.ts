@@ -9,6 +9,7 @@
  */
 import type { Estimate } from "@/app/dashboard/projects/costs/types";
 import { AssistantTransportError, sha256Hex, unwrapAssistantTurn, type AssistantTurnMessage } from "./assistant-transport";
+import type { BriefGenerator } from "./brief-conversation";
 import type { PlanningGenerator } from "./planning-conversation";
 import { PLANNING_FAILED } from "./planning-conversation";
 import type { PricingConversationGenerator } from "./pricing-conversation";
@@ -23,6 +24,7 @@ export interface PricingTurnRequest {
     expectedRevision: string;
     history: AssistantTurnMessage[];
 }
+export type BriefTurnRequest = PlanningTurnRequest;
 export interface PlanningTurnRequest {
     projectId: string;
     message: string;
@@ -62,7 +64,16 @@ export function createPricingRequestGenerator(
 
 /** The planning conversation hands over the saved-programme context it reviewed; that is what is fingerprinted. */
 export function createPlanningRequestGenerator(request: (input: PlanningTurnRequest) => Promise<unknown>): PlanningGenerator {
-    return async ({ context, messages, signal }) => {
+    return savedContextRequest(request);
+}
+
+/** The Brief conversation hands over the saved-brief context it reviewed (A055); the same request path. */
+export function createBriefRequestGenerator(request: (input: BriefTurnRequest) => Promise<unknown>): BriefGenerator {
+    return savedContextRequest(request);
+}
+
+function savedContextRequest<C extends { job: { id: string } }>(request: (input: PlanningTurnRequest) => Promise<unknown>) {
+    return async ({ context, messages, signal }: { context: C; messages: AssistantTurnMessage[]; signal: AbortSignal }) => {
         const { message, history } = split(messages, PLANNING_FAILED);
         const expected = { projectId: context.job.id, revision: await sha256Hex(JSON.stringify(context)) };
         stopped(signal, PLANNING_FAILED);

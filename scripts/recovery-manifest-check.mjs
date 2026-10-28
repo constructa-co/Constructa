@@ -146,7 +146,13 @@ export function checkManifest(manifest, { root, rawText } = {}) {
     for (const [index, ref] of (Array.isArray(manifest.git?.refs) ? manifest.git.refs : []).entries()) {
         if (!REF.test(ref?.ref ?? "") || ref.ref.includes("..")) { fail(`git.refs[${index}]: unsafe ref name`); continue; }
         if (!GIT_SHA.test(ref.sha ?? "")) { fail(`git.refs[${index}]: sha must be 40 lowercase hex`); continue; }
-        refs.set(`${ref.repository ?? ""} ${ref.ref}`, ref.sha);
+        const refKey = `${ref.repository ?? ""} ${ref.ref}`;
+        const recorded = refs.get(refKey);
+        if (recorded !== undefined && recorded !== ref.sha) {
+            fail(`git.refs[${index}]: conflicting sha for ${ref.repository}:${ref.ref} (already recorded as ${recorded})`);
+            continue;
+        }
+        refs.set(refKey, ref.sha);
     }
     for (const [index, required] of (Array.isArray(manifest.git?.requiredRefs) ? manifest.git.requiredRefs : []).entries()) {
         const found = refs.get(`${required?.repository ?? ""} ${required?.ref}`);

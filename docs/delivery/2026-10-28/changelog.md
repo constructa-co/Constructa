@@ -99,6 +99,15 @@
 - Focused **4/4** legacy guard vitest; no A041 runtime reruns. Counts **70C / 28P / 19N / 1B**.
   Receipt `checkpoint1605-a041-legacy-guard-integrated-source-backup-20261028.json`.
 
+## CHECKPOINT1625 Brief path + fixtures + manifest checker — 28 October 2026
+
+- Parent **`1bd4034`**: integrate Claude **`a7038f0`** Brief request path (13 paths), Composer
+  **`43a3d56`** twelve CI fixture repairs (2 test files), Composer **`20bb160`** conflicting-ref
+  checker refusal (2 scripts). **All 118 statuses unchanged**; A055/A063/A079/A091 metadata only.
+- ROOT focused **12** brief page/lock vitest + **26** recovery node tests; retain Claude **25+67**
+  and prior suites not rerun. Receipt
+  `checkpoint1625-brief-fixtures-recovery-integrated-source-backup-20261028.json`.
+
 ## Earlier Changelog Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

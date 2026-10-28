@@ -147,13 +147,14 @@ describe("A055 Brief: browser conversation against the real handler", () => {
 describe("A055 Brief: the generation seam on the Brief request path", () => {
     const config = { feature: "brief", approval: { ref: "TEST-ONLY", approvedBy: "test", approvedAt: "2026-10-28T00:00:00Z" },
         provider: "stub", model: "stub-model", maxOutputTokens: 500, timeoutMs: 1000, maxMessages: 6, maxInputChars: 5000,
+        prices: { inputPencePerMillionTokens: 100, outputPencePerMillionTokens: 400 },
         attemptPence: 2, perJobPence: 10, monthlyPence: 100 };
     const ledger = () => ({ reserve: vi.fn(async () => ({ ok: true })), settle: vi.fn(async () => {}), release: vi.fn(async () => {}), retain: vi.fn(async () => {}), conclude: vi.fn<(attemptId: string, outcome: string) => Promise<void>>(async () => {}) });
 
     it("reserves against the saved brief revision, sends only the minimal context, and records a reply or an overtaken one", async () => {
         const f = fixture(); const l = ledger();
         const send = vi.fn<JobAssistantTransport["send"]>(async () => ({ kind: "reply", raw: reply, costPence: 1 }));
-        const generate = createJobAssistantGenerator<unknown>("brief", { config, transport: { send }, ledger: l as unknown as UsageLedger })!;
+        const generate = createJobAssistantGenerator<unknown>("brief", { config, transport: { send, maxInputTokens: () => 100 }, ledger: l as unknown as UsageLedger })!;
         expect(await handleBriefTurn(f.request(), generate)).toEqual({ status: "reply", reply, provenance: { projectId: PROJECT, revision: f.revision() } });
         const id = l.conclude.mock.calls[0][0];
         expect(l.reserve).toHaveBeenCalledWith(expect.objectContaining({ attemptId: id, feature: "brief", userId: USER, projectId: PROJECT, revision: f.revision(), pence: 2 }));
@@ -164,7 +165,7 @@ describe("A055 Brief: the generation seam on the Brief request path", () => {
         const overtaken = ledger();
         const request = f.request();
         const late = createJobAssistantGenerator<unknown>("brief", { config, ledger: overtaken as unknown as UsageLedger,
-            transport: { send: async () => { f.project.brief_trade_sections = ["Roofing", "Guttering"]; return { kind: "reply", raw: reply, costPence: 1 }; } } })!;
+            transport: { maxInputTokens: () => 100, send: async () => { f.project.brief_trade_sections = ["Roofing", "Guttering"]; return { kind: "reply", raw: reply, costPence: 1 }; } } })!;
         expect(await handleBriefTurn(request, late)).toEqual({ status: "stale", message: BRIEF_SERVER_CHANGED });
         expect(overtaken.settle).toHaveBeenCalledTimes(1);
         expect(overtaken.conclude.mock.calls).toEqual([[overtaken.conclude.mock.calls[0][0], "stale"]]);

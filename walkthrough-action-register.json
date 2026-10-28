@@ -723,7 +723,8 @@
       "id": "A115",
       "phase": "P1-Jan2027",
       "requested": "Reconcile pipeline actions with saved workflow state, publication/readiness and confirmed mutation results.",
-      "status": "Partial"
+      "status": "Partial",
+      "note": "Composer 28 Oct: client move() now routes markAsWonAction only Proposal Sent→Active; returned-row ack/uncertain copy unchanged; no new readiness or acceptance policy."
     },
     {
       "id": "A116",

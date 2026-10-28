@@ -25,7 +25,8 @@ import VisionTakeoff from "@/app/dashboard/foundations/vision-takeoff";
 import BoQImport from "./boq-import";
 import { exportBoQToExcel } from "./boq-excel-export";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
-import { formatGBP } from "@/lib/simple-estimate";
+import { formatGBP, parseAdvancedQuantityDraft, type AdvancedRunningTotalDraft } from "@/lib/simple-estimate";
+import { computeAdvancedRunningTotalDraft } from "@/lib/advanced-running-total-draft";
 import ui from "@/components/estimating.module.css";
 import type { EstimateLineComponent, EstimateLine, Estimate, CostLibraryItem, LabourRate, RateBuildup } from "./types";
 import { savePriceLineActivityAction } from "./activity-actions";
@@ -47,6 +48,7 @@ interface Props {
     resourceSaveStates?: Record<string, "saving" | "uncertain" | "draft">;
     onResourceSaveStateChanged?: (lineId: string, state: "saving" | "confirmed" | "uncertain" | "draft") => void;
     onLineSaveStateChanged?: (lineId: string, state: "saving" | "confirmed" | "uncertain") => void;
+    onRunningTotalDraftChange?: (draft: AdvancedRunningTotalDraft | null) => void;
 }
 
 const TRADE_SECTIONS = [
@@ -115,16 +117,9 @@ function AdvancedLineActivity({ lineId, section, choices, blocked, helpText, rev
         {review.message && <p role="alert" className={`mt-2 break-words text-sm ${activityStyles.errorText}`}>{review.message}</p>}
     </div>;
 }
-function quantityDraftValue(raw: string): number | null {
-    const value = raw.trim();
-    if (!/^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(value)) return null;
-    const number = Number(value);
-    return Number.isFinite(number) ? number : null;
-}
-
 // ─── Main Component ──────────────────────────────────────
 
-export default function AdvancedEstimate({ estimates, setEstimates, activeTab, setActiveTab, costLibrary, projectId, orgId, rateBuildups, labourRates, preferredTrades, resourceSaveStates, onResourceSaveStateChanged, onLineSaveStateChanged }: Props) {
+export default function AdvancedEstimate({ estimates, setEstimates, activeTab, setActiveTab, costLibrary, projectId, orgId, rateBuildups, labourRates, preferredTrades, resourceSaveStates, onResourceSaveStateChanged, onLineSaveStateChanged, onRunningTotalDraftChange }: Props) {
     const router = useRouter();
     const showClientBoQImport = isCapabilityEnabled("client-boq-import");
     const showDrawingTakeoff = isCapabilityEnabled("drawing-takeoff");
@@ -196,6 +191,72 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
         catalogueMounted.current = true;
         return () => { catalogueMounted.current = false; };
     }, []);
+
+    useEffect(() => {
+        if (!onRunningTotalDraftChange || !currentEstimate) return;
+        const moneyDraftLineId = quantityDraft?.line.id ?? rateDraft?.line.id;
+        const extraResourceDraft = [...draftResourceLines].some((id) => id !== moneyDraftLineId);
+        const resourceBlocked =
+            pendingResourceLines.size > 0 ||
+            applyingResourceLines.size > 0 ||
+            uncertainResourceLines.size > 0 ||
+            extraResourceDraft ||
+            Object.entries(resourceSaveStates ?? {}).some(
+                ([key, status]) =>
+                    (status === "uncertain" || status === "saving") &&
+                    !key.startsWith("quantity:") &&
+                    !key.startsWith("rate:"),
+            );
+        const linePending = Object.values(linePendingRef.current).some((count) => count > 0);
+        onRunningTotalDraftChange(
+            computeAdvancedRunningTotalDraft({
+                estimateId: activeTab,
+                contextToken: catalogueContext,
+                isClientBoQ: !!currentEstimate.is_client_boq,
+                quantityDraft: quantityDraftRef.current,
+                rateDraft: rateDraftRef.current,
+                quantityPending,
+                quantityConsumed: quantityConsumed.current !== null,
+                ratePending,
+                rateConsumed: rateConsumed.current !== null,
+                quantityMessage,
+                rateMessage,
+                hasOtherDraftWork: !!(
+                    lineTypeDraft ||
+                    descriptionDraft ||
+                    unitDraft ||
+                    activityReview ||
+                    catalogueReview
+                ),
+                hasPendingOrUncertainLineWork:
+                    pendingLineSaves.size > 0 || uncertainLineSaves.size > 0 || linePending,
+                hasBlockingResourceWork: resourceBlocked,
+            }),
+        );
+    }, [
+        onRunningTotalDraftChange,
+        currentEstimate,
+        activeTab,
+        catalogueContext,
+        quantityDraft,
+        rateDraft,
+        quantityPending,
+        ratePending,
+        quantityMessage,
+        rateMessage,
+        lineTypeDraft,
+        descriptionDraft,
+        unitDraft,
+        activityReview,
+        catalogueReview,
+        pendingLineSaves,
+        uncertainLineSaves,
+        draftResourceLines,
+        pendingResourceLines,
+        applyingResourceLines,
+        uncertainResourceLines,
+        resourceSaveStates,
+    ]);
 
     const addReceiptsRef = useRef(new Map<string, AddLineReceipt>());
     const [addReceipts, setAddReceipts] = useState<AddLineReceipt[]>([]);
@@ -799,7 +860,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
             Object.entries(catalogueView.current.resourceSaveStates ?? {}).every(([key, status]) =>
                 (key === `quantity:${id}` && status === "draft") ||
                 (key === `line:${id}` && status === "saving" && quantityConsumed.current === draft));
-        const quantity = quantityDraftValue(draft.raw);
+        const quantity = parseAdvancedQuantityDraft(draft.raw);
         if (quantityConsumed.current || !fresh() || quantity === null || !Number.isFinite(quantity * draft.line.unit_rate) ||
             linePendingRef.current[id] > 0 || lineUncertainRef.current.has(id) || pendingResourceLinesRef.current.has(id) || applyingResourceLinesRef.current.has(id)) {
             if (catalogueMounted.current && quantityDraftRef.current === draft && !quantityConsumed.current && !fresh()) setQuantityMessage("The line or source changed. Your quantity text is retained; Cancel and review the saved values before starting again.");
@@ -873,7 +934,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
             Object.entries(catalogueView.current.resourceSaveStates ?? {}).every(([key, status]) =>
                 (key === `rate:${id}` && status === "draft") ||
                 (key === `line:${id}` && status === "saving" && rateConsumed.current === draft));
-        const rate = quantityDraftValue(draft.raw);
+        const rate = parseAdvancedQuantityDraft(draft.raw);
         if (rateConsumed.current || !fresh() || rate === null || !Number.isFinite(draft.line.quantity * rate) ||
             linePendingRef.current[id] > 0 || lineUncertainRef.current.has(id) || pendingResourceLinesRef.current.has(id) || applyingResourceLinesRef.current.has(id)) {
             if (catalogueMounted.current && rateDraftRef.current === draft && !rateConsumed.current && !fresh()) setRateMessage("The line or source changed. Your rate text is retained; Cancel and review the saved values before starting again.");
@@ -1993,9 +2054,9 @@ function LineItemRow({
     const ordinaryDescription = !isClientBoQ && line.pricing_mode === "simple" && section !== "Preliminaries";
     const [searchDraft, setSearchDraft] = useState({ source: line.description, value: line.description || "" });
     const search = searchDraft.source === line.description ? searchDraft.value : line.description;
-    const proposedQuantity = quantityDraft ? quantityDraftValue(quantityDraft.raw) : null;
+    const proposedQuantity = quantityDraft ? parseAdvancedQuantityDraft(quantityDraft.raw) : null;
     const quantityValid = proposedQuantity !== null && Number.isFinite(proposedQuantity * line.unit_rate);
-    const proposedRate = rateDraft ? quantityDraftValue(rateDraft.raw) : null;
+    const proposedRate = rateDraft ? parseAdvancedQuantityDraft(rateDraft.raw) : null;
     const rateValid = proposedRate !== null && Number.isFinite(line.quantity * proposedRate);
     const [showDropdown, setShowDropdown] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);

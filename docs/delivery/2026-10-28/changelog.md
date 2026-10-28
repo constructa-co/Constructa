@@ -15,6 +15,20 @@
   private day28-first-green-source-backup-20261028.json. A001/A005/A063 remain
   Partial pending parent original-grade criteria; no self-Complete.
 
+## A054 Advanced and adjustment running-total preview - 28 October 2026
+
+- `src/lib/simple-estimate.ts`: `parseAdvancedQuantityDraft`, `previewRunningTotal`,
+  combined simple/adjustment/advanced line-total preview via existing `buildPriceLine`,
+  `buildAdjustments`, `lineTotal`, `summarisePrice`; saved totals unchanged.
+- `src/lib/advanced-running-total-draft.ts`: bounded Advanced quantity/rate draft
+  snapshot only (explicit gap: unit/description/build-up/resources/catalogue/add-row).
+- `src/app/dashboard/projects/costs/advanced-estimate.tsx`: reports snapshot through
+  `onRunningTotalDraftChange`; withholds on pending/uncertain/other draft work.
+- `src/app/dashboard/projects/costs/estimate-client.tsx`: dock and Running total card
+  use unified `draftPreview`; refuse when uncertain/saving resource work.
+- Tests: `simple-estimate.test.ts`, `running-total.test.tsx`,
+  `advanced-running-total-preview.test.tsx` (mounted quantity interaction).
+
 ## DAY28 Second Green Integration - 28 October 2026
 
 - Integrate second-wave pins on parent `00dcaa5` (keeps A001/A005/A063): A054

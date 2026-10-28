@@ -14,6 +14,7 @@ import {
     currentSummary,
     draftFromLine,
     draftLineTotal,
+    previewRunningTotal,
     previewSummaryWithOpenLineDrafts,
     estimatingReducer,
     initialEstimatingState,
@@ -229,6 +230,60 @@ describe("previewSummaryWithOpenLineDrafts", () => {
         state = estimatingReducer(state, { type: "op/open", key: NEW_LINE_KEY, kind: "add", lineId: "new-line", draft: { ...EMPTY_PRICE_LINE_DRAFT, description: "Extra", amount: "100" } });
         state = estimatingReducer(state, { type: "op/saving", key: NEW_LINE_KEY });
         expect(previewSummaryWithOpenLineDrafts(state)).toBeNull();
+    });
+});
+
+describe("previewRunningTotal adjustments and advanced drafts", () => {
+    const estimate = () => ({
+        id: "estimate", project_id: "job", version_name: "Estimate", is_active: true,
+        overhead_pct: 0, profit_pct: 15, risk_pct: 0, prelims_pct: 0, discount_pct: 0,
+        discount_reason: "", total_cost: 460,
+        estimate_lines: [line({ id: "one", line_total: 400, unit_rate: 400, quantity: 1 })],
+    });
+
+    it("previews unsaved adjustment percentages without changing saved totals", () => {
+        let state = initialEstimatingState([estimate()], { pendingEstimateId: "pending" });
+        state = estimatingReducer(state, { type: "adjustments/change", patch: { profit: "20" } });
+        expect(currentSummary(state).contractSum).toBe(460);
+        expect(previewRunningTotal(state)?.contractSum).toBe(480);
+    });
+
+    it("combines a valid simple line draft with adjustment draft preview", () => {
+        let state = initialEstimatingState([estimate()], { pendingEstimateId: "pending" });
+        state = estimatingReducer(state, { type: "adjustments/change", patch: { profit: "20" } });
+        state = estimatingReducer(state, { type: "op/open", key: NEW_LINE_KEY, kind: "add", lineId: "new-line", draft: { ...EMPTY_PRICE_LINE_DRAFT, description: "Extra", amount: "100" } });
+        expect(previewRunningTotal(state)?.contractSum).toBe(600);
+    });
+
+    it("withholds preview when adjustment draft is invalid", () => {
+        let state = initialEstimatingState([estimate()], { pendingEstimateId: "pending" });
+        state = estimatingReducer(state, { type: "adjustments/change", patch: { profit: "999" } });
+        expect(previewRunningTotal(state)).toBeNull();
+    });
+
+    it("previews advanced quantity draft overrides when context matches", () => {
+        const base = estimate();
+        const contextToken = JSON.stringify(["job", "org", "estimate", base, []]);
+        let state = initialEstimatingState([base], { pendingEstimateId: "pending" });
+        state = { ...state, advancedOpen: true };
+        expect(
+            previewRunningTotal(state, {
+                catalogueContextToken: contextToken,
+                advanced: { estimateId: "estimate", contextToken, lineTotals: { one: 800 } },
+            })?.contractSum,
+        ).toBe(920);
+    });
+
+    it("refuses advanced preview when catalogue context is stale", () => {
+        const base = estimate();
+        let state = initialEstimatingState([base], { pendingEstimateId: "pending" });
+        state = { ...state, advancedOpen: true };
+        expect(
+            previewRunningTotal(state, {
+                catalogueContextToken: "fresh-context",
+                advanced: { estimateId: "estimate", contextToken: "old-context", lineTotals: { one: 800 } },
+            }),
+        ).toBeNull();
     });
 });
 

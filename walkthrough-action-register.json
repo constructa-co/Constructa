@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-10-28T11:32:00.000Z",
+  "updatedAt": "2026-10-28T11:58:00.000Z",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {
@@ -50,7 +50,7 @@
       "id": "A008",
       "phase": "P1-Jan2027",
       "requested": "Compact discipline choices and step frames so the journey does not jump from short to excessively long pages.",
-      "status": "Partial"
+      "status": "Complete"
     },
     {
       "id": "A009",
@@ -333,7 +333,7 @@
       "id": "A054",
       "phase": "P1-Jan2027",
       "requested": "Finish running-total usability while entering/editing price lines.",
-      "status": "Partial"
+      "status": "Complete"
     },
     {
       "id": "A055",
@@ -468,7 +468,7 @@
       "id": "A075",
       "phase": "P1-Jan2027",
       "requested": "Improve PDF page structure and spacing while retaining its tidy professional baseline.",
-      "status": "Partial"
+      "status": "Complete"
     },
     {
       "id": "A076",

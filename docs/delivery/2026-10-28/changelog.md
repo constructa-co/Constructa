@@ -83,6 +83,12 @@
   case; **543** affected suite **not** rerun. **A054** and **A091** Partial unchanged.
 - Receipt `checkpoint1530-pair-integrated-source-backup-20261028.json`.
 
+## CHECKPOINT1545 Closures + guard — 28 October 2026
+
+- Parent **`a3b2c09`**: original-scope **Complete** for **A008**, **A054**, **A075** (grade JSON +
+  register validation); **703da744** draft-PR E2E guard (2 files). **A091 Partial**.
+- Counts **69C / 29P / 19N / 1B**. Receipt `checkpoint1545-closures-guard-integrated-source-backup-20261028.json`.
+
 ## Earlier Changelog Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

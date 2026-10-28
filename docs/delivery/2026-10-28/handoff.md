@@ -113,3 +113,11 @@ preview after Advanced close. Four product/test files only; no branch changelog 
 
 Focused checks on integrated bytes; fresh guarded build and backup in private
 `checkpoint1530-pair-integrated-source-backup-20261028.json`. A054/A091 stay Partial; counts unchanged.
+
+## CHECKPOINT1545 Original closures + E2E guard — 28 October 2026
+
+**Parent `a3b2c09`:** three **original-scope** closures **A008 / A054 / A075** Partial→Complete
+(with limits; not release/hosted/AuthDB). Register **69C 29P 19N 1B** (P1 **69C 25P 1N 1B**).
+Integrate guard pin **`703da744`** only: `.github/workflows/e2e.yml` + `review-branch-ci.test.ts`
+(draft PR NOT_RUN / phase1 blocked until ready). **A091 Partial** unchanged. Receipt
+`checkpoint1545-closures-guard-integrated-source-backup-20261028.json`.

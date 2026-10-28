@@ -37,10 +37,19 @@ jobs:
         run: |
           echo 'Hosted Phase 1 journey: NOT_RUN. These review branches require a separately authorised manual run with verified disposable target, labelled identity and write controls.' >> "$GITHUB_STEP_SUMMARY"
 
+  draft-pull-request-status:
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == true }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Record draft pull request NOT_RUN
+        run: |
+          echo 'Hosted Phase 1 journey: NOT_RUN. Draft pull requests cannot start hosted account/data writes. Convert the pull request to ready for review only after an authorised review of the workflow guard and disposable target.' >> "$GITHUB_STEP_SUMMARY"
+
   phase1:
     # Rob-approved source-only gate: these explicit review heads cannot start
-    # hosted account/data writes automatically. Other branches and CI are unchanged.
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.head_ref != 'backup/welcome-first-slice-20261018' && github.head_ref != 'codex/phase1-integration-review-20261023' && github.head_ref != 'codex/remove-public-mcp-20261023') }}
+    # hosted account/data writes automatically. Draft pull requests are blocked
+    # until ready for review. Other branches and CI are unchanged.
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && github.head_ref != 'backup/welcome-first-slice-20261018' && github.head_ref != 'codex/phase1-integration-review-20261023' && github.head_ref != 'codex/remove-public-mcp-20261023') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:

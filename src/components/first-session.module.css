@@ -120,15 +120,24 @@
     .tile { min-height: 210px; padding: 22px; }
     .tileMeta { margin-bottom: 24px; }
     .welcomeActions > a { width: 100%; }
-    /* Setup steps only: a tighter phone frame around the unchanged choices. Widths stay as they are. */
-    .formSide:has(.setupForm) { padding-top: 22px; padding-bottom: 22px; }
-    .formSide:has(.setupForm) .steps { margin-bottom: 16px; }
-    .formSide .setupForm { margin-top: 18px; }
+    /* Whole-journey step frame: account signup and setup share the same phone rhythm. */
+    .formSide:has(.journeyStepForm) { padding-top: 22px; padding-bottom: 22px; }
+    .formSide:has(.journeyStepForm) .steps { margin-bottom: 16px; }
+    .formSide .journeyStepForm { margin-top: 18px; }
+    /* Setup trade step: bound the optional grid in-frame; touch targets stay 44px. */
     .setupForm .heading { font-size: 26px; margin-bottom: 10px; }
     .setupForm .lede { margin-bottom: 14px; }
+    .setupForm .workSuggestions {
+        max-height: 15.5rem;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+    }
     .setupForm .saveBar { margin-top: 12px; }
     .formSide:has(.setupForm) > .footnote { margin-top: 14px; }
-    .panel:has(.setupForm) > .storySide { padding-top: 24px; padding-bottom: 24px; }
+    .panel:has(.setupForm) > .storySide { padding-top: 20px; padding-bottom: 20px; gap: 8px; }
+    .panel:has(.setupForm) > .storySide .lede,
+    .panel:has(.setupForm) > .storySide .footnote { display: none; }
 }
 
 /* Welcome-only layout; account/setup controls keep their existing sizing. */

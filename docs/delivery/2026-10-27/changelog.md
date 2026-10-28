@@ -1,3 +1,14 @@
+# A008 Journey Step Frame - 28 October 2026
+
+- Scoped whole-journey phone step-frame composition: shared `journeyStepForm`
+  rhythm on account signup and setup, scroll-bound optional choices grid,
+  compact setup story panel. Sixteen 44px/14px two-column choices unchanged.
+- Focused Vitest on bounded source/CSS ranges; no 844px whole-step fit gate,
+  no new harness, no real DB/provider egress. A008 remains Partial pending
+  independent review.
+
+## Earlier Changelog Retained
+
 # Programme Navigation Follow-Through - 28 October 2026
 
 - Accept Kimi's single refresh-after-push regression; explicitly condition the

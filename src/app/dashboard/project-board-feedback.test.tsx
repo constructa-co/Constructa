@@ -18,6 +18,7 @@ vi.mock("react", async original => ({
         const task = Promise.resolve(work()).catch(() => {}).finally(() => { current.pending = false; });
         current.tasks.push(task);
     }],
+    useEffect: (fn: () => void | (() => void)) => { fn(); },
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: current.refresh }) }));
 vi.mock("@/lib/theme-context", () => ({ useTheme: () => ({ theme: "dark" }) }));
@@ -125,6 +126,14 @@ describe("actual pipeline move handler", () => {
         projects = [{ ...project, status: "Active", proposal_status: "accepted", proposal_accepted_at: "2026-10-01T00:00:00Z" }];
         expect(nodes(view()).some(e => e.type === "button" && text(e.props.children).includes("Mark as Won"))).toBe(false);
         expect(nodes(view()).some(e => e.type === "button" && text(e.props.children).includes("Mark Complete"))).toBe(true);
+    });
+    it("A115: after confirmed Mark as Won, refresh failure must not offer Trophy again on stale props", async () => {
+        projects = [{ ...project, status: "Active", proposal_status: "sent", proposal_accepted_at: null }];
+        current.refresh.mockImplementation(() => { throw new Error("refresh failure"); });
+        click("Mark as Won")(); await settle();
+        expect(current.won).toHaveBeenCalledExactlyOnceWith("job");
+        expect(nodes(view()).some(e => e.type === "button" && text(e.props.children).includes("Mark as Won"))).toBe(false);
+        expect(text(view())).toMatch(/saved.*refresh|saved.*reload/i);
     });
     it("preserves a confirmed move but gives a warning if refresh fails", async () => {
         current.refresh.mockImplementation(() => { throw Error("refresh failure"); });

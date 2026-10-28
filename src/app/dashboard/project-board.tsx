@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition, useState, useRef } from "react";
+import { useEffect, useTransition, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { updateStatusAction, markAsWonAction } from "./board-actions";
 import { Card, CardContent } from "@/components/ui/card";
@@ -103,10 +103,28 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
 
     // Optimistic status: cards move instantly without waiting for server
     const [optimisticStatus, setOptimisticStatus] = useState<{ source: typeof projects; stages: Record<string, string> }>({ source: projects, stages: {} });
+    /** Ephemeral: confirmed Mark as Won ACK for this projects snapshot until server props catch up. */
+    const [confirmedWins, setConfirmedWins] = useState<Record<string, true>>({});
     const [moveNotice, setMoveNotice] = useState<{ kind: "error" | "warning"; text: string } | null>(null);
     const moveInFlight = useRef(false);
 
+    useEffect(() => {
+        setConfirmedWins(prev => {
+            let next: Record<string, true> | null = null;
+            for (const row of projects) {
+                if (hasRecordedWin(row) && prev[row.id]) {
+                    if (!next) next = { ...prev };
+                    delete next[row.id];
+                }
+            }
+            return next ?? prev;
+        });
+    }, [projects]);
+
     const getStatus = (p: any): string => (optimisticStatus.source === projects ? optimisticStatus.stages[p.id] : undefined) ?? p.status ?? "Lead";
+
+    const showsRecordedWin = (p: { id: string; proposal_accepted_at?: string | null; proposal_status?: string | null }) =>
+        hasRecordedWin(p) || confirmedWins[p.id] === true;
 
     const move = (projectId: string, newStatus: string, intent: "default" | "recordWin" = "default") => {
         if (moveInFlight.current) return;
@@ -133,6 +151,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                     return;
                 }
                 confirmed = true;
+                if (useWonMutation) setConfirmedWins(prev => ({ ...prev, [projectId]: true }));
                 if (result.warning) setMoveNotice({ kind: "warning", text: result.warning });
                 router.refresh();
             } catch {
@@ -318,7 +337,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 </button>
                                             ) : status === "Active" ? (
                                                 <div className="space-y-1.5">
-                                                    {!hasRecordedWin(p) && (
+                                                    {!showsRecordedWin(p) && (
                                                         <button
                                                             type="button"
                                                             onClick={() => move(p.id, "Active", "recordWin")}

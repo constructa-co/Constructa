@@ -14,6 +14,7 @@ import {
     Clock, AlertTriangle, TrendingUp,
 } from "lucide-react";
 import VariationPdfButton from "./variation-pdf-button";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 interface Variation {
     id: string;
@@ -252,7 +253,7 @@ export default function ClientVariations({ projectId, project, initialVariations
                         </Select>
                         <button
                             onClick={() => setShowCreate(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-500 transition-colors"
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                         >
                             <Plus className="w-4 h-4" />
                             Log Variation
@@ -482,7 +483,7 @@ export default function ClientVariations({ projectId, project, initialVariations
                             <button
                                 type="submit"
                                 disabled={isPending}
-                                className="w-full h-11 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors"
+                                className={`w-full h-11 font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-70 disabled:cursor-not-allowed ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                             >
                                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Variation"}
                             </button>

@@ -24,6 +24,7 @@ import {
     ClipboardList, TrendingDown, Lock,
 } from "lucide-react";
 import InvoicePdfButton from "./invoice-pdf-button";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 interface Invoice {
     id: string;
@@ -308,7 +309,7 @@ export default function ClientBilling({
                             </div>
                             <button
                                 onClick={() => setShowAfp(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-500 transition-colors"
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                             >
                                 <Plus className="w-4 h-4" />
                                 New AFP
@@ -438,7 +439,7 @@ export default function ClientBilling({
                             </div>
                             <button
                                 onClick={() => setShowMilestone(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-500 transition-colors"
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                             >
                                 <Plus className="w-4 h-4" />
                                 Add Milestone

@@ -19,7 +19,7 @@
  * amount of money. A timing nobody stated becomes an open question.
  */
 import { z } from "zod";
-import { AssistantTransportError } from "./assistant-transport";
+import { createReviewedConversation, suggestionKey, type ReviewedConversationSpec, type ReviewedDecision, type ReviewedOutcome, type ReviewedSnapshot } from "./reviewed-conversation";
 import { resolveJobWorkingPattern } from "./job-working-pattern";
 import { formatPlanDate, formatWorkingDuration } from "./programme-plan";
 import { readProgrammeInclusion } from "./programme-inclusion";
@@ -96,7 +96,7 @@ export interface PlanningSuggestion {
 export type PlanningMessage =
     | { role: "user"; content: string }
     | { role: "assistant"; content: string; questions: string[]; suggestions: PlanningSuggestion[] };
-export type PlanningDecision = "kept" | "dismissed";
+export type PlanningDecision = ReviewedDecision;
 
 export type PlanningGenerator = (input: {
     context: PlanningContext;
@@ -127,6 +127,11 @@ function unsourced(text: string, sources: string): string[] {
     return [...text.matchAll(DATE_LIKE), ...text.matchAll(LEAD_LIKE)].map(match => norm(match[0])).filter(token => !sources.includes(token));
 }
 
+/** The same tripwires, for another grounded conversation (A055 Brief). `sources` is raw text. */
+export function hasUnsourcedTimingOrMoney(text: string, sources: string): boolean {
+    return MONEY.test(text) || unsourced(text, norm(sources)).length > 0;
+}
+
 export type ReviewedReply = { ok: true; value: Extract<PlanningMessage, { role: "assistant" }> } | { ok: false };
 
 /** Checks one reply against the job and the contractor's own words. */
@@ -154,158 +159,33 @@ export function reviewPlanningReply(context: PlanningContext, userMessages: stri
     return { ok: true, value: { role: "assistant", content: reply.message, questions: [...new Set(questions)].slice(0, 8), suggestions } };
 }
 
-export interface PlanningSnapshot {
-    available: boolean;
-    status: "idle" | "pending" | "off" | "error";
-    message: string;
-    messages: PlanningMessage[];
-    decisions: Record<string, PlanningDecision>;
-    error: string | null;
-    notice: string | null;
-    canRetry: boolean;
-}
-export type PlanningOutcome = "reply" | "off" | "busy" | "invalid" | "blocked" | "failed" | "rejected" | "cancelled" | "stale" | "limit";
+export type PlanningSnapshot = ReviewedSnapshot<Extract<PlanningMessage, { role: "assistant" }>>;
+export type PlanningOutcome = ReviewedOutcome;
+export { suggestionKey };
 
-export const suggestionKey = (turn: number, index: number) => `${turn}:${index}`;
+const PLANNING_SPEC: ReviewedConversationSpec<PlanningProjectFields, PlanningContext, Extract<PlanningMessage, { role: "assistant" }>> = {
+    messageLimit: PLANNING_MESSAGE_LIMIT,
+    turnLimit: PLANNING_TURN_LIMIT,
+    text: {
+        off: PLANNING_OFF, openWork: PLANNING_OPEN_WORK, noContext: PLANNING_NO_CONTEXT, failed: PLANNING_FAILED,
+        notUsable: PLANNING_NOT_USABLE, changed: PLANNING_CHANGED, serverChanged: PLANNING_SERVER_CHANGED,
+        stopped: PLANNING_STOPPED, cleared: PLANNING_CLEARED, empty: EMPTY, limit: LIMIT,
+    },
+    context: buildPlanningContext,
+    review: reviewPlanningReply,
+    transcript: item => [item.content, ...item.questions].join("\n"),
+};
 
 /**
  * In-memory conversation for one mounted job page. `read` returns the saved
- * project and whether unsaved or in-progress programme work is open.
+ * project and whether unsaved or in-progress programme work is open. The
+ * lifecycle is the shared reviewed conversation (A055).
  */
 export function createPlanningConversation(
     read: () => { project: PlanningProjectFields; hasOpenWork: boolean },
     generate?: PlanningGenerator,
 ) {
-    const listeners = new Set<() => void>();
-    let messages: PlanningMessage[] = [];
-    let decisions: Record<string, PlanningDecision> = {};
-    let message = "", failed: string | null = null;
-    let status: PlanningSnapshot["status"] = generate ? "idle" : "off";
-    let error: string | null = generate ? null : PLANNING_OFF, notice: string | null = null;
-    let revision: string | null = null;
-    let active: { controller: AbortController; release: () => void } | null = null;
-    let token = 0;
-
-    const value = (): PlanningSnapshot => structuredClone({
-        available: !!generate, status, message, messages, decisions, error, notice, canRetry: !!generate && failed !== null && !active,
-    });
-    let snapshot = value();
-    const publish = () => { snapshot = value(); listeners.forEach(listener => listener()); };
-    const current = () => {
-        try {
-            const source = read();
-            const context = buildPlanningContext(source.project);
-            return context ? { context, revision: JSON.stringify(context), hasOpenWork: source.hasOpenWork } : null;
-        } catch { return null; }
-    };
-    const stop = () => {
-        token++;
-        const request = active;
-        active = null;
-        if (request) { request.controller.abort(); request.release(); }
-    };
-    const clear = (nextNotice: string | null, keepMessage = false) => {
-        stop();
-        messages = []; decisions = {}; revision = null; failed = null;
-        if (!keepMessage) message = "";
-        status = generate ? "idle" : "off"; error = generate ? null : PLANNING_OFF; notice = nextNotice;
-    };
-
-    async function send(): Promise<PlanningOutcome> {
-        if (!generate) { publish(); return "off"; }
-        if (active) return "busy";
-        const submitted = message;
-        if (!submitted.trim() || submitted.length > PLANNING_MESSAGE_LIMIT) {
-            status = "error"; error = EMPTY; notice = null; publish(); return "invalid";
-        }
-        const now = current();
-        if (!now) { status = "error"; error = PLANNING_NO_CONTEXT; notice = null; publish(); return "blocked"; }
-        if (now.hasOpenWork) { status = "error"; error = PLANNING_OPEN_WORK; notice = null; publish(); return "blocked"; }
-        if (revision !== null && revision !== now.revision) clear(PLANNING_CHANGED, true);
-        else notice = null;
-        if (messages.filter(item => item.role === "user").length >= PLANNING_TURN_LIMIT) {
-            status = "error"; error = LIMIT; publish(); return "limit";
-        }
-        revision = now.revision;
-        const sent: PlanningMessage[] = [...messages, { role: "user", content: submitted }];
-        const transcript = sent.map(item => item.role === "user"
-            ? { role: "user" as const, content: item.content }
-            : { role: "assistant" as const, content: [item.content, ...item.questions].join("\n") });
-        let release: () => void = () => {};
-        const cancelled = new Promise<{ cancelled: true }>(resolve => { release = () => resolve({ cancelled: true }); });
-        const request = { controller: new AbortController(), release };
-        const mine = ++token;
-        active = request; status = "pending"; error = null; failed = null;
-        publish();
-        // Settles safely even if a transport ignores abort or answers after a newer request.
-        const reply = Promise.resolve().then(async () => {
-            if (request.controller.signal.aborted) return { cancelled: true as const };
-            try { return { value: await generate({ context: structuredClone(now.context), messages: transcript, signal: request.controller.signal }) }; }
-            catch (error) { return error instanceof AssistantTransportError ? { transport: error } : { failed: true as const }; }
-        });
-        const result = await Promise.race([reply, cancelled]);
-        if (mine !== token || active !== request || "cancelled" in result) return "cancelled";
-        active = null;
-        const after = current();
-        if (!after || after.revision !== now.revision) { clear(PLANNING_CHANGED, true); publish(); return "stale"; }
-        if (after.hasOpenWork) { status = "error"; error = PLANNING_OPEN_WORK; failed = submitted; publish(); return "blocked"; }
-        if ("transport" in result && result.transport) {
-            // A request adapter's answer: the server is off, its saved job differs, or it refused.
-            const reason = result.transport.status;
-            if (reason === "stale") { clear(PLANNING_SERVER_CHANGED, true); publish(); return "stale"; }
-            if (reason === "off") { status = "error"; error = PLANNING_OFF; publish(); return "off"; }
-            status = "error"; error = reason === "rejected" ? PLANNING_NOT_USABLE : PLANNING_FAILED; failed = submitted; publish();
-            return reason === "rejected" ? "rejected" : "failed";
-        }
-        if ("failed" in result) { status = "error"; error = PLANNING_FAILED; failed = submitted; publish(); return "failed"; }
-        const reviewed = reviewPlanningReply(now.context, sent.flatMap(item => item.role === "user" ? [item.content] : []), result.value);
-        if (!reviewed.ok) { status = "error"; error = PLANNING_NOT_USABLE; failed = submitted; publish(); return "rejected"; }
-        messages = [...sent, reviewed.value];
-        status = "idle"; error = null;
-        if (message === submitted) message = "";
-        publish();
-        return "reply";
-    }
-
-    return {
-        getSnapshot: () => snapshot,
-        subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
-        setMessage: (text: string) => {
-            if (!generate || typeof text !== "string" || text === message) return;
-            message = text;
-            if (status === "error" && !failed) { status = "idle"; error = null; }
-            publish();
-        },
-        send,
-        /** Sends the last message that did not get a usable reply, unchanged. */
-        retry: async (): Promise<PlanningOutcome> => {
-            if (failed === null || active) return active ? "busy" : "invalid";
-            message = failed;
-            return send();
-        },
-        /** A deliberate review choice. Kept in this page only; nothing is saved. */
-        decide: (turn: number, index: number, decision: PlanningDecision) => {
-            const turnMessage = messages[turn];
-            if (decision !== "kept" && decision !== "dismissed" || turnMessage?.role !== "assistant" || !turnMessage.suggestions[index]) return false;
-            decisions = { ...decisions, [suggestionKey(turn, index)]: decision };
-            publish();
-            return true;
-        },
-        /** Re-reads the saved job. A changed programme or job clears; open work stops any wait. */
-        refresh: () => {
-            const now = current();
-            if (revision !== null && (!now || now.revision !== revision)) clear(PLANNING_CHANGED, true);
-            else if (now?.hasOpenWork && active) { stop(); status = "error"; error = PLANNING_OPEN_WORK; }
-            publish();
-        },
-        cancel: () => {
-            if (!active) return;
-            stop(); status = generate ? "idle" : "off"; error = null; notice = PLANNING_STOPPED; publish();
-        },
-        reset: () => { clear(PLANNING_CLEARED); publish(); },
-        // Reset rather than dispose: React Strict Mode may replay effect cleanup/setup.
-        detach: () => { clear(null); publish(); },
-    };
+    return createReviewedConversation(PLANNING_SPEC, read, generate);
 }
 
 export type PlanningConversation = ReturnType<typeof createPlanningConversation>;

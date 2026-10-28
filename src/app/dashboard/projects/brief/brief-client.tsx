@@ -44,6 +44,10 @@ import {
     type SuggestionPart,
 } from "@/lib/guided-brief";
 import { saveBriefAction, suggestBriefAction, type VideoAnalysisResult } from "./actions";
+import { briefAssistantTurnAction } from "./assistant-actions";
+import BriefConversationPanel from "@/components/brief-conversation-panel";
+import { createBriefConversation, type BriefGenerator } from "@/lib/brief-conversation";
+import { createBriefRequestGenerator } from "@/lib/job-assistant-client";
 
 const VideoWalkthrough = dynamic(() => import("./video-walkthrough"), {
     ssr: false,
@@ -65,6 +69,10 @@ interface Props {
     save?: (projectId: string, payload: Parameters<SaveBrief>[0]) => ReturnType<SaveBrief>;
     /** Why pre-contract information can't be changed on this job, or null when it can. */
     lockReason?: string | null;
+    /** Test seam only. The page uses the real request path when the server says it is switched on. */
+    briefGenerator?: BriefGenerator;
+    /** Set by the server from its approved activation point (A055). Off until a feature is approved. */
+    briefAssistantEnabled?: boolean;
 }
 
 const CLIENT_TYPE_LABEL: Record<ClientType, string> = {
@@ -80,7 +88,7 @@ const formatDate = (iso: string): string => {
         : date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 };
 
-export default function BriefClient({ project, ask = suggestBriefAction, save = saveBriefAction, lockReason = null }: Props) {
+export default function BriefClient({ project, ask = suggestBriefAction, save = saveBriefAction, lockReason = null, briefGenerator, briefAssistantEnabled = false }: Props) {
     const router = useRouter();
     const { theme } = useTheme();
     const isDark = theme === "dark";
@@ -126,6 +134,22 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
     // asks first, and so does any link that leaves the Brief (project tabs,
     // sidebar). "Build the price" saves instead, so it is not affected.
     const dirty = status === "unsaved" || status === "failed" || status === "saving";
+
+    // A055: discussion of the SAVED brief only, in this page's memory. It reads
+    // the last confirmed save, never the draft; open Brief work blocks a turn.
+    // Nothing here saves, applies a suggestion or moves between stages.
+    const [briefConversation] = useState(() => createBriefConversation(() => {
+        const fresh = store.getState();
+        const freshStatus = briefSaveStatus(fresh);
+        return {
+            project: { id: project.id, saved: fresh.saved },
+            hasOpenWork: freshStatus === "unsaved" || freshStatus === "failed" || freshStatus === "saving" || fresh.ai.status === "loading" || !!fresh.suggestion,
+        };
+    }, briefGenerator ?? (briefAssistantEnabled ? createBriefRequestGenerator(briefAssistantTurnAction) : undefined)));
+    useEffect(() => { briefConversation.refresh(); }, [briefConversation, state]);
+    useEffect(() => () => briefConversation.detach(), [briefConversation]);
+    const briefOpenWork = dirty || state.ai.status === "loading" || !!suggestion;
+
     useEffect(() => {
         if (!dirty) return;
         const warnOnUnload = (event: BeforeUnloadEvent) => event.preventDefault();
@@ -646,6 +670,9 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                     </p>
                 )}
             </section>
+
+            <BriefConversationPanel session={briefConversation} blocked={briefOpenWork || locked} s={s} data-brief-conversation-mount=""
+                blockedNote={locked ? `${lockReason} The brief conversation is not available for this job.` : undefined} />
         </div>
     );
 }

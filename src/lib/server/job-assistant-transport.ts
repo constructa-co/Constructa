@@ -1,4 +1,5 @@
 import type { AssistantTurnMessage } from "@/lib/assistant-transport";
+import type { BriefConversationContext } from "@/lib/brief-conversation";
 import type { PlanningContext } from "@/lib/planning-conversation";
 import type { pricingModelData } from "@/lib/pricing-review";
 
@@ -33,6 +34,13 @@ export type ServerPlanningGenerator = (input: {
     signal: AbortSignal;
 }) => Promise<unknown>;
 
+export type ServerBriefGenerator = (input: {
+    userId: string;
+    context: BriefConversationContext;
+    messages: AssistantTurnMessage[];
+    signal: AbortSignal;
+}) => Promise<unknown>;
+
 export function approvedPricingGenerator(): ServerPricingGenerator | null {
     return null;
 }
@@ -41,7 +49,12 @@ export function approvedPlanningGenerator(): ServerPlanningGenerator | null {
     return null;
 }
 
+/** A055 Brief. Not approved either: same requirements as above, for its own feature. */
+export function approvedBriefGenerator(): ServerBriefGenerator | null {
+    return null;
+}
+
 /** What the pages tell the browser. The handlers check again on every request. */
-export function jobAssistantAvailability(): { pricing: boolean; planning: boolean } {
-    return { pricing: approvedPricingGenerator() !== null, planning: approvedPlanningGenerator() !== null };
+export function jobAssistantAvailability(): { pricing: boolean; planning: boolean; brief: boolean } {
+    return { pricing: approvedPricingGenerator() !== null, planning: approvedPlanningGenerator() !== null, brief: approvedBriefGenerator() !== null };
 }

@@ -81,7 +81,7 @@ describe("A055 server activation point", () => {
     it("has no approved generator, so both pages are told the assistant is off", () => {
         expect(approvedPricingGenerator()).toBeNull();
         expect(approvedPlanningGenerator()).toBeNull();
-        expect(jobAssistantAvailability()).toEqual({ pricing: false, planning: false });
+        expect(jobAssistantAvailability()).toEqual({ pricing: false, planning: false, brief: false });
     });
 
     it("imports no provider, budget, storage or environment and the actions export only async functions", () => {

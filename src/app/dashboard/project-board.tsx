@@ -268,6 +268,9 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                     Operational stage
                                                 </label>
                                                 <p className={`text-[9px] leading-snug ${isDark ? "text-[#707070]" : "text-gray-500"}`}>
+                                                    Changes save immediately.
+                                                </p>
+                                                <p className={`text-[9px] leading-snug ${isDark ? "text-[#707070]" : "text-gray-500"}`}>
                                                     Tracks where you put this job on the board. It does not send, publish, or accept the proposal document.
                                                 </p>
                                                 {p.proposal_sent_at ? (

@@ -18,4 +18,10 @@ describe("A115 pipeline vs publication reconciliation (source)", () => {
         expect(source).not.toMatch(/Saves immediately when you pick a stage/i);
         expect(source).toMatch(/proposal_sent_at/);
     });
+
+    it("project board stage helper retains immediate-save disclosure (A115 disclosure)", () => {
+        const source = readFileSync(PROJECT_BOARD, "utf8");
+        expect(source).toMatch(/Changes save immediately/i);
+        expect(source).toMatch(/does not send, publish, or accept/i);
+    });
 });

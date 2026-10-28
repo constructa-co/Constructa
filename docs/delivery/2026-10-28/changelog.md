@@ -45,6 +45,20 @@
   guarded build + backup `resume1300-a055-integrated-source-backup-20261028.json`. **A055 Partial**
   unchanged; 66C/32P/19N/1B unchanged.
 
+## A008 scroll-bound choice grid (tests-only) - 28 October 2026
+
+- **File:** `e2e/local-phase1/setup-choices.spec.ts` (lines ~31-33 constants, ~288-360 new
+  `phone 390x844` case). **Intent:** Cover the c6/A008 seam absent from existing cases — bounded
+  `.workSuggestions` scroll (`max-height: 15.5rem`, `overflow-y: auto`), last of 16 labels reachable
+  via native keyboard focus, explicit `aria-pressed`/draft retention through structured mock save
+  refusal; reuses existing offline fixture only (no hosted signup/auth/mail).
+- **Not duplicated:** Main 390px case still covers mid-grid readability + Roofing keyboard toggle +
+  `assertRefusedTradeSaveThenRetry`; separate case covers document scroll to Try again — not inner grid.
+- **Run:** `build-company.mjs` + `playwright.local-setup-choices.config.ts` with `-g "scroll-bound
+  choice grid"` only (1/1 PASS on branch). **Base:** `ebf6a81` ancestor of `693df2a` backup tip.
+  **Limits:** msedge Playwright channel; no full setup-choices suite; no 844 whole-step height gate;
+  CSS scroll rules also asserted in `onboarding-work-choices-compact.test.tsx` (Vitest, not rerun here).
+
 ## Earlier Changelog Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

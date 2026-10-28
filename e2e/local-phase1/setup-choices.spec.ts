@@ -29,6 +29,8 @@ const EXPECTED_SUGGESTION_LABELS = [
 const INITIAL_FREE_TEXT = "Custom specialist repairs";
 const AFTER_ROOFING_TOGGLE = "Custom specialist repairs, Roofing";
 const TRADE_ANSWER_FOR_SAVE = "Exact custom trade answer, Roofing";
+const LAST_SUGGESTION_LABEL = "Landscaping & fencing";
+const LAST_CHOICE_DRAFT = "Exact custom trade answer, Landscaping & fencing";
 
 const PIXEL_TOLERANCE = 1;
 const MIN_CONTROL_HEIGHT = 44;
@@ -281,6 +283,82 @@ test.describe("phone 390x844", () => {
         await assertRoofingToggle(page, "keyboard");
         await assertRefusedTradeSaveThenRetry(page);
         expect(await page.evaluate(() => window.__phase1Local.calls.length)).toBe(2);
+    });
+
+    test("scroll-bound choice grid keeps last suggestion keyboard-focusable with explicit selection through structured save refusal", async ({ page }) => {
+        const group = suggestionGroup(page);
+        const work = page.locator("#setup-work");
+        const lastChoice = group.getByRole("button", { name: LAST_SUGGESTION_LABEL, exact: true });
+
+        await work.fill("Exact custom trade answer");
+        expect(await readSuggestionLabels(page)).toEqual([...EXPECTED_SUGGESTION_LABELS]);
+        await assertSuggestionGridGeometry(page, 2);
+
+        const scrollBound = await group.evaluate(node => {
+            const style = getComputedStyle(node);
+            return {
+                scrollHeight: node.scrollHeight,
+                clientHeight: node.clientHeight,
+                scrollTop: node.scrollTop,
+                overflowY: style.overflowY,
+                maxHeight: style.maxHeight,
+            };
+        });
+        expect(scrollBound.overflowY).toBe("auto");
+        expect(scrollBound.scrollHeight).toBeGreaterThan(scrollBound.clientHeight + PIXEL_TOLERANCE);
+        expect(scrollBound.maxHeight).toMatch(/248px|15\.5rem/);
+
+        const lastHiddenBeforeFocus = await group.evaluate(node => {
+            const buttons = node.querySelectorAll("button");
+            const last = buttons[buttons.length - 1]!;
+            const box = node.getBoundingClientRect();
+            const rect = last.getBoundingClientRect();
+            const tol = 1;
+            return {
+                scrollTop: node.scrollTop,
+                lastFullyVisible: rect.top >= box.top - tol && rect.bottom <= box.bottom + tol,
+            };
+        });
+        expect(lastHiddenBeforeFocus.scrollTop).toBe(0);
+        expect(lastHiddenBeforeFocus.lastFullyVisible).toBe(false);
+
+        await lastChoice.focus();
+        await expect(lastChoice).toBeFocused();
+        await expect(lastChoice).toBeInViewport();
+        await page.keyboard.press("Space");
+        await expect(lastChoice).toHaveAttribute("aria-pressed", "true");
+        await expect(work).toHaveValue(LAST_CHOICE_DRAFT);
+
+        await page.evaluate(() => {
+            window.__phase1Local.nextSave = "refused";
+        });
+        await page.getByRole("button", { name: "Save and continue", exact: true }).click();
+        await expect(page.getByRole("alert")).toHaveText("Local fixture: save not acknowledged.");
+        await expect(work).toHaveValue(LAST_CHOICE_DRAFT);
+        await expect(lastChoice).toHaveAttribute("aria-pressed", "true");
+        await expect(page.getByLabel("What kind of work do you do?", { exact: true })).toBeVisible();
+
+        const afterRefusal: Pick<LocalCompanyFixture, "calls" | "profile" | "navigation"> = await page.evaluate(() => ({
+            calls: window.__phase1Local.calls,
+            profile: window.__phase1Local.profile,
+            navigation: window.__phase1Local.navigation,
+        }));
+        expect(afterRefusal.calls).toEqual([{ step: "trade", businessType: LAST_CHOICE_DRAFT }]);
+        expect(afterRefusal.profile.business_type).toBeUndefined();
+        expect(afterRefusal.navigation).toEqual([]);
+
+        const scrollAfterRefusal = await group.evaluate(node => ({
+            scrollTop: node.scrollTop,
+            clientHeight: node.clientHeight,
+            scrollHeight: node.scrollHeight,
+        }));
+        expect(scrollAfterRefusal.scrollTop).toBeGreaterThan(0);
+        expect(scrollAfterRefusal.scrollHeight).toBeGreaterThan(scrollAfterRefusal.clientHeight);
+
+        await test.info().attach("scroll-bound-grid", {
+            body: JSON.stringify({ scrollBound, lastHiddenBeforeFocus, scrollAfterRefusal }),
+            contentType: "application/json",
+        });
     });
 
     test("refused trade save keeps draft and pinned retry reachable after scrolling, then acknowledged retry reaches the business heading and form", async ({ page }) => {

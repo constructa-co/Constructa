@@ -9,6 +9,7 @@ type SharedProps = {
     textareaId: string;
     label: string;
     placeholder: string;
+    /** Disables postcode search, manual parts, and Use — not the plain address textarea. */
     disabled?: boolean;
     value: string;
     onChange: (value: string) => void;
@@ -67,7 +68,6 @@ export default function JobAddressField({
                     onChange={(e) => onChange(e.target.value)}
                     rows={2}
                     maxLength={500}
-                    disabled={disabled}
                     placeholder={placeholder}
                     className={textareaCls}
                     {...textareaAria}

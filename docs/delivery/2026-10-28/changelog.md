@@ -15,6 +15,12 @@
   private day28-first-green-source-backup-20261028.json. A001/A005/A063 remain
   Partial pending parent original-grade criteria; no self-Complete.
 
+## C6 address pending repair - 28 October 2026
+
+- **Branch:** `codex/c6-address-pending-repair-20261028` from `c6cd984064c170bd5c2252fe15684c7d30c219f7`
+- **`src/components/job-address-field.tsx` (~64–70):** Removed `disabled={disabled}` from the plain address textarea so literal free-text drafts stay editable while create is pending; `disabled` continues to gate postcode Find, manual parts, and Use only (intent: restore pre–JobAddressField-lock UX without changing storage or submit snapshot rules).
+- **`src/app/dashboard/projects/new/unsaved-entry.test.tsx`:** Mount real `JobAddressField` / picker / manual subtree (same seam as manual-address tests); `edit()` drives textarea `onChange` instead of mutating form state; pending test asserts site/client textareas stay enabled, structured Find/Use disabled, and post-refusal draft retained via textarea value + form state.
+
 ## DAY28 Second Green Integration - 28 October 2026
 
 - Integrate second-wave pins on parent `00dcaa5` (keeps A001/A005/A063): A054

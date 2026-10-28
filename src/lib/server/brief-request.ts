@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { AssistantTurnResult } from "@/lib/assistant-transport";
 import {
@@ -12,6 +12,7 @@ import { PLANNING_FAILED } from "@/lib/planning-conversation";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-access";
 import type { ServerBriefGenerator } from "./job-assistant-transport";
+import type { AttemptOutcome } from "./job-assistant-generation";
 
 const CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/;
 // An earlier assistant turn as the page carries it: the reply (up to 1500
@@ -55,16 +56,28 @@ export async function handleBriefTurn(input: unknown, generate?: ServerBriefGene
     if (!verified.ok) return verified.result;
     if (!generate) return { status: "off", message: BRIEF_OFF };
     const messages = [...request.history, { role: "user" as const, content: request.message }];
+    // The attempt identifier is the server's; every outcome below is recorded against it.
+    const attemptId = randomUUID();
+    const conclude = (outcome: AttemptOutcome) => generate.conclude?.(attemptId, outcome) ?? Promise.resolve(true);
     let raw: unknown;
     try {
-        raw = await generate({ userId: verified.userId, context: structuredClone(verified.context), messages, signal: new AbortController().signal });
+        raw = await generate({ userId: verified.userId, projectId: request.projectId, revision: verified.revision, attemptId,
+            context: structuredClone(verified.context), messages, signal: new AbortController().signal });
     } catch {
+        await conclude("unavailable");
         return { status: "unavailable", message: PLANNING_FAILED };
     }
     const userWords = messages.flatMap(item => item.role === "user" ? [item.content] : []);
-    if (!reviewBriefReply(verified.context, userWords, raw).ok) return { status: "rejected", message: BRIEF_NOT_USABLE };
+    if (!reviewBriefReply(verified.context, userWords, raw).ok) {
+        await conclude("rejected");
+        return { status: "rejected", message: BRIEF_NOT_USABLE };
+    }
     const after = await verifyBriefRequest(request.projectId, request.expectedRevision);
-    if (!after.ok) return after.result;
+    if (!after.ok) {
+        await conclude(after.result.status === "stale" ? "stale" : "unavailable");
+        return after.result;
+    }
+    if (!await conclude("reply")) return { status: "unavailable", message: PLANNING_FAILED };
     return {
         status: "reply",
         // Only the checked shape goes back; the page reviews it again against what it shows.

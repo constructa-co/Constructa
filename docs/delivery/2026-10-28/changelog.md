@@ -187,3 +187,9 @@
 - ROOT **18/18** feedback module; Rob-approved operational Active vs deliberate **Mark as Won**.
 - **A115 Partial** (full publication/readiness scope open); recheck **run-38b73c50**. Receipt
   **`rob2310-a115-integrated-source-backup-20261028.json`**; fresh build not ROB2215 reuse.
+
+## ROB2325 A055 OFF-seam server wiring — 28 October 2026
+
+- Parent **c5e61a0**: **fe241a0** five server files + **bb8d1f** two-test P2 repair (seven paths, base **6a..bb**).
+- ROOT **62/62** on two request test modules; generators **NULL** / pages **false**; **A055 Partial**.
+- Receipt **`rob2325-a055-integrated-source-backup-20261028.json`**; fresh ROOT build (not c5 **1985** / author **1984** reuse).

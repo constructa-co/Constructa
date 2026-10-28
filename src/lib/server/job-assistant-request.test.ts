@@ -9,7 +9,8 @@ vi.mock("@/lib/supabase/server", () => mocks);
 
 import { handlePricingTurn } from "./pricing-request";
 import { handlePlanningTurn } from "./planning-request";
-import { approvedPlanningGenerator, approvedPricingGenerator, jobAssistantAvailability, type ServerPlanningGenerator, type ServerPricingGenerator } from "./job-assistant-transport";
+import { approvedBriefGenerator, approvedPlanningGenerator, approvedPricingGenerator, jobAssistantAvailability, type ServerPlanningGenerator, type ServerPricingGenerator } from "./job-assistant-transport";
+import { createJobAssistantGenerator, type JobAssistantTransport, type UsageLedger } from "./job-assistant-generation";
 import { pricingAssistantTurnAction } from "@/app/dashboard/projects/costs/assistant-actions";
 import { planningAssistantTurnAction } from "@/app/dashboard/projects/schedule/assistant-actions";
 import { buildPricingReviewContext, PRICING_REVIEW_STALE } from "@/lib/pricing-review";
@@ -126,7 +127,7 @@ describe("A055 pricing turn handler (server-rebuilt context, fake generator only
         { history: Array.from({ length: 24 }, (_, i) => ({ role: i % 2 ? "assistant" : "user", content: "turn" })) },
     ])("refuses client-chosen context, model, budget or malformed history before authenticating: %j", async patch => {
         const f = fixture();
-        expect((await handlePricingTurn(f.pricing(patch), vi.fn())).status).toBe("invalid");
+        expect((await handlePricingTurn(f.pricing(patch), vi.fn<ServerPricingGenerator>())).status).toBe("invalid");
         expect(mocks.createClient).not.toHaveBeenCalled();
     });
 
@@ -140,7 +141,7 @@ describe("A055 pricing turn handler (server-rebuilt context, fake generator only
         expect(input.userId).toBe(USER);
         expect(input.context).toEqual({ work: "Install kitchen cabinets. Tile splashback.", contractorMessage: MESSAGE, existingWork: [{ description: "Cabinets", section: "Kitchen" }] });
         expect(input.messages).toEqual([...history, { role: "user", content: MESSAGE }]);
-        expect(JSON.stringify(input)).not.toMatch(/1000|unit_rate|22222222/);
+        expect(JSON.stringify({ context: input.context, messages: input.messages })).not.toMatch(/1000|unit_rate|22222222/);
     });
 
     it("drops a reply that quotes text the saved job does not contain, and hides generator failures", async () => {
@@ -183,7 +184,7 @@ describe("A055 planning turn handler (server-rebuilt saved programme, fake gener
     it.each([{ context: {} }, { model: "x" }, { estimateId: ESTIMATE }, { message: "x".repeat(2001) },
         { history: [{ role: "user", content: "x".repeat(2001) }, { role: "assistant", content: "ok" }] }])("refuses %j before authenticating", async patch => {
         const f = fixture();
-        expect((await handlePlanningTurn(f.planning(patch), vi.fn())).status).toBe("invalid");
+        expect((await handlePlanningTurn(f.planning(patch), vi.fn<ServerPlanningGenerator>())).status).toBe("invalid");
         expect(mocks.createClient).not.toHaveBeenCalled();
     });
 
@@ -288,5 +289,142 @@ describe("A055 browser request adapters against the real handlers", () => {
         const context = buildPlanningContext(fixture().project as never)!;
         await expect(generate({ context, messages: [{ role: "user", content: "x" }], signal: controller.signal })).rejects.toBeInstanceOf(AssistantTransportError);
         expect(request).not.toHaveBeenCalled();
+    });
+});
+
+describe("A055 generation seam: reservation, transport and provenance on the real request paths", () => {
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+    const config = (patch: Row = {}) => ({
+        feature: "pricing", approval: { ref: "TEST-ONLY", approvedBy: "test", approvedAt: "2026-10-28T00:00:00Z" },
+        provider: "stub", model: "stub-model", maxOutputTokens: 500, timeoutMs: 1000, maxMessages: 6, maxInputChars: 5000,
+        attemptPence: 2, perJobPence: 10, monthlyPence: 100, ...patch,
+    });
+    function ledger(patch: Partial<Record<keyof UsageLedger, (...args: never[]) => Promise<unknown>>> = {}) {
+        return {
+            reserve: vi.fn(async () => ({ ok: true })), settle: vi.fn(async () => {}), release: vi.fn(async () => {}),
+            retain: vi.fn(async () => {}), conclude: vi.fn(async () => {}), ...patch,
+        } as unknown as { [K in keyof UsageLedger]: ReturnType<typeof vi.fn> };
+    }
+    const stub = (send: JobAssistantTransport["send"]) => ({ send: vi.fn(send) });
+    const pricing = (l: ReturnType<typeof ledger>, send: JobAssistantTransport["send"], patch: Row = {}) =>
+        createJobAssistantGenerator<unknown>("pricing", { config: config(patch), transport: stub(send), ledger: l as unknown as UsageLedger })!;
+    const attempt = (l: ReturnType<typeof ledger>) => l.conclude.mock.calls[0]?.[0] as string;
+
+    it("is off at every activation point and refuses a missing, unapproved or out-of-bounds configuration", () => {
+        expect([approvedPricingGenerator(), approvedPlanningGenerator(), approvedBriefGenerator()]).toEqual([null, null, null]);
+        expect(jobAssistantAvailability()).toEqual({ pricing: false, planning: false, brief: false });
+        const l = ledger() as unknown as UsageLedger;
+        const transport = stub(async () => ({ kind: "not_sent" }));
+        expect(createJobAssistantGenerator("pricing", { config: config(), transport, ledger: l })).toBeTypeOf("function");
+        for (const [value, t, ld] of [
+            [null, transport, l], [config(), null, l], [config(), transport, null],
+            [config({ approval: undefined }), transport, l], [config({ approval: { ref: " ", approvedBy: "x", approvedAt: "2026-10-28T00:00:00Z" } }), transport, l],
+            [config({ feature: "planning" }), transport, l], [config({ budget: 5 }), transport, l],
+            [config({ attemptPence: 11 }), transport, l], [config({ perJobPence: 101 }), transport, l],
+            [config({ maxMessages: 25 }), transport, l], [config({ attemptPence: 0.5 }), transport, l],
+        ] as const) expect(createJobAssistantGenerator("pricing", { config: value, transport: t, ledger: ld })).toBeNull();
+    });
+
+    it("reserves under server caps bound to the job and revision, calls the configured model once, settles and records the reply", async () => {
+        const f = fixture(); const l = ledger();
+        const generate = pricing(l, async () => ({ kind: "reply", raw: reply, costPence: 1 }));
+        const result = await handlePricingTurn(f.pricing(), generate);
+        expect(result).toEqual({ status: "reply", reply, provenance: { projectId: PROJECT, estimateId: ESTIMATE, revision: f.pricingRevision() } });
+        const id = attempt(l);
+        expect(id).toMatch(UUID);
+        expect(l.reserve).toHaveBeenCalledWith({
+            attemptId: id, feature: "pricing", userId: USER, projectId: PROJECT, revision: f.pricingRevision(),
+            provider: "stub", model: "stub-model", approvalRef: "TEST-ONLY", pence: 2, caps: { perJobPence: 10, monthlyPence: 100 },
+        });
+        expect(l.settle).toHaveBeenCalledWith(id, 1);
+        expect(l.conclude.mock.calls).toEqual([[id, "reply"]]);
+        expect(l.release).not.toHaveBeenCalled(); expect(l.retain).not.toHaveBeenCalled();
+    });
+
+    it("never takes a model, budget or generator from the request", async () => {
+        const f = fixture(); const l = ledger(); const send = vi.fn();
+        const generate = pricing(l, send);
+        for (const patch of [{ model: "big" }, { attemptPence: 1 }, { caps: {} }, { attemptId: OTHER }])
+            expect((await handlePricingTurn(f.pricing(patch), generate)).status).toBe("invalid");
+        expect(l.reserve).not.toHaveBeenCalled(); expect(send).not.toHaveBeenCalled();
+    });
+
+    it("refuses before any reservation when the page's context is stale, and before sending when the bounds or reservation fail", async () => {
+        const f = fixture(); const l = ledger(); const send = vi.fn();
+        expect((await handlePricingTurn(f.pricing({ expectedRevision: "0".repeat(64) }), pricing(l, send))).status).toBe("stale");
+        expect(l.reserve).not.toHaveBeenCalled(); expect(l.conclude).not.toHaveBeenCalled();
+
+        const history = [{ role: "user", content: "One" }, { role: "assistant", content: "Two" }];
+        expect((await handlePricingTurn(f.pricing({ history }), pricing(l, send, { maxMessages: 2 })))).toMatchObject({ status: "unavailable" });
+        expect(l.reserve).not.toHaveBeenCalled();
+        expect(l.conclude.mock.calls).toEqual([[attempt(l), "unavailable"]]);
+
+        for (const reserve of [async () => ({ ok: false }), async () => { throw new Error("db"); }]) {
+            const refused = ledger({ reserve });
+            expect(await handlePricingTurn(f.pricing(), pricing(refused, send))).toMatchObject({ status: "unavailable" });
+            expect(refused.conclude.mock.calls).toEqual([[attempt(refused), "unavailable"]]);
+        }
+        expect(send).not.toHaveBeenCalled();
+    });
+
+    it("keeps the whole reservation when the paid outcome is unknown, and releases it only when nothing was sent", async () => {
+        const f = fixture();
+        const failed = ledger();
+        expect(await handlePricingTurn(f.pricing(), pricing(failed, async () => { throw new Error("socket"); }))).toMatchObject({ status: "unavailable" });
+        expect(failed.retain).toHaveBeenCalledWith(attempt(failed), "failed");
+
+        const timedOut = ledger();
+        const hang: JobAssistantTransport["send"] = ({ signal }) => new Promise((_, reject) => signal.addEventListener("abort", () => reject(signal.reason)));
+        expect(await handlePricingTurn(f.pricing(), pricing(timedOut, hang, { timeoutMs: 20 }))).toMatchObject({ status: "unavailable" });
+        expect(timedOut.retain).toHaveBeenCalledWith(attempt(timedOut), "cancelled");
+
+        const unreadable = ledger();
+        expect(await handlePricingTurn(f.pricing(), pricing(unreadable, async () => ({ kind: "reply", raw: reply, costPence: -1 })))).toMatchObject({ status: "unavailable" });
+        expect(unreadable.retain).toHaveBeenCalledWith(attempt(unreadable), "unreadable_usage");
+
+        for (const l of [failed, timedOut, unreadable]) {
+            expect(l.settle).not.toHaveBeenCalled(); expect(l.release).not.toHaveBeenCalled();
+            expect(l.conclude.mock.calls).toEqual([[attempt(l), "unavailable"]]);
+        }
+
+        const notSent = ledger();
+        expect(await handlePricingTurn(f.pricing(), pricing(notSent, async () => ({ kind: "not_sent" })))).toMatchObject({ status: "unavailable" });
+        expect(notSent.release).toHaveBeenCalledWith(attempt(notSent));
+        expect(notSent.retain).not.toHaveBeenCalled(); expect(notSent.settle).not.toHaveBeenCalled();
+    });
+
+    it("settles a paid reply it then rejects, or that the saved job overtook, and records why it was not shown", async () => {
+        const f = fixture();
+        const rejected = ledger();
+        expect(await handlePricingTurn(f.pricing(), pricing(rejected, async () => ({ kind: "reply", raw: { ...reply, price: 5 }, costPence: 1 }))))
+            .toMatchObject({ status: "rejected" });
+        expect(rejected.settle).toHaveBeenCalledWith(attempt(rejected), 1);
+        expect(rejected.conclude.mock.calls).toEqual([[attempt(rejected), "rejected"]]);
+
+        const overtaken = ledger();
+        const send = async () => { f.project.brief_scope = "Install kitchen cabinets. Tile splashback. Paint."; return { kind: "reply" as const, raw: reply, costPence: 1 }; };
+        expect(await handlePricingTurn(f.pricing(), pricing(overtaken, send))).toMatchObject({ status: "stale" });
+        expect(overtaken.settle).toHaveBeenCalledWith(attempt(overtaken), 1);
+        expect(overtaken.conclude.mock.calls).toEqual([[attempt(overtaken), "stale"]]);
+    });
+
+    it("does not show a reply whose settlement or provenance could not be recorded", async () => {
+        const f = fixture();
+        for (const patch of [{ settle: async () => { throw new Error("db"); } }, { conclude: async () => { throw new Error("db"); } }]) {
+            const l = ledger(patch);
+            expect(await handlePricingTurn(f.pricing(), pricing(l, async () => ({ kind: "reply", raw: reply, costPence: 1 }))))
+                .toMatchObject({ status: "unavailable" });
+        }
+    });
+
+    it("runs the same seam on the planning request path, bound to the saved programme revision", async () => {
+        const f = fixture(); const l = ledger();
+        const send = vi.fn<JobAssistantTransport["send"]>(async () => ({ kind: "reply", raw: planningReply, costPence: 1 }));
+        const generate = createJobAssistantGenerator<unknown>("planning", { config: config({ feature: "planning" }), transport: { send }, ledger: l as unknown as UsageLedger })!;
+        const result = await handlePlanningTurn(f.planning(), generate);
+        expect(result).toMatchObject({ status: "reply", provenance: { projectId: PROJECT, revision: f.planningRevision() } });
+        expect(l.reserve).toHaveBeenCalledWith(expect.objectContaining({ feature: "planning", projectId: PROJECT, revision: f.planningRevision(), userId: USER }));
+        expect(send.mock.calls[0][0]).toMatchObject({ model: "stub-model", maxOutputTokens: 500, context: buildPlanningContext(f.project as never) });
+        expect(l.conclude.mock.calls).toEqual([[attempt(l), "reply"]]);
     });
 });

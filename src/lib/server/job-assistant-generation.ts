@@ -1,0 +1,159 @@
+import "server-only";
+
+import { z } from "zod";
+import type { AssistantTurnMessage } from "@/lib/assistant-transport";
+
+/**
+ * A055 generation seam for the job assistant: one approved configuration, a
+ * provider transport and a usage ledger, all chosen by the server. It is wired
+ * into the pricing, planning and Brief request paths through
+ * `job-assistant-transport.ts`, and it is OFF: no configuration is approved,
+ * and there is no transport or ledger, so every activation point returns null.
+ *
+ * An attempt runs: bounds check -> reservation -> one provider call under the
+ * configured timeout -> settle (the provider reported the cost), release (the
+ * provider confirmed nothing was sent) or retain (the paid outcome is unknown,
+ * so the whole reservation is kept) -> the request path records its outcome.
+ * Any missing piece or failed step refuses the reply; nothing is written to the
+ * job and the existing review-before-apply rules are unchanged.
+ */
+export const JOB_ASSISTANT_FEATURES = ["pricing", "planning", "brief"] as const;
+export type JobAssistantFeature = typeof JOB_ASSISTANT_FEATURES[number];
+
+// Safety ceilings an approved configuration must sit within. They are not
+// approved limits, and there are deliberately no model or money defaults.
+const CEILING = { messages: 24, inputChars: 60_000, outputTokens: 4_000, timeoutMs: 60_000 } as const;
+
+const ConfigSchema = z.object({
+    feature: z.enum(JOB_ASSISTANT_FEATURES),
+    approval: z.object({
+        ref: z.string().trim().min(1).max(200),
+        approvedBy: z.string().trim().min(1).max(200),
+        approvedAt: z.string().datetime(),
+    }).strict(),
+    provider: z.string().trim().min(1).max(60),
+    model: z.string().trim().min(1).max(100),
+    maxOutputTokens: z.number().int().positive().max(CEILING.outputTokens),
+    timeoutMs: z.number().int().positive().max(CEILING.timeoutMs),
+    maxMessages: z.number().int().positive().max(CEILING.messages),
+    maxInputChars: z.number().int().positive().max(CEILING.inputChars),
+    // Whole pence. One attempt reserves `attemptPence`; the ledger holds the caps.
+    attemptPence: z.number().int().positive(),
+    perJobPence: z.number().int().positive(),
+    monthlyPence: z.number().int().positive(),
+}).strict().refine(config => config.attemptPence <= config.perJobPence && config.perJobPence <= config.monthlyPence);
+export type JobAssistantGenerationConfig = z.infer<typeof ConfigSchema>;
+
+export type TransportResult =
+    | { kind: "reply"; raw: unknown; costPence: number }
+    // Only when the provider confirms the request was never sent or charged.
+    | { kind: "not_sent" };
+export interface JobAssistantTransport {
+    send(request: {
+        provider: string; model: string; maxOutputTokens: number;
+        context: unknown; messages: AssistantTurnMessage[]; signal: AbortSignal;
+    }): Promise<TransportResult>;
+}
+
+export type AttemptOutcome = "reply" | "rejected" | "stale" | "unavailable";
+export type RetainReason = "cancelled" | "failed" | "unreadable_usage";
+export interface UsageLedger {
+    /** Atomically holds `pence` for the attempt within the per-job and monthly caps. */
+    reserve(reservation: {
+        attemptId: string; feature: JobAssistantFeature; userId: string; projectId: string; revision: string;
+        provider: string; model: string; approvalRef: string; pence: number;
+        caps: { perJobPence: number; monthlyPence: number };
+    }): Promise<{ ok: boolean }>;
+    settle(attemptId: string, pence: number): Promise<void>;
+    release(attemptId: string): Promise<void>;
+    retain(attemptId: string, reason: RetainReason): Promise<void>;
+    conclude(attemptId: string, outcome: AttemptOutcome): Promise<void>;
+}
+
+export type GenerationInput<C> = {
+    userId: string; projectId: string; revision: string; attemptId: string;
+    context: C; messages: AssistantTurnMessage[]; signal: AbortSignal;
+};
+/** A server generator. `conclude` records what the request path did with the reply; false means it could not. */
+export interface JobAssistantGenerator<C> {
+    (input: GenerationInput<C>): Promise<unknown>;
+    conclude?: (attemptId: string, outcome: AttemptOutcome) => Promise<boolean>;
+}
+
+/** Thrown when an attempt is refused; the request path answers "unavailable". */
+export class GenerationRefused extends Error {
+    constructor(readonly reason: "bounds" | "reservation" | "transport" | "not_sent" | "usage" | "cancelled" | "ledger") {
+        super(`Job assistant generation refused: ${reason}`);
+        this.name = "GenerationRefused";
+    }
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const SHA256 = /^[a-f0-9]{64}$/;
+
+/** Null unless the configuration is approved and valid for this feature and both a transport and a ledger exist. */
+export function createJobAssistantGenerator<C>(feature: JobAssistantFeature, deps: {
+    config: unknown; transport: JobAssistantTransport | null; ledger: UsageLedger | null;
+}): JobAssistantGenerator<C> | null {
+    const parsed = ConfigSchema.safeParse(deps.config);
+    if (!parsed.success || parsed.data.feature !== feature || !deps.transport || !deps.ledger) return null;
+    const config = parsed.data;
+    const transport = deps.transport;
+    const ledger = deps.ledger;
+
+    const generate: JobAssistantGenerator<C> = async input => {
+        const size = JSON.stringify(input.context ?? null).length + input.messages.reduce((total, item) => total + item.content.length, 0);
+        if (!UUID.test(input.attemptId) || !UUID.test(input.projectId) || !SHA256.test(input.revision) || !input.userId
+            || !input.messages.length || input.messages.length > config.maxMessages || size > config.maxInputChars) throw new GenerationRefused("bounds");
+
+        let held = false;
+        try {
+            held = (await ledger.reserve({
+                attemptId: input.attemptId, feature, userId: input.userId, projectId: input.projectId, revision: input.revision,
+                provider: config.provider, model: config.model, approvalRef: config.approval.ref, pence: config.attemptPence,
+                caps: { perJobPence: config.perJobPence, monthlyPence: config.monthlyPence },
+            })).ok === true;
+        } catch {
+            held = false;
+        }
+        if (!held) throw new GenerationRefused("reservation");
+
+        const signal = AbortSignal.any([input.signal, AbortSignal.timeout(config.timeoutMs)]);
+        const record = async (step: () => Promise<void>) => {
+            try { await step(); } catch { throw new GenerationRefused("ledger"); }
+        };
+        let result: TransportResult;
+        try {
+            if (signal.aborted) throw new Error("aborted");
+            result = await transport.send({
+                provider: config.provider, model: config.model, maxOutputTokens: config.maxOutputTokens,
+                context: input.context, messages: input.messages, signal,
+            });
+        } catch {
+            // Whether the provider charged is unknown: keep the whole reservation.
+            await record(() => ledger.retain(input.attemptId, signal.aborted ? "cancelled" : "failed"));
+            throw new GenerationRefused(signal.aborted ? "cancelled" : "transport");
+        }
+        if (result?.kind === "not_sent") {
+            await record(() => ledger.release(input.attemptId));
+            throw new GenerationRefused("not_sent");
+        }
+        if (result?.kind !== "reply" || !Number.isInteger(result.costPence) || result.costPence < 0) {
+            await record(() => ledger.retain(input.attemptId, "unreadable_usage"));
+            throw new GenerationRefused("usage");
+        }
+        await record(() => ledger.settle(input.attemptId, result.costPence));
+        // Paid for, but the request was cancelled meanwhile: do not use the reply.
+        if (signal.aborted) throw new GenerationRefused("cancelled");
+        return result.raw;
+    };
+    generate.conclude = async (attemptId, outcome) => {
+        try {
+            await ledger.conclude(attemptId, outcome);
+            return true;
+        } catch {
+            return false;
+        }
+    };
+    return generate;
+}

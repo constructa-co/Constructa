@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-10-28 — ROB2325 A055 OFF-seam server (Cursor integration)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `job-assistant-generation.ts`, `job-assistant-transport.ts`, `pricing-request.ts`, `planning-request.ts`, `brief-request.ts` | OFF-seam shared generation/transport; NULL defaults | Pin **fe241a0** production |
+| `job-assistant-request.test.ts`, `brief-request.test.ts` | **62** cases incl. bb P2 privacy hunks | Pin **bb8d1f** |
+
 ## 2026-10-28 — ROB2310 A115 approved Won policy (Cursor integration)
 
 | File | Change | Intent |

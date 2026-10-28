@@ -199,3 +199,8 @@ policy approved in register metadata only; **73709** not on ROOT. Receipt
 **Parent `328876c`:** **89c3ee07** pipeline Won policy (two files). ROOT **18/18** module.
 **A115 Partial** — not full original Complete. Receipt
 `rob2310-a115-integrated-source-backup-20261028.json`.
+
+## ROB2325 A055 OFF-seam — 28 October 2026
+
+**Parent `c5e61a0`:** pin **bb8d1f** seven server/test paths. ROOT **62/62**. **A055 Partial**. Receipt
+`rob2325-a055-integrated-source-backup-20261028.json`.

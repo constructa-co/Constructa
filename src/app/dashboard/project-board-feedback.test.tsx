@@ -82,18 +82,18 @@ describe("actual pipeline move handler", () => {
         expect(current.won).toHaveBeenCalledExactlyOnceWith("job"); expect(current.ordinary).not.toHaveBeenCalled();
         expect(text(column("Proposal Sent"))).toContain("QA Example"); expect(text(column("Active"))).not.toContain("QA Example");
     });
-    it("uses an ordinary stage write when reopening to Active, not the legacy accepted-field Won payload", async () => {
+    it("uses an ordinary stage write when reopening Completed to Active so acceptance fields are not rewritten", async () => {
         projects = [{ ...project, status: "Completed" }];
         click("Reopen")(); await settle();
         expect(current.ordinary).toHaveBeenCalledExactlyOnceWith("job", "Active");
         expect(current.won).not.toHaveBeenCalled();
     });
-    it("uses an ordinary stage write when the card selector picks Active from a non-sent stage", async () => {
+    it("keeps the baseline Active mutation for other stage picks (policy not re-approved here)", async () => {
         projects = [{ ...project, status: "Estimating" }];
         chooseStage("Active");
         await settle();
-        expect(current.ordinary).toHaveBeenCalledExactlyOnceWith("job", "Active");
-        expect(current.won).not.toHaveBeenCalled();
+        expect(current.won).toHaveBeenCalledExactlyOnceWith("job");
+        expect(current.ordinary).not.toHaveBeenCalled();
     });
     it("preserves a confirmed move but gives a warning if refresh fails", async () => {
         current.refresh.mockImplementation(() => { throw Error("refresh failure"); });

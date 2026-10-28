@@ -4,8 +4,8 @@
 
 | File | Lines (approx.) | Change | Intent |
 |------|-----------------|--------|--------|
-| `src/app/dashboard/project-board.tsx` | 102–120, 57 | Record `fromStage` before optimistic UI; call `markAsWonAction` only when moving to Active from Proposal Sent; all other Active moves use `updateStatusAction`. | Reconcile client pipeline mutations with the existing explicit Won payload policy so reopen and manual stage picks do not rewrite legacy accepted fields. |
-| `src/app/dashboard/project-board-feedback.test.tsx` | 85–98 | Two tests: Completed→Reopen Active uses ordinary write; Estimating selector→Active does not invoke Won action. | Lock the reviewed lifecycle guard without inventing publication/readiness rules. |
+| `src/app/dashboard/project-board.tsx` | 106–109, 57 | Record `fromStage` before optimistic UI; **only** Completed→Active reopen uses `updateStatusAction` (status-only, preserves prior acceptance); all other Active moves keep baseline `markAsWonAction`. | Independent review correction: do not approve generic Estimating→Active semantics; narrow fix for reopen only. |
+| `src/app/dashboard/project-board-feedback.test.tsx` | 85–97 | Reopen test retained; Estimating→Active test asserts **baseline** still calls Won (not new policy). | Replace unapproved generic-policy assertion with baseline preservation proof. |
 
 ## Verification (this branch)
 

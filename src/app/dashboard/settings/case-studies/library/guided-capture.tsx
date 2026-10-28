@@ -14,6 +14,7 @@ import type { LibraryResult, StudyView } from "@/lib/case-library/service";
 import type { StoredDiscipline } from "@/lib/case-library/store";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { createCaseStudyAction, saveCaseStudyAction, saveDisciplineAction } from "../library-actions";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 /** Everything the questions can ask the server to do: add the case study, save it, add a kind of work. Nothing else. */
 export interface GuidedServer {
@@ -28,10 +29,13 @@ const ring = "focus-visible:outline focus-visible:outline-2 focus-visible:outlin
 const card = "bg-slate-900 border border-slate-700 rounded-xl p-5 space-y-4";
 const hint = "text-base text-slate-300";
 const input = `mt-3 w-full min-h-11 rounded-lg border border-slate-500 bg-slate-950 px-3 py-2 text-base text-slate-50 placeholder:text-slate-400 ${ring}`;
-const primary = `inline-flex items-center justify-center min-h-11 px-4 rounded-lg bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-base font-semibold text-white ${ring}`;
+const primary = `inline-flex items-center justify-center min-h-11 px-4 rounded-lg disabled:opacity-60 text-base font-semibold ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`;
 const secondary = `inline-flex items-center justify-center min-h-11 px-4 rounded-lg border border-slate-400 text-base font-semibold text-slate-100 hover:bg-white/5 disabled:opacity-60 ${ring}`;
 const plain = `inline-flex items-center min-h-11 text-base font-semibold text-blue-200 underline underline-offset-4 ${ring}`;
-const chip = (on: boolean) => `min-h-11 px-3 rounded-full border text-sm font-semibold ${ring} ${on ? "bg-blue-700 border-blue-400 text-white" : "border-slate-400 text-slate-100 hover:bg-white/5"}`;
+const chip = (on: boolean) =>
+    `min-h-11 px-3 rounded-full border text-sm font-semibold ${coreFocusVisibleRing} ${
+        on ? `${corePrimaryButton} border-emerald-600 text-[#182c1b]` : "border-slate-400 text-slate-100 hover:bg-white/5"
+    }`;
 
 const BASICS = GUIDED_QUESTIONS.filter((question) => question.kind !== "client");
 const list = (names: string[]) => names.join(", ");

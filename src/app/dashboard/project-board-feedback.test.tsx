@@ -144,6 +144,26 @@ describe("card stage Select onValueChange (A017 selector)", () => {
     });
 });
 
+describe("A114 on A115: client response does not replace contractor Mark as Won", () => {
+    it("shows Mark as Won only on Proposal Sent; Active column offers Mark Complete, not a second win path", () => {
+        projects = [{ ...project, status: "Proposal Sent" }];
+        expect(nodes(view()).some(e => e.type === "button" && text(e.props.children).includes("Mark as Won"))).toBe(true);
+        projects = [{ ...project, status: "Active" }];
+        expect(nodes(view()).some(e => e.type === "button" && text(e.props.children).includes("Mark as Won"))).toBe(false);
+        expect(nodes(view()).some(e => e.type === "button" && text(e.props.children).includes("Mark Complete"))).toBe(true);
+    });
+    it("after operational Proposal Sent→Active picker move, the card no longer surfaces Mark as Won until Pull Back", async () => {
+        projects = [{ ...project, status: "Proposal Sent" }];
+        chooseStage("Active");
+        await settle();
+        expect(current.ordinary).toHaveBeenCalledExactlyOnceWith("job", "Active");
+        expect(current.won).not.toHaveBeenCalled();
+        expect(text(column("Active"))).toContain("QA Example");
+        expect(nodes(view()).some(e => e.type === "button" && text(e.props.children).includes("Mark as Won"))).toBe(false);
+        expect(nodes(view()).some(e => e.type === "button" && text(e.props.children).includes("Pull Back"))).toBe(true);
+    });
+});
+
 describe("pipeline card stage labels (A017)", () => {
     it("labels the card stage selector as an immediate save, distinct from view-only filters", () => {
         expect(text(view())).toMatch(/Change stage/i);

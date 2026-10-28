@@ -45,6 +45,14 @@
   guarded build + backup `resume1300-a055-integrated-source-backup-20261028.json`. **A055 Partial**
   unchanged; 66C/32P/19N/1B unchanged.
 
+## A114 on A115 verification (tests-only) - 28 October 2026
+
+- **Branch:** `codex/a114-on-approved-won-20261028` from pin `c2459deb56437d11b388d733bdd3fc37f53f54ec`.
+- **File:** `src/app/dashboard/project-board-feedback.test.tsx` — `A114 on A115` describe (2 cases):
+  Mark as Won only on Proposal Sent; picker→Active leaves no in-column Trophy until Pull Back.
+- **Return:** `ROB2225-A114-ON-A115-VERIFICATION-RETURN.md`. Exclude author
+  `ROB2210-A115-APPROVED-WON-RETURN.md` from ROOT integration.
+
 ## CHECKPOINT1400 Green Integration - 28 October 2026
 
 - Parent **`693df2a`**: integrate **A054** `47dc5d00` advanced running-total preview (coupling on

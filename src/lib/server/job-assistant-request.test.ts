@@ -363,12 +363,12 @@ describe("A055 generation seam: reservation, transport and provenance on the rea
         const history = [{ role: "user", content: "One" }, { role: "assistant", content: "Two" }];
         expect((await handlePricingTurn(f.pricing({ history }), pricing(l, send, { maxMessages: 2 })))).toMatchObject({ status: "unavailable" });
         expect(l.reserve).not.toHaveBeenCalled();
-        expect(l.conclude.mock.calls).toEqual([[attempt(l), "unavailable"]]);
+        expect(l.conclude).not.toHaveBeenCalled();
 
         for (const reserve of [async () => ({ ok: false }), async () => { throw new Error("db"); }]) {
             const refused = ledger({ reserve });
             expect(await handlePricingTurn(f.pricing(), pricing(refused, send))).toMatchObject({ status: "unavailable" });
-            expect(refused.conclude.mock.calls).toEqual([[attempt(refused), "unavailable"]]);
+            expect(refused.conclude).not.toHaveBeenCalled();
         }
         expect(send).not.toHaveBeenCalled();
     });
@@ -477,7 +477,7 @@ describe("A063 planning transport, worst-case cost and usage ledger (fake SDK an
             const generate = createJobAssistantGenerator<unknown>("planning", { config: config(), transport: { send, maxInputTokens }, ledger: l as unknown as UsageLedger })!;
             expect(await handlePlanningTurn(f.planning(), generate)).toMatchObject({ status: "unavailable" });
             expect(l.reserve).not.toHaveBeenCalled(); expect(send).not.toHaveBeenCalled();
-            expect(l.conclude.mock.calls.map(call => call[1])).toEqual(["unavailable"]);
+            expect(l.conclude).not.toHaveBeenCalled();
         }
         expect(costPence(prices, 1000, 200)).toBe(1);
         expect(costPence(prices, 10_000, 5_000)).toBe(3);
@@ -579,7 +579,7 @@ describe("A063 planning transport, worst-case cost and usage ledger (fake SDK an
             transport: createOpenAIJobAssistantTransport({ systemPrompt: PLANNING_SYSTEM_PROMPT, client: quiet.factory }), ledger: createRpcUsageLedger(duplicate.client) })!;
         expect(await handlePlanningTurn(f.planning(), again)).toMatchObject({ status: "unavailable" });
         expect(quiet.factory).not.toHaveBeenCalled();
-        expect(duplicate.calls.map(([fn]) => fn)).toEqual(["job_assistant_reserve", "job_assistant_conclude"]);
+        expect(duplicate.calls.map(([fn]) => fn)).toEqual(["job_assistant_reserve"]);
     });
 
     it("keeps every feature OFF: approved configuration is null while all three transports are wired", () => {
@@ -616,6 +616,138 @@ describe("A063 planning transport, worst-case cost and usage ledger (fake SDK an
             expect(code).toMatch(new RegExp(`GRANT EXECUTE ON FUNCTION public\\.${fn}\\([^)]*\\) TO service_role;`));
         }
         for (const step of ["settle", "release", "retain"]) expect(code).toMatch(new RegExp(`job_assistant_${step}[\\s\\S]*?WHERE id = p_attempt_id AND state = 'reserved';`));
+    });
+});
+
+describe("A055 confirmed reservation: conclude only this generator's holds", () => {
+    const ATTEMPT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const config = (patch: Row = {}) => ({
+        feature: "pricing", approval: { ref: "TEST-ONLY", approvedBy: "test", approvedAt: "2026-10-28T00:00:00Z" },
+        provider: "stub", model: "stub-model", maxOutputTokens: 500, timeoutMs: 1000, maxMessages: 6, maxInputChars: 5000,
+        prices: { inputPencePerMillionTokens: 100, outputPencePerMillionTokens: 400 },
+        attemptPence: 2, perJobPence: 10, monthlyPence: 100, ...patch,
+    });
+    function ledger(patch: Partial<Record<keyof UsageLedger, (...args: never[]) => Promise<unknown>>> = {}) {
+        return {
+            reserve: vi.fn(async () => ({ ok: true })), settle: vi.fn(async () => {}), release: vi.fn(async () => {}),
+            retain: vi.fn(async () => {}), conclude: vi.fn(async () => {}), ...patch,
+        } as unknown as { [K in keyof UsageLedger]: ReturnType<typeof vi.fn> };
+    }
+    const stub = (send: JobAssistantTransport["send"], maxInputTokens: JobAssistantTransport["maxInputTokens"] = () => 100) => ({ send: vi.fn(send), maxInputTokens });
+    const pricing = (l: ReturnType<typeof ledger>, send: JobAssistantTransport["send"], patch: Row = {}) =>
+        createJobAssistantGenerator<unknown>("pricing", { config: config(patch), transport: stub(send), ledger: l as unknown as UsageLedger })!;
+    const turnInput = () => ({
+        userId: USER, projectId: PROJECT, revision: "a".repeat(64), attemptId: ATTEMPT,
+        context: { work: "Install kitchen cabinets.", contractorMessage: "Help", existingWork: [] },
+        messages: [{ role: "user" as const, content: "Organise pricing" }], signal: new AbortController().signal,
+    });
+
+    it("does not call ledger.conclude before a hold exists: bounds, cost cap, or refused reservation", async () => {
+        const l = ledger();
+        const bounds = pricing(l, async () => ({ kind: "reply", raw: reply, costPence: 1 }), { maxMessages: 1 });
+        await expect(bounds({
+            ...turnInput(),
+            messages: [{ role: "user", content: "One" }, { role: "user", content: "Two" }],
+        })).rejects.toMatchObject({ reason: "bounds" });
+        expect(l.reserve).not.toHaveBeenCalled();
+        expect(await bounds.conclude!(ATTEMPT, "unavailable")).toBe(false);
+        expect(await bounds.conclude!(ATTEMPT, "reply")).toBe(false);
+        expect(l.conclude).not.toHaveBeenCalled();
+
+        const expensive = ledger();
+        const overCap = createJobAssistantGenerator<unknown>("pricing", {
+            config: config({ attemptPence: 1 }), transport: { send: vi.fn(), maxInputTokens: () => 10_000_000 }, ledger: expensive as unknown as UsageLedger,
+        })!;
+        await expect(overCap(turnInput())).rejects.toMatchObject({ reason: "cost" });
+        expect(expensive.reserve).not.toHaveBeenCalled();
+        expect(await overCap.conclude!(ATTEMPT, "unavailable")).toBe(false);
+        expect(expensive.conclude).not.toHaveBeenCalled();
+
+        const refused = ledger({ reserve: vi.fn(async () => ({ ok: false })) });
+        const blocked = pricing(refused, async () => ({ kind: "reply", raw: reply, costPence: 1 }));
+        await expect(blocked(turnInput())).rejects.toMatchObject({ reason: "reservation" });
+        expect(await blocked.conclude!(ATTEMPT, "unavailable")).toBe(false);
+        expect(refused.conclude).not.toHaveBeenCalled();
+    });
+
+    it("returns false without RPC for unknown, repeated, or foreign conclude after eligibility is consumed", async () => {
+        const l = ledger();
+        const generate = pricing(l, async () => ({ kind: "reply", raw: reply, costPence: 1 }));
+        expect(await generate.conclude!("cccccccc-cccc-4ccc-8ccc-cccccccccccc", "reply")).toBe(false);
+        expect(l.conclude).not.toHaveBeenCalled();
+        await generate(turnInput());
+        expect(await generate.conclude!(ATTEMPT, "reply")).toBe(true);
+        expect(l.conclude).toHaveBeenCalledTimes(1);
+        expect(await generate.conclude!(ATTEMPT, "reply")).toBe(false);
+        expect(l.conclude).toHaveBeenCalledTimes(1);
+        expect(await generate.conclude!(ATTEMPT, "unavailable")).toBe(false);
+        expect(l.conclude).toHaveBeenCalledTimes(1);
+    });
+
+    it("allows only one ledger.conclude RPC when two conclude calls run concurrently for the same owned attempt", async () => {
+        let release!: () => void;
+        const gate = new Promise<void>(resolve => { release = resolve; });
+        const l = ledger({ conclude: vi.fn(async () => { await gate; }) });
+        const generate = pricing(l, async () => ({ kind: "reply", raw: reply, costPence: 1 }));
+        await generate(turnInput());
+        const first = generate.conclude!(ATTEMPT, "reply");
+        const second = generate.conclude!(ATTEMPT, "stale");
+        release();
+        const results = await Promise.all([first, second]);
+        expect(results.sort()).toEqual([false, true]);
+        expect(l.conclude).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not retry conclude after a ledger failure; a second call stays false with no extra RPC", async () => {
+        const l = ledger({ conclude: vi.fn(async () => { throw new Error("db"); }) });
+        const generate = pricing(l, async () => ({ kind: "reply", raw: reply, costPence: 1 }));
+        await generate(turnInput());
+        expect(await generate.conclude!(ATTEMPT, "reply")).toBe(false);
+        expect(l.conclude).toHaveBeenCalledTimes(1);
+        expect(await generate.conclude!(ATTEMPT, "reply")).toBe(false);
+        expect(l.conclude).toHaveBeenCalledTimes(1);
+    });
+
+    it("two generators share one ledger: a duplicate reserve must not conclude the first settled attempt", async () => {
+        const l = ledger({ reserve: vi.fn()
+            .mockResolvedValueOnce({ ok: true })
+            .mockResolvedValueOnce({ ok: false }) });
+        const first = pricing(l, async () => ({ kind: "reply", raw: reply, costPence: 1 }));
+        const second = pricing(l, async () => ({ kind: "reply", raw: reply, costPence: 1 }));
+        const input = turnInput();
+        await first(input);
+        expect(l.settle).toHaveBeenCalledWith(ATTEMPT, 1);
+        expect(l.conclude).not.toHaveBeenCalled();
+        await expect(second(input)).rejects.toMatchObject({ reason: "reservation" });
+        expect(await second.conclude!(ATTEMPT, "unavailable")).toBe(false);
+        expect(l.conclude).not.toHaveBeenCalled();
+        expect(await first.conclude!(ATTEMPT, "reply")).toBe(true);
+        expect(l.conclude).toHaveBeenCalledTimes(1);
+        expect(l.conclude).toHaveBeenCalledWith(ATTEMPT, "reply");
+    });
+
+    it("returns false from conclude when the ledger step fails, so the handler does not accept the reply", async () => {
+        const f = fixture();
+        const l = ledger({ conclude: vi.fn(async () => { throw new Error("db"); }) });
+        const generate = pricing(l, async () => ({ kind: "reply", raw: reply, costPence: 1 }));
+        expect(await handlePricingTurn(f.pricing(), generate)).toMatchObject({ status: "unavailable" });
+        expect(l.settle).toHaveBeenCalledTimes(1);
+        expect(l.conclude).toHaveBeenCalledTimes(1);
+    });
+
+    it("concludes separate attempt ids independently without cross-talk", async () => {
+        const l = ledger();
+        const generate = pricing(l, async () => ({ kind: "reply", raw: reply, costPence: 1 }));
+        const other = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+        const first = { ...turnInput(), attemptId: ATTEMPT };
+        const second = { ...turnInput(), attemptId: other };
+        await generate(first);
+        await generate(second);
+        expect(await generate.conclude!(other, "rejected")).toBe(true);
+        expect(l.conclude).toHaveBeenCalledWith(other, "rejected");
+        expect(await generate.conclude!(ATTEMPT, "reply")).toBe(true);
+        expect(l.conclude).toHaveBeenLastCalledWith(ATTEMPT, "reply");
+        expect(l.conclude).toHaveBeenCalledTimes(2);
     });
 });
 

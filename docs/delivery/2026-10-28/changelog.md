@@ -205,3 +205,8 @@
 - Parent **778fcb1**: pin **a394caee** two paths (migration SOURCE NOT_APPLIED + **53/53** `new-job-closing.test.ts`).
 - Rejects **1438** unsupported regex; **A069 Partial** unchanged; counts **76C 22P 19N 1B**.
 - Receipt **`rob0045-a069-integrated-source-backup-20261029.json`**.
+
+## ROB0225 A055 confirmed reservation — 29 October 2026
+
+- Parent **416525e**: pin **ba0d92c** two paths (generation helper + request tests). ROOT **18/18** material selection (17 main + 1 Brief).
+- **A055 Partial**; conclusion-ownership debt closed on slice only. Receipt **`rob0225-a055-integrated-source-backup-20261029.json`**.

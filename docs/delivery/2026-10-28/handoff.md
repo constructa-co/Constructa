@@ -214,3 +214,8 @@ policy approved in register metadata only; **73709** not on ROOT. Receipt
 
 **Parent `778fcb1`:** **a394caee** two paths; ROOT **53/53** SOURCE module. Migration **NOT APPLIED**. **A069 Partial**; Claude **05** transport already on ROOT via **559** (not absent). Receipt
 `rob0045-a069-integrated-source-backup-20261029.json`.
+
+## ROB0225 A055 reservation ACK — 29 October 2026
+
+**Parent `416525e`:** **ba0d92c** two files. ROOT **18/18** material tests. **A055 Partial**. Receipt
+`rob0225-a055-integrated-source-backup-20261029.json`.

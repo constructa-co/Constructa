@@ -7,8 +7,9 @@ import type { AssistantTurnMessage } from "@/lib/assistant-transport";
  * A055 generation seam for the job assistant: one approved configuration, a
  * provider transport and a usage ledger, all chosen by the server. It is wired
  * into the pricing, planning and Brief request paths through
- * `job-assistant-transport.ts`, and it is OFF: no configuration is approved,
- * and there is no transport or ledger, so every activation point returns null.
+ * `job-assistant-transport.ts`. Production adapters (transport + RPC ledger) exist,
+ * but activation is OFF: `APPROVED_GENERATION` is null for every feature, so each
+ * activation point returns null until an approval is configured.
  *
  * An attempt runs: bounds check, including the worst-case cost of this exact
  * request at the approved prices, which the reservation must cover ->
@@ -119,6 +120,8 @@ export function createJobAssistantGenerator<C>(feature: JobAssistantFeature, dep
     const config = parsed.data;
     const transport = deps.transport;
     const ledger = deps.ledger;
+    /** Attempt ids this generator instance successfully reserved; only those may be concluded here. */
+    const confirmedReservations = new Set<string>();
 
     const generate: JobAssistantGenerator<C> = async input => {
         const size = JSON.stringify(input.context ?? null).length + input.messages.reduce((total, item) => total + item.content.length, 0);
@@ -144,6 +147,7 @@ export function createJobAssistantGenerator<C>(feature: JobAssistantFeature, dep
             held = false;
         }
         if (!held) throw new GenerationRefused("reservation");
+        confirmedReservations.add(input.attemptId);
 
         const signal = AbortSignal.any([input.signal, AbortSignal.timeout(config.timeoutMs)]);
         const record = async (step: () => Promise<void>) => {
@@ -177,6 +181,7 @@ export function createJobAssistantGenerator<C>(feature: JobAssistantFeature, dep
         return result.raw;
     };
     generate.conclude = async (attemptId, outcome) => {
+        if (!confirmedReservations.delete(attemptId)) return false;
         try {
             await ledger.conclude(attemptId, outcome);
             return true;

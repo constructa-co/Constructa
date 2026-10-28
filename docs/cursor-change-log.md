@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-10-28 — ROB0225 A055 reservation conclude (Cursor integration)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `job-assistant-generation.ts` | `confirmedReservations` + atomic conclude | Pin **ba0d92c** finding repair |
+| `job-assistant-request.test.ts` | 7-case ownership block + A063 expectation fixes | Material ROOT selection |
+
 ## 2026-10-28 — ROB0045 A069 blank guard (Cursor integration)
 
 | File | Change | Intent |

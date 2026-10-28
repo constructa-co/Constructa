@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import DashboardRouteShell from "@/components/dashboard-route-shell";
 import ProjectNavBar from "@/components/project-navbar";
 import ProjectEntry from "@/components/project-entry";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
@@ -98,8 +99,7 @@ export default async function ProposalPage(props: { searchParams: Promise<{ proj
         : undefined;
 
     return (
-        <div className="max-w-5xl mx-auto px-4 sm:px-8 pt-4 sm:pt-8 pb-16">
-            <ProjectNavBar projectId={projectId} projectName={project.name || ""} activeTab="proposal" />
+        <DashboardRouteShell header={<ProjectNavBar projectId={projectId} projectName={project.name || ""} activeTab="proposal" />}>
             <ReviewSendClient
                 key={project.id}
                 context={{
@@ -114,6 +114,6 @@ export default async function ProposalPage(props: { searchParams: Promise<{ proj
                 estimateIssue={estimateIssue}
                 publications={history}
             />
-        </div>
+        </DashboardRouteShell>
     );
 }

@@ -9,12 +9,14 @@ import ProgrammeOverview from "@/components/programme-overview";
 import ProgrammeStageFocus from "@/components/programme-stage-focus";
 import ProgrammeInclusionChoice from "@/components/programme-inclusion-choice";
 import ProgrammeEstimateActivity from "@/components/programme-estimate-activity";
+import PlanningConversationPanel from "@/components/planning-conversation-panel";
 import { copyProgrammeActivityName, programmeEstimateActivities } from "@/lib/programme-estimate-activities";
 import { readProgrammeInclusion } from "@/lib/programme-inclusion";
 import SaveStatus from "@/components/save-status";
 import ui from "@/components/programme.module.css";
 import { newClientId } from "@/lib/client-id";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
+import { createPlanningConversation, type PlanningGenerator } from "@/lib/planning-conversation";
 import { formatPlanDate, formatWorkingDuration, PROGRAMME_BASIS_NOTE } from "@/lib/programme-plan";
 import { hasRelativeProgramme, programmeBasisNote, RELATIVE_PROGRAMME_BASIS, RELATIVE_PROGRAMME_NOTE } from "@/lib/relative-programme";
 import { resolveJobWorkingPattern } from "@/lib/job-working-pattern";
@@ -76,9 +78,11 @@ interface Props {
     /** Defaults to the real server action; replaced only by tests and evidence capture. */
     save?: SaveProgramme;
     saveInclusion?: SaveProgrammeInclusion;
+    /** No default: the planning conversation stays off until an authorised server adapter is supplied. */
+    planningGenerator?: PlanningGenerator;
 }
 
-export default function SimpleProgrammeClient({ project: incomingProject, lockReason, estimate, save, saveInclusion }: Props) {
+export default function SimpleProgrammeClient({ project: incomingProject, lockReason, estimate, save, saveInclusion, planningGenerator }: Props) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
     const s = workspaceStyles(isDark);
@@ -108,6 +112,21 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
         return viewForProject({ ...project, programme_phases: readProgrammeInclusion(project.programme_phases).phases }, () => `saved-${n++}`);
     }, [project]);
     const showExtended = isCapabilityEnabled("extended-modules");
+
+    // Discussion only, in this page's memory: it reads the saved project and
+    // never writes. Unsaved or in-progress programme work blocks a new turn.
+    const planningOpenWork = unsavedSimple || inclusionBusy || detailedOpen || refreshing;
+    const planning = useMemo(() => {
+        const source = { project: incomingProject as ProgrammeProject, hasOpenWork: false };
+        return { source, session: createPlanningConversation(() => source, planningGenerator) };
+        // A different job remounts this page; the session is per job and generator.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [incomingProject.id, planningGenerator]);
+    useEffect(() => {
+        Object.assign(planning.source, { project, hasOpenWork: planningOpenWork });
+        planning.session.refresh();
+    }, [planning, project, planningOpenWork]);
+    useEffect(() => () => planning.session.detach(), [planning]);
 
     // The detailed planner saves as it goes. Closing it reloads the project so
     // the simple view shows what the planner left behind.
@@ -263,6 +282,7 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
                         }} s={s}
                     />}
                     {!lockReason && inclusion.intent === "include" && detailedSection}
+                    {inclusion.intent !== "invalid" && <PlanningConversationPanel session={planning.session} blocked={planningOpenWork} s={s} />}
                 </>
             )}
         </div>

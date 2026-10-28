@@ -28,7 +28,7 @@ export default function ProjectNavBar({ projectId, projectName, activeTab }: Pro
   if (!isCapabilityEnabled("extended-modules")) {
     const current = JOB_WORKFLOW.find(step => step.key === activeTab);
     return (
-      <nav aria-label="Job context" className={`mb-5 border-b pb-3 text-sm ${isDark ? "border-white/10 text-slate-400" : "border-gray-200 text-gray-600"}`}>
+      <nav aria-label="Job context" data-route-job-header className={`mb-5 border-b pb-3 text-sm ${isDark ? "border-white/10 text-slate-400" : "border-gray-200 text-gray-600"}`}>
         <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <li>
             <Link href="/dashboard" className={`inline-flex min-h-11 items-center rounded-md px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${isDark ? "text-[#c9efcf] hover:text-[#e0f9e3] focus-visible:outline-[#c9efcf]" : "text-emerald-800 hover:text-emerald-950 focus-visible:outline-emerald-700"}`}>Pipeline</Link>
@@ -49,7 +49,7 @@ export default function ProjectNavBar({ projectId, projectName, activeTab }: Pro
     : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-400";
 
   return (
-    <div className={`border-b mb-6 ${isDark ? "border-slate-700/50" : "border-gray-200"}`}>
+    <div data-route-job-header className={`border-b mb-6 ${isDark ? "border-slate-700/50" : "border-gray-200"}`}>
       <nav className="flex gap-0 -mb-px overflow-x-auto" onFocusCapture={(event) => {
         const link = event.target;
         if (!(link instanceof HTMLAnchorElement)) return;

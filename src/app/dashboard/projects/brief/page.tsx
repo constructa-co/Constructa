@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import DashboardRouteShell from "@/components/dashboard-route-shell";
 import ProjectNavBar from "@/components/project-navbar";
 import ProjectEntry from "@/components/project-entry";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
@@ -51,9 +52,7 @@ export default async function BriefPage(props: { searchParams: Promise<{ project
     const postcode = project.postcode || extractPostcode(siteAddress) || "";
 
     return (
-        <div className="max-w-5xl mx-auto px-4 sm:px-8 pt-4 sm:pt-8 pb-16">
-            <ProjectNavBar projectId={activeProjectId} projectName={project.name || ""} activeTab="brief" />
-
+        <DashboardRouteShell header={<ProjectNavBar projectId={activeProjectId} projectName={project.name || ""} activeTab="brief" />}>
             <BriefClient
                 key={project.id}
                 project={{
@@ -74,6 +73,6 @@ export default async function BriefPage(props: { searchParams: Promise<{ project
                 }}
                 lockReason={getPrecontractEditLockReason(project)}
             />
-        </div>
+        </DashboardRouteShell>
     );
 }

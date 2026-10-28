@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import DashboardRouteShell from "@/components/dashboard-route-shell";
 import ProjectNavBar from "@/components/project-navbar";
 import ProjectEntry from "@/components/project-entry";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
@@ -55,15 +56,13 @@ export default async function SchedulePage(props: { searchParams: Promise<{ proj
         null;
 
     return (
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-8 pt-4 sm:pt-8 pb-16">
-            <ProjectNavBar projectId={activeProjectId} projectName={project.name || ""} activeTab="programme" />
-
+        <DashboardRouteShell header={<ProjectNavBar projectId={activeProjectId} projectName={project.name || ""} activeTab="programme" />}>
             <SimpleProgrammeClient
                 key={project.id}
                 project={project}
                 lockReason={getPrecontractEditLockReason(project)}
                 estimate={activeEstimate}
             />
-        </div>
+        </DashboardRouteShell>
     );
 }

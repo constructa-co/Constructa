@@ -22,6 +22,7 @@ import { isActiveProject } from "@/lib/project-helpers";
 import { getHomePresentation } from "@/lib/first-session";
 import FirstProjectStart from "@/components/first-project-start";
 import ui from "@/components/project-chooser.module.css";
+import { corePipelineWorkspaceInsetClassName } from "@/lib/dashboard-route-geometry";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
 
 type Period = "week" | "month" | "quarter" | "year";
@@ -258,7 +259,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
     }
 
     return (
-        <div className={`${ui.workspace} pt-8 px-8 pb-12 space-y-8 ${isDark ? "bg-[#0d0d0d] text-white" : "bg-white text-gray-900"}`} data-dark={isDark}>
+        <div className={`${ui.workspace} ${corePipelineWorkspaceInsetClassName()} pb-12 space-y-8 ${isDark ? "bg-[#0d0d0d] text-white" : "bg-white text-gray-900"}`} data-dark={isDark}>
 
             {launchNoticeBanner}
 

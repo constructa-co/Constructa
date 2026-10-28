@@ -66,6 +66,7 @@ import { useTheme } from "@/lib/theme-context";
 import { useReducerStore } from "@/lib/use-reducer-store";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
+import { coreFocusVisibleRing, coreSelectedChoiceBorder } from "@/lib/core-editing-palette";
 import { workspaceStyles, type WorkspaceStyles } from "@/lib/workspace-styles";
 import {
     getProposalPublicationAction,
@@ -813,9 +814,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                                 <label
                                                     key={preset.kind}
                                                     data-payment-preset={preset.kind}
-                                                    className={`flex items-start gap-3 rounded-xl border p-3 sm:p-4 cursor-pointer ${
-                                                        chosen ? "border-blue-500 ring-1 ring-blue-500" : isDark ? "border-[#3a3a3a]" : "border-gray-300"
-                                                    }`}
+                                                    className={`flex items-start gap-3 rounded-xl border p-3 sm:p-4 cursor-pointer ${coreSelectedChoiceBorder(isDark, chosen)}`}
                                                 >
                                                     <input
                                                         type="radio"
@@ -1089,9 +1088,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                 <label
                                     key={kind}
                                     data-response-option={kind}
-                                    className={`flex items-start gap-3 rounded-xl border p-3 sm:p-4 cursor-pointer ${
-                                        chosen ? "border-blue-500 ring-1 ring-blue-500" : isDark ? "border-[#3a3a3a]" : "border-gray-300"
-                                    }`}
+                                    className={`flex items-start gap-3 rounded-xl border p-3 sm:p-4 cursor-pointer ${coreSelectedChoiceBorder(isDark, chosen)}`}
                                 >
                                     <input
                                         type="radio"
@@ -1213,7 +1210,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                             id="send-block-reason"
                             ref={sendBlockRef}
                             tabIndex={-1}
-                            className={`${s.noticeBox} text-sm space-y-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`}
+                            className={`${s.noticeBox} text-sm space-y-3 ${coreFocusVisibleRing}`}
                             data-send-block="not-ready"
                         >
                             <p className="text-base font-bold">

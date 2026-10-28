@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MapPin, Search } from "lucide-react";
 import {
     isPostcodeLookupInputPresent,
@@ -37,44 +37,72 @@ export default function PostcodeAddressPicker({
     const [candidates, setCandidates] = useState<PostcodeAddressCandidate[]>([]);
     const [status, setStatus] = useState<"idle" | "info" | "error">("idle");
     const [message, setMessage] = useState("");
+    const lookupGenerationRef = useRef(0);
+    const mountedRef = useRef(true);
+
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+            lookupGenerationRef.current += 1;
+        };
+    }, []);
+
+    const applyIfCurrentGeneration = (generation: number, apply: () => void) => {
+        if (!mountedRef.current || generation !== lookupGenerationRef.current) return;
+        apply();
+    };
+
+    const invalidateInFlightLookup = () => {
+        lookupGenerationRef.current += 1;
+    };
 
     const runLookup = async () => {
         if (disabled || !isPostcodeLookupInputPresent(postcode)) return;
+        const generation = ++lookupGenerationRef.current;
         setLoading(true);
         setCandidates([]);
         setStatus("idle");
         setMessage("");
 
         if (!lookup) {
-            setStatus("info");
-            setMessage(POSTCODE_LOOKUP_NOT_AVAILABLE_MESSAGE);
-            setLoading(false);
+            applyIfCurrentGeneration(generation, () => {
+                setStatus("info");
+                setMessage(POSTCODE_LOOKUP_NOT_AVAILABLE_MESSAGE);
+                setLoading(false);
+            });
             return;
         }
 
+        const requestedPostcode = normalizePostcodeForLookup(postcode);
+
         try {
-            const result = await lookup(normalizePostcodeForLookup(postcode));
-            if (result.kind === "ok") {
-                if (result.candidates.length === 0) {
+            const result = await lookup(requestedPostcode);
+            applyIfCurrentGeneration(generation, () => {
+                if (result.kind === "ok") {
+                    if (result.candidates.length === 0) {
+                        setStatus("info");
+                        setMessage(POSTCODE_LOOKUP_NOT_FOUND_MESSAGE);
+                    } else {
+                        setCandidates(result.candidates);
+                        setStatus("info");
+                        setMessage("Choose an address below. Nothing is filled in until you select one.");
+                    }
+                } else if (result.kind === "not_found") {
                     setStatus("info");
                     setMessage(POSTCODE_LOOKUP_NOT_FOUND_MESSAGE);
                 } else {
-                    setCandidates(result.candidates);
-                    setStatus("info");
-                    setMessage("Choose an address below. Nothing is filled in until you select one.");
+                    setStatus("error");
+                    setMessage(POSTCODE_LOOKUP_FAILED_MESSAGE);
                 }
-            } else if (result.kind === "not_found") {
-                setStatus("info");
-                setMessage(POSTCODE_LOOKUP_NOT_FOUND_MESSAGE);
-            } else {
+                setLoading(false);
+            });
+        } catch {
+            applyIfCurrentGeneration(generation, () => {
                 setStatus("error");
                 setMessage(POSTCODE_LOOKUP_FAILED_MESSAGE);
-            }
-        } catch {
-            setStatus("error");
-            setMessage(POSTCODE_LOOKUP_FAILED_MESSAGE);
-        } finally {
-            setLoading(false);
+                setLoading(false);
+            });
         }
     };
 
@@ -104,7 +132,10 @@ export default function PostcodeAddressPicker({
                         autoComplete="off"
                         disabled={disabled}
                         value={postcode}
-                        onChange={(e) => setPostcode(e.target.value)}
+                        onChange={(e) => {
+                            setPostcode(e.target.value);
+                            invalidateInFlightLookup();
+                        }}
                         onKeyDown={(e) => {
                             if (e.key === "Enter") {
                                 e.preventDefault();

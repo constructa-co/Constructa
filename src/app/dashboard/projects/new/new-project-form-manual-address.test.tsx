@@ -34,6 +34,9 @@ vi.mock("react", async importOriginal => ({
         const index = hooks.refIndex++;
         return hooks.refs[index] ?? (hooks.refs[index] = { current: initial });
     },
+    useEffect: (fn: () => void | (() => void)) => {
+        fn();
+    },
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: hooks.push }) }));
 vi.mock("@/lib/theme-context", () => ({ useTheme: () => ({ theme: "dark" }) }));

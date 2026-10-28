@@ -30,6 +30,9 @@ vi.mock("react", async importOriginal => ({
         const index = hooks.refIndex++;
         return hooks.refs[index] ?? (hooks.refs[index] = { current: initial });
     },
+    useEffect: (fn: () => void | (() => void)) => {
+        fn();
+    },
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: hooks.push }) }));
 vi.mock("@/lib/theme-context", () => ({ useTheme: () => ({ theme: "dark" }) }));
@@ -51,22 +54,6 @@ type Node = ReactElement<{
     onChange?: (event: { target: { value: string } }) => void;
     onSubmit?: (event: FormEvent) => void;
 }>;
-
-function mountTree(value: ReactNode): ReactNode {
-    if (Array.isArray(value)) return value.map(mountTree);
-    if (!value || typeof value !== "object" || !("props" in value)) return value;
-    const node = value as ReactElement<{ children?: ReactNode }>;
-    if (node.type === JobAddressField) {
-        return mountTree(JobAddressField(node.props as ComponentProps<typeof JobAddressField>));
-    }
-    if (node.type === PostcodeAddressPicker) {
-        return mountTree(PostcodeAddressPicker(node.props as ComponentProps<typeof PostcodeAddressPicker>));
-    }
-    if (node.type === ManualAddressEntry) {
-        return mountTree(ManualAddressEntry(node.props as ComponentProps<typeof ManualAddressEntry>));
-    }
-    return { ...node, props: { ...node.props, children: mountTree(node.props.children) } };
-}
 
 function nodes(value: ReactNode): Node[] {
     if (Array.isArray(value)) return value.flatMap(nodes);

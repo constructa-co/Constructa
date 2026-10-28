@@ -1,3 +1,24 @@
+## DAY28 A091 legacy hosted Phase 1 write fail-closed - 28 October 2026
+
+- Branch `codex/a091-legacy-write-failclosed-20261028` from
+  `a3b2c09029b3966ce1cda6bb4a0901c3a981bedd`.
+- **Gap confirmed:** `playwright.config.ts` + `global-setup.ts` entered the full
+  legacy journey (`phase1-journey.spec.ts`: signup, writes, publication, Send)
+  via `readE2EEnv()` with no source hold. Ready PR / `workflow_dispatch` could
+  still run real disposable-project auth once CI secrets exist (PR106 class).
+  Preview HOLD / signup-off / automated legal policy are not env-bypassable here.
+- **Minimal fix (platform-consent hold pattern):**
+  `e2e/support/legacy-hosted-phase1-guard.ts` — `isLegacyHostedPhase1WriteHeld()`
+  default true; `readLegacyHostedPhase1Env()` throws `E2EConfigurationError`
+  NOT_RUN before `readE2EEnv`/network. Wired at `playwright.config.ts` import and
+  `global-setup.ts` entry. **Unchanged:** no-publish, platform-consent, local-phase1
+  configs; 703 draft guard (separate branch); e2e.yml three excluded heads.
+- **Unit proof:** `legacy-hosted-phase1-guard.test.ts` 4/4 — held refusal, 0
+  `fetch` when held, prerequisites helper, default config import blocked.
+- **Trigger effects (this push):** `e2e.yml` has no `on.push`; `ci.yml` push is
+  `main` only — branch push does not start hosted jobs. Future PR/dispatch on
+  default config yields configuration NOT_RUN (fail-closed), not green Phase 1.
+
 # DAY28 First Green Integration - 28 October 2026
 
 - Integrate accepted product pins only: A001 core editing palette (`5aa12e6`),

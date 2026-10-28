@@ -237,6 +237,34 @@ describe("text and file name", () => {
     });
 });
 
+describe("compact page composition (A075)", () => {
+    function sectionPages(result: BrochureResult, id: string) {
+        return result.layout.filter((entry) => entry.kind === "section-heading" && entry.section === id).map((entry) => entry.page);
+    }
+
+    it("keeps scope, price and programme on one page for a short proposal", () => {
+        const { result } = render(minimalInput());
+        const pages = new Set([...sectionPages(result, "scope"), ...sectionPages(result, "price"), ...sectionPages(result, "programme")]);
+        expect(pages.size).toBe(1);
+        expect([...pages][0]).toBeGreaterThan(1);
+    });
+
+    it("does not leave a receipt-only page mostly blank on a short proposal", () => {
+        const { result } = render(minimalInput());
+        const response = result.layout.find((entry) => entry.kind === "response")!;
+        const onPage = result.layout.filter((entry) => entry.page === response.page);
+        expect(onPage.some((entry) => entry.section === "terms")).toBe(true);
+        expect(PAGE.contentBottom - response.bottom).toBeLessThan(60);
+        const used = Math.max(...onPage.map((entry) => entry.bottom)) - Math.min(...onPage.map((entry) => entry.top));
+        expect(used / (PAGE.contentBottom - PAGE.contentTop)).toBeGreaterThan(0.65);
+    });
+
+    it("still separates the cover from scope on a short proposal", () => {
+        const { result } = render(minimalInput());
+        expect(sectionPages(result, "scope")[0]).toBeGreaterThan(sectionPages(result, "cover")[0]);
+    });
+});
+
 describe("draft footer lanes", () => {
     function textRuns(result: BrochureResult, pageNumber: number) {
         const internal = result.doc.internal as unknown as { pages: Array<string[] | undefined> };

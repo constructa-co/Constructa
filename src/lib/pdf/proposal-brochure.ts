@@ -47,8 +47,6 @@ export const PAGE = {
     footerText: 286,
 } as const;
 
-/** A section starts a new page when less than this much of the page is left. */
-const SECTION_MIN_SPACE = 80;
 const PT_TO_MM = 0.3528;
 
 type Rgb = [number, number, number];
@@ -887,7 +885,8 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
         const headingHeight = 7 + titleLines.length * titleStyle.lineHeight + 5;
         const needed = headingHeight + firstPartHeight(first);
 
-        if (remaining() < Math.max(SECTION_MIN_SPACE, needed + 17)) {
+        const opening = needed + 17;
+        if (remaining() < opening) {
             newPage();
         } else {
             y += 9;
@@ -917,7 +916,18 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
             + 6 + signatureHeight + footnote.length * STYLES.small.lineHeight + 6;
 
         // The whole response block stays on one page.
-        if (remaining() < height + 10) newPage(); else y += 10;
+        const pad = 10;
+        const need = height + pad;
+        if (remaining() < need) {
+            newPage();
+            const room = PAGE.contentBottom - PAGE.contentTop - height;
+            // A receipt-only page reads better centred than pinned to the top.
+            if (room > 30) y = PAGE.contentTop + room / 2;
+        } else {
+            const slack = remaining() - need;
+            if (slack > 40) y += pad + Math.min(slack * 0.35, 28);
+            else y += pad;
+        }
         const top = y;
         pdf.setFillColor(...SOFT);
         pdf.rect(PAGE.left, top, PAGE.contentWidth, height, "F");
@@ -951,8 +961,13 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
     };
 
     cover();
+    const compactBody = !document.sections.some((item) => item.id === "about" || item.id === "experience");
     document.sections.forEach((documentSection, index) => {
         section = documentSection.id;
+        if (index === 0 && compactBody && documentSection.id === "scope" && page === 1) {
+            // Short proposals read better with the cover alone, then scope/price/programme together.
+            newPage();
+        }
         sectionHeading(documentSection.title, index + 1, documentSection.blocks[0]);
         documentSection.blocks.forEach((block, blockIndex) => {
             drawBlock(block, documentSection.blocks[blockIndex + 1]);

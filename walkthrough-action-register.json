@@ -724,7 +724,7 @@
       "phase": "P1-Jan2027",
       "requested": "Reconcile pipeline actions with saved workflow state, publication/readiness and confirmed mutation results.",
       "status": "Partial",
-      "note": "Composer 28 Oct (corrected): Completed→Active reopen uses ordinary status write only; other Active moves unchanged baseline; returned-row ack unchanged; stage/publication/Won policy still unresolved."
+      "note": "Composer 28 Oct: Completed reopen status-only; baseline Active routing; updateTypeAction returned-row ack added; stage/publication/Won policy still unresolved; no type UI client wiring."
     },
     {
       "id": "A116",

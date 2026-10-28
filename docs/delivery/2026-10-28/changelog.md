@@ -16,4 +16,11 @@
 
 ## A115 status
 
-**Partial** (unchanged). Returned-row acknowledgement and optimistic rollback were already present on `board-actions.ts`; this slice closes one real client routing gap. Still not done: no publication/readiness gate on stage writes, `updateTypeAction` outside slice, no hosted or real DB readback, no automatic send/Won/publication policy change.
+**Partial** (unchanged). Stage moves + Completed reopen + `updateTypeAction` now use returned-row ack; generic Active baseline preserved (policy unresolved). Still not done: publication/readiness gates, type-change UI wiring/optimistic client, hosted or real DB readback.
+
+## updateTypeAction ack (same branch, later commit)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `src/app/dashboard/board-actions.ts` | `confirmedProjectTypeWrite`; `updateTypeAction` returns `PipelineMutationResult` | Owner-scoped `.select("id, project_type").single()` with mismatch/0-row/throw → `PIPELINE_CHANGE_UNCONFIRMED`; revalidate failure → warning only. |
+| `src/app/dashboard/board-actions.test.ts` | New describe: error/empty/throw/wrong-id/wrong-type, confirmed row shape, revalidate warning, auth failure | RED→GREEN for type ack without repeating stage tests. |

@@ -9,6 +9,7 @@ import { SETTINGS_LEAVE_WARNING, settingsFormSignature } from "./form-state";
 import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import ManualAddressEntry from "@/components/manual-address-entry";
+import { coreFocusRing } from "@/lib/core-editing-palette";
 
 // --- Inline UI Components ---
 function Card({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -33,7 +34,7 @@ function Input({ ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
     return (
         <input
             {...props}
-            className={`flex h-12 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-50 ${props.className || ""}`}
+            className={`flex h-12 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 ${coreFocusRing} disabled:opacity-50 ${props.className || ""}`}
         />
     );
 }
@@ -41,7 +42,7 @@ function Textarea({ ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement
     return (
         <textarea
             {...props}
-            className={`flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none disabled:opacity-50 ${props.className || ""}`}
+            className={`flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 ${coreFocusRing} resize-none disabled:opacity-50 ${props.className || ""}`}
         />
     );
 }
@@ -49,7 +50,7 @@ function Select({ children, ...props }: React.SelectHTMLAttributes<HTMLSelectEle
     return (
         <select
             {...props}
-            className={`flex h-12 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 ${props.className || ""}`}
+            className={`flex h-12 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 ${coreFocusRing} ${props.className || ""}`}
         >
             {children}
         </select>
@@ -162,7 +163,7 @@ export default function ClientProjectSettings({ project }: { project: any }) {
         : dirty ? "Unsaved changes" : "";
 
     const labelCls = `text-sm font-semibold ${isDark ? "text-slate-300" : "text-slate-700"}`;
-    const inputCls = `flex h-12 w-full rounded-lg border ${isDark ? "border-slate-600 bg-slate-900/50 text-slate-100" : "border-slate-200 bg-white text-slate-900"} px-3 py-2 text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-50`;
+    const inputCls = `flex h-12 w-full rounded-lg border ${isDark ? "border-slate-600 bg-slate-900/50 text-slate-100" : "border-slate-200 bg-white text-slate-900"} px-3 py-2 text-base placeholder:text-slate-400 ${coreFocusRing} disabled:opacity-50`;
     const muted = isDark ? "text-slate-400" : "text-slate-500";
 
     const applyAddressField = (fieldName: "client_address" | "site_address", preview: string): boolean => {
@@ -271,7 +272,7 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                                     type="checkbox"
                                     name="is_vat_reverse_charge"
                                     defaultChecked={project.is_vat_reverse_charge === true}
-                                    className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-2 focus:ring-blue-600"
+                                    className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-emerald-600 focus:ring-2 focus:ring-emerald-600"
                                 />
                                 <div className="flex-1">
                                     <div className="text-sm font-medium text-slate-900">

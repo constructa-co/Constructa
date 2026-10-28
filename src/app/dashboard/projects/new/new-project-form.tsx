@@ -20,6 +20,7 @@ import { createBlankProjectAction } from "./actions";
 import ManualAddressEntry from "@/components/manual-address-entry";
 import NewJobFrame from "@/components/new-job-frame";
 import ui from "@/components/new-job.module.css";
+import { workspaceStyles } from "@/lib/workspace-styles";
 
 type FieldErrors = Partial<Record<BlankProjectField, string>>;
 
@@ -136,15 +137,11 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
         inFlightRef.current = false;
     };
 
-    const muted = isDark ? "text-slate-400" : "text-gray-600";
-    const labelCls = `block text-sm font-semibold ${isDark ? "text-slate-200" : "text-gray-800"}`;
-    const inputBase = `w-full rounded-lg border px-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-        isDark
-            ? "bg-[#0d0d0d] border-[#3a3a3a] text-white placeholder:text-slate-500 [color-scheme:dark]"
-            : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
-    }`;
-    const inputCls = `${inputBase} h-12`;
-    const textareaCls = `${inputBase} py-2.5 resize-none`;
+    const s = workspaceStyles(isDark);
+    const muted = s.muted;
+    const labelCls = s.label;
+    const inputCls = s.input;
+    const textareaCls = `${s.textarea} resize-none`;
     const errorCls = "mt-1.5 text-sm text-red-500";
 
     const field = (name: BlankProjectField) => ({
@@ -367,7 +364,7 @@ export default function NewProjectForm({ isFirstProject, createProject = createB
                 <button
                     type="submit"
                     disabled={creating}
-                    className="w-full min-h-12 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed text-white text-base font-bold transition-colors flex items-center justify-center gap-2"
+                    className={`w-full flex items-center justify-center gap-2 ${s.primaryButton}`}
                 >
                     {creating ? (
                         <>

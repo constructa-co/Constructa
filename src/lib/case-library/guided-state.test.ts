@@ -58,7 +58,7 @@ function session(view: StudyView | null) {
     };
 }
 
-const FULL: CaseStudyContent = { version: 1, title: "Kitchen refit", work_type: "Refurbishment", place: "Leeds", client_display: "named", client_text: "Mrs Example", client_named_ok: true, value_text: "£18,500", show_value: true, duration_text: "3 weeks", delivered: "We refitted it.", value_added: "More room." };
+const FULL: CaseStudyContent = { ...newDraft("Kitchen refit"), work_type: "Refurbishment", place: "Leeds", client_display: "named", client_text: "Mrs Example", client_named_ok: true, value_text: "£18,500", show_value: true, duration_text: "3 weeks", delivered: "We refitted it.", value_added: "More room." };
 const stored = (id: string) => db.studies.find((row) => row.id === id)!;
 const tagsOf = (id: string) => db.links.filter((link) => link.study === id).map((link) => link.discipline).sort();
 const names = () => db.rpcCalls.map((call) => call.name);

@@ -15,6 +15,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { approvalProblem, approvedProblem, approvedValue, contentFromInput, contentProblem, labelProblem, type ApprovedCaseStudy, type CaseStudyContent } from "./content";
+import { normalisePhotoSlots } from "./photos";
 import { cleanLabel } from "./labels";
 import { draftFromLegacy } from "./legacy";
 import { LIBRARY_MESSAGES as M, fieldMessage, fieldOf } from "./messages";
@@ -61,12 +62,15 @@ export interface LibraryResult {
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const CONTENT_KEYS = ["version", "title", "work_type", "place", "client_display", "client_text", "client_named_ok", "value_text", "show_value", "duration_text", "delivered", "value_added"] as const;
+const CONTENT_KEYS = ["version", "title", "work_type", "place", "client_display", "client_text", "client_named_ok", "value_text", "show_value", "duration_text", "delivered", "value_added", "photos"] as const;
+
+const fieldEqual = (key: (typeof CONTENT_KEYS)[number], a: CaseStudyContent, b: CaseStudyContent) =>
+    key === "photos" ? JSON.stringify(normalisePhotoSlots(a.photos)) === JSON.stringify(normalisePhotoSlots(b.photos)) : a[key] === b[key];
 
 export function sameContent(a: unknown, b: CaseStudyContent): boolean {
     if (contentProblem(a) !== null) return false;
     const saved = a as CaseStudyContent;
-    return CONTENT_KEYS.every((key) => saved[key] === b[key]);
+    return CONTENT_KEYS.every((key) => fieldEqual(key, saved, b));
 }
 export function sameTags(a: readonly string[], b: readonly string[]): boolean {
     return a.length === b.length && a.every((id) => b.includes(id));
@@ -260,7 +264,7 @@ export async function loadForApproval(context: LibraryContext, id: unknown): Pro
 
 /** Whether two approved copies are the same in everything a client would see, and in the order of the tags. */
 export function sameApprovedCopy(a: ApprovedCaseStudy, b: ApprovedCaseStudy): boolean {
-    return CONTENT_KEYS.every((key) => a[key] === b[key])
+    return CONTENT_KEYS.every((key) => fieldEqual(key, a, b))
         && a.disciplines.length === b.disciplines.length
         && a.disciplines.every((label, index) => label === b.disciplines[index]);
 }

@@ -14,6 +14,8 @@
  * points), not as JavaScript's `.length` does.
  */
 
+import { emptyPhotoSlots, normalisePhotoSlots, photoSlotsProblem, type CaseStudyPhotoSlot } from "./photos";
+
 export const CONTENT_VERSION = 1;
 
 export const CONTENT_LIMITS = {
@@ -45,6 +47,8 @@ export interface CaseStudyContent {
     duration_text: string;
     delivered: string;
     value_added: string;
+    /** Three slots in order; empty url means no picture in that place. */
+    photos: CaseStudyPhotoSlot[];
 }
 
 /** The complete copy made at approval: the content, minus anything hidden, plus the tag labels as plain strings. */
@@ -52,7 +56,7 @@ export interface ApprovedCaseStudy extends CaseStudyContent {
     disciplines: string[];
 }
 
-const CONTENT_KEYS = ["client_display", "client_named_ok", "client_text", "delivered", "duration_text", "place", "show_value", "title", "value_added", "value_text", "version", "work_type"];
+const CONTENT_KEYS = ["client_display", "client_named_ok", "client_text", "delivered", "duration_text", "photos", "place", "show_value", "title", "value_added", "value_text", "version", "work_type"];
 
 const SINGLE_LINE_CONTROL = /[\u0001-\u001F\u007F]/;
 /** Line breaks and tabs are allowed; other control characters are not. */
@@ -97,6 +101,8 @@ export function contentProblem(value: unknown): string | null {
     if (!textOk(value.duration_text, 0, CONTENT_LIMITS.duration_text, false)) return "duration_text";
     if (!textOk(value.delivered, 0, CONTENT_LIMITS.delivered, true)) return "delivered";
     if (!textOk(value.value_added, 0, CONTENT_LIMITS.value_added, true)) return "value_added";
+    const photos = normalisePhotoSlots(value.photos);
+    if (photoSlotsProblem(photos) !== null) return "photos";
     return null;
 }
 
@@ -158,6 +164,7 @@ export function newDraft(title: string): CaseStudyContent {
         duration_text: "",
         delivered: "",
         value_added: "",
+        photos: emptyPhotoSlots(),
     };
 }
 
@@ -184,5 +191,6 @@ export function contentFromInput(input: unknown): CaseStudyContent {
         duration_text: text("duration_text"),
         delivered: text("delivered"),
         value_added: text("value_added"),
+        photos: normalisePhotoSlots(row.photos),
     };
 }

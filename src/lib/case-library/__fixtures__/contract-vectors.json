@@ -15,7 +15,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    null
   ],
@@ -33,7 +47,21 @@
     "show_value": false,
     "duration_text": "",
     "delivered": "",
-    "value_added": ""
+    "value_added": "",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    null
   ],
@@ -57,7 +85,21 @@
      "show_value": false,
      "duration_text": "3 weeks",
      "delivered": "We refitted the kitchen.\nMoved the wall.",
-     "value_added": "The family stayed in the house."
+     "value_added": "The family stayed in the house.",
+     "photos": [
+      {
+       "url": "",
+       "caption": ""
+      },
+      {
+       "url": "",
+       "caption": ""
+      },
+      {
+       "url": "",
+       "caption": ""
+      }
+     ]
     }
    ],
    "not-object"
@@ -84,7 +126,7 @@
     "value_added": "The family stayed in the house.",
     "photos": []
    },
-   "keys"
+   null
   ],
   [
    "a key that looks internal is refused",
@@ -101,7 +143,21 @@
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
     "value_added": "The family stayed in the house.",
-    "approved": true
+    "approved": true,
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "keys"
   ],
@@ -118,7 +174,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "keys"
   ],
@@ -158,7 +228,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "version"
   ],
@@ -176,7 +260,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "version"
   ],
@@ -194,7 +292,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "title"
   ],
@@ -212,7 +324,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "title"
   ],
@@ -230,7 +356,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "title"
   ],
@@ -248,7 +388,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "title"
   ],
@@ -266,7 +420,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "title"
   ],
@@ -284,7 +452,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "title"
   ],
@@ -302,7 +484,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    null
   ],
@@ -320,7 +516,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "title"
   ],
@@ -328,7 +538,7 @@
    "200 emoji is 200 characters, not 400",
    {
     "version": 1,
-    "title": "\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1",
+    "title": "🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁",
     "work_type": "Kitchen Installation",
     "place": "Leeds",
     "client_display": "hidden",
@@ -338,7 +548,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    null
   ],
@@ -346,7 +570,7 @@
    "201 emoji is too long",
    {
     "version": 1,
-    "title": "\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1",
+    "title": "🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁",
     "work_type": "Kitchen Installation",
     "place": "Leeds",
     "client_display": "hidden",
@@ -356,7 +580,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "title"
   ],
@@ -364,7 +602,7 @@
    "accents and other scripts are counted as characters",
    {
     "version": 1,
-    "title": "Caf\u00e9 \u6d74\u5ba4 \u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9",
+    "title": "Café 浴室 éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
     "work_type": "Kitchen Installation",
     "place": "Leeds",
     "client_display": "hidden",
@@ -374,7 +612,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    null
   ],
@@ -392,7 +644,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "work_type"
   ],
@@ -410,7 +676,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "work_type"
   ],
@@ -428,7 +708,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "work_type"
   ],
@@ -446,7 +740,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "place"
   ],
@@ -464,7 +772,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "place"
   ],
@@ -482,7 +804,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "client_display"
   ],
@@ -500,7 +836,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "client_display"
   ],
@@ -518,7 +868,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "client_text"
   ],
@@ -536,7 +900,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "client_named_ok"
   ],
@@ -554,7 +932,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "value_text"
   ],
@@ -572,7 +964,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    null
   ],
@@ -590,7 +996,21 @@
     "show_value": 1,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "show_value"
   ],
@@ -608,7 +1028,21 @@
     "show_value": false,
     "duration_text": "ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "duration_text"
   ],
@@ -626,7 +1060,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\tmore line\n\t",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    null
   ],
@@ -644,7 +1092,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "delivered"
   ],
@@ -662,7 +1124,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "a\r\nb",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "delivered"
   ],
@@ -680,7 +1156,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "a\u001bb",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "delivered"
   ],
@@ -697,8 +1187,22 @@
     "value_text": "",
     "show_value": false,
     "duration_text": "3 weeks",
-    "delivered": "a\u007fb",
-    "value_added": "The family stayed in the house."
+    "delivered": "ab",
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "delivered"
   ],
@@ -718,7 +1222,21 @@
     "delivered": [
      "a"
     ],
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "delivered"
   ],
@@ -736,7 +1254,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+    "value_added": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "value_added"
   ],
@@ -754,7 +1286,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "a\u000bb"
+    "value_added": "a\u000bb",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "value_added"
   ],
@@ -772,7 +1318,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "<2 weeks, \"on budget\" & tidy \\ done",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    null
   ],
@@ -790,7 +1350,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "title"
   ],
@@ -808,7 +1382,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    null
   ],
@@ -826,9 +1414,55 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    null
+  ],
+  [
+   "unsafe photo url",
+   {
+    "version": 1,
+    "title": "Job",
+    "work_type": "",
+    "place": "",
+    "client_display": "hidden",
+    "client_text": "",
+    "client_named_ok": false,
+    "value_text": "",
+    "show_value": false,
+    "duration_text": "",
+    "delivered": "",
+    "value_added": "",
+    "photos": [
+     {
+      "url": "javascript:alert(1)",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
+   },
+   "photos"
   ]
  ],
  "approval": [
@@ -846,7 +1480,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    null
   ],
@@ -864,7 +1512,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    null
   ],
@@ -882,7 +1544,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    null
   ],
@@ -900,7 +1576,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "client_text_missing"
   ],
@@ -918,7 +1608,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "client_not_confirmed"
   ],
@@ -936,7 +1640,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    null
   ],
@@ -954,7 +1672,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "client_text_missing"
   ],
@@ -972,7 +1704,21 @@
     "show_value": true,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "value_text_missing"
   ],
@@ -986,11 +1732,25 @@
     "client_display": "hidden",
     "client_text": "",
     "client_named_ok": false,
-    "value_text": "\u00a318,500",
+    "value_text": "£18,500",
     "show_value": true,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    null
   ],
@@ -1008,7 +1768,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    null
   ],
@@ -1026,7 +1800,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "title"
   ],
@@ -1047,11 +1835,25 @@
     "client_display": "hidden",
     "client_text": "Mrs Private",
     "client_named_ok": true,
-    "value_text": "\u00a318,500",
+    "value_text": "£18,500",
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    [
     "Kitchen Installation"
@@ -1071,6 +1873,20 @@
     "value_added": "The family stayed in the house.",
     "disciplines": [
      "Kitchen Installation"
+    ],
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
     ]
    }
   ],
@@ -1084,11 +1900,25 @@
     "client_display": "named",
     "client_text": "Mrs Patel",
     "client_named_ok": true,
-    "value_text": "\u00a318,500",
+    "value_text": "£18,500",
     "show_value": true,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    [
     "Kitchen Installation",
@@ -1102,7 +1932,7 @@
     "client_display": "named",
     "client_text": "Mrs Patel",
     "client_named_ok": true,
-    "value_text": "\u00a318,500",
+    "value_text": "£18,500",
     "show_value": true,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
@@ -1110,6 +1940,20 @@
     "disciplines": [
      "Kitchen Installation",
      "Bathrooms"
+    ],
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
     ]
    }
   ],
@@ -1127,7 +1971,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    [],
    {
@@ -1143,7 +2001,21 @@
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
     "value_added": "The family stayed in the house.",
-    "disciplines": []
+    "disciplines": [],
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    }
   ]
  ],
@@ -1165,6 +2037,20 @@
     "value_added": "The family stayed in the house.",
     "disciplines": [
      "Kitchen Installation"
+    ],
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
     ]
    },
    null
@@ -1184,7 +2070,21 @@
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
     "value_added": "The family stayed in the house.",
-    "disciplines": []
+    "disciplines": [],
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    null
   ],
@@ -1210,6 +2110,20 @@
      "d",
      "e",
      "f"
+    ],
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
     ]
    },
    null
@@ -1237,6 +2151,20 @@
      "e",
      "f",
      "g"
+    ],
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
     ]
    },
    "disciplines"
@@ -1255,7 +2183,21 @@
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
-    "value_added": "The family stayed in the house."
+    "value_added": "The family stayed in the house.",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "disciplines"
   ],
@@ -1274,7 +2216,21 @@
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
     "value_added": "The family stayed in the house.",
-    "disciplines": "Kitchens"
+    "disciplines": "Kitchens",
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "disciplines"
   ],
@@ -1295,6 +2251,20 @@
     "value_added": "The family stayed in the house.",
     "disciplines": [
      7
+    ],
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
     ]
    },
    "disciplines"
@@ -1316,6 +2286,20 @@
     "value_added": "The family stayed in the house.",
     "disciplines": [
      ""
+    ],
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
     ]
    },
    "disciplines"
@@ -1337,6 +2321,20 @@
     "value_added": "The family stayed in the house.",
     "disciplines": [
      " Kitchens"
+    ],
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
     ]
    },
    "disciplines"
@@ -1358,6 +2356,20 @@
     "value_added": "The family stayed in the house.",
     "disciplines": [
      "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+    ],
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
     ]
    },
    "disciplines"
@@ -1379,6 +2391,20 @@
     "value_added": "The family stayed in the house.",
     "disciplines": [
      "Kitchen Installation"
+    ],
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
     ]
    },
    "client_text_hidden"
@@ -1393,13 +2419,27 @@
     "client_display": "hidden",
     "client_text": "",
     "client_named_ok": false,
-    "value_text": "\u00a318,500",
+    "value_text": "£18,500",
     "show_value": false,
     "duration_text": "3 weeks",
     "delivered": "We refitted the kitchen.\nMoved the wall.",
     "value_added": "The family stayed in the house.",
     "disciplines": [
      "Kitchen Installation"
+    ],
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
     ]
    },
    "value_text_hidden"
@@ -1421,6 +2461,20 @@
     "value_added": "The family stayed in the house.",
     "disciplines": [
      "Kitchen Installation"
+    ],
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
     ]
    },
    "client_not_confirmed"
@@ -1443,7 +2497,21 @@
     "disciplines": [
      "Kitchen Installation"
     ],
-    "assets": []
+    "assets": [],
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
+    ]
    },
    "keys"
   ],
@@ -1464,6 +2532,20 @@
     "value_added": "The family stayed in the house.",
     "disciplines": [
      "Kitchen Installation"
+    ],
+    "photos": [
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     },
+     {
+      "url": "",
+      "caption": ""
+     }
     ]
    },
    "title"
@@ -1496,13 +2578,13 @@
    null
   ],
   [
-   "\u00c9lan Joinery",
-   "\u00c9lan joinery",
+   "Élan Joinery",
+   "Élan joinery",
    null
   ],
   [
-   "\u00c9LAN JOINERY",
-   "\u00c9lan joinery",
+   "ÉLAN JOINERY",
+   "Élan joinery",
    null
   ],
   [
@@ -1526,8 +2608,8 @@
    "label"
   ],
   [
-   "\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1",
-   "\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1\ud83d\udec1",
+   "🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁",
+   "🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁🛁",
    null
   ],
   [
@@ -1541,8 +2623,8 @@
    "label"
   ],
   [
-   "Utilities \u2013 Water",
-   "utilities \u2013 water",
+   "Utilities – Water",
+   "utilities – water",
    null
   ]
  ]

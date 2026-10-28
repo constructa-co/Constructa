@@ -4,7 +4,7 @@ import { initialEditorState, editorReducer } from "./editor-state";
 import { GUIDED_KEYS, GUIDED_MESSAGES, GUIDED_QUESTIONS, answered, characters, dirtyQuestions, firstUnanswered, problemBeforeSave, questionAfter, questionBefore, questionForField, questionOf, summaryOf, unsavedNames } from "./guided";
 import type { StudyView } from "./service";
 
-const full: CaseStudyContent = { version: 1, title: "Kitchen refit", work_type: "Refurbishment", place: "Leeds", client_display: "named", client_text: "Mrs Example", client_named_ok: true, value_text: "£18,500", show_value: true, duration_text: "3 weeks", delivered: "We refitted it.\n\nThen tiled.", value_added: "More room." };
+const full: CaseStudyContent = { ...newDraft("Kitchen refit"), work_type: "Refurbishment", place: "Leeds", client_display: "named", client_text: "Mrs Example", client_named_ok: true, value_text: "£18,500", show_value: true, duration_text: "3 weeks", delivered: "We refitted it.\n\nThen tiled.", value_added: "More room." };
 const view = (content: CaseStudyContent, disciplineIds: string[] = []): StudyView => ({ id: "00000000-0000-4000-8000-000000000001", revision: 4, content, disciplineIds, approved: null, approvedRevision: null, archived: false, legacyIndex: null });
 const state = (content: CaseStudyContent, tags: string[] = []) => initialEditorState(view(content, tags), newDraft(""));
 
@@ -14,11 +14,12 @@ describe("what is asked", () => {
         expect(GUIDED_QUESTIONS.filter((question) => question.required).map((question) => question.key)).toEqual(["title"]);
     });
 
-    it("every draft field belongs to exactly one question, except the type of work, which no question touches", () => {
+    it("every draft field belongs to exactly one question, except the type of work and photos, which no question touches", () => {
         const owned = GUIDED_QUESTIONS.flatMap((question) => question.fields);
         expect(new Set(owned).size).toBe(owned.length);
-        expect([...owned].sort()).toEqual(Object.keys(full).filter((key) => key !== "version" && key !== "work_type").sort());
+        expect([...owned].sort()).toEqual(Object.keys(full).filter((key) => key !== "version" && key !== "work_type" && key !== "photos").sort());
         expect(owned).not.toContain("work_type");
+        expect(owned).not.toContain("photos");
         for (const question of GUIDED_QUESTIONS.filter((entry) => entry.field)) expect(question.fields).toEqual([question.field]);
     });
 

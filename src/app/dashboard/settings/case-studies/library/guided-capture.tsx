@@ -512,7 +512,7 @@ export default function GuidedCapture({ initial, disciplines: initialDisciplines
                     ) : (
                         <p className="text-base text-slate-100">It&apos;s saved as a draft. Clients can&apos;t see it, and no proposal uses it, until you check and approve it on the full form.</p>
                     )}
-                    <p className={hint}>This is your own wording, as you typed it. Pictures can&apos;t be added to new case studies yet.</p>
+                    <p className={hint}>This is your own wording, as you typed it. To add up to three photos, use the full form.</p>
                     {depthEntry}
                     <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-slate-700 pt-4">
                         {leaveControl("form", "Check and approve on the full form")}

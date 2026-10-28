@@ -34,7 +34,7 @@ describe("case study content: the application's rules, on the shared vectors", (
 
     it("covers every rule code the validator can return", () => {
         const seen = new Set([...vectors.content, ...vectors.approval, ...vectors.approved].map((entry) => entry[2]).filter(Boolean));
-        for (const code of ["not-object", "keys", "version", "title", "work_type", "place", "client_display", "client_text", "client_named_ok", "value_text", "show_value", "duration_text", "delivered", "value_added", "client_text_missing", "client_not_confirmed", "value_text_missing", "disciplines", "client_text_hidden", "value_text_hidden"]) {
+        for (const code of ["not-object", "keys", "version", "title", "work_type", "place", "client_display", "client_text", "client_named_ok", "value_text", "show_value", "duration_text", "delivered", "value_added", "photos", "client_text_missing", "client_not_confirmed", "value_text_missing", "disciplines", "client_text_hidden", "value_text_hidden"]) {
             expect(seen, code).toContain(code);
         }
     });
@@ -50,7 +50,7 @@ describe("case study content: defaults and tidying", () => {
 
     it("loose input is rebuilt from known fields only: nothing unknown is passed through", () => {
         const content = contentFromInput({ title: " Loft \r\n conversion ", delivered: "a\r\nb\rc", client_display: "everyone", client_named_ok: "yes", show_value: 1, photos: ["https://elsewhere.example/x.jpg"], approved: true, __proto__: { injected: true } });
-        expect(Object.keys(content).sort()).toEqual(["client_display", "client_named_ok", "client_text", "delivered", "duration_text", "place", "show_value", "title", "value_added", "value_text", "version", "work_type"]);
+        expect(Object.keys(content).sort()).toEqual(["client_display", "client_named_ok", "client_text", "delivered", "duration_text", "photos", "place", "show_value", "title", "value_added", "value_text", "version", "work_type"]);
         expect(content).toMatchObject({ title: "Loft   conversion", delivered: "a\nb\nc", client_display: "hidden", client_named_ok: false, show_value: false });
         expect(contentProblem(content)).toBeNull();
         expect(contentProblem(contentFromInput(null))).toBe("title");

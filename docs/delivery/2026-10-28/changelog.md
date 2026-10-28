@@ -1,3 +1,26 @@
+# A038 Case study photos and library AI - 28 October 2026
+
+- Branch `codex/a038-case-photos-20261028` from backup pin `00dcaa5470ceaaeacecb596dfe6eed82b99440a1`.
+- Library case-study content contract: three ordered photo slots (url + optional caption), shared vectors + SOURCE ONLY migration `20261028120000_case_library_photos.sql` (not applied).
+- Improved journey: full-form editor photo slots (injectable upload), optional AI Enhance on delivered/value_added with explicit accept/refuse; guided path links to full form for photos; resolver publishes safe photo urls from approved library rows.
+- Older `profiles.case_studies` path unchanged (three url slots, existing enhance/upload actions). Adoption from older records still does not copy pictures without explicit choice.
+- Tests: `photos.test.ts`, `case-study-photo-journey.test.ts`, contract vectors updated; A038 remains Partial until independent review and migration apply.
+
+## Cursor change log (A038)
+
+| File | Lines (approx) | Change | Intent |
+|------|----------------|--------|--------|
+| `src/lib/case-library/photos.ts` | new | Photo slot rules, url safety, proposal mapping | Single place for three-slot contract |
+| `src/lib/case-library/content.ts` | 35-190 | `photos` on CaseStudyContent | Align app rules with SQL migration |
+| `src/lib/case-library/service.ts` | 64-266 | Deep compare photos; CONTENT_KEYS | Fix approval/save with photo arrays |
+| `src/lib/case-library/resolve.ts` | 70-82 | Map approved photos to proposals | Close library→proposal reuse seam |
+| `src/lib/case-library/status.ts` | 39-40 | Track photo changes since approval | Honest approval-changed labelling |
+| `src/app/dashboard/settings/case-studies/library/case-study-editor.tsx` | imports, enhance, photos UI | Library journey photos + AI | A038 improved journey |
+| `src/app/dashboard/settings/case-studies/library/case-study-photo-slots.tsx` | new | Three-slot UI with captions | Reuse pattern from older editor |
+| `supabase/migrations/20261028120000_case_library_photos.sql` | new | SOURCE ONLY SQL | DB parity when applied |
+| `src/lib/case-library/__fixtures__/contract-vectors.json` | bulk | `photos` on all drafts | TS/SQL vector parity |
+| Tests under `case-studies/` and `case-library/` | various | Seams, guided exclusion, FULL draft | Offline synthetic proof |
+
 # DAY28 First Green Integration - 28 October 2026
 
 - Integrate accepted product pins only: A001 core editing palette (`5aa12e6`),

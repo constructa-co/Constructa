@@ -1,3 +1,19 @@
+## DAY28 A055 brief page fixture repair - 28 October 2026
+
+- Branch `codex/a055-brief-page-fixtures-20261028` from
+  `a7038f0c288781bd7ea445326562da09f3399086` (preserves all 13-file A055 brief
+  request-path work on parent branch).
+- **Root cause (tests only):** Brief workflow page uses `DashboardRouteShell`;
+  `brief/page.test.ts` and `brief-edit-lock.test.tsx` still read
+  `page.props.children[1]` from the pre-shell fragment layout → editor
+  `undefined` (12 failures on base a703).
+- **Fix:** `dashboardRouteShellBody(page)` via existing
+  `src/lib/__fixtures__/dashboard-route-shell-page.ts` in `editor()` /
+  `editorFor()` only. All lockReason, project identity, prefill and ProjectEntry
+  assertions unchanged.
+- **Verification:** 12/12 GREEN on targeted runs (2 page + 10 lock cases); eslint
+  0 errors on touched tests; tsc clean for changed paths. No product edits.
+
 # DAY28 First Green Integration - 28 October 2026
 
 - Integrate accepted product pins only: A001 core editing palette (`5aa12e6`),

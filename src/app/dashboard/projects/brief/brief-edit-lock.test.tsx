@@ -49,6 +49,7 @@ vi.mock("@/lib/theme-context", () => ({ useTheme: () => ({ theme: "light" }) }))
 vi.mock("@/lib/supabase/server", () => ({ createClient: current.createClient }));
 vi.mock("@/components/project-navbar", () => ({ default: () => null }));
 vi.mock("./actions", () => ({ saveBriefAction: vi.fn(), suggestBriefAction: vi.fn() }));
+import { dashboardRouteShellBody } from "@/lib/__fixtures__/dashboard-route-shell-page";
 import BriefClient from "./brief-client";
 import BriefPage from "./page";
 
@@ -112,7 +113,7 @@ describe("Brief page passes the existing pre-contract lock", () => {
             }) }) }),
         });
         const page = await BriefPage({ searchParams: Promise.resolve({ projectId: "p" }) });
-        return page.props.children[1];
+        return dashboardRouteShellBody(page);
     }
     it.each(LOCKED_PROJECTS)("%s: hands BriefClient the same reason the server uses", async (_label, row) => {
         const editor = await editorFor(row as Record<string, unknown>);

@@ -133,6 +133,14 @@
   exact-hunk recheck before ROOT; SQL SOURCE ONLY / NOT APPLIED. Counts **73C / 25P / 19N / 1B**
   unchanged. Receipt `checkpoint1900-a069-ci-integrated-source-backup-20261028.json`.
 
+## CHECKPOINT1905 A069 Final Source — 28 October 2026
+
+- Parent **`aa9a18e`**: Claude **`1cc9d39`** exact three paths (migration +
+  `new-job-closing.test.ts` + `blank-project.ts` doc). **19/19** ROOT static contract;
+  eslint/tsc on changed files clean. SQL **SOURCE ONLY / NOT APPLIED**; **A069 Partial**.
+  Counts **73C / 25P / 19N / 1B** unchanged. Receipt
+  `checkpoint1905-a069-final-integrated-source-backup-20261028.json`.
+
 ## Earlier Changelog Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

@@ -164,3 +164,11 @@ profile-setup-navigation presentation case still fails — not part of this gree
 **A069** Claude closing prefill (**`1cc9d39`**) **not** integrated — UTF-16 repair awaits
 independent exact-hunk acceptance; SQL SOURCE ONLY. All **118** statuses unchanged;
 **73C 25P 19N 1B**. Receipt `checkpoint1900-a069-ci-integrated-source-backup-20261028.json`.
+
+## CHECKPOINT1905 A069 final source — 28 October 2026
+
+**Parent `aa9a18e`:** Claude **`1cc9d39`** three-path new-job closing prefill SOURCE on
+`create_phase1_project_graph` (owner `md_message` after idempotent return; UTF-16 guard).
+**19/19** focused contract tests; SQL **not applied**; runtime unchanged. **A069 Partial**;
+counts **73C 25P 19N 1B**. Receipt
+`checkpoint1905-a069-final-integrated-source-backup-20261028.json`.

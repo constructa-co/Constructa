@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-10-28 — CHECKPOINT1905 A069 final source (Claude 1cc9d39, Composer integration)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `supabase/migrations/20261028183000_new_job_closing_prefill.sql` | Additive CREATE OR REPLACE + UTF-16 ELSIF | New-job closing seed from owner md_message; SOURCE ONLY |
+| `src/lib/new-job-closing.test.ts` | 19 static contract/reference cases | Pin migration + editor boundaries without DB execution |
+| `src/lib/blank-project.ts` | Doc comment | Names DB-side closing exception; payload unchanged |
+
 ## 2026-10-28 — CHECKPOINT1900 profile CI fixture (Composer 2.5)
 
 | File | Change | Intent |

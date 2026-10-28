@@ -45,11 +45,11 @@ describe("company setup navigation", () => {
         expect(css).toMatch(/@media\s*\(max-width:\s*800px\)\s*\{\s*\.sectionLayout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
     });
 
-    it("names Work Winning as the next journey without making a save or route automatic", () => {
+    it("names Pipeline or New Project as the next step with Jobs/Work Winning menu copy without making a save or route automatic", () => {
         const html = renderToStaticMarkup(createElement(CompanyProfilePresentation, null, "Existing profile form"));
-        expect(html).toContain("Next: Work Winning");
+        expect(html).toContain("Next: Pipeline or New Project");
         expect(html).toContain("Save your profile changes before leaving");
-        expect(html).toContain("Pipeline or New Project from Work Winning in the main navigation");
+        expect(html).toContain("Open them from the main menu (Jobs on phone, Work Winning on desktop).");
         expect(html).toContain("Existing profile form");
         expect(html).not.toContain("href=\"/dashboard/projects/new\"");
     });

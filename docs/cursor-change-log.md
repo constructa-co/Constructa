@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-10-28 — CHECKPOINT1900 profile CI fixture (Composer 2.5)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `profile-setup-navigation.test.tsx` | 3 literal title/expect strings | Match approved presentation copy (`c264f28`); CI only, no product edits |
+| Delivery docs + compact register timestamp | Log CI green; A069 deferred | Honest scope boundary |
+
 ## 2026-10-28 — CHECKPOINT1800 A031 literal discovery (Claude 72122a6)
 
 | File | Change | Intent |

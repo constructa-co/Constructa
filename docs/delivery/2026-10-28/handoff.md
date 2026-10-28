@@ -156,3 +156,11 @@ Receipt `checkpoint1710-sw-privacy-integrated-source-backup-20261028.json`.
 **73C 25P 19N 1B**. Independent **run-92bb** no P1; two P2 mount notes retained. Receipt
 `checkpoint1800-a031-integrated-source-backup-20261028.json`. Separate baseline: one
 profile-setup-navigation presentation case still fails — not part of this green block.
+
+## CHECKPOINT1900 CI fixture — 28 October 2026
+
+**Parent `25fc273`:** **`c264f28`** exact three-literal test repair in
+`profile-setup-navigation.test.tsx` only. **1** case GREEN at ROOT; product source unchanged.
+**A069** Claude closing prefill (**`1cc9d39`**) **not** integrated — UTF-16 repair awaits
+independent exact-hunk acceptance; SQL SOURCE ONLY. All **118** statuses unchanged;
+**73C 25P 19N 1B**. Receipt `checkpoint1900-a069-ci-integrated-source-backup-20261028.json`.

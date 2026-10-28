@@ -124,6 +124,15 @@
   `checkpoint1800-a031-integrated-source-backup-20261028.json`. Baseline
   profile-setup-navigation presentation mismatch (1/126) noted, not rerun.
 
+## CHECKPOINT1900 CI Green Integration - 28 October 2026
+
+- Parent **`25fc273`**: exact fixture hunk **`c264f28`** — three literal replacements in
+  `profile-setup-navigation.test.tsx` only (title + two expectations). Product unchanged.
+  **1/1** focused case PASS; **2** other file cases NOT_SELECTED; direct lint/tsc clean.
+- **A069 not ported:** Claude **`1cc9d39`** UTF-16 repair on own branch pending independent
+  exact-hunk recheck before ROOT; SQL SOURCE ONLY / NOT APPLIED. Counts **73C / 25P / 19N / 1B**
+  unchanged. Receipt `checkpoint1900-a069-ci-integrated-source-backup-20261028.json`.
+
 ## Earlier Changelog Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

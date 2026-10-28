@@ -148,3 +148,11 @@ twelve CI fixture repairs + Composer **`20bb160`** manifest duplicate-ref SHA co
 **`constructa-v1`** on activate; offline copy honest. Independent review **run-c187f01f** — no P1.
 **NOT** deployed live SW/cache cleanup. **A091 Partial**, **A093 Blocked**, counts unchanged.
 Receipt `checkpoint1710-sw-privacy-integrated-source-backup-20261028.json`.
+
+## CHECKPOINT1800 A031 + original closures — 28 October 2026
+
+**Parent `7251c51`:** Claude **`72122a6`** literal trade discovery (4 files). Register original-scope
+**Complete** for **A031** (new source), **A005** and **A098** (accepted prior proof per 1755 disposition).
+**73C 25P 19N 1B**. Independent **run-92bb** no P1; two P2 mount notes retained. Receipt
+`checkpoint1800-a031-integrated-source-backup-20261028.json`. Separate baseline: one
+profile-setup-navigation presentation case still fails — not part of this green block.

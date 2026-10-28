@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-10-28 — CHECKPOINT1800 A031 literal discovery (Claude 72122a6)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `src/lib/trade-literal-match.ts` | New whole-label matcher | Literal business_type relevance without synonyms/AI |
+| `src/app/dashboard/settings/profile/profile-form.tsx` | Discovery UI + custom label toggles | Visible reorder, no auto-select, deliberate remove/restore |
+| `*.test.ts(x)` | 29 cases | Matcher + real ProfileForm harness |
+
 ## 2026-10-28 — CHECKPOINT1710 SW privacy (Claude 9be3182, Cursor integration)
 
 | File | Change | Intent |

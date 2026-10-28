@@ -115,6 +115,15 @@
   Blocked** unchanged. ROOT **11/11** vitest; **1971** readbacks. Receipt
   `checkpoint1710-sw-privacy-integrated-source-backup-20261028.json`.
 
+## CHECKPOINT1800 A031 literal discovery + original closures — 28 October 2026
+
+- Parent **`7251c51`**: Claude **`72122a6`** four paths (literal trade match + profile
+  discovery UI). Original-scope register **Complete** for **A031**, **A005**, **A098**
+  (evidence-only for A005/A098 per rob1719/1755 disposition). **29/29** focused vitest;
+  **1974** readbacks. Counts **73C / 25P / 19N / 1B**. Receipt
+  `checkpoint1800-a031-integrated-source-backup-20261028.json`. Baseline
+  profile-setup-navigation presentation mismatch (1/126) noted, not rerun.
+
 ## Earlier Changelog Retained
 
 # Programme Navigation Follow-Through - 28 October 2026

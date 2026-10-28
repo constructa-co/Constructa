@@ -10,6 +10,7 @@ import { CASE_STUDIES_PATH, SETUP_LIMITS } from "@/lib/first-session";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { attemptProfileSave, profileFormSignature, PROFILE_LEAVE_WARNING, PROFILE_SAVE_UNCONFIRMED } from "./profile-form-state";
 import { Upload, Loader2, Sparkles } from "lucide-react";
+import { literalNameMatches } from "@/lib/trade-literal-match";
 import ui from "@/components/company-profile.module.css";
 
 interface Profile {
@@ -145,6 +146,12 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
     const [capabilityStatement, setCapabilityStatement] = useState(profile?.capability_statement || '');
     const [rewritingCapability, setRewritingCapability] = useState(false);
     const [preferredTrades, setPreferredTrades] = useState<string[]>(profile?.preferred_trades || []);
+    // A031: the work description as typed, used only to show matching names
+    // first. The field itself stays as it was and is saved as before.
+    const [workDescription, setWorkDescription] = useState(profile?.business_type || "");
+    // Stored labels outside the list, exactly as saved. Kept on screen after a
+    // deliberate removal so it can be put back in this visit.
+    const [ownLabels] = useState<string[]>(() => [...new Set((profile?.preferred_trades || []).filter(trade => !ALL_TRADES.includes(trade)))]);
     const [mdMessage, setMdMessage] = useState(profile?.md_message || '');
     const [rewritingMdMessage, setRewritingMdMessage] = useState(false);
 
@@ -291,6 +298,33 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
 
     const statusMessage = saving ? "Saving the submitted profile..." : saveNotice || (saveError ? "Profile save not confirmed. Your current edits remain on this page." : dirty ? "Unsaved changes. Save before leaving this profile." : "No unsaved changes on this page.");
 
+    // A031: the existing toggle, shared by every group. Viewing a group never
+    // changes anything; only a deliberate click adds or removes an exact label.
+    const matchedTrades = literalNameMatches(ALL_TRADES, workDescription);
+    const customLabels = [...new Set([...ownLabels, ...preferredTrades.filter(trade => !ALL_TRADES.includes(trade))])];
+    const tradeButton = (trade: string) => {
+        const isSelected = preferredTrades.includes(trade);
+        return (
+            <button
+                key={trade}
+                type="button"
+                aria-pressed={isSelected}
+                onClick={() => {
+                    const next = isSelected ? preferredTrades.filter(t => t !== trade) : [...preferredTrades, trade];
+                    setPreferredTrades(next);
+                    trackChanges({ preferred_trades: JSON.stringify(next) });
+                }}
+                className={`text-xs px-2 py-1.5 rounded-md border text-left transition-colors ${
+                    isSelected
+                        ? 'bg-white text-slate-900 border-white font-medium'
+                        : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500'
+                }`}
+            >
+                {trade}
+            </button>
+        );
+    };
+
     return (
         <form onSubmit={handleSubmit} onChange={() => trackChanges()} className={ui.form} aria-busy={saving}
             data-pdf-theme={pdfTheme} data-preferred-trades={JSON.stringify(preferredTrades)}
@@ -356,6 +390,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                             id="profile-business-type"
                             name="business_type"
                             defaultValue={profile?.business_type || ""}
+                            onChange={event => setWorkDescription(event.target.value)}
                             maxLength={SETUP_LIMITS.businessType}
                             placeholder="e.g. Kitchen and bathroom fitting, tiling and small extensions"
                             className="w-full h-11 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
@@ -503,30 +538,19 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                     <details data-profile-trade-preferences>
                         <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium text-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">Optional trade preferences ({preferredTrades.length} selected)</summary>
                         <p className="text-xs text-slate-500 mb-3">Choose only the trades you want shown first in the estimating tool. All other trades remain available.</p>
-                        <div className={ui.trades}>
-                        {ALL_TRADES.map(trade => {
-                            const isSelected = preferredTrades.includes(trade);
-                            return (
-                                <button
-                                    key={trade}
-                                    type="button"
-                                    aria-pressed={isSelected}
-                                    onClick={() => {
-                                        const next = isSelected ? preferredTrades.filter(t => t !== trade) : [...preferredTrades, trade];
-                                        setPreferredTrades(next);
-                                        trackChanges({ preferred_trades: JSON.stringify(next) });
-                                    }}
-                                    className={`text-xs px-2 py-1.5 rounded-md border text-left transition-colors ${
-                                        isSelected
-                                            ? 'bg-white text-slate-900 border-white font-medium'
-                                            : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500'
-                                    }`}
-                                >
-                                    {trade}
-                                </button>
-                            );
-                        })}
-                        </div>
+                        {customLabels.length > 0 && (
+                            <div data-profile-trade-custom className="mb-3">
+                                <p className="text-xs text-slate-500 mb-2">Your own labels, exactly as saved. Select one to remove it, or to put it back.</p>
+                                <div className={ui.trades}>{customLabels.map(tradeButton)}</div>
+                            </div>
+                        )}
+                        {matchedTrades.length > 0 && (
+                            <div data-profile-trade-matches className="mb-3">
+                                <p className="text-xs text-slate-400 mb-2">Matches words you wrote under &ldquo;What kind of work your business does&rdquo;, so shown first. Nothing is chosen for you.</p>
+                                <div className={ui.trades}>{matchedTrades.map(tradeButton)}</div>
+                            </div>
+                        )}
+                        <div className={ui.trades}>{ALL_TRADES.filter(trade => !matchedTrades.includes(trade)).map(tradeButton)}</div>
                     </details>
                 </div>
 

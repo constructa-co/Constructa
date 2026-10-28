@@ -32,7 +32,7 @@
       "id": "A005",
       "phase": "P1-Jan2027",
       "requested": "Use desktop width properly and reduce empty top/right space; keep balanced, symmetrical layouts.",
-      "status": "Partial"
+      "status": "Complete"
     },
     {
       "id": "A006",
@@ -195,7 +195,7 @@
       "id": "A031",
       "phase": "P1-Jan2027",
       "requested": "Make visible trade discovery relevant to the contractor's earlier work description.",
-      "status": "Partial"
+      "status": "Complete"
     },
     {
       "id": "A032",
@@ -621,7 +621,7 @@
       "id": "A098",
       "phase": "P1-Jan2027",
       "requested": "Scope consent/privacy controls and exclude confidential contractor pages/data from behavioural tracking.",
-      "status": "Partial"
+      "status": "Complete"
     },
     {
       "id": "A099",

@@ -487,8 +487,8 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     {[
                         { label: "Lead", hint: "New enquiry, no estimate started" },
                         { label: "Estimating", hint: "Auto: when first estimate is created" },
-                        { label: "Proposal Sent", hint: "Auto: when proposal is sent to client" },
-                        { label: "Active", hint: "Mark as Won button, or drag here" },
+                        { label: "Proposal Sent", hint: "Operational stage only — sending the proposal document is in the proposal editor" },
+                        { label: "Active", hint: "Operational — work on site. Mark as Won records your win; it does not send or publish the proposal" },
                         { label: "Completed", hint: "Manual — project finished" },
                         { label: "Lost", hint: "Manual — project not won" },
                     ].map((stage, i, arr) => (

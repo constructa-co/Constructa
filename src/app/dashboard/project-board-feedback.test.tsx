@@ -35,7 +35,7 @@ function text(value: unknown): string {
     if (typeof value === "string" || typeof value === "number") return String(value);
     return value && typeof value === "object" && "props" in value ? text((value as Element).props.children) : "";
 }
-const project = { id: "job", name: "QA Example", status: "Lead", created_at: null, potential_value: 0, client_name: "Test", proposal_status: null as string | null, proposal_accepted_at: null as string | null };
+const project = { id: "job", name: "QA Example", status: "Lead", created_at: null, potential_value: 0, client_name: "Test", proposal_status: null as string | null, proposal_accepted_at: null as string | null, proposal_sent_at: null as string | null };
 let projects: typeof project[];
 function view() { current.cursor = 0; return ProjectBoard({ projects, financials: {} }); }
 function column(stage: string) { return nodes(view()).find(e => e.type === "div" && e.key === stage)!; }
@@ -169,15 +169,22 @@ describe("card stage Select onValueChange (A017 selector)", () => {
 });
 
 describe("pipeline card stage labels (A017)", () => {
-    it("labels the card stage selector as an immediate save, distinct from view-only filters", () => {
-        expect(text(view())).toMatch(/Change stage/i);
-        expect(text(view())).toMatch(/Saves immediately when you pick a stage/i);
+    it("labels the card stage selector as operational tracking, distinct from publication send", () => {
+        expect(text(view())).toMatch(/operational stage/i);
+        expect(text(view())).toMatch(/does not send, publish, or accept/i);
+        expect(text(view())).not.toMatch(/Saves immediately when you pick a stage/i);
         expect(nodes(view()).some(e => e.props["data-board-stage-control"] !== undefined)).toBe(true);
+    });
+
+    it("shows platform send timestamp when saved on the project, separate from stage", () => {
+        projects = [{ ...project, status: "Proposal Sent", proposal_sent_at: "2026-10-15T12:00:00.000Z" }];
+        expect(text(view())).toMatch(/Platform send recorded/i);
+        expect(text(view())).toMatch(/15 Oct 2026|Oct 2026|15\/10\/2026/);
     });
 
     it("names the estimating advance control as an action, not a bare status label", async () => {
         projects = [{ ...project, status: "Estimating" }];
-        const advance = nodes(view()).find(e => e.type === "button" && text(e.props.children).includes("Mark proposal sent"));
+        const advance = nodes(view()).find(e => e.type === "button" && text(e.props.children).includes("Proposal sent stage"));
         expect(advance).toBeDefined();
         expect(nodes(view()).some(e => e.type === "button" && text(e.props.children).trim() === "Proposal Sent")).toBe(false);
         (advance!.props.onClick as () => void)();

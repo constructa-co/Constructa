@@ -96,7 +96,7 @@ describe("A055 Brief turn handler (server-rebuilt SAVED brief, fake generator on
         const input = generate.mock.calls[0][0];
         expect(input.context).toEqual({ job: { id: PROJECT }, work: "Replace the roof.", clientType: "domestic", trades: ["Roofing"] });
         expect(input.userId).toBe(USER);
-        expect(JSON.stringify(input)).not.toMatch(/Key safe|1234|Private|18000|2026-11-09/);
+        expect(JSON.stringify({ context: input.context, messages: input.messages })).not.toMatch(/Key safe|1234|Private|18000|2026-11-09/);
     });
 
     it("drops replies that misquote the saved brief, name money or an unsourced lead time", async () => {

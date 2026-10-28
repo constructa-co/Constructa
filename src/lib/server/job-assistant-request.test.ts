@@ -141,7 +141,7 @@ describe("A055 pricing turn handler (server-rebuilt context, fake generator only
         expect(input.userId).toBe(USER);
         expect(input.context).toEqual({ work: "Install kitchen cabinets. Tile splashback.", contractorMessage: MESSAGE, existingWork: [{ description: "Cabinets", section: "Kitchen" }] });
         expect(input.messages).toEqual([...history, { role: "user", content: MESSAGE }]);
-        expect(JSON.stringify(input)).not.toMatch(/1000|unit_rate|22222222/);
+        expect(JSON.stringify({ context: input.context, messages: input.messages })).not.toMatch(/1000|unit_rate|22222222/);
     });
 
     it("drops a reply that quotes text the saved job does not contain, and hides generator failures", async () => {

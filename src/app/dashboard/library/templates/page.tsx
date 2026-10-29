@@ -13,17 +13,20 @@ type TemplateRow = {
 export default async function TemplatesPage() {
     const supabase = await createClient();
     let templates: TemplateRow[] | null = null;
-    let listLoadError: string | null = null;
+    let listLoadFailed = false;
+    let listLoadDetail: string | null = null;
 
     try {
         const { data, error } = await supabase.from("templates").select("*").order("created_at", { ascending: false });
         if (error) {
-            listLoadError = error.message ?? "Unknown error";
+            listLoadFailed = true;
+            listLoadDetail = error.message || "Unknown error";
         } else {
             templates = (data ?? []) as TemplateRow[];
         }
     } catch (error) {
-        listLoadError = error instanceof Error ? error.message : "Unknown error";
+        listLoadFailed = true;
+        listLoadDetail = error instanceof Error ? (error.message || "Unknown error") : "Unknown error";
     }
 
     return (
@@ -45,14 +48,14 @@ export default async function TemplatesPage() {
                     <CreateKitForm />
                 </Card>
 
-                {listLoadError ? (
+                {listLoadFailed ? (
                     <Card className="md:col-span-1 lg:col-span-2 border-red-200 bg-red-50/40 flex flex-col justify-center p-8 min-h-[240px]">
                         <CardHeader className="p-0">
                             <CardTitle className="text-lg text-slate-900">Saved kits unavailable</CardTitle>
                             <CardDescription className="text-sm text-slate-700 leading-relaxed mt-2">
                                 <span role="alert">
                                     Could not load your saved kits. Refresh this page to check whether kits were saved before you try again.
-                                    {listLoadError ? ` (${listLoadError})` : null}
+                                    {listLoadDetail ? ` (${listLoadDetail})` : null}
                                 </span>
                             </CardDescription>
                         </CardHeader>

@@ -83,12 +83,34 @@ describe("TemplatesPage kit list read outcomes (ROB1736)", () => {
         expect(markup).toMatch(/data-create-kit-form="stub"/);
     });
 
+    it("shows unavailable when the query returns an error with an empty message and partial data (ROB1800)", async () => {
+        mocks.listQuery.mockResolvedValueOnce({
+            data: [{ id: "hidden-2", name: "Empty Msg Partial", description: "partial" }],
+            error: { message: "" },
+        });
+        const markup = await renderListPage();
+        expect(markup).toMatch(/role="alert"/);
+        expect(markup).toMatch(/could not load your saved kits/i);
+        expect(markup).not.toMatch(/Empty Msg Partial/);
+        expect(markup).not.toMatch(/\.\/templates\/hidden-2/);
+        expect(markup).toMatch(/data-create-kit-form="stub"/);
+    });
+
     it("shows unavailable when the templates query throws", async () => {
         mocks.listQuery.mockRejectedValueOnce(new Error("query transport failed"));
         const markup = await renderListPage();
         expect(markup).toMatch(/role="alert"/);
         expect(markup).toMatch(/could not load your saved kits/i);
         expect(markup).toMatch(/query transport failed/);
+        expect(markup).not.toMatch(/Edit Recipe/);
+        expect(markup).toMatch(/data-create-kit-form="stub"/);
+    });
+
+    it("shows unavailable when the templates query throws an error with an empty message (ROB1800)", async () => {
+        mocks.listQuery.mockRejectedValueOnce(new Error(""));
+        const markup = await renderListPage();
+        expect(markup).toMatch(/role="alert"/);
+        expect(markup).toMatch(/could not load your saved kits/i);
         expect(markup).not.toMatch(/Edit Recipe/);
         expect(markup).toMatch(/data-create-kit-form="stub"/);
     });

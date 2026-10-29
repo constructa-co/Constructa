@@ -236,3 +236,7 @@
 ## ROB1548 kit Remove — 29 October 2026
 
 - Parent **cbdb6bf**: **eb5df31** (4 paths). ROOT **9/9**. QA three-file apply-once metadata; SQL **not** reapplied. Receipt **`rob1548-integrated-source-backup-20261029.json`**.
+
+## ROB1818 Cost Library + Kits read reliability - 29 October 2026
+
+- Parent **c42453d**: **b3e005d** catalog read (2 paths) + **d3d29378** kit list read (2 paths). ROOT **24/24** (11 + 7 + retained Create 6). Source/mock only, no hosted or runtime proof. **A085 Partial**. Receipt **`rob1818-integrated-source-backup-20261029.json`**.

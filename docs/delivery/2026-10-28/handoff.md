@@ -312,3 +312,11 @@ policy approved in register metadata only; **73709** not on ROOT. Receipt
 **QA (real, not source-only):** three named SQL files **already applied once** on **umqtzfsnyoofmgfbnrgv** (v1 → v2 → closing); structural readback PASS — see `qa-calendar-closing-applied-progress-20261029.json`, `qa-calendar-closing-structural-acceptance-20261029.json`, `qa-preview-060-actual-guard-and-compiled-target-readback-20261029.json`. **NOT reapplied** this integration. Owner Save-Reopen / new-job / profile journeys **NOT RUN** — `/dashboard` login blocked, no verified disposable QA session.
 
 **AI:** cost line published; **no Rob yes** yet; ledger/provider/settings **OFF**. Receipt **`rob1548-integrated-source-backup-20261029.json`**.
+
+## ROB1818 Cost Library + Kits read reliability - 29 October 2026
+
+**Parent `c42453d`:** Claude **b3e005d** catalog read (2 paths; review **rob1756** run **e8d103eb** SCOPED_NNF) + Composer **d3d29378** kit list read (2 paths; Grok first review required empty `error.message` finding, closed by **rob1818** run **6790ad57** SCOPED_NNF). ROOT **24/24** mock tests (catalog **11** + kit list **7** + retained Create **6**). **A085 Partial**, metadata only; zero status changes.
+
+**What changed (source):** the Cost Library page no longer swallows an organisation lookup failure or ignores category/item/custom-rate read errors. Those cases, including partial data with an error and thrown reads, now show an honest "couldn't be loaded" state instead of an empty catalog or market benchmarks shown as if there were no custom rate; Next control flow is rethrown. The kit list shows an accessible unavailable message on a read error or throw (including an empty error message), with Create still available and no partial cards. Normal reads, zero custom rates, empty lists and links are unchanged.
+
+**Limits:** mock/source only - no real database, browser, hosted or owner proof. A user with no organisation membership now sees the unavailable state; no new default membership policy. Broader A085 scope remains open. SQL **not** reapplied; AI line still awaits Rob's yes; ledger/provider/settings **OFF**. Receipt **`rob1818-integrated-source-backup-20261029.json`**.

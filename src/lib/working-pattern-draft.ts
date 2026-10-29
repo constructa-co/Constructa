@@ -29,7 +29,7 @@ export function createWorkingPatternV2Draft(weekdays: number[]): JobWorkingPatte
         version: 2,
         timezone: "",
         weekdays: [...weekdays],
-        intervals: [{ weekday: weekdays[0] ?? 1, startMinute: 0, endMinute: 1 }],
+        intervals: [{ weekday: weekdays[0] ?? 1, startMinute: 0, endMinute: 0 }],
         standardMinutesPerDay: 0,
         productivityPct: 0,
     };

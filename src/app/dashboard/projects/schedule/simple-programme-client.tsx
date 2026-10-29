@@ -635,7 +635,7 @@ function ProgrammeEditor({
                                     {local.intervals.length < 21 && (
                                         <button type="button" disabled={saving} className={s.secondaryButton}
                                             onClick={() => patchLocal({ intervals: [...local.intervals, {
-                                                weekday: local.weekdays[0] ?? 1, startMinute: 0, endMinute: 1,
+                                                weekday: local.weekdays[0] ?? 1, startMinute: 0, endMinute: 0,
                                             }] })}>
                                             Add interval
                                         </button>

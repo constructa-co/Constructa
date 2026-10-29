@@ -73,7 +73,9 @@ describe("ROB0905 same-build fixes (4a050cd regressions)", () => {
     });
 
     it("finding6: strict SQL source requires weekday bounds and interval keys", () => {
-        const sql = readFileSync(join(process.cwd(), "supabase/migrations/20261029120000_project_working_pattern_v2_strict.sql"), "utf8");
+        const sql = readFileSync(join(process.cwd(), "supabase/migrations/20261029103000_project_working_pattern_v2.sql"), "utf8");
+        expect(sql).toContain("COALESCE(");
+        expect(sql).toContain("NOT (value ? 'version')");
         expect(sql).toContain("NOT BETWEEN 0 AND 6");
         expect(sql).toContain("raw - 'weekday' - 'startMinute' - 'endMinute' <> '{}'::jsonb");
         expect(sql).toContain("(raw ->> 'startMinute')::int = (raw ->> 'endMinute')::int");

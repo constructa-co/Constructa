@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isDeepStrictEqual } from "node:util";
 import { isDefaultJobWorkingPattern, resolveJobWorkingPattern } from "@/lib/job-working-pattern";
+import { workingPatternsEquivalent } from "@/lib/working-pattern-canonical";
 import { readProgrammeInclusion, withProgrammeInclusion } from "@/lib/programme-inclusion";
 import { planCoversEveryPhase } from "@/lib/programme-plan";
 import { computeDisplayProgramme } from "@/lib/relative-programme";
@@ -40,9 +41,7 @@ export async function writeProgrammeStorage(
         const storedPattern = resolveJobWorkingPattern(project.programme_working_pattern);
         if (!storedPattern) throw new Error(CALENDAR_CHANGED);
         if (change.expectedWorkingPattern !== undefined) {
-            const expected = resolveJobWorkingPattern(change.expectedWorkingPattern);
-            if (!expected || expected.weekdays.length !== storedPattern.weekdays.length
-                || !expected.weekdays.every(day => storedPattern.weekdays.includes(day))) throw new Error(CALENDAR_CHANGED);
+            if (!workingPatternsEquivalent(change.expectedWorkingPattern, storedPattern)) throw new Error(CALENDAR_CHANGED);
             // Validate the incoming activities, not their omission metadata or the old plan.
             if (change.phases.length > 200 || !planCoversEveryPhase(
                 computeDisplayProgramme(change.startDate ?? project.start_date, change.phases, storedPattern), change.phases,

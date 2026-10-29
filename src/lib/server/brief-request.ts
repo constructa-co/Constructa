@@ -12,7 +12,7 @@ import { PLANNING_FAILED } from "@/lib/planning-conversation";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-access";
 import type { ServerBriefGenerator } from "./job-assistant-transport";
-import type { AttemptOutcome } from "./job-assistant-generation";
+import { resolveGenerator, type AttemptOutcome, type GeneratorSource } from "./job-assistant-generation";
 
 const CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/;
 // An earlier assistant turn as the page carries it: the reply (up to 1500
@@ -48,12 +48,14 @@ const stale = (): Refusal => ({ status: "stale", message: BRIEF_SERVER_CHANGED }
  * generator (none is approved, so "off"), the Brief reply checks against the
  * server's context, and a second freshness check. Nothing is written.
  */
-export async function handleBriefTurn(input: unknown, generate?: ServerBriefGenerator): Promise<BriefTurnResult> {
+export async function handleBriefTurn(input: unknown, source?: GeneratorSource<ServerBriefGenerator>): Promise<BriefTurnResult> {
     const parsed = TurnSchema.safeParse(input);
     if (!parsed.success) return invalid();
     const request = parsed.data;
     const verified = await verifyBriefRequest(request.projectId, request.expectedRevision);
     if (!verified.ok) return verified.result;
+    // Prepared only now, for a verified owner: the activation point's checks run before anything is reserved or sent.
+    const generate = await resolveGenerator(source);
     if (!generate) return { status: "off", message: BRIEF_OFF };
     const messages = [...request.history, { role: "user" as const, content: request.message }];
     // The attempt identifier is the server's; every outcome below is recorded against it.

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ createClient: vi.fn() }));
 vi.mock("server-only", () => ({}));
@@ -9,9 +9,10 @@ vi.mock("@/lib/supabase/server", () => mocks);
 
 import { handlePricingTurn } from "./pricing-request";
 import { handlePlanningTurn } from "./planning-request";
-import { approvedBriefGenerator, approvedPlanningGenerator, approvedPricingGenerator, jobAssistantAvailability, type ServerPlanningGenerator, type ServerPricingGenerator } from "./job-assistant-transport";
+import { approvedBriefGenerator, approvedPlanningGenerator, approvedPricingGenerator, jobAssistantAvailable, type JobAssistantActivation, type ServerPlanningGenerator, type ServerPricingGenerator } from "./job-assistant-transport";
 import { costPence, createJobAssistantGenerator, type JobAssistantTransport, type TransportRequest, type UsageLedger } from "./job-assistant-generation";
-import { createOpenAIJobAssistantTransport, type ChatClient } from "./openai-job-assistant-transport";
+import { createOpenAIJobAssistantTransport, openAIJobAssistantProvider, type ChatClient } from "./openai-job-assistant-transport";
+import { aiEmergencyStop } from "@/lib/ai-budget";
 import { createRpcUsageLedger } from "./job-assistant-ledger";
 import { PLANNING_SYSTEM_PROMPT, PRICING_SYSTEM_PROMPT } from "./job-assistant-prompts";
 import { pricingAssistantTurnAction } from "@/app/dashboard/projects/costs/assistant-actions";
@@ -82,17 +83,19 @@ const planningReply = { message: "Order worktops before Cabinets starts.", quest
 beforeEach(() => { vi.clearAllMocks(); mocks.createClient.mockReset(); });
 
 describe("A055 server activation point", () => {
-    it("has no approved generator, so both pages are told the assistant is off", () => {
-        expect(approvedPricingGenerator()).toBeNull();
-        expect(approvedPlanningGenerator()).toBeNull();
-        expect(jobAssistantAvailability()).toEqual({ pricing: false, planning: false, brief: false });
+    it("has no approved generator, so both pages are told the assistant is off", async () => {
+        expect(await approvedPricingGenerator()).toBeNull();
+        expect(await approvedPlanningGenerator()).toBeNull();
+        expect([await jobAssistantAvailable("pricing"), await jobAssistantAvailable("planning"), await jobAssistantAvailable("brief")]).toEqual([false, false, false]);
     });
 
     it("imports no provider, budget, storage or environment and the actions export only async functions", () => {
         const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
         const transport = read("src/lib/server/job-assistant-transport.ts");
         const handlers = read("src/lib/server/pricing-request.ts") + read("src/lib/server/planning-request.ts");
-        for (const text of [transport, handlers]) {
+        // ROB0610: the activation point reads only the operator's emergency stop from the budget module (it can only switch AI off).
+        expect(transport).toMatch(/^import \{ aiEmergencyStop \} from "@\/lib\/ai-budget";$/m);
+        for (const text of [transport.replace('import { aiEmergencyStop } from "@/lib/ai-budget";', ""), handlers]) {
             expect(text).not.toMatch(/from\s+["'](?:@\/lib\/ai|openai|@\/lib\/ai-budget|@\/lib\/cohort-ai[^"']*)["']/);
             expect(text).not.toMatch(/process\.env|\.insert\(|\.update\(\{|\.upsert\(|\.delete\(|localStorage|sessionStorage/);
         }
@@ -314,9 +317,9 @@ describe("A055 generation seam: reservation, transport and provenance on the rea
         createJobAssistantGenerator<unknown>("pricing", { config: config(patch), transport: stub(send), ledger: l as unknown as UsageLedger })!;
     const attempt = (l: ReturnType<typeof ledger>) => l.conclude.mock.calls[0]?.[0] as string;
 
-    it("is off at every activation point and refuses a missing, unapproved or out-of-bounds configuration", () => {
-        expect([approvedPricingGenerator(), approvedPlanningGenerator(), approvedBriefGenerator()]).toEqual([null, null, null]);
-        expect(jobAssistantAvailability()).toEqual({ pricing: false, planning: false, brief: false });
+    it("is off at every activation point and refuses a missing, unapproved or out-of-bounds configuration", async () => {
+        expect(await Promise.all([approvedPricingGenerator(), approvedPlanningGenerator(), approvedBriefGenerator()])).toEqual([null, null, null]);
+        expect([await jobAssistantAvailable("pricing"), await jobAssistantAvailable("planning"), await jobAssistantAvailable("brief")]).toEqual([false, false, false]);
         const l = ledger() as unknown as UsageLedger;
         const transport = stub(async () => ({ kind: "not_sent" }));
         expect(createJobAssistantGenerator("pricing", { config: config(), transport, ledger: l })).toBeTypeOf("function");
@@ -582,15 +585,15 @@ describe("A063 planning transport, worst-case cost and usage ledger (fake SDK an
         expect(duplicate.calls.map(([fn]) => fn)).toEqual(["job_assistant_reserve"]);
     });
 
-    it("keeps every feature OFF: approved configuration is null while all three transports are wired", () => {
-        expect(approvedPlanningGenerator()).toBeNull();
-        expect(jobAssistantAvailability()).toEqual({ pricing: false, planning: false, brief: false });
+    it("keeps every feature OFF: approved configuration is null while all three transports are wired", async () => {
+        expect(await approvedPlanningGenerator()).toBeNull();
+        expect([await jobAssistantAvailable("pricing"), await jobAssistantAvailable("planning"), await jobAssistantAvailable("brief")]).toEqual([false, false, false]);
         const source = readFileSync(join(process.cwd(), "src/lib/server/job-assistant-transport.ts"), "utf8");
         expect(source).toMatch(/const APPROVED_GENERATION: Record<JobAssistantFeature, unknown> = \{ pricing: null, planning: null, brief: null \};/);
         expect(source).toMatch(/FEATURE_PROMPTS/);
         for (const prompt of ["PRICING_SYSTEM_PROMPT", "PLANNING_SYSTEM_PROMPT", "BRIEF_SYSTEM_PROMPT"]) expect(source).toContain(prompt);
-        expect(source).toMatch(/createOpenAIJobAssistantTransport\(\{ systemPrompt \}\)/);
-        expect(source).toMatch(/return createRpcUsageLedger\(\);/);
+        expect(source).toMatch(/providers: \{ openai: openAIJobAssistantProvider \}/);
+        expect(source).toMatch(/ledger: \(\) => createRpcUsageLedger\(\),/);
         expect(source).not.toMatch(/process\.env|gpt-|OPENAI_API_KEY/);
     });
 
@@ -790,5 +793,138 @@ describe("A055 pricing OpenAI transport wiring (fake SDK only)", () => {
                 { role: "user", content: "Where should I start?" },
             ],
         });
+    });
+});
+
+describe("ROB0610 one readiness contract for pages and request handlers (injected fakes only)", () => {
+    const READY = { enabled: true, max_attempt_pence: 2, max_per_job_pence: 10, max_monthly_pence: 100 };
+    const approval = (feature: string, patch: Row = {}) => ({
+        feature, approval: { ref: "TEST-ONLY", approvedBy: "test", approvedAt: "2026-10-29T00:00:00Z" },
+        provider: "openai", model: "stub-model", maxOutputTokens: 500, timeoutMs: 1000, maxMessages: 6, maxInputChars: 5000,
+        prices: { inputPencePerMillionTokens: 100, outputPencePerMillionTokens: 400 }, attemptPence: 2, perJobPence: 10, monthlyPence: 100, ...patch,
+    });
+    /** The job_assistant_* functions and the settings row, as the SQL would answer them. */
+    function fakeDatabase(settings: unknown = READY, settingsError: unknown = null) {
+        const calls: [string, Record<string, unknown>][] = [];
+        const reads: unknown[][] = [];
+        const rpc = vi.fn(async (fn: string, args: Record<string, unknown>) => {
+            calls.push([fn, args]);
+            return { data: fn === "job_assistant_reserve" ? { status: "reserved" } : true, error: null };
+        });
+        const from = vi.fn((table: string) => ({ select: (columns: string) => ({ eq: (column: string, value: unknown) => ({
+            maybeSingle: async () => { reads.push([table, columns, column, value]); return { data: settings, error: settingsError }; },
+        }) }) }));
+        return { calls, reads, client: vi.fn(() => ({ rpc, from })) };
+    }
+    function setup(patch: Partial<JobAssistantActivation> = {}, db = fakeDatabase()) {
+        const create = vi.fn(async () => ({
+            model: "stub-model", usage: { prompt_tokens: 1000, completion_tokens: 200 },
+            choices: [{ finish_reason: "stop", message: { content: JSON.stringify(planningReply) } }],
+        }));
+        const sdk = vi.fn(() => ({ chat: { completions: { create } } }) as unknown as ChatClient);
+        const provider = {
+            configured: vi.fn(() => true),
+            transport: vi.fn((systemPrompt: string) => createOpenAIJobAssistantTransport({ systemPrompt, client: sdk })),
+        };
+        const ledger = vi.fn(() => createRpcUsageLedger(db.client));
+        const activation: JobAssistantActivation = {
+            approvals: { pricing: null, planning: approval("planning"), brief: null },
+            stopped: vi.fn(() => false), providers: { openai: provider }, ledger, ...patch,
+        };
+        const effects = () => ({ configured: provider.configured.mock.calls.length, ledger: ledger.mock.calls.length,
+            reads: db.reads.length, rpc: db.calls.length, transport: provider.transport.mock.calls.length, sdk: sdk.mock.calls.length + create.mock.calls.length });
+        return { activation, provider, ledger, db, create, sdk, effects };
+    }
+    const available = (activation: JobAssistantActivation) =>
+        Promise.all((["pricing", "planning", "brief"] as const).map(feature => jobAssistantAvailable(feature, activation)));
+    afterEach(() => { vi.unstubAllEnvs(); });
+
+    it("with every prerequisite met, the page offers only the approved feature and the real handler runs one recorded attempt from the same bundle", async () => {
+        const f = fixture(); const s = setup();
+        expect(await available(s.activation)).toEqual([false, true, false]);
+        expect(await approvedPricingGenerator(s.activation)).toBeNull();
+        expect(await approvedBriefGenerator(s.activation)).toBeNull();
+        const result = await handlePlanningTurn(f.planning(), { prepare: () => approvedPlanningGenerator(s.activation) });
+        expect(result).toMatchObject({ status: "reply", provenance: { projectId: PROJECT, revision: f.planningRevision() } });
+        expect(s.provider.transport).toHaveBeenLastCalledWith(PLANNING_SYSTEM_PROMPT);
+        expect(s.db.reads.at(-1)).toEqual(["job_assistant_usage_settings", "enabled, max_attempt_pence, max_per_job_pence, max_monthly_pence", "id", 1]);
+        expect(s.db.calls.map(([fn]) => fn)).toEqual(["job_assistant_reserve", "job_assistant_settle", "job_assistant_conclude"]);
+        expect(s.db.calls[0][1]).toMatchObject({ p_feature: "planning", p_provider: "openai", p_model: "stub-model", p_approval_ref: "TEST-ONLY",
+            p_pence: 2, p_per_job_cap_pence: 10, p_monthly_cap_pence: 100, p_user_id: USER, p_project_id: PROJECT });
+        expect(s.create).toHaveBeenCalledTimes(1);
+    });
+
+    const ORDERED: [string, (s: ReturnType<typeof setup>) => Partial<JobAssistantActivation> | ReturnType<typeof fakeDatabase>, Partial<ReturnType<ReturnType<typeof setup>["effects"]>>][] = [
+        ["the operator's emergency stop", () => ({ stopped: () => true }), { configured: 0, ledger: 0 }],
+        ["no approval (today's server state)", () => ({ approvals: { pricing: null, planning: null, brief: null } }), { configured: 0, ledger: 0 }],
+        ["an approval for another feature", () => ({ approvals: { pricing: null, planning: approval("pricing"), brief: null } }), { configured: 0, ledger: 0 }],
+        ["an approval outside the schema", () => ({ approvals: { pricing: null, planning: approval("planning", { attemptPence: 11 }), brief: null } }), { configured: 0, ledger: 0 }],
+        ["features stating different combined monthly caps", () => ({ approvals: { pricing: approval("pricing", { monthlyPence: 5000 }), planning: approval("planning"), brief: null } }), { configured: 0, ledger: 0 }],
+        ["features stating different combined per-job caps", () => ({ approvals: { pricing: null, planning: approval("planning"), brief: approval("brief", { perJobPence: 20 }) } }), { configured: 0, ledger: 0 }],
+        ["another feature's approval that is invalid", () => ({ approvals: { pricing: { feature: "pricing" }, planning: approval("planning"), brief: null } }), { configured: 0, ledger: 0 }],
+        ["an approved provider with no adapter here", () => ({ approvals: { pricing: null, planning: approval("planning", { provider: "other-provider" }), brief: null } }), { configured: 0, ledger: 0 }],
+        ["a provider named after an object property", () => ({ approvals: { pricing: null, planning: approval("planning", { provider: "constructor" }), brief: null } }), { configured: 0, ledger: 0 }],
+        ["the provider's key missing on the server", s => { s.provider.configured.mockReturnValue(false); return {}; }, { configured: 1, ledger: 0 }],
+        ["the ledger migration not applied (no settings row)", () => fakeDatabase(null), { configured: 1, ledger: 1, reads: 1 }],
+        ["the ledger disabled (as the migration ships)", () => fakeDatabase({ ...READY, enabled: false }), { configured: 1, ledger: 1, reads: 1 }],
+        ["ledger ceilings not set", () => fakeDatabase({ enabled: true, max_attempt_pence: null, max_per_job_pence: null, max_monthly_pence: null }), { configured: 1, ledger: 1, reads: 1 }],
+        ["a ledger ceiling below the approved monthly cap", () => fakeDatabase({ ...READY, max_monthly_pence: 99 }), { configured: 1, ledger: 1, reads: 1 }],
+        ["a ledger ceiling below the approved attempt", () => fakeDatabase({ ...READY, max_attempt_pence: 1 }), { configured: 1, ledger: 1, reads: 1 }],
+        ["the settings read failing", () => fakeDatabase(READY, { message: "permission denied" }), { configured: 1, ledger: 1, reads: 1 }],
+    ];
+    it.each(ORDERED)("fails closed on %s: the page is off, the real handler answers off, and nothing later is touched", async (_name, change, expected) => {
+        const f = fixture();
+        const probe = setup();
+        const made = change(probe);
+        const s = "calls" in made ? setup({}, made as ReturnType<typeof fakeDatabase>) : probe;
+        if (!("calls" in made)) Object.assign(s.activation, made);
+        expect(await available(s.activation)).toEqual([false, false, false]);
+        expect(s.effects()).toMatchObject({ rpc: 0, transport: 0, sdk: 0, ...expected });
+        expect(await handlePlanningTurn(f.planning(), { prepare: () => approvedPlanningGenerator(s.activation) })).toEqual({ status: "off", message: PLANNING_OFF });
+        expect(s.effects()).toMatchObject({ rpc: 0, transport: 0, sdk: 0 });
+    });
+
+    it("prepares nothing until the request is verified: a signed-out or stale request never reaches the activation point", async () => {
+        const f = fixture(); const prepare = vi.fn(async () => null);
+        expect((await handlePlanningTurn({ ...f.planning(), expectedRevision: "b".repeat(64) }, { prepare })).status).toBe("stale");
+        f.signOut();
+        expect((await handlePlanningTurn(f.planning(), { prepare })).status).toBe("unavailable");
+        expect(await handlePricingTurn(f.pricing(), { prepare })).not.toMatchObject({ status: "reply" });
+        expect(prepare).not.toHaveBeenCalled();
+        const throwing = { prepare: vi.fn(async () => { throw new Error("settings down"); }) };
+        expect(await handlePlanningTurn(fixture().planning(), throwing)).toEqual({ status: "off", message: PLANNING_OFF });
+    });
+
+    it("uses the real emergency stop and the real OpenAI key check, with stubbed environment values only", async () => {
+        const stop = setup({ stopped: aiEmergencyStop });
+        vi.stubEnv("CONSTRUCTA_AI_DISABLED", "1");
+        expect(await jobAssistantAvailable("planning", stop.activation)).toBe(false);
+        vi.stubEnv("CONSTRUCTA_AI_DISABLED", "0");
+        expect(await jobAssistantAvailable("planning", stop.activation)).toBe(true);
+
+        const real = setup();
+        real.activation.providers = { openai: openAIJobAssistantProvider };
+        for (const key of ["", "   "]) {
+            vi.stubEnv("OPENAI_API_KEY", key);
+            expect(await jobAssistantAvailable("planning", real.activation)).toBe(false);
+            expect(await handlePlanningTurn(fixture().planning(), { prepare: () => approvedPlanningGenerator(real.activation) })).toEqual({ status: "off", message: PLANNING_OFF });
+        }
+        expect(real.effects()).toMatchObject({ ledger: 0, rpc: 0 });
+        vi.stubEnv("OPENAI_API_KEY", "test-placeholder-not-a-key");
+        expect(await jobAssistantAvailable("planning", real.activation)).toBe(true);
+        expect(real.db.calls).toEqual([]);
+    });
+
+    it("the readiness read never writes, and reads only through the service-role client it is given", async () => {
+        const db = fakeDatabase();
+        const ledger = createRpcUsageLedger(db.client);
+        expect(db.client).not.toHaveBeenCalled();
+        expect(await ledger.covers({ attemptPence: 2, perJobPence: 10, monthlyPence: 100 })).toBe(true);
+        expect(await ledger.covers({ attemptPence: 2, perJobPence: 11, monthlyPence: 100 })).toBe(false);
+        expect(await createRpcUsageLedger(() => ({ rpc: db.client().rpc })).covers({ attemptPence: 2, perJobPence: 10, monthlyPence: 100 })).toBe(false);
+        expect(await createRpcUsageLedger(() => { throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY"); }).covers({ attemptPence: 2, perJobPence: 10, monthlyPence: 100 })).toBe(false);
+        for (const bad of [{ ...READY, enabled: "true" }, { ...READY, max_monthly_pence: 100.5 }, { ...READY, max_per_job_pence: 0 }, []])
+            expect(await createRpcUsageLedger(fakeDatabase(bad).client).covers({ attemptPence: 2, perJobPence: 10, monthlyPence: 100 })).toBe(false);
+        expect(db.calls).toEqual([]);
     });
 });

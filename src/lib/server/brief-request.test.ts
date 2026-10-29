@@ -8,7 +8,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => mocks);
 
 import { handleBriefTurn } from "./brief-request";
-import { approvedBriefGenerator, jobAssistantAvailability, type ServerBriefGenerator } from "./job-assistant-transport";
+import { approvedBriefGenerator, jobAssistantAvailable, type ServerBriefGenerator } from "./job-assistant-transport";
 import { createJobAssistantGenerator, type JobAssistantTransport, type TransportRequest, type UsageLedger } from "./job-assistant-generation";
 import { BRIEF_SYSTEM_PROMPT } from "./job-assistant-prompts";
 import { createOpenAIJobAssistantTransport, type ChatClient } from "./openai-job-assistant-transport";
@@ -55,9 +55,9 @@ const reply = { message: "Ask about the covering.", facts: [{ start: 0, end: 17 
 beforeEach(() => { vi.clearAllMocks(); mocks.createClient.mockReset(); });
 
 describe("A055 Brief: server activation stays off", () => {
-    it("has no approved Brief generator, and every page is told the assistant is off", () => {
-        expect(approvedBriefGenerator()).toBeNull();
-        expect(jobAssistantAvailability()).toEqual({ pricing: false, planning: false, brief: false });
+    it("has no approved Brief generator, and every page is told the assistant is off", async () => {
+        expect(await approvedBriefGenerator()).toBeNull();
+        expect([await jobAssistantAvailable("pricing"), await jobAssistantAvailable("planning"), await jobAssistantAvailable("brief")]).toEqual([false, false, false]);
     });
 
     it("the Brief action module is a lazy Server Action importing no provider, budget or environment", () => {

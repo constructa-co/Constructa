@@ -14,5 +14,5 @@ export async function planningAssistantTurnAction(input: unknown): Promise<Plann
     const [{ handlePlanningTurn }, { approvedPlanningGenerator }] = await Promise.all([
         import("@/lib/server/planning-request"), import("@/lib/server/job-assistant-transport"),
     ]);
-    return handlePlanningTurn(input, approvedPlanningGenerator() ?? undefined);
+    return handlePlanningTurn(input, { prepare: () => approvedPlanningGenerator() });
 }

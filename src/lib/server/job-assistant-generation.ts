@@ -9,7 +9,8 @@ import type { AssistantTurnMessage } from "@/lib/assistant-transport";
  * into the pricing, planning and Brief request paths through
  * `job-assistant-transport.ts`. Production adapters (transport + RPC ledger) exist,
  * but activation is OFF: `APPROVED_GENERATION` is null for every feature, so each
- * activation point returns null until an approval is configured.
+ * activation point returns null until an approval is configured and every
+ * prerequisite there is met.
  *
  * An attempt runs: bounds check, including the worst-case cost of this exact
  * request at the approved prices, which the reservation must cover ->
@@ -68,6 +69,17 @@ export interface JobAssistantTransport {
     maxInputTokens(request: Pick<TransportRequest, "context" | "messages">): number;
     send(request: TransportRequest): Promise<TransportResult>;
 }
+/** One provider the server can call. `configured` checks its server prerequisites without making a client. */
+export interface JobAssistantProvider {
+    configured(): boolean;
+    transport(systemPrompt: string): JobAssistantTransport;
+}
+
+/** The approved configuration for this feature, or null when it is missing, invalid or for another feature. */
+export function approvedConfig(feature: JobAssistantFeature, config: unknown): JobAssistantGenerationConfig | null {
+    const parsed = ConfigSchema.safeParse(config);
+    return parsed.success && parsed.data.feature === feature ? parsed.data : null;
+}
 
 /** Whole pence, rounded up, for the given token counts at the approved prices. */
 export function costPence(prices: JobAssistantGenerationConfig["prices"], inputTokens: number, outputTokens: number): number {
@@ -99,6 +111,17 @@ export interface JobAssistantGenerator<C> {
     conclude?: (attemptId: string, outcome: AttemptOutcome) => Promise<boolean>;
 }
 
+/** A generator, or how to prepare one; the request path prepares it only after the request is verified. */
+export type GeneratorSource<G> = G | { prepare(): Promise<G | null> };
+export async function resolveGenerator<G>(source: GeneratorSource<G> | undefined): Promise<G | undefined> {
+    if (!source || typeof source === "function") return source as G | undefined;
+    try {
+        return (await (source as { prepare(): Promise<G | null> }).prepare()) ?? undefined;
+    } catch {
+        return undefined;
+    }
+}
+
 /** Thrown when an attempt is refused; the request path answers "unavailable". */
 export class GenerationRefused extends Error {
     constructor(readonly reason: "bounds" | "cost" | "reservation" | "transport" | "not_sent" | "usage" | "overspend" | "cancelled" | "ledger") {
@@ -114,10 +137,9 @@ const SHA256 = /^[a-f0-9]{64}$/;
 export function createJobAssistantGenerator<C>(feature: JobAssistantFeature, deps: {
     config: unknown; transport: JobAssistantTransport | null; ledger: UsageLedger | null;
 }): JobAssistantGenerator<C> | null {
-    const parsed = ConfigSchema.safeParse(deps.config);
-    if (!parsed.success || parsed.data.feature !== feature || !deps.transport || !deps.ledger
+    const config = approvedConfig(feature, deps.config);
+    if (!config || !deps.transport || !deps.ledger
         || typeof deps.transport.maxInputTokens !== "function" || typeof deps.transport.send !== "function") return null;
-    const config = parsed.data;
     const transport = deps.transport;
     const ledger = deps.ledger;
     /** Attempt ids this generator instance successfully reserved; only those may be concluded here. */

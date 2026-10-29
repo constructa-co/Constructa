@@ -133,13 +133,19 @@ export function validateWorkingPatternForProgramme(
     if (!validateV2IntervalsStructural(pattern)) errors.workingPattern ??= "Fix interval days, overlap, or overnight spill before saving.";
     const start = typeof startIso === "string" ? startIso.trim() : "";
     if (!start || parseIsoDate(start) === null) return errors;
-    const maxLocalDays = Math.min(Math.max(programmeDays, 1) * 14 + 14, 5000);
+    if (!Number.isFinite(programmeDays) || programmeDays < 1) return errors;
+    const finish = addJobWorkingDaysV2(start, Math.round(programmeDays), pattern);
+    if (finish === null) {
+        errors.workingPattern = `Working hours are not supported within the first ${Math.round(programmeDays)} programme days from ${start} in ${pattern.timezone}. Adjust intervals or the start date.`;
+        return errors;
+    }
     let current = start;
-    for (let step = 0; step < maxLocalDays; step += 1) {
+    for (let step = 0; step < 5000; step += 1) {
         if (effectiveLocalDayMinutesOnDate(current, pattern) === null) {
             errors.workingPattern = `Working hours are not supported on ${current} in ${pattern.timezone}. Adjust intervals or the start date.`;
             break;
         }
+        if (current === finish) break;
         const next = nextLocalIsoDate(current, pattern.timezone);
         if (!next) break;
         current = next;

@@ -155,6 +155,7 @@ interface ReadPhase {
     startMs: number;
     endMs: number;
     requestedWorkingDays: number;
+    usedCalendarDuration: boolean;
 }
 
 /**
@@ -184,13 +185,21 @@ function readPhase(entry: unknown, index: number, programmeStartMs: number | nul
         const firstDay = addJobWorkingDays(startIso, 1, pattern);
         const lastDay = addJobWorkingDays(startIso, workingDays, pattern);
         return firstDay === null || lastDay === null ? null
-            : { name, startMs: parseIsoDate(firstDay)!, endMs: parseIsoDate(lastDay)!, requestedWorkingDays: workingDays };
+            : {
+                name, startMs: parseIsoDate(firstDay)!, endMs: parseIsoDate(lastDay)!,
+                requestedWorkingDays: workingDays, usedCalendarDuration: false,
+            };
     }
 
     const calendarDays = Math.ceil(positive(p.duration_days));
     if (calendarDays <= 0 || !Number.isSafeInteger(calendarDays)) return null;
     const endMs = startMs + (calendarDays - 1) * DAY_MS;
-    return toIso(endMs) === null ? null : { name, startMs, endMs, requestedWorkingDays: calendarDays };
+    const endIso = toIso(endMs);
+    if (endIso === null) return null;
+    const spanDays = isJobWorkingPatternV2(pattern)
+        ? countJobWorkingDays(startIso, endIso, pattern)
+        : calendarDays;
+    return { name, startMs, endMs, requestedWorkingDays: spanDays, usedCalendarDuration: true };
 }
 
 // ── The plan ─────────────────────────────────────────────────────────────────
@@ -222,10 +231,7 @@ export function computeProgrammePlan(
     const endMs = Math.max(...read.map((phase) => phase.endMs));
     const startIso = toIso(startMs)!;
     const endIso = toIso(endMs)!;
-    const explicitWorkingDays = read.reduce((sum, phase) => sum + phase.requestedWorkingDays, 0);
-    const workingDays = isJobWorkingPatternV2(pattern) && explicitWorkingDays > 0
-        ? explicitWorkingDays
-        : countJobWorkingDays(startIso, endIso, pattern);
+    const workingDays = countJobWorkingDays(startIso, endIso, pattern);
 
     return {
         ...(isDefaultJobWorkingPattern(pattern) ? { basis: PROGRAMME_BASIS } : { basis: "job_working_days" as const, working_pattern: pattern }),
@@ -239,7 +245,9 @@ export function computeProgrammePlan(
             start_date: toIso(phase.startMs)!,
             end_date: toIso(phase.endMs)!,
             working_days: isJobWorkingPatternV2(pattern)
-                ? phase.requestedWorkingDays
+                ? (phase.usedCalendarDuration
+                    ? countJobWorkingDays(toIso(phase.startMs)!, toIso(phase.endMs)!, pattern)
+                    : phase.requestedWorkingDays)
                 : countJobWorkingDays(toIso(phase.startMs)!, toIso(phase.endMs)!, pattern),
             offset_days: Math.round((phase.startMs - startMs) / DAY_MS),
             span_days: Math.round((phase.endMs - phase.startMs) / DAY_MS) + 1,

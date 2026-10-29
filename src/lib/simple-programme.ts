@@ -356,7 +356,9 @@ export function buildProgrammePhases(input: SimpleProgrammeInput, existingPhases
         delete base.workingDayOffset;
         delete base.startOffset;
 
-        const start = cursor ?? input.startDate;
+        const start = isJobWorkingPatternV2(pattern)
+            ? addJobWorkingDays(input.startDate, workingOffset + 1, pattern)
+            : (cursor ?? input.startDate);
         const calculated = Number(base.calculatedDays);
         const phase = {
             ...base,
@@ -366,11 +368,15 @@ export function buildProgrammePhases(input: SimpleProgrammeInput, existingPhases
             manhours: Number.isFinite(Number(base.manhours)) && Number(base.manhours) > 0 ? Number(base.manhours) : 0,
             ...(input.timeBasis === "relative"
                 ? { timeBasis: RELATIVE_PROGRAMME_BASIS, workingDayOffset: workingOffset }
-                : { startOffset: calendarOffset(input.startDate, start) }),
+                : { startOffset: calendarOffset(input.startDate, start ?? input.startDate) }),
             duration_unit: stage.unit === "weeks" ? "Weeks" : "Days",
         };
-        const end = addJobWorkingDays(start, stage.workingDays, pattern);
-        cursor = end ? nextJobWorkingDayAfter(end, pattern) : null;
+        const end = isJobWorkingPatternV2(pattern)
+            ? addJobWorkingDays(input.startDate, workingOffset + stage.workingDays, pattern)
+            : addJobWorkingDays(start!, stage.workingDays, pattern);
+        if (!isJobWorkingPatternV2(pattern)) {
+            cursor = end ? nextJobWorkingDayAfter(end, pattern) : null;
+        }
         workingOffset += stage.workingDays;
         return phase;
     });

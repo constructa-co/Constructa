@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-10-29 — ROB1205 A085 functional kit + rates (Cursor integration)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| `template-item-editor` + kit filter test | Wired filter on description/category | Pin **4fbe579** |
+| `actions` + `rate-override-client` + 2 test modules | Honest delete error; Save/Reset finally/catch | Pin **5aa0fb6** |
+| `handoff.md` | ROB1205 addendum after decision sheet | Preserve prefix + old suffix SHA |
+
 ## 2026-10-29 — ROB1025 A059 v2 working pattern (Cursor integration)
 
 | Paths | Change | Intent |

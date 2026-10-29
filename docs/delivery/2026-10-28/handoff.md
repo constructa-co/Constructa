@@ -1,3 +1,61 @@
+# Decisions for Rob - 29 October
+Prepared at your request. Nothing below has been switched on or executed. You can answer by number: "1 yes, 2 no..." A yes applies only to its stated scope.
+
+## 1. Addresses: manual entry now, paid lookup later
+What it unlocks: contractors can type an ordinary or unusual site address and keep the client's address separate.
+Recommendation: YES to manual entry now, with no address-service charge. Add paid UK postcode lookup later only after its cost and address-sharing terms are approved.
+Your answer: YES / NO.
+
+## 2. The job assistant: service, spending and information sharing
+What it unlocks: help with the job description, estimate and programme.
+Recommendation: YES to the existing OpenAI / GPT-5.4 mini proposal, with spending limited to GBP0.10 per job and GBP20 per month across these assistants. Relevant job text goes to OpenAI; no credentials. These are proposed spending ceilings, not a new price quote. Exact current prices and the permitted information must be confirmed before it is enabled.
+Your answer: YES / NO.
+
+## 3. Calendar settings: try the saving change safely
+What it unlocks: the existing separate practice copy can remember working days and optional local shift times, then be reopened to check the result.
+Recommendation: YES to the prepared practice-only change, including the optional shift-time version, followed by a save-and-reopen check. No real customer system. Keep the declared overlapping-stage totals and slow-save limits visible; this does not declare them fixed or approve real scheduling use.
+Your answer: YES / NO.
+
+## 4. Proposal closing message: test the automatic starting text
+What it unlocks: a NEW practice job starts with the managing director's closing message, which can still be edited for that proposal.
+Recommendation: YES to the prepared practice-only change and checks. Do not rewrite existing jobs or send any proposal. Check reopening, a retry and a later profile-message change.
+Your answer: YES / NO.
+
+## 5. Safe copies and a restore rehearsal
+What it unlocks: prove that the existing Constructa sites, information and assets can be recovered before any future replacement.
+Recommendation: YES to one bounded rehearsal using existing authorised access, an approved private storage location and a separately approved throwaway restore copy. Never restore over a current site. No new credentials or wider settings permission.
+Your answer: YES / NO, with one record naming:
+- the source systems and information included or excluded;
+- the private destination and separate restore target;
+- the responsible operator, how long copies are kept and who owns that decision.
+Missing names mean PLAN ONLY, not permission to copy data or create a target. This answer is separate from the calendar/proposal practice answers. It does not approve replacing or deploying either live site.
+
+## 6. Privacy facts: finish the notice without guessing
+What it unlocks: an accurate final explanation of how company and personal information is used.
+Recommendation: YES to supplying or confirming the actual business owner, purposes, recipients, retention and contact details. Keep the notice clearly unfinished until those facts are confirmed; do not invent legal or security promises.
+Your answer: YES / NO to confirming those facts. A bare yes does not supply the missing facts or complete the notice.
+
+## 7. The checks only you can perform
+What it unlocks: evidence of the test sign-up/email/first sign-in and your own Cancel/Leave choices in the designated test session.
+Recommendation: YES to doing those checks together when ready, after we confirm the exact protected test version. The previously applied consent change is not repeated. Software will not accept terms or operate those choices for you.
+Your answer: YES / NO to arranging the hands-on check, not to automated acceptance or publication.
+
+## 8. Previously exposed access credentials
+What it unlocks: closing the two outstanding access-security issues before release.
+Recommendation: YES to the issuing owners disabling the exact exposed Perplexity proxy and old Supabase management credentials after confirming their identity and dependent users. You or the existing secure owner perform any credential replacement. Do not change unrelated keys or assume a different product's key deletion removes the exposure.
+Your answer: YES / NO to that exact issuer-led containment; no credential action is performed by this sheet.
+
+Already settled: the deliberate contractor "Mark as Won" policy is approved; no answer is needed again.
+Still held: sign-up activation, live customer use, publishing/sending, website replacement, deployments, main/PR changes, settings, keys and real financial actions. No answer silently waives those boundaries.
+
+## ROB1205 functional backup status — 29 October 2026
+
+Integrated on parent **d86dca6** (exact pins only, not palette branches): **4fbe579** kit filter (2 paths) + **5aa0fb6** rate Save/Reset outcomes (4 paths). ROOT **15/15** focused tests; migration/SQL/provider unchanged. **A085 Partial** — not Complete, not hosted QA. Review limits retained: kit P2 broad stopPropagation / possible blank Radix label; rates P2 generic reset copy, no Reset debounce, brittle test selectors. Receipt **`rob1205-integrated-source-backup-20261029.json`**.
+
+---
+
+# Earlier Handoff - Preserved Below
+
 # DAY28 First Green Integration - 28 October 2026
 
 Three accepted source pins are integrated on backup parent da8b8ee: A001 sage

@@ -26,6 +26,14 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
     const [selectedItemId, setSelectedItemId] = useState<string>("");
     const [quantity, setQuantity] = useState<number>(1);
     const [isPending, setIsPending] = useState(false);
+    const [filterQuery, setFilterQuery] = useState("");
+
+    const normalizedFilter = filterQuery.trim().toLowerCase();
+    const visibleLibraryItems = normalizedFilter === ""
+        ? libraryItems
+        : libraryItems.filter(item =>
+            String(item.description ?? "").toLowerCase().includes(normalizedFilter)
+            || String(item.category ?? "").toLowerCase().includes(normalizedFilter));
 
     const handleAdd = async () => {
         if (!selectedItemId) return;
@@ -66,9 +74,19 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
                         <SelectContent>
                             <div className="flex items-center px-3 pb-2 border-b mb-1">
                                 <Search className="w-3 h-3 mr-2 text-slate-400" />
-                                <input placeholder="Filter..." className="text-xs bg-transparent outline-none w-full" />
+                                <input
+                                    name="library-kit-filter"
+                                    placeholder="Filter..."
+                                    value={filterQuery}
+                                    onChange={(e) => setFilterQuery(e.target.value)}
+                                    onKeyDown={(e) => e.stopPropagation()}
+                                    className="text-xs bg-transparent outline-none w-full"
+                                />
                             </div>
-                            {libraryItems.map(item => (
+                            {visibleLibraryItems.length === 0 && normalizedFilter !== "" ? (
+                                <div className="px-3 py-2 text-xs text-slate-500">No matching library items.</div>
+                            ) : null}
+                            {visibleLibraryItems.map(item => (
                                 <SelectItem key={item.id} value={item.id}>
                                     <div className="flex flex-col">
                                         <span className="font-medium">{item.description}</span>

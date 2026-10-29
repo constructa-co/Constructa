@@ -220,3 +220,7 @@
 
 - Parent **b5f5138**: exact **f23e4902** NET **16** paths. ROOT **19/19** material (4 calendar files + v2 save case). **A059 Partial**; **103000** migration **NOT APPLIED**.
 - **Known limits (Rob 10:14 — not new gates):** v2 overlap/gapped whole-plan totals sum stages not span; save scan 14×days+14 cap 5000; P3 clock-boundary over-refusal; DST fail-closed. See **ROB0952** return. Receipt **`rob1025-integrated-source-backup-20261029.json`**.
+
+## ROB1205 A085 functional — 29 October 2026
+
+- Parent **d86dca6**: **4fbe579** (kit filter 2) + **5aa0fb6** (rate outcomes 4). ROOT **15/15** tests. **A085 Partial**; no palette cd27/499ce/e5. Receipt **`rob1205-integrated-source-backup-20261029.json`**.

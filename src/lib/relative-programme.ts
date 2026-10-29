@@ -1,5 +1,5 @@
 import { computeProgrammePlan, formatDateRange, formatPlanDate, formatWorkingDuration, PROGRAMME_BASIS_NOTE, stageBar, type ProgrammePlan } from "./programme-plan";
-import { isDefaultJobWorkingPattern, resolveJobWorkingPattern, type JobWorkingPattern } from "./job-working-pattern";
+import { describeJobWorkingPattern, isDefaultJobWorkingPattern, isJobWorkingPatternV2, resolveJobWorkingPattern, type JobWorkingPattern } from "./job-working-pattern";
 
 export const RELATIVE_PROGRAMME_BASIS = "relative_working_days" as const;
 export const RELATIVE_PROGRAMME_NOTE = "Start date not agreed. Day numbers count working days, not calendar dates. A week means five working days.";
@@ -105,10 +105,8 @@ export function programmeStageBar(plan: DisplayProgrammePlan, index: number, min
 export function programmeBasisNote(plan: DisplayProgrammePlan): string {
     const pattern = resolveJobWorkingPattern(plan.working_pattern);
     if (!pattern) return "Working pattern is invalid. Programme basis unavailable.";
-    if (!isDefaultJobWorkingPattern(pattern)) {
-        const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        const selected = weekdays.filter((_, day) => pattern.weekdays.includes(day)).join(", ");
-        const basis = `Working days are ${selected}. A week means ${pattern.weekdays.length} working ${pattern.weekdays.length === 1 ? "day" : "days"}. Bank holidays are not allowed for.`;
+    if (isJobWorkingPatternV2(pattern) || !isDefaultJobWorkingPattern(pattern)) {
+        const basis = describeJobWorkingPattern(pattern);
         return plan.basis === RELATIVE_PROGRAMME_BASIS
             ? `Start date not agreed. Day numbers count working days, not calendar dates. ${basis}`
             : basis;

@@ -20,9 +20,27 @@ import {
     type ProgrammeSaveResult,
 } from "@/lib/simple-programme";
 
-const WorkingPatternSchema = z.object({
-    version: z.literal(1), weekdays: z.array(z.number().int().min(0).max(6)).min(1).max(7),
-}).strict().refine(value => new Set(value.weekdays).size === value.weekdays.length);
+const WeekdaysSchema = z.array(z.number().int().min(0).max(6)).min(1).max(7)
+    .refine(value => new Set(value).size === value.length);
+
+const WorkingPatternSchema = z.discriminatedUnion("version", [
+    z.object({ version: z.literal(1), weekdays: WeekdaysSchema }).strict(),
+    z.object({
+        version: z.literal(2),
+        timezone: z.string().trim().min(1).max(80),
+        weekdays: WeekdaysSchema,
+        intervals: z.array(z.object({
+            weekday: z.number().int().min(0).max(6),
+            startMinute: z.number().int().min(0).max(1439),
+            endMinute: z.number().int().min(0).max(1439),
+        }).strict()).min(1).max(21),
+        standardMinutesPerDay: z.number().int().min(1).max(1440 * 7),
+        productivityPct: z.number().int().min(1).max(100),
+    }).strict(),
+]).superRefine((value, ctx) => {
+    const resolved = resolveJobWorkingPattern(value);
+    if (!resolved) ctx.addIssue({ code: "custom", message: "Invalid working pattern." });
+});
 
 const SimpleProgrammeSchema = z.object({
     projectId: z.string().uuid(),

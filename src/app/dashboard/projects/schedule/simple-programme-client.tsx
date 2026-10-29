@@ -21,7 +21,7 @@ import { createPlanningRequestGenerator } from "@/lib/job-assistant-client";
 import { planningAssistantTurnAction } from "./assistant-actions";
 import { formatPlanDate, formatWorkingDuration, PROGRAMME_BASIS_NOTE } from "@/lib/programme-plan";
 import { hasRelativeProgramme, programmeBasisNote, RELATIVE_PROGRAMME_BASIS, RELATIVE_PROGRAMME_NOTE } from "@/lib/relative-programme";
-import { resolveJobWorkingPattern } from "@/lib/job-working-pattern";
+import { isJobWorkingPatternV2, resolveJobWorkingPattern, type JobWorkingInterval } from "@/lib/job-working-pattern";
 import {
     MAX_STAGES,
     MIN_STAGES,
@@ -535,12 +535,103 @@ function ProgrammeEditor({
                                         if (!current) return;
                                         const weekdays = event.target.checked ? [...new Set([...current.weekdays, day])].sort()
                                             : current.weekdays.filter(value => value !== day);
-                                        store.dispatch({ type: "field/change", patch: { workingPattern: { version: 1, weekdays } } });
+                                        store.dispatch({ type: "field/change", patch: { workingPattern: isJobWorkingPatternV2(current)
+                                            ? { ...current, weekdays }
+                                            : { version: 1, weekdays } } });
                                     }} />
                                 {day === 6 ? "Work on Saturdays" : "Work on Sundays"}
                             </label>
                         ))}
                         {errorText("programme-working-days-error", fieldErrors.workingPattern)}
+                        <label className={`flex items-center gap-3 min-h-11 text-sm ${s.body}`}>
+                            <input type="checkbox" id="programme-local-hours"
+                                checked={(() => {
+                                    const resolved = resolveJobWorkingPattern(draft.workingPattern);
+                                    return resolved != null && isJobWorkingPatternV2(resolved);
+                                })()}
+                                onChange={event => {
+                                    const current = resolveJobWorkingPattern(draft.workingPattern) ?? { version: 1, weekdays: [1, 2, 3, 4, 5] };
+                                    if (event.target.checked) {
+                                        store.dispatch({ type: "field/change", patch: { workingPattern: {
+                                            version: 2,
+                                            timezone: "",
+                                            weekdays: [...current.weekdays],
+                                            intervals: [{ weekday: current.weekdays[0] ?? 1, startMinute: 0, endMinute: 0 }],
+                                            standardMinutesPerDay: 0,
+                                            productivityPct: 0,
+                                        } } });
+                                    } else if (current.version === 2) {
+                                        store.dispatch({ type: "field/change", patch: { workingPattern: { version: 1, weekdays: [...current.weekdays] } } });
+                                    }
+                                }} />
+                            Set local timezone and working hours (all fields required before save)
+                        </label>
+                        {isJobWorkingPatternV2(resolveJobWorkingPattern(draft.workingPattern)!) && (() => {
+                            const local = resolveJobWorkingPattern(draft.workingPattern)!;
+                            if (!isJobWorkingPatternV2(local)) return null;
+                            const patchInterval = (index: number, next: Partial<JobWorkingInterval>) => {
+                                const intervals = local.intervals.map((row, i) => i === index ? { ...row, ...next } : row);
+                                store.dispatch({ type: "field/change", patch: { workingPattern: { ...local, intervals } } });
+                            };
+                            const minuteInput = (label: string, id: string, value: number, onChange: (minute: number) => void) => (
+                                <div>
+                                    <label htmlFor={id} className={s.label}>{label}</label>
+                                    <input id={id} type="time" disabled={saving} className={`${s.input} mt-1.5`}
+                                        value={`${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`}
+                                        onChange={e => {
+                                            const [h, m] = e.target.value.split(":").map(Number);
+                                            if (Number.isInteger(h) && Number.isInteger(m)) onChange(h * 60 + m);
+                                        }} />
+                                </div>
+                            );
+                            return (
+                                <div className="space-y-3 rounded-lg border border-slate-700/80 p-3" data-programme-local-hours>
+                                    <div>
+                                        <label htmlFor="programme-timezone" className={s.label}>Job timezone (IANA)</label>
+                                        <input id="programme-timezone" type="text" disabled={saving} placeholder="e.g. Europe/London"
+                                            value={local.timezone}
+                                            onChange={e => store.dispatch({ type: "field/change", patch: { workingPattern: { ...local, timezone: e.target.value } } })}
+                                            className={`${s.input} mt-1.5`} />
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <label htmlFor="programme-standard-minutes" className={s.label}>Productive minutes per programme day</label>
+                                            <input id="programme-standard-minutes" inputMode="numeric" disabled={saving}
+                                                value={local.standardMinutesPerDay || ""}
+                                                onChange={e => store.dispatch({ type: "field/change", patch: { workingPattern: {
+                                                    ...local, standardMinutesPerDay: Number(e.target.value) || 0,
+                                                } } })}
+                                                className={`${s.input} mt-1.5`} />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="programme-productivity" className={s.label}>Productivity (%)</label>
+                                            <input id="programme-productivity" inputMode="numeric" disabled={saving}
+                                                value={local.productivityPct || ""}
+                                                onChange={e => store.dispatch({ type: "field/change", patch: { workingPattern: {
+                                                    ...local, productivityPct: Number(e.target.value) || 0,
+                                                } } })}
+                                                className={`${s.input} mt-1.5`} />
+                                        </div>
+                                    </div>
+                                    {local.intervals.map((interval, index) => (
+                                        <div key={index} className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                            <div>
+                                                <label className={s.label} htmlFor={`programme-interval-weekday-${index}`}>Interval day</label>
+                                                <select id={`programme-interval-weekday-${index}`} disabled={saving} className={`${s.input} mt-1.5`}
+                                                    value={interval.weekday}
+                                                    onChange={e => patchInterval(index, { weekday: Number(e.target.value) })}>
+                                                    {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((name, day) => (
+                                                        <option key={name} value={day}>{name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            {minuteInput("Start (local)", `programme-interval-start-${index}`, interval.startMinute, minute => patchInterval(index, { startMinute: minute }))}
+                                            {minuteInput("End (local, overnight if earlier)", `programme-interval-end-${index}`, interval.endMinute, minute => patchInterval(index, { endMinute: minute }))}
+                                        </div>
+                                    ))}
+                                </div>
+                            );
+                        })()}
                     </fieldset>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" data-programme-timing>

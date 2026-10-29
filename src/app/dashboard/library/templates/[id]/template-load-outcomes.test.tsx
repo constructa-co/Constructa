@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -9,18 +10,18 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("next/link", () => ({
-    default: ({ href, children, className }: { href: string; children: unknown; className?: string }) =>
+    default: ({ href, children, className }: { href: string; children: ReactNode; className?: string }) =>
         createElement("a", { href, className }, children),
 }));
 vi.mock("@/components/ui/card", () => ({
-    Card: ({ children }: { children: unknown }) => createElement("div", null, children),
-    CardHeader: ({ children }: { children: unknown }) => createElement("div", null, children),
-    CardTitle: ({ children }: { children: unknown }) => createElement("div", null, children),
-    CardDescription: ({ children }: { children: unknown }) => createElement("div", null, children),
-    CardContent: ({ children }: { children: unknown }) => createElement("div", null, children),
+    Card: ({ children }: { children: ReactNode }) => createElement("div", null, children),
+    CardHeader: ({ children }: { children: ReactNode }) => createElement("div", null, children),
+    CardTitle: ({ children }: { children: ReactNode }) => createElement("div", null, children),
+    CardDescription: ({ children }: { children: ReactNode }) => createElement("div", null, children),
+    CardContent: ({ children }: { children: ReactNode }) => createElement("div", null, children),
 }));
 vi.mock("@/components/ui/button", () => ({
-    Button: (props: Record<string, unknown>) => createElement("button", props, props.children),
+    Button: (props: Record<string, unknown> & { children?: ReactNode }) => createElement("button", props, props.children),
 }));
 vi.mock("lucide-react", () => ({
     Trash2: () => null, Plus: () => null, ArrowLeft: () => null, MoreHorizontal: () => null, PackageOpen: () => null,

@@ -1,4 +1,3 @@
-import { isDeepStrictEqual } from "node:util";
 import { resolveJobWorkingPattern, type JobWorkingPattern } from "./job-working-pattern";
 import { isWorkingPatternV2Draft, type JobWorkingPatternV2Draft } from "./working-pattern-draft";
 
@@ -37,10 +36,14 @@ export function canonicalWorkingPatternComparable(value: unknown): string {
     return JSON.stringify(normalizeDraft(value));
 }
 
+function resolvedJsonEqual(left: JobWorkingPattern, right: JobWorkingPattern): boolean {
+    return JSON.stringify(left) === JSON.stringify(right);
+}
+
 export function workingPatternsEquivalent(left: unknown, right: unknown): boolean {
     const resolvedLeft = resolveJobWorkingPattern(left);
     const resolvedRight = resolveJobWorkingPattern(right);
-    if (resolvedLeft && resolvedRight) return isDeepStrictEqual(resolvedLeft, resolvedRight);
+    if (resolvedLeft && resolvedRight) return resolvedJsonEqual(resolvedLeft, resolvedRight);
     return canonicalWorkingPatternComparable(left) === canonicalWorkingPatternComparable(right);
 }
 

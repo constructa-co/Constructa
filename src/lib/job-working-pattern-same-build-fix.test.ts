@@ -79,6 +79,7 @@ describe("ROB0905 same-build fixes (4a050cd regressions)", () => {
         expect(sql).toContain("NOT BETWEEN 0 AND 6");
         expect(sql).toContain("raw - 'weekday' - 'startMinute' - 'endMinute' <> '{}'::jsonb");
         expect(sql).toContain("(raw ->> 'startMinute')::int = (raw ->> 'endMinute')::int");
+        expect(sql).toContain("NOT (raw ? 'weekday' AND raw ? 'startMinute' AND raw ? 'endMinute')");
         expect(sql).not.toMatch(/RETURN NULL/);
     });
 });

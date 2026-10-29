@@ -45,6 +45,7 @@ AS $$
           WHEN EXISTS (
             SELECT 1 FROM jsonb_array_elements(value -> 'intervals') AS entries(raw)
             WHERE jsonb_typeof(raw) <> 'object'
+               OR NOT (raw ? 'weekday' AND raw ? 'startMinute' AND raw ? 'endMinute')
                OR raw - 'weekday' - 'startMinute' - 'endMinute' <> '{}'::jsonb
                OR jsonb_typeof(raw -> 'weekday') <> 'number'
                OR jsonb_typeof(raw -> 'startMinute') <> 'number'

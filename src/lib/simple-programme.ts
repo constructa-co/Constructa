@@ -284,13 +284,16 @@ export function buildSimpleProgramme(draft: ProgrammeDraft): BuildProgrammeResul
     const fieldErrors: ProgrammeFieldErrors = {};
     const pattern = resolveJobWorkingPattern(draft.workingPattern);
     if (!pattern) {
-        const message = explainWorkingPatternDraft(draft.workingPattern, draft.startDate.trim() || "2026-01-05")
-            ?? "Choose valid working days for this job.";
+        const message = explainWorkingPatternDraft(
+            draft.workingPattern,
+            draft.timeBasis === "relative" ? null : draft.startDate.trim(),
+        ) ?? "Choose valid working days for this job.";
         return { ok: false, fieldErrors: { workingPattern: message } };
     }
-    if (isJobWorkingPatternV2(pattern) && draft.timeBasis !== "relative") {
-        const scheduleStart = draft.startDate.trim() || "2026-01-05";
-        Object.assign(fieldErrors, validateWorkingPatternForProgramme(pattern, scheduleStart, programmeDaysUpperBound(draft)));
+    if (isJobWorkingPatternV2(pattern) && draft.timeBasis !== "relative" && draft.startDate.trim()) {
+        Object.assign(fieldErrors, validateWorkingPatternForProgramme(
+            pattern, draft.startDate.trim(), programmeDaysUpperBound(draft),
+        ));
     }
     const startError = draft.timeBasis === "relative" ? null : validateStartDate(draft.startDate, pattern);
     if (startError) fieldErrors.startDate = startError;

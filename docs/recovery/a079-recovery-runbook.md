@@ -21,6 +21,32 @@ writing it: no export, restore, SQL, Auth or Storage read, login, setting or dep
 | All Git refs, LFS, assets and private or unsaved work | **Not reconciled** | Section 6 |
 | `constructa-ops` recovery export | Reported **skipped** on 25 Oct; no success recorded | Section 7 |
 
+### 1.1 Historical pins (do not treat as current)
+
+The table above records **observed facts at runbook authorship** on branch
+`codex/a079-recovery-20261027` from base `679182996680920363187c352ffc78d825bf096d`
+(112 migration files at that commit). Those rows remain **history**, not a claim that
+679 or 112 migrations still describe the accepted Phase 1A source tree.
+
+### 1.2 Current source coverage (Phase 1A, 2026-10-29)
+
+**Current accepted app source** (manager handoff, source-only): commit
+`d86dca62643fac61dda89a05916d99b966193c79` on remote branch
+`backup/welcome-first-slice-20261018`, parent `b5f513896eb07834e055e260536584ee7d0b708e`.
+Authored SQL at that head: **116** files under `supabase/migrations/` (four migrations
+added since the historical 679 pin). Named A059 NET16 pin `f23e4902df3096a2f4481ea3fb78bd663a21dace`
+is recorded in the coverage manifest; verify reachability on the authoritative remote.
+
+Machine-readable inventory (paths, git blobs, content SHA for
+`20261029103000_project_working_pattern_v2.sql`, held DB/Auth/Storage status):
+
+- `docs/recovery/phase1a-source-coverage-20261029.json`
+- Readable handoff: `docs/recovery/phase1a-source-coverage-handoff-20261029.md`
+
+This coverage **does not** move A079 to Complete. It closes the gap where accepted
+post-b5 / A059-night source was missing from recovery documentation. Full recovery still
+requires operator export, manifest `COMPLETE_SET` with `--root`, and section 9 evidence.
+
 ## 2. Required inputs
 
 These are named by the authorised operator. The runbook never assumes them, and the

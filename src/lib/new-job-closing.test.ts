@@ -1,12 +1,19 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fakeSupabase, type Row } from "./__fixtures__/fake-supabase";
 import { minimalInput } from "./__fixtures__/proposal";
 import { buildBlankProjectGraph, parseBlankProjectInput } from "./blank-project";
 import {
     applyCompanyClosingMessage, draftFromProject, initialReviewState, isReviewDirty, reviewReducer,
-    savedDraftFromProject, TEXT_LIMITS, type ReviewAction, type ReviewContext,
+    reviewStateFromPersistedProject, savedDraftFromProject, TEXT_LIMITS, type ReviewAction, type ReviewContext,
+    type ReviewProject,
 } from "./proposal-review";
+
+const journeyAuth = vi.hoisted(() => ({ requireAuth: vi.fn() }));
+vi.mock("@/lib/supabase/auth-utils", () => ({ requireAuth: journeyAuth.requireAuth }));
+
+import { createBlankProjectAction } from "@/app/dashboard/projects/new/actions";
 
 // A069: a truly NEW job starts with the owner's saved managing director's
 // message as its proposal-specific closing, inside the atomic creation RPC.
@@ -243,5 +250,127 @@ describe("A069 creation request and the proposal editor", () => {
         const draft = draftFromProject(project, () => "key");
         expect(draft.closing).toBe("");
         expect(savedDraftFromProject(project, () => "key").closing).toBe("");
+    });
+});
+
+const JOURNEY_USER = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const JOURNEY_REQUEST = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+function journeyFormData() {
+    const fd = new FormData();
+    fd.set("requestId", JOURNEY_REQUEST);
+    fd.set("name", "New journey job");
+    fd.set("client", "Journey Client");
+    return fd;
+}
+
+/** Fake RPC outcome: persist closing from profile md_message with trim eligibility only (not Postgres). */
+function installA069CreateRpc(db: ReturnType<typeof fakeSupabase>, userId: string) {
+    const committed = new Map<string, string>();
+    db.onRpc((name, args) => {
+        if (name !== "create_phase1_project_graph") return { data: null, error: null };
+        const requestId = String(args.p_request_id);
+        if (committed.has(requestId)) {
+            return { data: [{ project_id: committed.get(requestId), estimate_ids: [] }], error: null };
+        }
+        const profile = (db.tables.profiles ?? []).find(row => row.id === userId);
+        const md = typeof profile?.md_message === "string" ? profile.md_message : null;
+        const closing = md && md.trim() ? md : null;
+        const payload = args.p_project as Row;
+        const projectId = `project-${(db.tables.projects?.length ?? 0) + 1}`;
+        db.tables.projects = db.tables.projects ?? [];
+        db.tables.projects.push({
+            id: projectId,
+            user_id: userId,
+            name: payload.name,
+            client_name: payload.client_name,
+            closing_statement: closing,
+            payment_schedule: [],
+            programme_phases: [],
+        });
+        committed.set(requestId, projectId);
+        return { data: [{ project_id: projectId, estimate_ids: [] }], error: null };
+    });
+}
+
+async function loadPersistedProjectForProposal(supabase: { from: ReturnType<typeof fakeSupabase>["client"]["from"] }, projectId: string) {
+    const { data, error } = await supabase.from("projects").select("*").eq("id", projectId).eq("user_id", JOURNEY_USER).single();
+    expect(error).toBeNull();
+    return data as ReviewProject;
+}
+
+describe("A069 new job creation → persisted row → proposal review (fake Supabase, not Postgres)", () => {
+    beforeEach(() => {
+        journeyAuth.requireAuth.mockReset();
+    });
+
+    it("maps RPC-persisted closing into saved proposal-specific wording after create returns projectId", async () => {
+        const mdMessage = "  We look forward to working with you.\n\nAlex, managing director";
+        const db = fakeSupabase({
+            profiles: [{ id: JOURNEY_USER, md_message: mdMessage }],
+            projects: [],
+        });
+        installA069CreateRpc(db, JOURNEY_USER);
+        journeyAuth.requireAuth.mockResolvedValue({ supabase: db.client });
+
+        const created = await createBlankProjectAction(journeyFormData());
+        expect(created).toEqual({ success: true, projectId: "project-1" });
+
+        const row = await loadPersistedProjectForProposal(db.client, "project-1");
+        expect(row.closing_statement).toBe(mdMessage);
+
+        let state = reviewStateFromPersistedProject(row, () => "key");
+        const store = { getState: () => state, dispatch: (action: ReviewAction) => { state = reviewReducer(state, action); } };
+        expect(state.draft.closing).toBe(mdMessage);
+        expect(state.saved.closing).toBe(mdMessage);
+        expect(isReviewDirty(state)).toBe(false);
+        expect(applyCompanyClosingMessage(store, "Different company message", true).ok).toBe(false);
+        store.dispatch({ type: "draft/change", patch: { closing: "" } });
+        expect(state.draft.closing).toBe("");
+        expect(isReviewDirty(state)).toBe(true);
+    });
+
+    it("keeps the same persisted closing on idempotent create retry", async () => {
+        const mdMessage = "Signed, the director";
+        const db = fakeSupabase({ profiles: [{ id: JOURNEY_USER, md_message: mdMessage }], projects: [] });
+        installA069CreateRpc(db, JOURNEY_USER);
+        journeyAuth.requireAuth.mockResolvedValue({ supabase: db.client });
+
+        const first = await createBlankProjectAction(journeyFormData());
+        const retry = await createBlankProjectAction(journeyFormData());
+        expect(retry).toEqual(first);
+
+        const row = await loadPersistedProjectForProposal(db.client, "project-1");
+        expect(reviewStateFromPersistedProject(row, () => "k").saved.closing).toBe(mdMessage);
+    });
+
+    it("leaves closing empty when profile message is blank-eligible only", async () => {
+        const db = fakeSupabase({ profiles: [{ id: JOURNEY_USER, md_message: "\u00A0\uFEFF" }], projects: [] });
+        installA069CreateRpc(db, JOURNEY_USER);
+        journeyAuth.requireAuth.mockResolvedValue({ supabase: db.client });
+
+        const created = await createBlankProjectAction(journeyFormData());
+        expect(created.success).toBe(true);
+        if (!created.success) return;
+
+        const row = await loadPersistedProjectForProposal(db.client, created.projectId);
+        expect(row.closing_statement).toBeNull();
+        expect(reviewStateFromPersistedProject(row, () => "k").draft.closing).toBe("");
+    });
+
+    it("does not rewrite closing from a later profile message change", async () => {
+        const original = "Original saved closing";
+        const db = fakeSupabase({ profiles: [{ id: JOURNEY_USER, md_message: original }], projects: [] });
+        installA069CreateRpc(db, JOURNEY_USER);
+        journeyAuth.requireAuth.mockResolvedValue({ supabase: db.client });
+
+        const created = await createBlankProjectAction(journeyFormData());
+        expect(created.success).toBe(true);
+        if (!created.success) return;
+
+        db.tables.profiles![0]!.md_message = "Profile changed after the job was created";
+        const row = await loadPersistedProjectForProposal(db.client, created.projectId);
+        expect(row.closing_statement).toBe(original);
+        expect(reviewStateFromPersistedProject(row, () => "k").draft.closing).toBe(original);
     });
 });

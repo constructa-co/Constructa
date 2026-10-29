@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import InstallBanner from "@/components/install-banner";
 import { logCostAction } from "@/app/dashboard/projects/p-and-l/actions";
 import { COST_TYPES } from "@/app/dashboard/projects/p-and-l/constants";
+import { coreFocusRing, coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 interface Project {
   id: string;
@@ -166,9 +167,9 @@ export default function MobileHubClient({ projects, recentCosts, recentVars }: P
               <button
                 key={p.id}
                 onClick={() => setSelectedId(p.id)}
-                className={`shrink-0 text-left px-3 py-2.5 rounded-xl border text-xs font-medium transition-all max-w-[160px] ${
+                className={`shrink-0 text-left px-3 py-2.5 rounded-xl border text-xs font-medium transition-all max-w-[160px] ${coreFocusVisibleRing} ${
                   selectedId === p.id
-                    ? "bg-blue-600/20 border-blue-500/50 text-blue-300"
+                    ? "bg-emerald-950/40 border-emerald-600 text-emerald-200"
                     : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
                 }`}
               >
@@ -303,7 +304,7 @@ export default function MobileHubClient({ projects, recentCosts, recentVars }: P
                 value={fabAmount}
                 onChange={e => setFabAmount(e.target.value)}
                 placeholder="0.00"
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-lg font-semibold placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className={`w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-lg font-semibold placeholder:text-slate-600 ${coreFocusRing}`}
                 autoFocus
               />
             </div>
@@ -314,7 +315,7 @@ export default function MobileHubClient({ projects, recentCosts, recentVars }: P
                 value={fabDesc}
                 onChange={e => setFabDesc(e.target.value)}
                 placeholder="e.g. Timber delivery, Skip hire"
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className={`w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-slate-600 ${coreFocusRing}`}
               />
             </div>
             <div>
@@ -325,9 +326,9 @@ export default function MobileHubClient({ projects, recentCosts, recentVars }: P
                     key={ct}
                     type="button"
                     onClick={() => setFabType(ct)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${coreFocusVisibleRing} ${
                       fabType === ct
-                        ? "bg-blue-600 text-white"
+                        ? corePrimaryButton
                         : "bg-slate-800 text-slate-400 border border-slate-700 hover:border-slate-600"
                     }`}
                   >
@@ -339,7 +340,7 @@ export default function MobileHubClient({ projects, recentCosts, recentVars }: P
             <button
               onClick={handleQuickLog}
               disabled={fabSaving || !selectedId}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className={`w-full ${corePrimaryButton} font-bold py-3 rounded-xl text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${coreFocusVisibleRing}`}
             >
               {fabSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <PoundSterling className="w-4 h-4" />}
               {fabSaving ? "Saving…" : "Log Cost"}
@@ -352,7 +353,7 @@ export default function MobileHubClient({ projects, recentCosts, recentVars }: P
       {!fabOpen && (
         <button
           onClick={() => setFabOpen(true)}
-          className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg shadow-blue-900/40 flex items-center justify-center transition-all active:scale-90"
+          className={`fixed bottom-6 right-6 z-40 w-14 h-14 ${corePrimaryButton} rounded-full shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 ${coreFocusVisibleRing}`}
           aria-label="Quick log cost"
         >
           <Plus className="w-6 h-6" />

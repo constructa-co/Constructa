@@ -28,6 +28,7 @@ import {
   type StaffResourceInput,
 } from "./actions";
 import { Pencil, Trash2, Users } from "lucide-react";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -323,7 +324,7 @@ function NumericInput({
         onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
         onFocus={(e) => e.target.select()}
         className={[
-          "bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-blue-500",
+          "bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-emerald-600 focus-visible:ring-emerald-600",
           prefix ? "pl-7" : "",
           suffix ? "pr-8" : "",
         ]
@@ -496,7 +497,7 @@ function StaffFormDialog({
               <div className="grid grid-cols-[auto_1fr_1fr] gap-3 items-end">
                 <FieldGroup label="Title">
                   <Select value={form.title} onValueChange={(v) => set("title", v)}>
-                    <SelectTrigger className="bg-input border-border text-foreground w-24 focus:ring-blue-500">
+                    <SelectTrigger className="bg-input border-border text-foreground w-24 focus:ring-emerald-600">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-input border-border text-foreground">
@@ -518,7 +519,7 @@ function StaffFormDialog({
                     value={form.first_name}
                     onChange={(e) => set("first_name", e.target.value)}
                     placeholder="e.g. Sarah"
-                    className="bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-blue-500"
+                    className="bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-emerald-600 focus-visible:ring-emerald-600"
                   />
                 </FieldGroup>
 
@@ -527,7 +528,7 @@ function StaffFormDialog({
                     value={form.last_name}
                     onChange={(e) => set("last_name", e.target.value)}
                     placeholder="e.g. Johnson"
-                    className="bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-blue-500"
+                    className="bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-emerald-600 focus-visible:ring-emerald-600"
                   />
                 </FieldGroup>
               </div>
@@ -539,7 +540,7 @@ function StaffFormDialog({
                   value={form.job_title}
                   onChange={(e) => set("job_title", e.target.value)}
                   placeholder="e.g. Site Manager, Electrician, Director"
-                  className="bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-blue-500"
+                  className="bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-emerald-600 focus-visible:ring-emerald-600"
                 />
                 <datalist id="job-title-suggestions">
                   {JOB_TITLE_SUGGESTIONS.map((t) => <option key={t} value={t} />)}
@@ -556,16 +557,16 @@ function StaffFormDialog({
                 type="button"
                 onClick={() => set("rate_mode", "simple")}
                 className={[
-                  "rounded-lg border-2 p-4 text-left transition-colors",
+                  `rounded-lg border-2 p-4 text-left transition-colors ${coreFocusVisibleRing}`,
                   form.rate_mode === "simple"
-                    ? "border-blue-500 bg-blue-950/40"
+                    ? "border-emerald-600 bg-emerald-950/40"
                     : "border-border bg-input/40 hover:border-border",
                 ].join(" ")}
               >
                 <p
                   className={[
                     "font-semibold text-sm",
-                    form.rate_mode === "simple" ? "text-blue-300" : "text-foreground/80",
+                    form.rate_mode === "simple" ? "text-emerald-200" : "text-foreground/80",
                   ].join(" ")}
                 >
                   Simple Rate
@@ -577,16 +578,16 @@ function StaffFormDialog({
                 type="button"
                 onClick={() => set("rate_mode", "full")}
                 className={[
-                  "rounded-lg border-2 p-4 text-left transition-colors",
+                  `rounded-lg border-2 p-4 text-left transition-colors ${coreFocusVisibleRing}`,
                   form.rate_mode === "full"
-                    ? "border-blue-500 bg-blue-950/40"
+                    ? "border-emerald-600 bg-emerald-950/40"
                     : "border-border bg-input/40 hover:border-border",
                 ].join(" ")}
               >
                 <p
                   className={[
                     "font-semibold text-sm",
-                    form.rate_mode === "full" ? "text-blue-300" : "text-foreground/80",
+                    form.rate_mode === "full" ? "text-emerald-200" : "text-foreground/80",
                   ].join(" ")}
                 >
                   Full Cost Buildup
@@ -813,7 +814,7 @@ function StaffFormDialog({
               onChange={(e) => set("notes", e.target.value)}
               placeholder="Any additional notes about this team member…"
               rows={3}
-              className="bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-blue-500 resize-none"
+              className="bg-input border-border text-foreground placeholder:text-muted-foreground focus:border-emerald-600 focus-visible:ring-emerald-600 resize-none"
             />
           </section>
 
@@ -830,7 +831,7 @@ function StaffFormDialog({
             <Button
               type="submit"
               disabled={isPending}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className={`${corePrimaryButton} ${coreFocusVisibleRing}`}
             >
               {isPending ? "Saving…" : isEdit ? "Save Changes" : "Add Staff Member"}
             </Button>
@@ -881,7 +882,7 @@ export default function StaffResourcesClient({ staff }: { staff: StaffRow[] }) {
           <h2 className="text-lg font-semibold text-foreground">Staff &amp; Contractors</h2>
           <p className="text-sm text-muted-foreground">Build accurate labour cost profiles for your team</p>
         </div>
-        <Button onClick={openAdd} className="bg-blue-600 hover:bg-blue-700 text-white">
+        <Button onClick={openAdd} className={`${corePrimaryButton} ${coreFocusVisibleRing}`}>
           + Add Staff Member
         </Button>
       </div>
@@ -894,7 +895,7 @@ export default function StaffResourcesClient({ staff }: { staff: StaffRow[] }) {
           <p className="text-muted-foreground text-sm mb-6 max-w-xs">
             Create cost profiles for employees and contractors to use in project estimates
           </p>
-          <Button onClick={openAdd} className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button onClick={openAdd} className={`${corePrimaryButton} ${coreFocusVisibleRing}`}>
             + Add Staff Member
           </Button>
         </div>

@@ -62,10 +62,20 @@ export default function CSVImporter() {
 
                 try {
                     const response = await bulkAddMoMItemsAction(itemsToInsert);
+                    if (response.error) {
+                        setResult({ success: false, message: response.error });
+                        return;
+                    }
                     setResult({ success: true, message: `Successfully imported ${response.count} items`, count: response.count });
-                    router.refresh();
-                } catch (error: any) {
-                    setResult({ success: false, message: error.message || "Failed to upload items." });
+                    try {
+                        router.refresh();
+                    } catch {
+                        // The import is confirmed; only the page refresh failed.
+                        setResult({ success: true, message: `Successfully imported ${response.count} items. Reload the library to see them.`, count: response.count });
+                    }
+                } catch {
+                    // The request may have failed after the database write, so don't claim nothing changed.
+                    setResult({ success: false, message: "Couldn't confirm the import. Some categories or items may already have been saved; reload the library to check before importing again." });
                 } finally {
                     setIsUploading(false);
                 }

@@ -82,7 +82,22 @@ describe("bulkAddMoMItemsAction outcomes", () => {
         const result = await bulkAddMoMItemsAction(items) as { error?: string; count?: number };
         expect(result.count).toBeUndefined();
         expect(result.error).toContain("duplicate key violates constraint");
-        expect(result.error).toMatch(/no items were imported/i);
+        expect(result.error).toMatch(/couldn.t confirm/i);
+        expect(revalidatePath).not.toHaveBeenCalled();
+    });
+
+    it("a lost item response returned as an error (postgrest-js status 0) does not claim nothing was imported", async () => {
+        // postgrest-js returns fetch failures as { error, status: 0 } instead of throwing.
+        db.results = [level0, level1, {
+            data: null, status: 0, statusText: "", count: null,
+            error: { message: "TypeError: fetch failed", details: "TypeError: fetch failed", hint: "", code: "" },
+        } as never];
+        const result = await bulkAddMoMItemsAction(items) as { error?: string; count?: number };
+        expect(result.count).toBeUndefined();
+        expect(result.error).toContain("TypeError: fetch failed");
+        expect(result.error).not.toMatch(/no items were imported/i);
+        expect(result.error).toMatch(/couldn.t confirm/i);
+        expect(result.error).toMatch(/items may already have been saved/i);
         expect(revalidatePath).not.toHaveBeenCalled();
     });
 

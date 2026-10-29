@@ -171,7 +171,8 @@ export async function bulkAddMoMItemsAction(items: any[]) {
 
         if (error) {
             console.error("[bulkAddMoMItems] item upsert failed", error);
-            return { error: `No items were imported (${error.message}). The categories for this file may already have been saved.` };
+            // A lost response also arrives here as a returned error, so the write may have happened.
+            return { error: `Couldn't confirm the items were imported (${error.message}). Categories or items may already have been saved; reload the library to check before importing again.` };
         }
         count = (insertedItems ?? []).length;
     }

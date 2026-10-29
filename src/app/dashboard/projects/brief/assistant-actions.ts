@@ -14,5 +14,5 @@ export async function briefAssistantTurnAction(input: unknown): Promise<BriefTur
     const [{ handleBriefTurn }, { approvedBriefGenerator }] = await Promise.all([
         import("@/lib/server/brief-request"), import("@/lib/server/job-assistant-transport"),
     ]);
-    return handleBriefTurn(input, approvedBriefGenerator() ?? undefined);
+    return handleBriefTurn(input, { prepare: () => approvedBriefGenerator() });
 }

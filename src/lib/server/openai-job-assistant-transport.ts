@@ -2,7 +2,7 @@ import "server-only";
 
 import type OpenAI from "openai";
 import { getAIClient } from "@/lib/ai";
-import { costPence, type JobAssistantTransport, type TransportRequest, type TransportResult } from "./job-assistant-generation";
+import { costPence, type JobAssistantProvider, type JobAssistantTransport, type TransportRequest, type TransportResult } from "./job-assistant-generation";
 
 /** The part of the installed OpenAI SDK this transport uses. Tests pass a fake. */
 export type ChatClient = Pick<OpenAI, "chat">;
@@ -72,3 +72,14 @@ export function createOpenAIJobAssistantTransport(options: {
         },
     };
 }
+
+/**
+ * The OpenAI provider for the activation point. `configured` says whether the
+ * server has a key, the same check `getAIClient` makes, without making a
+ * client or using the key. Nothing here is approved; the activation point asks
+ * only once a feature has an approved configuration naming this provider.
+ */
+export const openAIJobAssistantProvider: JobAssistantProvider = {
+    configured: () => Boolean(process.env.OPENAI_API_KEY?.trim()),
+    transport: systemPrompt => createOpenAIJobAssistantTransport({ systemPrompt }),
+};

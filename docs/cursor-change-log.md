@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-10-29 — ROB0635 combined Phase 1A (Cursor integration)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| 16 Claude + 2 cloud test paths | OFF-readiness + manual create + A069 mock projection | Pins **7605abf**, **c159223**, **97c893** on **341a24d** |
+| `new-job-closing.test.ts` | `select()` + `unknown` cast in test helper only | ROOT `fakeSupabase` tsc alignment (not in 97c893 pin) |
+| Register/docs | Metadata **A040/A055/A059/A063/A069** Partial | Statuses unchanged **76C 22P 19N 1B** |
+
 ## 2026-10-28 — ROB0225 A055 reservation conclude (Cursor integration)
 
 | File | Change | Intent |

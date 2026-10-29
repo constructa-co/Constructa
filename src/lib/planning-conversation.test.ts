@@ -258,7 +258,7 @@ describe("no hidden writes or reused authority", () => {
         expect(page).not.toContain("planningGenerator");
         // A055: the page passes only the server's availability; the real request
         // path is used only when that is on, and a test generator only when injected.
-        expect(page).toContain("planningAssistantEnabled={jobAssistantAvailability().planning}");
+        expect(page).toContain('planningAssistantEnabled={await jobAssistantAvailable("planning")}');
         expect(client).toContain("planningGenerator ?? (planningAssistantEnabled\n        ? createPlanningRequestGenerator(planningAssistantTurnAction) : undefined)");
         expect(client).toContain("createPlanningConversation(() => source, planningTransport)");
         expect(client).toMatch(/planningAssistantEnabled = false/);

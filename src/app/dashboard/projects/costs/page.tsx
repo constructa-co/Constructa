@@ -7,7 +7,7 @@ import EstimateClient from "./estimate-client";
 import { toEstimate } from "./estimate-mapping";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import { loadPricingExperienceSource } from "@/lib/server/pricing-experience";
-import { jobAssistantAvailability } from "@/lib/server/job-assistant-transport";
+import { jobAssistantAvailable } from "@/lib/server/job-assistant-transport";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // BoQ import (GPT-4o Vision PDF / Excel AI parse) can take 20-40s
@@ -62,7 +62,7 @@ export default async function EstimatingPage(props: { searchParams: Promise<{ pr
             <EstimateClient
                 key={project.id}
                 defaultTabId={searchParams.tab}
-                pricingAssistantEnabled={jobAssistantAvailability().pricing}
+                pricingAssistantEnabled={await jobAssistantAvailable("pricing")}
                 estimates={(estimates || []).map(toEstimate)}
                 project={{
                     id: project.id,

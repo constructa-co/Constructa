@@ -219,3 +219,8 @@ policy approved in register metadata only; **73709** not on ROOT. Receipt
 
 **Parent `416525e`:** **ba0d92c** two files. ROOT **18/18** material tests. **A055 Partial**. Receipt
 `rob0225-a055-integrated-source-backup-20261029.json`.
+
+## ROB0635 combined — 29 October 2026
+
+**Parent `341a24d`:** three accepted pins (**c159223**, **97c893**, **7605abf**); **18** product/test paths + register/docs. ROOT **32/32** material; **A059 NO_PRODUCT_DELTA**. Receipt
+`rob0635-integrated-source-backup-20261029.json`.

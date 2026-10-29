@@ -11,7 +11,7 @@ import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-ac
 import { toEstimate } from "@/app/dashboard/projects/costs/estimate-mapping";
 import type { Estimate } from "@/app/dashboard/projects/costs/types";
 import type { ServerPricingGenerator } from "./job-assistant-transport";
-import type { AttemptOutcome } from "./job-assistant-generation";
+import { resolveGenerator, type AttemptOutcome, type GeneratorSource } from "./job-assistant-generation";
 
 const CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/;
 
@@ -65,12 +65,14 @@ export async function inspectPricingRequest(input: unknown): Promise<PricingRequ
  * the reply against the SERVER's context, and a second freshness check.
  * The reply carries the job, estimate and revision it was checked against.
  */
-export async function handlePricingTurn(input: unknown, generate?: ServerPricingGenerator): Promise<PricingTurnResult> {
+export async function handlePricingTurn(input: unknown, source?: GeneratorSource<ServerPricingGenerator>): Promise<PricingTurnResult> {
     const parsed = TurnSchema.safeParse(input);
     if (!parsed.success) return invalid();
     const { history, ...request } = parsed.data;
     const verified = await verifyPricingRequest(request);
     if (!verified.ok) return verified.result;
+    // Prepared only now, for a verified owner: the activation point's checks run before anything is reserved or sent.
+    const generate = await resolveGenerator(source);
     if (!generate) return { status: "off", message: PRICING_CONVERSATION_OFF };
     // The attempt identifier is the server's; every outcome below is recorded against it.
     const attemptId = randomUUID();

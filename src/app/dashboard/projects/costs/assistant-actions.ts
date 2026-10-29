@@ -14,5 +14,5 @@ export async function pricingAssistantTurnAction(input: unknown): Promise<Pricin
     const [{ handlePricingTurn }, { approvedPricingGenerator }] = await Promise.all([
         import("@/lib/server/pricing-request"), import("@/lib/server/job-assistant-transport"),
     ]);
-    return handlePricingTurn(input, approvedPricingGenerator() ?? undefined);
+    return handlePricingTurn(input, { prepare: () => approvedPricingGenerator() });
 }

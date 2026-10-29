@@ -210,3 +210,8 @@
 
 - Parent **416525e**: pin **ba0d92c** two paths (generation helper + request tests). ROOT **18/18** material selection (17 main + 1 Brief).
 - **A055 Partial**; conclusion-ownership debt closed on slice only. Receipt **`rob0225-a055-integrated-source-backup-20261029.json`**.
+
+## ROB0635 combined Phase 1A block — 29 October 2026
+
+- Parent **341a24d**: **c159223** (A040 2-case test) + **97c893** (A069 4 mock projection cases; test-only `select()` fixture alignment) + **7605abf** (16-path OFF-readiness). ROOT **32/32** material tests; reviews **1783/89de/f915** accepted.
+- **A040/A055/A059/A063/A069 Partial** metadata only; **76C 22P 19N 1B**. Receipt **`rob0635-integrated-source-backup-20261029.json`**. Backup after **06:45** target (miss reported in return).

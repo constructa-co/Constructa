@@ -22,7 +22,6 @@ function partsAt(utcMs: number, timeZone: string) {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
-        weekday: "short",
     });
     const bag: Record<string, string> = {};
     for (const part of formatter.formatToParts(new Date(utcMs))) {
@@ -38,16 +37,20 @@ function partsAt(utcMs: number, timeZone: string) {
     };
 }
 
+function civilDateParts(iso: string) {
+    const match = ISO_RE.exec(iso);
+    if (!match) return null;
+    return { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) };
+}
+
 /** UTC ms for local civil midnight at the start of `iso` in `timeZone`, or null when the date is invalid. */
 export function localStartOfDayUtc(iso: string, timeZone: string): number | null {
-    const match = ISO_RE.exec(iso);
-    if (!match || !isValidIanaTimeZone(timeZone)) return null;
-    const year = Number(match[1]);
-    const month = Number(match[2]);
-    const day = Number(match[3]);
+    const civil = civilDateParts(iso);
+    if (!civil || !isValidIanaTimeZone(timeZone)) return null;
+    const { year, month, day } = civil;
     if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
     let utc = Date.UTC(year, month - 1, day, 12, 0, 0);
-    for (let attempt = 0; attempt < 6; attempt += 1) {
+    for (let attempt = 0; attempt < 8; attempt += 1) {
         const local = partsAt(utc, timeZone);
         const deltaDays = (local.year - year) * 372 + (local.month - month) * 31 + (local.day - day);
         if (deltaDays === 0 && local.hour === 0 && local.minute === 0 && local.second === 0) return utc;
@@ -76,9 +79,19 @@ export function localWeekday(iso: string, timeZone: string): number | null {
 export function nextLocalIsoDate(iso: string, timeZone: string): string | null {
     const start = localStartOfDayUtc(iso, timeZone);
     if (start === null) return null;
-    for (const hours of [24, 25, 26, 27, 28]) {
+    for (const hours of [24, 25, 26, 27, 28, 30, 32]) {
         const next = localIsoDateFromUtc(start + hours * 3_600_000, timeZone);
         if (next && next !== iso) return next;
+    }
+    return null;
+}
+
+export function previousLocalIsoDate(iso: string, timeZone: string): string | null {
+    const start = localStartOfDayUtc(iso, timeZone);
+    if (start === null) return null;
+    for (const hours of [24, 25, 26, 27, 28, 30, 32]) {
+        const prev = localIsoDateFromUtc(start - hours * 3_600_000, timeZone);
+        if (prev && prev !== iso) return prev;
     }
     return null;
 }
@@ -94,29 +107,29 @@ export function addLocalCalendarDays(iso: string, days: number, timeZone: string
     return current;
 }
 
-/**
- * True when local wall clock (hour:minute) exists on `iso` in `timeZone`.
- * Fails closed on ambiguous/nonexistent DST wall times.
- */
-export function localWallClockExists(iso: string, minuteOfDay: number, timeZone: string): boolean {
-    if (minuteOfDay < 0 || minuteOfDay >= 1440 || !Number.isInteger(minuteOfDay)) return false;
+export type LocalWallClockStatus = "invalid" | "nonexistent" | "ambiguous" | "unique";
+
+/** Count UTC instants mapping to this local civil date and wall minute. */
+export function localWallClockStatus(iso: string, minuteOfDay: number, timeZone: string): LocalWallClockStatus {
+    if (minuteOfDay < 0 || minuteOfDay >= 1440 || !Number.isInteger(minuteOfDay)) return "invalid";
+    const civil = civilDateParts(iso);
     const start = localStartOfDayUtc(iso, timeZone);
-    if (start === null) return false;
+    if (!civil || start === null || !isValidIanaTimeZone(timeZone)) return "invalid";
     const hour = Math.floor(minuteOfDay / 60);
     const minute = minuteOfDay % 60;
-    const utcMs = start + (hour * 60 + minute) * 60_000;
-    const local = partsAt(utcMs, timeZone);
-    const back = localStartOfDayUtc(iso, timeZone);
-    if (back === null) return false;
-    const expectedOffset = utcMs - back;
-    const actualOffset = ((local.hour * 60 + local.minute) * 60 + local.second) * 1000;
-    if (actualOffset !== expectedOffset) return false;
-    const matches = local.year === Number(iso.slice(0, 4))
-        && local.month === Number(iso.slice(5, 7))
-        && local.day === Number(iso.slice(8, 10))
-        && local.hour === hour
-        && local.minute === minute;
-    if (!matches) return false;
-    const roundTrip = localStartOfDayUtc(iso, timeZone)! + expectedOffset;
-    return partsAt(roundTrip, timeZone).hour === hour && partsAt(roundTrip, timeZone).minute === minute;
+    let matches = 0;
+    for (let ms = start - 4 * 3_600_000; ms <= start + 28 * 3_600_000; ms += 60_000) {
+        const local = partsAt(ms, timeZone);
+        if (local.year === civil.year && local.month === civil.month && local.day === civil.day
+            && local.hour === hour && local.minute === minute) {
+            matches += 1;
+            if (matches > 1) return "ambiguous";
+        }
+    }
+    if (matches === 0) return "nonexistent";
+    return "unique";
+}
+
+export function localWallClockExists(iso: string, minuteOfDay: number, timeZone: string): boolean {
+    return localWallClockStatus(iso, minuteOfDay, timeZone) === "unique";
 }

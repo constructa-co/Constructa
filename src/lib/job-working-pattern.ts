@@ -1,6 +1,7 @@
 import { parseIsoDate } from "./programme-date";
 import {
-    addLocalCalendarDays, isValidIanaTimeZone, localStartOfDayUtc, localWallClockExists, localWeekday, nextLocalIsoDate,
+    isValidIanaTimeZone, localStartOfDayUtc, localWallClockExists, localWallClockStatus, localWeekday,
+    nextLocalIsoDate,
 } from "./job-working-local";
 
 /** UTC civil weekdays: Sunday=0 through Saturday=6. Version 1 has no shift/hour capacity. */
@@ -72,45 +73,64 @@ function intervalSpanMinutes(interval: JobWorkingInterval): number {
     return (1440 - interval.startMinute) + interval.endMinute;
 }
 
-function sameDayPortion(interval: JobWorkingInterval): { start: number; end: number } {
-    if (interval.endMinute > interval.startMinute) return { start: interval.startMinute, end: interval.endMinute };
-    return { start: interval.startMinute, end: 1440 };
+interface IntervalSegment {
+    weekday: number;
+    start: number;
+    end: number;
 }
 
-function intervalsOverlap(a: JobWorkingInterval, b: JobWorkingInterval): boolean {
-    if (a.weekday !== b.weekday) return false;
-    const left = sameDayPortion(a);
-    const right = sameDayPortion(b);
+function intervalSegments(interval: JobWorkingInterval): IntervalSegment[] {
+    if (interval.endMinute > interval.startMinute) {
+        return [{ weekday: interval.weekday, start: interval.startMinute, end: interval.endMinute }];
+    }
+    return [
+        { weekday: interval.weekday, start: interval.startMinute, end: 1440 },
+        { weekday: (interval.weekday + 1) % 7, start: 0, end: interval.endMinute },
+    ];
+}
+
+function segmentsOverlap(left: IntervalSegment, right: IntervalSegment): boolean {
+    if (left.weekday !== right.weekday) return false;
     return left.start < right.end && right.start < left.end;
 }
 
-function referenceIsoForWeekday(weekday: number): string {
-    const base = new Date(Date.UTC(2026, 9, 18));
-    for (let offset = 0; offset < 7; offset += 1) {
-        const probe = new Date(base.getTime() + offset * 86_400_000);
-        if (probe.getUTCDay() === weekday) return probe.toISOString().slice(0, 10);
-    }
-    return "2026-10-18";
+const SAMPLE_LOCAL_DATES = [
+    "2026-03-08", "2026-03-29", "2026-06-15", "2026-10-25", "2026-11-01",
+];
+
+function sampleDatesForWeekday(weekday: number, timeZone: string): string[] {
+    return SAMPLE_LOCAL_DATES.filter(iso => localWeekday(iso, timeZone) === weekday);
+}
+
+function overnightSpillAllowed(pattern: Omit<JobWorkingPatternV2, "version">, interval: JobWorkingInterval): boolean {
+    if (interval.endMinute > interval.startMinute) return true;
+    const spillWeekday = (interval.weekday + 1) % 7;
+    return interval.endMinute === 0 || pattern.weekdays.includes(spillWeekday);
 }
 
 function validateV2Intervals(pattern: Omit<JobWorkingPatternV2, "version">): boolean {
     if (!pattern.intervals.length || pattern.intervals.length > 21) return false;
+    const segments: IntervalSegment[] = [];
     for (const interval of pattern.intervals) {
         if (!pattern.weekdays.includes(interval.weekday)) return false;
         if (intervalSpanMinutes(interval) <= 0 || intervalSpanMinutes(interval) > 1440) return false;
-        const iso = referenceIsoForWeekday(interval.weekday);
-        if (!localWallClockExists(iso, interval.startMinute, pattern.timezone)) return false;
-        const endMinute = interval.endMinute > interval.startMinute ? interval.endMinute : interval.endMinute;
-        if (!localWallClockExists(iso, endMinute === 0 ? 0 : Math.min(endMinute, 1439), pattern.timezone)) {
-            if (interval.endMinute <= interval.startMinute) {
-                const next = nextLocalIsoDate(iso, pattern.timezone);
-                if (!next || !localWallClockExists(next, interval.endMinute, pattern.timezone)) return false;
-            } else return false;
+        if (!overnightSpillAllowed(pattern, interval)) return false;
+        for (const iso of sampleDatesForWeekday(interval.weekday, pattern.timezone)) {
+            if (localWallClockStatus(iso, interval.startMinute, pattern.timezone) !== "unique") return false;
+            if (interval.endMinute > interval.startMinute
+                && localWallClockStatus(iso, Math.min(interval.endMinute, 1439), pattern.timezone) !== "unique") return false;
         }
+        if (interval.endMinute <= interval.startMinute && interval.endMinute > 0) {
+            const spillWeekday = (interval.weekday + 1) % 7;
+            for (const iso of sampleDatesForWeekday(spillWeekday, pattern.timezone)) {
+                if (localWallClockStatus(iso, Math.min(interval.endMinute, 1439), pattern.timezone) !== "unique") return false;
+            }
+        }
+        segments.push(...intervalSegments(interval));
     }
-    for (let i = 0; i < pattern.intervals.length; i += 1) {
-        for (let j = i + 1; j < pattern.intervals.length; j += 1) {
-            if (intervalsOverlap(pattern.intervals[i], pattern.intervals[j])) return false;
+    for (let i = 0; i < segments.length; i += 1) {
+        for (let j = i + 1; j < segments.length; j += 1) {
+            if (segmentsOverlap(segments[i], segments[j])) return false;
         }
     }
     return true;
@@ -168,20 +188,43 @@ export function isDefaultJobWorkingPattern(pattern: JobWorkingPattern): boolean 
 
 export function intervalMinutesOnLocalDay(pattern: JobWorkingPatternV2, weekday: number): number {
     let total = 0;
-    for (const interval of pattern.intervals) {
-        if (interval.endMinute > interval.startMinute) {
-            if (interval.weekday === weekday) total += interval.endMinute - interval.startMinute;
-            continue;
-        }
-        if (interval.weekday === weekday) total += 1440 - interval.startMinute;
-        const nextWeekday = (interval.weekday + 1) % 7;
-        if (nextWeekday === weekday) total += interval.endMinute;
+    for (const segment of pattern.intervals.flatMap(intervalSegments)) {
+        if (segment.weekday === weekday) total += segment.end - segment.start;
     }
     return total;
 }
 
 export function effectiveLocalDayMinutes(pattern: JobWorkingPatternV2, weekday: number): number {
     return Math.round(intervalMinutesOnLocalDay(pattern, weekday) * (pattern.productivityPct / 100));
+}
+
+/** Capacity on one local civil date; null when a required wall time is unsupported on that date. */
+export function effectiveLocalDayMinutesOnDate(iso: string, pattern: JobWorkingPatternV2): number | null {
+    const weekday = localWeekday(iso, pattern.timezone);
+    if (weekday === null || !pattern.weekdays.includes(weekday)) return 0;
+    let total = 0;
+    for (const interval of pattern.intervals) {
+        if (interval.endMinute > interval.startMinute) {
+            if (interval.weekday !== weekday) continue;
+            if (localWallClockStatus(iso, interval.startMinute, pattern.timezone) !== "unique") return null;
+            const endProbe = Math.max(interval.startMinute, interval.endMinute - 1);
+            if (localWallClockStatus(iso, endProbe, pattern.timezone) !== "unique") return null;
+            total += interval.endMinute - interval.startMinute;
+            continue;
+        }
+        if (interval.weekday === weekday) {
+            if (localWallClockStatus(iso, interval.startMinute, pattern.timezone) !== "unique") return null;
+            total += 1440 - interval.startMinute;
+        }
+        const spillWeekday: number = (interval.weekday + 1) % 7;
+        if (spillWeekday === weekday && interval.endMinute > 0) {
+            if (!pattern.weekdays.includes(spillWeekday)) return null;
+            const endProbe = Math.max(0, interval.endMinute - 1);
+            if (localWallClockStatus(iso, endProbe, pattern.timezone) !== "unique") return null;
+            total += interval.endMinute;
+        }
+    }
+    return Math.round(total * (pattern.productivityPct / 100));
 }
 
 const DAY_MS = 86_400_000;
@@ -202,8 +245,9 @@ function isoDateUtc(ms: number): string | null {
 function rollForwardLocal(iso: string, pattern: JobWorkingPatternV2): string | null {
     let current = iso;
     for (let guard = 0; guard < 4000; guard += 1) {
-        const weekday = localWeekday(current, pattern.timezone);
-        if (weekday !== null && pattern.weekdays.includes(weekday) && effectiveLocalDayMinutes(pattern, weekday) > 0) return current;
+        const minutes = effectiveLocalDayMinutesOnDate(current, pattern);
+        if (minutes === null) return null;
+        if (minutes > 0) return current;
         const next = nextLocalIsoDate(current, pattern.timezone);
         if (!next) return null;
         current = next;
@@ -219,9 +263,10 @@ function addJobWorkingDaysV2(startIso: string, workingDays: number, pattern: Job
     if (!current) return null;
     let accumulated = 0;
     for (let guard = 0; guard < 5000; guard += 1) {
-        const weekday = localWeekday(current, pattern.timezone);
-        if (weekday !== null && pattern.weekdays.includes(weekday)) {
-            accumulated += effectiveLocalDayMinutes(pattern, weekday);
+        const minutes = effectiveLocalDayMinutesOnDate(current, pattern);
+        if (minutes === null) return null;
+        if (minutes > 0) {
+            accumulated += minutes;
             if (accumulated >= required) return current;
         }
         const next = nextLocalIsoDate(current, pattern.timezone);
@@ -238,8 +283,9 @@ function countJobWorkingDaysV2(startIso: string, endIso: string, pattern: JobWor
     let current = startIso;
     let capacity = 0;
     for (let guard = 0; guard < 5000; guard += 1) {
-        const weekday = localWeekday(current, pattern.timezone);
-        if (weekday !== null && pattern.weekdays.includes(weekday)) capacity += effectiveLocalDayMinutes(pattern, weekday);
+        const minutes = effectiveLocalDayMinutesOnDate(current, pattern);
+        if (minutes === null) return 0;
+        capacity += minutes;
         if (current === endIso) break;
         const next = nextLocalIsoDate(current, pattern.timezone);
         if (!next) return 0;
@@ -252,8 +298,8 @@ export function isJobWorkingDay(iso: string, value?: unknown): boolean {
     const pattern = resolveJobWorkingPattern(value);
     if (!pattern) return false;
     if (isJobWorkingPatternV2(pattern)) {
-        const weekday = localWeekday(iso, pattern.timezone);
-        return weekday !== null && pattern.weekdays.includes(weekday) && effectiveLocalDayMinutes(pattern, weekday) > 0;
+        const minutes = effectiveLocalDayMinutesOnDate(iso, pattern);
+        return minutes !== null && minutes > 0;
     }
     const ms = parseIsoDate(iso);
     return ms !== null && worksUtc(ms, pattern);

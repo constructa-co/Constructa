@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import { reportError } from "@/lib/observability";
 import { getLaunchLandingPath } from "@/lib/launch-profile";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 /**
  * Dashboard route-group error boundary.
@@ -61,7 +62,7 @@ export default function DashboardError({
                     <button
                         type="button"
                         onClick={() => reset()}
-                        className="flex-1 inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-[#b9f6a5] hover:bg-[#a5e98e] text-[#152419] text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[#77c66e] focus-visible:outline-offset-4"
+                        className={`flex-1 inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg text-sm font-semibold transition-colors ${corePrimaryButton} ${coreFocusVisibleRing}`}
                     >
                         <RefreshCw className="w-4 h-4" />
                         Try again

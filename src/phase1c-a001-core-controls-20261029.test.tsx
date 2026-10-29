@@ -6,11 +6,11 @@ import type { ReactElement } from "react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-const A001_PRIMARY_BG = "bg-[#b9f6a5]";
-const A001_PRIMARY_HOVER = "hover:bg-[#a5e98e]";
-const A001_INK = "text-[#152419]";
-const A001_FOCUS = "focus-visible:outline-[#77c66e]";
+import {
+    coreFocusRing,
+    coreFocusVisibleRing,
+    corePrimaryButton,
+} from "@/lib/core-editing-palette";
 
 const router = vi.hoisted(() => ({ push: vi.fn() }));
 
@@ -95,12 +95,11 @@ function text(value: unknown): string {
     return "";
 }
 
-function expectApprovedPrimary(classes: string) {
-    expect(classes).toContain(A001_PRIMARY_BG);
-    expect(classes).toContain(A001_PRIMARY_HOVER);
-    expect(classes).toContain(A001_INK);
-    expect(classes).toContain(A001_FOCUS);
+function expectDashboardPrimary(classes: string) {
+    expect(classes).toContain(corePrimaryButton);
+    expect(classes).toContain(coreFocusVisibleRing);
     expect(classes).not.toMatch(/\bbg-blue-600\b|\bhover:bg-blue-700\b/);
+    expect(classes).not.toContain("bg-[#b9f6a5]");
 }
 
 beforeEach(() => {
@@ -123,8 +122,9 @@ describe("phase1c-a001-core-controls-20261029", () => {
                 title: "Billing",
             }),
         );
-        expect(htmlEmpty).toContain(A001_PRIMARY_BG);
+        expect(htmlEmpty).toContain(corePrimaryButton);
         expect(htmlEmpty).not.toMatch(/New Project[\s\S]*bg-blue-600/);
+        expect(htmlEmpty).not.toContain("bg-[#b9f6a5]");
 
         const projects = [
             { id: "p1", name: "Alpha", proposal_status: "sent", updated_at: new Date().toISOString() },
@@ -141,7 +141,8 @@ describe("phase1c-a001-core-controls-20261029", () => {
                 title: "Billing",
             }),
         );
-        expect(htmlList).toContain("focus:border-[#77c66e]");
+        expect(htmlList).toContain("focus:border-emerald-600");
+        expect(htmlList).toContain(coreFocusRing);
         expect(htmlList).toContain("text-blue-500");
         expect(htmlList).toContain("bg-blue-500/15");
         expect(htmlList).toContain("bg-green-500/15");
@@ -155,7 +156,7 @@ describe("phase1c-a001-core-controls-20261029", () => {
                 title: "Job P&L",
             }) as unknown as Element,
         );
-        const row = els.find(e => e.type === "button" && cn(e).includes("focus-visible:outline-[#77c66e]"))!;
+        const row = els.find(e => e.type === "button" && cn(e).includes(coreFocusVisibleRing))!;
         expect(row).toBeDefined();
         (row.props.onClick as () => void)();
         expect(router.push).toHaveBeenCalledWith("/dashboard/projects/p-and-l?projectId=only");
@@ -169,8 +170,8 @@ describe("phase1c-a001-core-controls-20261029", () => {
                 reset,
             }) as Element,
         );
-        const tryAgain = els.find(e => e.type === "button" && cn(e).includes(A001_PRIMARY_BG))!;
-        expectApprovedPrimary(cn(tryAgain));
+        const tryAgain = els.find(e => e.type === "button" && cn(e).includes(corePrimaryButton))!;
+        expectDashboardPrimary(cn(tryAgain));
         expect(typeof tryAgain.props.onClick).toBe("function");
         expect(reset).not.toHaveBeenCalled();
         const dash = els.find(e => cn(e).includes("border-slate-700") && /Dashboard/.test(text(e.props.children)));
@@ -193,9 +194,9 @@ describe("phase1c-a001-core-controls-20261029", () => {
                 },
             }) as unknown as Element,
         );
-        const save = els.find(e => cn(e).includes(A001_PRIMARY_BG) && e.props.disabled !== true)!;
+        const save = els.find(e => cn(e).includes(corePrimaryButton) && e.props.disabled !== true)!;
         expect(save).toBeDefined();
-        expectApprovedPrimary(cn(save));
+        expectDashboardPrimary(cn(save));
         expect(upsertRateOverrideAction).not.toHaveBeenCalled();
         expect(els.some(e => cn(e).includes("text-amber-400"))).toBe(false);
     });
@@ -207,9 +208,9 @@ describe("phase1c-a001-core-controls-20261029", () => {
                 libraryItems: [{ id: "lib-1", category: "Groundworks", description: "Dig", unit: "m3", unit_cost: 50 }],
             }) as unknown as Element,
         );
-        const add = els.find(e => cn(e).includes(A001_PRIMARY_BG) && cn(e).includes("font-bold"))!;
+        const add = els.find(e => cn(e).includes(corePrimaryButton) && cn(e).includes("font-bold"))!;
         expect(add).toBeDefined();
-        expectApprovedPrimary(cn(add));
+        expectDashboardPrimary(cn(add));
         expect(add.props.disabled).toBe(true);
         expect(addItemsToTemplateAction).not.toHaveBeenCalled();
     });

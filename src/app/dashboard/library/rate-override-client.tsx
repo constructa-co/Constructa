@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Pencil, RotateCcw, Check, X } from "lucide-react";
 import { upsertRateOverrideAction, deleteRateOverrideAction } from "./actions";
 import { toast } from "sonner";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 interface RateOverrideItemProps {
     item: {
@@ -99,7 +100,7 @@ export default function RateOverrideItem({ item }: RateOverrideItemProps) {
                             size="sm"
                             onClick={handleSave}
                             disabled={saving}
-                            className="h-7 px-2 bg-[#b9f6a5] hover:bg-[#a5e98e] text-[#152419] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[#77c66e] focus-visible:outline-offset-4"
+                            className={`h-7 px-2 ${corePrimaryButton} ${coreFocusVisibleRing}`}
                         >
                             <Check className="w-3.5 h-3.5" />
                         </Button>

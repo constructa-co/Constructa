@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| `[id]/page.tsx`, `template-kit-item-remove.tsx`, 2 tests | Remove outcomes + load stub | Pin **eb5df31** exact |
+| Register | A085/A059/A069 metadata; QA apply-once facts | No SQL reapply |
+
 ## 2026-10-29 — ROB1442 kit create/load + A040 record (Cursor integration)
 
 | Paths | Change | Intent |

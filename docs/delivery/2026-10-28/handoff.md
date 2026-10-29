@@ -304,3 +304,11 @@ policy approved in register metadata only; **73709** not on ROOT. Receipt
 ## ROB1442 kit create + load + A040 closure record — 29 October 2026
 
 **Parent `060105f`:** **2ee99c8** create (3) + **0881ca84** load (2). Review **rob1438** run **6156**. ROOT **11/11** mock tests; **5** functional paths. **A040 Complete** per Rob **13:50/14:08** and **rob1433** parent acceptance — manual entry scope only, paid postcode deferred, **not** hosted DB proof. **A085 Partial**; broader workflow open. Authorised named QA (calendar v1/v2, closing) **not executed** in this backup — no SQL/provider/keys. Receipt **`rob1442-integrated-source-backup-20261029.json`**.
+
+## ROB1548 kit Remove + QA apply metadata — 29 October 2026
+
+**Parent `cbdb6bf`:** **eb5df31** Remove (4 paths, review **rob1544** **da6e9ef9**). ROOT **9/9** (Remove **4** + Load **5**). **A085/A059/A069 Partial** unchanged.
+
+**QA (real, not source-only):** three named SQL files **already applied once** on **umqtzfsnyoofmgfbnrgv** (v1 → v2 → closing); structural readback PASS — see `qa-calendar-closing-applied-progress-20261029.json`, `qa-calendar-closing-structural-acceptance-20261029.json`, `qa-preview-060-actual-guard-and-compiled-target-readback-20261029.json`. **NOT reapplied** this integration. Owner Save-Reopen / new-job / profile journeys **NOT RUN** — `/dashboard` login blocked, no verified disposable QA session.
+
+**AI:** cost line published; **no Rob yes** yet; ledger/provider/settings **OFF**. Receipt **`rob1548-integrated-source-backup-20261029.json`**.

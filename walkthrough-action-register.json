@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-10-29T10:47:02.777Z",
+  "updatedAt": "2026-10-29T11:59:17.023Z",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {

@@ -232,3 +232,7 @@
 ## ROB1442 kit create/load + A040 record — 29 October 2026
 
 - Parent **060105f**: **2ee99c8** + **0881ca84** (5 paths). ROOT **11/11**. **A040 Complete** (rob1433). **A085 Partial**. Receipt **`rob1442-integrated-source-backup-20261029.json`**.
+
+## ROB1548 kit Remove — 29 October 2026
+
+- Parent **cbdb6bf**: **eb5df31** (4 paths). ROOT **9/9**. QA three-file apply-once metadata; SQL **not** reapplied. Receipt **`rob1548-integrated-source-backup-20261029.json`**.

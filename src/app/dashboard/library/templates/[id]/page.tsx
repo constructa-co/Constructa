@@ -1,10 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Trash2, ArrowLeft, PackageOpen } from "lucide-react";
+import { ArrowLeft, PackageOpen } from "lucide-react";
 import Link from "next/link";
-import { removeTemplateItemAction } from "../../templates-actions";
 import TemplateItemEditor from "./template-item-editor";
+import { TemplateKitItemRemove } from "./template-kit-item-remove";
 
 function isConfirmedTemplateNotFound(error: { code?: string } | null) {
     return error?.code === "PGRST116";
@@ -99,14 +98,7 @@ export default async function TemplateDetailsPage(props: { params: Promise<{ id:
                                                     <p className="text-sm font-bold text-slate-900">£{item.unit_cost.toFixed(2)}</p>
                                                     <p className="text-[10px] text-slate-400 font-medium uppercase">Unit Rate</p>
                                                 </div>
-                                                <form action={async () => {
-                                                    "use server";
-                                                    await removeTemplateItemAction(item.id, template.id);
-                                                }}>
-                                                    <Button variant="ghost" size="icon" className="text-slate-300 hover:text-red-600 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100">
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                </form>
+                                                <TemplateKitItemRemove itemId={item.id} templateId={template.id} />
                                             </div>
                                         </div>
                                     ))}

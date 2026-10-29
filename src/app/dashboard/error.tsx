@@ -61,7 +61,7 @@ export default function DashboardError({
                     <button
                         type="button"
                         onClick={() => reset()}
-                        className="flex-1 inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
+                        className="flex-1 inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-[#b9f6a5] hover:bg-[#a5e98e] text-[#152419] text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[#77c66e] focus-visible:outline-offset-4"
                     >
                         <RefreshCw className="w-4 h-4" />
                         Try again

@@ -67,8 +67,8 @@ export default function ProjectPicker({ projects, targetPath, title, description
         <div className="max-w-2xl mx-auto px-6 py-12">
             {/* Header */}
             <div className="text-center mb-8">
-                <div className="w-12 h-12 bg-blue-600/20 border border-blue-500/30 rounded-xl flex items-center justify-center mx-auto mb-4">
-                    <FolderOpen className="w-6 h-6 text-blue-400" />
+                <div className="w-12 h-12 bg-[#b9f6a5]/20 border border-[#77c66e]/30 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <FolderOpen className="w-6 h-6 text-[#a5e98e]" />
                 </div>
                 <h1 className="text-2xl font-bold text-slate-100">{title}</h1>
                 <p className="text-slate-400 text-sm mt-1">
@@ -85,7 +85,7 @@ export default function ProjectPicker({ projects, targetPath, title, description
                         value={query}
                         onChange={e => setQuery(e.target.value)}
                         placeholder="Search projects or clients…"
-                        className="w-full bg-slate-800/50 border border-slate-700 rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30"
+                        className="w-full bg-slate-800/50 border border-slate-700 rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-[#77c66e] focus:ring-1 focus:ring-[#77c66e]/30"
                     />
                 </div>
             )}
@@ -98,7 +98,7 @@ export default function ProjectPicker({ projects, targetPath, title, description
                     <p className="text-slate-600 text-sm mt-1">Create a project to get started</p>
                     <Link
                         href="/dashboard/projects/new"
-                        className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                        className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-[#b9f6a5] hover:bg-[#a5e98e] text-[#152419] text-sm font-medium rounded-lg transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[#77c66e] focus-visible:outline-offset-4"
                     >
                         <Plus className="w-4 h-4" /> New Project
                     </Link>
@@ -113,7 +113,7 @@ export default function ProjectPicker({ projects, targetPath, title, description
                         <button
                             key={project.id}
                             onClick={() => handleSelect(project.id)}
-                            className="w-full text-left bg-slate-800/50 hover:bg-slate-700/60 border border-slate-700/50 hover:border-slate-600 rounded-xl px-4 py-3.5 transition-all group"
+                            className="w-full text-left bg-slate-800/50 hover:bg-slate-700/60 border border-slate-700/50 hover:border-slate-600 rounded-xl px-4 py-3.5 transition-all group focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[#77c66e] focus-visible:outline-offset-4"
                         >
                             <div className="flex items-center justify-between gap-3">
                                 <div className="min-w-0 flex-1">
@@ -130,7 +130,7 @@ export default function ProjectPicker({ projects, targetPath, title, description
                                         {project.updated_at && <span>· {timeAgo(project.updated_at)}</span>}
                                     </div>
                                 </div>
-                                <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-blue-400 flex-shrink-0 transition-colors" />
+                                <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-[#a5e98e] flex-shrink-0 transition-colors" />
                             </div>
                         </button>
                     ))}

@@ -95,7 +95,7 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
                 <Button
                     onClick={handleAdd}
                     disabled={!selectedItemId || isPending}
-                    className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold h-11"
+                    className="w-full mt-4 bg-[#b9f6a5] hover:bg-[#a5e98e] text-[#152419] font-bold h-11 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[#77c66e] focus-visible:outline-offset-4 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                     {isPending ? "Adding..." : <><Plus className="w-4 h-4 mr-2" /> Add to Kit</>}
                 </Button>

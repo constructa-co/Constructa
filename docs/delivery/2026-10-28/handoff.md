@@ -224,3 +224,15 @@ policy approved in register metadata only; **73709** not on ROOT. Receipt
 
 **Parent `341a24d`:** three accepted pins (**c159223**, **97c893**, **7605abf**); **18** product/test paths + register/docs. ROOT **32/32** material; **A059 NO_PRODUCT_DELTA**. Receipt
 `rob0635-integrated-source-backup-20261029.json`.
+
+## ROB1025 A059 — 29 October 2026
+
+**Parent `b5f5138`:** **f23e4902** exact NET **16** (NOT fdda/ba65). ROOT **19/19** material. **Known P2/P3** documented below — **not Complete**, SQL **NOT APPLIED**. Receipt
+`rob1025-integrated-source-backup-20261029.json`.
+
+### A059 known limits after f23e4902 (handoff, not waived)
+
+- **P2 R1:** v2 detailed-plan whole-plan `working_days` sums stage requested days — wrong for overlapping or gapped stages (simple sequential programmes OK).
+- **P2 R2:** save-time validation walks up to `14×programmeDays+14` days (cap 5000) — ~2.8s at 60 programme days, ~13.8s at 2600; fails closed on main thread at save only.
+- **P3:** exclusive end on clock-change boundaries may over-refuse; unbounded wall-time caches in `job-working-local`; SQL cast edge errors; test coverage gaps per ROB0952.
+- **Policy:** ROB0922 `ManagePullRequest` breach reported separately; Rob confirmed no new PR at 10:13.

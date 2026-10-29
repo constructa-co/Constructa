@@ -49,6 +49,25 @@ describe("saveSimpleProgrammeAction", () => {
         expect(await saveSimpleProgrammeAction(PROJECT_ID, { ...input, expectedWorkingPattern: pattern })).toMatchObject({ success: true });
     });
 
+    it("saves and readbacks an explicit v2 local-hours pattern when the column exists", async () => {
+        const pattern = {
+            version: 2 as const,
+            timezone: "Europe/London",
+            weekdays: [1, 2, 3, 4, 5],
+            intervals: [{ weekday: 1, startMinute: 8 * 60, endMinute: 16 * 60 }],
+            standardMinutesPerDay: 480,
+            productivityPct: 100,
+        };
+        const db = setup({ programme_working_pattern: null });
+        const input = { startDate: "2026-10-19", workingPattern: pattern, expectedWorkingPattern: null,
+            stages: [{ name: "Works", workingDays: 1, unit: "days" as const, source: null }] };
+        expect(await saveSimpleProgrammeAction(PROJECT_ID, input)).toMatchObject({
+            success: true,
+            confirmedProject: { programme_working_pattern: pattern },
+        });
+        expect(db.tables.projects[0].programme_working_pattern).toEqual(pattern);
+    });
+
     it("preserves legacy saves before migration but refuses calendar writes when its column is absent", async () => {
         const db = setup();
         const pattern = { version: 1 as const, weekdays: [1, 2, 3, 4, 5, 6] };

@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-10-29 — ROB1025 A059 v2 working pattern (Cursor integration)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| 16 NET from **f23e4902** on **b5f5138** | Night/timezone/capacity v2 SOURCE | Last independent NO_P1 pin; NOT fdda/ba65 |
+| `20261029103000_project_working_pattern_v2.sql` | Canonical migration SOURCE | **NOT APPLIED** |
+
 ## 2026-10-29 — ROB0635 combined Phase 1A (Cursor integration)
 
 | Paths | Change | Intent |

@@ -17,7 +17,12 @@ import {
     phaseWorkingDays,
     resolveProgrammeSource,
 } from "./programme-plan";
-import { addJobWorkingDays, isJobWorkingDay, nextJobWorkingDayAfter, resolveJobWorkingPattern, isDefaultJobWorkingPattern, type JobWorkingPattern } from "./job-working-pattern";
+import {
+    addJobWorkingDays, isJobWorkingDay, nextJobWorkingDayAfter, programmeWeekUnitCount,
+    resolveJobWorkingPattern, isDefaultJobWorkingPattern, explainWorkingPatternDraft, validateWorkingPatternForProgramme,
+    isJobWorkingPatternV2, type JobWorkingPattern,
+} from "./job-working-pattern";
+import { canonicalWorkingPatternComparable, workingPatternsEquivalent } from "./working-pattern-canonical";
 import { computeDisplayProgramme, computeRelativeProgramme, hasRelativeProgramme, RELATIVE_PROGRAMME_BASIS, type DisplayProgrammePlan } from "./relative-programme";
 
 export const MIN_STAGES = 1;
@@ -60,10 +65,11 @@ export function emptyProgrammeDraft(startDate = "", workingPattern?: JobWorkingP
 }
 
 function durationFields(workingDays: number, savedUnit: unknown, pattern: JobWorkingPattern): { duration: string; unit: DurationUnit } {
-    const wholeWeeks = workingDays % pattern.weekdays.length === 0;
+    const weekUnits = programmeWeekUnitCount(pattern);
+    const wholeWeeks = workingDays % weekUnits === 0;
     const wantsDays = typeof savedUnit === "string" && savedUnit.toLowerCase() === "days";
     return wholeWeeks && !wantsDays
-        ? { duration: String(workingDays / pattern.weekdays.length), unit: "weeks" }
+        ? { duration: String(workingDays / weekUnits), unit: "weeks" }
         : { duration: String(workingDays), unit: "days" };
 }
 
@@ -242,7 +248,7 @@ function parseDuration(raw: string, unit: DurationUnit, pattern: JobWorkingPatte
     if (!/^\d{1,4}$/.test(cleaned)) return { error: "Enter a whole number, for example 3." };
     const value = Number(cleaned);
     if (value < 1) return { error: "Enter 1 or more." };
-    const days = unit === "weeks" ? value * pattern.weekdays.length : value;
+    const days = unit === "weeks" ? value * programmeWeekUnitCount(pattern) : value;
     if (days > MAX_WORKING_DAYS) return { error: "That is too long. Keep it under 10 years." };
     return { days };
 }
@@ -261,10 +267,34 @@ export function validateStartDate(startDate: string, workingPattern?: unknown): 
     return null;
 }
 
+function programmeDaysUpperBound(draft: ProgrammeDraft): number {
+    if (draft.stages.length === 0) {
+        const parsed = /^\d{1,4}$/.test(draft.duration.trim()) ? Number(draft.duration.trim()) : 60;
+        return draft.unit === "weeks" ? parsed * 7 : parsed;
+    }
+    let total = 0;
+    for (const stage of draft.stages) {
+        const cleaned = stage.duration.trim();
+        if (/^\d{1,4}$/.test(cleaned)) total += stage.unit === "weeks" ? Number(cleaned) * 7 : Number(cleaned);
+    }
+    return total || 60;
+}
+
 export function buildSimpleProgramme(draft: ProgrammeDraft): BuildProgrammeResult {
     const fieldErrors: ProgrammeFieldErrors = {};
     const pattern = resolveJobWorkingPattern(draft.workingPattern);
-    if (!pattern) return { ok: false, fieldErrors: { workingPattern: "Choose valid working days for this job." } };
+    if (!pattern) {
+        const message = explainWorkingPatternDraft(
+            draft.workingPattern,
+            draft.timeBasis === "relative" ? null : draft.startDate.trim(),
+        ) ?? "Choose valid working days for this job.";
+        return { ok: false, fieldErrors: { workingPattern: message } };
+    }
+    if (isJobWorkingPatternV2(pattern) && draft.timeBasis !== "relative" && draft.startDate.trim()) {
+        Object.assign(fieldErrors, validateWorkingPatternForProgramme(
+            pattern, draft.startDate.trim(), programmeDaysUpperBound(draft),
+        ));
+    }
     const startError = draft.timeBasis === "relative" ? null : validateStartDate(draft.startDate, pattern);
     if (startError) fieldErrors.startDate = startError;
 
@@ -478,7 +508,7 @@ export function programmeReducer(state: ProgrammeState, action: ProgrammeAction)
 
 // ── Derived save status ──────────────────────────────────────────────────────
 
-const comparable = (draft: ProgrammeDraft) => JSON.stringify([resolveJobWorkingPattern(draft.workingPattern)?.weekdays.slice().sort(), draft.stages.length === 0
+const comparable = (draft: ProgrammeDraft) => JSON.stringify([canonicalWorkingPatternComparable(draft.workingPattern ?? null), draft.stages.length === 0
     ? [draft.timeBasis ?? "dated", draft.timeBasis === "relative" ? "" : draft.startDate.trim(), draft.duration.trim(), draft.unit]
     : [draft.timeBasis ?? "dated", draft.timeBasis === "relative" ? "" : draft.startDate.trim(), draft.stages.map((stage) => [stage.name.trim(), stage.duration.trim(), stage.unit])]]);
 
@@ -538,7 +568,7 @@ export async function saveProgramme(store: ProgrammeStore, save: SaveProgramme):
         } : built.input);
         if (result.success) {
             if (built.input.workingPattern && (result.confirmedProject?.programme_working_pattern == null
-                || JSON.stringify(resolveJobWorkingPattern(result.confirmedProject.programme_working_pattern)) !== JSON.stringify(built.input.workingPattern))) {
+                || !workingPatternsEquivalent(result.confirmedProject.programme_working_pattern, built.input.workingPattern))) {
                 store.dispatch({ type: "save/failed", error: "The working-day save wasn't confirmed. Reload Programme before retrying." });
                 return "failed";
             }

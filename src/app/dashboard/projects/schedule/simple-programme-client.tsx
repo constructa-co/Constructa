@@ -21,7 +21,10 @@ import { createPlanningRequestGenerator } from "@/lib/job-assistant-client";
 import { planningAssistantTurnAction } from "./assistant-actions";
 import { formatPlanDate, formatWorkingDuration, PROGRAMME_BASIS_NOTE } from "@/lib/programme-plan";
 import { hasRelativeProgramme, programmeBasisNote, RELATIVE_PROGRAMME_BASIS, RELATIVE_PROGRAMME_NOTE } from "@/lib/relative-programme";
-import { resolveJobWorkingPattern } from "@/lib/job-working-pattern";
+import { resolveJobWorkingPattern, type JobWorkingInterval } from "@/lib/job-working-pattern";
+import {
+    createWorkingPatternV2Draft, draftWeekdays, isWorkingPatternV2Draft, type JobWorkingPatternV2Draft,
+} from "@/lib/working-pattern-draft";
 import {
     MAX_STAGES,
     MIN_STAGES,
@@ -529,18 +532,117 @@ function ProgrammeEditor({
                         {([6, 0] as const).map(day => (
                             <label key={day} className={`flex items-center gap-3 min-h-11 text-sm ${s.body}`}>
                                 <input type="checkbox" id={`programme-weekend-${day}`}
-                                    checked={resolveJobWorkingPattern(draft.workingPattern)?.weekdays.includes(day) ?? false}
+                                    checked={draftWeekdays(draft.workingPattern).includes(day)}
                                     onChange={event => {
-                                        const current = resolveJobWorkingPattern(draft.workingPattern);
-                                        if (!current) return;
-                                        const weekdays = event.target.checked ? [...new Set([...current.weekdays, day])].sort()
-                                            : current.weekdays.filter(value => value !== day);
-                                        store.dispatch({ type: "field/change", patch: { workingPattern: { version: 1, weekdays } } });
+                                        const weekdays = event.target.checked
+                                            ? [...new Set([...draftWeekdays(draft.workingPattern), day])].sort()
+                                            : draftWeekdays(draft.workingPattern).filter(value => value !== day);
+                                        if (isWorkingPatternV2Draft(draft.workingPattern)) {
+                                            store.dispatch({ type: "field/change", patch: { workingPattern: { ...draft.workingPattern, weekdays } } });
+                                        } else {
+                                            store.dispatch({ type: "field/change", patch: { workingPattern: { version: 1, weekdays } } });
+                                        }
                                     }} />
                                 {day === 6 ? "Work on Saturdays" : "Work on Sundays"}
                             </label>
                         ))}
                         {errorText("programme-working-days-error", fieldErrors.workingPattern)}
+                        <label className={`flex items-center gap-3 min-h-11 text-sm ${s.body}`}>
+                            <input type="checkbox" id="programme-local-hours"
+                                checked={isWorkingPatternV2Draft(draft.workingPattern)}
+                                onChange={event => {
+                                    if (event.target.checked) {
+                                        store.dispatch({ type: "field/change", patch: {
+                                            workingPattern: createWorkingPatternV2Draft(draftWeekdays(draft.workingPattern)),
+                                        } });
+                                    } else if (isWorkingPatternV2Draft(draft.workingPattern)) {
+                                        store.dispatch({ type: "field/change", patch: {
+                                            workingPattern: { version: 1, weekdays: [...draft.workingPattern.weekdays] },
+                                        } });
+                                    }
+                                }} />
+                            Set local timezone and working hours (all fields required before save)
+                        </label>
+                        {isWorkingPatternV2Draft(draft.workingPattern) && (() => {
+                            const local = draft.workingPattern as JobWorkingPatternV2Draft;
+                            const patchInterval = (index: number, next: Partial<JobWorkingInterval>) => {
+                                const intervals = local.intervals.map((row, i) => i === index ? { ...row, ...next } : row);
+                                store.dispatch({ type: "field/change", patch: { workingPattern: { ...local, intervals } } });
+                            };
+                            const patchLocal = (patch: Partial<JobWorkingPatternV2Draft>) => {
+                                store.dispatch({ type: "field/change", patch: { workingPattern: { ...local, ...patch } } });
+                            };
+                            const minuteInput = (label: string, id: string, value: number, onChange: (minute: number) => void) => (
+                                <div>
+                                    <label htmlFor={id} className={s.label}>{label}</label>
+                                    <input id={id} type="time" disabled={saving} className={`${s.input} mt-1.5`}
+                                        value={`${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`}
+                                        onChange={e => {
+                                            const [h, m] = e.target.value.split(":").map(Number);
+                                            if (Number.isInteger(h) && Number.isInteger(m)) onChange(h * 60 + m);
+                                        }} />
+                                </div>
+                            );
+                            return (
+                                <div className="space-y-3 rounded-lg border border-slate-700/80 p-3" data-programme-local-hours>
+                                    <div>
+                                        <label htmlFor="programme-timezone" className={s.label}>Job timezone (IANA)</label>
+                                        <input id="programme-timezone" type="text" disabled={saving} placeholder="e.g. Europe/London"
+                                            value={local.timezone}
+                                            onChange={e => patchLocal({ timezone: e.target.value })}
+                                            className={`${s.input} mt-1.5`} />
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <label htmlFor="programme-standard-minutes" className={s.label}>Productive minutes per programme day</label>
+                                            <input id="programme-standard-minutes" inputMode="numeric" disabled={saving}
+                                                value={local.standardMinutesPerDay || ""}
+                                                onChange={e => patchLocal({ standardMinutesPerDay: Number(e.target.value) || 0 })}
+                                                className={`${s.input} mt-1.5`} />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="programme-productivity" className={s.label}>Productivity (%)</label>
+                                            <input id="programme-productivity" inputMode="numeric" disabled={saving}
+                                                value={local.productivityPct || ""}
+                                                onChange={e => patchLocal({ productivityPct: Number(e.target.value) || 0 })}
+                                                className={`${s.input} mt-1.5`} />
+                                        </div>
+                                    </div>
+                                    {local.intervals.map((interval, index) => (
+                                        <div key={index} className="space-y-2 rounded border border-slate-700/60 p-2">
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                                <div>
+                                                    <label className={s.label} htmlFor={`programme-interval-weekday-${index}`}>Interval day</label>
+                                                    <select id={`programme-interval-weekday-${index}`} disabled={saving} className={`${s.input} mt-1.5`}
+                                                        value={interval.weekday}
+                                                        onChange={e => patchInterval(index, { weekday: Number(e.target.value) })}>
+                                                        {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((name, day) => (
+                                                            <option key={name} value={day}>{name}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                {minuteInput("Start (local)", `programme-interval-start-${index}`, interval.startMinute, minute => patchInterval(index, { startMinute: minute }))}
+                                                {minuteInput("End (local, overnight if earlier)", `programme-interval-end-${index}`, interval.endMinute, minute => patchInterval(index, { endMinute: minute }))}
+                                            </div>
+                                            {local.intervals.length > 1 && (
+                                                <button type="button" disabled={saving} className={s.secondaryButton}
+                                                    onClick={() => patchLocal({ intervals: local.intervals.filter((_, i) => i !== index) })}>
+                                                    Remove interval
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {local.intervals.length < 21 && (
+                                        <button type="button" disabled={saving} className={s.secondaryButton}
+                                            onClick={() => patchLocal({ intervals: [...local.intervals, {
+                                                weekday: local.weekdays[0] ?? 1, startMinute: 0, endMinute: 0,
+                                            }] })}>
+                                            Add interval
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })()}
                     </fieldset>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" data-programme-timing>

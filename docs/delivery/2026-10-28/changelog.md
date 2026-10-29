@@ -215,3 +215,8 @@
 
 - Parent **341a24d**: **c159223** (A040 2-case test) + **97c893** (A069 4 mock projection cases; test-only `select()` fixture alignment) + **7605abf** (16-path OFF-readiness). ROOT **32/32** material tests; reviews **1783/89de/f915** accepted.
 - **A040/A055/A059/A063/A069 Partial** metadata only; **76C 22P 19N 1B**. Receipt **`rob0635-integrated-source-backup-20261029.json`**. Backup after **06:45** target (miss reported in return).
+
+## ROB1025 A059 v2 — 29 October 2026
+
+- Parent **b5f5138**: exact **f23e4902** NET **16** paths. ROOT **19/19** material (4 calendar files + v2 save case). **A059 Partial**; **103000** migration **NOT APPLIED**.
+- **Known limits (Rob 10:14 — not new gates):** v2 overlap/gapped whole-plan totals sum stages not span; save scan 14×days+14 cap 5000; P3 clock-boundary over-refusal; DST fail-closed. See **ROB0952** return. Receipt **`rob1025-integrated-source-backup-20261029.json`**.

@@ -1,19 +1,55 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Plus, ArrowLeft, MoreHorizontal, PackageOpen } from "lucide-react";
+import { Trash2, ArrowLeft, PackageOpen } from "lucide-react";
 import Link from "next/link";
 import { removeTemplateItemAction } from "../../templates-actions";
 import TemplateItemEditor from "./template-item-editor";
 
+function isConfirmedTemplateNotFound(error: { code?: string } | null) {
+    return error?.code === "PGRST116";
+}
+
+function KitLoadUnavailable({ title, detail, reloadHref }: { title: string; detail: string; reloadHref: string }) {
+    return (
+        <div className="space-y-4 py-16 px-6 max-w-lg mx-auto text-center">
+            <h1 className="text-xl font-bold text-slate-900">{title}</h1>
+            <p className="text-sm text-slate-600 leading-relaxed">{detail}</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                <Link href="/dashboard/library/templates" className="text-sm font-semibold text-blue-600 hover:underline">
+                    Back to kits
+                </Link>
+                <Link href={reloadHref} className="text-sm text-slate-500 hover:underline">
+                    Try loading this kit again
+                </Link>
+            </div>
+        </div>
+    );
+}
+
 export default async function TemplateDetailsPage(props: { params: Promise<{ id: string }> }) {
     const params = await props.params;
     const supabase = await createClient();
-    const { data: template } = await supabase.from("templates").select("*").eq("id", params.id).single();
-    const { data: items } = await supabase.from("template_items").select("*").eq("template_id", params.id).order("created_at", { ascending: true });
-    const { data: libraryItems } = await supabase.from("library_items").select("*").order("category", { ascending: true });
+    const { data: template, error: templateError } = await supabase.from("templates").select("*").eq("id", params.id).single();
+    const { data: items, error: itemsError } = await supabase.from("template_items").select("*").eq("template_id", params.id).order("created_at", { ascending: true });
+    const { data: libraryItems, error: libraryError } = await supabase.from("library_items").select("*").order("category", { ascending: true });
 
-    if (!template) return <div>Template not found.</div>;
+    if (templateError || !template) {
+        if (templateError && !isConfirmedTemplateNotFound(templateError)) {
+            return (
+                <KitLoadUnavailable
+                    title="Could not load this kit"
+                    detail="The kit details could not be loaded right now. Go back to your kits list or try loading this kit again."
+                    reloadHref={`/dashboard/library/templates/${params.id}`}
+                />
+            );
+        }
+        return <div>Template not found.</div>;
+    }
+
+    const itemsLoadOk = !itemsError;
+    const libraryLoadOk = !libraryError;
+    const kitItems = itemsLoadOk ? (items ?? []) : [];
 
     return (
         <div className="space-y-8 pb-20 max-w-5xl mx-auto">
@@ -33,13 +69,22 @@ export default async function TemplateDetailsPage(props: { params: Promise<{ id:
                         <CardHeader className="bg-slate-50/50 border-b">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-lg">Kit Items</CardTitle>
-                                <span className="bg-blue-100 text-blue-700 font-bold text-[10px] px-2.5 py-1 rounded-full uppercase tracking-widest">{items?.length || 0} Items</span>
+                                <span className="bg-blue-100 text-blue-700 font-bold text-[10px] px-2.5 py-1 rounded-full uppercase tracking-widest">
+                                    {itemsLoadOk ? `${kitItems.length} Items` : "Unavailable"}
+                                </span>
                             </div>
                         </CardHeader>
                         <CardContent className="p-0">
-                            {items && items.length > 0 ? (
+                            {!itemsLoadOk ? (
+                                <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                                    <h3 className="text-lg font-bold text-slate-900">Could not load kit items</h3>
+                                    <p className="text-sm text-slate-500 mt-2 max-w-sm">
+                                        The item list for this kit is unavailable. Refresh this page to check whether items were added before you try again.
+                                    </p>
+                                </div>
+                            ) : kitItems.length > 0 ? (
                                 <div className="divide-y divide-slate-100">
-                                    {items.map((item) => (
+                                    {kitItems.map((item) => (
                                         <div key={item.id} className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors group">
                                             <div className="flex-grow">
                                                 <div className="flex items-center gap-2">
@@ -80,10 +125,20 @@ export default async function TemplateDetailsPage(props: { params: Promise<{ id:
                 </div>
 
                 <div className="lg:col-span-4">
-                    <TemplateItemEditor
-                        templateId={template.id}
-                        libraryItems={libraryItems || []}
-                    />
+                    {libraryLoadOk ? (
+                        <TemplateItemEditor
+                            templateId={template.id}
+                            libraryItems={libraryItems ?? []}
+                        />
+                    ) : (
+                        <Card className="border-slate-200 shadow-xl bg-slate-50/30 sticky top-8">
+                            <CardHeader>
+                                <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500">Pick from Library</CardTitle>
+                                <CardDescription>Library registry could not be loaded. Refresh this page before picking items.</CardDescription>
+                            </CardHeader>
+                            <CardContent />
+                        </Card>
+                    )}
                 </div>
             </div>
         </div>

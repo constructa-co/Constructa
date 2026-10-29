@@ -320,3 +320,11 @@ policy approved in register metadata only; **73709** not on ROOT. Receipt
 **What changed (source):** the Cost Library page no longer swallows an organisation lookup failure or ignores category/item/custom-rate read errors. Those cases, including partial data with an error and thrown reads, now show an honest "couldn't be loaded" state instead of an empty catalog or market benchmarks shown as if there were no custom rate; Next control flow is rethrown. The kit list shows an accessible unavailable message on a read error or throw (including an empty error message), with Create still available and no partial cards. Normal reads, zero custom rates, empty lists and links are unchanged.
 
 **Limits:** mock/source only - no real database, browser, hosted or owner proof. A user with no organisation membership now sees the unavailable state; no new default membership policy. Broader A085 scope remains open. SQL **not** reapplied; AI line still awaits Rob's yes; ledger/provider/settings **OFF**. Receipt **`rob1818-integrated-source-backup-20261029.json`**.
+
+## ROB2119 business setup post-save boundary - 29 October 2026
+
+- Parent **4450230**: Claude **ROB1938** patch (2 paths): `src/app/onboarding/actions.ts` + new `src/app/onboarding/setup-postsave-outcomes.test.ts`. Independent Composer review **ROB2017 SCOPED_NNF** (nonblocking notes only). No adaptation.
+- After a confirmed business-setup profile save, a returned or thrown projects-count failure no longer reports "We couldn't save that"; the existing post-setup routing policy decides the destination. Next control flow is rethrown and the redirect stays outside every catch. Auth, first-company claim, own-user predicates, pre-save refusals, trade step and single welcome email unchanged.
+- ROOT **28/28** (12 new + retained setup actions 16). Source/mock only: no real Auth, database, email, browser or hosted Preview proof. **A086/A091 Partial** (metadata only, zero status changes).
+- SQL not reapplied. A055/A063/A059/A069 unchanged by this patch; DeepSeek QA ledger/runtime/run proof not done. AI line, Production, signup, settings and legal holds unchanged.
+- Receipt **`rob2119-integrated-source-backup-20261029.json`**.

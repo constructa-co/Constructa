@@ -240,3 +240,7 @@
 ## ROB1818 Cost Library + Kits read reliability - 29 October 2026
 
 - Parent **c42453d**: **b3e005d** catalog read (2 paths) + **d3d29378** kit list read (2 paths). ROOT **24/24** (11 + 7 + retained Create 6). Source/mock only, no hosted or runtime proof. **A085 Partial**. Receipt **`rob1818-integrated-source-backup-20261029.json`**.
+
+## ROB2119 business setup post-save boundary - 29 October 2026
+
+- Parent **4450230**: ROB1938 setup post-save patch (2 paths), review ROB2017 SCOPED_NNF. A confirmed setup save is no longer reported as failed when the project count errors or throws. ROOT **28/28** (12 + retained 16). Source/mock only. **A086/A091 Partial**. Receipt **`rob2119-integrated-source-backup-20261029.json`**.

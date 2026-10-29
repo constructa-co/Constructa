@@ -1,7 +1,7 @@
 "use server";
 
 import { requireAuth } from "@/lib/supabase/auth-utils";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { sendWelcomeEmail } from "@/lib/email";
 import { getLaunchLandingPath } from "@/lib/launch-profile";
 import {
@@ -28,7 +28,7 @@ export async function saveSetupStepAction(input: SetupStepInput): Promise<SaveSe
     if (!built.ok) return { error: built.error };
 
     let userEmail: string | undefined;
-    let destination: string | null = null;
+    let saved: { supabase: Awaited<ReturnType<typeof requireAuth>>["supabase"]; userId: string; companyNameClaimedNow: boolean };
 
     try {
         const { user, supabase } = await requireAuth();
@@ -81,13 +81,7 @@ export async function saveSetupStepAction(input: SetupStepInput): Promise<SaveSe
             }).catch((e) => console.error("Welcome email failed:", e));
         }
 
-        // The answers are saved; if this count fails, fall back to the
-        // normal landing page rather than reporting a save failure.
-        const { count } = await supabase
-            .from("projects")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", user.id);
-        destination = resolvePostSetupPath(count, getLaunchLandingPath(), companyNameClaimedNow);
+        saved = { supabase, userId: user.id, companyNameClaimedNow };
     } catch (error) {
         if (error instanceof Error && error.message === "Unauthorized: No user found.") {
             redirect("/login");
@@ -98,8 +92,24 @@ export async function saveSetupStepAction(input: SetupStepInput): Promise<SaveSe
         return { error: SETUP_SAVE_FALLBACK_ERROR };
     }
 
+    // The answers are saved; if this count fails, fall back to the
+    // normal landing page rather than reporting a save failure.
+    let projectCount: number | null = null;
+    try {
+        const { count, error } = await saved.supabase
+            .from("projects")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", saved.userId);
+        if (!error) projectCount = count;
+    } catch (error) {
+        unstable_rethrow(error);
+        console.error("saveSetupStepAction project count threw", {
+            message: error instanceof Error ? error.message : String(error),
+        });
+    }
+
     // Redirect server-side so navigation cannot be stranded by a client
     // router push that never settles (E2E-01). This throws NEXT_REDIRECT, so
-    // it has to sit outside the try block above.
-    redirect(destination ?? getLaunchLandingPath());
+    // it has to sit outside the try blocks above.
+    redirect(resolvePostSetupPath(projectCount, getLaunchLandingPath(), saved.companyNameClaimedNow));
 }

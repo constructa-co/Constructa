@@ -211,11 +211,13 @@ export async function deleteRateOverrideAction(formData: FormData) {
 
     const momItemId = formData.get("mom_item_id") as string;
 
-    await supabase
+    const { error } = await supabase
         .from("mom_item_overrides")
         .delete()
         .eq("organization_id", orgId)
         .eq("mom_item_id", momItemId);
+
+    if (error) return { error: error.message };
 
     revalidatePath("/dashboard/library");
     return { success: true };

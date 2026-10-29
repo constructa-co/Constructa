@@ -37,25 +37,35 @@ export default function RateOverrideItem({ item }: RateOverrideItemProps) {
         const fd = new FormData();
         fd.append("mom_item_id", item.id);
         fd.append("custom_rate", rateInput);
-        const result = await upsertRateOverrideAction(fd);
-        setSaving(false);
-        if (result?.error) {
-            toast.error(result.error);
-        } else {
-            toast.success("Rate updated");
-            setEditing(false);
+        try {
+            const result = await upsertRateOverrideAction(fd);
+            if (result?.error) {
+                toast.error(result.error);
+            } else {
+                toast.success("Rate updated");
+                setEditing(false);
+            }
+        } catch {
+            // The save may have reached the database before the failure, so don't claim either way.
+            toast.error("Couldn't confirm your rate was saved. Your entry is kept; reload to check before trying again.");
+        } finally {
+            setSaving(false);
         }
     };
 
     const handleReset = async () => {
         const fd = new FormData();
         fd.append("mom_item_id", item.id);
-        const result = await deleteRateOverrideAction(fd);
-        if ("error" in result) {
-            toast.error("Failed to reset rate");
-        } else {
-            toast.success("Rate reset to benchmark");
-            setRateInput(String(item.base_rate));
+        try {
+            const result = await deleteRateOverrideAction(fd);
+            if ("error" in result) {
+                toast.error("Failed to reset rate");
+            } else {
+                toast.success("Rate reset to benchmark");
+                setRateInput(String(item.base_rate));
+            }
+        } catch {
+            toast.error("Couldn't confirm the rate was reset. Reload to check the current rate.");
         }
     };
 

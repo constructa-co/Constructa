@@ -1,9 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Plus, LayoutGrid, Trash2, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { createTemplateAction } from "../templates-actions";
+import CreateKitForm from "./create-kit-form";
 
 export default async function TemplatesPage() {
     const supabase = await createClient();
@@ -27,10 +26,7 @@ export default async function TemplatesPage() {
                     </div>
                     <h3 className="mt-4 font-bold text-slate-900 text-lg">Create New Kit</h3>
                     <p className="text-slate-400 text-sm mt-1 text-center">Start a fresh assembly recipe</p>
-                    <form action={createTemplateAction} className="mt-6 w-full space-y-3">
-                        <input name="name" placeholder="e.g. Groundworks" required className="w-full h-10 px-3 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                        <Button type="submit" className="w-full bg-slate-900 hover:bg-black text-white rounded-lg">Initialize Kit</Button>
-                    </form>
+                    <CreateKitForm />
                 </Card>
 
                 {templates?.map((template) => (

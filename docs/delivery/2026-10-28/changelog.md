@@ -228,3 +228,7 @@
 ## ROB1255 A085 kit Add + CSV — 29 October 2026
 
 - Parent **97ad673**: **04c5518** (2) + **58eb21a9** (4 NET). ROOT **16/16**; six functional source paths. Receipt **`rob1255-integrated-source-backup-20261029.json`**.
+
+## ROB1442 kit create/load + A040 record — 29 October 2026
+
+- Parent **060105f**: **2ee99c8** + **0881ca84** (5 paths). ROOT **11/11**. **A040 Complete** (rob1433). **A085 Partial**. Receipt **`rob1442-integrated-source-backup-20261029.json`**.

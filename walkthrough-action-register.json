@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-10-29T08:55:35.237Z",
+  "updatedAt": "2026-10-29T10:47:02.777Z",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {
@@ -249,7 +249,7 @@
       "id": "A040",
       "phase": "P1-Jan2027",
       "requested": "Offer postcode-first site and separate client-address selection with manual/unusual-site fallback.",
-      "status": "Partial"
+      "status": "Complete"
     },
     {
       "id": "A041",

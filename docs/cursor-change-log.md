@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-10-29 — ROB1442 kit create/load + A040 record (Cursor integration)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| `templates/page.tsx`, `create-kit-form.tsx`, create test | Kit create outcomes | Pin **2ee99c8** |
+| `templates/[id]/page.tsx`, load test | Kit load outcomes | Pin **0881ca84** |
+| Compact register | A040 **Complete** per rob1433 | Same backup as functional source |
+
 ## 2026-10-29 — ROB1255 A085 kit Add + CSV (Cursor integration)
 
 | Paths | Change | Intent |

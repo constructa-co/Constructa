@@ -300,3 +300,7 @@ policy approved in register metadata only; **73709** not on ROOT. Receipt
 **Parent `97ad673`:** exact **04c5518** kit Add (2) + **58eb21a9** CSV fail-closed (4 NET from 97). Independent reviews **cc86** + **614f9daa**. ROOT **16/16** focused mock tests; **6** functional source paths on this backup (not stale b5 NET16). **A085 Partial** — broader estimating/marketing scope open; no real CSV upload/DB/financial action. Returned-transport false-zero message closed in **58eb**. Receipt **`rob1255-integrated-source-backup-20261029.json`**.
 
 **Retained limits:** kit filter P2/P3 + rate P2 from **97**; CSV no cross-depth transaction / category rows may persist / mock-only proof; kit Add uncertainty paths per **rob1234**.
+
+## ROB1442 kit create + load + A040 closure record — 29 October 2026
+
+**Parent `060105f`:** **2ee99c8** create (3) + **0881ca84** load (2). Review **rob1438** run **6156**. ROOT **11/11** mock tests; **5** functional paths. **A040 Complete** per Rob **13:50/14:08** and **rob1433** parent acceptance — manual entry scope only, paid postcode deferred, **not** hosted DB proof. **A085 Partial**; broader workflow open. Authorised named QA (calendar v1/v2, closing) **not executed** in this backup — no SQL/provider/keys. Receipt **`rob1442-integrated-source-backup-20261029.json`**.

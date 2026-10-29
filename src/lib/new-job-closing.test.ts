@@ -6,8 +6,7 @@ import { minimalInput } from "./__fixtures__/proposal";
 import { buildBlankProjectGraph, parseBlankProjectInput } from "./blank-project";
 import {
     applyCompanyClosingMessage, draftFromProject, initialReviewState, isReviewDirty, reviewReducer,
-    reviewStateFromPersistedProject, savedDraftFromProject, TEXT_LIMITS, type ReviewAction, type ReviewContext,
-    type ReviewProject,
+    savedDraftFromProject, TEXT_LIMITS, type ReviewAction, type ReviewContext, type ReviewProject,
 } from "./proposal-review";
 
 const journeyAuth = vi.hoisted(() => ({ requireAuth: vi.fn() }));
@@ -299,7 +298,12 @@ async function loadPersistedProjectForProposal(supabase: { from: ReturnType<type
     return data as ReviewProject;
 }
 
-describe("A069 new job creation → persisted row → proposal review (fake Supabase, not Postgres)", () => {
+/** Test-local bootstrap: same draftFromProject / savedDraftFromProject / initialReviewState the client uses (not a product export). */
+function proposalDraftProjectionFromPersistedRow(project: ReviewProject, makeKey: () => string) {
+    return initialReviewState(draftFromProject(project, makeKey), savedDraftFromProject(project, makeKey));
+}
+
+describe("A069 application create → mock persisted row → proposal draft projection (not ReviewSendClient UI / not Postgres)", () => {
     beforeEach(() => {
         journeyAuth.requireAuth.mockReset();
     });
@@ -319,7 +323,7 @@ describe("A069 new job creation → persisted row → proposal review (fake Supa
         const row = await loadPersistedProjectForProposal(db.client, "project-1");
         expect(row.closing_statement).toBe(mdMessage);
 
-        let state = reviewStateFromPersistedProject(row, () => "key");
+        let state = proposalDraftProjectionFromPersistedRow(row, () => "key");
         const store = { getState: () => state, dispatch: (action: ReviewAction) => { state = reviewReducer(state, action); } };
         expect(state.draft.closing).toBe(mdMessage);
         expect(state.saved.closing).toBe(mdMessage);
@@ -341,7 +345,7 @@ describe("A069 new job creation → persisted row → proposal review (fake Supa
         expect(retry).toEqual(first);
 
         const row = await loadPersistedProjectForProposal(db.client, "project-1");
-        expect(reviewStateFromPersistedProject(row, () => "k").saved.closing).toBe(mdMessage);
+        expect(proposalDraftProjectionFromPersistedRow(row, () => "k").saved.closing).toBe(mdMessage);
     });
 
     it("leaves closing empty when profile message is blank-eligible only", async () => {
@@ -355,7 +359,7 @@ describe("A069 new job creation → persisted row → proposal review (fake Supa
 
         const row = await loadPersistedProjectForProposal(db.client, created.projectId);
         expect(row.closing_statement).toBeNull();
-        expect(reviewStateFromPersistedProject(row, () => "k").draft.closing).toBe("");
+        expect(proposalDraftProjectionFromPersistedRow(row, () => "k").draft.closing).toBe("");
     });
 
     it("does not rewrite closing from a later profile message change", async () => {
@@ -371,6 +375,6 @@ describe("A069 new job creation → persisted row → proposal review (fake Supa
         db.tables.profiles![0]!.md_message = "Profile changed after the job was created";
         const row = await loadPersistedProjectForProposal(db.client, created.projectId);
         expect(row.closing_statement).toBe(original);
-        expect(reviewStateFromPersistedProject(row, () => "k").draft.closing).toBe(original);
+        expect(proposalDraftProjectionFromPersistedRow(row, () => "k").draft.closing).toBe(original);
     });
 });

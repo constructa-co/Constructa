@@ -174,11 +174,6 @@ export function savedDraftFromProject(project: ReviewProject, makeKey: () => str
     };
 }
 
-/** Same bootstrap as the proposal review client: persisted row → editable draft + saved baseline. */
-export function reviewStateFromPersistedProject(project: ReviewProject, makeKey: () => string): ReviewState {
-    return initialReviewState(draftFromProject(project, makeKey), savedDraftFromProject(project, makeKey));
-}
-
 export function standardTermDrafts(): TermDraft[] {
     return STANDARD_PROPOSAL_TERMS.map((clause) => ({
         clause_number: clause.clause_number,

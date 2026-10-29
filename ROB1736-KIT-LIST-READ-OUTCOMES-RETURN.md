@@ -6,7 +6,7 @@
 |--------|--------|
 | **Accepted parent pin (start)** | `c42453d8f7c2e918a9da247a075cd1f7959011cc` |
 | **Branch** | `codex/phase1c-kit-list-read-outcomes-20261029` |
-| **End commit** | _(filled after push)_ |
+| **End commit** | `4d8c281` (pushed) |
 | **PR** | None (per instruction) |
 
 ## Scope (OWN piece only)

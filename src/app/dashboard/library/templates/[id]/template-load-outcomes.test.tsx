@@ -26,7 +26,9 @@ vi.mock("@/components/ui/button", () => ({
 vi.mock("lucide-react", () => ({
     Trash2: () => null, Plus: () => null, ArrowLeft: () => null, MoreHorizontal: () => null, PackageOpen: () => null,
 }));
-vi.mock("../../templates-actions", () => ({ removeTemplateItemAction: vi.fn() }));
+vi.mock("./template-kit-item-remove", () => ({
+    TemplateKitItemRemove: () => createElement("button", { "data-kit-remove": "stub", "aria-label": "Remove kit item" }, "remove"),
+}));
 vi.mock("./template-item-editor", () => ({
     default: (props: { templateId: string; libraryItems: unknown[] }) => {
         mocks.editorProps = props;

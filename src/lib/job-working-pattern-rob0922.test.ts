@@ -7,7 +7,6 @@ import {
     buildSimpleProgramme, continueToProposal, emptyProgrammeDraft, initialProgrammeState,
     isProgrammeDirty, programmeReducer,
 } from "./simple-programme";
-import { canonicalWorkingPatternComparable } from "./working-pattern-canonical";
 import { createWorkingPatternV2Draft } from "./working-pattern-draft";
 
 describe("ROB0922 retained checks (superseded dates by ROB0942 where noted)", () => {

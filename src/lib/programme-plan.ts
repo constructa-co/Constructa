@@ -13,7 +13,7 @@
 import { parseIsoDate } from "./programme-date";
 import {
     addJobWorkingDays, countJobWorkingDays, isDefaultJobWorkingPattern, isJobWorkingDay, isJobWorkingPatternV2,
-    nextJobWorkingDayAfter, programmeWeekUnitCount, resolveJobWorkingPattern, type JobWorkingPattern,
+    jobWorkloadStartIso, nextJobWorkingDayAfter, programmeWeekUnitCount, resolveJobWorkingPattern, type JobWorkingPattern,
 } from "./job-working-pattern";
 
 export { parseIsoDate } from "./programme-date";
@@ -182,8 +182,18 @@ function readPhase(entry: unknown, index: number, programmeStartMs: number | nul
 
     const workingDays = phaseWorkingDays(p);
     if (workingDays > 0) {
-        const firstDay = addJobWorkingDays(startIso, 1, pattern);
-        const lastDay = addJobWorkingDays(startIso, workingDays, pattern);
+        const programmeStartIso = programmeStartMs !== null ? toIso(programmeStartMs) : null;
+        const workloadOffset = Number(p.workingDayOffset);
+        const useProgrammeOrigin = isJobWorkingPatternV2(pattern)
+            && programmeStartIso !== null
+            && Number.isFinite(workloadOffset)
+            && workloadOffset >= 0;
+        const firstDay = useProgrammeOrigin
+            ? jobWorkloadStartIso(programmeStartIso, workloadOffset, pattern)
+            : addJobWorkingDays(startIso, 1, pattern);
+        const lastDay = useProgrammeOrigin
+            ? addJobWorkingDays(programmeStartIso, workloadOffset + workingDays, pattern)
+            : addJobWorkingDays(startIso, workingDays, pattern);
         return firstDay === null || lastDay === null ? null
             : {
                 name, startMs: parseIsoDate(firstDay)!, endMs: parseIsoDate(lastDay)!,
@@ -218,7 +228,7 @@ export function computeProgrammePlan(
     if (!pattern) return null;
     if (!Array.isArray(phases) || phases.length === 0) return null;
     // An explicitly undated programme must never acquire dates from a legacy reader.
-    if (phases.some(phase => asRecord(phase).timeBasis != null || asRecord(phase).workingDayOffset != null || Object.hasOwn(asRecord(phase), "programmeIntent"))) return null;
+    if (phases.some(phase => asRecord(phase).timeBasis != null || Object.hasOwn(asRecord(phase), "programmeIntent"))) return null;
     const programmeStartMs = parseIsoDate(startDate);
 
     const read = phases
@@ -231,7 +241,21 @@ export function computeProgrammePlan(
     const endMs = Math.max(...read.map((phase) => phase.endMs));
     const startIso = toIso(startMs)!;
     const endIso = toIso(endMs)!;
-    const workingDays = countJobWorkingDays(startIso, endIso, pattern);
+    const workingDays = isJobWorkingPatternV2(pattern)
+        ? (() => {
+            const ranges = phases.slice(0, read.length).map((entry) => {
+                const row = asRecord(entry);
+                const offset = Number(row.workingDayOffset);
+                const days = phaseWorkingDays(row);
+                if (!Number.isFinite(offset) || offset < 0 || days <= 0) return null;
+                return { start: offset, end: offset + days };
+            }).filter((range): range is { start: number; end: number } => range !== null);
+            if (ranges.length === 0) return countJobWorkingDays(startIso, endIso, pattern);
+            const minStart = Math.min(...ranges.map(range => range.start));
+            const maxEnd = Math.max(...ranges.map(range => range.end));
+            return maxEnd - minStart;
+        })()
+        : countJobWorkingDays(startIso, endIso, pattern);
 
     return {
         ...(isDefaultJobWorkingPattern(pattern) ? { basis: PROGRAMME_BASIS } : { basis: "job_working_days" as const, working_pattern: pattern }),

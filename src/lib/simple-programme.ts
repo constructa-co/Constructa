@@ -18,7 +18,7 @@ import {
     resolveProgrammeSource,
 } from "./programme-plan";
 import {
-    addJobWorkingDays, isJobWorkingDay, nextJobWorkingDayAfter, programmeWeekUnitCount,
+    addJobWorkingDays, isJobWorkingDay, jobWorkloadStartIso, nextJobWorkingDayAfter, programmeWeekUnitCount,
     resolveJobWorkingPattern, isDefaultJobWorkingPattern, explainWorkingPatternDraft, validateWorkingPatternForProgramme,
     isJobWorkingPatternV2, type JobWorkingPattern,
 } from "./job-working-pattern";
@@ -357,7 +357,7 @@ export function buildProgrammePhases(input: SimpleProgrammeInput, existingPhases
         delete base.startOffset;
 
         const start = isJobWorkingPatternV2(pattern)
-            ? addJobWorkingDays(input.startDate, workingOffset + 1, pattern)
+            ? jobWorkloadStartIso(input.startDate, workingOffset, pattern)
             : (cursor ?? input.startDate);
         const calculated = Number(base.calculatedDays);
         const phase = {
@@ -368,7 +368,11 @@ export function buildProgrammePhases(input: SimpleProgrammeInput, existingPhases
             manhours: Number.isFinite(Number(base.manhours)) && Number(base.manhours) > 0 ? Number(base.manhours) : 0,
             ...(input.timeBasis === "relative"
                 ? { timeBasis: RELATIVE_PROGRAMME_BASIS, workingDayOffset: workingOffset }
-                : { startOffset: calendarOffset(input.startDate, start ?? input.startDate) }),
+                : {
+                    workingDayOffset: workingOffset,
+                    startOffset: calendarOffset(input.startDate, start ?? input.startDate),
+                    ...(start ? { start_date: start } : {}),
+                }),
             duration_unit: stage.unit === "weeks" ? "Weeks" : "Days",
         };
         const end = isJobWorkingPatternV2(pattern)

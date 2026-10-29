@@ -29,10 +29,7 @@ function record(value: unknown): Record<string, unknown> {
 }
 
 export function hasRelativeProgramme(phases: unknown[] | null | undefined): boolean {
-    return Array.isArray(phases) && phases.some(value => {
-        const p = record(value);
-        return p.timeBasis != null || p.workingDayOffset != null;
-    });
+    return Array.isArray(phases) && phases.some(value => record(value).timeBasis === RELATIVE_PROGRAMME_BASIS);
 }
 
 /** Only explicitly marked, complete, sequential working-day phases are relative. */

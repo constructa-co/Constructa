@@ -347,6 +347,39 @@ function rollForwardLocal(iso: string, pattern: JobWorkingPatternV2, maxDays = 4
     return null;
 }
 
+function v2CivilDateAtAccumulatedMinutes(
+    startIso: string, targetMinutes: number, pattern: JobWorkingPatternV2, mode: "start" | "end",
+): string | null {
+    if (targetMinutes <= 0 && mode === "start") return rollForwardLocal(startIso, pattern);
+    if (targetMinutes <= 0) return null;
+    let current = rollForwardLocal(startIso, pattern);
+    if (!current) return null;
+    let accumulated = 0;
+    for (let guard = 0; guard < maxLocalWalkDays(Math.ceil(targetMinutes / pattern.standardMinutesPerDay) + 7); guard += 1) {
+        const minutes = effectiveLocalDayMinutesOnDate(current, pattern);
+        if (minutes === null) return null;
+        if (mode === "start" && accumulated >= targetMinutes) return current;
+        if (minutes > 0) {
+            accumulated += minutes;
+            if (mode === "end" && accumulated >= targetMinutes) return current;
+        }
+        const next = nextLocalIsoDate(current, pattern.timezone);
+        if (!next) return null;
+        current = next;
+    }
+    return null;
+}
+
+/** Civil date where programme workload begins after `completedProgrammeDays` full standard days already consumed from programme start. */
+export function jobWorkloadStartIso(programmeStart: string, completedProgrammeDays: number, value?: unknown): string | null {
+    const pattern = resolveJobWorkingPattern(value);
+    if (!pattern || !isJobWorkingPatternV2(pattern)) return null;
+    if (completedProgrammeDays <= 0) return rollForwardLocal(programmeStart, pattern);
+    return v2CivilDateAtAccumulatedMinutes(
+        programmeStart, completedProgrammeDays * pattern.standardMinutesPerDay, pattern, "start",
+    );
+}
+
 function addJobWorkingDaysV2(startIso: string, workingDays: number, pattern: JobWorkingPatternV2): string | null {
     if (!Number.isFinite(workingDays) || workingDays < 1 || !Number.isSafeInteger(Math.round(workingDays))) return null;
     if (localStartOfDayUtc(startIso, pattern.timezone) === null) return null;

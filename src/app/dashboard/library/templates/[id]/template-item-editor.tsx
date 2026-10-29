@@ -27,6 +27,7 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
     const [quantity, setQuantity] = useState<number>(1);
     const [isPending, setIsPending] = useState(false);
     const [filterQuery, setFilterQuery] = useState("");
+    const [addError, setAddError] = useState<string | null>(null);
 
     const normalizedFilter = filterQuery.trim().toLowerCase();
     const visibleLibraryItems = normalizedFilter === ""
@@ -38,24 +39,31 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
     const handleAdd = async () => {
         if (!selectedItemId) return;
 
+        setAddError(null);
         setIsPending(true);
-        const item = libraryItems.find(i => i.id === selectedItemId);
-        if (item) {
-            try {
-                await addItemsToTemplateAction(templateId, [{
-                    category: item.category,
-                    description: item.description,
-                    unit: item.unit,
-                    unit_cost: item.unit_cost,
-                    quantity: quantity
-                }]);
-                setSelectedItemId("");
-                setQuantity(1);
-            } catch (error) {
-                console.error("Add error:", error);
+        try {
+            const item = libraryItems.find(i => i.id === selectedItemId);
+            if (!item) {
+                setAddError("Selected library item is no longer available. Choose another item and try again.");
+                return;
             }
+            await addItemsToTemplateAction(templateId, [{
+                category: item.category,
+                description: item.description,
+                unit: item.unit,
+                unit_cost: item.unit_cost,
+                quantity: quantity
+            }]);
+            setSelectedItemId("");
+            setQuantity(1);
+        } catch (error) {
+            const detail = error instanceof Error ? error.message : "Unknown error";
+            setAddError(
+                `Could not confirm the add completed. The item may already be on this kit — check the kit list below before adding again. (${detail})`
+            );
+        } finally {
+            setIsPending(false);
         }
-        setIsPending(false);
     };
 
     return (
@@ -110,6 +118,9 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
                     <p className="text-[10px] text-slate-400 mt-1 italic">This acts as a base multiplier when the kit is applied.</p>
                 </div>
 
+                {addError ? (
+                    <p role="alert" className="text-xs text-red-600 leading-snug">{addError}</p>
+                ) : null}
                 <Button
                     onClick={handleAdd}
                     disabled={!selectedItemId || isPending}

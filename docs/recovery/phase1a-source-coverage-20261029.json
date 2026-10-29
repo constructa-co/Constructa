@@ -42,13 +42,27 @@
   "sourceCoverageAtAcceptedHead": {
     "migrationFiles": {
       "count": 116,
+      "inventoryScope": "Authored SQL files present in Git at accepted head d86; not a live database inventory",
+      "liveDatabaseAppliedState": "unverified_not_read_in_this_job",
+      "managerKnownAppliedNoRepeat": {
+        "note": "A023 platform terms / consent path applied on QA through 2026-10-27 (manager); this manifest does not re-apply or re-verify"
+      },
+      "managerHeldNamedAuthoredSqlNotVerifiedHere": [
+        "supabase/migrations/20261026110000_project_working_pattern.sql",
+        "supabase/migrations/20261029103000_project_working_pattern_v2.sql",
+        "supabase/migrations/20261028183000_new_job_closing_prefill.sql",
+        "supabase/migrations/20261028233000_job_assistant_usage_ledger.sql"
+      ],
       "deltaSinceHistorical679": [
         "supabase/migrations/20261028120000_case_library_photos.sql",
         "supabase/migrations/20261028183000_new_job_closing_prefill.sql",
         "supabase/migrations/20261028233000_job_assistant_usage_ledger.sql",
         "supabase/migrations/20261029103000_project_working_pattern_v2.sql"
       ],
-      "notAppliedToDatabase": "All authored SQL in repository; practice/SQL apply explicitly not run in this job"
+      "schemaMigrationsComparison": {
+        "status": "future_operator_within_runbook_section_3",
+        "note": "Compare supabase_migrations.schema_migrations to repository filenames on source; not performed in this source-only job; no manual history repair, bulk push, or A038 catch-up gate invented here"
+      }
     },
     "a059DeltaParentB5ToHeadD86": {
       "pathCount": 20,
@@ -75,10 +89,13 @@
         { "path": "walkthrough-action-register.json", "gitBlob": "c0e7de092bebd2a3f4ad83eacda24cf523affae3" }
       ]
     },
-    "recoveryToolingUnchangedAtD86": [
-      { "path": "docs/recovery/a079-recovery-runbook.md", "gitBlob": "6c27332fe74f661ce7ce9552d4e37753ab973857" },
-      { "path": "scripts/recovery-manifest-check.mjs", "gitBlob": "c42ca24c49fa73a8b9ca7b505550c9e0b4002128" }
-    ],
+    "recoveryToolingGitBlobsAtAcceptedHeadD86": {
+      "meaning": "Git blob ids for these paths in tree d86 only; does not claim blobs unchanged on other commits or branches",
+      "paths": [
+        { "path": "docs/recovery/a079-recovery-runbook.md", "gitBlob": "6c27332fe74f661ce7ce9552d4e37753ab973857" },
+        { "path": "scripts/recovery-manifest-check.mjs", "gitBlob": "c42ca24c49fa73a8b9ca7b505550c9e0b4002128" }
+      ]
+    },
     "phase1AOffReadinessSample": {
       "path": "src/lib/server/job-assistant-transport.ts",
       "gitBlob": "9eef8a68491812f33703cc25dc9b83c1457a9a19",
@@ -87,7 +104,7 @@
     "authoredSqlJobAssistantLedger": {
       "path": "supabase/migrations/20261028233000_job_assistant_usage_ledger.sql",
       "gitBlob": "dce14cc6da845fe8009ec9a81c94805852d266f7",
-      "notApplied": true
+      "liveAppliedState": "held_named_in_managerHeldNamedAuthoredSqlNotVerifiedHere"
     }
   },
   "coverageGapClosedByThisArtifact": {

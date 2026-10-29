@@ -47,6 +47,11 @@ This coverage **does not** move A079 to Complete. It closes the gap where accept
 post-b5 / A059-night source was missing from recovery documentation. Full recovery still
 requires operator export, manifest `COMPLETE_SET` with `--root`, and section 9 evidence.
 
+Database export **credential boundary** (safe operator rules, not the historical example):
+section 3 below. `EXPORT_DEST`, disposable restore target, retention, and `RECOVERY_OWNER`
+remain future operator inputs named in one scoped yes, separate from practice/provider
+questions; nothing in this section is executed from the repository.
+
 ## 2. Required inputs
 
 These are named by the authorised operator. The runbook never assumes them, and the
@@ -80,6 +85,23 @@ Credential handling:
   arguments, use it. For `psql`, use a libpq service file plus a password file with mode 600.
 - Never print, `export` into a shared shell, log, screenshot or write a credential into
   `EXPORT_DEST`, the manifest or evidence.
+
+Safe future operator instruction (documentation only; no commands executed from this
+repository): use **existing operator-controlled** libpq service names only (for example
+`a079_source` for export reads, `a079_restore` for disposable-target loads), each with a
+matching mode-`600` password file the operator already maintains. Do **not** create
+credentials, URLs, or password files in this job. Do **not** pass database passwords in
+process arguments, shared shell exports, shell history, or logs: no credential URLs,
+`PGPASSWORD`, `--password` values, `-p` password values, or equivalent. Keep tracing off
+(`set +x`) and history disabled on the isolated host. Use the installed Supabase CLI for
+`db dump` **only** when that installed version documents a password-off-argv-safe mode
+compatible with the operator's handoff; otherwise use existing libpq tools (`psql`, and
+vendor-documented dump paths the operator chooses) with the managed-schema exclusion
+review at the **existing** gate G1 in section 8 — not a new named DBA gate invented here.
+Do **not** claim generic `pg_dump` output is identical to Supabase CLI omissions for
+managed schemas; follow the Supabase CLI reference notes below and G1 inventory rules.
+
+**Historical unsafe example - DO NOT EXECUTE. Database password must not appear in process arguments.**
 
 ```bash
 # Inert example. SOURCE_DB_URL comes from the operator's own secret store (see credential handling).

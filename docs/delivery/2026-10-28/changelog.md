@@ -224,3 +224,7 @@
 ## ROB1205 A085 functional — 29 October 2026
 
 - Parent **d86dca6**: **4fbe579** (kit filter 2) + **5aa0fb6** (rate outcomes 4). ROOT **15/15** tests. **A085 Partial**; no palette cd27/499ce/e5. Receipt **`rob1205-integrated-source-backup-20261029.json`**.
+
+## ROB1255 A085 kit Add + CSV — 29 October 2026
+
+- Parent **97ad673**: **04c5518** (2) + **58eb21a9** (4 NET). ROOT **16/16**; six functional source paths. Receipt **`rob1255-integrated-source-backup-20261029.json`**.

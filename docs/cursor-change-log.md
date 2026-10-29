@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-10-29 — ROB1255 A085 kit Add + CSV (Cursor integration)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| `template-item-editor` + add-outcomes test | Add failure/uncertainty handling | Pin **04c5518** |
+| `actions` + `csv-importer` + 2 CSV test modules | Fail-closed category/item/transport | Pin **58eb21a9** NET 97..58eb |
+| `handoff.md` | EOF append only | Preserve **97ad673** prefix exact |
+
 ## 2026-10-29 — ROB1205 A085 functional kit + rates (Cursor integration)
 
 | Paths | Change | Intent |

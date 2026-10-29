@@ -294,3 +294,9 @@ policy approved in register metadata only; **73709** not on ROOT. Receipt
 - **P2 R2:** save-time validation walks up to `14×programmeDays+14` days (cap 5000) — ~2.8s at 60 programme days, ~13.8s at 2600; fails closed on main thread at save only.
 - **P3:** exclusive end on clock-change boundaries may over-refuse; unbounded wall-time caches in `job-working-local`; SQL cast edge errors; test coverage gaps per ROB0952.
 - **Policy:** ROB0922 `ManagePullRequest` breach reported separately; Rob confirmed no new PR at 10:13.
+
+## ROB1255 A085 kit Add + CSV import outcomes — 29 October 2026
+
+**Parent `97ad673`:** exact **04c5518** kit Add (2) + **58eb21a9** CSV fail-closed (4 NET from 97). Independent reviews **cc86** + **614f9daa**. ROOT **16/16** focused mock tests; **6** functional source paths on this backup (not stale b5 NET16). **A085 Partial** — broader estimating/marketing scope open; no real CSV upload/DB/financial action. Returned-transport false-zero message closed in **58eb**. Receipt **`rob1255-integrated-source-backup-20261029.json`**.
+
+**Retained limits:** kit filter P2/P3 + rate P2 from **97**; CSV no cross-depth transaction / category rows may persist / mock-only proof; kit Add uncertainty paths per **rob1234**.

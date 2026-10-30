@@ -364,8 +364,13 @@
       "phase": "P1-Jan2027",
       "requested": "Align Gantt bars with the date/week grid, durations and the proposal timeline.",
       "status": "Partial",
-      "delivery": "28Oct: Kimi ONE new refresh-after-successful-push failure/retry case independently accepted;48line addition exact. Composer explicitly conditions newer-edits warning and fixes actual leaving-state test slot. Actual2affected mounted cases PASS/17NOT_SELECTED, lintPASS. Grok SAMEsession: promise finding rejected against actual AppRouter void API; conditional-copy clarity accepted, held-consent scopedsourceNNF only. Exact originalbuild/scans/normalbackup PENDING at metadata freeze; no new Complete or hosted acceptance.",
+      "delivery": "28Oct: Kimi ONE new refresh-after-successful-push failure/retry case independently accepted;48line addition exact. Composer explicitly conditions newer-edits warning and fixes actual leaving-state test slot. Actual2affected mounted cases PASS/17NOT_SELECTED, lintPASS. Grok SAMEsession: promise finding rejected against actual AppRouter void API; conditional-copy clarity accepted, held-consent scopedsourceNNF only. Exact originalbuild/scans/normalbackup PENDING at metadata freeze; no new Complete or hosted acceptance. 30Oct ROB2315 ROOT: frozen Claude ROB2228 grant SQL+5case source test only (patch 9bbcdc396f…); Grok2246 SCOPED_NNF on exact hunks; parent actual QA grant applied once readback authenticatedExecute true anon false; programme Saved/freshreopen/proposal parity and new-job/closing journeys PASS on umq; SQL header still says SOURCE ONLY/unapplied for repo history — superseded for runtime by parent evening2300 receipt not by rewriting frozen migration bytes; no SQL replay this integration; A059 status unchanged Partial pending parent scope closure.",
       "evidence": [
+        "evening2300-ready-qa-and-overnight-20261030.json",
+        "grok2246-a059-independent-disposition-20261030.json",
+        "rob2315-a059-source-backup-20261030.json"
+      ],
+      "previousEvidenceBeforeRob2315": [
         "a059-final-independent-disposition-20261028.json",
         "CURSOR-A059-FINAL-INTEGRATION-RETURN-20261028.md",
         "grok-f850-independent-disposition-20261028.json"

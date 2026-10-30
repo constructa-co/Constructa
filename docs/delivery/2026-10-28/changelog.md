@@ -252,3 +252,9 @@
 ## ROB1710 frozen DeepSeek QA package - 30 October 2026
 
 - Separate after **b0a998e** profile backup: exact five-file **cf0842d6** package, Claude provider wiring + CursorComposer QA config; independent ROB2051/ROB2118 coverage, no adaptation. ROOT188/188, ESLint0, fullTypeScriptPASS/Node24. QA-only source configuration, ProductionOFF, no ledgerSQL/keys/paidcall/hostedproof. A055/A063 metadata only/all118 statuses unchanged. Fresh build/normal backup actual receipts: **rob1710-deepseek-integrated-build-20261030.json**, **rob1710-deepseek-source-backup-20261030.json**. No main/PR/merge/deploy/settings.
+
+## Cursor review cq-rev-b0a998e-4c66969 - 30 October 2026
+
+- **File:** `docs/reviews/cq-rev-b0a998e-4c66969.md` (new).
+- **Intent:** Independent read of commits **b0a998e** (profile/case-studies fail-closed) and **4c66969** (DeepSeek QA job-assistant config) on parent **6cfabfc**; no product code changes.
+- **Scope:** Bugs, test gaps, risky patterns, secrets/settings/SQL touchpoints; one-line verdict. Register statuses unchanged.

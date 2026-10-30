@@ -349,3 +349,12 @@ policy approved in register metadata only; **73709** not on ROOT. Receipt
 - **Product:** one migration file `GRANT EXECUTE ON FUNCTION public.valid_programme_working_pattern(jsonb) TO authenticated` plus source-only vitest locking grant ordering, v1/v2 pinned hashes, INVOKER/CHECK shape, and closing RPC grants. No app/SQL/RLS rewrite.
 - **SQL header vs QA:** file comments still say SOURCE ONLY and pending operator apply (historical author labels). Parent actual QA in **evening2300-ready-qa-and-overnight-20261030.json** already applied this grant once with readback authenticated=true, anon=false; programme save/reopen/proposal parity and new-job/closing journeys PASS. ROOT does **not** replay SQL or edit frozen migration text.
 - **Checks/build:** **rob2315-a059-integrated-check.json**; reuse-slot build **rob2310-a059-reuse-build-20261030.json** into existing **rob2119-integrated-build-20261029** output only. **A059 Partial**; parent decides Complete after verifying committed blobs + QA receipt. Receipt **rob2315-a059-source-backup-20261030.json**. Preview HOLD; no main/merge/deploy/settings/keys.
+
+## ROB2335 four-slices integrated prep — 30 October 2026
+
+- **Parent `dfbf9f1e6d90852b81bb62e4051421c09e906a70`**. ROOT writer applied independently graded returns only (patches **729a3050** / **ROB2245** / **ROB2238** / **ROB2245-A038-OFF**); decision sheet above unchanged.
+- **A069:** new `a069-closing-editor-journey.test.tsx` (6 cases) — mock create RPC + real ReviewSendClient handlers; parent QA prefill/profile/blank journeys in **evening2300-ready-qa-and-overnight-20261030.json**, not replayed here.
+- **A024:** draft `role="note"` label only; no invented legal/controller facts; Grok **2302** SCOPED_NNF hashes matched.
+- **A001:** dashboard + first-project primary CTAs to core palette; not whole-app blue ban; Kimi source coauthor on future commit.
+- **A038:** `CASE_STUDY_TEXT_ENHANCE_ENABLED=false`; server checks authentication, then returns **COHORT_AI_OFF** before admin/budget/provider; both UI callers guarded. Different-tool Kimi reproduced **13 total tests across the action and OFF-test files**, not 13 action cases plus 3 more. ROOT's separate aggregate result is below; the complete per-file argument list was not retained in its receipt.
+- **Material checks:** vitest **63/63**; ESLint **0 errors** (8 warnings, pre-existing); tsc clean. **No** Next build, backup push, or register status promotion in this prep. Helpers ready for native continuation; check **rob2335-four-slices-integrated-check.json**.

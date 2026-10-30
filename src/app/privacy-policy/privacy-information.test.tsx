@@ -40,9 +40,20 @@ describe("privacy information", () => {
         expect(text).not.toContain("Last updated: March 2026");
     });
 
+    it("shows the approved draft status label and clarifies what it is not", () => {
+        expect(text).toContain("Draft, not yet legally approved");
+        expect(html).toMatch(
+            /<h2[^>]*id="privacy-draft-status"[^>]*>Draft, not yet legally approved<\/h2>/,
+        );
+        expect(html).toMatch(/<div [^>]*data-privacy-draft-notice[^>]*>/);
+        expect(text).toContain("This label is not legal approval of this notice.");
+        expect(text).toContain("This page is not a marketing publication");
+        expect(text).toContain("not presented as compliance certification.");
+    });
+
     it("keeps the page structure and the facts it already stated", () => {
         expect(html).toMatch(/^<main[^>]*><div[^>]*><h1[^>]*>Privacy Policy<\/h1>/);
         expect(text).toContain("When you sign up for updates or use our platform, we hold the details you give us, such as your name, email address and company details.");
-        expect(html.match(/<p /g)).toHaveLength(5);
+        expect(html.match(/<p /g)).toHaveLength(6);
     });
 });

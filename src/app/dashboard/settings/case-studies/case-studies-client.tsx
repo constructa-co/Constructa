@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Loader2, MapPin, Briefcase, Calendar, PoundSterling, Sparkles } from "lucide-react";
 import { saveCaseStudiesAction, enhanceCaseStudyAction } from "./actions";
 import type { CaseStudyResult, CaseStudySection } from "@/lib/cohort-ai/case-study-enhance";
+import { caseStudyTextEnhanceEnabled } from "@/lib/cohort-ai/case-study-enhance-enabled";
+import { COHORT_AI_OFF } from "@/lib/cohort-ai/shared";
 import { pendingFrom, sectionState, settle, type PendingCaseStudySuggestion } from "@/lib/cohort-ai/case-study-suggestion";
 import { uploadProfileImageAction } from "@/app/storage/actions";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
@@ -228,6 +230,10 @@ function CaseStudyCard({
         // One request at a time: the button is disabled while this runs, and this guards a double press.
         if (enhancing) return;
         if (!cs.whatWeDelivered && !cs.valueAdded) return;
+        if (!caseStudyTextEnhanceEnabled()) {
+            setNotice(COHORT_AI_OFF);
+            return;
+        }
         // What the suggestion will have been written from, in case the contractor edits while it is on its way.
         const askedFrom: Record<CaseStudySection, string> = { whatWeDelivered: cs.whatWeDelivered, valueAdded: cs.valueAdded };
         setEnhancing(true);
@@ -289,11 +295,11 @@ function CaseStudyCard({
                     {(cs.whatWeDelivered || cs.valueAdded) && (
                         <button
                             onClick={handleEnhance}
-                            disabled={enhancing}
+                            disabled={enhancing || !caseStudyTextEnhanceEnabled()}
                             className="flex items-center gap-1.5 h-7 px-3 rounded-lg border border-purple-700 bg-purple-900/30 text-purple-300 hover:bg-purple-800/40 text-xs font-bold transition-colors disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                         >
                             {enhancing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                            {enhancing ? "Enhancing..." : "AI Enhance"}
+                            {enhancing ? "Enhancing..." : caseStudyTextEnhanceEnabled() ? "AI Enhance" : "AI Enhance (not available yet)"}
                         </button>
                     )}
                     <button onClick={() => setExpanded(!expanded)} aria-expanded={expanded} aria-controls={`${fieldId}-fields`} aria-label={`${expanded ? "Collapse" : "Expand"} past work ${index + 1}`}>

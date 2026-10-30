@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 import { FIRST_PROJECT_STEPS, NEW_PROJECT_PATH } from "@/lib/first-session";
 import ui from "@/components/first-project.module.css";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 /**
  * What Home and Pipeline show before a contractor has any projects: one
@@ -37,7 +38,7 @@ export default function FirstProjectStart({ companyName, forceDark = false }: {
 
             <Link
                 href={NEW_PROJECT_PATH}
-                className="mt-6 w-full sm:w-auto min-h-12 px-6 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-bold transition-colors"
+                className={`mt-6 w-full sm:w-auto min-h-12 px-6 inline-flex items-center justify-center gap-2 rounded-xl text-base font-bold transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
             >
                 Add your first job
                 <ArrowRight className="w-5 h-5" />

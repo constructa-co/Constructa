@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-10-30T13:09:26.220Z",
+  "updatedAt": "2026-10-30T19:25:06.684Z",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {
@@ -363,7 +363,16 @@
       "id": "A059",
       "phase": "P1-Jan2027",
       "requested": "Align Gantt bars with the date/week grid, durations and the proposal timeline.",
-      "status": "Partial",
+      "status": "Complete",
+      "originalScopeClosure30Oct": {
+        "at": "2026-10-30T19:25:06.684Z",
+        "sourceCommit": "dfbf9f1e6d90852b81bb62e4051421c09e906a70",
+        "evidence": "rob2324-a059-parent-acceptance-20261030.json",
+        "qa": "evening2300-ready-qa-and-overnight-20261030.json",
+        "checker": "Grok2246 SCOPED_NNF plus prior accepted A059 source qualification; parent exact committed-blob/build/remote and signed-in QA grade",
+        "qualification": "Original Gantt/date/week/duration/proposal alignment closed with real save/reopen/proposal parity. Known v2 parallel/gap totals, overscan latency and P3 limits retained, not declared fixed. No AI/Production acceptance.",
+        "packaging": "Post-acceptance register metadata only, intentionally uncommitted for the next genuine source package; do not reuse dfbf build after this metadata change or make an empty documentation backup."
+      },
       "delivery": "28Oct: Kimi ONE new refresh-after-successful-push failure/retry case independently accepted;48line addition exact. Composer explicitly conditions newer-edits warning and fixes actual leaving-state test slot. Actual2affected mounted cases PASS/17NOT_SELECTED, lintPASS. Grok SAMEsession: promise finding rejected against actual AppRouter void API; conditional-copy clarity accepted, held-consent scopedsourceNNF only. Exact originalbuild/scans/normalbackup PENDING at metadata freeze; no new Complete or hosted acceptance. 30Oct ROB2315 ROOT: frozen Claude ROB2228 grant SQL+5case source test only (patch 9bbcdc396f…); Grok2246 SCOPED_NNF on exact hunks; parent actual QA grant applied once readback authenticatedExecute true anon false; programme Saved/freshreopen/proposal parity and new-job/closing journeys PASS on umq; SQL header still says SOURCE ONLY/unapplied for repo history — superseded for runtime by parent evening2300 receipt not by rewriting frozen migration bytes; no SQL replay this integration; A059 status unchanged Partial pending parent scope closure.",
       "evidence": [
         "evening2300-ready-qa-and-overnight-20261030.json",

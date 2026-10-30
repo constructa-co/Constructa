@@ -24,6 +24,7 @@ import FirstProjectStart from "@/components/first-project-start";
 import ui from "@/components/project-chooser.module.css";
 import { corePipelineWorkspaceInsetClassName } from "@/lib/dashboard-route-geometry";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 type Period = "week" | "month" | "quarter" | "year";
 
@@ -274,11 +275,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                 <div className="flex items-center gap-2">
                     <Link
                         href="/dashboard/projects/new"
-                        className={`inline-flex items-center gap-2 font-semibold text-sm px-5 py-2.5 rounded-xl shadow-sm transition-colors ${
-                            isDark
-                                ? "bg-white text-[#0d0d0d] hover:bg-gray-200"
-                                : "bg-blue-600 hover:bg-blue-700 text-white"
-                        }`}
+                        className={`inline-flex items-center gap-2 font-semibold text-sm px-5 py-2.5 rounded-xl shadow-sm transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                     >
                         + New Project
                     </Link>
@@ -290,8 +287,8 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                 <div className={`rounded-2xl border-2 border-dashed p-8 text-center ${
                     isDark ? "border-[#2a2a2a] bg-[#1a1a1a]/50" : "border-gray-200 bg-gray-50"
                 }`}>
-                    <div className="mx-auto w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center mb-4">
-                        <span className="text-white font-bold text-2xl">C</span>
+                    <div className="mx-auto w-14 h-14 rounded-2xl bg-[#203d2b] border border-[#c9efcf]/40 flex items-center justify-center mb-4">
+                        <span className="text-[#f3fff2] font-bold text-2xl">C</span>
                     </div>
                     <h2 className={`text-xl font-bold mb-2 ${isDark ? "text-white" : "text-gray-900"}`}>
                         Let&apos;s win your first job 🎉
@@ -320,7 +317,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     </div>
                     <Link
                         href="/dashboard/projects/new"
-                        className="inline-flex items-center gap-2 font-bold text-sm px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-colors shadow-lg shadow-blue-600/20"
+                        className={`inline-flex items-center gap-2 font-bold text-sm px-6 py-3 rounded-xl transition-colors shadow-lg ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                     >
                         + Create Your First Project
                     </Link>

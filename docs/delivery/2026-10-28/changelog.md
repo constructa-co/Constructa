@@ -248,3 +248,7 @@
 ## ROB1704 frozen profile-read package - 30 October 2026
 
 - Parent **6cfabfc**: exact frozen profile-read four-file patch **9d1eee64**, independently graded ROB2024 + ROB2118, no adaptation. Failed/absent/partial/thrown profile reads do not mount empty editors; successful legacy props preserved. ROOT41/41, ESLint0, fullTypeScriptPASS/Node24. A086/A091 metadata only, all118 statuses unchanged. Source/mock only; no hosted QA, SQL, settings, keys, PR/main/merge/deploy. Separate fresh build/backup actual results: **rob1704-profile-integrated-build-20261030.json**, **rob1704-profile-source-backup-20261030.json**. Rob16:43 permits normal GitHub backup-branch upload, not main.
+
+## ROB1710 frozen DeepSeek QA package - 30 October 2026
+
+- Separate after **b0a998e** profile backup: exact five-file **cf0842d6** package, Claude provider wiring + CursorComposer QA config; independent ROB2051/ROB2118 coverage, no adaptation. ROOT188/188, ESLint0, fullTypeScriptPASS/Node24. QA-only source configuration, ProductionOFF, no ledgerSQL/keys/paidcall/hostedproof. A055/A063 metadata only/all118 statuses unchanged. Fresh build/normal backup actual receipts: **rob1710-deepseek-integrated-build-20261030.json**, **rob1710-deepseek-source-backup-20261030.json**. No main/PR/merge/deploy/settings.

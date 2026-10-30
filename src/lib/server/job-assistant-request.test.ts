@@ -589,10 +589,15 @@ describe("A063 planning transport, worst-case cost and usage ledger (fake SDK an
         expect(await approvedPlanningGenerator()).toBeNull();
         expect([await jobAssistantAvailable("pricing"), await jobAssistantAvailable("planning"), await jobAssistantAvailable("brief")]).toEqual([false, false, false]);
         const source = readFileSync(join(process.cwd(), "src/lib/server/job-assistant-transport.ts"), "utf8");
-        expect(source).toMatch(/const APPROVED_GENERATION: Record<JobAssistantFeature, unknown> = \{ pricing: null, planning: null, brief: null \};/);
+        expect(source).toMatch(/function deepSeekQaApproval/);
+        expect(source).toMatch(/model: "deepseek-flash"/);
+        expect(source).toMatch(/inputPencePerMillionTokens: 25/);
+        expect(source).toMatch(/approvedAt: QA_DEEPSEEK_APPROVAL_AT/);
+        expect(source).not.toMatch(/pricing: null, planning: null, brief: null \};/);
         expect(source).toMatch(/FEATURE_PROMPTS/);
         for (const prompt of ["PRICING_SYSTEM_PROMPT", "PLANNING_SYSTEM_PROMPT", "BRIEF_SYSTEM_PROMPT"]) expect(source).toContain(prompt);
-        expect(source).toMatch(/providers: \{ openai: openAIJobAssistantProvider \}/);
+        expect(source).toMatch(/openai: openAIJobAssistantProvider,\n    deepseek: deepSeekJobAssistantProvider,\n\};/);
+        expect(source).toMatch(/providers: JOB_ASSISTANT_PROVIDERS,/);
         expect(source).toMatch(/ledger: \(\) => createRpcUsageLedger\(\),/);
         expect(source).not.toMatch(/process\.env|gpt-|OPENAI_API_KEY/);
     });

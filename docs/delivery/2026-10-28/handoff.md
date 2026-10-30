@@ -328,3 +328,10 @@ policy approved in register metadata only; **73709** not on ROOT. Receipt
 - ROOT **28/28** (12 new + retained setup actions 16). Source/mock only: no real Auth, database, email, browser or hosted Preview proof. **A086/A091 Partial** (metadata only, zero status changes).
 - SQL not reapplied. A055/A063/A059/A069 unchanged by this patch; DeepSeek QA ledger/runtime/run proof not done. AI line, Production, signup, settings and legal holds unchanged.
 - Receipt **`rob2119-integrated-source-backup-20261029.json`**.
+
+## ROB1704 frozen profile-read package - 30 October 2026
+
+- Parent **6cfabfc**. Apply only frozen **ROB2051-PROFILE-PROP-RESTORE-FULL.patch**, SHA256 **9d1eee6454dc51a668743ca9f4bd2038cd36b7d63c8140b0a7dd473c5c75e347**, four exact product/test files. Original author Cursor Composer 2.5; independent ROB2024 plus ROB2118 delta grades accepted before integration. No product adaptation.
+- Unconfirmed profile reads now show an accessible unavailable state, not an empty editable profile or past-work list. Successful legacy props, owner query and auth routing retained. ROOT **41/41** material (17 new SSR outcomes plus 24 retained case-library boundary tests), ESLint zero errors, full TypeScript passed on Node24.
+- A086/A091 remain Partial; all118 statuses unchanged. This is source/mock evidence, not authenticated QA, successful hosted reads/saves or rollout acceptance. No SQL, settings, keys, paid calls, PR, main, merge or deploy. DeepSeek package remains separate.
+- Rob30Oct16:43 expressly permits normal GitHub **backup branch only** after each package. Fresh guarded build receipt **rob1704-profile-integrated-build-20261030.json** and backup receipt **rob1704-profile-source-backup-20261030.json** are authoritative for their actual results; this text does not preclaim build/push success.

@@ -244,3 +244,7 @@
 ## ROB2119 business setup post-save boundary - 29 October 2026
 
 - Parent **4450230**: ROB1938 setup post-save patch (2 paths), review ROB2017 SCOPED_NNF. A confirmed setup save is no longer reported as failed when the project count errors or throws. ROOT **28/28** (12 + retained 16). Source/mock only. **A086/A091 Partial**. Receipt **`rob2119-integrated-source-backup-20261029.json`**.
+
+## ROB1704 frozen profile-read package - 30 October 2026
+
+- Parent **6cfabfc**: exact frozen profile-read four-file patch **9d1eee64**, independently graded ROB2024 + ROB2118, no adaptation. Failed/absent/partial/thrown profile reads do not mount empty editors; successful legacy props preserved. ROOT41/41, ESLint0, fullTypeScriptPASS/Node24. A086/A091 metadata only, all118 statuses unchanged. Source/mock only; no hosted QA, SQL, settings, keys, PR/main/merge/deploy. Separate fresh build/backup actual results: **rob1704-profile-integrated-build-20261030.json**, **rob1704-profile-source-backup-20261030.json**. Rob16:43 permits normal GitHub backup-branch upload, not main.

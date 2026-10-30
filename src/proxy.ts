@@ -3,9 +3,17 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { getLaunchProfile, getLaunchRedirectPath, isDashboardPathAllowed } from '@/lib/launch-profile'
 import { reviewEnabled, reviewPageAllowed, REVIEW_CSP, REVIEW_USER } from '@/lib/deployment/review-policy'
 import { editableReview, editablePage } from '@/lib/deployment/review-editable'
+import { forgotPasswordExpiredUrl, shouldRedirectRecoveryLinkFailure } from '@/lib/auth-recovery-link-failure'
 
 export async function proxy(request: NextRequest) {
   const review = reviewEnabled();
+  const pathname = request.nextUrl.pathname
+  if (
+    request.method === 'GET' &&
+    shouldRedirectRecoveryLinkFailure(pathname, request.nextUrl.search)
+  ) {
+    return NextResponse.redirect(new URL(forgotPasswordExpiredUrl(), request.url))
+  }
   if (review && !reviewPageAllowed(request.method, request.nextUrl.pathname) && !(editableReview() && editablePage(request.method, request.nextUrl.pathname))) {
     return new NextResponse('This protected review is read-only. Saved data and external actions are disabled.', {
       status: 403, headers: { 'Content-Security-Policy': REVIEW_CSP, 'Cache-Control': 'no-store' },
@@ -78,8 +86,6 @@ export async function proxy(request: NextRequest) {
     if (review && user && user.id !== REVIEW_USER) {
       return new NextResponse('Only the existing labelled test account is available in this review.', { status: 403 });
     }
-    const pathname = request.nextUrl.pathname
-
     // Protect /dashboard routes
     if (pathname.startsWith('/dashboard') && !user) {
       return NextResponse.redirect(new URL('/login', request.url))

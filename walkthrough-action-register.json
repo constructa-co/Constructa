@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-10-30T19:25:06.684Z",
+  "updatedAt": "2026-10-30T19:57:32.218Z",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {
@@ -153,7 +153,7 @@
       "id": "A024",
       "phase": "P1-Jan2027",
       "requested": "Explain privacy, security and use of personal/company/tax/pricing/salary information clearly.",
-      "status": "Partial"
+      "status": "Complete"
     },
     {
       "id": "A025",
@@ -446,7 +446,7 @@
       "id": "A069",
       "phase": "P1-Jan2027",
       "requested": "Prefill the closing message from the managing director message, with proposal-specific editing.",
-      "status": "Partial"
+      "status": "Complete"
     },
     {
       "id": "A070",

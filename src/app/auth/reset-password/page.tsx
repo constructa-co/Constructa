@@ -8,6 +8,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getLaunchLandingPath } from '@/lib/launch-profile'
+import {
+    FORGOT_PASSWORD_PATH,
+    isRecoveryLinkFailureSearch,
+    RECOVERY_LINK_EXPIRED_MESSAGE,
+} from '@/lib/auth-recovery-link-failure'
 
 export default function ResetPasswordPage() {
     const [password, setPassword] = useState('')
@@ -19,6 +24,12 @@ export default function ResetPasswordPage() {
     const router = useRouter()
 
     useEffect(() => {
+        if (isRecoveryLinkFailureSearch(window.location.search)) {
+            setError(RECOVERY_LINK_EXPIRED_MESSAGE)
+            window.history.replaceState(null, '', '/auth/reset-password')
+            return
+        }
+
         const supabase = createClient()
 
         // Handle the case where we land here with a hash fragment from the
@@ -31,7 +42,7 @@ export default function ResetPasswordPage() {
         if (access_token && refresh_token) {
             supabase.auth.setSession({ access_token, refresh_token }).then(({ error }) => {
                 if (error) {
-                    setError('Recovery link is invalid or has expired. Please request a new one.')
+                    setError(RECOVERY_LINK_EXPIRED_MESSAGE)
                 } else {
                     // Clear the hash from the URL bar
                     window.history.replaceState(null, '', '/auth/reset-password')
@@ -44,7 +55,7 @@ export default function ResetPasswordPage() {
                 if (session) {
                     setSessionReady(true)
                 } else {
-                    setError('Auth session missing! Please use the link from your reset email, or request a new one.')
+                    setError(RECOVERY_LINK_EXPIRED_MESSAGE)
                 }
             })
         }
@@ -96,10 +107,13 @@ export default function ResetPasswordPage() {
                     ) : !sessionReady ? (
                         <div className="space-y-4">
                             {error ? (
-                                <div className="p-3 bg-red-900/20 border border-red-900/50 rounded-lg text-red-200 text-sm">
+                                <div className="p-3 bg-red-900/20 border border-red-900/50 rounded-lg text-red-200 text-sm" role="alert">
                                     {error}
-                                    <div className="mt-2">
-                                        <a href="/login" className="text-blue-400 underline text-xs">
+                                    <div className="mt-2 flex flex-col gap-1 text-xs">
+                                        <a href={FORGOT_PASSWORD_PATH} className="text-blue-400 underline">
+                                            Request a new reset link
+                                        </a>
+                                        <a href="/login" className="text-slate-400 underline">
                                             Back to login
                                         </a>
                                     </div>

@@ -1,9 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { SidebarBrand } from '@/components/sidebar-brand';
+import {
+    isRecoveryLinkExpiredNotice,
+    RECOVERY_LINK_EXPIRED_MESSAGE,
+} from '@/lib/auth-recovery-link-failure';
 
 /**
  * Sprint 58 Phase 2 item #12 — Forgot Password flow.
@@ -23,6 +27,13 @@ export default function ForgotPasswordPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [sent, setSent] = useState(false);
+    const [expiredNotice, setExpiredNotice] = useState(false);
+
+    useEffect(() => {
+        if (!isRecoveryLinkExpiredNotice(window.location.search)) return;
+        setExpiredNotice(true);
+        window.history.replaceState(null, '', '/auth/forgot-password');
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -90,6 +101,11 @@ export default function ForgotPasswordPage() {
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-6">
+                            {expiredNotice && (
+                                <p role="alert" className="p-3 bg-amber-900/20 border border-amber-800/50 rounded-lg text-amber-100 text-sm">
+                                    {RECOVERY_LINK_EXPIRED_MESSAGE}
+                                </p>
+                            )}
                             <p className="text-sm text-gray-400 leading-relaxed">
                                 Enter your account email and we&apos;ll send you a link to reset your
                                 password.

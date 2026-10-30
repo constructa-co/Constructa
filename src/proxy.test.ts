@@ -57,6 +57,29 @@ describe("proxy authentication boundary", () => {
     expect(response.status).toBe(200);
   });
 
+  it("redirects an expired recovery link on the homepage to forgot-password", async () => {
+    const response = await proxy(
+      new NextRequest(
+        "https://constructa.example/?error=access_denied&error_code=otp_expired",
+      ),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "https://constructa.example/auth/forgot-password?notice=link-expired",
+    );
+  });
+
+  it("does not redirect recovery failures already on reset-password", async () => {
+    const response = await proxy(
+      new NextRequest(
+        "https://constructa.example/auth/reset-password?error=access_denied&error_code=otp_expired",
+      ),
+    );
+
+    expect(response.status).toBe(200);
+  });
+
   it("redirects an authenticated cohort user away from a hidden module", async () => {
     getUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
 

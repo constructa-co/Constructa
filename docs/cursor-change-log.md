@@ -160,3 +160,12 @@
 | `src/app/dashboard/projects/schedule/simple-programme-client.tsx` | ~392–395 | Call `router.refresh()` after `router.push` on **Next: Proposal** | Re-fetch the proposal page server props so `programme_working_pattern` saved in Programme is not stale in Review & Send |
 | `src/app/dashboard/projects/schedule/simple-programme-workspace.test.tsx` | hoisted router mock, new test | Assert push + refresh on **Next: Proposal** | Lock the navigation seam after saved weekend working days |
 | `src/app/dashboard/projects/proposal/review-send-client.test.ts` | new test | All-week pattern shows Sunday 15 Nov finish in programme section | Prove production Review & Send uses saved pattern, not default Mon–Fri |
+
+## 2026-10-30 — QA password reset link expiry routing (Cursor)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| `src/lib/auth-recovery-link-failure.ts` (+ test) | Detect `error`/`error_code` recovery failures; forgot-password notice URL | Shared rules for proxy and pages |
+| `src/proxy.ts` (+ `proxy.test.ts`) | GET redirect from public routes with expired OTP query to `/auth/forgot-password?notice=link-expired` | Stop silent homepage landings on QA |
+| `src/app/auth/reset-password/page.tsx` (+ `page.test.tsx`) | Query/hash failure UX; form when session valid; link to forgot-password | Valid link shows form; invalid shows clear recovery path |
+| `src/app/auth/forgot-password/page.tsx` (+ `page.test.tsx`) | Hydrated alert for `notice=link-expired` | Message after proxy normalisation |

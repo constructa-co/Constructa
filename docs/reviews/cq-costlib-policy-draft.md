@@ -1,10 +1,12 @@
 # Cost library read policy: draft for Rob's approval
 
-**Status: draft, not applied.** Nothing has been run against any database. No SQL or Supabase CLI command was used to prepare this, and the migration has not been executed anywhere, including locally.
+**Status: draft, not applied.** Nothing has been run against any database. No SQL or Supabase CLI command was used to prepare this, and the proposal has not been executed anywhere, including locally.
 
-**Migration:** `supabase/migrations/20261030120000_cost_library_public_read_system_only.sql`
+**Inert proposal (apply path):** `docs/reviews/drafts/20261030120000_cost_library_public_read_system_only.sql.txt`
 
-The file sits in the normal migrations folder, so `supabase db push` would pick it up. No GitHub workflow applies migrations to production; CI only replays them in a throwaway database. Anyone running `db push` by hand before approval would apply this.
+The executable body lives only under `docs/reviews/drafts/` with a `.sql.txt` suffix and an explicit DRAFT / DO NOT EXECUTE / UNAPPROVED wrapper. It is **not** under `supabase/migrations/`, so `supabase db push` and CI migration replay will not pick it up. A prior queue pass failed because the same SQL had been placed on the migrations apply path (`cq-costlib-policy-draft.FAIL`: touches SQL / deploys via live migrations folder).
+
+**Archival bytes (pre-rework, commit `e90f243`):** `docs/reviews/drafts/20261030120000_cost_library_public_read_system_only.sql.pre-rework-archival` (SHA256 `5ecf3a34ad9c06ab5c686cc7dd3d4b69df2462bcc1becd128cf97d2cb521393d`). Git history at `e90f243` also retains the original migrations-path file.
 
 ## The problem
 
@@ -26,12 +28,12 @@ A row counts as a genuine system row only if all three are true:
 
 The flag isn't enough by itself. Under the older "Users Manage Own Resources" policy, an owner can edit their own row, so they could tick the flag and publish that row to everyone. The same three-part test is already used in `20260930190000_lock_cost_library_items.sql`.
 
-The migration does four things in one transaction:
+The proposal SQL (in the inert draft file) does four things in one transaction:
 
-1. Turns row security on, if it isn't already.
+1. Turns row security on, if it isn't already. (CTO reported RLS already enabled on live at 17:30; this step is not re-verified here.)
 2. Replaces "Public Read System Items" with the narrowed version, under the same name.
 3. Adds `select_own_cost_library_items`, so owners can read their own rows.
-4. Changes nothing else. It adds no write policies and doesn't touch grants.
+4. Replaces only those two SELECT policies. It does **not** drop `"Users Manage Own Resources"` or change table GRANTs. Where that ALL policy and underlying write privileges still exist on live, owner writes can continue; narrowing public SELECT does not by itself make owners read-only or guarantee compatibility. Any apply still needs Rob's explicit approval after the read-only checks below.
 
 ## Check first: live doesn't match the repo
 
@@ -85,7 +87,7 @@ What to look for:
 ## Decisions for Rob
 
 1. **Should logged-out visitors see the system catalogue at all?** The draft does what was asked and limits public reads to system rows. Nothing in this repo needs logged-out access, and `20261001000000` treats `anon` as having none. To close it fully, change the policy to `TO authenticated`. I recommend that, unless something outside the repo depends on it.
-2. **Is the "quarantine" still wanted?** The September migration hid owners' rows on purpose, and this request keeps owners' read access. The draft follows the request. If the quarantine should stay, delete `select_own_cost_library_items` from the migration.
+2. **Is the "quarantine" still wanted?** The September migration hid owners' rows on purpose, and this request keeps owners' read access. The draft follows the request. If the quarantine should stay, delete `select_own_cost_library_items` from the inert proposal file.
 
 ## Existing issue, not changed here
 
@@ -95,9 +97,9 @@ What to look for:
 
 Nothing has been tested, because running SQL was out of scope for this task. Before applying:
 
-- Run the migration on a non-production database, then confirm the access table above as `anon`, as two different contractors and as the service role.
-- Confirm the existing `scripts/test-cost-library-rls-sql.sh` still passes. It only applies the September migration, so it does not cover this one.
-- Add a matching test for this migration as part of applying it.
+- After approval, promote the inert draft to a dated file under `supabase/migrations/` (or run equivalent SQL manually), then confirm the access table above as `anon`, as two different contractors and as the service role.
+- Confirm the existing `scripts/test-cost-library-rls-sql.sh` still passes. It only applies the September migration, so it does not cover this proposal.
+- Add a matching test as part of any future apply.
 
 ## Rollback
 

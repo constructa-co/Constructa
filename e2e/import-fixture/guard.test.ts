@@ -1,11 +1,43 @@
-import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { execFile, execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
+import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 import { HARNESS_ROUTE, refusal } from "./prepare.mjs";
 
 const root = path.resolve(__dirname, "../..");
 const read = (file: string) => readFileSync(path.join(root, file), "utf8");
+const run = promisify(execFile);
+
+// Under the 5000ms Vitest case, so a stalled Git fails with this diagnostic rather than the runner's.
+// This is a budget for the check. It is not an explanation or a fix of any past timeout.
+const GIT_DEADLINE_MS = 4000;
+// .gitignore is tracked, so an index Git cannot see lists nothing and fails the exact match.
+const HARNESS_UNTRACKED = [".gitignore"];
+
+// Asynchronous so the event loop, and with it the Vitest timer, survives a child that cannot be killed.
+async function trackedAmong(cwd: string, git = "git", deadlineMs = GIT_DEADLINE_MS, env: NodeJS.ProcessEnv = process.env) {
+    try {
+        const { stdout } = await run(git, ["ls-files", "--", `src/app/${HARNESS_ROUTE}`, ".gitignore"], { cwd, env, encoding: "utf8", timeout: deadlineMs, killSignal: "SIGKILL" });
+        return stdout.split("\n").filter(Boolean);
+    } catch (error) {
+        const { code, signal, killed, stderr } = error as NodeJS.ErrnoException & { signal?: string; killed?: boolean; stderr?: string };
+        throw new Error(`git ls-files failed within ${deadlineMs}ms: ${JSON.stringify({ code, signal, killed, stderr })}`);
+    }
+}
+
+async function withScratchRepo(check: (dir: string) => Promise<void>) {
+    const dir = mkdtempSync(path.join(tmpdir(), "import-fixture-guard-"));
+    try {
+        await run("git", ["init", "-q"], { cwd: dir, timeout: GIT_DEADLINE_MS, killSignal: "SIGKILL" });
+        writeFileSync(path.join(dir, ".gitignore"), "x\n");
+        await run("git", ["add", ".gitignore"], { cwd: dir, timeout: GIT_DEADLINE_MS, killSignal: "SIGKILL" });
+        await check(dir);
+    } finally {
+        rmSync(dir, { recursive: true, force: true });
+    }
+}
 
 function sources(dir: string): string[] {
     return readdirSync(dir).flatMap((name) => {
@@ -25,10 +57,50 @@ describe("website-import fixture harness", () => {
         }
     });
 
-    it("is kept out of Git where it is copied to, and is not tracked there", () => {
+    it("is kept out of Git where it is copied to, and is not tracked there", async () => {
         expect(read(".gitignore")).toContain(`/src/app/${HARNESS_ROUTE}/`);
-        const tracked = execFileSync("git", ["ls-files", `src/app/${HARNESS_ROUTE}`], { cwd: root, encoding: "utf8" });
-        expect(tracked.trim()).toBe("");
+        expect(await trackedAmong(root)).toEqual(HARNESS_UNTRACKED);
+    });
+
+    it("the Git check sees a tracked harness file", async () => {
+        await withScratchRepo(async (dir) => {
+            expect(await trackedAmong(dir)).toEqual(HARNESS_UNTRACKED);
+            const file = `src/app/${HARNESS_ROUTE}/page.tsx`;
+            mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
+            writeFileSync(path.join(dir, file), "x\n");
+            await run("git", ["add", file], { cwd: dir, timeout: GIT_DEADLINE_MS, killSignal: "SIGKILL" });
+            expect(await trackedAmong(dir)).not.toEqual(HARNESS_UNTRACKED);
+        });
+    });
+
+    it("the Git check cannot pass when Git cannot see the index", async () => {
+        await withScratchRepo(async (dir) => {
+            rmSync(path.join(dir, ".git/index"));
+            expect(await trackedAmong(dir)).not.toEqual(HARNESS_UNTRACKED);
+        });
+    });
+
+    it("the Git check fails with Git's own error outside a repository", async () => {
+        const dir = mkdtempSync(path.join(tmpdir(), "import-fixture-guard-"));
+        try {
+            const env = { ...process.env, GIT_CEILING_DIRECTORIES: path.dirname(dir) };
+            await expect(trackedAmong(dir, "git", GIT_DEADLINE_MS, env)).rejects.toThrow(/not a git repository/);
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+    });
+
+    it("the Git check fails at its deadline when the command stalls and ignores SIGTERM", async () => {
+        const dir = mkdtempSync(path.join(tmpdir(), "import-fixture-guard-"));
+        try {
+            const stalled = path.join(dir, "stalled-git");
+            writeFileSync(stalled, "#!/bin/sh\ntrap '' TERM\nexec /bin/sleep 30\n", { mode: 0o755 });
+            const started = performance.now();
+            await expect(trackedAmong(dir, stalled, 200)).rejects.toThrow(/"signal":"SIGKILL"/);
+            expect(performance.now() - started).toBeLessThan(GIT_DEADLINE_MS);
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
     });
 
     it("refuses to work unless explicitly switched on, at every entry point", () => {

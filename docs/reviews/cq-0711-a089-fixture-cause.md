@@ -122,3 +122,82 @@ npx eslint e2e/import-fixture/guard.test.ts
 
 To confirm finding 4, revert the positive control and check that "index removed" then
 exposes the false pass.
+
+## Cursor focused verification (31 Oct 2026, cq-0721)
+
+**Provenance:** Rob06:12 authority; worktree `cq/cq-0711-a089-fixture-cause` at commit
+`1fc0da1367a696ddb06a1077aefc18cf4fc46003`. Source bytes unchanged (no product/test edits
+this session). **`e2e/import-fixture/guard.test.ts` blob:** `bcc588f9f612f822c17c35bd2b23b925c1e29c1a`
+(`git hash-object` on committed tree at HEAD).
+
+**Prior grades retained (not superseded):** Claude author **FAIL** — COMMAND APPROVAL block,
+checks not run (see Blocker table above). Different Cursor static checker **PASS** at
+07:10:17 UAE — runtime/type correctness explicitly unproven there; not repeated here.
+
+**Harness:** Node `/usr/local/bin/node` → `v24.19.0`. ROOT dependencies:
+`/Users/robertsmith/dev/constructa-fresh-20261025/node_modules` via worktree symlinks to
+`vitest`, `vite`, `vite-node`, `@vitest` (cq-0430/cq-0442 pattern; no install/copy).
+**Temp/cache:** `TMPDIR` and Vite cache under
+`$WT/node_modules/.cache/cq-0721` (ignored). No `.tmp-test-run`, no parent ROOT cache write.
+
+**Not run:** `next build`, full vitest suite, Playwright, hosted qualification, false-pass
+revert experiment (would need scratch `git init` or real index mutation — both out of scope
+this run).
+
+### Commands (literal argv) and raw outcomes
+
+```text
+/usr/local/bin/node -v
+→ v24.19.0
+→ exit 0
+
+git rev-parse HEAD
+→ 1fc0da1367a696ddb06a1077aefc18cf4fc46003
+→ exit 0
+
+git hash-object e2e/import-fixture/guard.test.ts
+→ bcc588f9f612f822c17c35bd2b23b925c1e29c1a
+→ exit 0
+
+cd $WT && TMPDIR=$WT/node_modules/.cache/cq-0721 VITE_CACHE_DIR=$WT/node_modules/.cache/cq-0721/vite \
+  /usr/local/bin/node ./node_modules/vitest/vitest.mjs run e2e/import-fixture/guard.test.ts
+→ RUN  v5.0.2 …/cq-0711-a089-fixture-cause
+→  ❯ e2e/import-fixture/guard.test.ts (9 tests | 2 failed) 377ms
+→ FAIL  … > the Git check sees a tracked harness file
+→ Error: Command failed: git init -q
+→ …/node_modules/.cache/cq-0721/import-fixture-guard-geybUW/.git: Operation not permitted
+→ FAIL  … > the Git check cannot pass when Git cannot see the index
+→ Error: Command failed: git init -q
+→ …/node_modules/.cache/cq-0721/import-fixture-guard-ojh6V4/.git: Operation not permitted
+→ Test Files  1 failed (1)
+→ Tests  2 failed | 7 passed (9)
+→ Duration  464ms
+→ exit 1
+
+/usr/local/bin/node $ROOT/node_modules/eslint/bin/eslint.js e2e/import-fixture/guard.test.ts
+→ (no stdout)
+→ exit 0
+
+/usr/local/bin/node $ROOT/node_modules/typescript/bin/tsc --noEmit --incremental false
+→ (no stdout)
+→ exit 0
+```
+
+### Focused verification verdict
+
+| Check | Result |
+| --- | --- |
+| Vitest `e2e/import-fixture/guard.test.ts` only | **FAIL** — 7/9 passed; 2 scratch-repo cases failed before assertions (`git init -q` → `.git: Operation not permitted` under Cursor sandbox in task `TMPDIR`) |
+| ESLint on changed test path | **PASS** — exit 0, 0 reported errors |
+| Full `tsc --noEmit --incremental false` | **PASS** — exit 0 |
+
+**Sandbox probe (same session):** `git init -q` under
+`$WT/node_modules/.cache/cq-0721/scratch-probe` returned `.git: Operation not permitted`
+(exit 1) without altering real worktree metadata.
+
+**Finding 4 (empty-output false pass):** **Unproven** this session — counterexample needs
+disposable scratch repos with `git init`; sandbox refused `.git` creation. Original static
+expectation in Findings §4 unchanged.
+
+**Causal limits unchanged:** old 177675ms timeout **unexplained**; metadata-recognition
+evidence not investigated; not ROOT acceptance or A089 Complete.

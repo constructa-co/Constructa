@@ -160,3 +160,10 @@
 | `src/app/dashboard/projects/schedule/simple-programme-client.tsx` | ~392–395 | Call `router.refresh()` after `router.push` on **Next: Proposal** | Re-fetch the proposal page server props so `programme_working_pattern` saved in Programme is not stale in Review & Send |
 | `src/app/dashboard/projects/schedule/simple-programme-workspace.test.tsx` | hoisted router mock, new test | Assert push + refresh on **Next: Proposal** | Lock the navigation seam after saved weekend working days |
 | `src/app/dashboard/projects/proposal/review-send-client.test.ts` | new test | All-week pattern shows Sunday 15 Nov finish in programme section | Prove production Review & Send uses saved pattern, not default Mon–Fri |
+
+## 2026-10-31 — A089 cq-0721 focused verification (Cursor composer-2.5)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| `docs/reviews/cq-0711-a089-fixture-cause.md` | append § Cursor focused verification (31 Oct 2026, cq-0721) | Record literal Node24/vitest/eslint/tsc argv, raw stdout, exit codes, source blob `bcc588f9…` at HEAD `1fc0da1`; preserve prior FAIL/approval and 07:10 static PASS |
+| `$WT/node_modules/` symlinks + `.cache/cq-0721/` | ignored harness only | cq-0430 vitest/vite symlinks to ROOT; task TMPDIR/cache without parent ROOT cache or `.tmp-test-run` |

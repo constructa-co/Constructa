@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, PackageOpen } from "lucide-react";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 import {
   upsertPlantResourceAction,
   deletePlantResourceAction,
@@ -653,7 +654,7 @@ function PlantDialog({
             <button
               type="submit"
               disabled={isPending || !form.name.trim()}
-              className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50 disabled:pointer-events-none"
+              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing} transition-colors disabled:opacity-50 disabled:pointer-events-none`}
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
               {form.id ? "Save Changes" : "Add Plant Item"}
@@ -724,7 +725,7 @@ export default function PlantResourcesClient({ plant }: { plant: PlantRow[] }) {
         </p>
         <button
           onClick={openAdd}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors"
+          className={`flex items-center gap-2 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing} px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors`}
         >
           <Plus className="w-4 h-4" />
           Add Plant Item
@@ -742,7 +743,7 @@ export default function PlantResourcesClient({ plant }: { plant: PlantRow[] }) {
           </p>
           <button
             onClick={openAdd}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+            className={`flex items-center gap-2 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing} px-4 py-2 rounded-lg text-sm font-semibold transition-colors`}
           >
             <Plus className="w-4 h-4" />
             Add First Asset

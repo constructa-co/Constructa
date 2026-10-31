@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
+import { PhaseOneContact } from "@/components/marketing/cohort-contact";
+import { getLaunchProfile } from "@/lib/launch-profile";
 
 export const metadata: Metadata = {
   title: "Contact | Constructa",
-  description: "If you've got a question, suggestion, or want early access—we'd love to hear from you.",
+  description: "Contact the Constructa team.",
 };
 
 export default function ContactPage() {
+  if (getLaunchProfile() !== "full") return <PhaseOneContact />;
   return (
     <main className="min-h-screen pt-16 bg-black">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16">

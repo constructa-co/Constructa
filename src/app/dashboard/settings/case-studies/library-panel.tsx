@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { libraryPhotoHint } from "@/lib/case-library/messages";
 import type { LibraryResult, StudyView } from "@/lib/case-library/service";
 import { STATE_LABEL, studyState } from "@/lib/case-library/status";
 import type { StoredDiscipline } from "@/lib/case-library/store";
@@ -91,7 +92,7 @@ export default function LibraryPanel({ available, studies, disciplines: loadedDi
                         <Link href={`${basePath}/new/guided`} className={secondary}>Answer a few questions instead</Link>
                     </div>
                 </div>
-                <p className={hint}>Write a past job once, approve it, and choose it for any proposal. You can add up to three photos on the full form.</p>
+                <p className={hint}>Write a past job once, approve it, and choose it for any proposal. {libraryPhotoHint()}</p>
                 <p role="status" aria-live="polite" data-library-notice className={notice ? "text-base font-semibold text-slate-100" : "sr-only"}>{notice ?? ""}</p>
 
                 {studies.length === 0 ? (
@@ -156,7 +157,7 @@ export default function LibraryPanel({ available, studies, disciplines: loadedDi
             {older.length > 0 && (
                 <section className={card} aria-label="Start a new version of an older case study" data-start-from-older>
                     <h2 className="text-xl font-bold text-slate-50">Start a new version of an older case study</h2>
-                    <p className={hint}>This copies its wording into a new draft for you to check and approve. The client is left out and no price is shown unless you choose otherwise. The older one is not changed and can still be chosen.</p>
+                    <p className={hint}>This copies its wording into a new draft for you to check and approve. The client is left out and no price is shown unless you choose otherwise. The older one is not changed and can still be chosen. Pictures aren&apos;t copied. They stay on the older one.</p>
                     <ul className="space-y-2">
                         {older.map((entry) => (
                             <li key={entry.index} className="flex flex-wrap items-center gap-2">

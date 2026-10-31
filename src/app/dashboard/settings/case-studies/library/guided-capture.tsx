@@ -10,6 +10,7 @@ import {
 import { DEPTH_KEYS, DEPTH_MESSAGES, LEAD_IN, anyNote, canAdd, chars, depthAfter, depthBefore, depthOf, noteThere, notesWith, present, room } from "@/lib/case-library/guided-depth";
 import { guidedReducer, initialGuidedState, mayLeave, requestOf, unappliedNames, type AfterSave, type LeaveTo, type Screen } from "@/lib/case-library/guided-state";
 import { CANONICAL_WORK_NAMES } from "@/lib/case-library/labels";
+import { libraryPhotoHint } from "@/lib/case-library/messages";
 import type { LibraryResult, StudyView } from "@/lib/case-library/service";
 import type { StoredDiscipline } from "@/lib/case-library/store";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
@@ -516,7 +517,7 @@ export default function GuidedCapture({ initial, disciplines: initialDisciplines
                     ) : (
                         <p className="text-base text-slate-100">It&apos;s saved as a draft. Clients can&apos;t see it, and no proposal uses it, until you check and approve it on the full form.</p>
                     )}
-                    <p className={hint}>This is your own wording, as you typed it. To add up to three photos, use the full form.</p>
+                    <p className={hint}>This is your own wording, as you typed it. {libraryPhotoHint()}</p>
                     {depthEntry}
                     <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-slate-700 pt-4">
                         {leaveControl("form", "Check and approve on the full form")}

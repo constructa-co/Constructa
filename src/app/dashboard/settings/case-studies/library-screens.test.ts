@@ -55,6 +55,13 @@ describe("the library list", () => {
         expect(html).toContain("The client is left out and no price is shown unless you choose otherwise. The older one is not changed and can still be chosen.");
         expect(html).not.toMatch(/with pictures|has pictures/);
     });
+
+    it("does not promise photos on the full form, and says pictures stay on the older one", () => {
+        const html = panel({ older: [{ index: 0, title: "Older A" }] });
+        expect(html).not.toContain("up to three photos on the full form");
+        expect(html).toContain("Photos can&#x27;t be saved to the library yet.");
+        expect(html).toContain("Pictures aren&#x27;t copied. They stay on the older one.");
+    });
 });
 
 describe("the editor", () => {

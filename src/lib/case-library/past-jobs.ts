@@ -12,6 +12,8 @@
 import { approvedProblem, type ApprovedCaseStudy } from "./content";
 import { legacyCaseStudies } from "./legacy";
 import { unsendableMessage } from "./messages";
+import { normalisePhotoSlots, proposalPhotoUrls } from "./photos";
+import { selectCaseStudies } from "@/lib/proposal-publication";
 import { LIBRARY_TICK_PREFIX, MAX_CASE_STUDIES_PER_PROPOSAL, libraryTick, resolveSelectedCaseStudies, type LibraryRow, type Resolution } from "./resolve";
 
 export interface ProposalLibrary {
@@ -103,6 +105,17 @@ export function buildPastJobs(input: { olderStored: unknown[] | null | undefined
     if (multiMatch) notes.push("One of your ticks matches more than one older case study, so each of them is shown.");
     if (options.some((option) => option.ticked && option.startedFromOlder && older.some((entry) => entry.index === library.legacyIndexById[option.tick.slice(LIBRARY_TICK_PREFIX.length)] && entry.matchedBy.some((tick) => olderTicks.includes(tick))))) {
         notes.push("You've ticked both the older and the new version of the same job, so it would appear twice.");
+    }
+
+    // A new version starts with no pictures. Chosen alone, the older job's pictures are not sent, and that is said.
+    for (const option of options.filter((entry) => entry.ticked && entry.startedFromOlder)) {
+        const id = option.tick.slice(LIBRARY_TICK_PREFIX.length);
+        const approved = approvedRows.find((row) => row.id === id)?.approved as ApprovedCaseStudy;
+        const entry = older.find((candidate) => candidate.index === library.legacyIndexById[id]);
+        if (!entry || entry.matchedBy.some((tick) => olderTicks.includes(tick))) continue;
+        if (proposalPhotoUrls(normalisePhotoSlots(approved.photos)).length > 0) continue;
+        const pictures = selectCaseStudies([input.olderStored?.[entry.index]], ["0"])[0]?.photos.length ?? 0;
+        if (pictures > 0) notes.push(`“${option.title}” will go out without pictures, because library case studies can't hold them yet. Its older version has ${plural(pictures, "photo", "photos")}. Tick that one instead to show them.`);
     }
 
     return { library: options, olderWithNewVersion, cannotSend, olderMatched, olderShown, libraryChosen, blocked, notes, resolution };

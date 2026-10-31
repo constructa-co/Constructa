@@ -35,4 +35,12 @@ describe("past-work photo input accessibility", () => {
         expect(html).toContain('src="/example-photo.webp"');
         for (const action of Object.values(actions)) expect(action).not.toHaveBeenCalled();
     });
+
+    it("names a remove control only for a slot that holds a photo, outside the replace label", () => {
+        const html = markup(["/example-photo.webp", "", ""]);
+        expect(html).toContain('aria-label="Remove photo 1 for past work 1"');
+        expect(html).not.toContain("Remove photo 2");
+        expect(html).toMatch(/<button[^>]*type="button"[^>]*aria-label="Remove photo 1 for past work 1"/);
+        expect(html.match(/<label[^>]*>(?:(?!<\/label>)[^])*Remove photo 1/)).toBeNull();
+    });
 });

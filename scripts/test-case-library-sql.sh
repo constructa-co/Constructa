@@ -298,7 +298,7 @@ SQL
 \set alpha '''aaaaaaaa-0000-0000-0000-000000000001'''
 \set beta  '''bbbbbbbb-0000-0000-0000-000000000002'''
 \set epsilon '''eeeeeeee-0000-0000-0000-000000000005'''
-\set slots '''[{"url":"","caption":""},{"url":"","caption":""},{"url":"","caption":""}]'''
+\set slots '[{"url":"","caption":""},{"url":"","caption":""},{"url":"","caption":""}]'
 \set photo_vectors `cat :'photo_vectors_file'`
 CREATE TABLE t.photo_vectors AS SELECT value AS v FROM jsonb_array_elements(:'photo_vectors'::jsonb);
 CREATE TABLE t.valid_content AS SELECT (v -> 1) || jsonb_build_object('photos', :'slots'::jsonb) AS content FROM t.vectors, jsonb_array_elements(doc -> 'content') AS v WHERE v ->> 0 = 'a complete, ordinary draft';

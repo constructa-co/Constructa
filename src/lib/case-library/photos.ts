@@ -78,7 +78,8 @@ export function storedPhotoSlotsProblem(value: unknown): string | null {
 /** True when `normalisePhotoSlots` would quietly lose part of this: a fourth picture, or a url or caption cut to fit. */
 export function photoInputWouldBeCut(value: unknown): boolean {
     if (!Array.isArray(value)) return false;
-    const tooLong = (text: unknown, max: number) => typeof text === "string" && characters(text.trim()) > max;
+    // Match the UTF-16 slice used by normalisePhotoSlots before it can cut input.
+    const tooLong = (text: unknown, max: number) => typeof text === "string" && text.trim().length > max;
     return value.length > CASE_STUDY_PHOTO_COUNT
         || value.some((entry) => (isObject(entry) ? tooLong(entry.url, PHOTO_URL_MAX) || tooLong(entry.caption, PHOTO_CAPTION_MAX) : tooLong(entry, PHOTO_URL_MAX)));
 }

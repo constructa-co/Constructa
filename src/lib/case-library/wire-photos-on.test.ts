@@ -113,6 +113,7 @@ describe("on the wire", () => {
         ["a fourth picture", [...PHOTOS.slice(0, 2), { url: URL_C, caption: "" }, { url: URL_OLD, caption: "" }]],
         ["a url too long to keep whole", [{ url: `https://images.example.test/${"a".repeat(2000)}`, caption: "" }]],
         ["a caption too long to keep whole", [{ url: URL_A, caption: "c".repeat(301) }]],
+        ["a non-BMP caption the normalizer would shorten", [{ url: URL_A, caption: "\u{1F600}".repeat(200) }]],
     ])("refuses %s before any call, rather than cutting it", async (_name, photos) => {
         const result = await createStudy(me, { content: withPhotos(photos), disciplineIds: [] });
         expect(result).toMatchObject({ status: "invalid", field: "photos", message: fieldMessage("photos") });

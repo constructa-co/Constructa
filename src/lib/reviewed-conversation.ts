@@ -135,7 +135,7 @@ export function createReviewedConversation<S, C, A extends ReviewedAssistantMess
             // A request adapter's answer: the server is off, its saved job differs, or it refused.
             const reason = result.transport.status;
             if (reason === "stale") { clear(text.serverChanged, true); publish(); return "stale"; }
-            if (reason === "off") { status = "error"; error = text.off; publish(); return "off"; }
+            if (reason === "off") { status = "error"; error = result.transport.message || text.off; publish(); return "off"; }
             status = "error"; error = reason === "rejected" ? text.notUsable : text.failed; failed = submitted; publish();
             return reason === "rejected" ? "rejected" : "failed";
         }

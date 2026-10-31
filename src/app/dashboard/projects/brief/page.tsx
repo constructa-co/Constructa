@@ -5,7 +5,7 @@ import ProjectNavBar from "@/components/project-navbar";
 import ProjectEntry from "@/components/project-entry";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import BriefClient from "./brief-client";
-import { jobAssistantAvailable } from "@/lib/server/job-assistant-transport";
+import { jobAssistantReadiness } from "@/lib/server/job-assistant-transport";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Video analysis (20 frames → GPT-4o Vision) can take 20-40s
@@ -51,6 +51,7 @@ export default async function BriefPage(props: { searchParams: Promise<{ project
 
     const siteAddress = project.site_address || project.address || "";
     const postcode = project.postcode || extractPostcode(siteAddress) || "";
+    const assistant = await jobAssistantReadiness("brief", { owner: project.user_id === user.id });
 
     return (
         <DashboardRouteShell header={<ProjectNavBar projectId={activeProjectId} projectName={project.name || ""} activeTab="brief" />}>
@@ -73,7 +74,8 @@ export default async function BriefPage(props: { searchParams: Promise<{ project
                     brief_completed: project.brief_completed || false,
                 }}
                 lockReason={getPrecontractEditLockReason(project)}
-                briefAssistantEnabled={await jobAssistantAvailable("brief")}
+                briefAssistantEnabled={assistant.available}
+                briefAssistantOffReason={assistant.offReason}
             />
         </DashboardRouteShell>
     );

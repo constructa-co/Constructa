@@ -11,8 +11,8 @@ import type { PricingTurnResult } from "@/lib/server/pricing-request";
  */
 export async function pricingAssistantTurnAction(input: unknown): Promise<PricingTurnResult> {
     // Loaded here so importing this action from the page loads no server code.
-    const [{ handlePricingTurn }, { approvedPricingGenerator }] = await Promise.all([
+    const [{ handlePricingTurn }, { jobAssistantTurnSource }] = await Promise.all([
         import("@/lib/server/pricing-request"), import("@/lib/server/job-assistant-transport"),
     ]);
-    return handlePricingTurn(input, { prepare: () => approvedPricingGenerator() });
+    return handlePricingTurn(input, jobAssistantTurnSource("pricing"));
 }

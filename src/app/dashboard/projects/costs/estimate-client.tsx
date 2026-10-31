@@ -72,6 +72,7 @@ import type { PricingFullScopeSource } from "@/lib/pricing-full-scope";
 import type { PricingScopeNotesSource } from "@/lib/pricing-scope-notes";
 import { createPricingAssistantSession } from "@/lib/pricing-assistant-session";
 import { createPricingRequestGenerator } from "@/lib/job-assistant-client";
+import type { JobAssistantOffReason } from "@/lib/job-assistant-readiness";
 import { pricingAssistantTurnAction } from "./assistant-actions";
 import type { PricingConversationGenerator } from "@/lib/pricing-conversation";
 import { buildPricingReviewContext, prepareReviewedPriceDraft, reviewPricingSuggestion, PRICING_REVIEW_OPEN, PRICING_REVIEW_STALE, type PendingPricingReview } from "@/lib/pricing-review";
@@ -113,6 +114,8 @@ interface Props {
     pricingGenerator?: PricingConversationGenerator;
     /** Set by the server from its approved activation point (A055). Off until a feature is approved. */
     pricingAssistantEnabled?: boolean;
+    /** Why it is off, for this job's owner only. */
+    pricingAssistantOffReason?: JobAssistantOffReason | null;
 }
 
 const REAL_SERVER: EstimatingServer = {
@@ -134,6 +137,7 @@ export default function EstimateClient({
     loadAdvancedData = loadAdvancedEstimatingDataAction,
     pricingGenerator,
     pricingAssistantEnabled = false,
+    pricingAssistantOffReason = null,
 }: Props) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
@@ -609,7 +613,7 @@ export default function EstimateClient({
             {project.proposal_introduction !== undefined && <PricingOpeningEditor key={project.id} projectId={project.id} source={project.proposal_introduction}
                 lockReason={project.payment_lock_reason ?? null} styles={s} onWorkChange={openingWorkChanged} />}
 
-            <PricingAssistantPanel session={pricingAssistant} blocked={hasOpenWork || state.advancedOpen || !!estimate?.is_client_boq || !!project.payment_lock_reason}
+            <PricingAssistantPanel session={pricingAssistant} blocked={hasOpenWork || state.advancedOpen || !!estimate?.is_client_boq || !!project.payment_lock_reason} offReason={pricingAssistantOffReason}
                 blockedNote={project.payment_lock_reason ? `${project.payment_lock_reason} The pricing assistant is not available for this job.` : undefined} />
 
             {pricingContext.ok && <PriceWorkList data-price-work-list context={pricingContext.value} styles={s}

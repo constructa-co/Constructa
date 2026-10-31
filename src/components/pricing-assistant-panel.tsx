@@ -2,23 +2,25 @@
 
 import { useId, useSyncExternalStore } from "react";
 import { MAX_SCOPE_LENGTH } from "@/lib/guided-brief";
+import { assistantOffLabel, explainAssistantOff, type JobAssistantOffReason } from "@/lib/job-assistant-readiness";
 import type { PricingAssistantSession } from "@/lib/pricing-assistant-session";
 import ui from "./estimating.module.css";
 
-export default function PricingAssistantPanel({ session, blocked, blockedNote }: { session: PricingAssistantSession; blocked: boolean; blockedNote?: string }) {
+export default function PricingAssistantPanel({ session, blocked, blockedNote, offReason }: { session: PricingAssistantSession; blocked: boolean; blockedNote?: string; offReason?: JobAssistantOffReason | null }) {
     const state = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
     const id = useId();
     const pending = state.conversation.status === "pending";
     const review = state.conversation.pending;
+    const offLabel = assistantOffLabel(offReason);
 
     return (
         <details className={ui.assistantPanel} data-pricing-assistant>
             <summary className={ui.assistantSummary}>
-                Pricing guidance <span>{state.available ? "Review before using" : "Not enabled"}</span>
+                Pricing guidance <span>{state.available ? "Review before using" : offLabel ? `Not enabled: ${offLabel}` : "Not enabled"}</span>
             </summary>
             <div className={ui.assistantBody}>
                 {!state.available ? (
-                    <p role="status">{state.error} Opening this panel does not send your job details to an AI service.</p>
+                    <p role="status">{explainAssistantOff(state.error ?? "", offReason)} Opening this panel does not send your job details to an AI service.</p>
                 ) : (
                     <>
                         <p id={`${id}-help`}>Uses your work description, existing activity descriptions and this conversation. Do not enter passwords or confidential client details. Replies need your review; they do not save prices or change your estimate.</p>

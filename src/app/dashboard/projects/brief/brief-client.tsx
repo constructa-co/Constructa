@@ -48,6 +48,7 @@ import { briefAssistantTurnAction } from "./assistant-actions";
 import BriefConversationPanel from "@/components/brief-conversation-panel";
 import { createBriefConversation, type BriefGenerator } from "@/lib/brief-conversation";
 import { createBriefRequestGenerator } from "@/lib/job-assistant-client";
+import type { JobAssistantOffReason } from "@/lib/job-assistant-readiness";
 
 const VideoWalkthrough = dynamic(() => import("./video-walkthrough"), {
     ssr: false,
@@ -73,6 +74,8 @@ interface Props {
     briefGenerator?: BriefGenerator;
     /** Set by the server from its approved activation point (A055). Off until a feature is approved. */
     briefAssistantEnabled?: boolean;
+    /** Why it is off, for this job's owner only. */
+    briefAssistantOffReason?: JobAssistantOffReason | null;
 }
 
 const CLIENT_TYPE_LABEL: Record<ClientType, string> = {
@@ -88,7 +91,7 @@ const formatDate = (iso: string): string => {
         : date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 };
 
-export default function BriefClient({ project, ask = suggestBriefAction, save = saveBriefAction, lockReason = null, briefGenerator, briefAssistantEnabled = false }: Props) {
+export default function BriefClient({ project, ask = suggestBriefAction, save = saveBriefAction, lockReason = null, briefGenerator, briefAssistantEnabled = false, briefAssistantOffReason = null }: Props) {
     const router = useRouter();
     const { theme } = useTheme();
     const isDark = theme === "dark";
@@ -671,7 +674,7 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                 )}
             </section>
 
-            <BriefConversationPanel session={briefConversation} blocked={briefOpenWork || locked} s={s} data-brief-conversation-mount=""
+            <BriefConversationPanel session={briefConversation} blocked={briefOpenWork || locked} offReason={briefAssistantOffReason} s={s} data-brief-conversation-mount=""
                 blockedNote={locked ? `${lockReason} The brief conversation is not available for this job.` : undefined} />
         </div>
     );

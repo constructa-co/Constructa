@@ -6,12 +6,13 @@ import { MAX_SCOPE_LENGTH } from "@/lib/guided-brief";
 import type { AssistantTurnResult } from "@/lib/assistant-transport";
 import { PRICING_CONVERSATION_LIMIT, PRICING_CONVERSATION_OFF } from "@/lib/pricing-conversation";
 import { buildPricingReviewContext, pricingModelData, reviewPricingSuggestion, PRICING_REVIEW_STALE, type PricingReviewContext } from "@/lib/pricing-review";
+import { explainAssistantOff } from "@/lib/job-assistant-readiness";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-access";
 import { toEstimate } from "@/app/dashboard/projects/costs/estimate-mapping";
 import type { Estimate } from "@/app/dashboard/projects/costs/types";
 import type { ServerPricingGenerator } from "./job-assistant-transport";
-import { resolveGenerator, type AttemptOutcome, type GeneratorSource } from "./job-assistant-generation";
+import { generatorRefusal, resolveGenerator, type AttemptOutcome, type GeneratorSource } from "./job-assistant-generation";
 
 const CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/;
 
@@ -73,7 +74,7 @@ export async function handlePricingTurn(input: unknown, source?: GeneratorSource
     if (!verified.ok) return verified.result;
     // Prepared only now, for a verified owner: the activation point's checks run before anything is reserved or sent.
     const generate = await resolveGenerator(source);
-    if (!generate) return { status: "off", message: PRICING_CONVERSATION_OFF };
+    if (!generate) return { status: "off", message: explainAssistantOff(PRICING_CONVERSATION_OFF, generatorRefusal(source)) };
     // The attempt identifier is the server's; every outcome below is recorded against it.
     const attemptId = randomUUID();
     const conclude = (outcome: AttemptOutcome) => generate.conclude?.(attemptId, outcome) ?? Promise.resolve(true);

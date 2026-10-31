@@ -18,6 +18,7 @@ import { newClientId } from "@/lib/client-id";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
 import { createPlanningConversation, type PlanningGenerator } from "@/lib/planning-conversation";
 import { createPlanningRequestGenerator } from "@/lib/job-assistant-client";
+import type { JobAssistantOffReason } from "@/lib/job-assistant-readiness";
 import { planningAssistantTurnAction } from "./assistant-actions";
 import { formatPlanDate, formatWorkingDuration, PROGRAMME_BASIS_NOTE } from "@/lib/programme-plan";
 import { hasRelativeProgramme, programmeBasisNote, RELATIVE_PROGRAMME_BASIS, RELATIVE_PROGRAMME_NOTE } from "@/lib/relative-programme";
@@ -87,9 +88,11 @@ interface Props {
     planningGenerator?: PlanningGenerator;
     /** Set by the server from its approved activation point (A055). Off until a feature is approved. */
     planningAssistantEnabled?: boolean;
+    /** Why it is off, for this job's owner only. */
+    planningAssistantOffReason?: JobAssistantOffReason | null;
 }
 
-export default function SimpleProgrammeClient({ project: incomingProject, lockReason, estimate, save, saveInclusion, planningGenerator, planningAssistantEnabled = false }: Props) {
+export default function SimpleProgrammeClient({ project: incomingProject, lockReason, estimate, save, saveInclusion, planningGenerator, planningAssistantEnabled = false, planningAssistantOffReason = null }: Props) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
     const s = workspaceStyles(isDark);
@@ -293,7 +296,7 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
                         }} s={s}
                     />}
                     {!lockReason && inclusion.intent === "include" && detailedSection}
-                    {inclusion.intent !== "invalid" && <PlanningConversationPanel session={planning.session} blocked={planningOpenWork || !!lockReason}
+                    {inclusion.intent !== "invalid" && <PlanningConversationPanel session={planning.session} blocked={planningOpenWork || !!lockReason} offReason={planningAssistantOffReason}
                         blockedNote={lockReason ? `${lockReason} The planning conversation is not available for this job.` : undefined} s={s} />}
                 </>
             )}

@@ -9,7 +9,7 @@
  * rule actually return.
  */
 
-import { approvedProblem, type ApprovedCaseStudy } from "./content";
+import { approvedProblem, caseLibraryDraftPhotosOnWire, type ApprovedCaseStudy } from "./content";
 import { legacyCaseStudies } from "./legacy";
 import { unsendableMessage } from "./messages";
 import { normalisePhotoSlots, proposalPhotoUrls } from "./photos";
@@ -115,7 +115,8 @@ export function buildPastJobs(input: { olderStored: unknown[] | null | undefined
         if (!entry || entry.matchedBy.some((tick) => olderTicks.includes(tick))) continue;
         if (proposalPhotoUrls(normalisePhotoSlots(approved.photos)).length > 0) continue;
         const pictures = selectCaseStudies([input.olderStored?.[entry.index]], ["0"])[0]?.photos.length ?? 0;
-        if (pictures > 0) notes.push(`“${option.title}” will go out without pictures, because library case studies can't hold them yet. Its older version has ${plural(pictures, "photo", "photos")}. Tick that one instead to show them.`);
+        const reason = caseLibraryDraftPhotosOnWire() ? "because its approved version has none" : "because library case studies can't hold them yet";
+        if (pictures > 0) notes.push(`“${option.title}” will go out without pictures, ${reason}. Its older version has ${plural(pictures, "photo", "photos")}. Tick that one instead to show them.`);
     }
 
     return { library: options, olderWithNewVersion, cannotSend, olderMatched, olderShown, libraryChosen, blocked, notes, resolution };

@@ -59,6 +59,7 @@ const FIELD_MESSAGES: Record<string, string> = {
 };
 
 export function fieldMessage(problem: string | null | undefined): string {
+    if (problem === "photos" && caseLibraryDraftPhotosOnWire()) return "Check the pictures. A case study can hold up to three. Each link must start with https, and each caption must fit on one line, in up to 300 characters.";
     return (problem && FIELD_MESSAGES[problem]) || "Something in this case study can't be saved as it is. Check each box and try again.";
 }
 

@@ -15,7 +15,10 @@ export interface CaseStudyPhotoSlot {
 }
 
 const SINGLE_LINE_CONTROL = /[\u0001-\u001F\u007F]/;
+/** The check in `case_library_photo_slot_ok`. Narrower than `safeCaseStudyPhotoUrl`: it reads the url as typed, so `HTTPS://` is refused. */
+const DATABASE_PHOTO_URL = /^(?:https:\/\/|http:\/\/(?:localhost|127\.0\.0\.1)(?:[:/]|$))/;
 const characters = (value: string) => Array.from(value).length;
+const isObject = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 
 /** Same rule as `safeImageUrl` in proposal-publication (kept here to avoid import cycles). */
 export function safeCaseStudyPhotoUrl(value: unknown): string | null {
@@ -60,9 +63,24 @@ export function photoSlotsProblem(slots: readonly CaseStudyPhotoSlot[]): string 
         if (characters(slot.caption) > PHOTO_CAPTION_MAX) return "photos";
         if (characters(slot.url) > PHOTO_URL_MAX) return "photos";
         if (SINGLE_LINE_CONTROL.test(slot.url) || SINGLE_LINE_CONTROL.test(slot.caption)) return "photos";
-        if (slot.url.trim() !== "" && safeCaseStudyPhotoUrl(slot.url) === null) return "photos";
+        if (slot.url.trim() !== "" && (safeCaseStudyPhotoUrl(slot.url) === null || !DATABASE_PHOTO_URL.test(slot.url.trim()))) return "photos";
     }
     return null;
+}
+
+/** `case_library_photos_ok`: exactly three slots of exactly `url` and `caption`, read as stored. Nothing is tidied first. */
+export function storedPhotoSlotsProblem(value: unknown): string | null {
+    if (!Array.isArray(value)) return "photos";
+    const exact = value.every((slot) => isObject(slot) && Object.keys(slot).sort().join() === "caption,url" && typeof slot.url === "string" && typeof slot.caption === "string");
+    return exact ? photoSlotsProblem(value as CaseStudyPhotoSlot[]) : "photos";
+}
+
+/** True when `normalisePhotoSlots` would quietly lose part of this: a fourth picture, or a url or caption cut to fit. */
+export function photoInputWouldBeCut(value: unknown): boolean {
+    if (!Array.isArray(value)) return false;
+    const tooLong = (text: unknown, max: number) => typeof text === "string" && characters(text.trim()) > max;
+    return value.length > CASE_STUDY_PHOTO_COUNT
+        || value.some((entry) => (isObject(entry) ? tooLong(entry.url, PHOTO_URL_MAX) || tooLong(entry.caption, PHOTO_CAPTION_MAX) : tooLong(entry, PHOTO_URL_MAX)));
 }
 
 /** URLs only, in slot order, for proposal snapshots (captions stay on the slot for future use). */

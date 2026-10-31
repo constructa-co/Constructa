@@ -9,12 +9,28 @@
  * does.
  */
 
-import { approvalProblem, approvedValue, contentFromInput, contentProblemLegacy, labelProblem, type CaseStudyContent } from "../content";
+import { approvalProblem, caseLibraryDraftPhotosOnWire, contentFromInput, contentProblemLegacy, contentProblemWithPhotos, labelProblem, toLegacyWireContent, type CaseStudyContent } from "../content";
 import { labelKey } from "../labels";
 import type { LibraryRow } from "../resolve";
 import type { LibraryReader, StoredDiscipline, StoredStudy } from "../store";
 
 type Args = Record<string, unknown>;
+
+/** `case_library_content_problem` for the database this build targets: twelve keys, or thirteen once photos are on the wire. */
+const wireProblem = (content: unknown) => (caseLibraryDraftPhotosOnWire() ? contentProblemWithPhotos(content) : contentProblemLegacy(content));
+
+/** `case_library_approved_value`, written out here so the fake cannot agree with `approvedValue` by calling it: the stored draft, blanked, plus the labels. */
+function sqlApprovedValue(draft: CaseStudyContent, labels: string[]) {
+    const stored = caseLibraryDraftPhotosOnWire() ? draft : toLegacyWireContent(draft);
+    return {
+        ...stored,
+        client_text: draft.client_display === "hidden" ? "" : draft.client_text,
+        client_named_ok: draft.client_display === "named",
+        value_text: draft.show_value === true ? draft.value_text : "",
+        disciplines: labels,
+    };
+}
+
 interface Discipline { id: string; user_id: string; label: string; label_key: string; position: number; revision: number; archived: boolean }
 interface Study { id: string; user_id: string; revision: number; draft: CaseStudyContent; approved: unknown; approved_revision: number | null; approved_at: string | null; legacy_index: number | null; archived: boolean; created: number }
 
@@ -86,7 +102,7 @@ export function fakeLibrary(options: { olderByUser?: Record<string, unknown[]> }
         },
         case_study_create: ({ p_user_id, p_content, p_legacy_index }) => {
             const user = String(p_user_id);
-            const problem = contentProblemLegacy(p_content);
+            const problem = wireProblem(p_content);
             if (problem) return { outcome: "invalid", problem };
             if (studies.filter((study) => study.user_id === user && !study.archived).length >= 50) return { outcome: "limit" };
             let legacy: number | null = null;
@@ -101,7 +117,7 @@ export function fakeLibrary(options: { olderByUser?: Record<string, unknown[]> }
             return { outcome: "saved", id: row.id, revision: 1 };
         },
         case_study_save_draft: ({ p_user_id, p_id, p_expected_revision, p_content }) => {
-            const problem = contentProblemLegacy(p_content);
+            const problem = wireProblem(p_content);
             if (problem) return { outcome: "invalid", problem };
             const row = studies.find((study) => study.id === p_id && study.user_id === p_user_id);
             if (!row) return { outcome: "not-found" };
@@ -133,7 +149,7 @@ export function fakeLibrary(options: { olderByUser?: Record<string, unknown[]> }
             const draft = contentFromInput(row.draft);
             const problem = approvalProblem(draft);
             if (problem) return { outcome: "not-approvable", problem };
-            row.approved = approvedValue(draft, activeLabels(row.id, user));
+            row.approved = sqlApprovedValue(draft, activeLabels(row.id, user));
             row.approved_revision = row.revision;
             row.approved_at = `2026-10-08T09:00:${String(clock++ % 60).padStart(2, "0")}Z`;
             return { outcome: "approved", revision: row.revision };

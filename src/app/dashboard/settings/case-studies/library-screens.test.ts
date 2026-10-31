@@ -169,6 +169,15 @@ describe("what would be approved", () => {
         expect(hidden).not.toContain("Mrs Private");
         expect(hidden).not.toContain("9,000");
         expect(hidden).not.toContain("Client");
+        expect(hidden).not.toContain("<img");
+    });
+
+    it("shows the pictures a client would see, so approval never binds to something unseen", () => {
+        const photos = [{ url: "https://images.example.test/a.jpg", caption: "Before" }, { url: "", caption: "" }, { url: "https://images.example.test/b.jpg", caption: "" }];
+        const html = renderToStaticMarkup(createElement(ApprovedPreview, { approved: approvedValue({ ...draft, photos }, [], true) }));
+        expect(html.match(/<img /g)).toHaveLength(2);
+        expect(html).toContain('src="https://images.example.test/a.jpg"');
+        expect(html).toContain('src="https://images.example.test/b.jpg"');
     });
 });
 

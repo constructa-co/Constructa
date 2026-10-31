@@ -14,7 +14,7 @@
  * points), not as JavaScript's `.length` does.
  */
 
-import { emptyPhotoSlots, normalisePhotoSlots, photoSlotsProblem, type CaseStudyPhotoSlot } from "./photos";
+import { emptyPhotoSlots, normalisePhotoSlots, photoSlotsProblem, storedPhotoSlotsProblem, type CaseStudyPhotoSlot } from "./photos";
 
 export const CONTENT_VERSION = 1;
 
@@ -64,8 +64,8 @@ export const LEGACY_WIRE_CONTENT_KEYS = ["client_display", "client_named_ok", "c
  * `p_content` for the database contract this build targets. Tied to
  * {@link LEGACY_WIRE_CONTENT_KEYS}: false while only `20261012090000` is applied.
  * Applying `supabase/migrations/20261028120000_case_library_photos.sql` on a host does
- * not flip this at runtime — change this constant and the wire path when that migration
- * is part of the applied contract for releases.
+ * not flip this at runtime — change this constant when that migration is part of the
+ * applied contract for releases. {@link toWireContent} and {@link approvedValue} follow it.
  */
 export const CASE_LIBRARY_DRAFT_PHOTOS_ON_WIRE = false as const;
 
@@ -91,6 +91,7 @@ const CONTENT_KEYS = [
 ] as const;
 
 export type LegacyWireContent = Pick<CaseStudyContent, (typeof LEGACY_WIRE_CONTENT_KEYS)[number]>;
+export type WireContent = LegacyWireContent | CaseStudyContent;
 
 const SINGLE_LINE_CONTROL = /[\u0001-\u001F\u007F]/;
 /** Line breaks and tabs are allowed; other control characters are not. */
@@ -162,6 +163,18 @@ export function contentProblem(value: unknown): string | null {
     return null;
 }
 
+/**
+ * Null when the value matches what `20261028120000_case_library_photos.sql` accepts on
+ * `p_content`: the thirteen keys, in the same order of rules, with the photos read as
+ * stored. Unlike {@link contentProblem}, nothing is tidied first.
+ */
+export function contentProblemWithPhotos(value: unknown): string | null {
+    if (!isObject(value)) return "not-object";
+    const keys = keysProblem(value, CONTENT_KEYS);
+    if (keys) return keys;
+    return contentFieldsProblem(value) ?? storedPhotoSlotsProblem(value.photos);
+}
+
 /** True when the contractor chose at least one picture url (storage may still refuse the write). */
 export function hasCaseStudyPhoto(content: CaseStudyContent): boolean {
     return normalisePhotoSlots(content.photos).some((slot) => trimSpaces(slot.url) !== "");
@@ -171,6 +184,11 @@ export function hasCaseStudyPhoto(content: CaseStudyContent): boolean {
 export function toLegacyWireContent(content: CaseStudyContent): LegacyWireContent {
     const { photos: _photos, ...wire } = content;
     return wire;
+}
+
+/** Shape sent to `case_study_create` / `case_study_save_draft`: the database contract this build targets, and no other. */
+export function toWireContent(content: CaseStudyContent, onWire: boolean = caseLibraryDraftPhotosOnWire()): WireContent {
+    return onWire ? { ...toLegacyWireContent(content), photos: normalisePhotoSlots(content.photos) } : toLegacyWireContent(content);
 }
 
 /** What must also be true before a draft can be approved. Null when it can. */
@@ -188,11 +206,13 @@ export function approvalProblem(value: unknown): string | null {
 /**
  * The approved copy the database makes. A client the contractor left hidden,
  * and a figure they chose not to show, are blanked, so nothing a proposal
- * reads can carry them.
+ * reads can carry them. The database copies the stored draft, so this keeps
+ * exactly what {@link toWireContent} stores: the slots when they are on the
+ * wire, and no `photos` key when they are not.
  */
-export function approvedValue(content: CaseStudyContent, labels: readonly string[]): ApprovedCaseStudy {
+export function approvedValue(content: CaseStudyContent, labels: readonly string[], onWire: boolean = caseLibraryDraftPhotosOnWire()): ApprovedCaseStudy {
     const draft = contentFromInput(content);
-    const wire = toLegacyWireContent(draft);
+    const wire = toWireContent(draft, onWire);
     return {
         ...wire,
         client_text: draft.client_display === "hidden" ? "" : draft.client_text,
@@ -208,7 +228,7 @@ export function approvedProblem(value: unknown): string | null {
     const { disciplines, ...raw } = value;
     if (!Array.isArray(disciplines) || disciplines.length > CONTENT_LIMITS.disciplinesPerStudy) return "disciplines";
     if (disciplines.some((label) => labelProblem(label) !== null)) return "disciplines";
-    const problem = "photos" in raw ? contentProblem(contentFromInput(raw)) : contentProblemLegacy(raw);
+    const problem = "photos" in raw ? contentProblemWithPhotos(raw) : contentProblemLegacy(raw);
     if (problem) return problem;
     const content = contentFromInput(raw);
     if (content.client_display !== "hidden" && trimSpaces(content.client_text) === "") return "client_text_missing";

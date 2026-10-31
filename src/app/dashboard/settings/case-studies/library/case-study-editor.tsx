@@ -69,6 +69,16 @@ export function ApprovedPreview({ approved }: { approved: ApprovedCaseStudy }) {
             )}
             {study.delivered && (<div><p className="text-sm font-semibold uppercase tracking-wide">What we delivered</p><p className="text-base whitespace-pre-wrap break-words">{study.delivered}</p></div>)}
             {study.value_added && (<div><p className="text-sm font-semibold uppercase tracking-wide">Value added</p><p className="text-base whitespace-pre-wrap break-words">{study.value_added}</p></div>)}
+            {study.photos.length > 0 && (
+                <div data-approved-photos className="grid grid-cols-3 gap-2">
+                    {study.photos.map((url, index) => (
+                        <div key={`${index}-${url}`}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={url} alt={`Photo ${index + 1}`} className="w-full aspect-square object-cover rounded" />
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

@@ -1,4 +1,5 @@
 import type { ComponentProps, ReactElement, ReactNode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import PostcodeAddressPicker from "./postcode-address-picker";
 import {
@@ -120,6 +121,16 @@ beforeEach(() => {
 });
 
 describe("PostcodeAddressPicker", () => {
+    it("Find addresses control uses core sage primary tokens, not brand blue", () => {
+        editPostcode("AB1 2CD");
+        const html = renderToStaticMarkup(renderPicker().node);
+        expect(html).not.toMatch(/(?:bg|hover:bg|text|border|ring)-blue-/);
+        expect(html).toContain("#c9efcf");
+        expect(html).toContain("#182c1b");
+        const find = nodes(renderPicker().node).find(n => n.props.id === "test-picker-find")!;
+        expect(find.props.disabled).toBe(false);
+    });
+
     it("does not call lookup or onSelect when search is not configured", () => {
         const onSelect = vi.fn();
         editPostcode("AB1 2CD", { onSelect });

@@ -270,3 +270,9 @@
 - Parent **c600581**. Exact **`ROB0106-RESET-NET-EIGHT.patch`** SHA256 **6f19f58eb971494eb0db4cd0260bfd5b9b617fb1e92e0b840b59eaf95367ebeb** (eight paths: forgot/reset pages+tests, recovery helper+test, proxy+test). Parent grade **rob0106-reset-net-eight-parent-grade-20261031.json** SCOPED_NNF; Codex **2304** exact four-hunk delta + full NET read; no source adaptation.
 - Focused vitest **40/40** in **4** files (literal argv in check receipt); ESLint **0 errors**, **3 warnings** on auth paths; `tsc --noEmit --incremental false` PASS. Mock/checker evidence only — **no** real auth, passwords, deploy, or Production change.
 - Register carries owned **A024/A069 Complete** closure metadata (**80C 18P 19N 1B**); helpers **run-build-rob0107-reset-net-20261031.mjs** prepared (reuse **rob2119** slot only); build/backup **not** run. Receipt **rob0107-reset-net-integrated-check.json**; future backup **rob0107-reset-net-backup.config.json**.
+
+## ROB0425 queue NET eight integrated prep — 31 October 2026
+
+- Parent **b275390**. Exact **`ROB0423-QUEUE-NET-EIGHT.patch`** SHA256 **2ec3fbfbf5650761bd70128e16768df4f1bed6b6c3ac0dec102c51a9a3699b2f** (A001 4 + A038 2 + A091 2 paths). Grade **`rob0423-queue-source-net-parent-grade-20261031.json`**; A001 `.tmp-test-run` cache **not** staged; no cq docs/temp import.
+- Focused vitest **115/115** in **9** materially affected files (literal argv + raw logs in check receipt); ESLint **0 errors**, **5 warnings**; `tsc --noEmit --incremental false` PASS on Node **v24.19.0**. Mock/unit only — runtime upload/auth NOT RUN; Production OFF.
+- Register **updatedAt** only; all118 compact statuses **80C 18P 19N 1B** unchanged. Check receipt **explicitly omits protectedReadbacks** pending future build bridge. Helpers **run-build-rob0425-queue-20261031.mjs** prepared; build/backup **not** run.

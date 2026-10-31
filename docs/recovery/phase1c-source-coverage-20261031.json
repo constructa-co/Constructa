@@ -1,0 +1,147 @@
+{
+  "schema": "constructa/recovery/phase1c-source-coverage/1",
+  "generatedAt": "2026-10-31T03:20:00.000Z",
+  "scope": "source_and_authored_sql_only",
+  "a079Status": "Partial",
+  "verdictMeaning": "Git SOURCE inventory at recovery pin 7900. Not EXPORT_DEST, not COMPLETE_SET, not DB/Auth/Storage/private-asset restoration, not all-refs recoverability, not A079 Complete.",
+  "supersedesForCurrentPin": {
+    "artifact": "docs/recovery/phase1a-source-coverage-20261029.json",
+    "acceptedArtifactCommit": "60970ff47a92ce2da01e6e9306f608fa23e55d58",
+    "priorAcceptedHead": "d86dca62643fac61dda89a05916d99b966193c79",
+    "priorMigrationCount": 116,
+    "note": "Phase 1A remains preserved evidence; d86/116 bindings are stale for current ROOT at 7900."
+  },
+  "authority": {
+    "rob0612PreservedPrivate": "/Users/robertsmith/dev/constructa-private-20261027/rob0612-actual-directions-20261031.json",
+    "taskBaseCommit": "7900d5ef8e010d4935f510bddd5f47937641e8ff",
+    "worktreeBranch": "cq/cq-0710-a079-current-coverage"
+  },
+  "git": {
+    "repository": "constructa-co/Constructa",
+    "remoteBranchNamedInPhase1A": "backup/welcome-first-slice-20261018",
+    "currentRecoveryPin": {
+      "commit": "7900d5ef8e010d4935f510bddd5f47937641e8ff",
+      "subject": "feat: ROB0425 queue NET eight A001 A038 A091 on b275 parent",
+      "tree": "70dd3fd5adfcdda936aad7f7a6847f4d7bf1f3ed"
+    },
+    "parent": {
+      "commit": "b27539067fdc5882bbc617c58ad0af3508242772",
+      "subject": "fix: reset-route NET eight auth recovery UX on c600 parent"
+    },
+    "phase1aAcceptedHead": {
+      "commit": "d86dca62643fac61dda89a05916d99b966193c79",
+      "migrationFileCount": 116,
+      "notAncestorOf7900": true,
+      "note": "60970ff artifact branch is parallel history; 7900 tree adds one migration filename vs d86."
+    },
+    "historicalRunbookPins": {
+      "appSourceCommit": "679182996680920363187c352ffc78d825bf096d",
+      "migrationFileCountAt679": 112,
+      "programmeBackupCommit": "3cd4bf54690d02623df4f7fb6a07f4717f52ad9a",
+      "status": "history_preserved_in_runbook_section_1_not_current"
+    }
+  },
+  "sourceCoverageAt7900": {
+    "migrationFiles": {
+      "count": 117,
+      "inventoryScope": "All authored SQL paths in Git at 7900; SOURCE not live apply state",
+      "sortedRelativePathsSha256": "dbd071956e2b0715313b83540fbf3820393e8a050f487f2227904ce4c250f75d",
+      "sortedRelativePathsMethod": "git ls-tree -r --name-only 7900d5ef8e010d4935f510bddd5f47937641e8ff supabase/migrations | sort, UTF-8 lines joined by newline",
+      "deltaFilenamesSincePhase1AHeadD86": [
+        "supabase/migrations/20261030220000_programme_working_pattern_execute_grant.sql"
+      ],
+      "deltaFilenamesSinceHistorical679": [
+        "supabase/migrations/20261028120000_case_library_photos.sql",
+        "supabase/migrations/20261028183000_new_job_closing_prefill.sql",
+        "supabase/migrations/20261028233000_job_assistant_usage_ledger.sql",
+        "supabase/migrations/20261029103000_project_working_pattern_v2.sql",
+        "supabase/migrations/20261030220000_programme_working_pattern_execute_grant.sql"
+      ],
+      "managerNamedQaApplyOnceNotReappliedHere": {
+        "note": "Manager: QA calendar/closing/grant and AI ledger SQL applied once; do not infer other DB migration state.",
+        "authoredSqlPathsNamedAppliedOnceOnQa": [
+          "supabase/migrations/20261028183000_new_job_closing_prefill.sql",
+          "supabase/migrations/20261028233000_job_assistant_usage_ledger.sql",
+          "supabase/migrations/20261030220000_programme_working_pattern_execute_grant.sql"
+        ],
+        "authoredSqlPathNamedNotAppliedOnQa": [
+          "supabase/migrations/20261028120000_case_library_photos.sql"
+        ],
+        "liveDatabaseAppliedState": "manager_named_only_not_read_in_this_job"
+      },
+      "schemaMigrationsComparison": {
+        "status": "future_operator_runbook_section_3",
+        "note": "Compare supabase_migrations.schema_migrations to repository filenames on source at export time; not performed here."
+      }
+    },
+    "rob0425NetEightCommitDeltaParentB275To7900": {
+      "patchName": "ROB0423-QUEUE-NET-EIGHT.patch",
+      "parentGradeReferencePrivate": "rob0423-queue-source-net-parent-grade-20261031.json",
+      "productAndTestPathCount": 8,
+      "trackedPathCountIncludingDeliveryCollateral": 11,
+      "excludedFromInventory": [
+        ".tmp-test-run cache files on branch (13 tracked); not recovery SOURCE blobs"
+      ],
+      "pathsWithGitBlobAt7900": [
+        { "path": "src/components/manual-address-entry.tsx", "gitBlob": "e950a89265be1fa21827c91e0302070af3860626", "slice": "A001" },
+        { "path": "src/components/manual-address-entry.test.tsx", "gitBlob": "073a21a15c6f5d1df4cdbb82d29f29463cd4995b", "slice": "A001" },
+        { "path": "src/components/postcode-address-picker.tsx", "gitBlob": "110e90d9355182ce9fd129ae29f1a8098831ac43", "slice": "A001" },
+        { "path": "src/components/postcode-address-picker.test.tsx", "gitBlob": "d39389386bbe27ee1ed4b4ce515cc8592a0b8155", "slice": "A001" },
+        { "path": "src/app/dashboard/settings/case-studies/case-studies-client.tsx", "gitBlob": "bc5b56bf019e6d0096ef46c0b2022980cd7c4800", "slice": "A038" },
+        { "path": "src/app/dashboard/settings/case-studies/photo-upload-outcomes.test.tsx", "gitBlob": "a36c0f1895c57630e574b890094299a7d556ee0b", "slice": "A038" },
+        { "path": "src/app/dashboard/error.tsx", "gitBlob": "5e1565b992b574c62044243cc9b0bb152053422e", "slice": "A091" },
+        { "path": "src/app/dashboard/error.test.tsx", "gitBlob": "3eef7f006a1628836e6fe56ee635f1046aa364f4", "slice": "A091" },
+        { "path": "docs/delivery/2026-10-28/changelog.md", "gitBlob": "cdc26f05f6f558458a01263794bee123e8a480e3", "slice": "delivery_collateral" },
+        { "path": "docs/delivery/2026-10-28/handoff.md", "gitBlob": "31bd0d58e21ad417cafbf030ed6aa7fac43f9888", "slice": "delivery_collateral" },
+        { "path": "walkthrough-action-register.json", "gitBlob": "f0b0ed9aec8aee71fda4dc676e26f4596c322a33", "slice": "register_metadata" }
+      ]
+    },
+    "newAuthoredSqlSincePhase1A": [
+      {
+        "path": "supabase/migrations/20261030220000_programme_working_pattern_execute_grant.sql",
+        "gitBlob": "c29b39cce1d64fe32e9e8a0a5c5f9b82041f2914",
+        "contentSha256": "34ee271151619d9d861ba26997c0a69ff920dc99b0baf2f56815922b76405bd3"
+      }
+    ],
+    "recoveryToolingGitBlobsAt7900": {
+      "paths": [
+        { "path": "docs/recovery/a079-recovery-runbook.md", "gitBlob": "6c27332fe74f661ce7ce9552d4e37753ab973857", "note": "Runbook updated in this job; blob id is pre-edit tree at 7900 commit object until runner commits." },
+        { "path": "scripts/recovery-manifest-check.mjs", "gitBlob": "c42ca24c49fa73a8b9ca7b505550c9e0b4002128" },
+        { "path": "scripts/recovery-manifest-check.test.mjs", "gitBlob": "5f6180845afdf59596658be899689865443dd4c8" }
+      ]
+    },
+    "phase1aPreservedInTree": {
+      "paths": [
+        "docs/recovery/phase1a-source-coverage-20261029.json",
+        "docs/recovery/phase1a-source-coverage-handoff-20261029.md"
+      ],
+      "byteIdentityTo60970ff": "verified_in_phase1c_verification_record"
+    }
+  },
+  "coveredCategories": {
+    "gitSourceAtNamedPin7900": true,
+    "authoredSqlInRepo117Files": true,
+    "rob0425NetProductTestBlobs": true,
+    "phase1aHistoricalArtifactPreserved": true,
+    "recoveryCheckerScriptsPresent": true
+  },
+  "excludedOrHeldCategories": {
+    "productionDatabaseExport": { "status": "unknown_held", "ownerAction": "Runbook §3–5; export run 41000587127 failed — separate Rob retry yes before retry" },
+    "authExport": { "status": "unknown_held", "ownerAction": "Runbook §4" },
+    "storageObjectBytes": { "status": "unknown_held", "ownerAction": "Runbook §5" },
+    "allGitRefsLfsPrivateWork": { "status": "unknown_held", "ownerAction": "Runbook §6" },
+    "opsExport": { "status": "skipped_historically", "ownerAction": "Runbook §7" },
+    "independentRestoreReadBack": { "status": "not_done", "ownerAction": "Runbook §8–9" },
+    "liveSchemaMigrationsExceptManagerNamedQaFacts": { "status": "not_inferred", "ownerAction": "Operator compare at export" },
+    "practiceProviderKeysProduction": { "status": "explicit_hold" }
+  },
+  "recoveryManifestCheck": {
+    "script": "scripts/recovery-manifest-check.mjs",
+    "ranOnExportManifestInThisJob": false,
+    "reason": "No operator EXPORT_DEST; must not weaken REQUIRED_CATEGORIES for source-only documentation"
+  },
+  "coverageGapClosedByThisArtifact": {
+    "before": "Phase 1A manifest binds d86 and 116 migrations; 7900 ROOT adds grant migration and ROB0425 NET eight blobs without machine-readable inventory.",
+    "after": "Phase 1C pins 7900/b275, 117 migrations with list digest, ROB0425 blob rows, QA apply-once / photo-not-applied qualifications, Phase 1A preserved."
+  }
+}

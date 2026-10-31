@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-10-31 — A079 Phase 1C SOURCE inventory at 7900 (Cursor cq-0710-a079-current-coverage)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| `docs/recovery/phase1a-source-coverage-20261029.json`, `phase1a-source-coverage-handoff-20261029.md` | Copied byte-identical from git `60970ff` | Preserve accepted Phase 1A evidence without rebinding current pin |
+| `docs/recovery/phase1c-source-coverage-20261031.json` | New machine-readable inventory | Pin 7900/b275, 117 migrations, ROB0425 blobs, QA apply-once qualifications, held categories |
+| `docs/recovery/phase1c-source-coverage-handoff-20261031.md` | New concise handoff | Operator boundaries; export run 41000587127 failure noted |
+| `docs/recovery/phase1c-source-coverage-verification-20261031.json` | Local read-only check record | Migration count/digest match JSON; checker unit test EPERM boundary recorded |
+| `docs/recovery/a079-recovery-runbook.md` §1.1–1.3, §3 | Historical vs Phase 1A vs Phase 1C pins; DO_NOT_EXECUTE on dump example | Close runbook gap vs d86-only phase1a; keep unsafe argv example explicitly non-runnable |
+
 ## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
 
 | Paths | Change | Intent |

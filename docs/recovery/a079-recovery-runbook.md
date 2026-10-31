@@ -21,6 +21,49 @@ writing it: no export, restore, SQL, Auth or Storage read, login, setting or dep
 | All Git refs, LFS, assets and private or unsaved work | **Not reconciled** | Section 6 |
 | `constructa-ops` recovery export | Reported **skipped** on 25 Oct; no success recorded | Section 7 |
 
+### 1.1 Historical pins (do not treat as current)
+
+The table above records **observed facts at runbook authorship** on branch
+`codex/a079-recovery-20261027` from base `679182996680920363187c352ffc78d825bf096d`
+(112 migration files at that commit). Those rows remain **history**, not a claim that
+679 or 112 migrations still describe the accepted source tree.
+
+### 1.2 Phase 1A source coverage (2026-10-29, superseded for current pin)
+
+**Accepted app source at Phase 1A close:** commit
+`d86dca62643fac61dda89a05916d99b966193c79` on remote branch
+`backup/welcome-first-slice-20261018`, parent `b5f513896eb07834e055e260536584ee7d0b708e`
+(**116** migration files). Preserved unchanged in:
+
+- `docs/recovery/phase1a-source-coverage-20261029.json` (artifact commit `60970ff47a92ce2da01e6e9306f608fa23e55d58`)
+- `docs/recovery/phase1a-source-coverage-handoff-20261029.md`
+
+Phase 1A inventory **does not** describe source after parent **b275** / ROB0425 NET eight;
+use Phase 1C (§1.3) for the current pin at **7900**.
+
+### 1.3 Current source coverage (Phase 1C, 2026-10-31)
+
+**Current recovery SOURCE pin (manager ROB0612 / backed 04:29 UAE):** commit
+`7900d5ef8e010d4935f510bddd5f47937641e8ff` on branch
+`cq/cq-0710-a079-current-coverage`, parent `b27539067fdc5882bbc617c58ad0af3508242772`
+(**117** authored SQL files under `supabase/migrations/`). All files in Git at this
+head are **SOURCE** inventory; live `schema_migrations` apply state is **not** inferred
+here except manager-named QA facts in the manifest.
+
+Machine-readable inventory (paths, git blobs, migration deltas, held DB/Auth/Storage):
+
+- `docs/recovery/phase1c-source-coverage-20261031.json`
+- `docs/recovery/phase1c-source-coverage-handoff-20261031.md`
+- Local consistency record: `docs/recovery/phase1c-source-coverage-verification-20261031.json`
+
+This coverage **does not** move A079 to Complete. Operator export run **41000587127**
+failed and needs a separate explicit Rob retry yes before retry. Full recovery still
+requires operator export, manifest `COMPLETE_SET` with `--root`, and section 9 evidence.
+
+Database export **credential boundary** (safe operator rules; §3 `DO_NOT_EXECUTE` block is
+not a runnable recipe): section 3 below. `EXPORT_DEST`, disposable restore target,
+retention, and `RECOVERY_OWNER` remain future operator inputs.
+
 ## 2. Required inputs
 
 These are named by the authorised operator. The runbook never assumes them, and the
@@ -56,7 +99,9 @@ Credential handling:
   `EXPORT_DEST`, the manifest or evidence.
 
 ```bash
-# Inert example. SOURCE_DB_URL comes from the operator's own secret store (see credential handling).
+# DO_NOT_EXECUTE — unsafe credential-argv pattern (password visible in process list).
+# Operators must use libpq service names / CLI handoffs documented above, never copy these lines.
+# Inert example only. SOURCE_DB_URL comes from the operator's own secret store.
 supabase db dump --db-url "$SOURCE_DB_URL" --role-only   -f "$EXPORT_DEST/db/roles.sql"
 supabase db dump --db-url "$SOURCE_DB_URL"               -f "$EXPORT_DEST/db/schema.sql"
 supabase db dump --db-url "$SOURCE_DB_URL" --data-only --use-copy -f "$EXPORT_DEST/db/data.sql"

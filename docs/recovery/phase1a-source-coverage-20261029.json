@@ -1,0 +1,133 @@
+{
+  "schema": "constructa/recovery/phase1a-source-coverage/1",
+  "generatedAt": "2026-10-29T06:32:00.000Z",
+  "scope": "source_and_authored_sql_only",
+  "a079Status": "Partial",
+  "verdictMeaning": "This file records Git/source coverage for Phase 1A acceptance. It is not an operator EXPORT_DEST manifest, not COMPLETE_SET, and does not prove DB/Auth/Storage/private-asset restoration or all-refs recoverability.",
+  "managerSuppliedAcceptance": {
+    "qualifiedHandoffAcceptedAt": "2026-10-29T06:29:48.470Z",
+    "dispatchOverride": "ActualRob10:14 UAE — Phase 1B authorised without waiting on four yes answers; two P2 / three P3 limits remain in handoff",
+    "privateReceiptNamesNotInRepo": [
+      "rob1025-a059-parent-acceptance-20261029.json",
+      "rob1025-integrated-source-backup-20261029.json"
+    ],
+    "phase1ARegisterSnapshot": "76 Complete / 22 Partial / 19 Not started / 1 Blocked (118 actions; metadata-only delta allowed, counts unchanged per manager)"
+  },
+  "git": {
+    "repository": "constructa-co/Constructa",
+    "remoteBranch": "backup/welcome-first-slice-20261018",
+    "acceptedHead": {
+      "commit": "d86dca62643fac61dda89a05916d99b966193c79",
+      "subject": "feat: ROB1025 A059 working pattern v2 NO_P1 source",
+      "tree": "4ae2150398aa4e46dfed1e24d6a71de533ed7515"
+    },
+    "parentAccepted": {
+      "commit": "b5f513896eb07834e055e260536584ee7d0b708e",
+      "subject": "feat: ROB0635 combined Phase 1A OFF-readiness + A040/A069 tests"
+    },
+    "a059Net16NamedCommit": {
+      "commit": "f23e4902df3096a2f4481ea3fb78bd663a21dace",
+      "note": "Manager-named frozen NET16 build pin. Object not present in this cloud clone after fetch; parent must verify on authoritative remote before treating as reachable.",
+      "presenceInThisWorkspace": "not_fetched"
+    },
+    "historicalRunbookPins": {
+      "appSourceCommit": "679182996680920363187c352ffc78d825bf096d",
+      "programmeBackupCommit": "3cd4bf54690d02623df4f7fb6a07f4717f52ad9a",
+      "programmeRemote": "constructa-co/constructa-programme",
+      "programmeBranch": "codex/backup-constructa-programme-20261023",
+      "migrationFileCountAt679": 112,
+      "status": "history_preserved_in_runbook_section_1_not_current"
+    }
+  },
+  "sourceCoverageAtAcceptedHead": {
+    "migrationFiles": {
+      "count": 116,
+      "inventoryScope": "Authored SQL files present in Git at accepted head d86; not a live database inventory",
+      "liveDatabaseAppliedState": "unverified_not_read_in_this_job",
+      "managerKnownAppliedNoRepeat": {
+        "note": "A023 platform terms / consent path applied on QA through 2026-10-27 (manager); this manifest does not re-apply or re-verify"
+      },
+      "managerHeldNamedAuthoredSqlNotVerifiedHere": [
+        "supabase/migrations/20261026110000_project_working_pattern.sql",
+        "supabase/migrations/20261029103000_project_working_pattern_v2.sql",
+        "supabase/migrations/20261028183000_new_job_closing_prefill.sql",
+        "supabase/migrations/20261028233000_job_assistant_usage_ledger.sql"
+      ],
+      "deltaSinceHistorical679": [
+        "supabase/migrations/20261028120000_case_library_photos.sql",
+        "supabase/migrations/20261028183000_new_job_closing_prefill.sql",
+        "supabase/migrations/20261028233000_job_assistant_usage_ledger.sql",
+        "supabase/migrations/20261029103000_project_working_pattern_v2.sql"
+      ],
+      "schemaMigrationsComparison": {
+        "status": "future_operator_within_runbook_section_3",
+        "note": "Compare supabase_migrations.schema_migrations to repository filenames on source; not performed in this source-only job; no manual history repair, bulk push, or A038 catch-up gate invented here"
+      }
+    },
+    "a059DeltaParentB5ToHeadD86": {
+      "pathCount": 20,
+      "pathsWithGitBlobAtD86": [
+        { "path": "docs/cursor-change-log.md", "gitBlob": "a75e1c8715949fcb49e3506ba90562cc8f56e797" },
+        { "path": "docs/delivery/2026-10-28/changelog.md", "gitBlob": "3c6d6438e4e4b6724973e810a0882c3d8d779c55" },
+        { "path": "docs/delivery/2026-10-28/handoff.md", "gitBlob": "431ea6c0ab8e6ec37e458a1f1a8316fb24d68459" },
+        { "path": "src/app/dashboard/projects/schedule/simple-actions.test.ts", "gitBlob": "fd366c623c5a8e498101baf48787071086022c5e" },
+        { "path": "src/app/dashboard/projects/schedule/simple-actions.ts", "gitBlob": "25010201e9bfbc9252b202d572d37dacdc92a0d2" },
+        { "path": "src/app/dashboard/projects/schedule/simple-programme-client.tsx", "gitBlob": "6ebc8b95af3a38782b91c0b7d4b88ae8dee3977b" },
+        { "path": "src/lib/job-working-local.ts", "gitBlob": "4f7ed9bdca6dbefd50c054d269c40810a3c25142" },
+        { "path": "src/lib/job-working-pattern-capacity.test.ts", "gitBlob": "05847b0c36a3acf0bf845481943c602859696e49" },
+        { "path": "src/lib/job-working-pattern-rob0922.test.ts", "gitBlob": "f8083afa6ada67df374a6097f45e3a399d2defcb" },
+        { "path": "src/lib/job-working-pattern-rob0942.test.ts", "gitBlob": "d49b84a5235ee00deb5cca82aa20fea0ae94a412" },
+        { "path": "src/lib/job-working-pattern-same-build-fix.test.ts", "gitBlob": "716f4c2b4b4b3976365ed2d758354f1194063009" },
+        { "path": "src/lib/job-working-pattern.ts", "gitBlob": "9443de85b56a11abf8a2c7fba85c4d2d5c9611a3" },
+        { "path": "src/lib/programme-plan.ts", "gitBlob": "91924bcd2ca84310f4b307858661bd8b89ac77d4" },
+        { "path": "src/lib/relative-programme.ts", "gitBlob": "f316ab4e54f101c79d5e34b056de68bc1738c2e5" },
+        { "path": "src/lib/server/programme-storage.ts", "gitBlob": "8e22bfd49af0eb78226711e7059e37cda74b7524" },
+        { "path": "src/lib/simple-programme.ts", "gitBlob": "8c822c68ca101893d710c82f8d269cf9b9c5bdec" },
+        { "path": "src/lib/working-pattern-canonical.ts", "gitBlob": "bf7a4c81966b5d413b94daf9d0bffa88fbee56a2" },
+        { "path": "src/lib/working-pattern-draft.ts", "gitBlob": "0f1cbb688342b2358c4d307c56973e832c65332e" },
+        { "path": "supabase/migrations/20261029103000_project_working_pattern_v2.sql", "gitBlob": "188c07c358ff26069bc10a467d7b138dd85b7a6d", "contentSha256": "809c218cce9b990ab38059dda023fe3beca21ee6cc3b7fc9515fcc94ebacf0bf" },
+        { "path": "walkthrough-action-register.json", "gitBlob": "c0e7de092bebd2a3f4ad83eacda24cf523affae3" }
+      ]
+    },
+    "recoveryToolingGitBlobsAtAcceptedHeadD86": {
+      "meaning": "Git blob ids for these paths in tree d86 only; does not claim blobs unchanged on other commits or branches",
+      "paths": [
+        { "path": "docs/recovery/a079-recovery-runbook.md", "gitBlob": "6c27332fe74f661ce7ce9552d4e37753ab973857" },
+        { "path": "scripts/recovery-manifest-check.mjs", "gitBlob": "c42ca24c49fa73a8b9ca7b505550c9e0b4002128" }
+      ]
+    },
+    "phase1AOffReadinessSample": {
+      "path": "src/lib/server/job-assistant-transport.ts",
+      "gitBlob": "9eef8a68491812f33703cc25dc9b83c1457a9a19",
+      "approvedGeneration": "all null at accepted head (activation OFF)"
+    },
+    "authoredSqlJobAssistantLedger": {
+      "path": "supabase/migrations/20261028233000_job_assistant_usage_ledger.sql",
+      "gitBlob": "dce14cc6da845fe8009ec9a81c94805852d266f7",
+      "liveAppliedState": "held_named_in_managerHeldNamedAuthoredSqlNotVerifiedHere"
+    }
+  },
+  "coverageGapClosedByThisArtifact": {
+    "before": "Runbook section 1 current-source table pins 679/112 migrations and programme 3cd4bf only; does not name b5/d86/A059 night source or post-679 migration assets.",
+    "after": "Machine-readable current-source pins, blob inventory for b5→d86 delta, migration count 116, and explicit history vs current split."
+  },
+  "heldNotCoveredSourceOnlyJob": {
+    "databaseExport": { "status": "unknown_held", "ownerAction": "Authorised operator export per runbook §3–5" },
+    "authExport": { "status": "unknown_held", "ownerAction": "Runbook §4 config boundary + data scope" },
+    "storageObjectBytes": { "status": "unknown_held", "ownerAction": "Runbook §5 byte files + manifest categories" },
+    "allGitRefsLfsPrivateWork": { "status": "unknown_held", "ownerAction": "Runbook §6 reconciliation" },
+    "opsExport": { "status": "skipped_historically", "ownerAction": "Runbook §7" },
+    "independentRestoreReadBack": { "status": "not_done", "ownerAction": "Runbook §8–9 disposable target" },
+    "practiceProviderKeysProduction": { "status": "explicit_hold", "note": "Rob practice/provider yes answers not prerequisites to this job"
+    }
+  },
+  "recoveryManifestCheck": {
+    "script": "scripts/recovery-manifest-check.mjs",
+    "ranInThisJob": false,
+    "reason": "No EXPORT_DEST operator manifest; duplicate-ref unit tests already accepted elsewhere; must not weaken full-recovery gates for source-only set"
+  },
+  "toolchain": {
+    "nvmPin": "24.19.0",
+    "note": "ROOT Node 24.19.0 / npm Next enforced on parent acceptance; not re-run in cloud Phase 1B job"
+  }
+}

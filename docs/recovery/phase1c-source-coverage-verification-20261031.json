@@ -1,0 +1,72 @@
+{
+  "schema": "constructa/recovery/phase1c-verification/1",
+  "generatedAt": "2026-10-31T03:22:00.000Z",
+  "worktree": "/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/cq-0710-a079-current-coverage",
+  "checks": [
+    {
+      "id": "head_pin",
+      "command": "git rev-parse HEAD",
+      "exitCode": 0,
+      "stdout": "7900d5ef8e010d4935f510bddd5f47937641e8ff\n"
+    },
+    {
+      "id": "parent_pin",
+      "command": "git rev-parse HEAD^",
+      "exitCode": 0,
+      "stdout": "b27539067fdc5882bbc617c58ad0af3508242772\n"
+    },
+    {
+      "id": "tree_at_head",
+      "command": "git rev-parse HEAD^{tree}",
+      "exitCode": 0,
+      "stdout": "70dd3fd5adfcdda936aad7f7a6847f4d7bf1f3ed\n"
+    },
+    {
+      "id": "migration_count_at_head",
+      "command": "git ls-tree -r --name-only HEAD supabase/migrations | wc -l | tr -d ' '",
+      "exitCode": 0,
+      "stdout": "117",
+      "matchesPhase1cJsonField": "sourceCoverageAt7900.migrationFiles.count"
+    },
+    {
+      "id": "migration_list_digest",
+      "command": "git ls-tree -r --name-only HEAD supabase/migrations | sort | shasum -a 256 | awk '{print $1}'",
+      "exitCode": 0,
+      "stdout": "dbd071956e2b0715313b83540fbf3820393e8a050f487f2227904ce4c250f75d",
+      "matchesPhase1cJsonField": "sourceCoverageAt7900.migrationFiles.sortedRelativePathsSha256"
+    },
+    {
+      "id": "delta_d86_to_head_filenames",
+      "command": "diff <(git ls-tree -r --name-only d86dca62643fac61dda89a05916d99b966193c79 supabase/migrations | sort) <(git ls-tree -r --name-only HEAD supabase/migrations | sort)",
+      "exitCode": 1,
+      "stderrNote": "exit 1 expected; sole addition line documented in phase1c JSON"
+    },
+    {
+      "id": "phase1a_byte_identity",
+      "command": "shasum -a 256 docs/recovery/phase1a-source-coverage-20261029.json",
+      "exitCode": 0,
+      "stdout": "2d28b0328f62935db06545fb9e0ca442418e183e3e176dba31b6e190402ee200",
+      "matchesGitShow60970ff": true
+    },
+    {
+      "id": "phase1c_json_parse",
+      "command": "node -e \"JSON.parse(require('fs').readFileSync('docs/recovery/phase1c-source-coverage-20261031.json','utf8')); console.log('ok')\"",
+      "exitCode": 0,
+      "stdout": "ok\n"
+    },
+    {
+      "id": "recovery_manifest_check_unit_tests",
+      "command": "node --test scripts/recovery-manifest-check.test.mjs",
+      "exitCode": 1,
+      "summary": "26 tests: 22 pass, 4 fail EPERM mkdtemp under constructa-queue/tmp (sandbox/worktree boundary)",
+      "note": "Failures are environment temp-dir policy, not checker logic regression; duplicate-ref and placeholder suites passed."
+    }
+  ],
+  "notRunByPolicy": [
+    "recovery-manifest-check.mjs on EXPORT_DEST",
+    "supabase db push/dump",
+    "git fetch/push",
+    "next build",
+    "full-history secret scan"
+  ]
+}

@@ -1,5 +1,14 @@
 # Cursor change log
 
+## 2026-10-31 — cq-0432 A091 dashboard error recovery copy (Cursor)
+
+| Paths | Lines / change | Intent |
+|-------|----------------|--------|
+| `src/app/dashboard/error.tsx` | ~49–55 body copy | Remove unsupported “no data has been lost”; state unsaved edits may be missing and writes may have completed; prompt check-before-repeat. |
+| `src/app/dashboard/error.tsx` | ~61–68 Try again `className` | Replace blue primary with `corePrimaryButton` + `coreFocusVisibleRing` (charcoal/sage token). |
+| `src/app/dashboard/error.test.tsx` | new file | Lock baseline removal, honest copy, reset once, `getLaunchLandingPath` href, digest-only ref, no raw error leakage, observability call. |
+| `docs/reviews/cq-0432-a091-error-recovery.md` | new | Command receipts, source hashes, vitest EPERM limitation. |
+
 ## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
 
 | Paths | Change | Intent |

@@ -300,3 +300,9 @@
 - AI `4bd61af`, photo-wire `742c000`, workflow `ee0c2ac`; exact reviewed code/test blobs only. Independently graded non-BMP guard fix has actual focused RED/GREEN. Wire FALSE, schema untouched, AI and human QA holds unchanged.
 - ROOT material evidence: 90 + 126 + 8 = 224 passes in three commands/14 files; full TypeScript exit 0. Lint 59 paths initially failed two test-fixture `prefer-const` declarations; the two-line correction and failed-file-only successful recheck are retained separately. 67 warnings remain, not a zero-warning claim. No repeated whole-app suite or new compiled-copy build.
 - Cursor workflow task received targeted SIGINT after its own command stalled, then returned Abort/PASS/exit 0; source pins were independently graded and verified. No runner, sandbox, permission mode or dependency repair was made.
+
+## ROB2330 A038 unapplied migration transition source
+
+- On ba736c6, exact `ab59f68` three-path source patch: safe twelve-to-thirteen-key photo transition, malformed photo validation/helper privileges, expanded existing disposable SQL script and one source-contract test. Prior 59 code/test pins unchanged; wire FALSE, schema unapplied.
+- Independent Cursor whole-source PASS plus Erdos current-candidate SCOPED_NNF before ROOT. Parent corrected one psql JSON variable quoting line after an actual exit-3 failure; a fresh disposable PostgreSQL 14.19 run then passed. Raw failure and success retained; not Supabase 17/live QA proof.
+- Forty source cases and shell syntax passed. Final affected checks/fresh guarded build/scans/normal backup must use the actual new receipts; old ba736c6 build is not reused. No old-suite rerun, hosted SQL, feature activation, deploy, main merge or forced Complete.

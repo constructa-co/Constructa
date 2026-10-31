@@ -27,7 +27,16 @@
 #   - an adopted older entry is fingerprinted by the database from what is
 #     stored, and the older entry is not changed;
 #   - the reads the application's pages make return only the signed-in
-#     contractor's rows, in the shape asked for, and nothing to anyone else.
+#     contractor's rows, in the shape asked for, and nothing to anyone else;
+#   - the photos migration carries real twelve-key drafts and approved copies,
+#     written through the foundation's own functions, to three empty slots:
+#     text, privacy, revisions, approval binding, tags and owners do not move,
+#     a writer in flight is not left behind, a row it cannot carry stops the
+#     whole migration, and a second run changes nothing;
+#   - malformed photos are refused, never accepted and never a jsonb error.
+#
+# The shared vectors are the twelve-key contract, so they run before the photos
+# migration, and again after it with empty slots added.
 #
 # It ends with a role matrix for a POSSIBLE later trigger. No trigger is
 # installed by the migration; the matrix only records what a trigger would be
@@ -39,7 +48,11 @@ PG_BIN="$(pg_config --bindir)"
 TEST_DIR="$(mktemp -d "${TMPDIR:-/tmp}/constructa-case-library.XXXXXX")"
 PORT="${CONSTRUCTA_TEST_PG_PORT:-55458}"
 MIGRATION="$ROOT_DIR/supabase/migrations/20261012090000_case_library_foundation.sql"
+PHOTO_MIGRATION="$ROOT_DIR/supabase/migrations/20261028120000_case_library_photos.sql"
 VECTORS="$ROOT_DIR/src/lib/case-library/__fixtures__/contract-vectors.json"
+PHOTO_VECTORS="$TEST_DIR/photo-vectors.json"
+
+fail() { echo "FAILED: $1" >&2; exit 1; }
 
 cleanup() {
   if [[ -f "$TEST_DIR/data/postmaster.pid" ]]; then
@@ -59,6 +72,48 @@ ALPHA='aaaaaaaa-0000-0000-0000-000000000001'
 BETA='bbbbbbbb-0000-0000-0000-000000000002'
 GAMMA='cccccccc-0000-0000-0000-000000000003'
 DELTA='dddddddd-0000-0000-0000-000000000004'
+
+# [name, the value of `photos`, the answer]. Read by
+# src/lib/case-library/photo-migration-source.test.ts too, so the application's
+# strict rule is held to the same list. Synthetic urls only.
+cat > "$PHOTO_VECTORS" <<'JSON'
+[
+ ["three empty slots", [{"url":"","caption":""},{"url":"","caption":""},{"url":"","caption":""}], null],
+ ["a picture with a caption", [{"url":"https://images.example.test/a.jpg","caption":"Before"},{"url":"","caption":""},{"url":"","caption":""}], null],
+ ["three pictures", [{"url":"https://images.example.test/a.jpg","caption":""},{"url":"https://images.example.test/b.jpg","caption":""},{"url":"https://images.example.test/c.jpg","caption":""}], null],
+ ["a caption with no picture", [{"url":"","caption":"Before"},{"url":"","caption":""},{"url":"","caption":""}], null],
+ ["a url of spaces is an empty slot", [{"url":"   ","caption":""},{"url":"","caption":""},{"url":"","caption":""}], null],
+ ["local http with a port", [{"url":"http://localhost:3000/a.jpg","caption":""},{"url":"http://127.0.0.1/a.jpg","caption":""},{"url":"","caption":""}], null],
+ ["json null", null, "photos"],
+ ["a string", "x", "photos"],
+ ["a number", 3, "photos"],
+ ["a boolean", true, "photos"],
+ ["an object", {}, "photos"],
+ ["no slots", [], "photos"],
+ ["two slots", [{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["four slots", [{"url":"","caption":""},{"url":"","caption":""},{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["a null slot", [null,{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["a bare url string", ["https://images.example.test/a.jpg",{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["a number slot", [3,{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["an array slot", [[],{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["an empty object slot", [{},{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["a slot with no caption", [{"url":""},{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["a slot with no url", [{"caption":""},{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["a slot with an extra key", [{"url":"","caption":"","path":"x"},{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["a number url", [{"url":1,"caption":""},{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["a null url", [{"url":null,"caption":""},{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["a number caption", [{"url":"","caption":1},{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["a null caption", [{"url":"","caption":null},{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["a bad slot last", [{"url":"","caption":""},{"url":"","caption":""},{"url":"javascript:alert(1)","caption":""}], "photos"],
+ ["an unsafe scheme", [{"url":"javascript:alert(1)","caption":""},{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["capitals in the scheme", [{"url":"HTTPS://images.example.test/a.jpg","caption":""},{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["plain http elsewhere", [{"url":"http://images.example.test/a.jpg","caption":""},{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["a host that only starts like localhost", [{"url":"http://localhost.example.test/a.jpg","caption":""},{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["one slash", [{"url":"https:/images.example.test/a.jpg","caption":""},{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["a line break in a url", [{"url":"https://images.example.test/\na.jpg","caption":""},{"url":"","caption":""},{"url":"","caption":""}], "photos"],
+ ["a tab in a caption", [{"url":"","caption":"a\tb"},{"url":"","caption":""},{"url":"","caption":""}], "photos"]
+]
+JSON
 
 "${PSQL[@]}" >/dev/null <<'SQL'
 CREATE ROLE anon NOLOGIN;
@@ -90,8 +145,10 @@ INSERT INTO auth.users VALUES
   ('aaaaaaaa-0000-0000-0000-000000000001'),
   ('bbbbbbbb-0000-0000-0000-000000000002'),
   ('cccccccc-0000-0000-0000-000000000003'),
-  ('dddddddd-0000-0000-0000-000000000004');
+  ('dddddddd-0000-0000-0000-000000000004'),
+  ('eeeeeeee-0000-0000-0000-000000000005');
 INSERT INTO public.profiles (id, company_name, case_studies) VALUES
+  ('eeeeeeee-0000-0000-0000-000000000005', 'Epsilon Extensions', '[{"projectName":"Older extension","photos":["https://images.example.test/older.jpg"]}]'),
   ('aaaaaaaa-0000-0000-0000-000000000001', 'Alpha Builders', '[{"id":"cs-a","projectName":"Kitchen","client":"Mrs Older"},{"projectName":"Loft"},"not an object"]'),
   ('bbbbbbbb-0000-0000-0000-000000000002', 'Beta Joinery', '[{"projectName":"Stairs"}]'),
   ('cccccccc-0000-0000-0000-000000000003', 'Gamma Roofing', '[{"projectName":"Roof"}]'),
@@ -146,7 +203,7 @@ SELECT t.expect((SELECT count(*) FROM public.case_studies) = 0 AND (SELECT count
 SELECT t.expect((SELECT array_agg(c.relname::text ORDER BY c.relname) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relkind = 'r' AND c.relname <> 'profiles') = ARRAY['case_studies', 'case_study_disciplines', 'contractor_disciplines'], 'exactly three tables were added, and no asset table');
 
 -- ── The SQL rules agree with the application's, on the shared vectors ───────
-SELECT t.expect((SELECT count(*) FROM t.vectors, jsonb_array_elements(doc -> 'content') AS v) = 48, 'all content vectors were loaded');
+SELECT t.expect((SELECT count(*) FROM t.vectors, jsonb_array_elements(doc -> 'content') AS v) = 49, 'all content vectors were loaded');
 SELECT t.expect(NOT EXISTS (
   SELECT 1 FROM t.vectors, jsonb_array_elements(doc -> 'content') AS v
   WHERE public.case_library_content_problem(v -> 1) IS DISTINCT FROM (v ->> 2)
@@ -168,9 +225,192 @@ SELECT t.expect(NOT EXISTS (
   WHERE public.case_library_label_key(v ->> 0) IS DISTINCT FROM (v ->> 1) OR public.case_library_label_problem(v ->> 0) IS DISTINCT FROM (v ->> 2)
 ), 'label rules: SQL gives the listed key and answer for every vector');
 SELECT t.expect((SELECT count(*) FROM t.vectors, jsonb_array_elements(doc -> 'approval') AS v) = 12 AND (SELECT count(*) FROM t.vectors, jsonb_array_elements(doc -> 'approved') AS v) = 16 AND (SELECT count(*) FROM t.vectors, jsonb_array_elements(doc -> 'labels') AS v) = 14 AND (SELECT count(*) FROM t.vectors, jsonb_array_elements(doc -> 'approvedValue') AS v) = 3, 'every vector set was loaded in full');
+SQL
+
+# ── Real twelve-key rows, written by the foundation's own functions ──────────
+"${PSQL[@]}" >/dev/null <<'SQL'
+\set epsilon '''eeeeeeee-0000-0000-0000-000000000005'''
+\set twelve '''{"version":1,"title":"Seed","work_type":"Extension","place":"York","client_display":"hidden","client_text":"Mrs Private","client_named_ok":false,"value_text":"£40,000","show_value":false,"duration_text":"9 weeks","delivered":"We built it.\\nOn time.","value_added":"No fuss."}'''
+SET ROLE service_role;
+SELECT (public.case_library_discipline_save(:epsilon, NULL, 0, 'Extensions', 0)) ->> 'id' AS seed_tag \gset
+
+SELECT (public.case_study_create(:epsilon, jsonb_set(:twelve::jsonb, '{title}', '"Never approved"'), NULL)) ->> 'id' AS seed_never \gset
+
+SELECT (public.case_study_create(:epsilon, jsonb_set(:twelve::jsonb, '{title}', '"Approved and current"'), NULL)) ->> 'id' AS seed_current \gset
+SELECT public.case_study_set_disciplines(:epsilon, :'seed_current', 1, ARRAY[:'seed_tag']::uuid[]);
+SELECT t.expect(public.case_study_approve(:epsilon, :'seed_current', 2, true) ->> 'outcome' = 'approved', 'seed: a twelve-key draft is approved');
+
+SELECT (public.case_study_create(:epsilon, jsonb_set(:twelve::jsonb, '{title}', '"Approved then edited"'), NULL)) ->> 'id' AS seed_moved \gset
+SELECT public.case_study_approve(:epsilon, :'seed_moved', 1, true);
+SELECT public.case_study_save_draft(:epsilon, :'seed_moved', 1, jsonb_set(:twelve::jsonb, '{title}', '"Approved then edited"') || '{"delivered":"Edited after approval."}'::jsonb);
+
+SELECT (public.case_study_create(:epsilon, jsonb_set(:twelve::jsonb, '{title}', '"Approved and archived"'), NULL)) ->> 'id' AS seed_archived \gset
+SELECT public.case_study_approve(:epsilon, :'seed_archived', 1, true);
+SELECT public.case_study_archive(:epsilon, :'seed_archived', 1, true);
+
+SELECT (public.case_study_create(:epsilon, jsonb_set(:twelve::jsonb, '{title}', '"From an older entry"'), 0)) ->> 'id' AS seed_adopted \gset
+SELECT public.case_study_approve(:epsilon, :'seed_adopted', 1, true);
+RESET ROLE;
+
+CREATE TABLE t.legacy_rows AS SELECT * FROM public.case_studies;
+CREATE TABLE t.legacy_links AS SELECT * FROM public.case_study_disciplines;
+CREATE TABLE t.legacy_disciplines AS SELECT * FROM public.contractor_disciplines;
+SELECT t.expect((SELECT count(*) FROM t.legacy_rows) = 5 AND (SELECT count(*) FILTER (WHERE approved IS NOT NULL) FROM t.legacy_rows) = 4 AND (SELECT count(*) FROM t.legacy_links) = 1, 'seed: five drafts, four approved copies, one tag');
+SELECT t.expect(NOT EXISTS (SELECT 1 FROM t.legacy_rows WHERE draft ? 'photos' OR coalesce(approved ? 'photos', false)), 'seed: every stored value really is the twelve-key shape');
+SELECT t.expect((SELECT approved_revision < revision FROM t.legacy_rows WHERE draft ->> 'title' = 'Approved then edited'), 'seed: one approved copy is behind its draft');
+
+-- A row the transition cannot make valid, with the rule that would have stopped it lifted.
+ALTER TABLE public.case_studies DROP CONSTRAINT case_studies_draft;
+INSERT INTO public.case_studies (user_id, draft)
+  SELECT user_id, draft || '{"stray":true}'::jsonb FROM t.legacy_rows WHERE draft ->> 'title' = 'Never approved';
+SQL
+
+# A row it cannot carry stops the whole migration, and nothing is half done.
+if "${PSQL[@]}" -f "$PHOTO_MIGRATION" >/dev/null 2>"$TEST_DIR/refused.log"; then
+  fail "the photos migration committed with a row it could not carry."
+fi
+grep -q 'does not meet the thirteen-key contract' "$TEST_DIR/refused.log" || fail "the photos migration failed for some other reason: $(cat "$TEST_DIR/refused.log")"
+"${PSQL[@]}" >/dev/null <<'SQL'
+SELECT t.expect(to_regprocedure('public.case_library_photos_ok(jsonb)') IS NULL AND to_regprocedure('public.case_library_photo_slot_ok(jsonb)') IS NULL, 'a refused migration left no new function');
+SELECT t.expect(public.case_library_content_problem((SELECT draft FROM t.legacy_rows LIMIT 1)) IS NULL, 'a refused migration left the twelve-key rule in place');
+SELECT t.expect(NOT EXISTS (SELECT * FROM t.legacy_rows EXCEPT SELECT * FROM public.case_studies), 'a refused migration changed no row');
+DELETE FROM public.case_studies WHERE draft ? 'stray';
+ALTER TABLE public.case_studies ADD CONSTRAINT case_studies_draft CHECK (public.case_library_content_problem(draft) IS NULL AND pg_column_size(draft) <= 65536);
+SQL
+
+# A new twelve-key row, still uncommitted when the migration starts. Its row
+# cannot be seen or waited on by the UPDATE, so only the table lock can keep it
+# from being committed behind the transition.
+LATE='{"version":1,"title":"Written while the migration waited","work_type":"","place":"","client_display":"hidden","client_text":"","client_named_ok":false,"value_text":"","show_value":false,"duration_text":"","delivered":"","value_added":""}'
+"${PSQL[@]}" -At -c "SET ROLE service_role; BEGIN; SELECT public.case_study_create('eeeeeeee-0000-0000-0000-000000000005', '$LATE'::jsonb, NULL); SELECT pg_sleep(1.5); COMMIT;" >/dev/null &
+LATE_WRITER=$!
+sleep 0.4
+"${PSQL[@]}" -f "$PHOTO_MIGRATION" >/dev/null
+wait "$LATE_WRITER"
+
+# A second run changes no row, not even a timestamp.
+"${PSQL[@]}" >/dev/null <<'SQL'
+CREATE TABLE t.after_first_run AS SELECT * FROM public.case_studies;
+SQL
+"${PSQL[@]}" -f "$PHOTO_MIGRATION" >/dev/null
+
+"${PSQL[@]}" -v photo_vectors_file="$PHOTO_VECTORS" >/dev/null <<'SQL'
+\set alpha '''aaaaaaaa-0000-0000-0000-000000000001'''
+\set beta  '''bbbbbbbb-0000-0000-0000-000000000002'''
+\set epsilon '''eeeeeeee-0000-0000-0000-000000000005'''
+\set slots '[{"url":"","caption":""},{"url":"","caption":""},{"url":"","caption":""}]'
+\set photo_vectors `cat :'photo_vectors_file'`
+CREATE TABLE t.photo_vectors AS SELECT value AS v FROM jsonb_array_elements(:'photo_vectors'::jsonb);
+CREATE TABLE t.valid_content AS SELECT (v -> 1) || jsonb_build_object('photos', :'slots'::jsonb) AS content FROM t.vectors, jsonb_array_elements(doc -> 'content') AS v WHERE v ->> 0 = 'a complete, ordinary draft';
+GRANT SELECT ON ALL TABLES IN SCHEMA t TO service_role;
+
+-- ── The transition ───────────────────────────────────────────────────────────
+SELECT t.expect(NOT EXISTS (SELECT * FROM t.after_first_run EXCEPT SELECT * FROM public.case_studies) AND NOT EXISTS (SELECT * FROM public.case_studies EXCEPT SELECT * FROM t.after_first_run), 'a second run of the migration changed nothing');
+SELECT t.expect((SELECT count(*) FROM public.case_studies c JOIN t.legacy_rows l USING (id)) = 5, 'every seeded row is still there');
+SELECT t.expect(NOT EXISTS (
+  SELECT 1 FROM public.case_studies c JOIN t.legacy_rows l USING (id)
+  WHERE c.draft IS DISTINCT FROM l.draft || jsonb_build_object('photos', :'slots'::jsonb)
+     OR c.approved IS DISTINCT FROM CASE WHEN l.approved IS NULL THEN NULL ELSE l.approved || jsonb_build_object('photos', :'slots'::jsonb) END
+), 'each draft and approved copy is exactly what it was, plus three empty slots');
+SELECT t.expect(NOT EXISTS (
+  SELECT 1 FROM public.case_studies c JOIN t.legacy_rows l USING (id)
+  WHERE (to_jsonb(c) - 'draft' - 'approved') IS DISTINCT FROM (to_jsonb(l) - 'draft' - 'approved')
+), 'owner, revision, approved revision, every date and the older-entry record did not move');
+SELECT t.expect((SELECT draft ->> 'client_text' = 'Mrs Private' AND approved ->> 'client_text' = '' AND approved ->> 'value_text' = '' AND approved::text NOT LIKE '%Mrs Private%' AND approved::text NOT LIKE '%40,000%' FROM public.case_studies WHERE draft ->> 'title' = 'Approved and current'), 'a hidden client and an unshown figure stay out of the approved copy');
+SELECT t.expect(NOT EXISTS (SELECT 1 FROM public.case_studies WHERE draft::text LIKE '%older.jpg%' OR approved::text LIKE '%older.jpg%'), 'no older picture was borrowed');
+SELECT t.expect((SELECT draft -> 'photos' = :'slots'::jsonb AND revision = 1 AND user_id = :epsilon FROM public.case_studies WHERE draft ->> 'title' = 'Written while the migration waited'), 'a twelve-key row committed while the migration waited was carried too, not left behind');
+SELECT t.expect(NOT EXISTS (SELECT * FROM t.legacy_links EXCEPT SELECT * FROM public.case_study_disciplines) AND (SELECT count(*) FROM public.case_study_disciplines) = 1, 'tags are as they were');
+SELECT t.expect(NOT EXISTS (SELECT * FROM t.legacy_disciplines EXCEPT SELECT * FROM public.contractor_disciplines) AND (SELECT count(*) FROM public.contractor_disciplines) = 1, 'disciplines are as they were');
+SELECT t.expect((SELECT md5(string_agg(p::text, '|' ORDER BY id)) FROM public.profiles p) = (SELECT profiles FROM t.before), 'no profile row was changed by either migration');
+SELECT t.expect((SELECT string_agg(grantee || ':' || privilege_type, ',' ORDER BY grantee, privilege_type) FROM information_schema.role_table_grants WHERE table_schema = 'public' AND table_name = 'profiles') = (SELECT grants FROM t.before), 'privileges on profiles are still as they were');
+SELECT t.expect(NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.case_studies'::regclass AND conname IN ('case_studies_draft', 'case_studies_approved') AND NOT convalidated) AND (SELECT count(*) FROM pg_constraint WHERE conrelid = 'public.case_studies'::regclass AND conname IN ('case_studies_draft', 'case_studies_approved')) = 2, 'both table checks are still there and validated');
+
+-- ── Photos: the listed answers, and no jsonb error on any shape ──────────────
+SELECT t.expect((SELECT count(*) FROM t.photo_vectors) = 34, 'all photo vectors were loaded');
+SELECT t.expect(NOT EXISTS (
+  SELECT 1 FROM t.photo_vectors, t.valid_content
+  WHERE public.case_library_content_problem(jsonb_set(content, '{photos}', v -> 1)) IS DISTINCT FROM (v ->> 2)
+), 'photo rules: SQL gives the listed answer for every vector');
+SELECT t.expect(NOT EXISTS (
+  SELECT 1 FROM t.photo_vectors, t.valid_content
+  WHERE public.case_library_approved_problem(jsonb_set(content, '{photos}', v -> 1) || '{"disciplines":[]}'::jsonb) IS DISTINCT FROM (v ->> 2)
+), 'and the same for a stored approved copy');
+SELECT t.expect(NOT EXISTS (SELECT 1 FROM t.photo_vectors WHERE public.case_library_photos_ok(v -> 1) IS DISTINCT FROM (v ->> 2 IS NULL)), 'photos_ok is true or false on every vector, never NULL');
+SELECT t.expect(public.case_library_photos_ok(NULL) IS FALSE AND public.case_library_photo_slot_ok(NULL) IS FALSE, 'a missing value is false, not NULL');
+SELECT t.expect(public.case_library_photo_slot_ok('null') IS FALSE AND public.case_library_photo_slot_ok('"x"') IS FALSE AND public.case_library_photo_slot_ok('3') IS FALSE AND public.case_library_photo_slot_ok('[]') IS FALSE AND public.case_library_photo_slot_ok('{}') IS FALSE, 'a slot of the wrong shape is false, not an error');
+SELECT t.expect(public.case_library_content_problem((SELECT content - 'photos' FROM t.valid_content)) = 'keys', 'a draft with no photos key is refused');
+SELECT t.expect(public.case_library_content_problem((SELECT content || '{"extra":1}'::jsonb FROM t.valid_content)) = 'keys', 'a draft with a fourteenth key is refused');
+
+-- The limits, counted in characters.
+SELECT t.expect(public.case_library_photo_slot_ok(jsonb_build_object('url', 'https://' || repeat('a', 1992), 'caption', repeat('c', 300))) IS TRUE, 'a url of 2000 and a caption of 300 fit');
+SELECT t.expect(public.case_library_photo_slot_ok(jsonb_build_object('url', 'https://' || repeat('a', 1993), 'caption', '')) IS FALSE, 'a url of 2001 does not');
+SELECT t.expect(public.case_library_photo_slot_ok(jsonb_build_object('url', '', 'caption', repeat('c', 301))) IS FALSE, 'nor a caption of 301');
+SELECT t.expect(public.case_library_photo_slot_ok(jsonb_build_object('url', '', 'caption', repeat(U&'\+01F600', 300))) IS TRUE, 'a caption is counted in characters, not bytes');
+
+-- ── The shared twelve-key vectors, as they read on the thirteen-key contract ─
+-- With slots added the listed answer stands. The two that already carry a
+-- `photos` key now have all thirteen keys, so the photos themselves are refused.
+CREATE FUNCTION t.with_slots(p_value jsonb) RETURNS jsonb
+LANGUAGE sql IMMUTABLE AS $$
+  SELECT CASE WHEN jsonb_typeof(p_value) = 'object' AND p_value -> 'photos' IS NULL
+              THEN p_value || '{"photos":[{"url":"","caption":""},{"url":"","caption":""},{"url":"","caption":""}]}'::jsonb
+              ELSE p_value END
+$$;
+SELECT t.expect((SELECT count(*) FROM t.vectors, jsonb_array_elements(doc -> 'content') AS v WHERE v -> 1 -> 'photos' IS NOT NULL) = 2, 'two content vectors already carry photos');
+SELECT t.expect(NOT EXISTS (
+  SELECT 1 FROM t.vectors, jsonb_array_elements(doc -> 'content') AS v
+  WHERE public.case_library_content_problem(t.with_slots(v -> 1)) IS DISTINCT FROM CASE WHEN v -> 1 -> 'photos' IS NULL THEN v ->> 2 ELSE 'photos' END
+), 'content rules: unchanged by the slots, for every vector');
+SELECT t.expect(NOT EXISTS (
+  SELECT 1 FROM t.vectors, jsonb_array_elements(doc -> 'approval') AS v
+  WHERE public.case_library_approval_problem(t.with_slots(v -> 1)) IS DISTINCT FROM (v ->> 2)
+), 'approval rules: unchanged by the slots, for every vector');
+SELECT t.expect(NOT EXISTS (
+  SELECT 1 FROM t.vectors, jsonb_array_elements(doc -> 'approved') AS v
+  WHERE public.case_library_approved_problem(t.with_slots(v -> 1)) IS DISTINCT FROM (v ->> 2)
+), 'stored approved copy rules: unchanged by the slots, for every vector');
+SELECT t.expect(NOT EXISTS (
+  SELECT 1 FROM t.vectors, jsonb_array_elements(doc -> 'approvedValue') AS v
+  WHERE public.case_library_approved_value(t.with_slots(v -> 1), ARRAY(SELECT jsonb_array_elements_text(v -> 2))) IS DISTINCT FROM t.with_slots(v -> 3)
+), 'the approved copy keeps the slots it was given');
+
+-- ── Carried rows work through the real functions ─────────────────────────────
+SET ROLE service_role;
+SELECT id AS never FROM public.case_studies WHERE draft ->> 'title' = 'Never approved' \gset
+SELECT id AS current_study FROM public.case_studies WHERE draft ->> 'title' = 'Approved and current' \gset
+SELECT id AS moved FROM public.case_studies WHERE draft ->> 'title' = 'Approved then edited' \gset
+SELECT id AS tag FROM public.contractor_disciplines WHERE user_id = :epsilon \gset
+SELECT draft AS current_draft FROM public.case_studies WHERE id = :'current_study' \gset
+SELECT approved::text AS current_approved FROM public.case_studies WHERE id = :'current_study' \gset
+
+SELECT t.expect(public.case_study_save_draft(:epsilon, :'never', 1, (:'current_draft'::jsonb) - 'photos') = '{"outcome":"invalid","problem":"keys"}'::jsonb, 'a twelve-key save is refused now, and says why');
+SELECT t.expect(public.case_study_create(:epsilon, (:'current_draft'::jsonb) - 'photos', NULL) = '{"outcome":"invalid","problem":"keys"}'::jsonb, 'as is a twelve-key create');
+SELECT t.expect(public.case_study_save_draft(:epsilon, :'never', 1, jsonb_set(:'current_draft'::jsonb, '{photos}', '[]')) = '{"outcome":"invalid","problem":"photos"}'::jsonb, 'malformed photos are an answer through the function, not an error');
+SELECT t.expect(public.case_study_save_draft(:epsilon, :'never', 1, jsonb_set(:'current_draft'::jsonb, '{photos}', '"x"')) = '{"outcome":"invalid","problem":"photos"}'::jsonb, 'also when they are not a list');
+SELECT t.expect(t.fails(format($q$ UPDATE public.case_studies SET draft = jsonb_set(draft, '{photos}', '[]') WHERE id = %L $q$, :'never')), 'even the service role cannot store malformed photos directly');
+SELECT t.expect(t.fails(format($q$ UPDATE public.case_studies SET draft = draft - 'photos' WHERE id = %L $q$, :'never')), 'or take the key away again');
+SELECT t.expect(t.fails(format($q$ UPDATE public.case_studies SET approved = jsonb_set(approved, '{photos}', '[]') WHERE id = %L $q$, :'current_study')), 'or store them in an approved copy');
+SELECT t.expect((SELECT revision FROM public.case_studies WHERE id = :'never') = 1, 'none of those moved the revision');
+
+-- The write that a twelve-key row left behind would have broken.
+SELECT t.expect(public.case_library_discipline_save(:epsilon, :'tag', 1, 'Rear extensions', 0) ->> 'revision' = '2', 'renaming a tag on a carried row works');
+SELECT t.expect((SELECT revision = 3 AND approved_revision = 2 AND approved::text = :'current_approved' FROM public.case_studies WHERE id = :'current_study'), 'and moves its revision, leaving the approved copy alone');
+
+SELECT t.expect(public.case_study_save_draft(:beta, :'never', 1, :'current_draft'::jsonb) ->> 'outcome' = 'not-found' AND public.case_study_approve(:beta, :'never', 1, true) ->> 'outcome' = 'not-found', 'another contractor still cannot touch a carried row');
+SELECT t.expect(public.case_study_approve(:alpha, :'current_study', 3, true) ->> 'outcome' = 'not-found', 'or approve one');
+SELECT t.expect(public.case_study_approve(:epsilon, :'moved', 1, true) = '{"outcome":"conflict","revision":2}'::jsonb, 'an approval naming the revision of the old copy is still a conflict: the binding survived');
+SELECT t.expect((SELECT approved_revision = 1 AND revision = 2 FROM public.case_studies WHERE id = :'moved'), 'and approved nothing');
+
+SELECT t.expect(public.case_study_approve(:epsilon, :'never', 1, true) ->> 'outcome' = 'approved', 'a carried draft can be approved at the revision it had');
+SELECT t.expect((SELECT approved -> 'photos' = :'slots'::jsonb AND approved ->> 'client_text' = '' AND approved_revision = 1 FROM public.case_studies WHERE id = :'never'), 'with empty slots, and the hidden client still hidden');
+SELECT t.expect(public.case_study_save_draft(:epsilon, :'never', 1, jsonb_set(:'current_draft'::jsonb, '{photos,0}', '{"url":"https://images.example.test/a.jpg","caption":"Before"}')) = '{"outcome":"saved","revision":2}'::jsonb, 'a real picture can be saved on a carried row');
+SELECT t.expect((SELECT approved -> 'photos' = :'slots'::jsonb FROM public.case_studies WHERE id = :'never'), 'and does not reach the approved copy until it is approved');
+SELECT t.expect(public.case_study_approve(:epsilon, :'never', 2, true) ->> 'outcome' = 'approved', 'approving it');
+SELECT t.expect((SELECT approved #>> '{photos,0,url}' = 'https://images.example.test/a.jpg' AND approved #>> '{photos,0,caption}' = 'Before' AND jsonb_array_length(approved -> 'photos') = 3 FROM public.case_studies WHERE id = :'never'), 'puts the picture in the approved copy');
+RESET ROLE;
 
 -- ── Functions: who may run them, and how they run ────────────────────────────
-SELECT t.expect((SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND (p.proname LIKE 'case\_library\_%' OR p.proname LIKE 'case\_study\_%')) = 15, 'fifteen functions were added');
+SELECT t.expect((SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND (p.proname LIKE 'case\_library\_%' OR p.proname LIKE 'case\_study\_%')) = 17, 'fifteen functions were added, and two for photos');
 SELECT t.expect(NOT EXISTS (
   SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
   WHERE n.nspname = 'public' AND (p.proname LIKE 'case\_library\_%' OR p.proname LIKE 'case\_study\_%')
@@ -183,7 +423,7 @@ SELECT t.expect((SELECT array_agg(p.proname || '(' || pg_get_function_identity_a
   = ARRAY['case_library_discipline_archive(p_user_id uuid, p_id uuid, p_expected_revision integer, p_archived boolean)', 'case_library_discipline_save(p_user_id uuid, p_id uuid, p_expected_revision integer, p_label text, p_position integer)'],
   'each discipline writer exists once, and only in the form that names a revision');
 SELECT t.expect(t.fails($q$ SELECT public.case_library_discipline_save('aaaaaaaa-0000-0000-0000-000000000001'::uuid, NULL::uuid, 'Unversioned'::text, 0) $q$) AND t.fails($q$ SELECT public.case_library_discipline_archive('aaaaaaaa-0000-0000-0000-000000000001'::uuid, gen_random_uuid(), true) $q$), 'there is no way to call either without a revision');
-SELECT t.expect((SELECT count(*) FROM public.contractor_disciplines) = 0, 'and those attempts created nothing');
+SELECT t.expect((SELECT count(*) FROM public.contractor_disciplines) = 1, 'and those attempts created nothing: only the seeded discipline is there');
 
 -- ── Disciplines ──────────────────────────────────────────────────────────────
 SET ROLE service_role;
@@ -221,12 +461,13 @@ SELECT public.case_library_discipline_archive(:alpha, :'extra12_again', 1, true)
 SELECT t.expect((SELECT revision FROM public.contractor_disciplines WHERE id = :'extra12') = 2, 'a refused return from the archive does not move the discipline''s revision');
 
 -- ── Case studies and drafts ──────────────────────────────────────────────────
-\set draft '''{"version":1,"title":"Kitchen at Example Road","work_type":"Kitchen Installation","place":"Leeds","client_display":"hidden","client_text":"Mrs Private","client_named_ok":false,"value_text":"£18,500","show_value":false,"duration_text":"3 weeks","delivered":"We refitted the kitchen.","value_added":"The family stayed in the house."}'''
+\set draft '''{"version":1,"title":"Kitchen at Example Road","work_type":"Kitchen Installation","place":"Leeds","client_display":"hidden","client_text":"Mrs Private","client_named_ok":false,"value_text":"£18,500","show_value":false,"duration_text":"3 weeks","delivered":"We refitted the kitchen.","value_added":"The family stayed in the house.","photos":[{"url":"","caption":""},{"url":"","caption":""},{"url":"","caption":""}]}'''
 SELECT public.case_study_create(:alpha, :draft::jsonb, NULL) AS created \gset
 SELECT t.expect((:'created'::jsonb) ->> 'outcome' = 'saved' AND (:'created'::jsonb) ->> 'revision' = '1', 'a case study starts as a draft at revision 1');
 SELECT (:'created'::jsonb) ->> 'id' AS study \gset
 SELECT t.expect((SELECT approved IS NULL AND approved_revision IS NULL AND approved_at IS NULL FROM public.case_studies WHERE id = :'study'), 'a new case study has no approved copy');
-SELECT t.expect(public.case_study_create(:alpha, (:draft::jsonb || '{"photos":[]}'::jsonb), NULL) = '{"outcome":"invalid","problem":"keys"}'::jsonb, 'an unknown key is refused, not stored');
+SELECT t.expect(public.case_study_create(:alpha, (:draft::jsonb || '{"assets":[]}'::jsonb), NULL) = '{"outcome":"invalid","problem":"keys"}'::jsonb, 'an unknown key is refused, not stored');
+SELECT t.expect(public.case_study_create(:alpha, (:draft::jsonb || '{"photos":[]}'::jsonb), NULL) = '{"outcome":"invalid","problem":"photos"}'::jsonb, 'a list that is not three slots is refused, not stored');
 SELECT t.expect(public.case_study_create(:alpha, '"text"'::jsonb, NULL) ->> 'problem' = 'not-object', 'content that is not an object is refused');
 SELECT t.expect(public.case_study_create(:alpha, NULL, NULL) ->> 'outcome' = 'invalid', 'missing content is refused');
 SELECT t.expect(t.fails(format($q$ INSERT INTO public.case_studies (user_id, draft) VALUES (%L, '{"title":"x"}') $q$, 'aaaaaaaa-0000-0000-0000-000000000001')), 'even the service role cannot store a malformed draft directly: the table checks it');
@@ -436,8 +677,7 @@ SQL
 # ── Several writers at once ───────────────────────────────────────────────────
 svc() { "${PSQL[@]}" -At -c "SET ROLE service_role; $1" | tail -n 1; }
 tally() { cat "$TEST_DIR"/$1.* | sort | uniq -c | tr -s ' ' | sed 's/^ //' | tr '\n' ';'; }
-fail() { echo "FAILED: $1" >&2; exit 1; }
-DRAFT='{"version":1,"title":"Roof","work_type":"","place":"","client_display":"hidden","client_text":"","client_named_ok":false,"value_text":"","show_value":false,"duration_text":"","delivered":"","value_added":""}'
+DRAFT='{"version":1,"title":"Roof","work_type":"","place":"","client_display":"hidden","client_text":"","client_named_ok":false,"value_text":"","show_value":false,"duration_text":"","delivered":"","value_added":"","photos":[{"url":"","caption":""},{"url":"","caption":""},{"url":"","caption":""}]}'
 
 # Eleven active disciplines, then eight different ones at once: one fits.
 svc "SELECT public.case_library_discipline_save('$GAMMA', NULL, 0, 'Seed ' || n, n) FROM generate_series(1, 11) AS n;" >/dev/null
@@ -653,4 +893,5 @@ echo "role matrix for a possible later trigger (nothing is installed):"
 grep -E ' \| trigger |^switching' "$TEST_DIR/matrix.txt" | sed 's/^/  /'
 echo "approval race: free-running, tag change first in $tag_first rounds and approval first in $approve_first rounds; each order also forced once; consistent every time"
 echo "discipline revisions: stale and unversioned changes refused; six simultaneous changes to one revision gave one winner; a move that reorders approved labels is bound to approval in both orders"
+echo "photos transition: twelve-key drafts and approved copies carried to three empty slots with text, privacy, revisions, approvals, tags and owners unchanged; a row it could not carry stopped it; a writer in flight was carried; a second run changed nothing"
 echo "case library foundation: rules agree with the application, isolation holds, limits hold under simultaneous writers, approval is bound to its revision, nothing existing was changed"

@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-10-31 — CQ-2220 A055/A063 focused verification (Cursor checker)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| `docs/reviews/cq-2220-ai-focused-verification.md` | New execution evidence at HEAD `baf3a9c` | Record argv, exit codes, raw stdout, SHA256 of 23 code paths; no product/test edits |
+| `node_modules/.bin/vitest-runner.mjs` | Uncommitted symlink to ROOT `vitest.mjs` | Runner handle only; left for runner commit policy |
+
 ## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
 
 | Paths | Change | Intent |

@@ -1,0 +1,36 @@
+__vite_ssr_exportName__("coreFocusRing", () => { try { return coreFocusRing } catch {} });
+__vite_ssr_exportName__("coreFocusVisibleRing", () => { try { return coreFocusVisibleRing } catch {} });
+__vite_ssr_exportName__("corePrimaryButton", () => { try { return corePrimaryButton } catch {} });
+__vite_ssr_exportName__("corePrimaryButtonLarge", () => { try { return corePrimaryButtonLarge } catch {} });
+__vite_ssr_exportName__("coreProfileFieldBase", () => { try { return coreProfileFieldBase } catch {} });
+__vite_ssr_exportName__("coreProfileField", () => { try { return coreProfileField } catch {} });
+__vite_ssr_exportName__("coreProfileTextarea", () => { try { return coreProfileTextarea } catch {} });
+__vite_ssr_exportName__("coreFormAccent", () => { try { return coreFormAccent } catch {} });
+__vite_ssr_exportName__("coreProfileSecondaryLink", () => { try { return coreProfileSecondaryLink } catch {} });
+__vite_ssr_exportName__("coreSuggestionPrimary", () => { try { return coreSuggestionPrimary } catch {} });
+__vite_ssr_exportName__("coreProfileSaveSubmit", () => { try { return coreProfileSaveSubmit } catch {} });
+__vite_ssr_exportName__("coreSelectedChoiceBorder", () => { try { return coreSelectedChoiceBorder } catch {} });
+/**
+* Charcoal/sage focus and selection classes for ordinary editing controls.
+* Matches workspace-styles and proposal workspace accent tokens — not status/link blues.
+*/
+const coreFocusRing = "focus:outline-none focus:ring-2 focus:ring-emerald-600";
+const coreFocusVisibleRing = "focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600";
+const corePrimaryButton = "bg-[#c9efcf] hover:bg-[#e0f9e3] text-[#182c1b]";
+const corePrimaryButtonLarge = `${corePrimaryButton} min-h-12 px-6 rounded-xl text-base font-bold transition-colors disabled:opacity-70 disabled:cursor-not-allowed`;
+/** Dark profile / settings fields (slate panel, emerald focus — not link blue). */
+const coreProfileFieldBase = "w-full rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500";
+const coreProfileField = `${coreProfileFieldBase} h-11 ${coreFocusRing}`;
+const coreProfileTextarea = `${coreProfileFieldBase} py-2 ${coreFocusRing}`;
+const coreFormAccent = "accent-emerald-600";
+const coreProfileSecondaryLink = `inline-flex items-center min-h-11 px-4 rounded-lg border border-emerald-500/40 text-sm font-semibold text-emerald-200 hover:bg-emerald-950/40 ${coreFocusVisibleRing}`;
+const coreSuggestionPrimary = `min-h-11 px-3 rounded-lg text-sm font-semibold ${corePrimaryButton} hover:bg-[#e0f9e3]`;
+/** Radio/checkbox tile border when the option is selected. */
+const coreProfileSaveSubmit = "w-full h-14 rounded-xl font-bold text-lg transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed";
+function coreSelectedChoiceBorder(isDark, chosen) {
+	return chosen ? "border-emerald-600 ring-1 ring-emerald-600/50" : isDark ? "border-[#3a3a3a]" : "border-gray-300";
+}
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTs7Ozs7Ozs7Ozs7Ozs7OztBQUtPLE1BQU0sZ0JBQ1Q7QUFFRyxNQUFNLHVCQUNUO0FBRUcsTUFBTSxvQkFDVDtBQUVHLE1BQU0seUJBQ1QsR0FBRyxrQkFBa0I7O0FBR2xCLE1BQU0sdUJBQ1Q7QUFFRyxNQUFNLG1CQUFtQixHQUFHLHFCQUFxQixRQUFRO0FBRXpELE1BQU0sc0JBQXNCLEdBQUcscUJBQXFCLFFBQVE7QUFFNUQsTUFBTSxpQkFBaUI7QUFFdkIsTUFBTSwyQkFDVCxpSkFBaUo7QUFFOUksTUFBTSx3QkFDVCxrREFBa0Qsa0JBQWtCOztBQUdqRSxNQUFNLHdCQUNUO0FBRUcsU0FBUyx5QkFBeUIsUUFBaUIsUUFBeUI7Q0FDL0UsT0FBTyxTQUNELGtEQUNBLFNBQ0UscUJBQ0E7QUFDWiIsIm5hbWVzIjpbXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiY29yZS1lZGl0aW5nLXBhbGV0dGUudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiBDaGFyY29hbC9zYWdlIGZvY3VzIGFuZCBzZWxlY3Rpb24gY2xhc3NlcyBmb3Igb3JkaW5hcnkgZWRpdGluZyBjb250cm9scy5cbiAqIE1hdGNoZXMgd29ya3NwYWNlLXN0eWxlcyBhbmQgcHJvcG9zYWwgd29ya3NwYWNlIGFjY2VudCB0b2tlbnMg4oCUIG5vdCBzdGF0dXMvbGluayBibHVlcy5cbiAqL1xuXG5leHBvcnQgY29uc3QgY29yZUZvY3VzUmluZyA9XG4gICAgXCJmb2N1czpvdXRsaW5lLW5vbmUgZm9jdXM6cmluZy0yIGZvY3VzOnJpbmctZW1lcmFsZC02MDBcIjtcblxuZXhwb3J0IGNvbnN0IGNvcmVGb2N1c1Zpc2libGVSaW5nID1cbiAgICBcImZvY3VzOm91dGxpbmUtbm9uZSBmb2N1cy12aXNpYmxlOnJpbmctMiBmb2N1cy12aXNpYmxlOnJpbmctZW1lcmFsZC02MDBcIjtcblxuZXhwb3J0IGNvbnN0IGNvcmVQcmltYXJ5QnV0dG9uID1cbiAgICBcImJnLVsjYzllZmNmXSBob3ZlcjpiZy1bI2UwZjllM10gdGV4dC1bIzE4MmMxYl1cIjtcblxuZXhwb3J0IGNvbnN0IGNvcmVQcmltYXJ5QnV0dG9uTGFyZ2UgPVxuICAgIGAke2NvcmVQcmltYXJ5QnV0dG9ufSBtaW4taC0xMiBweC02IHJvdW5kZWQteGwgdGV4dC1iYXNlIGZvbnQtYm9sZCB0cmFuc2l0aW9uLWNvbG9ycyBkaXNhYmxlZDpvcGFjaXR5LTcwIGRpc2FibGVkOmN1cnNvci1ub3QtYWxsb3dlZGA7XG5cbi8qKiBEYXJrIHByb2ZpbGUgLyBzZXR0aW5ncyBmaWVsZHMgKHNsYXRlIHBhbmVsLCBlbWVyYWxkIGZvY3VzIOKAlCBub3QgbGluayBibHVlKS4gKi9cbmV4cG9ydCBjb25zdCBjb3JlUHJvZmlsZUZpZWxkQmFzZSA9XG4gICAgXCJ3LWZ1bGwgcm91bmRlZC1sZyBib3JkZXIgYm9yZGVyLXNsYXRlLTcwMCBiZy1zbGF0ZS04MDAgcHgtMyB0ZXh0LXNtIHRleHQtc2xhdGUtMTAwIHBsYWNlaG9sZGVyOnRleHQtc2xhdGUtNTAwXCI7XG5cbmV4cG9ydCBjb25zdCBjb3JlUHJvZmlsZUZpZWxkID0gYCR7Y29yZVByb2ZpbGVGaWVsZEJhc2V9IGgtMTEgJHtjb3JlRm9jdXNSaW5nfWA7XG5cbmV4cG9ydCBjb25zdCBjb3JlUHJvZmlsZVRleHRhcmVhID0gYCR7Y29yZVByb2ZpbGVGaWVsZEJhc2V9IHB5LTIgJHtjb3JlRm9jdXNSaW5nfWA7XG5cbmV4cG9ydCBjb25zdCBjb3JlRm9ybUFjY2VudCA9IFwiYWNjZW50LWVtZXJhbGQtNjAwXCI7XG5cbmV4cG9ydCBjb25zdCBjb3JlUHJvZmlsZVNlY29uZGFyeUxpbmsgPVxuICAgIGBpbmxpbmUtZmxleCBpdGVtcy1jZW50ZXIgbWluLWgtMTEgcHgtNCByb3VuZGVkLWxnIGJvcmRlciBib3JkZXItZW1lcmFsZC01MDAvNDAgdGV4dC1zbSBmb250LXNlbWlib2xkIHRleHQtZW1lcmFsZC0yMDAgaG92ZXI6YmctZW1lcmFsZC05NTAvNDAgJHtjb3JlRm9jdXNWaXNpYmxlUmluZ31gO1xuXG5leHBvcnQgY29uc3QgY29yZVN1Z2dlc3Rpb25QcmltYXJ5ID1cbiAgICBgbWluLWgtMTEgcHgtMyByb3VuZGVkLWxnIHRleHQtc20gZm9udC1zZW1pYm9sZCAke2NvcmVQcmltYXJ5QnV0dG9ufSBob3ZlcjpiZy1bI2UwZjllM11gO1xuXG4vKiogUmFkaW8vY2hlY2tib3ggdGlsZSBib3JkZXIgd2hlbiB0aGUgb3B0aW9uIGlzIHNlbGVjdGVkLiAqL1xuZXhwb3J0IGNvbnN0IGNvcmVQcm9maWxlU2F2ZVN1Ym1pdCA9XG4gICAgXCJ3LWZ1bGwgaC0xNCByb3VuZGVkLXhsIGZvbnQtYm9sZCB0ZXh0LWxnIHRyYW5zaXRpb24tYWxsIGFjdGl2ZTpzY2FsZS1bMC45OF0gZGlzYWJsZWQ6b3BhY2l0eS02MCBkaXNhYmxlZDpjdXJzb3Itbm90LWFsbG93ZWRcIjtcblxuZXhwb3J0IGZ1bmN0aW9uIGNvcmVTZWxlY3RlZENob2ljZUJvcmRlcihpc0Rhcms6IGJvb2xlYW4sIGNob3NlbjogYm9vbGVhbik6IHN0cmluZyB7XG4gICAgcmV0dXJuIGNob3NlblxuICAgICAgICA/IFwiYm9yZGVyLWVtZXJhbGQtNjAwIHJpbmctMSByaW5nLWVtZXJhbGQtNjAwLzUwXCJcbiAgICAgICAgOiBpc0RhcmtcbiAgICAgICAgICA/IFwiYm9yZGVyLVsjM2EzYTNhXVwiXG4gICAgICAgICAgOiBcImJvcmRlci1ncmF5LTMwMFwiO1xufVxuIl0sImZpbGUiOiIvc3JjL2xpYi9jb3JlLWVkaXRpbmctcGFsZXR0ZS50cyJ9
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZSwiZGVwcyI6IjQiLCJkeW5hbWljRGVwcyI6IjUiLCJzdGF0aWNNb2NrcyI6bnVsbH0sIi9Vc2Vycy9yb2JlcnRzbWl0aC9kZXYvY29uc3RydWN0YS1mcmVzaC0yMDI2MTAyNS8uY3Etd3QvY3EtcmV2LWIwYTk5OGUtNGM2Njk2OS9zcmMvbGliL2NvcmUtZWRpdGluZy1wYWxldHRlLnRzIiwiL3NyYy9saWIvY29yZS1lZGl0aW5nLXBhbGV0dGUudHMiLFtdLFtdLFtdXQ==

@@ -1,13 +1,14 @@
 "use client";
 
 import { addLibraryItemAction, deleteLibraryItemAction } from "./actions";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 // Inline UI Components
 function Button({ children, className, variant, size }: { children: React.ReactNode; className?: string; variant?: 'default' | 'outline' | 'ghost'; size?: 'sm' | 'default' }) {
-    const base = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
+    const base = `inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors disabled:pointer-events-none disabled:opacity-50 ${coreFocusVisibleRing}`;
     const sizes = size === 'sm' ? "h-6 w-6 p-0 text-xs" : "h-10 px-4 py-2";
     const variants = {
-        default: "bg-blue-600 text-white hover:bg-blue-700 shadow-sm",
+        default: `${corePrimaryButton} hover:bg-[#e0f9e3] shadow-sm`,
         outline: "border border-input hover:bg-accent hover:text-accent-foreground border-slate-200",
         ghost: "hover:bg-slate-100 text-slate-600 hover:text-slate-900"
     };

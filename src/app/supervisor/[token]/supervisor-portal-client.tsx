@@ -7,6 +7,7 @@ import {
     FileText, Loader2, Check,
 } from "lucide-react";
 import { acknowledgeObligationAction } from "./actions";
+import { coreFocusRing, coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 interface Obligation {
     id: string;
@@ -136,7 +137,7 @@ export default function SupervisorPortalClient({ token, invite, project, profile
                         type="text"
                         value={ackName}
                         onChange={e => setAckName(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        className={`w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white text-sm ${coreFocusRing}`}
                     />
                 </div>
 
@@ -176,7 +177,7 @@ export default function SupervisorPortalClient({ token, invite, project, profile
                                                     <button
                                                         onClick={() => handleAcknowledge(ob.id)}
                                                         disabled={acknowledging === ob.id}
-                                                        className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
+                                                        className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-colors disabled:opacity-50 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                                                     >
                                                         {acknowledging === ob.id ? (
                                                             <Loader2 className="w-3.5 h-3.5 animate-spin" />

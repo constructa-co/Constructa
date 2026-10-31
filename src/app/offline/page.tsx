@@ -1,3 +1,5 @@
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
+
 export default function OfflinePage() {
   return (
     <div className="min-h-screen bg-[#0d0d0d] flex flex-col items-center justify-center px-6 text-center">
@@ -10,7 +12,7 @@ export default function OfflinePage() {
       </p>
       <a
         href="/dashboard/mobile"
-        className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-6 py-3 rounded-xl transition-colors"
+        className={`text-sm font-medium px-6 py-3 rounded-xl transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
       >
         Back to Hub
       </a>

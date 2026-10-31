@@ -7,6 +7,7 @@ import {
   PlusCircle, Trash2, Download, Type, Square,
 } from "lucide-react";
 import { saveMeasurementsAction, addMeasurementsToEstimateAction } from "./measure-actions";
+import { coreFocusRing, coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -878,7 +879,7 @@ export default function DrawingViewer({ projectId, projectName, onClose }: Props
                   <p className={`text-xs mb-2 ${addResult.startsWith("✓") ? "text-emerald-400" : "text-red-400"}`}>{addResult}</p>
                 )}
                 <button onClick={() => setAddToEstModal(true)}
-                  className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-all">
+                  className={`w-full py-2 text-sm font-medium rounded-lg transition-all ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
                   Add to Estimate
                 </button>
               </div>
@@ -922,7 +923,7 @@ export default function DrawingViewer({ projectId, projectName, onClose }: Props
                 if (e.key === "Escape") { setTextInput(null); setTextInputValue(""); }
               }}
               placeholder="Type annotation…"
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+              className={`w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 ${coreFocusRing}`}
             />
             <div className="flex gap-2">
               <button onClick={() => { setTextInput(null); setTextInputValue(""); }}
@@ -939,7 +940,7 @@ export default function DrawingViewer({ projectId, projectName, onClose }: Props
                   setTextInput(null);
                   setTextInputValue("");
                 }}
-                className="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-all">
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
                 Place
               </button>
             </div>
@@ -959,7 +960,7 @@ export default function DrawingViewer({ projectId, projectName, onClose }: Props
                 onChange={e => setCalibDistInput(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") confirmCalibration(); }}
                 placeholder="e.g. 5.0"
-                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500" />
+                className={`flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 ${coreFocusRing}`} />
               <span className="flex items-center text-sm text-slate-400">metres</span>
             </div>
             <div className="flex gap-2">
@@ -968,7 +969,7 @@ export default function DrawingViewer({ projectId, projectName, onClose }: Props
                 Cancel
               </button>
               <button onClick={confirmCalibration}
-                className="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-all">
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
                 Set Scale
               </button>
             </div>
@@ -999,7 +1000,7 @@ export default function DrawingViewer({ projectId, projectName, onClose }: Props
                 Cancel
               </button>
               <button onClick={handleAddToEstimate} disabled={addingToEst}
-                className="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-all disabled:opacity-50">
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
                 {addingToEst ? "Adding…" : "Add to Estimate"}
               </button>
             </div>

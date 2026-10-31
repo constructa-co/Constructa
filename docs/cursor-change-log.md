@@ -1,5 +1,20 @@
 # Cursor change log
 
+## 2026-10-31 — cq-2224 A001 workflow standalone controls (Composer 2.5)
+
+| Paths | Lines (approx.) | Change | Intent |
+|-------|-----------------|--------|--------|
+| `src/components/project-picker.tsx` | ~6–7, ~88–89, ~99–102 | Import core palette; empty-state **New Project** CTA + search field use `corePrimaryButton` / `coreFocusRing` | Remove brand-blue primary on project picker empty state |
+| `src/components/postcode-lookup.tsx` | ~4–5, ~20–22, ~98–99 | **Find Address** + inputs use core primary/focus | Legacy postcode find control matches sage editing palette |
+| `src/components/install-banner.tsx` | ~4–5, ~58–59 | **Install** uses core primary + focus-visible ring | PWA install CTA not brand blue |
+| `src/app/offline/page.tsx` | ~1–2, ~13–14 | **Back to Hub** uses core primary | Offline recovery action on-brand |
+| `src/app/dashboard/data/library-table.tsx` | ~3–4, ~7–11 | Default inline **Add Item** button variant + button focus ring | Data library add action sage primary |
+| `src/app/dashboard/live/project-live-client.tsx` | ~22–23, ~162–188, ~194–195 | **Log Cost** submit + form controls core palette | Live hub quick log cost primary/focus only (no behaviour change) |
+| `src/app/dashboard/projects/drawings/drawing-viewer.tsx` | ~10, ~881–883, ~925–926, ~942–943, ~962–963, ~971–972, ~1002–1003 | Measurement/estimate modal primaries + modal input focus | Drawing viewer CTAs sage; tool/selection blues kept |
+| `src/app/supervisor/[token]/supervisor-portal-client.tsx` | ~9–10, ~139–140, ~179–180 | **Acknowledge** + name field focus | Supervisor portal primary ack control on-brand |
+| `src/components/a001-workflow-standalone-controls-brand.test.ts` | new | Source tests for eight paths | Lock corrected primaries without SSR/build |
+| `docs/reviews/cq-2224-a001-workflow-controls.md` | new | Review note: paths, test argv, scopes not done | Runner / Grok handoff |
+
 ## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
 
 | Paths | Change | Intent |

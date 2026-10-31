@@ -12,7 +12,7 @@ Plain-English checklist only. No secrets in this file, in chat, in the inbox, in
 
 | Issue | What it is | What it is **not** |
 |--------|------------|---------------------|
-| **A105 — Perplexity** | An **issuer-issued API key** (and possibly **separate** proxy/agent access) that may have appeared in public repo or MCP config | Not fixed by deleting a different product’s key (e.g. Sonar or another vendor). Not proved safe because the repo no longer shows the literal string |
+| **A105 — Perplexity** | The exposed **Perplexity-related credential**, whose issuer entry and any separate proxy/agent access must be identified | Not fixed by deleting an unrelated key or removing the literal string from the repo. Sonar is a Perplexity API product, not a different issuer |
 | **A106 — Supabase PAT** | A **personal access token** on your **Supabase account** (CLI, dashboard API, automation) | **Not** the project **anon** key, **service_role** key, or JWT secret used by the live app. **Do not** “rotate everything” in the project API settings unless a separate review says those keys were exposed |
 
 **Consumers:** Anything that ever copied the leaked value may still work until **you** revoke the matching issuer entry. List **external** users yourself: other machines, CI, MCP/Codex/Claude/Cursor configs, old laptops, shared scripts, backup branches, forks, or caches. **Absence from this repo does not mean nothing else still uses the old credential.**
@@ -29,7 +29,7 @@ Plain-English checklist only. No secrets in this file, in chat, in the inbox, in
 ### Steps (human at Perplexity)
 
 1. Sign in to the **Perplexity account that originally issued** the exposed key (billing and account recovery are **your** steps only; do not paste account details into Constructa chat).
-2. Open the area where **API keys** (or equivalent account credentials) are listed. Exact menu names change; aim for **account → developer/API → keys** (or Perplexity’s documented API key page).
+2. Open [Perplexity API Keys](https://console.perplexity.ai/project/keys) in the correct existing project. This is the destination linked by [Perplexity's key-management guide](https://docs.perplexity.ai/docs/admin/api-key-management), verified 31 October 2026. If this is a proxy-issued credential rather than a Perplexity API key, use that issuer's private revocation route instead; do not assume deleting an unrelated API key invalidates the proxy.
 3. **Identify the old entry without pasting values:** use **creation date**, **label/name you gave it**, **last used** (if shown), and your memory of which key was committed or shared. If **two entries look alike**, **stop** — do not revoke until you know which one still powers an approved tool.
 4. **Revoke or delete** only the entry that matches the **exposed** credential (not a newer replacement you already use elsewhere).
 5. **Record confirmation (non-secret only):** date/time (UTC or your timezone), provider name, entry **label** (not the secret), approximate scope (e.g. “API key for MCP”), and “revoked” or “not found / already inactive”. Store that note in your **private** ops record — not in Git.
@@ -50,7 +50,7 @@ Plain-English checklist only. No secrets in this file, in chat, in the inbox, in
 ### Steps (human at Supabase)
 
 1. Sign in to **supabase.com** with the **same account** that would have created the leaked PAT (often the Constructa project owner).
-2. Open **account settings** (profile / account menu), then the section for **access tokens**, **personal access tokens**, or **API tokens for the dashboard/CLI** (wording varies by UI version).
+2. Open [Supabase account access tokens](https://supabase.com/dashboard/account/tokens), the destination linked by [Supabase's personal-access-token guide](https://supabase.com/docs/guides/platform/personal-access-tokens), verified 31 October 2026. This is the account-token page, not the project's runtime API-key page.
 3. **Identify the old token without pasting values:** use **name**, **created date**, **expiry**, and **scopes** shown in the list. Match the token era to when it was added to git or shared with agents. If you cannot tell which row is the leaked one, **stop** and revoke only after you are sure — or revoke **all** legacy tokens you no longer need, one at a time, noting each label.
 4. **Revoke** the correct old token (or delete it, per UI).
 5. **Record confirmation (non-secret only):** date/time, token **name/label**, scopes as shown in the UI (e.g. “all projects” vs single project — describe in words, no secret strings).

@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowDown, ArrowRight, Check, Plus } from 'lucide-react';
 import { ProductReviewGuide } from './product-review-guide';
+import { ProductScreenshots } from './product-screenshots';
 import ui from './phase-one.module.css';
 
 const stages = [
@@ -138,7 +139,7 @@ export function PhaseOneHome() {
 }
 
 export function PhaseOneFeatures() {
-  return <div className={`${ui.theme} ${ui.root}`}><section className={ui.pageIntro}><p className={ui.eyebrow}>The phase-one product</p><h1>From first hello.<br /><em>To a considered proposal.</em></h1><p>One connected work-winning journey. Company profile, brief, price, programme and proposal, with room for your own experience and judgement.</p><AccountLink /></section><Journey /><ProductReviewGuide /><Scope /><Questions /><Invitation /></div>;
+  return <div className={`${ui.theme} ${ui.root}`}><section className={ui.pageIntro}><p className={ui.eyebrow}>The phase-one product</p><h1>From first hello.<br /><em>To a considered proposal.</em></h1><p>One connected work-winning journey. Company profile, brief, price, programme and proposal, with room for your own experience and judgement.</p><AccountLink /></section><Journey /><ProductReviewGuide /><ProductScreenshots /><Scope /><Questions /><Invitation /></div>;
 }
 
 export function PhaseOnePricing() {

@@ -60,6 +60,12 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
     const sentToken = useRef(0);
     /** Every change to the list goes through here: it changes what is on screen and nothing else. */
     const setCaseStudies = (change: (previous: CaseStudy[]) => CaseStudy[]) => dispatch({ type: "edit", change });
+    // One handle per row on this page, in list order, changed only where a row is added or removed. A stored
+    // `id` can be missing or shared, so it cannot say which row an upload was for. Handles are never saved.
+    const rowHandles = useRef(initialCaseStudies.map((_, index) => index));
+    const nextRowHandle = useRef(initialCaseStudies.length);
+    /** The latest pick for each row and slot. A reply from an older pick for that slot is not used. */
+    const latestPhotoPick = useRef(new Map<string, symbol>());
 
     // Reload, closing the tab and plain links ask first. Navigation made by code, and Back and Forward, are not covered.
     useUnsavedGuard(needsLeaveWarning(state), SAVE_MESSAGES.leaveConfirm);
@@ -84,6 +90,7 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
     });
 
     const addCaseStudy = () => {
+        rowHandles.current.push(nextRowHandle.current++);
         setCaseStudies(prev => [...prev, {
             id: crypto.randomUUID(),
             projectName: "",
@@ -103,6 +110,7 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
     };
 
     const removeCaseStudy = (index: number) => {
+        rowHandles.current.splice(index, 1);
         setCaseStudies(prev => prev.filter((_, i) => i !== index));
     };
 
@@ -112,15 +120,35 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
     const trouble = state.notice.kind === "failed" || state.notice.kind === "unknown" || state.uncertain;
 
     const handlePhotoUpload = async (csIndex: number, slot: number, file: File) => {
-        const cs = caseStudies[csIndex];
+        // Rows and photos can change while this waits, so the reply is placed from what is there when it arrives.
+        const row = rowHandles.current[csIndex];
+        const pickKey = `${row}:${slot}`;
+        const pick = Symbol();
+        latestPhotoPick.current.set(pickKey, pick);
         const formData = new FormData();
         formData.set("file", file);
         formData.set("purpose", "case-study");
-        const result = await uploadProfileImageAction(formData);
-        if (result.url) {
-            const newPhotos = [...(cs.photos || ["", "", ""])];
-            newPhotos[slot] = result.url;
-            updateCaseStudy(csIndex, "photos", newPhotos);
+        let result: Awaited<ReturnType<typeof uploadProfileImageAction>>;
+        try {
+            result = await uploadProfileImageAction(formData);
+        } catch {
+            // The request itself failed. Whether the file reached storage is not known; the photo has not been added.
+            result = { error: "We couldn't confirm that photo uploaded, so it hasn't been added. Please try again." };
+        }
+        const rowIndex = rowHandles.current.indexOf(row);
+        if (rowIndex === -1) {
+            toast.error("That past work was removed, so its photo wasn't added.");
+            return;
+        }
+        if (latestPhotoPick.current.get(pickKey) !== pick) return;
+        const { url } = result;
+        if (url) {
+            setCaseStudies(prev => prev.map((cs, i) => {
+                if (i !== rowIndex) return cs;
+                const newPhotos = [...(cs.photos || ["", "", ""])];
+                newPhotos[slot] = url;
+                return { ...cs, photos: newPhotos };
+            }));
             toast.success("Photo uploaded");
         } else {
             toast.error(result.error || "Upload failed");

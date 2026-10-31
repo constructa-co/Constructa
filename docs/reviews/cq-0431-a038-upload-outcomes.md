@@ -1,14 +1,14 @@
 # cq-0431 A038: legacy photo-upload outcomes and row identity
 
-**Status: NOT VERIFIED. No test, type check or lint has been executed.** The repair and its test are written and desk-checked only. Baseline RED and repaired GREEN are both unproven.
+**Status: Cursor author-return checks executed on commit `946a25f0a83f3abd9c3d3610be04de5d7e41de2f`.** Repaired-client Vitest GREEN and save-state regression GREEN; ESLint (changed paths) and full `tsc --noEmit` GREEN. **Baseline RED on blob `7bc1c110…` was not executed** (would need a separate harness or temporary client swap; not run here).
 
-Base: `b27539067fdc5882bbc617c58ad0af3508242772`. Owner: Claude CLI. Checker: Grok CLI.
+Base: `b27539067fdc5882bbc617c58ad0af3508242772`. Owner: Claude CLI. Checker: Grok CLI. **Author-return verification: Cursor Composer 2.5 (31 Oct 2026).**
 
 This repair does NOT close A038's full three-photo hosted journey.
 
-## Why nothing was executed
+## Prior non-interactive refusals (Claude session; preserved)
 
-The session's permission layer required approval for every route to the tools, and the session is non-interactive, so each call was refused before running. These are the literal argv and raw outputs:
+The earlier session's permission layer required approval for every route to the tools, and the session is non-interactive, so each call was refused before running:
 
 | argv | raw result |
 | --- | --- |
@@ -20,17 +20,15 @@ The session's permission layer required approval for every route to the tools, a
 | `/usr/local/bin/node -v` | `This command requires approval` |
 | `node -v` | `v26.12.1` (PATH node; outside the repo's `>=24.19 <25` engine, so not used) |
 
-The sandbox override and a subagent were not used to get around this. Whether a Node 24 binary exists at either tried path is not established.
-
-The directions file `/Users/robertsmith/dev/constructa-private-20261027/rob0310-actual-directions-20261031.json` could not be read (outside the permitted directories). This work follows the task text only.
-
-## Files
+## Files (git blob hashes at `946a25f`)
 
 | file | state | hash |
 | --- | --- | --- |
-| `src/app/dashboard/settings/case-studies/case-studies-client.tsx` | modified, +34/-6 | baseline git blob `7bc1c110f26faf21cda13467f461933cfb8ae45f`; repaired hash not captured (`shasum`, `git hash-object` and `git diff --raw` needed approval) |
-| `src/app/dashboard/settings/case-studies/photo-upload-outcomes.test.tsx` | new | not captured |
-| `docs/reviews/cq-0431-a038-upload-outcomes.md` | new | not captured |
+| `src/app/dashboard/settings/case-studies/case-studies-client.tsx` | modified vs base | baseline blob `7bc1c110f26faf21cda13467f461933cfb8ae45f`; repaired `bc5b56bf019e6d0096ef46c0b2022980cd7c4800` |
+| `src/app/dashboard/settings/case-studies/photo-upload-outcomes.test.tsx` | new | `a36c0f1895c57630e574b890094299a7d556ee0b` |
+| `docs/reviews/cq-0431-a038-upload-outcomes.md` | updated this verification | pre-append blob `fb613ecd0b72dc7cad7a150a65b93e9cdf75bcef` |
+
+Commit: `946a25f0a83f3abd9c3d3610be04de5d7e41de2f`.
 
 ## The repair
 
@@ -45,21 +43,53 @@ The directions file `/Users/robertsmith/dev/constructa-private-20261027/rob0310-
 
 No DOM library is installed, so the test uses the repo's existing pattern: mock the React hooks and call the real component, here extended to child components. It uses the real reducer and real input handlers; the upload is a controlled promise. It calls no file upload, storage, Auth, browser, provider or database path.
 
-Expected from reading the code, **not observed**:
+## Cursor author-return verification (31 Oct 2026)
 
-- RED on baseline: row moved, removed row, shared or missing ids, added row, two slots in either order, same-slot ordering, and thrown failures.
-- Probably GREEN on baseline: retained text with the existing photo in a single row (the old write used `prev` for text, and no earlier-row removal occurs), returned failures, the save-rules case, and the flags case. These guard against regression and do not demonstrate the defect.
+**Node:** `/usr/local/bin/node` → `v24.19.0`. **ROOT `node_modules`:** `/Users/robertsmith/dev/constructa-fresh-20261025/node_modules` (worktree-local symlinks to `vitest`, `vite`, `vite-node`, `@vitest`; no install). **Not run:** `next build`, full app vitest suite, Playwright, hosted upload/DB/auth.
 
-## Commands still to run
+**Temp/cache:** Requested env `TMPDIR=/Users/robertsmith/constructa-queue/tmp/cq-0442-a038-focused-verification` is not writable from the Cursor sandbox (`Operation not permitted` on mkdir). Vite/Vitest SSR cache used `$WT/.cq-cache-a038-verification` for the run, then removed; no `.tmp-test-run` under the worktree. Leftover (gitignored): `$WT/node_modules/` symlinks + `.vite`/`.vite-temp` from the run.
 
-From this worktree, with Node 24 first on PATH. Run the first on the baseline client to record RED, for example from a temporary WIP commit, then on the repaired client:
+### Commands (literal argv) and raw stdout
 
+```text
+/usr/local/bin/node -v
+→ v24.19.0
+
+cd $WT && /usr/local/bin/node ./node_modules/vitest/vitest.mjs run src/app/dashboard/settings/case-studies/photo-upload-outcomes.test.tsx
+→ RUN  v5.0.2 …/cq-0431-a038-upload-outcomes
+→ Test Files  1 passed (1)
+→ Tests  15 passed (15)
+→ Duration  321ms
+→ exit 0
+
+/usr/local/bin/node ./node_modules/vitest/vitest.mjs run src/app/dashboard/settings/case-studies/save-state.test.ts
+→ Test Files  1 passed (1)
+→ Tests  41 passed (41)
+→ Duration  247ms
+→ exit 0
+
+/usr/local/bin/node $ROOT/node_modules/eslint/bin/eslint.js src/app/dashboard/settings/case-studies/case-studies-client.tsx src/app/dashboard/settings/case-studies/photo-upload-outcomes.test.tsx
+→ 4 warnings (@typescript-eslint/no-unused-vars: MapPin, Calendar, PoundSterling, userId in case-studies-client.tsx)
+→ 0 errors
+→ exit 0
+
+/usr/local/bin/node $ROOT/node_modules/typescript/bin/tsc --noEmit --incremental false
+→ (no output)
+→ exit 0
 ```
-../../node_modules/.bin/vitest run src/app/dashboard/settings/case-studies/photo-upload-outcomes.test.tsx
-../../node_modules/.bin/vitest run src/app/dashboard/settings/case-studies
-../../node_modules/.bin/eslint src/app/dashboard/settings/case-studies/case-studies-client.tsx src/app/dashboard/settings/case-studies/photo-upload-outcomes.test.tsx
-../../node_modules/.bin/tsc --noEmit --incremental false
-```
+
+**Baseline RED:** Not reproduced. Restoring blob `7bc1c110…` into a task-local copy under `$TMPDIR` without a minimal Vitest project would not prove counterexample without editing tracked source; skipped per task limits.
+
+## Independent reviewer notes (for Claude grade of this doc + `946a25f` scope)
+
+**Observed GREEN (this run):** 15/15 photo-outcome tests; 41/41 `save-state` tests; TypeScript clean; ESLint clean on changed paths (warnings only, pre-existing unused imports in client).
+
+**Still not proven / out of scope:**
+
+- Baseline client blob `7bc1c110…` failing the new test suite (RED) — desk-checked intent only.
+- Browser React scheduling, StrictMode, real file inputs.
+- Full three-photo hosted journey, wire flag, migration, storage lifecycle for orphaned uploads.
+- Row React keys with missing/shared ids (photo path uses handles; card local state may still shift).
 
 ## Limits
 

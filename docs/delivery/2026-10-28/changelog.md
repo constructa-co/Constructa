@@ -270,3 +270,10 @@
 - Parent **c600581**. Exact **`ROB0106-RESET-NET-EIGHT.patch`** SHA256 **6f19f58eb971494eb0db4cd0260bfd5b9b617fb1e92e0b840b59eaf95367ebeb** (eight paths: forgot/reset pages+tests, recovery helper+test, proxy+test). Parent grade **rob0106-reset-net-eight-parent-grade-20261031.json** SCOPED_NNF; Codex **2304** exact four-hunk delta + full NET read; no source adaptation.
 - Focused vitest **40/40** in **4** files (literal argv in check receipt); ESLint **0 errors**, **3 warnings** on auth paths; `tsc --noEmit --incremental false` PASS. Mock/checker evidence only — **no** real auth, passwords, deploy, or Production change.
 - Register carries owned **A024/A069 Complete** closure metadata (**80C 18P 19N 1B**); helpers **run-build-rob0107-reset-net-20261031.mjs** prepared (reuse **rob2119** slot only); build/backup **not** run. Receipt **rob0107-reset-net-integrated-check.json**; future backup **rob0107-reset-net-backup.config.json**.
+
+## cq-0431 A038 author-return verification (Cursor) — 31 October 2026
+
+- **Intent:** Execute material checks on existing `946a25f` repair bytes only; no product edits, no build/full suite, no hosted upload/DB/auth.
+- **`docs/reviews/cq-0431-a038-upload-outcomes.md`:** Replaced NOT VERIFIED desk-check status with Cursor run log (literal argv, Node v24.19.0, blob hashes `bc5b56bf…` / `a36c0f18…` / commit `946a25f…`); preserved prior Claude approval-refusal table; noted baseline RED `7bc1c110…` still unproven.
+- **Checks run:** Vitest `photo-upload-outcomes.test.tsx` 15/15 PASS; Vitest `save-state.test.ts` 41/41 PASS; ESLint two changed paths 0 errors (4 pre-existing warnings in `case-studies-client.tsx` L6/L49); `tsc --noEmit --incremental false` PASS via ROOT `node_modules`.
+- **Harness:** Worktree symlinks to ROOT vitest/vite (cq-0430 pattern); sandbox could not write requested `$TMPDIR` under constructa-queue — used then removed `$WT/.cq-cache-a038-verification` for Vite SSR cache only.

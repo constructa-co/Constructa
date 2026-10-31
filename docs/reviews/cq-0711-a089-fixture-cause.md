@@ -201,3 +201,32 @@ expectation in Findings §4 unchanged.
 
 **Causal limits unchanged:** old 177675ms timeout **unexplained**; metadata-recognition
 evidence not investigated; not ROOT acceptance or A089 Complete.
+
+## ROOT failure correction (one literal)
+
+Same-author repair of the supplied ROOT failure, on pin
+`3bf8d93578d2aa3acc19a85b8dff486b2e147c70`. Original source `1fc0da1` and all earlier reviews
+and failures stay in history unchanged.
+
+**Supplied failure (not reproduced here):** ROOT Node 24 Vitest 07:19:16 ran all 9 cases against
+blob `bcc588f9`: 8 pass, 1 fail. Failing case: `the Git check fails with Git's own error outside
+a repository`, line 87. Expected `/not a git repository/`; actual diagnostics carried code 128
+and stderr `fatal: Not a git repository (or any of the parent directories): .git`. Uppercase `N`
+against a lowercase assertion, so not a metadata issue or product defect. Raw log is private:
+`rob0725-vitest-raw-20261031.log` (not read in this session).
+
+**Correction:** `e2e/import-fixture/guard.test.ts:87` only.
+
+```diff
+-/not a git repository/
++/not a git repository/i
+```
+
+The phrase, the 5000ms Vitest deadline, the 4000ms Git deadline, real Git, scratch setup and all
+other cases are unchanged. Removing the `i` restores the original source byte for byte. The
+earlier `fatal: not a git repository` wording in this file is left as written; Git's actual
+casing is the one quoted above.
+
+**Verification:** NOT RUN. No test, lint or type command was run for this correction, by
+instruction. Editing the regex is not GREEN; runtime correction awaits the native run of the
+exact failed case after the different-tool source grade. Not ROOT acceptance or A089 Complete.

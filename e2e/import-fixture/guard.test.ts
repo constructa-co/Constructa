@@ -84,7 +84,7 @@ describe("website-import fixture harness", () => {
         const dir = mkdtempSync(path.join(tmpdir(), "import-fixture-guard-"));
         try {
             const env = { ...process.env, GIT_CEILING_DIRECTORIES: path.dirname(dir) };
-            await expect(trackedAmong(dir, "git", GIT_DEADLINE_MS, env)).rejects.toThrow(/not a git repository/);
+            await expect(trackedAmong(dir, "git", GIT_DEADLINE_MS, env)).rejects.toThrow(/not a git repository/i);
         } finally {
             rmSync(dir, { recursive: true, force: true });
         }

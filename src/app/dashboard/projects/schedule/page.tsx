@@ -5,7 +5,7 @@ import ProjectNavBar from "@/components/project-navbar";
 import ProjectEntry from "@/components/project-entry";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import SimpleProgrammeClient from "./simple-programme-client";
-import { jobAssistantAvailable } from "@/lib/server/job-assistant-transport";
+import { jobAssistantReadiness } from "@/lib/server/job-assistant-transport";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +55,7 @@ export default async function SchedulePage(props: { searchParams: Promise<{ proj
         (estimates || []).find((e: { is_active?: boolean }) => e.is_active) ||
         (estimates || [])[0] ||
         null;
+    const assistant = await jobAssistantReadiness("planning", { owner: project.user_id === user.id });
 
     return (
         <DashboardRouteShell header={<ProjectNavBar projectId={activeProjectId} projectName={project.name || ""} activeTab="programme" />}>
@@ -62,7 +63,8 @@ export default async function SchedulePage(props: { searchParams: Promise<{ proj
                 key={project.id}
                 project={project}
                 lockReason={getPrecontractEditLockReason(project)}
-                planningAssistantEnabled={await jobAssistantAvailable("planning")}
+                planningAssistantEnabled={assistant.available}
+                planningAssistantOffReason={assistant.offReason}
                 estimate={activeEstimate}
             />
         </DashboardRouteShell>

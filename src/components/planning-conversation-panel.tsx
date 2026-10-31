@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useSyncExternalStore } from "react";
+import { assistantOffLabel, explainAssistantOff, type JobAssistantOffReason } from "@/lib/job-assistant-readiness";
 import { PLANNING_MESSAGE_LIMIT, suggestionKey, type PlanningConversation, type PlanningTopic } from "@/lib/planning-conversation";
 import type { WorkspaceStyles } from "@/lib/workspace-styles";
 
@@ -10,19 +11,20 @@ const TOPIC_LABEL: Record<PlanningTopic, string> = {
     "client-decision": "Client decision",
 };
 
-export default function PlanningConversationPanel({ session, blocked, blockedNote, s }: { session: PlanningConversation; blocked: boolean; blockedNote?: string; s: WorkspaceStyles }) {
+export default function PlanningConversationPanel({ session, blocked, blockedNote, offReason, s }: { session: PlanningConversation; blocked: boolean; blockedNote?: string; offReason?: JobAssistantOffReason | null; s: WorkspaceStyles }) {
     const state = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
     const id = useId();
     const pending = state.status === "pending";
+    const offLabel = assistantOffLabel(offReason);
 
     return (
         <details className={`${s.card} p-4 sm:p-5`} data-planning-conversation>
             <summary className={`cursor-pointer text-sm font-semibold ${s.heading}`}>
-                Talk through milestones, lead times and client decisions <span className={s.muted}>{state.available ? "Review before using" : "Not enabled"}</span>
+                Talk through milestones, lead times and client decisions <span className={s.muted}>{state.available ? "Review before using" : offLabel ? `Not enabled: ${offLabel}` : "Not enabled"}</span>
             </summary>
             <div className="mt-4 space-y-4">
                 {!state.available ? (
-                    <p role="status" className={`text-sm ${s.muted}`}>{state.error} Opening this panel does not send your job details anywhere.</p>
+                    <p role="status" className={`text-sm ${s.muted}`}>{explainAssistantOff(state.error ?? "", offReason)} Opening this panel does not send your job details anywhere.</p>
                 ) : (
                     <>
                         <p id={`${id}-help`} className={`text-sm ${s.muted}`}>Uses this job&apos;s saved programme and what you write here. Do not enter passwords or confidential client details. Replies are suggestions to review: they do not change dates, prices or your programme, and nothing is sent to your client.</p>

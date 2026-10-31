@@ -7,7 +7,7 @@ import EstimateClient from "./estimate-client";
 import { toEstimate } from "./estimate-mapping";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import { loadPricingExperienceSource } from "@/lib/server/pricing-experience";
-import { jobAssistantAvailable } from "@/lib/server/job-assistant-transport";
+import { jobAssistantReadiness } from "@/lib/server/job-assistant-transport";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // BoQ import (GPT-4o Vision PDF / Excel AI parse) can take 20-40s
@@ -37,7 +37,7 @@ export default async function EstimatingPage(props: { searchParams: Promise<{ pr
     // Fetch active project
     const { data: project } = await supabase
         .from("projects")
-        .select("id, name, client_name, brief_scope, brief_trade_sections, payment_schedule, status, is_archived, proposal_status, proposal_accepted_at, exclusions_text, clarifications_text, contract_exclusions, contract_clarifications, proposal_introduction, scope_text, selected_case_study_ids")
+        .select("id, user_id, name, client_name, brief_scope, brief_trade_sections, payment_schedule, status, is_archived, proposal_status, proposal_accepted_at, exclusions_text, clarifications_text, contract_exclusions, contract_clarifications, proposal_introduction, scope_text, selected_case_study_ids")
         .eq("id", activeProjectId)
         .single();
 
@@ -56,13 +56,15 @@ export default async function EstimatingPage(props: { searchParams: Promise<{ pr
         .order("created_at");
 
     const experience = await loadPricingExperienceSource(supabase, user.id, project.selected_case_study_ids);
+    const assistant = await jobAssistantReadiness("pricing", { owner: project.user_id === user.id });
 
     return (
         <DashboardRouteShell header={<ProjectNavBar projectId={activeProjectId} projectName={project.name || ""} activeTab="estimating" />}>
             <EstimateClient
                 key={project.id}
                 defaultTabId={searchParams.tab}
-                pricingAssistantEnabled={await jobAssistantAvailable("pricing")}
+                pricingAssistantEnabled={assistant.available}
+                pricingAssistantOffReason={assistant.offReason}
                 estimates={(estimates || []).map(toEstimate)}
                 project={{
                     id: project.id,

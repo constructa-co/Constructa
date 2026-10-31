@@ -267,6 +267,47 @@ describe("an upload that fails", () => {
     });
 });
 
+describe("taking a photo off an older example", () => {
+    const takeOff = (label: string) => (labelled(render(), label).props.onClick as () => void)();
+
+    it("clears only that slot, keeps the others in place, and is unsaved until saved", () => {
+        initial = [study("a", "Alpha", { photos: ["/one.png", "/two.png", "/three.png"] }), study("b", "Bravo", { photos: ["/other.png", "", ""] })];
+        takeOff("Remove photo 2 for past work 1");
+        expect(photosOf()).toEqual([["/one.png", "", "/three.png"], ["/other.png", "", ""]]);
+        expect(editorState().saved[0].photos).toEqual(["/one.png", "/two.png", "/three.png"]);
+        expect(statusLine(editorState())).toBe(SAVE_MESSAGES.unsaved);
+        expect(actions.upload).not.toHaveBeenCalled();
+    });
+
+    it("offers the upload for that slot again", () => {
+        initial = [study("a", "Alpha", { photos: ["/one.png", "", ""] })];
+        takeOff("Remove photo 1 for past work 1");
+        expect(() => labelled(render(), "Upload photo 1 for past work 1")).not.toThrow();
+        expect(() => labelled(render(), "Remove photo 1 for past work 1")).toThrow();
+    });
+
+    it("does not let a replacement already on its way put a picture back in that slot", async () => {
+        initial = [study("a", "Alpha", { photos: ["/one.png", "/two.png", ""] })];
+        const held = heldUploads();
+        const upload = pick("Replace photo 1 for past work 1");
+        takeOff("Remove photo 1 for past work 1");
+        held[0].resolve({ url: "/late.png" });
+        await upload;
+        expect(photosOf()[0]).toEqual(["", "/two.png", ""]);
+        expect(toasts.success).not.toHaveBeenCalled();
+    });
+
+    it("leaves a reply for another slot alone", async () => {
+        initial = [study("a", "Alpha", { photos: ["/one.png", "", ""] })];
+        const held = heldUploads();
+        const upload = pick("Upload photo 2 for past work 1");
+        takeOff("Remove photo 1 for past work 1");
+        held[0].resolve({ url: "/two.png" });
+        await upload;
+        expect(photosOf()[0]).toEqual(["", "/two.png", ""]);
+    });
+});
+
 describe("what stays as it was", () => {
     it("leaves the save rules alone: a save already sent keeps its copy, and a late photo is unsaved", async () => {
         const held = heldUploads();

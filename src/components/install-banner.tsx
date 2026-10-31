@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Download, X } from "lucide-react";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -55,7 +56,7 @@ export default function InstallBanner() {
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={handleInstall}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors"
+            className={`text-xs font-medium px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
           >
             <Download className="w-3 h-3" /> Install
           </button>

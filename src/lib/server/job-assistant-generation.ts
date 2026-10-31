@@ -2,6 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 import type { AssistantTurnMessage } from "@/lib/assistant-transport";
+import type { JobAssistantOffReason } from "@/lib/job-assistant-readiness";
 
 /**
  * A055 generation seam for the job assistant: one approved configuration, a
@@ -112,7 +113,7 @@ export interface JobAssistantGenerator<C> {
 }
 
 /** A generator, or how to prepare one; the request path prepares it only after the request is verified. */
-export type GeneratorSource<G> = G | { prepare(): Promise<G | null> };
+export type GeneratorSource<G> = G | { prepare(): Promise<G | null>; refusal?(): JobAssistantOffReason | null };
 export async function resolveGenerator<G>(source: GeneratorSource<G> | undefined): Promise<G | undefined> {
     if (!source || typeof source === "function") return source as G | undefined;
     try {
@@ -120,6 +121,11 @@ export async function resolveGenerator<G>(source: GeneratorSource<G> | undefined
     } catch {
         return undefined;
     }
+}
+/** Why `resolveGenerator` found nothing, when the source can say. Asked only for a verified owner's turn. */
+export function generatorRefusal<G>(source: GeneratorSource<G> | undefined): JobAssistantOffReason | null {
+    if (!source || typeof source === "function") return null;
+    return (source as { refusal?(): JobAssistantOffReason | null }).refusal?.() ?? null;
 }
 
 /** Thrown when an attempt is refused; the request path answers "unavailable". */

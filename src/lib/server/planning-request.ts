@@ -8,10 +8,11 @@ import {
     PLANNING_FAILED, PLANNING_MESSAGE_LIMIT, PLANNING_NOT_USABLE, PLANNING_OFF, PLANNING_SERVER_CHANGED, PLANNING_TURN_LIMIT,
     type PlanningContext,
 } from "@/lib/planning-conversation";
+import { explainAssistantOff } from "@/lib/job-assistant-readiness";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-access";
 import type { ServerPlanningGenerator } from "./job-assistant-transport";
-import { resolveGenerator, type AttemptOutcome, type GeneratorSource } from "./job-assistant-generation";
+import { generatorRefusal, resolveGenerator, type AttemptOutcome, type GeneratorSource } from "./job-assistant-generation";
 
 const CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/;
 // An earlier assistant turn as the page shows it: the reply (up to 1500
@@ -55,7 +56,7 @@ export async function handlePlanningTurn(input: unknown, source?: GeneratorSourc
     if (!verified.ok) return verified.result;
     // Prepared only now, for a verified owner: the activation point's checks run before anything is reserved or sent.
     const generate = await resolveGenerator(source);
-    if (!generate) return { status: "off", message: PLANNING_OFF };
+    if (!generate) return { status: "off", message: explainAssistantOff(PLANNING_OFF, generatorRefusal(source)) };
     const messages = [...request.history, { role: "user" as const, content: request.message }];
     // The attempt identifier is the server's; every outcome below is recorded against it.
     const attemptId = randomUUID();

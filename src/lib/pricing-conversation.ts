@@ -133,7 +133,7 @@ export function createPricingConversation(
             const { status, message } = result.transport;
             if (status === "off") {
                 clear();
-                state = { ...state, status: "off", error: PRICING_CONVERSATION_OFF };
+                state = { ...state, status: "off", error: message || PRICING_CONVERSATION_OFF };
                 return "off";
             }
             if (status === "stale") { clear(PRICING_SERVER_STALE); return "stale"; }

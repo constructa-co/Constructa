@@ -14,8 +14,8 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { approvalProblem, approvedProblem, approvedValue, caseLibraryDraftPhotosOnWire, contentFromInput, contentProblem, hasCaseStudyPhoto, labelProblem, toLegacyWireContent, type ApprovedCaseStudy, type CaseStudyContent } from "./content";
-import { normalisePhotoSlots } from "./photos";
+import { approvalProblem, approvedProblem, approvedValue, caseLibraryDraftPhotosOnWire, contentFromInput, contentProblem, hasCaseStudyPhoto, labelProblem, toWireContent, type ApprovedCaseStudy, type CaseStudyContent } from "./content";
+import { normalisePhotoSlots, photoInputWouldBeCut } from "./photos";
 import { cleanLabel } from "./labels";
 import { draftFromLegacy } from "./legacy";
 import { LIBRARY_MESSAGES as M, fieldMessage, fieldOf } from "./messages";
@@ -154,15 +154,21 @@ async function saveTags(context: LibraryContext, id: string, revision: number, w
     return { status: wordingSaved ? "partial" : "unknown", message: wordingSaved ? M.partialTagsUnknown : M.unknownNotSeen, revision: latest.revision, latest, disciplines: after.disciplines };
 }
 
+/** Refused before any call: a picture the database can't hold yet, or one that tidying would cut. Nothing is dropped quietly. */
+function photosRefused(sent: unknown, content: CaseStudyContent): boolean {
+    if (!caseLibraryDraftPhotosOnWire()) return hasCaseStudyPhoto(content);
+    return photoInputWouldBeCut((sent as { photos?: unknown } | null | undefined)?.photos);
+}
+
 /** Adds a case study as a draft, then its kinds of work if any were chosen. */
 export async function createStudy(context: LibraryContext, input: { content: unknown; disciplineIds: unknown }): Promise<LibraryResult> {
     const content = contentFromInput(input?.content);
     const problem = contentProblem(content);
     if (problem) return { status: "invalid", message: fieldMessage(problem), field: fieldOf(problem) };
-    if (!caseLibraryDraftPhotosOnWire() && hasCaseStudyPhoto(content)) return { status: "invalid", message: fieldMessage("photos"), field: "photos" };
+    if (photosRefused(input?.content, content)) return { status: "invalid", message: fieldMessage("photos"), field: "photos" };
     if (!validTags(input?.disciplineIds)) return { status: "invalid", message: M.tooManyTags, field: "disciplines" };
 
-    const answer = await call(context, "case_study_create", { p_content: toLegacyWireContent(content), p_legacy_index: null });
+    const answer = await call(context, "case_study_create", { p_content: toWireContent(content), p_legacy_index: null });
     if (answer.kind === "missing") return unavailable();
     if (answer.kind === "no-answer") return { status: "unknown", message: M.unknownCreate };
     const { outcome } = answer.data;
@@ -187,7 +193,7 @@ export async function saveStudy(context: LibraryContext, input: { id: unknown; r
     const content = contentFromInput(input.content);
     const problem = contentProblem(content);
     if (problem) return { status: "invalid", message: fieldMessage(problem), field: fieldOf(problem) };
-    if (!caseLibraryDraftPhotosOnWire() && hasCaseStudyPhoto(content)) return { status: "invalid", message: fieldMessage("photos"), field: "photos" };
+    if (photosRefused(input.content, content)) return { status: "invalid", message: fieldMessage("photos"), field: "photos" };
     if (!validTags(input.disciplineIds)) return { status: "invalid", message: M.tooManyTags, field: "disciplines" };
     const { id } = input;
     const wanted = input.disciplineIds;
@@ -212,7 +218,7 @@ export async function saveStudy(context: LibraryContext, input: { id: unknown; r
 
     let wordingSaved = false;
     if (!wordingSame) {
-        const answer = await call(context, "case_study_save_draft", { p_id: id, p_expected_revision: revision, p_content: toLegacyWireContent(content) });
+        const answer = await call(context, "case_study_save_draft", { p_id: id, p_expected_revision: revision, p_content: toWireContent(content) });
         if (answer.kind === "missing") return unavailable();
         if (answer.kind === "answer") {
             const { outcome } = answer.data;
@@ -415,7 +421,7 @@ export async function startFromOlder(context: LibraryContext, input: { index: un
     const draft = draftFromLegacy(entry.value);
     if (contentProblem(draft) !== null) return { status: "invalid", message: M.olderNoTitle };
 
-    const answer = await call(context, "case_study_create", { p_content: toLegacyWireContent(draft), p_legacy_index: index });
+    const answer = await call(context, "case_study_create", { p_content: toWireContent(draft), p_legacy_index: index });
     if (answer.kind === "missing") return unavailable();
     if (answer.kind === "no-answer") return { status: "unknown", message: M.unknownCreate };
     switch (answer.data.outcome) {

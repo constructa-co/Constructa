@@ -11,8 +11,8 @@ import type { BriefTurnResult } from "@/lib/server/brief-request";
  */
 export async function briefAssistantTurnAction(input: unknown): Promise<BriefTurnResult> {
     // Loaded here so importing this action from the page loads no server code.
-    const [{ handleBriefTurn }, { approvedBriefGenerator }] = await Promise.all([
+    const [{ handleBriefTurn }, { jobAssistantTurnSource }] = await Promise.all([
         import("@/lib/server/brief-request"), import("@/lib/server/job-assistant-transport"),
     ]);
-    return handleBriefTurn(input, { prepare: () => approvedBriefGenerator() });
+    return handleBriefTurn(input, jobAssistantTurnSource("brief"));
 }

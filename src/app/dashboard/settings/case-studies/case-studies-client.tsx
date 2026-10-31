@@ -155,6 +155,17 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
         }
     };
 
+    /** Takes a photo off the screen copy only. The file stays in storage; a pick still on its way for this slot no longer counts. */
+    const handlePhotoRemove = (csIndex: number, slot: number) => {
+        latestPhotoPick.current.set(`${rowHandles.current[csIndex]}:${slot}`, Symbol());
+        setCaseStudies(prev => prev.map((cs, i) => {
+            if (i !== csIndex) return cs;
+            const newPhotos = [...(cs.photos || ["", "", ""])];
+            newPhotos[slot] = "";
+            return { ...cs, photos: newPhotos };
+        }));
+    };
+
     const inputCls = `${coreProfileFieldBase} h-10 ${coreFocusRing}`;
     const labelCls = "text-xs font-medium text-slate-400 block mb-1";
     const editor = useRef<HTMLDivElement>(null);
@@ -198,6 +209,7 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
                     onChange={(field, value) => updateCaseStudy(index, field, value)}
                     onRemove={() => removeCaseStudy(index)}
                     onPhotoUpload={(slot, file) => handlePhotoUpload(index, slot, file)}
+                    onPhotoRemove={(slot) => handlePhotoRemove(index, slot)}
                     inputCls={inputCls}
                     labelCls={labelCls}
                     enhance={enhance}
@@ -234,6 +246,7 @@ function CaseStudyCard({
     onChange,
     onRemove,
     onPhotoUpload,
+    onPhotoRemove,
     inputCls,
     labelCls,
     enhance,
@@ -244,6 +257,7 @@ function CaseStudyCard({
     onChange: (field: keyof CaseStudy, value: string | string[]) => void;
     onRemove: () => void;
     onPhotoUpload: (slot: number, file: File) => void;
+    onPhotoRemove: (slot: number) => void;
     inputCls: string;
     labelCls: string;
 }) {
@@ -415,6 +429,9 @@ function CaseStudyCard({
                                                 <Upload className="w-5 h-5 text-white" />
                                                 <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Replace photo ${slot + 1} for past work ${index + 1}`} className="sr-only" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
                                             </label>
+                                            <button type="button" aria-label={`Remove photo ${slot + 1} for past work ${index + 1}`} onClick={() => onPhotoRemove(slot)} className={`absolute top-1 right-1 z-10 flex h-11 w-11 items-center justify-center rounded-lg bg-black/70 text-white hover:bg-black ${coreFocusVisibleRing}`}>
+                                                <Trash2 className="w-4 h-4" aria-hidden />
+                                            </button>
                                         </>
                                     ) : (
                                         <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-700 transition-colors">

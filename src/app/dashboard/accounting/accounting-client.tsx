@@ -12,6 +12,7 @@ import {
   upsertOverheadCostAction,
   deleteOverheadCostAction,
 } from "./actions";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -249,7 +250,7 @@ function ReconcileModal({
         <div className="flex gap-3 p-5 border-t border-white/10">
           <button onClick={onClose} className="flex-1 py-2 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 text-sm font-medium transition-all">Cancel</button>
           <button onClick={handleSave} disabled={saving || (mode === "invoice" && !invoiceId) || (mode === "overhead" && !category)}
-            className="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-all disabled:opacity-50">
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
             {saving ? "Saving…" : "Save"}
           </button>
         </div>
@@ -448,7 +449,7 @@ export default function AccountingClient({
           <div className="flex items-center gap-3 flex-wrap">
             <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
             <button onClick={() => fileRef.current?.click()}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-all">
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
               Import CSV
             </button>
             <button onClick={runAutoMatch} disabled={autoMatchRunning}
@@ -494,7 +495,7 @@ export default function AccountingClient({
                 <button onClick={() => setImportPreview(null)}
                   className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-400 rounded-lg text-sm transition-all">Cancel</button>
                 <button onClick={confirmImport} disabled={importing}
-                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-all disabled:opacity-50">
+                  className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
                   {importing ? "Importing…" : `Import ${importPreview.rows.length} rows`}
                 </button>
               </div>
@@ -725,7 +726,7 @@ export default function AccountingClient({
           <div className="flex justify-between items-center">
             <p className="text-sm text-muted-foreground">Manage VAT periods and track output vs input VAT.</p>
             <button onClick={() => setVatModal({})}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-all">
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
               New Period
             </button>
           </div>
@@ -852,7 +853,7 @@ export default function AccountingClient({
                   <button type="button" onClick={() => setVatModal(null)}
                     className="flex-1 py-2 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 text-sm font-medium transition-all">Cancel</button>
                   <button type="submit"
-                    className="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-all">Save</button>
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>Save</button>
                 </div>
               </form>
             </div>
@@ -870,7 +871,7 @@ export default function AccountingClient({
               </p>
             </div>
             <button onClick={() => setOverheadModal({})}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-all">
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
               Add Cost
             </button>
           </div>
@@ -1013,7 +1014,7 @@ export default function AccountingClient({
                   <button type="button" onClick={() => setOverheadModal(null)}
                     className="flex-1 py-2 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 text-sm font-medium transition-all">Cancel</button>
                   <button type="submit"
-                    className="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-all">Save</button>
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>Save</button>
                 </div>
               </form>
             </div>

@@ -2,13 +2,14 @@ import type { BriefConversationContext } from "@/lib/brief-conversation";
 import type { PlanningContext } from "@/lib/planning-conversation";
 import type { pricingModelData } from "@/lib/pricing-review";
 import { aiEmergencyStop } from "@/lib/ai-budget";
+import type { JobAssistantOffReason } from "@/lib/job-assistant-readiness";
 import {
     approvedConfig, createJobAssistantGenerator, JOB_ASSISTANT_FEATURES, type JobAssistantFeature,
     type JobAssistantGenerator, type JobAssistantProvider,
 } from "./job-assistant-generation";
 import { createRpcUsageLedger, type ActivationLedger } from "./job-assistant-ledger";
 import { BRIEF_SYSTEM_PROMPT, PLANNING_SYSTEM_PROMPT, PRICING_SYSTEM_PROMPT } from "./job-assistant-prompts";
-import { deepSeekJobAssistantProvider, openAIJobAssistantProvider } from "./openai-job-assistant-transport";
+import { deepSeekJobAssistantProvider, onQaPreview, openAIJobAssistantProvider } from "./openai-job-assistant-transport";
 
 /**
  * A055 server-side activation point for the job assistant.
@@ -34,6 +35,9 @@ import { deepSeekJobAssistantProvider, openAIJobAssistantProvider } from "./open
  * the approved provider has an adapter here and its key is on the server; the
  * usage ledger's settings row is enabled with ceilings that admit the caps.
  * No client, key, provider call or ledger write happens before all of these.
+ * `assess` is that contract; a refusal carries a code for the prerequisite that
+ * failed, which only the job's verified owner is given and which changes
+ * nothing about what is refused (`src/lib/job-assistant-readiness.ts`).
  * The existing `AiFeature` budgets (`brief.suggest`, the weekly client update
  * `schedule.programme-update` and the rest) are other features and must not be
  * borrowed. This module holds no secret or provider today.
@@ -43,13 +47,14 @@ import { deepSeekJobAssistantProvider, openAIJobAssistantProvider } from "./open
  * (25p / 100p per million input/output tokens), attempt/per-job/monthly caps
  * 10 / 10 / 2000 pence, and original technical ceilings. Production and other
  * targets stay OFF (`null` approvals). Ledger migration apply + enabled row
- * remain prerequisites before `covers()` passes.
+ * remain prerequisites before `covers()` passes. The approval follows the QA
+ * target, not the key: a missing key still refuses, as the provider check.
  */
 const QA_DEEPSEEK_APPROVAL_AT = "2026-10-29T16:02:32.065Z";
 const QA_DEEPSEEK_APPROVAL_REF = "rob-qa-deepseek-flash-20261029T160232065Z";
 
 function deepSeekQaApproval(feature: JobAssistantFeature) {
-    if (!deepSeekJobAssistantProvider.configured()) return null;
+    if (!onQaPreview()) return null;
     return {
         feature,
         approval: { ref: QA_DEEPSEEK_APPROVAL_REF, approvedBy: "Rob", approvedAt: QA_DEEPSEEK_APPROVAL_AT },
@@ -103,20 +108,29 @@ export type ServerPricingGenerator = JobAssistantGenerator<ReturnType<typeof pri
 export type ServerPlanningGenerator = JobAssistantGenerator<PlanningContext>;
 export type ServerBriefGenerator = JobAssistantGenerator<BriefConversationContext>;
 
-async function prepare<C>(feature: JobAssistantFeature, activation: JobAssistantActivation): Promise<JobAssistantGenerator<C> | null> {
-    if (activation.stopped()) return null;
+type Assessment<C> = { generator: JobAssistantGenerator<C> } | { generator: null; off: JobAssistantOffReason };
+
+async function assess<C>(feature: JobAssistantFeature, activation: JobAssistantActivation): Promise<Assessment<C>> {
+    const refuse = (off: JobAssistantOffReason): Assessment<C> => ({ generator: null, off });
+    if (activation.stopped()) return refuse("emergency_stop");
     const config = approvedConfig(feature, activation.approvals[feature]);
-    if (!config) return null;
+    if (!config) return refuse(activation.approvals[feature] == null ? "not_approved" : "approval_mismatch");
     for (const other of JOB_ASSISTANT_FEATURES) {
         if (activation.approvals[other] == null) continue;
         const theirs = approvedConfig(other, activation.approvals[other]);
-        if (!theirs || theirs.perJobPence !== config.perJobPence || theirs.monthlyPence !== config.monthlyPence) return null;
+        if (!theirs || theirs.perJobPence !== config.perJobPence || theirs.monthlyPence !== config.monthlyPence) return refuse("approval_mismatch");
     }
     const provider = Object.hasOwn(activation.providers, config.provider) ? activation.providers[config.provider] : undefined;
-    if (!provider || !provider.configured()) return null;
+    if (!provider || !provider.configured()) return refuse("provider_unavailable");
     const ledger = activation.ledger();
-    if (!await ledger.covers(config)) return null;
-    return createJobAssistantGenerator<C>(feature, { config, transport: provider.transport(FEATURE_PROMPTS[feature]), ledger });
+    const state = ledger.assess ? await ledger.assess(config) : await ledger.covers(config) ? "ready" : "unreadable";
+    if (state !== "ready") return refuse(`ledger_${state}`);
+    const generator = createJobAssistantGenerator<C>(feature, { config, transport: provider.transport(FEATURE_PROMPTS[feature]), ledger });
+    return generator ? { generator } : refuse("check_failed");
+}
+
+async function prepare<C>(feature: JobAssistantFeature, activation: JobAssistantActivation): Promise<JobAssistantGenerator<C> | null> {
+    return (await assess<C>(feature, activation)).generator;
 }
 
 export function approvedPricingGenerator(activation = SERVER_ACTIVATION): Promise<ServerPricingGenerator | null> {
@@ -132,11 +146,39 @@ export function approvedBriefGenerator(activation = SERVER_ACTIVATION): Promise<
     return prepare("brief", activation);
 }
 
-/** What a page tells the browser: the same contract the handler meets again on every request. */
-export async function jobAssistantAvailable(feature: JobAssistantFeature, activation = SERVER_ACTIVATION): Promise<boolean> {
+/** A request handler's source: the same contract, and why it refused once the handler has verified the owner. */
+export function jobAssistantTurnSource<C>(feature: JobAssistantFeature, activation = SERVER_ACTIVATION) {
+    let off: JobAssistantOffReason | null = null;
+    return {
+        async prepare(): Promise<JobAssistantGenerator<C> | null> {
+            off = "check_failed";
+            const result = await assess<C>(feature, activation);
+            off = result.generator ? null : result.off;
+            return result.generator;
+        },
+        refusal: () => off,
+    };
+}
+
+export type JobAssistantReadiness = { available: boolean; offReason: JobAssistantOffReason | null };
+
+/**
+ * What a page tells the browser: the same contract the handler meets again on
+ * every request. `owner` is the page's own check that the signed-in user owns
+ * the job; anyone else gets the same availability and no reason.
+ */
+export async function jobAssistantReadiness(feature: JobAssistantFeature, { owner }: { owner: boolean }, activation = SERVER_ACTIVATION): Promise<JobAssistantReadiness> {
+    let offReason: JobAssistantOffReason = "check_failed";
     try {
-        return (await prepare(feature, activation)) !== null;
+        const result = await assess(feature, activation);
+        if (result.generator) return { available: true, offReason: null };
+        offReason = result.off;
     } catch {
-        return false;
+        // Fails closed; what went wrong stays on the server.
     }
+    return { available: false, offReason: owner ? offReason : null };
+}
+
+export async function jobAssistantAvailable(feature: JobAssistantFeature, activation = SERVER_ACTIVATION): Promise<boolean> {
+    return (await jobAssistantReadiness(feature, { owner: false }, activation)).available;
 }

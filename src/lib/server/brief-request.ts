@@ -8,11 +8,12 @@ import {
     BRIEF_MESSAGE_LIMIT, BRIEF_NOT_USABLE, BRIEF_OFF, BRIEF_SERVER_CHANGED, BRIEF_TURN_LIMIT,
     type BriefConversationContext,
 } from "@/lib/brief-conversation";
+import { explainAssistantOff } from "@/lib/job-assistant-readiness";
 import { PLANNING_FAILED } from "@/lib/planning-conversation";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-access";
 import type { ServerBriefGenerator } from "./job-assistant-transport";
-import { resolveGenerator, type AttemptOutcome, type GeneratorSource } from "./job-assistant-generation";
+import { generatorRefusal, resolveGenerator, type AttemptOutcome, type GeneratorSource } from "./job-assistant-generation";
 
 const CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/;
 // An earlier assistant turn as the page carries it: the reply (up to 1500
@@ -56,7 +57,7 @@ export async function handleBriefTurn(input: unknown, source?: GeneratorSource<S
     if (!verified.ok) return verified.result;
     // Prepared only now, for a verified owner: the activation point's checks run before anything is reserved or sent.
     const generate = await resolveGenerator(source);
-    if (!generate) return { status: "off", message: BRIEF_OFF };
+    if (!generate) return { status: "off", message: explainAssistantOff(BRIEF_OFF, generatorRefusal(source)) };
     const messages = [...request.history, { role: "user" as const, content: request.message }];
     // The attempt identifier is the server's; every outcome below is recorded against it.
     const attemptId = randomUUID();

@@ -2,6 +2,7 @@
 
 import { useId, useSyncExternalStore } from "react";
 import { BRIEF_MESSAGE_LIMIT, BRIEF_OPEN_WORK, type BriefConversation, type BriefSuggestionKind } from "@/lib/brief-conversation";
+import { assistantOffLabel, explainAssistantOff, type JobAssistantOffReason } from "@/lib/job-assistant-readiness";
 import { suggestionKey } from "@/lib/reviewed-conversation";
 import type { WorkspaceStyles } from "@/lib/workspace-styles";
 
@@ -12,19 +13,20 @@ const KIND_LABEL: Record<BriefSuggestionKind, string> = {
 };
 
 /** A055: talk through the job's SAVED brief. Same review-only pattern as the planning panel. */
-export default function BriefConversationPanel({ session, blocked, blockedNote, s }: { session: BriefConversation; blocked: boolean; blockedNote?: string; s: WorkspaceStyles }) {
+export default function BriefConversationPanel({ session, blocked, blockedNote, offReason, s }: { session: BriefConversation; blocked: boolean; blockedNote?: string; offReason?: JobAssistantOffReason | null; s: WorkspaceStyles }) {
     const state = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
     const id = useId();
     const pending = state.status === "pending";
+    const offLabel = assistantOffLabel(offReason);
 
     return (
         <details className={`${s.card} p-4 sm:p-5`} data-brief-conversation>
             <summary className={`cursor-pointer text-sm font-semibold ${s.heading}`}>
-                Talk through this brief <span className={s.muted}>{state.available ? "Review before using" : "Not enabled"}</span>
+                Talk through this brief <span className={s.muted}>{state.available ? "Review before using" : offLabel ? `Not enabled: ${offLabel}` : "Not enabled"}</span>
             </summary>
             <div className="mt-4 space-y-4">
                 {!state.available ? (
-                    <p role="status" className={`text-sm ${s.muted}`}>{state.error} Opening this panel does not send your job details anywhere.</p>
+                    <p role="status" className={`text-sm ${s.muted}`}>{explainAssistantOff(state.error ?? "", offReason)} Opening this panel does not send your job details anywhere.</p>
                 ) : (
                     <>
                         <p id={`${id}-help`} className={`text-sm ${s.muted}`}>Uses your saved brief only: the work description, client type and trades. Site and access notes, client details, value and dates are not used, and unsaved typing is never sent. Do not enter passwords or confidential client details. Replies are suggestions to review: they do not change or save your brief.</p>

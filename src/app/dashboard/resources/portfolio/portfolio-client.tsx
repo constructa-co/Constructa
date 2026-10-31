@@ -6,6 +6,7 @@ import {
   AlertTriangle, CheckCircle2, Info, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 import {
   upsertAllocationAction,
   deleteAllocationAction,
@@ -309,7 +310,7 @@ function AllocationModal({
             Cancel
           </button>
           <button onClick={() => onSave({ ...form, days_per_week: form.days_per_week })}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-xl py-2.5 font-medium transition-colors">
+            className={`flex-1 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing} text-sm rounded-xl py-2.5 font-medium transition-colors`}>
             Add Allocation
           </button>
         </div>
@@ -869,7 +870,7 @@ function ManageAllocations({
       {/* Actions row */}
       <div className="flex gap-3">
         <button onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+          className={`flex items-center gap-2 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing} text-sm font-medium px-4 py-2 rounded-lg transition-colors`}>
           <Plus className="w-4 h-4" /> Add Allocation
         </button>
         <button onClick={() => setShowAbsenceForm(!showAbsenceForm)}
@@ -914,7 +915,7 @@ function ManageAllocations({
           </div>
           <div className="flex gap-3 mt-3">
             <button onClick={handleSaveAbsence}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors">
+              className={`${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing} text-sm px-4 py-2 rounded-lg transition-colors`}>
               Save
             </button>
             <button onClick={() => setShowAbsenceForm(false)}

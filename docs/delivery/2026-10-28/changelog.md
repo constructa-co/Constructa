@@ -286,3 +286,17 @@
 ## ROB0733 A089 one-flag repair + guarded build — 31 October 2026
 
 - Final test **`b6e2f87e…`** (regex **`i`** flag only). Failed-case-only vitest **PASS exit 0**; **0725** full-file **8+1 fail** log retained; lint/tsc **reused not rerun**. Helper grade **rob0727** then one **rob0725** reuse build; **STOP before backup** / bridge. **Not** A089 Complete; **177675ms** unexplained.
+
+## ROB2240 overnight candidate - 31 October 2026
+
+- On accepted 24b9 parent: independently graded owner-only AI readiness/off reasons, legacy photo compatibility/removal, and approved primary palette controls. Exact source pins and any later accepted wire/workflow deltas are bound by the private final integrated check receipt, not stale build evidence.
+- First ROOT material integration: 90 passes across five affected files, exit 0; initial output chunk not separately retained as a full raw log. Original test/type failures and the independent two-hunk test correction are preserved. Kimi's prohibited failed worktree build and targeted interruption remain exceptions, not green build evidence.
+- All feature activation, photo wire/schema, human signup/legal, deploy, main merge, settings and credential boundaries remain. No Complete status is forced; compact timestamp only, 81C17P19N1B unchanged.
+- Required next packaging steps: final affected checks, one fresh exact-candidate guarded Node 24 build reusing only approved rob2119 slot, explicit current build/readback bridge, scans and unchanged normal backup pipeline. This pre-build entry makes no future success claim.
+- Separate fresh encrypted export/ephemeral restore succeeded (41227788035 / 41227928164); source/Storage/Auth completeness limits and unauthorised sidecar hook suppression retained privately and in handoff. Overnight actual checkpoint reports are 00:30, 03:30 and 06:30 UAE.
+
+### Final source/check binding
+
+- AI `4bd61af`, photo-wire `742c000`, workflow `ee0c2ac`; exact reviewed code/test blobs only. Independently graded non-BMP guard fix has actual focused RED/GREEN. Wire FALSE, schema untouched, AI and human QA holds unchanged.
+- ROOT material evidence: 90 + 126 + 8 = 224 passes in three commands/14 files; full TypeScript exit 0. Lint 59 paths initially failed two test-fixture `prefer-const` declarations; the two-line correction and failed-file-only successful recheck are retained separately. 67 warnings remain, not a zero-warning claim. No repeated whole-app suite or new compiled-copy build.
+- Cursor workflow task received targeted SIGINT after its own command stalled, then returned Abort/PASS/exit 0; source pins were independently graded and verified. No runner, sandbox, permission mode or dependency repair was made.

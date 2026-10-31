@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MapPin, Search } from "lucide-react";
+import { coreFocusRing, coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 interface PostcodeLookupProps {
     onAddressFound: (address: string) => void;
@@ -18,8 +19,8 @@ export default function PostcodeLookup({ onAddressFound, theme = "light" }: Post
     const [areaResult, setAreaResult] = useState<string | null>(null);
 
     const baseInput = theme === "dark"
-        ? "h-10 px-3 rounded-lg border border-slate-700 bg-slate-800 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-        : "h-10 px-3 rounded-lg border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600";
+        ? `h-10 px-3 rounded-lg border border-slate-700 bg-slate-800 text-sm text-slate-100 placeholder:text-slate-500 ${coreFocusRing}`
+        : `h-10 px-3 rounded-lg border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 ${coreFocusRing}`;
 
     const handleLookup = async () => {
         const trimmed = postcode.trim().replace(/\s+/g, "").toUpperCase();
@@ -95,7 +96,7 @@ export default function PostcodeLookup({ onAddressFound, theme = "light" }: Post
                     type="button"
                     onClick={handleLookup}
                     disabled={loading || !postcode.trim()}
-                    className="h-10 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap"
+                    className={`h-10 px-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                 >
                     <Search className="w-3.5 h-3.5" />
                     {loading ? "Looking up..." : "Find Address"}

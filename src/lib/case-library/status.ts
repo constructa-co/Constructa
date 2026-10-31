@@ -4,6 +4,7 @@
  */
 
 import { approvedValue, type ApprovedCaseStudy, type CaseStudyContent } from "./content";
+import { normalisePhotoSlots } from "./photos";
 import { resolveSelectedCaseStudies, libraryTick } from "./resolve";
 import type { ProposalCaseStudy } from "@/lib/proposal-publication";
 
@@ -37,7 +38,8 @@ export function changesSinceApproval(approved: ApprovedCaseStudy, draft: CaseStu
     if (approved.client_display !== next.client_display || approved.client_text !== next.client_text) changes.push("how the client is referred to");
     if (approved.show_value !== next.show_value || approved.value_text !== next.value_text) changes.push("the price shown");
     if (approved.disciplines.length !== next.disciplines.length || approved.disciplines.some((label, index) => label !== next.disciplines[index])) changes.push("the kinds of work, or their order");
-    if (JSON.stringify(approved.photos) !== JSON.stringify(next.photos)) changes.push("the pictures");
+    // As slots: a copy approved before pictures were stored has no `photos` key, and that is the same as three empty slots.
+    if (JSON.stringify(normalisePhotoSlots(approved.photos)) !== JSON.stringify(normalisePhotoSlots(next.photos))) changes.push("the pictures");
     return changes;
 }
 

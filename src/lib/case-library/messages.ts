@@ -4,6 +4,7 @@
  * anything about another contractor. Pure.
  */
 
+import { caseLibraryDraftPhotosOnWire } from "./content";
 import type { UnsendableReason } from "./resolve";
 
 export const LIBRARY_MESSAGES = {
@@ -51,14 +52,22 @@ const FIELD_MESSAGES: Record<string, string> = {
     duration_text: "Keep how long it took to 100 characters.",
     delivered: "Keep what you did to 5,000 characters.",
     value_added: "Keep what it meant for the client to 5,000 characters.",
-    photos: "Pictures can't be saved to the library yet. Your other wording can still be saved without them.",
+    photos: "Pictures can't be saved to the library yet. Your other wording can still be saved without them. Up to three can go on an older case study on the Case Studies page.",
     client_text_missing: "Say how to refer to the client, or choose not to mention them.",
     client_not_confirmed: "To name the client, confirm that they've agreed to be named. Or choose not to name them.",
     value_text_missing: "Enter the price to show, or choose not to show one.",
 };
 
 export function fieldMessage(problem: string | null | undefined): string {
+    if (problem === "photos" && caseLibraryDraftPhotosOnWire()) return "Check the pictures. A case study can hold up to three. Each link must start with https, and each caption must fit on one line, in up to 300 characters.";
     return (problem && FIELD_MESSAGES[problem]) || "Something in this case study can't be saved as it is. Check each box and try again.";
+}
+
+/** Where a contractor can keep photos on the database contract this build targets. */
+export function libraryPhotoHint(onWire: boolean = caseLibraryDraftPhotosOnWire()): string {
+    return onWire
+        ? "You can add up to three photos on the full form."
+        : "Photos can't be saved to the library yet. Up to three can go on an older case study on the Case Studies page.";
 }
 
 /** Which box a content rule is about, so the screen can point at it. */

@@ -20,6 +20,7 @@ import {
     ChevronDown,
 } from "lucide-react";
 import { logCostAction, updateInvoiceStatusAction } from "../projects/p-and-l/actions";
+import { coreFocusRing, coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface CostEntry {
@@ -159,7 +160,7 @@ function AddCostForm({ projectId, onDone }: { projectId: string; onDone: () => v
                     onChange={e => setDesc(e.target.value)}
                     placeholder="Description"
                     required
-                    className="col-span-2 bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+                    className={`col-span-2 bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-xs text-slate-200 placeholder:text-slate-500 ${coreFocusRing}`}
                 />
                 <input
                     value={amount}
@@ -169,12 +170,12 @@ function AddCostForm({ projectId, onDone }: { projectId: string; onDone: () => v
                     min="0"
                     step="0.01"
                     required
-                    className="bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+                    className={`bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-xs text-slate-200 placeholder:text-slate-500 ${coreFocusRing}`}
                 />
                 <select
                     value={costType}
                     onChange={e => setCostType(e.target.value)}
-                    className="bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className={`bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-xs text-slate-200 ${coreFocusRing}`}
                 >
                     {["labour", "materials", "plant", "subcontract", "overhead", "other"].map(t => (
                         <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
@@ -184,14 +185,14 @@ function AddCostForm({ projectId, onDone }: { projectId: string; onDone: () => v
                     value={date}
                     onChange={e => setDate(e.target.value)}
                     type="date"
-                    className="bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className={`bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-xs text-slate-200 ${coreFocusRing}`}
                 />
             </div>
             <div className="flex gap-2">
                 <button
                     type="submit"
                     disabled={isPending}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 rounded-lg transition-colors disabled:opacity-50"
+                    className={`flex-1 text-xs font-medium py-2 rounded-lg transition-colors disabled:opacity-50 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                 >
                     {isPending ? "Saving…" : "Log Cost"}
                 </button>

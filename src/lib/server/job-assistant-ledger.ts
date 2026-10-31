@@ -10,12 +10,20 @@ export type SettingsClient = {
     from: (table: string) => { select: (columns: string) => { eq: (column: string, value: unknown) => { maybeSingle: () => PromiseLike<{ data: unknown; error: unknown }> } } };
 };
 
+type LedgerCaps = Pick<JobAssistantGenerationConfig, "attemptPence" | "perJobPence" | "monthlyPence">;
+/** What the settings row says about an approved configuration. Only "ready" admits it. */
+export type LedgerReadiness = "ready" | "not_installed" | "disabled" | "limits" | "unreadable";
+
 /** A usage ledger that can also say, without writing, whether it would accept an approved configuration's caps. */
 export interface ActivationLedger extends UsageLedger {
-    covers(config: Pick<JobAssistantGenerationConfig, "attemptPence" | "perJobPence" | "monthlyPence">): Promise<boolean>;
+    covers(config: LedgerCaps): Promise<boolean>;
+    /** The answer `covers` gives, with which part of the settings refused. */
+    assess?(config: LedgerCaps): Promise<LedgerReadiness>;
 }
 
 const whole = (value: unknown): value is number => Number.isInteger(value) && (value as number) > 0;
+// PostgREST and Postgres ways of saying the settings table does not exist.
+const NO_TABLE = new Set(["PGRST205", "42P01"]);
 
 /**
  * A055/A063 usage ledger over the `job_assistant_*` functions in
@@ -30,7 +38,8 @@ const whole = (value: unknown): value is number => Number.isInteger(value) && (v
  * repeated attempt id, is `{ ok: false }`, so nothing is sent again.
  * `covers` reads the settings row only: true when it is enabled with ceilings
  * that admit the configuration, which is what reserve itself checks first. It
- * is a readiness hint; reserve still decides every attempt.
+ * is a readiness hint; reserve still decides every attempt. `assess` is the same
+ * single read, naming the refusal as a code: database text never leaves here.
  * The service-role client is made only when a step runs.
  */
 // Narrowed to the two calls above; comparing the full Supabase client type against them is too deep for TypeScript.
@@ -41,22 +50,26 @@ export function createRpcUsageLedger(client: () => RpcClient & Partial<SettingsC
         const { data, error } = await client().rpc(fn, args);
         if (error || data !== true) throw new Error(`Job assistant ledger step ${fn} was not recorded`);
     };
+    const assess = async (config: LedgerCaps): Promise<LedgerReadiness> => {
+        try {
+            const db = client();
+            if (typeof db.from !== "function") return "unreadable";
+            const { data, error } = await db.from("job_assistant_usage_settings")
+                .select("enabled, max_attempt_pence, max_per_job_pence, max_monthly_pence").eq("id", 1).maybeSingle();
+            if (error) return NO_TABLE.has((error as { code?: string }).code ?? "") ? "not_installed" : "unreadable";
+            if (data === null || data === undefined) return "not_installed";
+            const row = data as Record<string, unknown>;
+            if (row.enabled !== true) return "disabled";
+            return whole(row.max_attempt_pence) && config.attemptPence <= row.max_attempt_pence
+                && whole(row.max_per_job_pence) && config.perJobPence <= row.max_per_job_pence
+                && whole(row.max_monthly_pence) && config.monthlyPence <= row.max_monthly_pence ? "ready" : "limits";
+        } catch {
+            return "unreadable";
+        }
+    };
     return {
-        async covers(config) {
-            try {
-                const db = client();
-                if (typeof db.from !== "function") return false;
-                const { data, error } = await db.from("job_assistant_usage_settings")
-                    .select("enabled, max_attempt_pence, max_per_job_pence, max_monthly_pence").eq("id", 1).maybeSingle();
-                const row = (data ?? {}) as Record<string, unknown>;
-                return !error && row.enabled === true
-                    && whole(row.max_attempt_pence) && config.attemptPence <= row.max_attempt_pence
-                    && whole(row.max_per_job_pence) && config.perJobPence <= row.max_per_job_pence
-                    && whole(row.max_monthly_pence) && config.monthlyPence <= row.max_monthly_pence;
-            } catch {
-                return false;
-            }
-        },
+        assess,
+        covers: async config => await assess(config) === "ready",
         async reserve(r) {
             const { data, error } = await client().rpc("job_assistant_reserve", {
                 p_attempt_id: r.attemptId, p_user_id: r.userId, p_project_id: r.projectId, p_feature: r.feature,

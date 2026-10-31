@@ -55,6 +55,13 @@ describe("the library list", () => {
         expect(html).toContain("The client is left out and no price is shown unless you choose otherwise. The older one is not changed and can still be chosen.");
         expect(html).not.toMatch(/with pictures|has pictures/);
     });
+
+    it("does not promise photos on the full form, and says pictures stay on the older one", () => {
+        const html = panel({ older: [{ index: 0, title: "Older A" }] });
+        expect(html).not.toContain("up to three photos on the full form");
+        expect(html).toContain("Photos can&#x27;t be saved to the library yet.");
+        expect(html).toContain("Pictures aren&#x27;t copied. They stay on the older one.");
+    });
 });
 
 describe("the editor", () => {
@@ -162,6 +169,15 @@ describe("what would be approved", () => {
         expect(hidden).not.toContain("Mrs Private");
         expect(hidden).not.toContain("9,000");
         expect(hidden).not.toContain("Client");
+        expect(hidden).not.toContain("<img");
+    });
+
+    it("shows the pictures a client would see, so approval never binds to something unseen", () => {
+        const photos = [{ url: "https://images.example.test/a.jpg", caption: "Before" }, { url: "", caption: "" }, { url: "https://images.example.test/b.jpg", caption: "" }];
+        const html = renderToStaticMarkup(createElement(ApprovedPreview, { approved: approvedValue({ ...draft, photos }, [], true) }));
+        expect(html.match(/<img /g)).toHaveLength(2);
+        expect(html).toContain('src="https://images.example.test/a.jpg"');
+        expect(html).toContain('src="https://images.example.test/b.jpg"');
     });
 });
 

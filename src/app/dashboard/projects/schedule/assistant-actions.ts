@@ -11,8 +11,8 @@ import type { PlanningTurnResult } from "@/lib/server/planning-request";
  */
 export async function planningAssistantTurnAction(input: unknown): Promise<PlanningTurnResult> {
     // Loaded here so importing this action from the page loads no server code.
-    const [{ handlePlanningTurn }, { approvedPlanningGenerator }] = await Promise.all([
+    const [{ handlePlanningTurn }, { jobAssistantTurnSource }] = await Promise.all([
         import("@/lib/server/planning-request"), import("@/lib/server/job-assistant-transport"),
     ]);
-    return handlePlanningTurn(input, { prepare: () => approvedPlanningGenerator() });
+    return handlePlanningTurn(input, jobAssistantTurnSource("planning"));
 }

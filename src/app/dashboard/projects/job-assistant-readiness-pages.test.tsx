@@ -113,7 +113,7 @@ describe("CQ-2210 panels", () => {
 
     it.each(PANELS)("%s names the missing prerequisite in the visible summary and the open panel", (_name, view) => {
         const html = renderToStaticMarkup(view("ledger_disabled" as never));
-        expect(html).toMatch(/<summary[^>]*>.*Not enabled: usage ledger switched off.*<\/summary>/s);
+        expect(html).toMatch(/<summary[^>]*>[\s\S]*Not enabled: usage ledger switched off[\s\S]*<\/summary>/);
         expect(html).toContain("The usage ledger is installed but switched off.");
         expect(html).not.toContain("<form");
     });

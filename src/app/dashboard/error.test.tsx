@@ -75,7 +75,7 @@ describe("A091 dashboard route-group error boundary (recovery UI)", () => {
 
     it("shows digest-only support reference when present", () => {
         const els = renderError(Object.assign(new Error("internal"), { digest: "digest-only-ref" }), vi.fn());
-        const refLine = els.find(e => text(e.props.children).includes("ref:"));
+        const refLine = els.find(e => text(e.props.children) === "ref: digest-only-ref");
         expect(refLine).toBeDefined();
         expect(text(refLine!.props.children)).toBe("ref: digest-only-ref");
         expect(text(els)).not.toContain("internal");

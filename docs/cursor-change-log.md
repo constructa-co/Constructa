@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-10-31 — cq-0432 A091 digest test selector repair (Cursor)
+
+| Paths | Lines / change | Intent |
+|-------|----------------|--------|
+| `src/app/dashboard/error.test.tsx` | ~78 `refLine` find | Match digest `<p>` leaf via `text(e.props.children) === "ref: digest-only-ref"` instead of `.includes("ref:")` on pre-order nodes (root aggregated subtree). Retain exact ref and no-raw-error assertions. |
+| `docs/reviews/cq-0432-a091-error-recovery.md` | Test repair + rawFAIL/GREEN vitest receipts | Retract prior PASS-on-intent; record Node v24.19.0 commands and hashes. |
+
 ## 2026-10-31 — cq-0432 A091 dashboard error recovery copy (Cursor)
 
 | Paths | Lines / change | Intent |

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-10-31T00:23:35.000Z",
+  "updatedAt": "2026-10-31T03:12:40.764Z",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {
@@ -520,7 +520,7 @@
       "id": "A080",
       "phase": "P1-Jan2027",
       "requested": "Plan a recoverable phase-two/three hosted continuation before replacing the existing public site.",
-      "status": "Partial"
+      "status": "Complete"
     },
     {
       "id": "A081",

@@ -276,3 +276,13 @@
 - Parent **b275390**. Exact **`ROB0423-QUEUE-NET-EIGHT.patch`** SHA256 **2ec3fbfbf5650761bd70128e16768df4f1bed6b6c3ac0dec102c51a9a3699b2f** (A001 4 + A038 2 + A091 2 paths). Grade **`rob0423-queue-source-net-parent-grade-20261031.json`**; A001 `.tmp-test-run` cache **not** staged; no cq docs/temp import.
 - Focused vitest **115/115** in **9** materially affected files (literal argv + raw logs in check receipt); ESLint **0 errors**, **5 warnings**; `tsc --noEmit --incremental false` PASS on Node **v24.19.0**. Mock/unit only — runtime upload/auth NOT RUN; Production OFF.
 - Register **updatedAt** only; all118 compact statuses **80C 18P 19N 1B** unchanged. Check receipt **explicitly omits protectedReadbacks** pending future build bridge. Helpers **run-build-rob0425-queue-20261031.mjs** prepared; build/backup **not** run.
+
+## ROB0725 A089 import-fixture Git guard integrated prep — 31 October 2026
+
+- Parent **7900d5e**. Single path **`e2e/import-fixture/guard.test.ts`** exact blob **bcc588f9…** / SHA256 **a597219…** from graded **1fc0da1** (**rob0722** SCOPED_NNF); Claude source author; no adaptation.
+- ROOT vitest **8/9 PASS**, **1 FAIL** (outside-repo case — wrapped async error vs `/not a git repository/` matcher); ESLint **0** on file; full tsc PASS. **STOP** before build/commit/push; worker/native partial passes **not** fresh **9/9**; **177675ms** still unexplained; **not** A089 Complete.
+- Register carries **A080** plan closure only (**81C 17P 19N 1B** + Phase1/1C/1A/1B counts unchanged per parent checkpoint). Helpers **rob0725-a089** prepared; check **`protectedReadbacks`: null**; build/backup **not** run.
+
+## ROB0733 A089 one-flag repair + guarded build — 31 October 2026
+
+- Final test **`b6e2f87e…`** (regex **`i`** flag only). Failed-case-only vitest **PASS exit 0**; **0725** full-file **8+1 fail** log retained; lint/tsc **reused not rerun**. Helper grade **rob0727** then one **rob0725** reuse build; **STOP before backup** / bridge. **Not** A089 Complete; **177675ms** unexplained.

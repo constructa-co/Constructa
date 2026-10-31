@@ -36,7 +36,7 @@ export function MarketingFooter() {
         <nav aria-label="Footer navigation">
           <Link href="/features">The product</Link><Link href="/login">Sign in</Link>
           <Link href="/terms-of-service">Terms</Link><Link href="/privacy-policy">Privacy</Link>
-          <a href="mailto:hello@constructa.co">Get in touch</a>
+          <Link href="/contact">Get in touch</Link>
         </nav>
       </div>
       <div className={ui.footerBottom}><span>Constructa © 2026</span><span>Phase one review · Company. Price. Programme. Proposal.</span></div>

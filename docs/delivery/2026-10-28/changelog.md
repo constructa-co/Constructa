@@ -313,3 +313,10 @@
 - Actual ROOT Node 24 focused run: **7 files / 78 tests PASS**, direct eight-file ESLint exit 0 with three retained contact-copy warnings, full no-emit TypeScript exit 0. Raw output and literal argv are private. Responsive checks are static declarations, not computed layout/browser/hosted proof. No unrelated source or test adaptation.
 - **A110 Partial**, not Complete: product purpose improved; representative test-data screenshots remain missing. Only A110 status and compact timestamp change; all other 117 rows unchanged, A001/A084/A085 Partial. Counts **81C18P18N1B**, Phase1 **81C13P1N1B**, Later **0C5P17N0B**. Existing record bytes remain an unchanged EOF prefix; these additions travel in the same first genuine source commit, not an empty documentation backup.
 - **Fresh guarded build plus normal backup required**, with existing rob2119 output only and a new actual-build/current-readback bridge. This prep has null protected readbacks, no Next, commit or push, and no future success claim. Claude primary source author; actual Kimi/Cursor coauthors only, not reviewers. Parent owns build/browser continuation; Grok OFF and deploy/settings/SQL/keys/gates/runner/config/model-pin holds remain.
+
+## cq-0338 marketing contact nav — 1 November 2026 (Composer, uncommitted)
+
+- **Branch** `cq/cq-0338-marketing-contact-nav`, base `09aeb5067c5b9943ec54d6644c6ac3323f8f05c4`.
+- **`src/components/marketing/phase-one.tsx` L39:** Footer “Get in touch” changed from `mailto:hello@constructa.co` to Next `<Link href="/contact">` with same label; cohort contact page mailto and full-profile Formspree footer untouched.
+- **`src/components/marketing/marketing-footer-contact-nav.test.tsx` (new):** One rendered-source test tying MarketingFooter `/contact`, cohort mailto-only contact route, and full-profile legacy form/mailto assertions.
+- **Focused vitest:** 4 files / 40 tests PASS (Node 24.19.0, `TMPDIR=/tmp`); **eslint** owned paths exit 0. Receipt: `docs/reviews/cq-0338-marketing-contact-nav.md`. No build, commit, or push in this worker.

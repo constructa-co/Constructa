@@ -23,6 +23,7 @@ import { FileText, Loader2, Upload, X } from "lucide-react";
 import { logCostAction } from "./actions";
 import { TRADE_SECTIONS } from "./constants";
 import { createClient } from "@/lib/supabase/client";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -648,7 +649,7 @@ function LabourTab({ staffCatalogue, projectId, estimateLines, onDone }: LabourT
         onChange={(url) => set("receiptUrl", url)}
       />
 
-      <Button onClick={handleSubmit} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+      <Button onClick={handleSubmit} disabled={isPending} className={`w-full ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
         {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : "Log Labour Cost"}
       </Button>
     </div>
@@ -868,7 +869,7 @@ function PlantOwnedTab({ plantCatalogue, projectId, estimateLines, onDone }: Pla
         onChange={(url) => set("receiptUrl", url)}
       />
 
-      <Button onClick={handleSubmit} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+      <Button onClick={handleSubmit} disabled={isPending} className={`w-full ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
         {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : "Log Owned Plant Cost"}
       </Button>
     </div>
@@ -1104,7 +1105,7 @@ function PlantHiredTab({ projectId, estimateLines, onDone }: PlantHiredTabProps)
         onChange={(url) => set("receiptUrl", url)}
       />
 
-      <Button onClick={handleSubmit} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+      <Button onClick={handleSubmit} disabled={isPending} className={`w-full ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
         {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : "Log Hired Plant Cost"}
       </Button>
     </div>
@@ -1314,7 +1315,7 @@ function MaterialsTab({ projectId, estimateLines, onDone }: MaterialsTabProps) {
         onChange={(url) => set("receiptUrl", url)}
       />
 
-      <Button onClick={handleSubmit} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+      <Button onClick={handleSubmit} disabled={isPending} className={`w-full ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
         {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : "Log Materials Cost"}
       </Button>
     </div>
@@ -1518,7 +1519,7 @@ function OverheadTab({ projectId, totalCostsToDate, estimateLines, onDone }: Ove
         onChange={(url) => set("receiptUrl", url)}
       />
 
-      <Button onClick={handleSubmit} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+      <Button onClick={handleSubmit} disabled={isPending} className={`w-full ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
         {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : "Log Overhead / Other Cost"}
       </Button>
     </div>
@@ -1626,7 +1627,7 @@ function SubcontractTab({ projectId, estimateLines, onDone }: { projectId: strin
         <Input type="date" value={form.date} onChange={e => set("date", e.target.value)} className={inputCls} />
       </FieldRow>
 
-      <Button onClick={handleSubmit} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-500 text-white">
+      <Button onClick={handleSubmit} disabled={isPending} className={`w-full ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
         {isPending ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Saving…</> : "Log Subcontract Cost"}
       </Button>
     </div>

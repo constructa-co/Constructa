@@ -85,6 +85,14 @@ beforeEach(() => {
 });
 
 describe("ManualAddressEntry", () => {
+    it("Use this address control uses core sage primary tokens, not brand blue", () => {
+        editPart("test-manual-line1", "Site");
+        const html = renderToStaticMarkup(renderEntry().node);
+        expect(html).not.toMatch(/(?:border|text|bg|ring)-blue-/);
+        expect(html).toContain("#c9efcf");
+        expect(html).toContain("#182c1b");
+    });
+
     it("starts closed with no named fields and does not submit a form", () => {
         const html = renderToStaticMarkup(renderEntry().node);
         expect(html).toMatch(/<details[^>]*data-manual-address-entry="test-manual"/);

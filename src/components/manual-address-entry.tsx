@@ -9,6 +9,7 @@ import {
     manualAddressPreviewTooLong,
     type ManualAddressParts,
 } from "@/lib/manual-address";
+import { coreFocusVisibleRing, coreSuggestionPrimary } from "@/lib/core-editing-palette";
 
 type Props = {
     idPrefix: string;
@@ -112,7 +113,7 @@ export default function ManualAddressEntry({
                     id={`${idPrefix}-use`}
                     disabled={!useEnabled}
                     onClick={applyPreview}
-                    className="min-h-11 rounded-lg border border-blue-500/60 px-4 text-sm font-semibold text-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
+                    className={`${coreSuggestionPrimary} disabled:cursor-not-allowed disabled:opacity-50 ${coreFocusVisibleRing}`}
                 >
                     Use this address
                 </button>

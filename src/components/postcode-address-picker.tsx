@@ -11,6 +11,7 @@ import {
     type PostcodeAddressCandidate,
     type PostcodeLookupFn,
 } from "@/lib/postcode-address";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 type Props = {
     idPrefix: string;
@@ -152,7 +153,7 @@ export default function PostcodeAddressPicker({
                     id={`${idPrefix}-find`}
                     disabled={disabled || loading || !isPostcodeLookupInputPresent(postcode)}
                     onClick={() => void runLookup()}
-                    className="h-12 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap"
+                    className={`h-12 px-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                 >
                     <Search className="w-3.5 h-3.5" />
                     {loading ? "Searching…" : "Find addresses"}

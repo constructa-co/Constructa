@@ -265,6 +265,15 @@
 - Focused ROOT checks (mock/unit): vitest **11 files / 63 tests** PASS as reported by the ROOT author, not an assumed 72; the receipt did not retain the complete per-file argument list, so no broader selector/count claim is made. ESLint **0 errors** on 12 touched paths (8 pre-existing warnings); `tsc --noEmit --incremental false` PASS on Node **v24.19.0**. A059/A069/A024/A001/A038 statuses unchanged (**78C 20P 19N 1B / 1A 4 of 7**) until parent commits; register carries owned A059 closure metadata only.
 - Build/backup **not** run in this prep step; helpers **run-build-rob2335-four-slices-20261030.mjs** + **build-isolation-rob2335-four-slices-20261030.cjs** prepared (constant delta from accepted **rob2310** reuse helpers **54a8b312…** / **47967b38…**). Future first commit: 12 code/test + register + handoff/changelog EOF here. Receipt **rob2335-four-slices-integrated-check.json**.
 
+## cq-0430 A001 shared address controls — 31 October 2026
+
+- **Intent:** Replace brand-blue on shared **Use this address** and **Find addresses** controls with `core-editing-palette` sage primary + emerald focus; preserve handlers, disabled/pending behavior, and address payloads. No postcode provider wiring.
+- **`src/components/manual-address-entry.tsx` (~L12, L115–116):** import `coreSuggestionPrimary`, `coreFocusVisibleRing`; button `className` drops `border-blue-500/60` / `text-blue-400`.
+- **`src/components/postcode-address-picker.tsx` (~L14, L155–156):** import `corePrimaryButton`, `coreFocusVisibleRing`; Find button drops `bg-blue-600` / `hover:bg-blue-700` / `text-white`.
+- **`src/components/manual-address-entry.test.tsx` (~L88–95):** regression SSR test for sage tokens and no `*-blue-*` on Use control.
+- **`src/components/postcode-address-picker.test.tsx` (~L2, L123–131):** regression SSR test for Find control tokens + enabled state when postcode present.
+- **Evidence:** `docs/reviews/cq-0430-a001-shared-controls.md`. Focused vitest **16/16**; `tsc --noEmit` PASS. Uncommitted for cq runner.
+
 ## ROB0107 reset-route NET eight integrated prep — 31 October 2026
 
 - Parent **c600581**. Exact **`ROB0106-RESET-NET-EIGHT.patch`** SHA256 **6f19f58eb971494eb0db4cd0260bfd5b9b617fb1e92e0b840b59eaf95367ebeb** (eight paths: forgot/reset pages+tests, recovery helper+test, proxy+test). Parent grade **rob0106-reset-net-eight-parent-grade-20261031.json** SCOPED_NNF; Codex **2304** exact four-hunk delta + full NET read; no source adaptation.

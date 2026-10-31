@@ -1,0 +1,40 @@
+__vite_ssr_exportName__("MANUAL_ADDRESS_MAX_LENGTH", () => { try { return MANUAL_ADDRESS_MAX_LENGTH } catch {} });
+__vite_ssr_exportName__("EMPTY_MANUAL_ADDRESS_PARTS", () => { try { return EMPTY_MANUAL_ADDRESS_PARTS } catch {} });
+__vite_ssr_exportName__("joinManualAddressPreview", () => { try { return joinManualAddressPreview } catch {} });
+__vite_ssr_exportName__("manualAddressPreviewTooLong", () => { try { return manualAddressPreviewTooLong } catch {} });
+__vite_ssr_exportName__("canUseManualAddressPreview", () => { try { return canUseManualAddressPreview } catch {} });
+__vite_ssr_exportName__("manualAddressDraftPending", () => { try { return manualAddressDraftPending } catch {} });
+__vite_ssr_exportName__("MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE", () => { try { return MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE } catch {} });
+const MANUAL_ADDRESS_MAX_LENGTH = 500;
+const EMPTY_MANUAL_ADDRESS_PARTS = {
+	line1: "",
+	line2: "",
+	townCity: "",
+	postcode: ""
+};
+/** Join deliberately entered non-blank parts (edge-trimmed only) with newlines. */
+function joinManualAddressPreview(parts) {
+	return [
+		parts.line1,
+		parts.line2,
+		parts.townCity,
+		parts.postcode
+	].map((part) => part.trim()).filter((part) => part.length > 0).join("\n");
+};
+function manualAddressPreviewTooLong(preview) {
+	return preview.length > MANUAL_ADDRESS_MAX_LENGTH;
+};
+function canUseManualAddressPreview(preview) {
+	return preview.length > 0 && preview.length <= MANUAL_ADDRESS_MAX_LENGTH;
+};
+/** True when structured fields would produce a preview that has not been applied via Use. */
+function manualAddressDraftPending(parts, lastUsedPreview) {
+	const preview = joinManualAddressPreview(parts);
+	return preview.length > 0 && preview !== lastUsedPreview;
+};
+/** Shown when Create/Try again is blocked because structured parts were not applied via Use. */
+const MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE = "You have address parts that are not applied yet. Choose Use this address for each structured entry, or clear those parts, before creating the job.";
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTs7Ozs7OztBQUFPLE1BQU0sNEJBQTRCO0FBU2xDLE1BQU0sNkJBQWlEO0NBQzFELE9BQU87Q0FDUCxPQUFPO0NBQ1AsVUFBVTtDQUNWLFVBQVU7QUFDZDs7QUFHTyxTQUFTLHlCQUF5QixPQUFtQztDQUN4RSxPQUFPO0VBQUMsTUFBTTtFQUFPLE1BQU07RUFBTyxNQUFNO0VBQVUsTUFBTTtDQUFRLENBQUMsQ0FDNUQsS0FBSyxTQUFTLEtBQUssS0FBSyxDQUFDLENBQUMsQ0FDMUIsUUFBUSxTQUFTLEtBQUssU0FBUyxDQUFDLENBQUMsQ0FDakMsS0FBSyxJQUFJO0FBQ2xCO0FBRU8sU0FBUyw0QkFBNEIsU0FBMEI7Q0FDbEUsT0FBTyxRQUFRLFNBQVM7QUFDNUI7QUFFTyxTQUFTLDJCQUEyQixTQUEwQjtDQUNqRSxPQUFPLFFBQVEsU0FBUyxLQUFLLFFBQVEsVUFBVTtBQUNuRDs7QUFHTyxTQUFTLDBCQUEwQixPQUEyQixpQkFBa0M7Q0FDbkcsTUFBTSxVQUFVLHlCQUF5QixLQUFLO0NBQzlDLE9BQU8sUUFBUSxTQUFTLEtBQUssWUFBWTtBQUM3Qzs7QUFHTyxNQUFNLDBDQUNUIiwibmFtZXMiOltdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJtYW51YWwtYWRkcmVzcy50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJleHBvcnQgY29uc3QgTUFOVUFMX0FERFJFU1NfTUFYX0xFTkdUSCA9IDUwMDtcblxuZXhwb3J0IHR5cGUgTWFudWFsQWRkcmVzc1BhcnRzID0ge1xuICAgIGxpbmUxOiBzdHJpbmc7XG4gICAgbGluZTI6IHN0cmluZztcbiAgICB0b3duQ2l0eTogc3RyaW5nO1xuICAgIHBvc3Rjb2RlOiBzdHJpbmc7XG59O1xuXG5leHBvcnQgY29uc3QgRU1QVFlfTUFOVUFMX0FERFJFU1NfUEFSVFM6IE1hbnVhbEFkZHJlc3NQYXJ0cyA9IHtcbiAgICBsaW5lMTogXCJcIixcbiAgICBsaW5lMjogXCJcIixcbiAgICB0b3duQ2l0eTogXCJcIixcbiAgICBwb3N0Y29kZTogXCJcIixcbn07XG5cbi8qKiBKb2luIGRlbGliZXJhdGVseSBlbnRlcmVkIG5vbi1ibGFuayBwYXJ0cyAoZWRnZS10cmltbWVkIG9ubHkpIHdpdGggbmV3bGluZXMuICovXG5leHBvcnQgZnVuY3Rpb24gam9pbk1hbnVhbEFkZHJlc3NQcmV2aWV3KHBhcnRzOiBNYW51YWxBZGRyZXNzUGFydHMpOiBzdHJpbmcge1xuICAgIHJldHVybiBbcGFydHMubGluZTEsIHBhcnRzLmxpbmUyLCBwYXJ0cy50b3duQ2l0eSwgcGFydHMucG9zdGNvZGVdXG4gICAgICAgIC5tYXAoKHBhcnQpID0+IHBhcnQudHJpbSgpKVxuICAgICAgICAuZmlsdGVyKChwYXJ0KSA9PiBwYXJ0Lmxlbmd0aCA+IDApXG4gICAgICAgIC5qb2luKFwiXFxuXCIpO1xufVxuXG5leHBvcnQgZnVuY3Rpb24gbWFudWFsQWRkcmVzc1ByZXZpZXdUb29Mb25nKHByZXZpZXc6IHN0cmluZyk6IGJvb2xlYW4ge1xuICAgIHJldHVybiBwcmV2aWV3Lmxlbmd0aCA+IE1BTlVBTF9BRERSRVNTX01BWF9MRU5HVEg7XG59XG5cbmV4cG9ydCBmdW5jdGlvbiBjYW5Vc2VNYW51YWxBZGRyZXNzUHJldmlldyhwcmV2aWV3OiBzdHJpbmcpOiBib29sZWFuIHtcbiAgICByZXR1cm4gcHJldmlldy5sZW5ndGggPiAwICYmIHByZXZpZXcubGVuZ3RoIDw9IE1BTlVBTF9BRERSRVNTX01BWF9MRU5HVEg7XG59XG5cbi8qKiBUcnVlIHdoZW4gc3RydWN0dXJlZCBmaWVsZHMgd291bGQgcHJvZHVjZSBhIHByZXZpZXcgdGhhdCBoYXMgbm90IGJlZW4gYXBwbGllZCB2aWEgVXNlLiAqL1xuZXhwb3J0IGZ1bmN0aW9uIG1hbnVhbEFkZHJlc3NEcmFmdFBlbmRpbmcocGFydHM6IE1hbnVhbEFkZHJlc3NQYXJ0cywgbGFzdFVzZWRQcmV2aWV3OiBzdHJpbmcpOiBib29sZWFuIHtcbiAgICBjb25zdCBwcmV2aWV3ID0gam9pbk1hbnVhbEFkZHJlc3NQcmV2aWV3KHBhcnRzKTtcbiAgICByZXR1cm4gcHJldmlldy5sZW5ndGggPiAwICYmIHByZXZpZXcgIT09IGxhc3RVc2VkUHJldmlldztcbn1cblxuLyoqIFNob3duIHdoZW4gQ3JlYXRlL1RyeSBhZ2FpbiBpcyBibG9ja2VkIGJlY2F1c2Ugc3RydWN0dXJlZCBwYXJ0cyB3ZXJlIG5vdCBhcHBsaWVkIHZpYSBVc2UuICovXG5leHBvcnQgY29uc3QgTUFOVUFMX0FERFJFU1NfVU5BUFBMSUVEX0NSRUFURV9NRVNTQUdFID1cbiAgICBcIllvdSBoYXZlIGFkZHJlc3MgcGFydHMgdGhhdCBhcmUgbm90IGFwcGxpZWQgeWV0LiBDaG9vc2UgVXNlIHRoaXMgYWRkcmVzcyBmb3IgZWFjaCBzdHJ1Y3R1cmVkIGVudHJ5LCBvciBjbGVhciB0aG9zZSBwYXJ0cywgYmVmb3JlIGNyZWF0aW5nIHRoZSBqb2IuXCI7XG4iXSwiZmlsZSI6Ii9zcmMvbGliL21hbnVhbC1hZGRyZXNzLnRzIn0=
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZSwiZGVwcyI6IjQiLCJkeW5hbWljRGVwcyI6IjUiLCJzdGF0aWNNb2NrcyI6bnVsbH0sIi9Vc2Vycy9yb2JlcnRzbWl0aC9kZXYvY29uc3RydWN0YS1mcmVzaC0yMDI2MTAyNS8uY3Etd3QvY3EtMDQzMC1hMDAxLXNoYXJlZC1jb250cm9scy9zcmMvbGliL21hbnVhbC1hZGRyZXNzLnRzIiwiL3NyYy9saWIvbWFudWFsLWFkZHJlc3MudHMiLFtdLFtdLFtdXQ==

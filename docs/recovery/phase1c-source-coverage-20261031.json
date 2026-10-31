@@ -1,6 +1,12 @@
 {
   "schema": "constructa/recovery/phase1c-source-coverage/1",
-  "generatedAt": "2026-10-31T03:20:00.000Z",
+  "generatedAt": "2026-10-31T03:09:31.000Z",
+  "generatedAtProvenance": {
+    "commit4a3593OriginalLabel": "2026-10-31T03:20:00.000Z",
+    "labelMeaning": "Author-document convention in commit 4a3593a…; not verified as wall-clock execution time.",
+    "firstAuthorRunWindowQualified": "2026-10-31T03:04:33Z–03:06:48Z (manager/worktree record)",
+    "sameAuthorCorrectionWrittenAt": "2026-10-31T03:09:31Z"
+  },
   "scope": "source_and_authored_sql_only",
   "a079Status": "Partial",
   "verdictMeaning": "Git SOURCE inventory at recovery pin 7900. Not EXPORT_DEST, not COMPLETE_SET, not DB/Auth/Storage/private-asset restoration, not all-refs recoverability, not A079 Complete.",
@@ -14,7 +20,10 @@
   "authority": {
     "rob0612PreservedPrivate": "/Users/robertsmith/dev/constructa-private-20261027/rob0612-actual-directions-20261031.json",
     "taskBaseCommit": "7900d5ef8e010d4935f510bddd5f47937641e8ff",
-    "worktreeBranch": "cq/cq-0710-a079-current-coverage"
+    "recoverySourcePinCommit": "7900d5ef8e010d4935f510bddd5f47937641e8ff",
+    "artifactBranchAtFirstDelivery": "cq/cq-0710-a079-current-coverage",
+    "artifactBranchHeadAfterRunnerCommit4a": "4a3593aef46bf69f9b71195596700a2990e5730a",
+    "note": "SOURCE pin stays 7900; job branch may advance with doc commits without changing the named recovery pin."
   },
   "git": {
     "repository": "constructa-co/Constructa",
@@ -31,8 +40,17 @@
     "phase1aAcceptedHead": {
       "commit": "d86dca62643fac61dda89a05916d99b966193c79",
       "migrationFileCount": 116,
-      "notAncestorOf7900": true,
-      "note": "60970ff artifact branch is parallel history; 7900 tree adds one migration filename vs d86."
+      "isAncestorOf7900": true,
+      "ancestryEvidence": {
+        "command": "git merge-base --is-ancestor d86dca62643fac61dda89a05916d99b966193c79 7900d5ef8e010d4935f510bddd5f47937641e8ff",
+        "exitCode": 0,
+        "commitsOnFirstParentPathD86To7900": 12
+      },
+      "phase1aArtifactCommit60970ff": {
+        "commit": "60970ff47a92ce2da01e6e9306f608fa23e55d58",
+        "note": "Preserved JSON carrier on a separate artifact branch; distinct from d86→7900 first-parent lineage."
+      },
+      "note": "7900 is 12 commits ahead of d86; tree adds one migration filename vs d86 (grant SQL)."
     },
     "historicalRunbookPins": {
       "appSourceCommit": "679182996680920363187c352ffc78d825bf096d",
@@ -40,6 +58,13 @@
       "programmeBackupCommit": "3cd4bf54690d02623df4f7fb6a07f4717f52ad9a",
       "status": "history_preserved_in_runbook_section_1_not_current"
     }
+  },
+  "wholeSourceTreeAtRecoveryPin": {
+    "commit": "7900d5ef8e010d4935f510bddd5f47937641e8ff",
+    "tree": "70dd3fd5adfcdda936aad7f7a6847f4d7bf1f3ed",
+    "meaning": "Git SOURCE identity at the recovery pin (all paths in this tree object). Does not imply operator EXPORT_DEST completeness or live DB apply state.",
+    "rob0425ElevenBlobRowsScope": "Only the eleven b275→7900 commit-delta paths listed below; not all product/source changes since d86.",
+    "phase1aTwentyPathD86DeltaInventory": "Historical rows in phase1a-source-coverage-20261029.json (b5→d86); not re-copied or re-verified-current in Phase 1C."
   },
   "sourceCoverageAt7900": {
     "migrationFiles": {
@@ -58,8 +83,10 @@
         "supabase/migrations/20261030220000_programme_working_pattern_execute_grant.sql"
       ],
       "managerNamedQaApplyOnceNotReappliedHere": {
-        "note": "Manager: QA calendar/closing/grant and AI ledger SQL applied once; do not infer other DB migration state.",
+        "note": "Manager-named QA SQL facts only; no live schema_migrations read, replay, or inference beyond this list.",
         "authoredSqlPathsNamedAppliedOnceOnQa": [
+          "supabase/migrations/20261026110000_project_working_pattern.sql",
+          "supabase/migrations/20261029103000_project_working_pattern_v2.sql",
           "supabase/migrations/20261028183000_new_job_closing_prefill.sql",
           "supabase/migrations/20261028233000_job_assistant_usage_ledger.sql",
           "supabase/migrations/20261030220000_programme_working_pattern_execute_grant.sql"
@@ -67,6 +94,7 @@
         "authoredSqlPathNamedNotAppliedOnQa": [
           "supabase/migrations/20261028120000_case_library_photos.sql"
         ],
+        "exhaustiveForKnownManagerNamedCalendarV1V2ClosingGrantLedgerPhotoFacts": true,
         "liveDatabaseAppliedState": "manager_named_only_not_read_in_this_job"
       },
       "schemaMigrationsComparison": {
@@ -79,9 +107,7 @@
       "parentGradeReferencePrivate": "rob0423-queue-source-net-parent-grade-20261031.json",
       "productAndTestPathCount": 8,
       "trackedPathCountIncludingDeliveryCollateral": 11,
-      "excludedFromInventory": [
-        ".tmp-test-run cache files on branch (13 tracked); not recovery SOURCE blobs"
-      ],
+      "inventoryScopeNote": "Eleven git blob rows for paths changed on commit 7900 vs parent b275 only. Tracked .tmp-test-run cache paths exist on the old A001 cq worker branch only; zero on recovery pin 7900 or this inventory branch (git ls-tree at HEAD).",
       "pathsWithGitBlobAt7900": [
         { "path": "src/components/manual-address-entry.tsx", "gitBlob": "e950a89265be1fa21827c91e0302070af3860626", "slice": "A001" },
         { "path": "src/components/manual-address-entry.test.tsx", "gitBlob": "073a21a15c6f5d1df4cdbb82d29f29463cd4995b", "slice": "A001" },

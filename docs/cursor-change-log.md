@@ -1,5 +1,14 @@
 # Cursor change log
 
+## 2026-10-31 — A079 Phase 1C same-author correction (checker FAIL on 4a3593a)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| `docs/recovery/phase1c-source-coverage-20261031.json` | d86 ancestry evidence; remove false parallel-history and .tmp-test-run claims; whole tree vs 11 blob scope; exhaustive manager QA apply-once list; timestamp provenance | Address independent checker blocking findings without changing SOURCE pin 7900 |
+| `docs/recovery/phase1c-source-coverage-verification-20261031.json` | Add merge-base check; EPERM suite UNVERIFIED; provenance; no test rerun | Preserve original 22 pass / 4 fail record honestly |
+| `docs/recovery/phase1c-source-coverage-handoff-20261031.md` | Correction banner; pin vs branch HEAD; scope clarifications | Operator-readable match to JSON |
+| `docs/recovery/a079-recovery-runbook.md` §1.2–1.3 | Verify d86 parent b5; distinguish backup branch, cq inventory branch, and fixed 7900 pin | Close runbook gap vs false parallel-history wording |
+
 ## 2026-10-31 — A079 Phase 1C SOURCE inventory at 7900 (Cursor cq-0710-a079-current-coverage)
 
 | Paths | Change | Intent |

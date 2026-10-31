@@ -32,23 +32,34 @@ The table above records **observed facts at runbook authorship** on branch
 
 **Accepted app source at Phase 1A close:** commit
 `d86dca62643fac61dda89a05916d99b966193c79` on remote branch
-`backup/welcome-first-slice-20261018`, parent `b5f513896eb07834e055e260536584ee7d0b708e`
-(**116** migration files). Preserved unchanged in:
+`backup/welcome-first-slice-20261018`, parent **`b5f513896eb07834e055e260536584ee7d0b708e`**
+(verified: `git rev-parse d86dca62643fac61dda89a05916d99b966193c79^`), **116** migration files.
+Preserved unchanged in:
 
-- `docs/recovery/phase1a-source-coverage-20261029.json` (artifact commit `60970ff47a92ce2da01e6e9306f608fa23e55d58`)
+- `docs/recovery/phase1a-source-coverage-20261029.json` (artifact commit `60970ff47a92ce2da01e6e9306f608fa23e55d58` on a **separate artifact branch** — not a claim that d86 is outside the lineage to 7900)
 - `docs/recovery/phase1a-source-coverage-handoff-20261029.md`
 
 Phase 1A inventory **does not** describe source after parent **b275** / ROB0425 NET eight;
-use Phase 1C (§1.3) for the current pin at **7900**.
+use Phase 1C (§1.3) for the current pin at **7900**. On first-parent history, **d86 is an
+ancestor of 7900** (12 commits ahead).
 
 ### 1.3 Current source coverage (Phase 1C, 2026-10-31)
 
 **Current recovery SOURCE pin (manager ROB0612 / backed 04:29 UAE):** commit
-`7900d5ef8e010d4935f510bddd5f47937641e8ff` on branch
-`cq/cq-0710-a079-current-coverage`, parent `b27539067fdc5882bbc617c58ad0af3508242772`
-(**117** authored SQL files under `supabase/migrations/`). All files in Git at this
-head are **SOURCE** inventory; live `schema_migrations` apply state is **not** inferred
-here except manager-named QA facts in the manifest.
+`7900d5ef8e010d4935f510bddd5f47937641e8ff` — this pin **does not move** when documentation
+commits land on the inventory branch.
+
+**Documentation / inventory branch:** `cq/cq-0710-a079-current-coverage` (after runner delivery,
+HEAD may be `4a3593aef46bf69f9b71195596700a2990e5730a` or later — still **not** a replacement
+for the SOURCE pin unless manager re-backs 7900).
+
+**Backed app source branch (historical name in Phase 1A):** `backup/welcome-first-slice-20261018`
+carries accepted slices; distinguish it from the cq inventory worktree above.
+
+**Parent of pin 7900:** `b27539067fdc5882bbc617c58ad0af3508242772` (**117** authored SQL files
+under `supabase/migrations/` at tree `70dd3fd5adfcdda936aad7f7a6847f4d7bf1f3ed`). All files in
+Git at this tree are **SOURCE** inventory; live `schema_migrations` apply state is **not**
+inferred here except manager-named QA facts in the manifest.
 
 Machine-readable inventory (paths, git blobs, migration deltas, held DB/Auth/Storage):
 

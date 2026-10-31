@@ -1,39 +1,63 @@
 {
   "schema": "constructa/recovery/phase1c-verification/1",
-  "generatedAt": "2026-10-31T03:22:00.000Z",
+  "generatedAt": "2026-10-31T03:09:31.000Z",
+  "generatedAtProvenance": {
+    "commit4a3593OriginalLabel": "2026-10-31T03:22:00.000Z",
+    "labelMeaning": "Author-document convention in commit 4a3593a…; not verified as wall-clock execution time.",
+    "firstAuthorRunWindowQualified": "2026-10-31T03:04:33Z–03:06:48Z (manager/worktree record)",
+    "sameAuthorCorrectionWrittenAt": "2026-10-31T03:09:31Z"
+  },
   "worktree": "/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/cq-0710-a079-current-coverage",
   "checks": [
     {
       "id": "head_pin",
       "command": "git rev-parse HEAD",
       "exitCode": 0,
-      "stdout": "7900d5ef8e010d4935f510bddd5f47937641e8ff\n"
+      "stdout": "7900d5ef8e010d4935f510bddd5f47937641e8ff\n",
+      "noteAtFirstAuthorRun": "HEAD was 7900 before runner commit 4a3593a; SOURCE pin remains 7900 regardless of later doc commits on this branch."
     },
     {
       "id": "parent_pin",
       "command": "git rev-parse HEAD^",
       "exitCode": 0,
-      "stdout": "b27539067fdc5882bbc617c58ad0af3508242772\n"
+      "stdout": "b27539067fdc5882bbc617c58ad0af3508242772\n",
+      "evaluatedAtCommit": "7900d5ef8e010d4935f510bddd5f47937641e8ff"
     },
     {
       "id": "tree_at_head",
       "command": "git rev-parse HEAD^{tree}",
       "exitCode": 0,
-      "stdout": "70dd3fd5adfcdda936aad7f7a6847f4d7bf1f3ed\n"
+      "stdout": "70dd3fd5adfcdda936aad7f7a6847f4d7bf1f3ed\n",
+      "evaluatedAtCommit": "7900d5ef8e010d4935f510bddd5f47937641e8ff"
+    },
+    {
+      "id": "d86_is_ancestor_of_7900",
+      "command": "git merge-base --is-ancestor d86dca62643fac61dda89a05916d99b966193c79 7900d5ef8e010d4935f510bddd5f47937641e8ff",
+      "exitCode": 0,
+      "commitsOnFirstParentPathD86To7900": 12,
+      "correctsCommit4aFalseClaim": "notAncestorOf7900:true"
+    },
+    {
+      "id": "d86_parent_b5",
+      "command": "git rev-parse d86dca62643fac61dda89a05916d99b966193c79^",
+      "exitCode": 0,
+      "stdout": "b5f513896eb07834e055e260536584ee7d0b708e\n"
     },
     {
       "id": "migration_count_at_head",
       "command": "git ls-tree -r --name-only HEAD supabase/migrations | wc -l | tr -d ' '",
       "exitCode": 0,
       "stdout": "117",
-      "matchesPhase1cJsonField": "sourceCoverageAt7900.migrationFiles.count"
+      "matchesPhase1cJsonField": "sourceCoverageAt7900.migrationFiles.count",
+      "evaluatedAtCommit": "7900d5ef8e010d4935f510bddd5f47937641e8ff"
     },
     {
       "id": "migration_list_digest",
       "command": "git ls-tree -r --name-only HEAD supabase/migrations | sort | shasum -a 256 | awk '{print $1}'",
       "exitCode": 0,
       "stdout": "dbd071956e2b0715313b83540fbf3820393e8a050f487f2227904ce4c250f75d",
-      "matchesPhase1cJsonField": "sourceCoverageAt7900.migrationFiles.sortedRelativePathsSha256"
+      "matchesPhase1cJsonField": "sourceCoverageAt7900.migrationFiles.sortedRelativePathsSha256",
+      "evaluatedAtCommit": "7900d5ef8e010d4935f510bddd5f47937641e8ff"
     },
     {
       "id": "delta_d86_to_head_filenames",
@@ -59,14 +83,29 @@
       "command": "node --test scripts/recovery-manifest-check.test.mjs",
       "exitCode": 1,
       "summary": "26 tests: 22 pass, 4 fail EPERM mkdtemp under constructa-queue/tmp (sandbox/worktree boundary)",
-      "note": "Failures are environment temp-dir policy, not checker logic regression; duplicate-ref and placeholder suites passed."
+      "verificationStatus": "UNVERIFIED",
+      "note": "Original run preserved; four failing cases did not complete. Not rerun in this correction job; not certified as non-regression."
     }
   ],
+  "sameAuthorCorrection20261031": {
+    "correctsDeliveryCommit": "4a3593aef46bf69f9b71195596700a2990e5730a",
+    "originalCheckerVerdict": "FAIL",
+    "originalCheckerFinished": "2026-10-31T07:08:00+04:00",
+    "findingsAddressedInDocs": [
+      "d86 is ancestor of 7900 (not parallel-only history)",
+      "removed false .tmp-test-run exclusion on current branch",
+      "EPERM failures UNVERIFIED not certified",
+      "timestamp provenance qualified",
+      "7900 pin vs cq branch HEAD after 4a distinguished",
+      "whole tree 70dd3… vs eleven b275→7900 blob rows vs historical phase1a twenty-path inventory"
+    ]
+  },
   "notRunByPolicy": [
     "recovery-manifest-check.mjs on EXPORT_DEST",
     "supabase db push/dump",
     "git fetch/push",
     "next build",
-    "full-history secret scan"
+    "full-history secret scan",
+    "rerun of recovery-manifest-check.test.mjs"
   ]
 }

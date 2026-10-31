@@ -274,6 +274,13 @@
 - **`src/components/postcode-address-picker.test.tsx` (~L2, L123–131):** regression SSR test for Find control tokens + enabled state when postcode present.
 - **Evidence:** `docs/reviews/cq-0430-a001-shared-controls.md`. Focused vitest **16/16**; `tsc --noEmit` PASS. Uncommitted for cq runner.
 
+## cq-0430 A001 cache artifact repair — 31 October 2026
+
+- **Intent:** Remove only the **13** tracked Vitest SSR files under `.tmp-test-run/` from commit `5331e9b` via a normal child commit; preserve `5331e9b` history and unchanged four product/test blobs.
+- **`.tmp-test-run/**` (13 paths):** staged `git rm`; runner moves worktree tree to `$TMPDIR/a001-prior-vite-cache/` before commit (generated cache, not deliverable).
+- **`docs/reviews/cq-0430-a001-shared-controls.md` (~L93+):** artifact exception, blob verification table, NET scope, bounded Grok packet qualification, builder/reviewer disposition lines.
+- **No change:** `src/components/manual-address-entry.tsx`, `postcode-address-picker.tsx`, or their `.test.tsx` files (blobs match `5331e9b`).
+
 ## ROB0107 reset-route NET eight integrated prep — 31 October 2026
 
 - Parent **c600581**. Exact **`ROB0106-RESET-NET-EIGHT.patch`** SHA256 **6f19f58eb971494eb0db4cd0260bfd5b9b617fb1e92e0b840b59eaf95367ebeb** (eight paths: forgot/reset pages+tests, recovery helper+test, proxy+test). Parent grade **rob0106-reset-net-eight-parent-grade-20261031.json** SCOPED_NNF; Codex **2304** exact four-hunk delta + full NET read; no source adaptation.

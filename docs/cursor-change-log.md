@@ -1,5 +1,14 @@
 # Cursor change log
 
+## 2026-10-31 — ROB0744 A079 final doc fact corrections (checker 2nd FAIL, cq-0710 only)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| `docs/recovery/a079-recovery-runbook.md` | 609 provenance/local-ref wording; 117/tree on 7900 not b275; future pin binding | Correct NEW checker facts without ROOT write |
+| `docs/recovery/phase1c-source-coverage-20261031.json` | 609/ref/QA citations/timestamp label/runbook blob note | Remove false artifact-branch and exhaustive QA DB claims |
+| `docs/recovery/phase1c-source-coverage-handoff-20261031.md` | Match JSON on 609 bytes vs refs | Operator-readable corrections |
+| `docs/recovery/phase1c-source-coverage-verification-20261031.json` | Provenance field rename/qualify; ROB0744 finding map | Preserve original FAIL/22PASS4EPERM history |
+
 ## 2026-10-31 — A079 Phase 1C same-author correction (checker FAIL on 4a3593a)
 
 | Paths | Change | Intent |
@@ -13,7 +22,7 @@
 
 | Paths | Change | Intent |
 |-------|--------|--------|
-| `docs/recovery/phase1a-source-coverage-20261029.json`, `phase1a-source-coverage-handoff-20261029.md` | Copied byte-identical from git `60970ff` | Preserve accepted Phase 1A evidence without rebinding current pin |
+| `docs/recovery/phase1a-source-coverage-20261029.json`, `phase1a-source-coverage-handoff-20261029.md` | Copied byte-identical from git show `60970ff` (historical object; local ref not verified) | Preserve accepted Phase 1A evidence without rebinding current pin |
 | `docs/recovery/phase1c-source-coverage-20261031.json` | New machine-readable inventory | Pin 7900/b275, 117 migrations, ROB0425 blobs, QA apply-once qualifications, held categories |
 | `docs/recovery/phase1c-source-coverage-handoff-20261031.md` | New concise handoff | Operator boundaries; export run 41000587127 failure noted |
 | `docs/recovery/phase1c-source-coverage-verification-20261031.json` | Local read-only check record | Migration count/digest match JSON; checker unit test EPERM boundary recorded |

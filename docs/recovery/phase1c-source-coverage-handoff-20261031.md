@@ -13,15 +13,18 @@
 
 ## What was wrong
 
-`phase1a-source-coverage-20261029.json` (artifact commit `60970ff…`) correctly documented
-**d86** with **116** migrations. Current backed ROOT at **7900** (ROB0425 NET eight on **b275**)
+`phase1a-source-coverage-20261029.json` (historical provenance object `60970ff…`; **no local ref**
+reachability verified for that object in checker read-only scan; **remote all-refs retention not
+verified**) correctly documented **d86** with **116** migrations. Current backed ROOT at **7900**
 was not inventoried: **117** migrations (+ grant SQL) and eleven tracked paths on the
 b275→7900 commit delta.
 
 **Same-author correction (checker FAIL):** Phase 1C JSON had falsely claimed d86 is not an
 ancestor of 7900; `git merge-base --is-ancestor d86… 7900…` exits **0** (12 commits between).
-Commit `60970ff…` is the preserved Phase 1A **artifact** branch, not proof of parallel history.
-Removed invented `.tmp-test-run` exclusion on this branch (those paths are on the old A001 worker
+Commit `60970ff…` is a **historical provenance object** for Phase 1A JSON bytes, not proof of
+parallel history and **not** a verified local or remote ref name in this job. The two Phase 1A
+files on this cq branch remain **byte-identical** to `git show 60970ff…` (bytes preserved here);
+that is separate from retaining the original `60970ff` commit object in all Git history. Removed invented `.tmp-test-run` exclusion on this branch (those paths are on the old A001 worker
 branch only). Eleven ROB0425 blob rows cover **b275→7900 only**; Phase 1A’s twenty-path d86
 delta inventory stays historical in phase1a JSON and is not re-verified-current here. Manager-named
 QA apply-once list now includes calendar v1/v2, closing, ledger, and grant SQL paths; photo SQL
@@ -33,7 +36,8 @@ remains manager-named **not applied**; no live DB read or replay.
    ROB0425 eight product/test blobs (+ delivery/register collateral), grant SQL content SHA,
    QA apply-once / photo-not-applied qualifications, held export/restore categories unchanged.
 2. **Preserved Phase 1A** — `phase1a-source-coverage-20261029.json` and handoff copied byte-identical
-   from `60970ff47a92ce2da01e6e9306f608fa23e55d58` via `git show`.
+   from `60970ff47a92ce2da01e6e9306f608fa23e55d58` via `git show` (same bytes on this branch at
+   `ad4a6ff…`; no local ref for 609 verified; remote all-refs not verified).
 3. **`a079-recovery-runbook.md`** — §1.1–1.3 (historical 679, Phase 1A superseded pin, Phase 1C
    current pin); §3 dump block labelled **DO_NOT_EXECUTE** (credential-argv unsafe pattern retained
    as explicit warning only).

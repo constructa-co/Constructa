@@ -36,7 +36,7 @@ The table above records **observed facts at runbook authorship** on branch
 (verified: `git rev-parse d86dca62643fac61dda89a05916d99b966193c79^`), **116** migration files.
 Preserved unchanged in:
 
-- `docs/recovery/phase1a-source-coverage-20261029.json` (artifact commit `60970ff47a92ce2da01e6e9306f608fa23e55d58` on a **separate artifact branch** — not a claim that d86 is outside the lineage to 7900)
+- `docs/recovery/phase1a-source-coverage-20261029.json` (historical provenance object `60970ff47a92ce2da01e6e9306f608fa23e55d58` — **no local ref** reachability verified in this job’s read-only `git for-each-ref` scan; object exists; **remote all-refs retention not verified**; not a claim that d86 is outside the lineage to 7900)
 - `docs/recovery/phase1a-source-coverage-handoff-20261029.md`
 
 Phase 1A inventory **does not** describe source after parent **b275** / ROB0425 NET eight;
@@ -51,13 +51,17 @@ commits land on the inventory branch.
 
 **Documentation / inventory branch:** `cq/cq-0710-a079-current-coverage` (after runner delivery,
 HEAD may be `4a3593aef46bf69f9b71195596700a2990e5730a` or later — still **not** a replacement
-for the SOURCE pin unless manager re-backs 7900).
+for the SOURCE pin; a **future** pin needs a **new binding**, not a casual “re-back” of 7900).
 
 **Backed app source branch (historical name in Phase 1A):** `backup/welcome-first-slice-20261018`
 carries accepted slices; distinguish it from the cq inventory worktree above.
 
-**Parent of pin 7900:** `b27539067fdc5882bbc617c58ad0af3508242772` (**117** authored SQL files
-under `supabase/migrations/` at tree `70dd3fd5adfcdda936aad7f7a6847f4d7bf1f3ed`). All files in
+**SOURCE pin 7900:** `7900d5ef8e010d4935f510bddd5f47937641e8ff` — whole tree
+`70dd3fd5adfcdda936aad7f7a6847f4d7bf1f3ed` with **117** authored SQL files under
+`supabase/migrations/` **at this pin** (evaluated at 7900, not inferred at parent).
+
+**Parent of pin 7900:** `b27539067fdc5882bbc617c58ad0af3508242772` (first-parent commit only;
+117/tree bindings above belong to **7900**, not to b275). All files in
 Git at this tree are **SOURCE** inventory; live `schema_migrations` apply state is **not**
 inferred here except manager-named QA facts in the manifest.
 

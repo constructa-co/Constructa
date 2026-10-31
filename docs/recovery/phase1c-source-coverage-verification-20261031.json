@@ -1,11 +1,13 @@
 {
   "schema": "constructa/recovery/phase1c-verification/1",
   "generatedAt": "2026-10-31T03:09:31.000Z",
+  "generatedAtIsReportedRecordLabel": true,
   "generatedAtProvenance": {
     "commit4a3593OriginalLabel": "2026-10-31T03:22:00.000Z",
     "labelMeaning": "Author-document convention in commit 4a3593a…; not verified as wall-clock execution time.",
     "firstAuthorRunWindowQualified": "2026-10-31T03:04:33Z–03:06:48Z (manager/worktree record)",
-    "sameAuthorCorrectionWrittenAt": "2026-10-31T03:09:31Z"
+    "sameAuthorCorrectionReportedRecordLabel": "2026-10-31T03:09:31Z",
+    "sameAuthorCorrectionReportedRecordLabelMeaning": "Reported preparation/record label only; independent checker observed filesystem mtimes ~2026-10-31T03:10:02Z–03:10:11Z — not claimed as exact write clock."
   },
   "worktree": "/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/cq-0710-a079-current-coverage",
   "checks": [
@@ -98,6 +100,13 @@
       "timestamp provenance qualified",
       "7900 pin vs cq branch HEAD after 4a distinguished",
       "whole tree 70dd3… vs eleven b275→7900 blob rows vs historical phase1a twenty-path inventory"
+    ],
+    "rob0744DocCorrections20261031": [
+      "60970ff: no local ref reachability; not separate artifact branch claim; remote all-refs not verified; Phase1A bytes preserved on cq branch",
+      "117 migrations/tree 70dd3 pinned to 7900 explicitly; parent b275 separate",
+      "removed exhaustive QA DB flag; cite named PRIVATE manager records only",
+      "sameAuthorCorrection label not exact write clock",
+      "7900 pin vs future binding wording; runbook blob note at dated 7900 inventory"
     ]
   },
   "notRunByPolicy": [

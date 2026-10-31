@@ -1,11 +1,13 @@
 {
   "schema": "constructa/recovery/phase1c-source-coverage/1",
   "generatedAt": "2026-10-31T03:09:31.000Z",
+  "generatedAtIsReportedRecordLabel": true,
   "generatedAtProvenance": {
     "commit4a3593OriginalLabel": "2026-10-31T03:20:00.000Z",
     "labelMeaning": "Author-document convention in commit 4a3593a…; not verified as wall-clock execution time.",
     "firstAuthorRunWindowQualified": "2026-10-31T03:04:33Z–03:06:48Z (manager/worktree record)",
-    "sameAuthorCorrectionWrittenAt": "2026-10-31T03:09:31Z"
+    "sameAuthorCorrectionReportedRecordLabel": "2026-10-31T03:09:31Z",
+    "sameAuthorCorrectionReportedRecordLabelMeaning": "Reported preparation/record label only; independent checker observed filesystem mtimes ~2026-10-31T03:10:02Z–03:10:11Z — not claimed as exact write clock."
   },
   "scope": "source_and_authored_sql_only",
   "a079Status": "Partial",
@@ -13,6 +15,7 @@
   "supersedesForCurrentPin": {
     "artifact": "docs/recovery/phase1a-source-coverage-20261029.json",
     "acceptedArtifactCommit": "60970ff47a92ce2da01e6e9306f608fa23e55d58",
+    "acceptedArtifactProvenanceNote": "Historical object id for Phase 1A JSON bytes; git for-each-ref in checker job returned zero local refs containing 60970ff; object exists; remote all-refs retention not verified; no ref repair or remote probe in this job.",
     "priorAcceptedHead": "d86dca62643fac61dda89a05916d99b966193c79",
     "priorMigrationCount": 116,
     "note": "Phase 1A remains preserved evidence; d86/116 bindings are stale for current ROOT at 7900."
@@ -48,7 +51,7 @@
       },
       "phase1aArtifactCommit60970ff": {
         "commit": "60970ff47a92ce2da01e6e9306f608fa23e55d58",
-        "note": "Preserved JSON carrier on a separate artifact branch; distinct from d86→7900 first-parent lineage."
+        "note": "Historical provenance object for preserved Phase 1A file bytes; distinct from d86→7900 first-parent lineage; local ref reachability absent as observed; remote all-refs not verified."
       },
       "note": "7900 is 12 commits ahead of d86; tree adds one migration filename vs d86 (grant SQL)."
     },
@@ -83,7 +86,14 @@
         "supabase/migrations/20261030220000_programme_working_pattern_execute_grant.sql"
       ],
       "managerNamedQaApplyOnceNotReappliedHere": {
-        "note": "Manager-named QA SQL facts only; no live schema_migrations read, replay, or inference beyond this list.",
+        "note": "Manager-supplied / task-scoped QA SQL path list only; not an independent live DB read, not exhaustive of all calendar v1/v2/closing/grant/ledger/photo facts. Rob06:12 is authority for this documentation job only — not evidence that earlier QA apply events occurred.",
+        "privateManagerRecordCitations": [
+          "qa-calendar-closing-applied-progress-20261029.json",
+          "qa-calendar-closing-structural-acceptance-20261029.json",
+          "rob2240-qa-ledger-applied-and-current-preview-20261030.json",
+          "rob2247-direct-qa-grant-approval-20261030.json"
+        ],
+        "managerReportedGrantCompletionAndCurrentTask": "Named in manager/current-task records; values not copied here.",
         "authoredSqlPathsNamedAppliedOnceOnQa": [
           "supabase/migrations/20261026110000_project_working_pattern.sql",
           "supabase/migrations/20261029103000_project_working_pattern_v2.sql",
@@ -94,7 +104,7 @@
         "authoredSqlPathNamedNotAppliedOnQa": [
           "supabase/migrations/20261028120000_case_library_photos.sql"
         ],
-        "exhaustiveForKnownManagerNamedCalendarV1V2ClosingGrantLedgerPhotoFacts": true,
+        "allKnownCalendarV1V2ClosingGrantLedgerPhotoOnceOrNotAppliedFacts": "manager_named_and_private_record_cited_not_db_proven",
         "liveDatabaseAppliedState": "manager_named_only_not_read_in_this_job"
       },
       "schemaMigrationsComparison": {
@@ -131,7 +141,7 @@
     ],
     "recoveryToolingGitBlobsAt7900": {
       "paths": [
-        { "path": "docs/recovery/a079-recovery-runbook.md", "gitBlob": "6c27332fe74f661ce7ce9552d4e37753ab973857", "note": "Runbook updated in this job; blob id is pre-edit tree at 7900 commit object until runner commits." },
+        { "path": "docs/recovery/a079-recovery-runbook.md", "gitBlob": "6c27332fe74f661ce7ce9552d4e37753ab973857", "note": "Pre-edit runbook blob at SOURCE pin 7900 tree object; Phase 1C artifact edits on cq branch are separate from that dated inventory pin. Current ROOT backup branch may carry later slices (e.g. A089 test) — this inventory deliberately pins dated 7900, not forever-current HEAD." },
         { "path": "scripts/recovery-manifest-check.mjs", "gitBlob": "c42ca24c49fa73a8b9ca7b505550c9e0b4002128" },
         { "path": "scripts/recovery-manifest-check.test.mjs", "gitBlob": "5f6180845afdf59596658be899689865443dd4c8" }
       ]
@@ -141,7 +151,8 @@
         "docs/recovery/phase1a-source-coverage-20261029.json",
         "docs/recovery/phase1a-source-coverage-handoff-20261029.md"
       ],
-      "byteIdentityTo60970ff": "verified_in_phase1c_verification_record"
+      "byteIdentityTo60970ff": "verified_in_phase1c_verification_record",
+      "onCurrentCqBranchAtAd4": "Both paths byte-identical to git show 60970ff; bytes not lost on this branch; separate from local/remote ref reachability for object 60970ff"
     }
   },
   "coveredCategories": {

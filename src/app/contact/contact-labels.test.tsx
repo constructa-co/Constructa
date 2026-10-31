@@ -1,7 +1,14 @@
 import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ContactPage, { metadata } from "./page";
+
+beforeEach(() => {
+    vi.stubEnv("NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE", "full");
+});
+afterEach(() => {
+    vi.unstubAllEnvs();
+});
 
 type Element = ReactElement<Record<string, unknown>>;
 function nodes(value: unknown): Element[] {
@@ -82,7 +89,7 @@ describe("actual contact route metadata", () => {
     it("exports named Contact | Constructa metadata from the page module", () => {
         expect(metadata).toEqual({
             title: "Contact | Constructa",
-            description: "If you've got a question, suggestion, or want early access—we'd love to hear from you.",
+            description: "Contact the Constructa team.",
         });
     });
 });

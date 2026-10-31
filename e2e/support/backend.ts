@@ -32,6 +32,18 @@ export async function syntheticUserExists(userId: string, email: string): Promis
     return !error && data.user?.email?.toLowerCase() === email.toLowerCase();
 }
 
+/** The setup answers saved for a synthetic account. */
+export async function savedSetup(userId: string, email: string): Promise<{ companyName: string | null; businessType: string | null; fullName: string | null }> {
+    assertSynthetic(email);
+    const { data, error } = await admin(readE2EEnv())
+        .from("profiles")
+        .select("company_name, business_type, full_name")
+        .eq("id", userId)
+        .maybeSingle();
+    if (error) throw new Error(`Could not read the profile: ${error.message}`);
+    return { companyName: data?.company_name ?? null, businessType: data?.business_type ?? null, fullName: data?.full_name ?? null };
+}
+
 export interface PublicationRecord {
     version: number;
     status: string;

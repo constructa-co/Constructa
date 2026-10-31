@@ -7,19 +7,30 @@
  */
 
 export const NEW_PROJECT_PATH = "/dashboard/projects/new";
+export const PROFILE_PATH = "/dashboard/settings/profile";
+export const CASE_STUDIES_PATH = "/dashboard/settings/case-studies";
+/** Under the profile route, so every launch profile that has Profile has this. */
+export const PROPOSAL_READINESS_PATH = "/dashboard/settings/profile/readiness";
 
 // ── Short setup ──────────────────────────────────────────────────────────────
 
 /**
- * Trade is asked first and the business name last. Access to the dashboard
- * opens once a business name is saved, so saving it last means a contractor
- * who stops halfway comes back to the question they had reached.
+ * The kind of work is asked first and the business name last. Access to the
+ * dashboard opens once a business name is saved, so saving it last means a
+ * contractor who stops halfway comes back to the question they had reached.
+ *
+ * The first step keeps the key "trade" and still saves to
+ * `profiles.business_type`, but the answer is the contractor's own words.
  */
 export type SetupStep = "trade" | "business";
 
 export const SETUP_STEPS: readonly SetupStep[] = ["trade", "business"];
 
-export const SETUP_TRADES: readonly string[] = [
+/**
+ * Optional shortcuts beside the free-text answer. Tapping one adds it to the
+ * answer; none of them has to be used.
+ */
+export const SETUP_WORK_SUGGESTIONS: readonly string[] = [
     "General Builder / Extensions",
     "Plumbing & Heating",
     "Electrical",
@@ -48,6 +59,30 @@ export interface SetupProfileSnapshot {
 
 const clean = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
 
+/** One line of text: line breaks and runs of spaces become single spaces. */
+const singleLine = (value: unknown): string => clean(value).replace(/\s+/g, " ");
+
+const workParts = (answer: string): string[] =>
+    answer.split(",").map((part) => part.trim()).filter(Boolean);
+
+export function hasWorkSuggestion(answer: string, suggestion: string): boolean {
+    return workParts(answer).some((part) => part.toLowerCase() === suggestion.toLowerCase());
+}
+
+/**
+ * Adds a suggestion to the answer, or takes it back out if it is already
+ * there. Whatever else the contractor typed is kept. A suggestion that would
+ * take the answer past the limit is not added.
+ */
+export function toggleWorkSuggestion(answer: string, suggestion: string): string {
+    const parts = workParts(answer);
+    if (hasWorkSuggestion(answer, suggestion)) {
+        return parts.filter((part) => part.toLowerCase() !== suggestion.toLowerCase()).join(", ");
+    }
+    const next = [...parts, suggestion].join(", ");
+    return next.length > SETUP_LIMITS.businessType ? answer : next;
+}
+
 /** First question the contractor has not answered yet. */
 export function resolveSetupStep(profile: SetupProfileSnapshot | null | undefined): SetupStep {
     return clean(profile?.business_type) ? "business" : "trade";
@@ -70,10 +105,10 @@ export function buildSetupPatch(input: unknown): SetupPatchResult {
     const raw = (input && typeof input === "object" ? input : {}) as Record<string, unknown>;
 
     if (raw.step === "trade") {
-        const businessType = clean(raw.businessType);
-        if (!businessType) return { ok: false, error: "Choose the trade that best describes your work." };
+        const businessType = singleLine(raw.businessType);
+        if (!businessType) return { ok: false, error: "Tell us what kind of work your business does." };
         if (businessType.length > SETUP_LIMITS.businessType) {
-            return { ok: false, error: "That trade description is too long. Please shorten it." };
+            return { ok: false, error: `That's a bit long. Please keep it under ${SETUP_LIMITS.businessType} characters.` };
         }
         return { ok: true, step: "trade", patch: { business_type: businessType } };
     }
@@ -108,9 +143,12 @@ export function shouldSendWelcomeEmail(args: {
     return args.step === "business" && args.companyNameClaimedNow && args.hasEmail;
 }
 
-/** A contractor with no projects goes straight to their first one. */
+/**
+ * A contractor with no projects lands on proposal readiness, where the first
+ * project is one tap away and the rest of the company profile is optional.
+ */
 export function resolvePostSetupPath(projectCount: number, landingPath: string): string {
-    return projectCount > 0 ? landingPath : NEW_PROJECT_PATH;
+    return projectCount > 0 ? landingPath : PROPOSAL_READINESS_PATH;
 }
 
 // ── Save state shown beside a setup step ─────────────────────────────────────

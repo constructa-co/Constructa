@@ -1,11 +1,12 @@
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { expect, test, type BrowserContext, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { publicationRecords, syntheticUserExists } from "./support/backend";
 import { luminance } from "./support/checks";
 import { keyboardDriver, pointerDriver, type Driver, type FocusRecord } from "./support/driver";
 import { APPROVED_DISPOSABLE_PROJECT, SYNTHETIC_EMAIL_DOMAIN, readE2EEnv } from "./support/env";
 import { AI_MARKER, COMPANY, JOB, PAYMENT_STAGES, PRICE, STAGES, expectedPrice, expectedProgramme } from "./support/journey-data";
+import { failNextServerAction, guardNetwork, stubControl, stubLog } from "./support/harness";
 import { EVIDENCE_DIR, Recorder } from "./support/recorder";
 
 const env = readE2EEnv();
@@ -40,49 +41,11 @@ const RESPONSE = {
 /** Nothing on the Phase 1 path may offer the client a binding acceptance. */
 const BINDING_ACCEPTANCE_CONTROL = /^(accept|accept (the |this )?proposal|i accept|sign and accept|agree and sign)/i;
 
-/**
- * Lets the page reach only the application under test and the approved
- * disposable project. Anything else is stopped and recorded, so a run can
- * never talk to production from the browser.
- */
-async function guardNetwork(context: BrowserContext, blocked: Set<string>) {
-    const allowed = new Set([new URL(env.baseUrl).host, new URL(env.supabaseUrl).host]);
-    await context.route(
-        (url) => /^https?:$/.test(url.protocol) && !allowed.has(url.host),
-        async (route) => {
-            blocked.add(new URL(route.request().url()).host);
-            await route.abort();
-        },
-    );
-}
-
-/** Drops the connection for the next server action only, as a lost network would. */
-async function failNextServerAction(page: Page) {
-    let failed = false;
-    await page.route("**/*", async (route) => {
-        const request = route.request();
-        if (!failed && request.method() === "POST" && request.headers()["next-action"]) {
-            failed = true;
-            await route.abort("connectionfailed");
-            return;
-        }
-        await route.fallback();
-    });
-}
-
 async function pdfText(file: string): Promise<{ pages: number; text: string }> {
     const { extractText, getDocumentProxy } = await import("unpdf");
     const pdf = await getDocumentProxy(new Uint8Array(readFileSync(file)));
     const { totalPages, text } = await extractText(pdf, { mergePages: true });
     return { pages: totalPages, text: text.replace(/\s+/g, " ") };
-}
-
-async function stubControl(body: Record<string, unknown>) {
-    await fetch(`${env.stubUrl}/__control`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-}
-
-async function stubLog(): Promise<{ ai: unknown[]; emails: Array<{ to: string[]; subject: string; delivered: boolean }>; violations: unknown[] }> {
-    return (await fetch(`${env.stubUrl}/__log`)).json();
 }
 
 test("Phase 1 journey: sign up to a recorded client response", async ({ page, context, browser, viewport, hasTouch, isMobile, deviceScaleFactor, locale, timezoneId }, testInfo) => {
@@ -169,19 +132,25 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
 
         // ── 2. Company setup ─────────────────────────────────────────────────
         await test.step("short company setup", async () => {
-            recorder.step("company setup: trade, then business name");
+            recorder.step("company setup: the work in the contractor's words, then business name");
             await expect(page.getByText("Step 1 of 2")).toBeVisible();
             await use.activate(button("Save and continue"));
             await expect(page.getByRole("alert").filter({ hasText: /\S/ })).toBeVisible();
             await recorder.checkpoint("setup-trade-needed", { scope: "form", capture: false });
 
-            await use.activate(button(COMPANY.trade));
+            await use.fill(page.getByRole("textbox", { name: "What kind of work does your business do?" }), COMPANY.trade);
             await use.activate(button(/Save and continue|Try again/));
             await expect(page.getByText("Step 2 of 2")).toBeVisible();
             await use.fill(page.getByLabel("Business or trading name"), COMPANY.name);
             await use.fill(page.getByLabel(/Your name/), COMPANY.owner);
             await recorder.checkpoint("setup-business", { scope: "form" });
-            await use.activate(button("Save and add your first job"));
+            await use.activate(button("Save and continue"));
+
+            // Setup lands on proposal readiness; the first project is one step on.
+            await expect(page).toHaveURL(/\/dashboard\/settings\/profile\/readiness$/);
+            await expect(main.getByRole("heading", { level: 1, name: COMPANY.name })).toBeVisible();
+            await recorder.checkpoint("setup-readiness", { scope: "main main", capture: false });
+            await use.activate(main.getByRole("link", { name: "Create first project" }));
             await expect(page).toHaveURL(/\/dashboard\/projects\/new$/);
         });
 

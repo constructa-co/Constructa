@@ -4,13 +4,22 @@ One Playwright journey that takes a synthetic contractor from sign-up to a
 recorded client response, in a real browser, against the production build.
 
 ```
-sign up → sign in → company setup → first blank project → guided brief
+sign up → sign in → company setup → proposal readiness → first blank project → guided brief
 → simple estimate (explicit Preliminaries, risk 7.5%) → programme (three stages)
 → review and send: payment preset, pre-send PDF, acknowledgement
 → anonymous public proposal and PDF
 → client confirms receipt → contractor history and pipeline
 → second version asking for a non-binding intention to proceed
 ```
+
+A second, short spec covers guided activation on its own
+(`activation.spec.ts`): the free-text work answer and its optional
+suggestions, a dropped connection and retry on both setup steps, Back, the
+single welcome email, proposal readiness with both of its actions, and a
+contractor who is already set up coming back to change an answer. It runs
+under the same guards and in the same commands, uses 1280×800 for the
+`desktop` project, and in evidence mode writes to
+`docs/evidence/stage2-tranche-2g/`.
 
 ## Where it runs, and where it cannot
 

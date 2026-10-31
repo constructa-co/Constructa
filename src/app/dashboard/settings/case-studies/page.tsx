@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { PROPOSAL_READINESS_PATH } from "@/lib/first-session";
 import CaseStudiesClient from "./case-studies-client";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +25,9 @@ export default async function CaseStudiesPage() {
                 <p className="text-sm text-slate-500 mt-1">
                     Showcase your past projects. These appear in proposal PDFs to build client confidence.
                 </p>
+                <Link href={PROPOSAL_READINESS_PATH} className="mt-2 inline-flex items-center min-h-11 text-sm font-semibold text-blue-400 hover:text-blue-300">
+                    See what your proposals can use so far
+                </Link>
             </div>
             <CaseStudiesClient
                 initialCaseStudies={profile?.case_studies || []}

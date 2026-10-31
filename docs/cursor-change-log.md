@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-10-31 — CQ-2210 issuer steps checklist (Cursor; Rob21:44)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| `docs/reviews/cq-2210-issuer-steps.md` | New public-safe numbered checklist (~lines 1–95): PASS header, Perplexity issuer key vs proxy grant, Supabase PAT vs project API keys, human dashboard revoke/replace steps, consumer identification, no probe/list-as-proof | A105/A106 operator steps only; not revocation evidence; uncommitted for runner |
+| `docs/cursor-change-log.md` | This entry | Log Cursor doc delivery per project rule |
+
 ## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
 
 | Paths | Change | Intent |

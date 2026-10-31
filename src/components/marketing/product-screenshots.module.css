@@ -2,6 +2,7 @@ section.screenshots { padding-top: 0; }
 .qualification { max-width: 1280px; margin: 0 0 32px; padding: 20px 24px; border: 1px dashed #526455; border-radius: 10px; color: #c0cdc3; font-size: 15px; line-height: 1.7; }
 .figures { display: grid; gap: 48px; }
 .figure { min-width: 0; max-width: 1280px; margin: 0; }
+.figure picture { display: block; }
 .figure img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; }
 .figure figcaption { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; padding-top: 20px; }
 .figure figcaption > div { min-width: 0; }

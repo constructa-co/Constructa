@@ -1,14 +1,17 @@
 /// <reference types="next/image-types/global" />
-import Image from 'next/image';
+import { getImageProps } from 'next/image';
 import estimateCapture from '../../../docs/evidence/stage2-tranche-2c/18b-estimate-price-adjustments-preview-1280x800.jpg';
+import estimatePhoneCapture from '../../../docs/evidence/stage2-tranche-2c/18b-estimate-price-adjustments-preview-390x844.jpg';
 import programmeCapture from '../../../docs/evidence/stage2-tranche-2d/04-programme-four-stages-editor-1280x800.jpg';
+import programmePhoneCapture from '../../../docs/evidence/stage2-tranche-2d/04-programme-four-stages-editor-390x844.jpg';
 import ui from './phase-one.module.css';
 import shots from './product-screenshots.module.css';
 
 const captures = [
   {
     src: estimateCapture,
-    alt: 'Earlier Constructa estimating screen from a synthetic example job. It has percentage fields for risk, profit and discount, a field for the discount reason, a note reading Not saved yet with a preview of the total before VAT, and a blue Save adjustments button.',
+    phoneSrc: estimatePhoneCapture,
+    alt: 'Earlier Constructa estimating screen from a synthetic example job. It shows percentage fields for profit and discount, a field for the discount reason, a note reading Not saved yet with a preview of the total before VAT, and a blue Save adjustments button.',
     title: 'Price adjustments, before you save',
     description: 'Enter risk, profit and discount percentages and preview the total before saving. The note marks the new total as not saved yet.',
     sample: 'All figures belong to a synthetic bathroom refit. They are not prices, typical margins or a quote.',
@@ -17,7 +20,8 @@ const captures = [
   },
   {
     src: programmeCapture,
-    alt: 'Earlier Constructa programme screen from a synthetic example job. It lists four optional stages named Strip out, First fix and boarding, Tiling, and Second fix and finish, each with a length and controls to reorder or remove it, above an Add a stage button.',
+    phoneSrc: programmePhoneCapture,
+    alt: 'Earlier Constructa programme screen from a synthetic example job. It shows optional stages in order, starting with Strip out and First fix and boarding, with a length for each stage and controls to reorder or remove them.',
     title: 'Optional programme stages',
     description: 'Break a job into stages in your own words, give each one a length and change their order. Stages are optional.',
     sample: 'The stage names and lengths are synthetic entries. They are not a standard programme or a promise of how long any job takes.',
@@ -25,6 +29,18 @@ const captures = [
     capturedLabel: '4 October 2026',
   },
 ] as const;
+
+function CapturePicture({ capture }: { capture: (typeof captures)[number] }) {
+  const { alt, src, phoneSrc } = capture;
+  const { props: { srcSet: phoneSrcSet } } = getImageProps({ src: phoneSrc, alt, width: 780, height: 1688, sizes: '88vw' });
+  const { props: desktop } = getImageProps({ src, alt, width: 1280, height: 800, sizes: '(max-width: 1422px) 100vw, 1280px' });
+  return (
+    <picture>
+      <source media="(max-width: 600px)" srcSet={phoneSrcSet} sizes="88vw" width={780} height={1688} />
+      <img {...desktop} alt={alt} />
+    </picture>
+  );
+}
 
 export function ProductScreenshots() {
   return (
@@ -42,7 +58,7 @@ export function ProductScreenshots() {
       <div className={shots.figures}>
         {captures.map(capture => (
           <figure key={capture.capturedOn} className={shots.figure}>
-            <Image src={capture.src} alt={capture.alt} width={1280} height={800} sizes="(max-width: 1422px) 100vw, 1280px" />
+            <CapturePicture capture={capture} />
             <figcaption>
               <div>
                 <h3>{capture.title}</h3>

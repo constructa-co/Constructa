@@ -19,8 +19,12 @@ const source = (name: string) => readFileSync(new URL(name, import.meta.url), 'u
 const html = () => renderToStaticMarkup(<ProductScreenshots />);
 const assets = [
   ['docs/evidence/stage2-tranche-2c/18b-estimate-price-adjustments-preview-1280x800.jpg', '2c3e96d85808740883ce037d7f643b6fedd1edf0'],
+  ['docs/evidence/stage2-tranche-2c/18b-estimate-price-adjustments-preview-390x844.jpg', '9cba27990d62f67bc5dc713f35e4f419f27be981'],
   ['docs/evidence/stage2-tranche-2d/04-programme-four-stages-editor-1280x800.jpg', 'bf1fdf6646344a6aaf50806bc851439e13c462c9'],
+  ['docs/evidence/stage2-tranche-2d/04-programme-four-stages-editor-390x844.jpg', 'be2f5de8c244c25268e67cfb2ce8f9ee638ff273'],
 ] as const;
+const pictures = () => html().match(/<picture>[\s\S]*?<\/picture>/g) ?? [];
+const srcset = (tag: string) => decodeURIComponent(tag.match(/srcset="([^"]+)"/i)?.[1] ?? '');
 
 describe('phase-one product screenshots', () => {
   it('sits on the features view after the review guide and before the scope, exactly once', () => {
@@ -55,6 +59,39 @@ describe('phase-one product screenshots', () => {
     }
     expect(images[0]).toContain('Save adjustments');
     expect(images[1]).toContain('Strip out');
+  });
+
+  it('swaps each figure to its own phone capture through a declarative narrow source', () => {
+    const pairs = [
+      ['18b-estimate-price-adjustments-preview-390x844.jpg', '18b-estimate-price-adjustments-preview-1280x800.jpg'],
+      ['04-programme-four-stages-editor-390x844.jpg', '04-programme-four-stages-editor-1280x800.jpg'],
+    ];
+    expect(pictures()).toHaveLength(2);
+    pictures().forEach((picture, index) => {
+      const [phone, desktop] = pairs[index];
+      const sources = picture.match(/<source\b[^>]*>/g) ?? [];
+      const image = picture.match(/<img\b[^>]*>/)?.[0] ?? '';
+      expect(sources).toHaveLength(1);
+      expect(picture.indexOf('<source')).toBeLessThan(picture.indexOf('<img'));
+      expect(sources[0]).toContain('media="(max-width: 600px)"');
+      expect(sources[0]).toContain('sizes="88vw"');
+      expect(sources[0]).toContain('width="780"');
+      expect(sources[0]).toContain('height="1688"');
+      expect(srcset(sources[0])).toContain(phone);
+      expect(srcset(sources[0])).not.toContain(desktop);
+      expect(srcset(image)).toContain(desktop);
+      expect(srcset(image)).not.toContain(phone);
+      expect(image).toContain('loading="lazy"');
+    });
+  });
+
+  it('keeps alt text true of both the desktop and the shorter phone view', () => {
+    const alts = (html().match(/<img\b[^>]*>/g) ?? []).map(image => image.match(/alt="([^"]+)"/)?.[1] ?? '');
+    expect(alts).toHaveLength(2);
+    expect(alts[0]).toContain('profit and discount');
+    expect(alts[0]).not.toMatch(/\brisk\b/i);
+    expect(alts[1]).toContain('Strip out and First fix and boarding');
+    expect(alts[1]).not.toMatch(/\bfour\b|Tiling|Second fix|Add a stage/i);
   });
 
   it('states the section qualification in visible text', () => {

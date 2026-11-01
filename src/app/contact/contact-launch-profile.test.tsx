@@ -1,8 +1,15 @@
-import type { ReactElement } from "react";
+import React, { type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PhaseOneContact } from "@/components/marketing/cohort-contact";
+import PublicChrome from "@/components/public-chrome";
 import ContactPage, { metadata } from "./page";
+
+const route = vi.hoisted(() => ({ pathname: "/contact" }));
+vi.mock("next/navigation", () => ({
+    usePathname: () => route.pathname,
+    useRouter: () => ({}),
+}));
 
 type Element = ReactElement<Record<string, unknown>>;
 function nodes(value: unknown): Element[] {
@@ -35,6 +42,21 @@ describe("contact route under the default cohort profile", () => {
     });
     afterEach(() => {
         vi.unstubAllEnvs();
+    });
+
+    it("exposes exactly one main landmark when composed with PublicChrome", () => {
+        route.pathname = "/contact";
+        const markup = renderToStaticMarkup(<PublicChrome>{render()}</PublicChrome>);
+        expect((markup.match(/<main\b/g) ?? []).length).toBe(1);
+        const mainOpen = markup.indexOf("<main");
+        const mainClose = markup.lastIndexOf("</main>");
+        const mainContent = markup.slice(mainOpen, mainClose);
+        expect(mainContent).toMatch(/<h1[\s>]/);
+        expect(mainContent).toContain('href="mailto:hello@constructa.co"');
+        expect(markup).not.toContain("<form");
+        expect(markup).not.toContain("formspree");
+        expect(markup).not.toContain("action=");
+        expect(markup).not.toContain("method=");
     });
 
     it("renders a mailto contact with no form and no external POST", () => {

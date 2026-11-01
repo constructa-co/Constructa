@@ -324,3 +324,7 @@
 ## ROB0650 marketing visual + About preview — prep 1 November 2026
 
 - Parent **1f3703e**. Six frozen paths per Erdos **rob0648** SCOPED_NNF (visual **4a596d** incl. partial **408** history; About **9e3ed**). ROOT vitest **40/40** three files, ESLint five TSX **0**, tsc **0** on Node24; logs **rob0650-marketing-root-***. All118 statuses unchanged **82C17P18N1B**; timestamp only. Nine candidates; **rob0700** check null readbacks; build helper pregraded not run. STOP before commit/build.
+
+## ROB0825 estimate storage + Customers preview — prep 1 November 2026
+
+- Parent **adbe860**. Four frozen paths per **rob0824** SCOPED_NNF (**rob0820**/**rob0822** pins). ROOT vitest **22/22** three files, ESLint four TSX **0** (2 warnings retained), tsc **0** Node24; logs **rob0825-source-root-***. Claude monthly FAIL/worker checker limits retained. All118 unchanged **82C17P18N1B**; timestamp only. Seven candidates; **rob0900** check null readbacks; **rob0818** helpers not run; rob2119 slot only. STOP before build/commit.

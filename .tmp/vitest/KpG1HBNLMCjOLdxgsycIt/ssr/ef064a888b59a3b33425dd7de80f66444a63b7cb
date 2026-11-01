@@ -1,0 +1,21 @@
+__vite_ssr_exportName__("CASE_LIBRARY_VARIABLE", () => { try { return CASE_LIBRARY_VARIABLE } catch {} });
+__vite_ssr_exportName__("caseLibraryEnabled", () => { try { return caseLibraryEnabled } catch {} });
+/**
+* The one switch for the case-study library. Read on the server only.
+*
+* Off (the default): no library page, action or read exists as far as a
+* contractor can tell, and every existing screen behaves as before. It is a
+* rollout gate. It is not a secret and it is not a product setting.
+*
+* One thing ignores it on purpose: a proposal's saved ticks are always
+* resolved through the shared resolver, so a library tick can never be
+* dropped quietly because the switch was turned off. See `resolve.ts`.
+*/
+const CASE_LIBRARY_VARIABLE = "CONSTRUCTA_CASE_LIBRARY";
+function caseLibraryEnabled(source = process.env) {
+	return source[CASE_LIBRARY_VARIABLE] === "1";
+}
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTs7Ozs7Ozs7Ozs7OztBQVdPLE1BQU0sd0JBQXdCO0FBRTlCLFNBQVMsbUJBQW1CLFNBQTZDLFFBQVEsS0FBYztDQUNsRyxPQUFPLE9BQU8sMkJBQTJCO0FBQzdDIiwibmFtZXMiOltdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJnYXRlLnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogVGhlIG9uZSBzd2l0Y2ggZm9yIHRoZSBjYXNlLXN0dWR5IGxpYnJhcnkuIFJlYWQgb24gdGhlIHNlcnZlciBvbmx5LlxuICpcbiAqIE9mZiAodGhlIGRlZmF1bHQpOiBubyBsaWJyYXJ5IHBhZ2UsIGFjdGlvbiBvciByZWFkIGV4aXN0cyBhcyBmYXIgYXMgYVxuICogY29udHJhY3RvciBjYW4gdGVsbCwgYW5kIGV2ZXJ5IGV4aXN0aW5nIHNjcmVlbiBiZWhhdmVzIGFzIGJlZm9yZS4gSXQgaXMgYVxuICogcm9sbG91dCBnYXRlLiBJdCBpcyBub3QgYSBzZWNyZXQgYW5kIGl0IGlzIG5vdCBhIHByb2R1Y3Qgc2V0dGluZy5cbiAqXG4gKiBPbmUgdGhpbmcgaWdub3JlcyBpdCBvbiBwdXJwb3NlOiBhIHByb3Bvc2FsJ3Mgc2F2ZWQgdGlja3MgYXJlIGFsd2F5c1xuICogcmVzb2x2ZWQgdGhyb3VnaCB0aGUgc2hhcmVkIHJlc29sdmVyLCBzbyBhIGxpYnJhcnkgdGljayBjYW4gbmV2ZXIgYmVcbiAqIGRyb3BwZWQgcXVpZXRseSBiZWNhdXNlIHRoZSBzd2l0Y2ggd2FzIHR1cm5lZCBvZmYuIFNlZSBgcmVzb2x2ZS50c2AuXG4gKi9cbmV4cG9ydCBjb25zdCBDQVNFX0xJQlJBUllfVkFSSUFCTEUgPSBcIkNPTlNUUlVDVEFfQ0FTRV9MSUJSQVJZXCI7XG5cbmV4cG9ydCBmdW5jdGlvbiBjYXNlTGlicmFyeUVuYWJsZWQoc291cmNlOiBSZWNvcmQ8c3RyaW5nLCBzdHJpbmcgfCB1bmRlZmluZWQ+ID0gcHJvY2Vzcy5lbnYpOiBib29sZWFuIHtcbiAgICByZXR1cm4gc291cmNlW0NBU0VfTElCUkFSWV9WQVJJQUJMRV0gPT09IFwiMVwiO1xufVxuIl0sImZpbGUiOiIvc3JjL2xpYi9jYXNlLWxpYnJhcnkvZ2F0ZS50cyJ9
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZSwiZGVwcyI6IjQiLCJkeW5hbWljRGVwcyI6IjUiLCJzdGF0aWNNb2NrcyI6bnVsbH0sIi9Vc2Vycy9yb2JlcnRzbWl0aC9kZXYvY29uc3RydWN0YS1mcmVzaC0yMDI2MTAyNS8uY3Etd3QvY3EtMDQzMi1hMDkxLWVycm9yLXJlY292ZXJ5L3NyYy9saWIvY2FzZS1saWJyYXJ5L2dhdGUudHMiLCIvc3JjL2xpYi9jYXNlLWxpYnJhcnkvZ2F0ZS50cyIsW10sW10sW11d

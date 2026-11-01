@@ -1,0 +1,28 @@
+__vite_ssr_exportName__("pricingFullScopeDraft", () => { try { return pricingFullScopeDraft } catch {} });
+__vite_ssr_exportName__("sameFullScopeSource", () => { try { return sameFullScopeSource } catch {} });
+__vite_ssr_exportName__("pricingFullScopeError", () => { try { return pricingFullScopeError } catch {} });
+const __vite_ssr_import_0__ = await __vite_ssr_import__("/src/lib/proposal-review.ts", {"importedNames":["draftFromProject","TEXT_LIMITS"]});
+const __vite_ssr_import_1__ = await __vite_ssr_import__("/src/lib/guided-brief.ts", {"importedNames":["splitScope"]});
+
+
+function pricingFullScopeDraft(source) {
+	return (0,__vite_ssr_import_0__.draftFromProject)({
+		id: "pricing",
+		name: "",
+		...source
+	}, () => "unused").scope;
+};
+function sameFullScopeSource(a, b) {
+	return a.scope_text === b.scope_text && a.brief_scope === b.brief_scope;
+};
+function pricingFullScopeError(source, scope) {
+	if (scope.length > __vite_ssr_import_0__.TEXT_LIMITS.scope) return "Keep the scope to 20,000 characters or fewer. Nothing has been shortened.";
+	if (!scope.trim() && (0,__vite_ssr_import_1__.splitScope)(source.brief_scope ?? "").work.trim()) {
+		return "The saved brief's work would reappear in the proposal if scope were blank. Review the brief before clearing scope; the brief has not been changed here.";
+	};
+	return null;
+}
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTs7O0FBQUE7QUFDQTs7O0FBSU8sU0FBUyxzQkFBc0IsUUFBd0M7Q0FDMUUsT0FBTywyQ0FBaUI7RUFBRSxJQUFJO0VBQVcsTUFBTTtFQUFJLEdBQUc7Q0FBTyxTQUFTLFFBQVEsQ0FBQyxDQUFDO0FBQ3BGO0FBRU8sU0FBUyxvQkFBb0IsR0FBMkIsR0FBb0M7Q0FDL0YsT0FBTyxFQUFFLGVBQWUsRUFBRSxjQUFjLEVBQUUsZ0JBQWdCLEVBQUU7QUFDaEU7QUFFTyxTQUFTLHNCQUFzQixRQUFnQyxPQUE4QjtDQUNoRyxJQUFJLE1BQU0sU0FBUyxrQ0FBWSxPQUFPLE9BQU87Q0FDN0MsSUFBSSxDQUFDLE1BQU0sS0FBSyxLQUFLLHFDQUFXLE9BQU8sZUFBZSxFQUFFLENBQUMsQ0FBQyxLQUFLLEtBQUssR0FBRztFQUNuRSxPQUFPO0NBQ1g7Q0FDQSxPQUFPO0FBQ1giLCJuYW1lcyI6W10sImlnbm9yZUxpc3QiOltdLCJzb3VyY2VzIjpbInByaWNpbmctZnVsbC1zY29wZS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBkcmFmdEZyb21Qcm9qZWN0LCBURVhUX0xJTUlUUyB9IGZyb20gXCIuL3Byb3Bvc2FsLXJldmlld1wiO1xuaW1wb3J0IHsgc3BsaXRTY29wZSB9IGZyb20gXCIuL2d1aWRlZC1icmllZlwiO1xuXG5leHBvcnQgdHlwZSBQcmljaW5nRnVsbFNjb3BlU291cmNlID0geyBzY29wZV90ZXh0OiBzdHJpbmcgfCBudWxsOyBicmllZl9zY29wZTogc3RyaW5nIHwgbnVsbCB9O1xuXG5leHBvcnQgZnVuY3Rpb24gcHJpY2luZ0Z1bGxTY29wZURyYWZ0KHNvdXJjZTogUHJpY2luZ0Z1bGxTY29wZVNvdXJjZSk6IHN0cmluZyB7XG4gICAgcmV0dXJuIGRyYWZ0RnJvbVByb2plY3QoeyBpZDogXCJwcmljaW5nXCIsIG5hbWU6IFwiXCIsIC4uLnNvdXJjZSB9LCAoKSA9PiBcInVudXNlZFwiKS5zY29wZTtcbn1cblxuZXhwb3J0IGZ1bmN0aW9uIHNhbWVGdWxsU2NvcGVTb3VyY2UoYTogUHJpY2luZ0Z1bGxTY29wZVNvdXJjZSwgYjogUHJpY2luZ0Z1bGxTY29wZVNvdXJjZSk6IGJvb2xlYW4ge1xuICAgIHJldHVybiBhLnNjb3BlX3RleHQgPT09IGIuc2NvcGVfdGV4dCAmJiBhLmJyaWVmX3Njb3BlID09PSBiLmJyaWVmX3Njb3BlO1xufVxuXG5leHBvcnQgZnVuY3Rpb24gcHJpY2luZ0Z1bGxTY29wZUVycm9yKHNvdXJjZTogUHJpY2luZ0Z1bGxTY29wZVNvdXJjZSwgc2NvcGU6IHN0cmluZyk6IHN0cmluZyB8IG51bGwge1xuICAgIGlmIChzY29wZS5sZW5ndGggPiBURVhUX0xJTUlUUy5zY29wZSkgcmV0dXJuIFwiS2VlcCB0aGUgc2NvcGUgdG8gMjAsMDAwIGNoYXJhY3RlcnMgb3IgZmV3ZXIuIE5vdGhpbmcgaGFzIGJlZW4gc2hvcnRlbmVkLlwiO1xuICAgIGlmICghc2NvcGUudHJpbSgpICYmIHNwbGl0U2NvcGUoc291cmNlLmJyaWVmX3Njb3BlID8/IFwiXCIpLndvcmsudHJpbSgpKSB7XG4gICAgICAgIHJldHVybiBcIlRoZSBzYXZlZCBicmllZidzIHdvcmsgd291bGQgcmVhcHBlYXIgaW4gdGhlIHByb3Bvc2FsIGlmIHNjb3BlIHdlcmUgYmxhbmsuIFJldmlldyB0aGUgYnJpZWYgYmVmb3JlIGNsZWFyaW5nIHNjb3BlOyB0aGUgYnJpZWYgaGFzIG5vdCBiZWVuIGNoYW5nZWQgaGVyZS5cIjtcbiAgICB9XG4gICAgcmV0dXJuIG51bGw7XG59XG4iXSwiZmlsZSI6Ii9zcmMvbGliL3ByaWNpbmctZnVsbC1zY29wZS50cyJ9
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZSwiZGVwcyI6IjQiLCJkeW5hbWljRGVwcyI6IjUiLCJzdGF0aWNNb2NrcyI6bnVsbH0sIi9Vc2Vycy9yb2JlcnRzbWl0aC9kZXYvY29uc3RydWN0YS1mcmVzaC0yMDI2MTAyNS8uY3Etd3QvY3EtMDQzMi1hMDkxLWVycm9yLXJlY292ZXJ5L3NyYy9saWIvcHJpY2luZy1mdWxsLXNjb3BlLnRzIiwiL3NyYy9saWIvcHJpY2luZy1mdWxsLXNjb3BlLnRzIixbXSxbIjYiLCI3Il0sW10sIi9zcmMvbGliL3Byb3Bvc2FsLXJldmlldy50cyIsIi9zcmMvbGliL2d1aWRlZC1icmllZi50cyJd

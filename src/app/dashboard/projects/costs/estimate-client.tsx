@@ -326,7 +326,12 @@ export default function EstimateClient({
     const tabKey = `constructa_tab_${project.id}`;
     useEffect(() => {
         if (defaultTabId) return;
-        const saved = window.sessionStorage.getItem(tabKey);
+        let saved: string | null = null;
+        try {
+            saved = window.sessionStorage.getItem(tabKey);
+        } catch {
+            return;
+        }
         if (saved) store.dispatch({ type: "estimate/select", estimateId: saved });
     }, [defaultTabId, store, tabKey]);
     const selectEstimate = (estimateId: string) => {
@@ -334,7 +339,13 @@ export default function EstimateClient({
         const freshState = store.getState();
         if (freshState.activeEstimateId === estimateId || !freshState.estimates.some(item => item.id === estimateId) || hasOpenEstimateWork(freshState)) return;
         store.dispatch({ type: "estimate/select", estimateId });
-        if (estimateId) window.sessionStorage.setItem(tabKey, estimateId);
+        if (estimateId) {
+            try {
+                window.sessionStorage.setItem(tabKey, estimateId);
+            } catch {
+                // Optional tab preference only; in-memory selection already applied.
+            }
+        }
     };
 
     const reuseView = useRef({ project, active: true });

@@ -1,0 +1,20 @@
+__vite_ssr_exportName__("newClientId", () => { try { return newClientId } catch {} });
+/**
+* A v4 UUID made in the browser. Used as an idempotency key: the same id is
+* sent again when a save is retried, so a retry cannot create a second row.
+*
+* `crypto.randomUUID` only exists on secure origins; plain-HTTP previews fall
+* back to `getRandomValues`, which is available everywhere.
+*/
+function newClientId() {
+	if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+	const bytes = crypto.getRandomValues(new Uint8Array(16));
+	bytes[6] = bytes[6] & 15 | 64;
+	bytes[8] = bytes[8] & 63 | 128;
+	const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+	return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTs7Ozs7Ozs7QUFPTyxTQUFTLGNBQXNCO0NBQ2xDLElBQUksT0FBTyxPQUFPLGVBQWUsWUFBWSxPQUFPLE9BQU8sV0FBVztDQUV0RSxNQUFNLFFBQVEsT0FBTyxnQkFBZ0IsSUFBSSxXQUFXLEVBQUUsQ0FBQztDQUN2RCxNQUFNLEtBQU0sTUFBTSxLQUFLLEtBQVE7Q0FDL0IsTUFBTSxLQUFNLE1BQU0sS0FBSyxLQUFRO0NBQy9CLE1BQU0sTUFBTSxNQUFNLEtBQUssUUFBUSxNQUFNLEVBQUUsU0FBUyxFQUFFLENBQUMsQ0FBQyxTQUFTLEdBQUcsR0FBRyxDQUFDLENBQUMsQ0FBQyxLQUFLLEVBQUU7Q0FDN0UsT0FBTyxHQUFHLElBQUksTUFBTSxHQUFHLENBQUMsRUFBRSxHQUFHLElBQUksTUFBTSxHQUFHLEVBQUUsRUFBRSxHQUFHLElBQUksTUFBTSxJQUFJLEVBQUUsRUFBRSxHQUFHLElBQUksTUFBTSxJQUFJLEVBQUUsRUFBRSxHQUFHLElBQUksTUFBTSxFQUFFO0FBQzNHIiwibmFtZXMiOltdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJjbGllbnQtaWQudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiBBIHY0IFVVSUQgbWFkZSBpbiB0aGUgYnJvd3Nlci4gVXNlZCBhcyBhbiBpZGVtcG90ZW5jeSBrZXk6IHRoZSBzYW1lIGlkIGlzXG4gKiBzZW50IGFnYWluIHdoZW4gYSBzYXZlIGlzIHJldHJpZWQsIHNvIGEgcmV0cnkgY2Fubm90IGNyZWF0ZSBhIHNlY29uZCByb3cuXG4gKlxuICogYGNyeXB0by5yYW5kb21VVUlEYCBvbmx5IGV4aXN0cyBvbiBzZWN1cmUgb3JpZ2luczsgcGxhaW4tSFRUUCBwcmV2aWV3cyBmYWxsXG4gKiBiYWNrIHRvIGBnZXRSYW5kb21WYWx1ZXNgLCB3aGljaCBpcyBhdmFpbGFibGUgZXZlcnl3aGVyZS5cbiAqL1xuZXhwb3J0IGZ1bmN0aW9uIG5ld0NsaWVudElkKCk6IHN0cmluZyB7XG4gICAgaWYgKHR5cGVvZiBjcnlwdG8ucmFuZG9tVVVJRCA9PT0gXCJmdW5jdGlvblwiKSByZXR1cm4gY3J5cHRvLnJhbmRvbVVVSUQoKTtcblxuICAgIGNvbnN0IGJ5dGVzID0gY3J5cHRvLmdldFJhbmRvbVZhbHVlcyhuZXcgVWludDhBcnJheSgxNikpO1xuICAgIGJ5dGVzWzZdID0gKGJ5dGVzWzZdICYgMHgwZikgfCAweDQwO1xuICAgIGJ5dGVzWzhdID0gKGJ5dGVzWzhdICYgMHgzZikgfCAweDgwO1xuICAgIGNvbnN0IGhleCA9IEFycmF5LmZyb20oYnl0ZXMsIChiKSA9PiBiLnRvU3RyaW5nKDE2KS5wYWRTdGFydCgyLCBcIjBcIikpLmpvaW4oXCJcIik7XG4gICAgcmV0dXJuIGAke2hleC5zbGljZSgwLCA4KX0tJHtoZXguc2xpY2UoOCwgMTIpfS0ke2hleC5zbGljZSgxMiwgMTYpfS0ke2hleC5zbGljZSgxNiwgMjApfS0ke2hleC5zbGljZSgyMCl9YDtcbn1cbiJdLCJmaWxlIjoiL3NyYy9saWIvY2xpZW50LWlkLnRzIn0=
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZSwiZGVwcyI6IjQiLCJkeW5hbWljRGVwcyI6IjUiLCJzdGF0aWNNb2NrcyI6bnVsbH0sIi9Vc2Vycy9yb2JlcnRzbWl0aC9kZXYvY29uc3RydWN0YS1mcmVzaC0yMDI2MTAyNS8uY3Etd3QvY3EtMDQzMi1hMDkxLWVycm9yLXJlY292ZXJ5L3NyYy9saWIvY2xpZW50LWlkLnRzIiwiL3NyYy9saWIvY2xpZW50LWlkLnRzIixbXSxbXSxbXV0=

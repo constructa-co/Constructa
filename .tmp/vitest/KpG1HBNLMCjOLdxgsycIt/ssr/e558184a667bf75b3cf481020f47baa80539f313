@@ -1,0 +1,97 @@
+__vite_ssr_exportName__("default", () => { try { return NewPriceActivity } catch {} });
+const __vite_ssr_import_0__ = await __vite_ssr_import__("/src/lib/simple-estimate.ts", {"importedNames":["MAX_PRICE_ACTIVITY_LENGTH"]});
+const __vite_ssr_import_1__ = await __vite_ssr_import__("/@fs/Users/robertsmith/dev/constructa-fresh-20261025/node_modules/react/jsx-dev-runtime.js", {"importedNames":["jsxDEV"]});
+"use client";
+
+var _jsxFileName = "/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/cq-0432-a091-error-recovery/src/components/new-price-activity.tsx";
+
+function NewPriceActivity({ id, value, names, disabled, error, form, onChange, s }) {
+	return /* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)("details", {
+		className: "mt-3",
+		"data-new-price-activity": true,
+		open: error ? true : undefined,
+		children: [
+			/* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)("summary", {
+				className: `min-h-11 flex items-center cursor-pointer text-sm ${s.body}`,
+				children: [
+					"Activity: ",
+					value.trim() || "General",
+					" (optional)"
+				]
+			}, void 0, true, {
+				fileName: _jsxFileName,
+				lineNumber: 17,
+				columnNumber: 9
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)("label", {
+				htmlFor: id,
+				className: `block mt-2 ${s.label}`,
+				children: "Activity for this new line"
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 18,
+				columnNumber: 9
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)("input", {
+				id,
+				form,
+				list: `${id}-names`,
+				value,
+				disabled,
+				maxLength: __vite_ssr_import_0__.MAX_PRICE_ACTIVITY_LENGTH,
+				"aria-invalid": error ? true : undefined,
+				"aria-describedby": `${id}-help${error ? ` ${id}-error` : ""}`,
+				autoComplete: "off",
+				className: `${s.input} mt-1.5`,
+				placeholder: "General if left blank",
+				onKeyDown: (event) => {
+					if (event.key === "Enter") event.preventDefault();
+				},
+				onChange: (event) => onChange(event.target.value)
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 19,
+				columnNumber: 9
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)("datalist", {
+				id: `${id}-names`,
+				children: names.map((name) => /* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)("option", { value: name }, name, false, {
+					fileName: _jsxFileName,
+					lineNumber: 24,
+					columnNumber: 57
+				}, this))
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 24,
+				columnNumber: 9
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)("p", {
+				id: `${id}-help`,
+				className: `mt-2 text-sm ${s.muted}`,
+				children: "Choose a saved activity or write your own. Blank keeps General. Saved with this line only; the next line starts without an activity choice. Manage Preliminaries in Advanced estimating."
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 25,
+				columnNumber: 9
+			}, this),
+			error && /* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)("p", {
+				id: `${id}-error`,
+				role: "alert",
+				className: `mt-2 text-sm ${s.errorText}`,
+				children: error
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 26,
+				columnNumber: 19
+			}, this)
+		]
+	}, void 0, true, {
+		fileName: _jsxFileName,
+		lineNumber: 16,
+		columnNumber: 12
+	}, this);
+}
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTtBQUVBOztBQUZBOzs7O0FBS2UsU0FBUyxpQkFBaUIsRUFBRSxJQUFJLE9BQU8sT0FBTyxVQUFVLE9BQU8sTUFBTSxVQUFVLEtBUzNGO0NBQ0MsT0FBTyxpREFBQyxXQUFEO0VBQVMsV0FBVTtFQUFPO0VBQXdCLE1BQU0sUUFBUSxPQUFPO1lBQXZFO0dBQ0gsaURBQUMsV0FBRDtJQUFTLFdBQVcscURBQXFELEVBQUU7Y0FBM0U7S0FBbUY7S0FBVyxNQUFNLEtBQUssS0FBSztLQUFVO0lBQW9COzs7Ozs7R0FDNUksaURBQUMsU0FBRDtJQUFPLFNBQVM7SUFBSSxXQUFXLGNBQWMsRUFBRTtjQUFTO0dBQWlDOzs7OztHQUN6RixpREFBQyxTQUFEO0lBQVc7SUFBVTtJQUFNLE1BQU0sR0FBRyxHQUFHO0lBQWdCO0lBQWlCO0lBQVUsV0FBVztJQUN6RixnQkFBYyxRQUFRLE9BQU87SUFBVyxvQkFBa0IsR0FBRyxHQUFHLE9BQU8sUUFBUSxJQUFJLEdBQUcsVUFBVTtJQUNoRyxjQUFhO0lBQU0sV0FBVyxHQUFHLEVBQUUsTUFBTTtJQUFVLGFBQVk7SUFDL0QsWUFBVyxVQUFTO0tBQUUsSUFBSSxNQUFNLFFBQVEsU0FBUyxNQUFNLGVBQWU7SUFBRztJQUN6RSxXQUFVLFVBQVMsU0FBUyxNQUFNLE9BQU8sS0FBSztHQUFJOzs7OztHQUN0RCxpREFBQyxZQUFEO0lBQVUsSUFBSSxHQUFHLEdBQUc7Y0FBVSxNQUFNLEtBQUksU0FBUSxpREFBQyxVQUFELEVBQW1CLE9BQU8sS0FBTyxHQUFwQjs7OztXQUFvQixDQUFDO0dBQVk7Ozs7O0dBQzlGLGlEQUFDLEtBQUQ7SUFBRyxJQUFJLEdBQUcsR0FBRztJQUFRLFdBQVcsZ0JBQWdCLEVBQUU7Y0FBUztHQUEyTDs7Ozs7R0FDclAsU0FBUyxpREFBQyxLQUFEO0lBQUcsSUFBSSxHQUFHLEdBQUc7SUFBUyxNQUFLO0lBQVEsV0FBVyxnQkFBZ0IsRUFBRTtjQUFjO0dBQVM7Ozs7O0VBQzVGOzs7Ozs7QUFDYiIsIm5hbWVzIjpbXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsibmV3LXByaWNlLWFjdGl2aXR5LnRzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJcInVzZSBjbGllbnRcIjtcblxuaW1wb3J0IHsgTUFYX1BSSUNFX0FDVElWSVRZX0xFTkdUSCB9IGZyb20gXCJAL2xpYi9zaW1wbGUtZXN0aW1hdGVcIjtcbmltcG9ydCB0eXBlIHsgV29ya3NwYWNlU3R5bGVzIH0gZnJvbSBcIkAvbGliL3dvcmtzcGFjZS1zdHlsZXNcIjtcblxuZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gTmV3UHJpY2VBY3Rpdml0eSh7IGlkLCB2YWx1ZSwgbmFtZXMsIGRpc2FibGVkLCBlcnJvciwgZm9ybSwgb25DaGFuZ2UsIHMgfToge1xuICAgIGlkOiBzdHJpbmc7XG4gICAgdmFsdWU6IHN0cmluZztcbiAgICBuYW1lczogcmVhZG9ubHkgc3RyaW5nW107XG4gICAgZGlzYWJsZWQ6IGJvb2xlYW47XG4gICAgZXJyb3I/OiBzdHJpbmc7XG4gICAgZm9ybT86IHN0cmluZztcbiAgICBvbkNoYW5nZTogKGFjdGl2aXR5OiBzdHJpbmcpID0+IHZvaWQ7XG4gICAgczogV29ya3NwYWNlU3R5bGVzO1xufSkge1xuICAgIHJldHVybiA8ZGV0YWlscyBjbGFzc05hbWU9XCJtdC0zXCIgZGF0YS1uZXctcHJpY2UtYWN0aXZpdHkgb3Blbj17ZXJyb3IgPyB0cnVlIDogdW5kZWZpbmVkfT5cbiAgICAgICAgPHN1bW1hcnkgY2xhc3NOYW1lPXtgbWluLWgtMTEgZmxleCBpdGVtcy1jZW50ZXIgY3Vyc29yLXBvaW50ZXIgdGV4dC1zbSAke3MuYm9keX1gfT5BY3Rpdml0eToge3ZhbHVlLnRyaW0oKSB8fCBcIkdlbmVyYWxcIn0gKG9wdGlvbmFsKTwvc3VtbWFyeT5cbiAgICAgICAgPGxhYmVsIGh0bWxGb3I9e2lkfSBjbGFzc05hbWU9e2BibG9jayBtdC0yICR7cy5sYWJlbH1gfT5BY3Rpdml0eSBmb3IgdGhpcyBuZXcgbGluZTwvbGFiZWw+XG4gICAgICAgIDxpbnB1dCBpZD17aWR9IGZvcm09e2Zvcm19IGxpc3Q9e2Ake2lkfS1uYW1lc2B9IHZhbHVlPXt2YWx1ZX0gZGlzYWJsZWQ9e2Rpc2FibGVkfSBtYXhMZW5ndGg9e01BWF9QUklDRV9BQ1RJVklUWV9MRU5HVEh9XG4gICAgICAgICAgICBhcmlhLWludmFsaWQ9e2Vycm9yID8gdHJ1ZSA6IHVuZGVmaW5lZH0gYXJpYS1kZXNjcmliZWRieT17YCR7aWR9LWhlbHAke2Vycm9yID8gYCAke2lkfS1lcnJvcmAgOiBcIlwifWB9XG4gICAgICAgICAgICBhdXRvQ29tcGxldGU9XCJvZmZcIiBjbGFzc05hbWU9e2Ake3MuaW5wdXR9IG10LTEuNWB9IHBsYWNlaG9sZGVyPVwiR2VuZXJhbCBpZiBsZWZ0IGJsYW5rXCJcbiAgICAgICAgICAgIG9uS2V5RG93bj17ZXZlbnQgPT4geyBpZiAoZXZlbnQua2V5ID09PSBcIkVudGVyXCIpIGV2ZW50LnByZXZlbnREZWZhdWx0KCk7IH19XG4gICAgICAgICAgICBvbkNoYW5nZT17ZXZlbnQgPT4gb25DaGFuZ2UoZXZlbnQudGFyZ2V0LnZhbHVlKX0gLz5cbiAgICAgICAgPGRhdGFsaXN0IGlkPXtgJHtpZH0tbmFtZXNgfT57bmFtZXMubWFwKG5hbWUgPT4gPG9wdGlvbiBrZXk9e25hbWV9IHZhbHVlPXtuYW1lfSAvPil9PC9kYXRhbGlzdD5cbiAgICAgICAgPHAgaWQ9e2Ake2lkfS1oZWxwYH0gY2xhc3NOYW1lPXtgbXQtMiB0ZXh0LXNtICR7cy5tdXRlZH1gfT5DaG9vc2UgYSBzYXZlZCBhY3Rpdml0eSBvciB3cml0ZSB5b3VyIG93bi4gQmxhbmsga2VlcHMgR2VuZXJhbC4gU2F2ZWQgd2l0aCB0aGlzIGxpbmUgb25seTsgdGhlIG5leHQgbGluZSBzdGFydHMgd2l0aG91dCBhbiBhY3Rpdml0eSBjaG9pY2UuIE1hbmFnZSBQcmVsaW1pbmFyaWVzIGluIEFkdmFuY2VkIGVzdGltYXRpbmcuPC9wPlxuICAgICAgICB7ZXJyb3IgJiYgPHAgaWQ9e2Ake2lkfS1lcnJvcmB9IHJvbGU9XCJhbGVydFwiIGNsYXNzTmFtZT17YG10LTIgdGV4dC1zbSAke3MuZXJyb3JUZXh0fWB9PntlcnJvcn08L3A+fVxuICAgIDwvZGV0YWlscz47XG59XG4iXSwiZmlsZSI6Ii9zcmMvY29tcG9uZW50cy9uZXctcHJpY2UtYWN0aXZpdHkudHN4In0=
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZSwiZGVwcyI6IjQiLCJkeW5hbWljRGVwcyI6IjUiLCJzdGF0aWNNb2NrcyI6bnVsbH0sIi9Vc2Vycy9yb2JlcnRzbWl0aC9kZXYvY29uc3RydWN0YS1mcmVzaC0yMDI2MTAyNS8uY3Etd3QvY3EtMDQzMi1hMDkxLWVycm9yLXJlY292ZXJ5L3NyYy9jb21wb25lbnRzL25ldy1wcmljZS1hY3Rpdml0eS50c3giLCIvc3JjL2NvbXBvbmVudHMvbmV3LXByaWNlLWFjdGl2aXR5LnRzeCIsW10sWyI2IiwiNyJdLFtdLCIvc3JjL2xpYi9zaW1wbGUtZXN0aW1hdGUudHMiLCIvQGZzL1VzZXJzL3JvYmVydHNtaXRoL2Rldi9jb25zdHJ1Y3RhLWZyZXNoLTIwMjYxMDI1L25vZGVfbW9kdWxlcy9yZWFjdC9qc3gtZGV2LXJ1bnRpbWUuanMiXQ==

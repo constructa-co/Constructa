@@ -18,7 +18,7 @@ const navLinks = [
 
 export function PhaseOneContact() {
   return (
-    <main className={`${styles.theme} ${styles.root}`}>
+    <div className={`${styles.theme} ${styles.root}`}>
       <section className={styles.pageIntro}>
         <p className={styles.eyebrow}><span className={styles.dot} aria-hidden="true" /> Contact</p>
         <h1>Talk to the team <em>behind phase one.</em></h1>
@@ -57,6 +57,6 @@ export function PhaseOneContact() {
           </nav>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

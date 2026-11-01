@@ -328,3 +328,7 @@
 ## ROB0825 estimate storage + Customers preview — prep 1 November 2026
 
 - Parent **adbe860**. Four frozen paths per **rob0824** SCOPED_NNF (**rob0820**/**rob0822** pins). ROOT vitest **22/22** three files, ESLint four TSX **0** (2 warnings retained), tsc **0** Node24; logs **rob0825-source-root-***. Claude monthly FAIL/worker checker limits retained. All118 unchanged **82C17P18N1B**; timestamp only. Seven candidates; **rob0900** check null readbacks; **rob0818** helpers not run; rob2119 slot only. STOP before build/commit.
+
+## ROB1910 evening preview-access + contact landmark — prep 1 November 2026
+
+- Parent **50b2e7f**. Four frozen paths (**rob1905** preview **`1a4ffec`**, **rob1910** contact **`45372fd`**). ROOT vitest **41/41** four files, ESLint four TSX **0**, tsc **0** Node24; logs **rob1910-evening-root-***. Grok/Codex checker runner FAIL + raw PASS retained. All118 unchanged **82C17P18N1B**; timestamp only. Seven candidates; **rob1930-evening** check null readbacks; **rob1905** helper grade not run. STOP before build/commit/bridge/backup.

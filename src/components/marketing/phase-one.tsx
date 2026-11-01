@@ -143,5 +143,21 @@ export function PhaseOneFeatures() {
 }
 
 export function PhaseOnePricing() {
-  return <div className={`${ui.theme} ${ui.root}`}><section className={ui.pageIntro}><p className={ui.eyebrow}>Preview access</p><h1>A focused first phase.<br /><em>No add-on checkout.</em></h1><p>We are reviewing the complete work-winning journey before release. This page does not sell a subscription, promise a free trial or take payment for later-phase features.</p><AccountLink /><Link href="/features" className={ui.textLink}>Explore the phase-one scope <ArrowRight size={16} aria-hidden="true" /></Link></section><Scope showAccessLink={false} /><Questions /></div>;
+  return (
+    <div className={`${ui.theme} ${ui.root}`}>
+      <section className={ui.pageIntro}>
+        <p className={ui.eyebrow}>Preview access</p>
+        <h1>A focused first phase.<br /><em>No add-on checkout.</em></h1>
+        <p>We are reviewing the complete work-winning journey before release. This page does not sell a subscription, promise a free trial or take payment for later-phase features.</p>
+        <p>This preview is for people using an existing review account. Sign in with the details you were given, then start with your company profile.</p>
+        <div className={ui.actions}>
+          <AccountLink>Sign in with your review account</AccountLink>
+          <Link href="/features" className={ui.textLink}>Explore the phase-one scope <ArrowRight size={16} aria-hidden="true" /></Link>
+        </div>
+        <p>No account yet? <Link href="/contact" className={ui.textLink}>Neutral preview-access questions <ArrowRight size={16} aria-hidden="true" /></Link></p>
+      </section>
+      <Scope showAccessLink={false} />
+      <Questions />
+    </div>
+  );
 }

@@ -153,6 +153,13 @@
 | `playwright.config.ts` | ~1–8 | Import `readLegacyHostedPhase1Env` instead of `readE2EEnv` at config load | Block webServer/browser start before disposable env is read |
 | `e2e/support/global-setup.ts` | setup entry | Call `readLegacyHostedPhase1Env()` before auth settings fetch | Same hold at global setup boundary |
 
+## 2026-11-01 — cq-1900 PhaseOnePricing preview-access next step (Composer 2.5)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/components/marketing/phase-one.tsx` | `PhaseOnePricing` (~145–162) | Review-account sign-in CTA label, existing-account guidance, `/contact` link for neutral preview-access questions; scope/features links unchanged | Close gap after ProductReviewGuide “No account yet → /pricing” without generic-only Open Constructa |
+| `src/components/marketing/phase-one.test.tsx` | pricing route + `PhaseOnePricing` assertions (~28–37, ~73–81) | Expect review sign-in, contact link, no self-link/Open Constructa on `/pricing` | Lock cohort pricing route behaviour only |
+
 ## 2026-10-27 — A059 weekend pattern → proposal refresh (Composer a059)
 
 | File | Lines (approx.) | Change | Intent |

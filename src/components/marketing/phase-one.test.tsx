@@ -32,8 +32,13 @@ describe('phase-one marketing integration', () => {
     expect(html).toContain('id="phase-one"');
     expect(html).toContain('href="/features"');
     expect(html).toContain('href="/login"');
+    expect(html).toContain('Sign in with your review account');
+    expect(html).toContain('href="/contact"');
+    expect(html).toContain('Neutral preview-access questions');
+    expect(html).toContain('existing review account');
     expect(html).not.toContain('href="/pricing"');
     expect(html).not.toContain('About preview access');
+    expect(html).not.toContain('Open Constructa');
   });
 
   it.each([PhaseOneHome, PhaseOneFeatures])('retains real access-link arrows but removes arrows from non-interactive journey cards (%#)', Page => {
@@ -73,6 +78,9 @@ describe('phase-one marketing integration', () => {
   it('does not invent a price, free trial, payment link or paid entitlement', () => {
     const html = renderToStaticMarkup(<PhaseOnePricing />);
     expect(html).toContain('does not sell a subscription');
+    expect(html).toContain('Sign in with your review account');
+    expect(html).toContain('href="/contact"');
+    expect(html).not.toContain('Open Constructa');
     expect(html).not.toMatch(/£|<form|<button|href="https?:/);
     expect(html).not.toContain('14-day');
   });

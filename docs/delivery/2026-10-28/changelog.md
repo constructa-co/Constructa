@@ -332,3 +332,7 @@
 ## ROB1910 evening preview-access + contact landmark — prep 1 November 2026
 
 - Parent **50b2e7f**. Four frozen paths (**rob1905** preview **`1a4ffec`**, **rob1910** contact **`45372fd`**). ROOT vitest **41/41** four files, ESLint four TSX **0**, tsc **0** Node24; logs **rob1910-evening-root-***. Grok/Codex checker runner FAIL + raw PASS retained. All118 unchanged **82C17P18N1B**; timestamp only. Seven candidates; **rob1930-evening** check null readbacks; **rob1905** helper grade not run. STOP before build/commit/bridge/backup.
+
+## ROB2312 About + Customers main-landmark — prep 1 November 2026
+
+- Parent **6514d49**. Four frozen paths (**rob2312-about** **`91327`**, **rob2312-customers** **`c4045fe`**); **40** cache paths excluded from ROOT integration. ROOT vitest **13/13** three files (about, customers, contact-launch-profile), ESLint four TSX **0**, tsc **0** Node24; logs **rob2312-landmarks-root-***. Customers worker packaging FAIL and About **21** extras retained in worker evidence only. All118 unchanged **82C17P18N1B**; timestamp only. Seven candidates; **rob2330-landmarks** check null readbacks; **rob2311** helper grade binds **f1206548**/**86bde084**, not run. Future build needs action-time **≥15GiB** free and **≥20% FREE** memory; helper used-memory prose not a gate. STOP before build/commit/bridge/backup.

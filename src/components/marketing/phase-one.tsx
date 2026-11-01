@@ -1,6 +1,6 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowDown, ArrowRight, Check, Plus } from 'lucide-react';
+import { HomeBusinessVisual } from './home-business-visual';
 import { ProductReviewGuide } from './product-review-guide';
 import { ProductScreenshots } from './product-screenshots';
 import ui from './phase-one.module.css';
@@ -130,7 +130,7 @@ export function PhaseOneHome() {
       <div className={ui.chapterLine}><span>Built around your business</span><span>Company <i /> Price <i /> Programme <i /> Proposal</span></div>
       <Journey />
       <section className={`${ui.section} ${ui.story}`}>
-        <div className={ui.photo}><Image src="/images/about-hero.png" alt="Construction team reviewing plans together" width={2048} height={2048} sizes="(max-width: 800px) 100vw, 45vw" /><span>Construction is a people business.</span></div>
+        <div className={ui.photo}><HomeBusinessVisual /><span>Construction is a people business.</span></div>
         <div><p className={ui.eyebrow}>The experience behind the estimate</p><h2>Your business.<br />Not another<br />blank template.</h2><p>Your experience, the challenges you have solved and the quality of your work belong alongside the numbers. Put them in a company profile and reuse the right examples when you prepare a proposal.</p><p>Whether you fit kitchens, refurbish workplaces or run a multi-trade team, the story should be yours.</p><AccountLink>Start with your business</AccountLink></div>
       </section>
       <Scope /><Questions /><Invitation />

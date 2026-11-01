@@ -1,5 +1,6 @@
 import React from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 
 function MetricIcon({ type }: { type: 'building' | 'stopwatch' | 'spreadsheet' }) {
   if (type === 'building') {
@@ -149,15 +150,16 @@ export default function About() {
           <div className="text-right">
             <h2 className="text-2xl md:text-3xl font-semibold mb-4">What's next</h2>
             <p className="text-gray-300 text-lg mb-4">
-              Constructa's first release is now live—helping builders quote, plan, and deliver with confidence.
+              Constructa is in a phase-one review. We are checking the complete work-winning journey before release—it is not currently offered for live customer work.
             </p>
             <p className="text-gray-300 text-lg mb-4">
               From here, we're expanding into contracts, resource tracking, client comms, and more.
             </p>
             <p className="text-gray-300 text-lg mb-4">
-              If you're a small construction team ready to simplify how you work—give Constructa a try today.
+              Preview access explains what is in scope for this review and what still needs release verification before live use.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-2">
+              <Link href="/pricing" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Preview access →</Link>
               <a href="https://medium.com/" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Follow us on Medium →</a>
               <a href="https://www.linkedin.com/company/constructa-co" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Follow us on LinkedIn →</a>
             </div>

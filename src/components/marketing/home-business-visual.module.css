@@ -1,0 +1,26 @@
+.figure { min-width: 0; margin: 0; padding: 28px; border: 1px solid #45534a; border-radius: 10px; background: radial-gradient(ellipse at 100% 100%, #35563b80, transparent 65%), linear-gradient(145deg, #314136, #1b241e); overflow-wrap: break-word; }
+.caption { display: grid; gap: 12px; margin-bottom: 28px; }
+.qualifier { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; color: #d4e1d6; font-size: 13px; line-height: 1.5; }
+.tag { padding: 3px 10px; border: 1px solid var(--accent); border-radius: 6px; color: var(--accent); font-size: 12px; font-weight: 650; letter-spacing: 1.2px; text-transform: uppercase; }
+.summary { color: #b7c8bb; font-size: 14px; line-height: 1.6; }
+.stages { display: grid; gap: 30px; margin: 0; padding: 0; list-style: none; }
+.stage { position: relative; display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: center; gap: 18px; padding: 18px 20px; border: 1px solid #526455; border-radius: 10px; background: #151a16; color: var(--ink); }
+.stage:nth-child(2) { margin-left: 8%; }
+.stage:nth-child(3) { margin-left: 16%; border-color: #f6f4ed; background: #f6f4ed; color: #28352b; }
+.stage + .stage::before { content: ""; position: absolute; left: 45px; top: -31px; height: 25px; border-left: 2px dashed #96b79b; }
+.stage + .stage::after { content: ""; position: absolute; left: 42px; top: -11px; width: 8px; height: 8px; border-right: 2px solid #96b79b; border-bottom: 2px solid #96b79b; transform: rotate(45deg); }
+.mark { width: 100%; height: auto; color: var(--accent); }
+.stage:nth-child(3) .mark { color: #526155; }
+.copy { display: grid; gap: 4px; min-width: 0; }
+.copy strong { font-size: 19px; font-weight: 550; line-height: 1.2; letter-spacing: -.4px; }
+.number { color: var(--accent); font-size: 12px; letter-spacing: 1.2px; }
+.detail { color: #c0cdc3; font-size: 14px; line-height: 1.55; }
+.stage:nth-child(3) .number, .stage:nth-child(3) .detail { color: #526155; }
+@media (max-width: 450px) {
+  .figure { padding: 18px; }
+  .caption { margin-bottom: 22px; }
+  .stage { grid-template-columns: 36px minmax(0, 1fr); gap: 14px; padding: 16px 14px; }
+  .stage:nth-child(2), .stage:nth-child(3) { margin-left: 0; }
+  .stage + .stage::before { left: 31px; }
+  .stage + .stage::after { left: 28px; }
+}

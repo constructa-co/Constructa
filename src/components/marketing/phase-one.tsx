@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowDown, ArrowRight, Check, Plus } from 'lucide-react';
 import { ProductReviewGuide } from './product-review-guide';
+import { ProductScreenshots } from './product-screenshots';
 import ui from './phase-one.module.css';
 
 const stages = [
@@ -36,7 +37,7 @@ export function MarketingFooter() {
         <nav aria-label="Footer navigation">
           <Link href="/features">The product</Link><Link href="/login">Sign in</Link>
           <Link href="/terms-of-service">Terms</Link><Link href="/privacy-policy">Privacy</Link>
-          <a href="mailto:hello@constructa.co">Get in touch</a>
+          <Link href="/contact">Get in touch</Link>
         </nav>
       </div>
       <div className={ui.footerBottom}><span>Constructa © 2026</span><span>Phase one review · Company. Price. Programme. Proposal.</span></div>
@@ -138,7 +139,7 @@ export function PhaseOneHome() {
 }
 
 export function PhaseOneFeatures() {
-  return <div className={`${ui.theme} ${ui.root}`}><section className={ui.pageIntro}><p className={ui.eyebrow}>The phase-one product</p><h1>From first hello.<br /><em>To a considered proposal.</em></h1><p>One connected work-winning journey. Company profile, brief, price, programme and proposal, with room for your own experience and judgement.</p><AccountLink /></section><Journey /><ProductReviewGuide /><Scope /><Questions /><Invitation /></div>;
+  return <div className={`${ui.theme} ${ui.root}`}><section className={ui.pageIntro}><p className={ui.eyebrow}>The phase-one product</p><h1>From first hello.<br /><em>To a considered proposal.</em></h1><p>One connected work-winning journey. Company profile, brief, price, programme and proposal, with room for your own experience and judgement.</p><AccountLink /></section><Journey /><ProductReviewGuide /><ProductScreenshots /><Scope /><Questions /><Invitation /></div>;
 }
 
 export function PhaseOnePricing() {

@@ -1,0 +1,46 @@
+__vite_ssr_exportName__("default", () => { try { return PublicChrome } catch {} });
+const __vite_ssr_import_0__ = await __vite_ssr_import__("/@fs/Users/robertsmith/dev/constructa-fresh-20261025/node_modules/next/navigation.js", {"importedNames":["usePathname"]});
+const __vite_ssr_import_1__ = await __vite_ssr_import__("/src/lib/launch-profile.ts", {"importedNames":["getLaunchProfile"]});
+const __vite_ssr_import_2__ = await __vite_ssr_import__("/src/components/Header.tsx", {"importedNames":["default"]});
+const __vite_ssr_import_3__ = await __vite_ssr_import__("/src/components/Footer.tsx", {"importedNames":["default"]});
+const __vite_ssr_import_4__ = await __vite_ssr_import__("/@fs/Users/robertsmith/dev/constructa-fresh-20261025/node_modules/react/jsx-dev-runtime.js", {"importedNames":["jsxDEV","Fragment"]});
+"use client";
+
+
+
+
+var _jsxFileName = "/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/cq-0432-a091-error-recovery/src/components/public-chrome.tsx";
+
+function PublicChrome({ children }) {
+	// Root layouts persist across navigation; chrome must follow the client route.
+	const pathname = (0,__vite_ssr_import_0__.usePathname)() || "";
+	const isApplication = pathname.startsWith("/dashboard") || pathname.startsWith("/onboarding") || pathname.startsWith("/auth/") || pathname.startsWith("/admin") || pathname === "/login";
+	const isPublicProposal = pathname.startsWith("/proposal/");
+	const showMarketing = !isApplication && !isPublicProposal;
+	const landingHasOwnFooter = pathname === "/landing" && (0,__vite_ssr_import_1__.getLaunchProfile)() === "full";
+	return /* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)((0,__vite_ssr_import_4__.Fragment), { children: [
+		showMarketing && /* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)((0,__vite_ssr_import_2__.default), {}, void 0, false, {
+			fileName: _jsxFileName,
+			lineNumber: 19,
+			columnNumber: 23
+		}, this),
+		/* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)("main", { children }, void 0, false, {
+			fileName: _jsxFileName,
+			lineNumber: 20,
+			columnNumber: 5
+		}, this),
+		showMarketing && !landingHasOwnFooter && /* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)((0,__vite_ssr_import_3__.default), {}, void 0, false, {
+			fileName: _jsxFileName,
+			lineNumber: 21,
+			columnNumber: 47
+		}, this)
+	] }, void 0, true, {
+		fileName: _jsxFileName,
+		lineNumber: 18,
+		columnNumber: 10
+	}, this);
+}
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTtBQUdBO0FBQ0E7QUFDQTtBQUNBOztBQU5BOzs7Ozs7O0FBUWUsU0FBUyxhQUFhLEVBQUUsWUFBcUM7O0NBRTFFLE1BQU0sV0FBVyx1Q0FBWSxJQUFLO0NBQ2xDLE1BQU0sZ0JBQWdCLFNBQVMsV0FBVyxZQUFZLEtBQUssU0FBUyxXQUFXLGFBQWEsS0FDMUYsU0FBUyxXQUFXLFFBQVEsS0FBSyxTQUFTLFdBQVcsUUFBUSxLQUFLLGFBQWE7Q0FDakYsTUFBTSxtQkFBbUIsU0FBUyxXQUFXLFlBQVk7Q0FDekQsTUFBTSxnQkFBZ0IsQ0FBQyxpQkFBaUIsQ0FBQztDQUN6QyxNQUFNLHNCQUFzQixhQUFhLGNBQWMsNENBQWlCLEtBQU07Q0FFOUUsT0FBTztFQUNKLGlCQUFpQixvREFBQyxnQ0FBRCxDQUFTOzs7OztFQUMzQixpREFBQyxRQUFELEVBQU8sU0FBZTs7Ozs7RUFDckIsaUJBQWlCLENBQUMsdUJBQXVCLG9EQUFDLGdDQUFELENBQVM7Ozs7O0NBQ25EOzs7OztBQUNKIiwibmFtZXMiOltdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJwdWJsaWMtY2hyb21lLnRzeCJdLCJzb3VyY2VzQ29udGVudCI6WyIndXNlIGNsaWVudCc7XG5cbmltcG9ydCB0eXBlIHsgUmVhY3ROb2RlIH0gZnJvbSAncmVhY3QnO1xuaW1wb3J0IHsgdXNlUGF0aG5hbWUgfSBmcm9tICduZXh0L25hdmlnYXRpb24nO1xuaW1wb3J0IHsgZ2V0TGF1bmNoUHJvZmlsZSB9IGZyb20gJ0AvbGliL2xhdW5jaC1wcm9maWxlJztcbmltcG9ydCBIZWFkZXIgZnJvbSAnLi9IZWFkZXInO1xuaW1wb3J0IEZvb3RlciBmcm9tICcuL0Zvb3Rlcic7XG5cbmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIFB1YmxpY0Nocm9tZSh7IGNoaWxkcmVuIH06IHsgY2hpbGRyZW46IFJlYWN0Tm9kZSB9KSB7XG4gIC8vIFJvb3QgbGF5b3V0cyBwZXJzaXN0IGFjcm9zcyBuYXZpZ2F0aW9uOyBjaHJvbWUgbXVzdCBmb2xsb3cgdGhlIGNsaWVudCByb3V0ZS5cbiAgY29uc3QgcGF0aG5hbWUgPSB1c2VQYXRobmFtZSgpIHx8ICcnO1xuICBjb25zdCBpc0FwcGxpY2F0aW9uID0gcGF0aG5hbWUuc3RhcnRzV2l0aCgnL2Rhc2hib2FyZCcpIHx8IHBhdGhuYW1lLnN0YXJ0c1dpdGgoJy9vbmJvYXJkaW5nJykgfHxcbiAgICBwYXRobmFtZS5zdGFydHNXaXRoKCcvYXV0aC8nKSB8fCBwYXRobmFtZS5zdGFydHNXaXRoKCcvYWRtaW4nKSB8fCBwYXRobmFtZSA9PT0gJy9sb2dpbic7XG4gIGNvbnN0IGlzUHVibGljUHJvcG9zYWwgPSBwYXRobmFtZS5zdGFydHNXaXRoKCcvcHJvcG9zYWwvJyk7XG4gIGNvbnN0IHNob3dNYXJrZXRpbmcgPSAhaXNBcHBsaWNhdGlvbiAmJiAhaXNQdWJsaWNQcm9wb3NhbDtcbiAgY29uc3QgbGFuZGluZ0hhc093bkZvb3RlciA9IHBhdGhuYW1lID09PSAnL2xhbmRpbmcnICYmIGdldExhdW5jaFByb2ZpbGUoKSA9PT0gJ2Z1bGwnO1xuXG4gIHJldHVybiA8PlxuICAgIHtzaG93TWFya2V0aW5nICYmIDxIZWFkZXIgLz59XG4gICAgPG1haW4+e2NoaWxkcmVufTwvbWFpbj5cbiAgICB7c2hvd01hcmtldGluZyAmJiAhbGFuZGluZ0hhc093bkZvb3RlciAmJiA8Rm9vdGVyIC8+fVxuICA8Lz47XG59XG4iXSwiZmlsZSI6Ii9zcmMvY29tcG9uZW50cy9wdWJsaWMtY2hyb21lLnRzeCJ9
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZSwiZGVwcyI6IjQiLCJkeW5hbWljRGVwcyI6IjUiLCJzdGF0aWNNb2NrcyI6bnVsbH0sIi9Vc2Vycy9yb2JlcnRzbWl0aC9kZXYvY29uc3RydWN0YS1mcmVzaC0yMDI2MTAyNS8uY3Etd3QvY3EtMDQzMi1hMDkxLWVycm9yLXJlY292ZXJ5L3NyYy9jb21wb25lbnRzL3B1YmxpYy1jaHJvbWUudHN4IiwiL3NyYy9jb21wb25lbnRzL3B1YmxpYy1jaHJvbWUudHN4IixbXSxbIjYiLCI3IiwiOCIsIjkiLCIxMCJdLFtdLCIvQGZzL1VzZXJzL3JvYmVydHNtaXRoL2Rldi9jb25zdHJ1Y3RhLWZyZXNoLTIwMjYxMDI1L25vZGVfbW9kdWxlcy9uZXh0L25hdmlnYXRpb24uanMiLCIvc3JjL2xpYi9sYXVuY2gtcHJvZmlsZS50cyIsIi9zcmMvY29tcG9uZW50cy9IZWFkZXIudHN4IiwiL3NyYy9jb21wb25lbnRzL0Zvb3Rlci50c3giLCIvQGZzL1VzZXJzL3JvYmVydHNtaXRoL2Rldi9jb25zdHJ1Y3RhLWZyZXNoLTIwMjYxMDI1L25vZGVfbW9kdWxlcy9yZWFjdC9qc3gtZGV2LXJ1bnRpbWUuanMiXQ==

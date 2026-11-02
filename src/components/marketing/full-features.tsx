@@ -20,7 +20,7 @@ export default function FullFeaturesPage() {
   }, [router]);
 
   return (
-    <main className="bg-black text-white selection:bg-blue-500/30">
+    <div className="bg-black text-white selection:bg-blue-500/30">
       {/* Premium Hero Section */}
       <section className="relative pt-32 pb-24 md:pt-48 md:pb-40 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-blue-600/5 via-transparent to-transparent pointer-events-none" />
@@ -257,6 +257,6 @@ export default function FullFeaturesPage() {
           </div>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

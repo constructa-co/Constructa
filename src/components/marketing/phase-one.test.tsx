@@ -158,4 +158,52 @@ describe('phase-one marketing integration', () => {
     vi.stubEnv('NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE', 'cohort');
     expect(renderToStaticMarkup(<PublicChrome><p>Landing</p></PublicChrome>)).toContain('Footer navigation');
   });
+
+  it.each(['/', '/features', '/pricing', '/product', '/contact'])('renders one bypass before the header targeting the single focusable main on %s', pathname => {
+    vi.stubEnv('NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE', 'cohort');
+    route.pathname = pathname;
+    const html = renderToStaticMarkup(<PublicChrome><p>Route body</p></PublicChrome>);
+    const anchors = html.match(/<a\b[^>]*href="#public-marketing-content"[^>]*>Skip to content<\/a>/g) ?? [];
+    expect(anchors).toHaveLength(1);
+    expect(html.indexOf('Skip to content')).toBeLessThan(html.indexOf('<header'));
+    const mains = html.match(/<main\b[^>]*>/g) ?? [];
+    expect(mains).toHaveLength(1);
+    expect(mains[0]).toContain('id="public-marketing-content"');
+    expect(mains[0]).toContain('tabindex="-1"');
+  });
+
+  it('keeps one skip anchor and one unique target in the cohort home composition', () => {
+    vi.stubEnv('NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE', 'cohort');
+    route.pathname = '/';
+    const html = renderToStaticMarkup(<PublicChrome><PhaseOneHome /></PublicChrome>);
+    expect(html.match(/Skip to content/g) ?? []).toHaveLength(1);
+    expect(html).not.toContain('href="#marketing-content"');
+    expect(html.match(/id="public-marketing-content"/g) ?? []).toHaveLength(1);
+    expect(html.match(/id="marketing-content"/g) ?? []).toHaveLength(1);
+    expect(html.indexOf('Skip to content')).toBeLessThan(html.indexOf('<header'));
+  });
+
+  it('renders no bypass, main id or main tabindex under the full profile', () => {
+    vi.stubEnv('NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE', 'full');
+    route.pathname = '/';
+    const html = renderToStaticMarkup(<PublicChrome><p>Full home</p></PublicChrome>);
+    expect(html).not.toContain('Skip to content');
+    expect(html).not.toContain('public-marketing-content');
+    const mains = html.match(/<main\b[^>]*>/g) ?? [];
+    expect(mains).toHaveLength(1);
+    expect(mains[0]).not.toContain('id=');
+    expect(mains[0]).not.toContain('tabindex');
+  });
+
+  it.each(['/login', '/onboarding', '/auth/confirm', '/dashboard', '/dashboard/settings/profile', '/admin', '/proposal/example'])('adds no bypass, main id or main tabindex on %s', pathname => {
+    vi.stubEnv('NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE', 'cohort');
+    route.pathname = pathname;
+    const html = renderToStaticMarkup(<PublicChrome><p>Existing page</p></PublicChrome>);
+    expect(html).not.toContain('Skip to content');
+    expect(html).not.toContain('public-marketing-content');
+    const mains = html.match(/<main\b[^>]*>/g) ?? [];
+    expect(mains).toHaveLength(1);
+    expect(mains[0]).not.toContain('id=');
+    expect(mains[0]).not.toContain('tabindex');
+  });
 });

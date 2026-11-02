@@ -117,7 +117,6 @@ function Invitation() {
 export function PhaseOneHome() {
   return (
     <div className={`${ui.theme} ${ui.root}`}>
-      <a href="#marketing-content" className={ui.skip}>Skip to content</a>
       <section id="marketing-content" className={ui.hero}>
         <div className={ui.heroCopy}><p className={ui.eyebrow}><span className={ui.dot} /> Made for the way you win work</p>
           <h1>Good work.<br />Clearly priced.<br /><em>Better presented.</em></h1>

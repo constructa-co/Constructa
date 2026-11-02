@@ -336,3 +336,7 @@
 ## ROB2312 About + Customers main-landmark — prep 1 November 2026
 
 - Parent **6514d49**. Four frozen paths (**rob2312-about** **`91327`**, **rob2312-customers** **`c4045fe`**); **40** cache paths excluded from ROOT integration. ROOT vitest **13/13** three files (about, customers, contact-launch-profile), ESLint four TSX **0**, tsc **0** Node24; logs **rob2312-landmarks-root-***. Customers worker packaging FAIL and About **21** extras retained in worker evidence only. All118 unchanged **82C17P18N1B**; timestamp only. Seven candidates; **rob2330-landmarks** check null readbacks; **rob2311** helper grade binds **f1206548**/**86bde084**, not run. Future build needs action-time **≥15GiB** free and **≥20% FREE** memory; helper used-memory prose not a gate. STOP before build/commit/bridge/backup.
+
+## ROB0920 morning skip-link + Features landmark — prep 2 November 2026
+
+- Parent **1ad878b**. Five frozen paths (**rob0928** Kimi **`f990df2`** three paths; **rob0918** Cursor **`1941e2b`** two paths). Kimi rc130/theme overwrite disposition **rob0927** retained; not clean task PASS. ROOT vitest **60/60** five files, ESLint five TSX **0** (2 warnings), tsc **0** Node24; logs **rob0920-morning-root-***. All118 unchanged **82C17P18N1B**; A110 Complete/A093 Blocked unchanged; timestamp only. Eight candidates; **rob0930-morning** check null readbacks; **rob0917** helpers **88588b92**/**22c2fad1** not run. Cursor primary, Kimi source coauthor on skip-link paths. STOP before build/commit/bridge/backup.

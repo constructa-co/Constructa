@@ -12,6 +12,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { FirstSessionFrame } from '@/components/first-session-frame';
 import PublicChrome from '@/components/public-chrome';
+import ui from './phase-one.module.css';
 
 const route = vi.hoisted(() => ({ pathname: '/' }));
 vi.mock('next/navigation', () => ({ usePathname: () => route.pathname, useRouter: () => ({}) }));
@@ -149,6 +150,17 @@ describe('phase-one marketing integration', () => {
     const html = renderToStaticMarkup(<PublicChrome><PhaseOneHome /></PublicChrome>);
     expect(html).toContain('Main navigation');
     expect(html).toContain('Footer navigation');
+  });
+
+  it('applies the marketing theme and skip styling together to the shared skip anchor', () => {
+    vi.stubEnv('NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE', 'cohort');
+    route.pathname = '/';
+    const html = renderToStaticMarkup(<PublicChrome><p>Route body</p></PublicChrome>);
+    const anchor = html.match(/<a\b[^>]*href="#public-marketing-content"[^>]*>Skip to content<\/a>/)?.[0];
+    expect(anchor).toBeDefined();
+    const classes = anchor!.match(/class="([^"]*)"/)?.[1]?.split(/\s+/) ?? [];
+    expect(classes).toContain(ui.theme);
+    expect(classes).toContain(ui.skip);
   });
 
   it('keeps the full landing footer self-contained but supplies the cohort landing footer', () => {

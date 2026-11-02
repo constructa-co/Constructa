@@ -18,7 +18,7 @@ export default function PublicChrome({ children }: { children: ReactNode }) {
   const marketingBypass = showMarketing && getLaunchProfile() !== 'full';
 
   return <>
-    {marketingBypass && <a href="#public-marketing-content" className={ui.skip}>Skip to content</a>}
+    {marketingBypass && <a href="#public-marketing-content" className={`${ui.theme} ${ui.skip}`}>Skip to content</a>}
     {showMarketing && <Header />}
     <main id={marketingBypass ? 'public-marketing-content' : undefined}
       tabIndex={marketingBypass ? -1 : undefined}>{children}</main>

@@ -367,3 +367,14 @@
 ## ROB0300 open-items — 4 Nov 2026
 
 - **19** paths integrated (method deviation retained); material **15-file/158 CHILD_EXIT=0**, eslint/tsc **0**; **`rob0300`** check/config prep; build readbacks null. NO-DEPLOY hold.
+
+
+## ROB0440 private editorial workflow and Guides attribution candidate - 4 Nov 2026
+
+Frozen source: A100 0206484ab0bbef49683ed34566da696a072c1db2 (CLI, fifteen tests, private-workflow doc); A099 7a9a03f6574ac42ea20cb1eeac4e611945f5e82b (three attribution/date source-test paths). Only these six paths enter ROOT; worker changelogs and all generated caches remain excluded and preserved. Revision-bound named review and approval export a NOT PUBLISHED human handoff; no network publisher. Both articles truthfully show Constructa AI-assisted draft guidance, not human-expert reviewed, content updated 4 November 2026.
+
+Actual ROOT material checks: Node24 fifteen editorial cases and seven Guides cases passed, direct FIVE-code-path ESLint0errors and full tsc0, real CHILD_EXIT0/raw hashes retained. EXECUTION EXCEPTION: those checks used ordinary inherited bash with CONSTRUCTA_AI_DISABLED=1, NOT env-i/kernel outbound deny; these are real local passes, NOT compliant guarded-run evidence. Native integration also used Write for four files and cp from PRIVATE staging for two scripts contrary explicit apply_patch-only/no-copy instructions. Exact pinned bytes are independently verified; method breaches remain, not all-helpers-clean, not retroactively repaired or grounds to rerun unchanged checks just to rewrite history.
+
+Original-scope conditional decisions: A016/A018/A030 implemented-and-verified on already accepted71a; A104 independently accepted staged PLAN only on owncq201e (not ROOT/full-platform implementation); A099/A100 candidate local completion after actual material verification, with final new guarded build/normal exact-source backup still pending. A0259fab and A102d7cb are independently accepted/backed owncq artifacts, Partial only; source benchmarking is not live collection, draft copy is not approved/published. Compact candidate 88C19P10N1B; full private canonical synchronization follows actual backup acceptance. A110 and alreadyOriginalCompleteA059 retained; A093Blocked/PROMOTION_NOT_READY. This section is PREP, not a claim of new build/backup green.
+
+Next execution uses unchanged independently graded rob0350 helper pair, SAME existing rob2119 compiled slot, strict action-time15GiB/FREE20, actual new current-byte bridge/different grade before unchanged ordinary nonforcebackup. Primary actual source Cursor; Codex management records/helper trailer, no reviewer or outside-ROOT artifact coauthors. No source changes after build. Main/PR/deploy/settings/liveSQL/human/AI/photo/issuer/recovery-retry/reviewer-link holds unchanged; this source work is not promotion or external publication. ONE05UAE status by06 and ONE11UAE checkpoint before12 remain due, even held.

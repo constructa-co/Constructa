@@ -22,6 +22,13 @@ export function GuideArticleView({ article }: { article: GuideArticle }) {
         <h1>{article.title}</h1>
         <p>{article.intro}</p>
         <p>{article.previewNote}</p>
+        <p className={styles.note}>
+          {article.author}. {article.preparation}. Not human-expert reviewed.
+        </p>
+        <p className={styles.note}>
+          Content updated date:{' '}
+          <time dateTime={article.contentUpdatedIso}>{article.contentUpdatedDisplay}</time>
+        </p>
         <Link href="/guides" className={ui.textLink}>
           Back to guides <ArrowRight size={16} aria-hidden="true" />
         </Link>

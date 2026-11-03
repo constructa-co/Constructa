@@ -4,7 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import PublicChrome from '@/components/public-chrome';
 import { MarketingFooter } from '@/components/marketing/phase-one';
 import { GuideArticleView } from '@/components/marketing/guide-article-view';
-import { getAllGuideSlugs, getGuideArticle } from '@/lib/marketing-guides';
+import {
+  GUIDE_ARTICLE_ATTRIBUTION,
+  getAllGuideSlugs,
+  getGuideArticle,
+} from '@/lib/marketing-guides';
 import GuidesPage from './page';
 import GuideArticlePage, { generateStaticParams } from './[slug]/page';
 
@@ -102,6 +106,21 @@ describe('guides hub and articles', () => {
         const idMatches = markup.match(new RegExp(`\\bid="${escaped}"`, 'g'));
         expect(idMatches?.length).toBe(1);
       }
+    }
+  });
+
+  it('records transparent attribution and content updated metadata on every article', () => {
+    expect(getAllGuideSlugs()).toHaveLength(2);
+    for (const slug of getAllGuideSlugs()) {
+      const article = getGuideArticle(slug);
+      expect(article).toMatchObject(GUIDE_ARTICLE_ATTRIBUTION);
+      const markup = renderToStaticMarkup(<GuideArticleView article={article!} />);
+      expect(markup).toContain('Constructa');
+      expect(markup).toContain('AI-assisted draft guidance');
+      expect(markup).toContain('Not human-expert reviewed');
+      expect(markup).toContain('Content updated date:');
+      expect(markup).toMatch(/<time datetime="2026-11-04">4 November 2026<\/time>/i);
+      expect(markup).not.toMatch(/reviewed by|expert approval|Rob approved/i);
     }
   });
 

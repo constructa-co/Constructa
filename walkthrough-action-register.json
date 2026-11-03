@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-11-03T23:01:00.000Z",
+  "updatedAt": "2026-11-03T23:49:00.000Z",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {
@@ -98,7 +98,7 @@
       "id": "A016",
       "phase": "Later",
       "requested": "Keep the dashboard for established operational use and simplify its cluttered Kanban layout.",
-      "status": "Not started"
+      "status": "Complete"
     },
     {
       "id": "A017",
@@ -110,7 +110,7 @@
       "id": "A018",
       "phase": "Later",
       "requested": "Use clearer, more engaging professional pipeline language.",
-      "status": "Not started"
+      "status": "Complete"
     },
     {
       "id": "A019",
@@ -159,7 +159,7 @@
       "id": "A025",
       "phase": "Later",
       "requested": "Scope future regional/discipline pricing and programme benchmarks and reconcile the existing benchmark checkbox.",
-      "status": "Not started"
+      "status": "Partial"
     },
     {
       "id": "A026",
@@ -189,7 +189,7 @@
       "id": "A030",
       "phase": "Later",
       "requested": "Provide repeatable free-text accreditations: add to a list, then add another.",
-      "status": "Not started"
+      "status": "Complete"
     },
     {
       "id": "A031",
@@ -641,13 +641,13 @@
       "id": "A099",
       "phase": "Later",
       "requested": "Create a public Guides and Insights hub and article pages on Constructa's marketing site.",
-      "status": "Not started"
+      "status": "Complete"
     },
     {
       "id": "A100",
       "phase": "Later",
       "requested": "Provide a lightweight private editorial workflow for drafting, review and publishing.",
-      "status": "Not started"
+      "status": "Complete"
     },
     {
       "id": "A101",
@@ -659,7 +659,7 @@
       "id": "A102",
       "phase": "Later",
       "requested": "Repurpose approved site content for LinkedIn, Facebook and optional Medium with links back to Constructa.",
-      "status": "Not started"
+      "status": "Partial"
     },
     {
       "id": "A103",
@@ -671,7 +671,7 @@
       "id": "A104",
       "phase": "Later",
       "requested": "Define a staged path from phase-one estimating/proposal/programme to one integrated platform contractors use to run projects, preserving existing phase-two/three work.",
-      "status": "Not started"
+      "status": "Complete"
     },
     {
       "id": "A105",

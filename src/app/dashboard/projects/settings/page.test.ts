@@ -123,7 +123,7 @@ describe("settings project identity", () => {
         expect(page.props.project).toBeUndefined();
         expect(page.props.children).toContain("No active project found");
         const projectQuery = from.mock.results.find((_, index) => from.mock.calls[index][0] === "projects")!.value;
-        expect(projectQuery.select).toHaveBeenCalledWith("*");
+        expect(projectQuery.select).toHaveBeenCalledExactlyOnceWith("*");
         expect(projectQuery.order).not.toHaveBeenCalled();
     });
 

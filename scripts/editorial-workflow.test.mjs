@@ -279,6 +279,7 @@ test("export output is a local file only (no publication claim in json)", () => 
     createDraft(state, { title: "T", content: "C", id: "export-json" });
     addReview(state, "export-json", { reviewer: "r", feedback: "fine" });
     approveDraft(state, "export-json", { approver: "a" });
+    saveState(dir, state);
     const out = path.join(dir, "out.txt");
     const result = runCli(["export", "export-json", "--dir", dir, "--out", out], { repoRoot });
     assert.equal(result.exitCode, 0);

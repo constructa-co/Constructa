@@ -73,7 +73,7 @@ has been reconciled with the phase-one boundaries below.
 | --- | --- | --- |
 | Domain identity | `projects.id` as the job; `estimate_lines.id` as the work-breakdown key (already referenced as `estimate_line_id` by cost capture and the pre-contract lock) | No new job or line identifiers. Delivery records hang off these keys. |
 | Owner access | RLS owner checks (`user_id = auth.uid()` or organisation membership); `extended-module-auth-utils.ts` for deferred modules | Change a module to the base auth helper only when that module is deliberately promoted (`DEVELOPMENT.md`). No cross-tenant reads outside admin service-role paths. |
-| Canonical financials | The accepted `proposal_publications` snapshot as the contract sum and terms; estimate lines as the cost budget; variations as the only way to change a post-acceptance sum | **Gap:** a targeted search found no `proposal_publications` reads in `billing`, `p-and-l`, `overview` or `final-account`. `billing`, `p-and-l` and `final-account` work from estimate data instead. They need reconciling before promotion. |
+| Canonical financials | Current source: estimate lines as the cost budget; an immutable `proposal_publications` snapshot of what was proposed, with only a non-binding client response, so publication does not establish a binding contract sum. Proposed, and only if Rob's undecided contract-formation and handoff decision selects one: that snapshot as the contract sum and terms, with variations as the only way to change the sum afterwards | **Gap (targeted source search only, not a runtime finding):** a targeted search found no `proposal_publications` reads in `billing`, `p-and-l`, `overview` or `final-account`. `billing`, `p-and-l` and `final-account` work from estimate data instead. They need reconciling before promotion. |
 | Programme | `programme-plan.ts` for dates; the saved phase-one programme as the baseline | The retained `projects/programme` and `overview` read `programme_phases`, and `programme` has an `operational-baseline` test. Tracking compares against this baseline and doesn't recompute it. |
 | Deployment isolation | `src/lib/deployment/supabase-target.mjs` | Every stage keeps the fail-closed preview and E2E database checks. |
 
@@ -111,8 +111,10 @@ has been reconciled with the phase-one boundaries below.
   - **Handoff trigger.** Phase one deliberately offers only a non-binding
     intention, so what starts delivery and what records the agreed contract
     sum is undecided.
-  - **Financial source.** Billing, P&L and Final Account must read the
-    accepted snapshot as the contract sum.
+  - **Financial source (proposed).** Conditional on the handoff decision
+    above, Billing, P&L and Final Account would read the immutable snapshot
+    that decision selects as the contract sum. Publication alone does not fix
+    a binding sum.
   - **Delivery-side tests.** These modules need tests against current
     phase-one data.
   - **Pipeline and dashboard metrics.** These need connecting without blank
@@ -151,12 +153,16 @@ has been reconciled with the phase-one boundaries below.
 
 ### Stage handoffs
 
-- **Stage 1 → 2:** The project ID carries over unchanged. The accepted
-  publication fixes the contract sum, terms and payment stages. The pre-contract
-  lock moves later changes into variations. The saved programme becomes the
-  baseline.
-- **Stage 2 → 3:** Closed projects keep their IDs. Final Account equals the
-  snapshot sum plus approved variations. Consolidated reports read
+- **Stage 1 → 2 (proposed):** The project ID carries over unchanged. In current
+  source a publication is an immutable snapshot and the client response is
+  non-binding, so it does not fix a binding contract sum. What forms the
+  contract and starts delivery is undecided and Rob's decision. Only if that
+  decision selects a snapshot would it supply the contract sum, terms and
+  payment stages. The pre-contract lock (source) moves later changes into
+  variations. The saved programme becomes the baseline.
+- **Stage 2 → 3 (proposed):** Closed projects keep their IDs. Final Account
+  would equal the contract sum fixed by that decision plus approved
+  variations. Consolidated reports read
   project-level canonical figures. Benchmarks use only consented,
   de-identified data.
 
@@ -164,8 +170,11 @@ has been reconciled with the phase-one boundaries below.
 
 - **Data, recovery and privacy are critical.**
   - A079 is qualified source and runbook work (`docs/recovery/a079-recovery-runbook.md`),
-    not full recovery. No independent DB, Auth or Storage restore has been
-    proven.
+    not full recovery. On 31 October a qualified encrypted export was
+    successfully restored into a disposable localhost database (9 schemas,
+    114 table/view entries, 25 archive objects). That limited result stands.
+    It is not full Auth, configuration, Storage-service, both-repository
+    all-refs or private-asset recovery.
   - Stage 2 must not start accumulating live financial records until recovery
     is real.
   - Preview and E2E must never use production data (`DEVELOPMENT.md`).
@@ -200,10 +209,11 @@ This plan does not waive or answer any of these, and it adds no new questions.
 1. Promote modules through the existing `LaunchCapability` mechanism, splitting
    `extended-modules` into per-module capabilities when needed. No parallel
    rewrite.
-2. Make the accepted `proposal_publications` snapshot the contract-sum source
-   for every Stage 2 and 3 financial view.
+2. Conditional on decision 4: if that step selects an immutable
+   `proposal_publications` snapshot, make it the contract-sum source for every
+   Stage 2 and 3 financial view. Publication alone does not do this.
 3. Treat the pre-contract lock plus variations as the only route for changing
-   the price after acceptance.
+   the price once the contract sum is fixed under decision 4.
 4. Decide on a binding contract-formation step before Stage 2 is offered. This
    is Rob's decision.
 
@@ -214,9 +224,10 @@ This plan does not waive or answer any of these, and it adds no new questions.
 2. Resolve `#34` (date convention) and replace the four skipped
    `delay-analysis.test.ts` assertions. This is a source-only prerequisite for
    Contract Admin and delay.
-3. Design the Won → delivery financial handoff: make `billing`, `p-and-l` and
-   `final-account` read the accepted snapshot. Bounded source work with tests,
-   kept behind `full`.
+3. Design the Won → delivery financial handoff once Rob has decided the
+   contract-formation step: if it selects a snapshot, make `billing`,
+   `p-and-l` and `final-account` read that snapshot. Bounded source work with
+   tests, kept behind `full`.
 4. A016/A020: connect operational dashboard metrics only where the canonical
    data exists, with no placeholder blocks.
 5. A079: finish independent recovery proof before any Stage 2 data

@@ -1,0 +1,219 @@
+__vite_ssr_exportName__("default", () => { try { return FAQ } catch {} });
+const __vite_ssr_import_0__ = await __vite_ssr_import__("/src/components/ui/accordion.tsx", {"importedNames":["Accordion","AccordionItem","AccordionTrigger","AccordionContent"]});
+const __vite_ssr_import_1__ = await __vite_ssr_import__("/@fs/Users/robertsmith/dev/constructa-fresh-20261025/node_modules/react/jsx-dev-runtime.js", {"importedNames":["jsxDEV"]});
+"use client";
+
+var _jsxFileName = "/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/cq-0432-a091-error-recovery/src/app/components/FAQ.tsx";
+
+const faqs = [
+	{
+		question: "Who is Constructa for?",
+		answer: "Constructa is built for small construction teams, tradespeople, and contractors who need simple, reliable tools to quote, plan, and stay on top of jobs—without the admin overload."
+	},
+	{
+		question: "Is Constructa just for builders?",
+		answer: "Not at all. Whether you're a joiner, electrician, general contractor, or multi-trade business, Constructa helps you quote accurately and plan clearly. If you work in construction—we've got you."
+	},
+	{
+		question: "What can I actually do with Constructa?",
+		answer: "You can build professional proposals, create clear project timelines, manage your job schedule, and track costs—all in one place. No more juggling spreadsheets, message threads, and documents."
+	},
+	{
+		question: "Do I need training to use Constructa?",
+		answer: "No. Constructa is designed to be simple and intuitive from day one. If you can use email and spreadsheets, you'll be up and running in minutes."
+	},
+	{
+		question: "Is there a free trial?",
+		answer: "Yes—when we launch, you'll be able to try Constructa for free. Early users will also get access to special launch pricing."
+	},
+	{
+		question: "Will this work on site or on my phone?",
+		answer: "Absolutely. Constructa is fully cloud-based and mobile-friendly, so you can use it in the office, on site, or on the go."
+	},
+	{
+		question: "Can I customise proposals and timelines to suit my jobs?",
+		answer: "Yes. Constructa is flexible—you can set your own line items, phases, and terms, so your proposals and programmes reflect how you actually work."
+	},
+	{
+		question: "Do you support UK construction standards and terminology?",
+		answer: "We do. Constructa is built in the UK, for UK-based teams—so everything from project phases to proposal formats is made to fit your world."
+	},
+	{
+		question: "What if I need help?",
+		answer: "We've got you. Our support team is small, friendly, and actually understands construction. If you need help, you'll talk to someone who gets it."
+	}
+];
+function FAQ() {
+	return /* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)("section", {
+		className: "relative py-32 md:py-40 px-4 md:px-8",
+		children: /* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)("div", {
+			className: "max-w-7xl mx-auto",
+			children: /* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)("div", {
+				className: "grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16",
+				children: [/* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)("div", {
+					className: "text-left",
+					children: /* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)("h2", {
+						className: "text-4xl md:text-5xl font-bold",
+						children: "Have questions?"
+					}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 57,
+						columnNumber: 13
+					}, this)
+				}, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 56,
+					columnNumber: 11
+				}, this), /* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)("div", {
+					className: "space-y-4",
+					children: /* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)((0,__vite_ssr_import_0__.Accordion), {
+						type: "single",
+						collapsible: true,
+						className: "w-full",
+						children: [
+							/* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)((0,__vite_ssr_import_0__.AccordionItem), {
+								value: "item-1",
+								className: "border-b border-gray-800",
+								children: [/* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)((0,__vite_ssr_import_0__.AccordionTrigger), {
+									className: "text-left",
+									children: "What is Constructa?"
+								}, void 0, false, {
+									fileName: _jsxFileName,
+									lineNumber: 64,
+									columnNumber: 17
+								}, this), /* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)((0,__vite_ssr_import_0__.AccordionContent), {
+									className: "text-left text-gray-400",
+									children: "Constructa is an AI-powered construction management platform that streamlines project planning, execution, and monitoring."
+								}, void 0, false, {
+									fileName: _jsxFileName,
+									lineNumber: 65,
+									columnNumber: 17
+								}, this)]
+							}, void 0, true, {
+								fileName: _jsxFileName,
+								lineNumber: 63,
+								columnNumber: 15
+							}, this),
+							/* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)((0,__vite_ssr_import_0__.AccordionItem), {
+								value: "item-2",
+								className: "border-b border-gray-800",
+								children: [/* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)((0,__vite_ssr_import_0__.AccordionTrigger), {
+									className: "text-left",
+									children: "What features are included?"
+								}, void 0, false, {
+									fileName: _jsxFileName,
+									lineNumber: 71,
+									columnNumber: 17
+								}, this), /* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)((0,__vite_ssr_import_0__.AccordionContent), {
+									className: "text-left text-gray-400",
+									children: "Our platform includes project management tools, AI-assisted scheduling, resource allocation, real-time progress tracking, and automated reporting features."
+								}, void 0, false, {
+									fileName: _jsxFileName,
+									lineNumber: 72,
+									columnNumber: 17
+								}, this)]
+							}, void 0, true, {
+								fileName: _jsxFileName,
+								lineNumber: 70,
+								columnNumber: 15
+							}, this),
+							/* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)((0,__vite_ssr_import_0__.AccordionItem), {
+								value: "item-3",
+								className: "border-b border-gray-800",
+								children: [/* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)((0,__vite_ssr_import_0__.AccordionTrigger), {
+									className: "text-left",
+									children: "How does pricing work?"
+								}, void 0, false, {
+									fileName: _jsxFileName,
+									lineNumber: 78,
+									columnNumber: 17
+								}, this), /* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)((0,__vite_ssr_import_0__.AccordionContent), {
+									className: "text-left text-gray-400",
+									children: "We offer flexible pricing plans based on project size and feature requirements. Contact us for a customized quote."
+								}, void 0, false, {
+									fileName: _jsxFileName,
+									lineNumber: 79,
+									columnNumber: 17
+								}, this)]
+							}, void 0, true, {
+								fileName: _jsxFileName,
+								lineNumber: 77,
+								columnNumber: 15
+							}, this),
+							/* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)((0,__vite_ssr_import_0__.AccordionItem), {
+								value: "item-4",
+								className: "border-b border-gray-800",
+								children: [/* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)((0,__vite_ssr_import_0__.AccordionTrigger), {
+									className: "text-left",
+									children: "Is there a free trial?"
+								}, void 0, false, {
+									fileName: _jsxFileName,
+									lineNumber: 85,
+									columnNumber: 17
+								}, this), /* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)((0,__vite_ssr_import_0__.AccordionContent), {
+									className: "text-left text-gray-400",
+									children: "Yes, we offer a 14-day free trial with full access to all features to help you evaluate our platform."
+								}, void 0, false, {
+									fileName: _jsxFileName,
+									lineNumber: 86,
+									columnNumber: 17
+								}, this)]
+							}, void 0, true, {
+								fileName: _jsxFileName,
+								lineNumber: 84,
+								columnNumber: 15
+							}, this),
+							/* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)((0,__vite_ssr_import_0__.AccordionItem), {
+								value: "item-5",
+								className: "border-b border-gray-800",
+								children: [/* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)((0,__vite_ssr_import_0__.AccordionTrigger), {
+									className: "text-left",
+									children: "Can I cancel my subscription?"
+								}, void 0, false, {
+									fileName: _jsxFileName,
+									lineNumber: 92,
+									columnNumber: 17
+								}, this), /* @__PURE__ */ (0,__vite_ssr_import_1__.jsxDEV)((0,__vite_ssr_import_0__.AccordionContent), {
+									className: "text-left text-gray-400",
+									children: "Yes, you can cancel your subscription at any time. No long-term commitments required."
+								}, void 0, false, {
+									fileName: _jsxFileName,
+									lineNumber: 93,
+									columnNumber: 17
+								}, this)]
+							}, void 0, true, {
+								fileName: _jsxFileName,
+								lineNumber: 91,
+								columnNumber: 15
+							}, this)
+						]
+					}, void 0, true, {
+						fileName: _jsxFileName,
+						lineNumber: 62,
+						columnNumber: 13
+					}, this)
+				}, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 61,
+					columnNumber: 11
+				}, this)]
+			}, void 0, true, {
+				fileName: _jsxFileName,
+				lineNumber: 54,
+				columnNumber: 9
+			}, this)
+		}, void 0, false, {
+			fileName: _jsxFileName,
+			lineNumber: 53,
+			columnNumber: 7
+		}, this)
+	}, void 0, false, {
+		fileName: _jsxFileName,
+		lineNumber: 52,
+		columnNumber: 5
+	}, this);
+}
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTtBQUdBOztBQUhBOzs7O0FBVUEsTUFBTSxPQUFrQjtDQUN0QjtFQUNFLFVBQVU7RUFDVixRQUFRO0NBQ1Y7Q0FDQTtFQUNFLFVBQVU7RUFDVixRQUFRO0NBQ1Y7Q0FDQTtFQUNFLFVBQVU7RUFDVixRQUFRO0NBQ1Y7Q0FDQTtFQUNFLFVBQVU7RUFDVixRQUFRO0NBQ1Y7Q0FDQTtFQUNFLFVBQVU7RUFDVixRQUFRO0NBQ1Y7Q0FDQTtFQUNFLFVBQVU7RUFDVixRQUFRO0NBQ1Y7Q0FDQTtFQUNFLFVBQVU7RUFDVixRQUFRO0NBQ1Y7Q0FDQTtFQUNFLFVBQVU7RUFDVixRQUFRO0NBQ1Y7Q0FDQTtFQUNFLFVBQVU7RUFDVixRQUFRO0NBQ1Y7QUFDRjtBQUVlLFNBQVMsTUFBTTtDQUM1QixPQUNFLGlEQUFDLFdBQUQ7RUFBUyxXQUFVO1lBQ2pCLGlEQUFDLE9BQUQ7R0FBSyxXQUFVO2FBQ2IsaURBQUMsT0FBRDtJQUFLLFdBQVU7Y0FBZixDQUVFLGlEQUFDLE9BQUQ7S0FBSyxXQUFVO2VBQ2IsaURBQUMsTUFBRDtNQUFJLFdBQVU7Z0JBQWlDO0tBQW1COzs7OztJQUMvRDs7OztjQUdMLGlEQUFDLE9BQUQ7S0FBSyxXQUFVO2VBQ2Isb0RBQUMsa0NBQUQ7TUFBVyxNQUFLO01BQVM7TUFBWSxXQUFVO2dCQUEvQztPQUNFLG9EQUFDLHNDQUFEO1FBQWUsT0FBTTtRQUFTLFdBQVU7a0JBQXhDLENBQ0Usb0RBQUMseUNBQUQ7U0FBa0IsV0FBVTttQkFBWTtRQUFxQzs7OztrQkFDN0Usb0RBQUMseUNBQUQ7U0FBa0IsV0FBVTttQkFBMEI7UUFFcEM7Ozs7Z0JBQ0w7Ozs7OztPQUVmLG9EQUFDLHNDQUFEO1FBQWUsT0FBTTtRQUFTLFdBQVU7a0JBQXhDLENBQ0Usb0RBQUMseUNBQUQ7U0FBa0IsV0FBVTttQkFBWTtRQUE2Qzs7OztrQkFDckYsb0RBQUMseUNBQUQ7U0FBa0IsV0FBVTttQkFBMEI7UUFFcEM7Ozs7Z0JBQ0w7Ozs7OztPQUVmLG9EQUFDLHNDQUFEO1FBQWUsT0FBTTtRQUFTLFdBQVU7a0JBQXhDLENBQ0Usb0RBQUMseUNBQUQ7U0FBa0IsV0FBVTttQkFBWTtRQUF3Qzs7OztrQkFDaEYsb0RBQUMseUNBQUQ7U0FBa0IsV0FBVTttQkFBMEI7UUFFcEM7Ozs7Z0JBQ0w7Ozs7OztPQUVmLG9EQUFDLHNDQUFEO1FBQWUsT0FBTTtRQUFTLFdBQVU7a0JBQXhDLENBQ0Usb0RBQUMseUNBQUQ7U0FBa0IsV0FBVTttQkFBWTtRQUF3Qzs7OztrQkFDaEYsb0RBQUMseUNBQUQ7U0FBa0IsV0FBVTttQkFBMEI7UUFFcEM7Ozs7Z0JBQ0w7Ozs7OztPQUVmLG9EQUFDLHNDQUFEO1FBQWUsT0FBTTtRQUFTLFdBQVU7a0JBQXhDLENBQ0Usb0RBQUMseUNBQUQ7U0FBa0IsV0FBVTttQkFBWTtRQUErQzs7OztrQkFDdkYsb0RBQUMseUNBQUQ7U0FBa0IsV0FBVTttQkFBMEI7UUFFcEM7Ozs7Z0JBQ0w7Ozs7OztNQUNOOzs7Ozs7SUFDUjs7OztZQUNGOzs7Ozs7RUFDRjs7Ozs7Q0FDRTs7Ozs7QUFFYiIsIm5hbWVzIjpbXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiRkFRLnRzeCJdLCJzb3VyY2VzQ29udGVudCI6WyIndXNlIGNsaWVudCc7XG5cbmltcG9ydCB7IHVzZVN0YXRlIH0gZnJvbSAncmVhY3QnO1xuaW1wb3J0IHsgQWNjb3JkaW9uLCBBY2NvcmRpb25JdGVtLCBBY2NvcmRpb25UcmlnZ2VyLCBBY2NvcmRpb25Db250ZW50IH0gZnJvbSAnQC9jb21wb25lbnRzL3VpL2FjY29yZGlvbic7XG5cbmludGVyZmFjZSBGQVFJdGVtIHtcbiAgcXVlc3Rpb246IHN0cmluZztcbiAgYW5zd2VyOiBzdHJpbmc7XG59XG5cbmNvbnN0IGZhcXM6IEZBUUl0ZW1bXSA9IFtcbiAge1xuICAgIHF1ZXN0aW9uOiBcIldobyBpcyBDb25zdHJ1Y3RhIGZvcj9cIixcbiAgICBhbnN3ZXI6IFwiQ29uc3RydWN0YSBpcyBidWlsdCBmb3Igc21hbGwgY29uc3RydWN0aW9uIHRlYW1zLCB0cmFkZXNwZW9wbGUsIGFuZCBjb250cmFjdG9ycyB3aG8gbmVlZCBzaW1wbGUsIHJlbGlhYmxlIHRvb2xzIHRvIHF1b3RlLCBwbGFuLCBhbmQgc3RheSBvbiB0b3Agb2Ygam9ic+KAlHdpdGhvdXQgdGhlIGFkbWluIG92ZXJsb2FkLlwiXG4gIH0sXG4gIHtcbiAgICBxdWVzdGlvbjogXCJJcyBDb25zdHJ1Y3RhIGp1c3QgZm9yIGJ1aWxkZXJzP1wiLFxuICAgIGFuc3dlcjogXCJOb3QgYXQgYWxsLiBXaGV0aGVyIHlvdSdyZSBhIGpvaW5lciwgZWxlY3RyaWNpYW4sIGdlbmVyYWwgY29udHJhY3Rvciwgb3IgbXVsdGktdHJhZGUgYnVzaW5lc3MsIENvbnN0cnVjdGEgaGVscHMgeW91IHF1b3RlIGFjY3VyYXRlbHkgYW5kIHBsYW4gY2xlYXJseS4gSWYgeW91IHdvcmsgaW4gY29uc3RydWN0aW9u4oCUd2UndmUgZ290IHlvdS5cIlxuICB9LFxuICB7XG4gICAgcXVlc3Rpb246IFwiV2hhdCBjYW4gSSBhY3R1YWxseSBkbyB3aXRoIENvbnN0cnVjdGE/XCIsXG4gICAgYW5zd2VyOiBcIllvdSBjYW4gYnVpbGQgcHJvZmVzc2lvbmFsIHByb3Bvc2FscywgY3JlYXRlIGNsZWFyIHByb2plY3QgdGltZWxpbmVzLCBtYW5hZ2UgeW91ciBqb2Igc2NoZWR1bGUsIGFuZCB0cmFjayBjb3N0c+KAlGFsbCBpbiBvbmUgcGxhY2UuIE5vIG1vcmUganVnZ2xpbmcgc3ByZWFkc2hlZXRzLCBtZXNzYWdlIHRocmVhZHMsIGFuZCBkb2N1bWVudHMuXCJcbiAgfSxcbiAge1xuICAgIHF1ZXN0aW9uOiBcIkRvIEkgbmVlZCB0cmFpbmluZyB0byB1c2UgQ29uc3RydWN0YT9cIixcbiAgICBhbnN3ZXI6IFwiTm8uIENvbnN0cnVjdGEgaXMgZGVzaWduZWQgdG8gYmUgc2ltcGxlIGFuZCBpbnR1aXRpdmUgZnJvbSBkYXkgb25lLiBJZiB5b3UgY2FuIHVzZSBlbWFpbCBhbmQgc3ByZWFkc2hlZXRzLCB5b3UnbGwgYmUgdXAgYW5kIHJ1bm5pbmcgaW4gbWludXRlcy5cIlxuICB9LFxuICB7XG4gICAgcXVlc3Rpb246IFwiSXMgdGhlcmUgYSBmcmVlIHRyaWFsP1wiLFxuICAgIGFuc3dlcjogXCJZZXPigJR3aGVuIHdlIGxhdW5jaCwgeW91J2xsIGJlIGFibGUgdG8gdHJ5IENvbnN0cnVjdGEgZm9yIGZyZWUuIEVhcmx5IHVzZXJzIHdpbGwgYWxzbyBnZXQgYWNjZXNzIHRvIHNwZWNpYWwgbGF1bmNoIHByaWNpbmcuXCJcbiAgfSxcbiAge1xuICAgIHF1ZXN0aW9uOiBcIldpbGwgdGhpcyB3b3JrIG9uIHNpdGUgb3Igb24gbXkgcGhvbmU/XCIsXG4gICAgYW5zd2VyOiBcIkFic29sdXRlbHkuIENvbnN0cnVjdGEgaXMgZnVsbHkgY2xvdWQtYmFzZWQgYW5kIG1vYmlsZS1mcmllbmRseSwgc28geW91IGNhbiB1c2UgaXQgaW4gdGhlIG9mZmljZSwgb24gc2l0ZSwgb3Igb24gdGhlIGdvLlwiXG4gIH0sXG4gIHtcbiAgICBxdWVzdGlvbjogXCJDYW4gSSBjdXN0b21pc2UgcHJvcG9zYWxzIGFuZCB0aW1lbGluZXMgdG8gc3VpdCBteSBqb2JzP1wiLFxuICAgIGFuc3dlcjogXCJZZXMuIENvbnN0cnVjdGEgaXMgZmxleGlibGXigJR5b3UgY2FuIHNldCB5b3VyIG93biBsaW5lIGl0ZW1zLCBwaGFzZXMsIGFuZCB0ZXJtcywgc28geW91ciBwcm9wb3NhbHMgYW5kIHByb2dyYW1tZXMgcmVmbGVjdCBob3cgeW91IGFjdHVhbGx5IHdvcmsuXCJcbiAgfSxcbiAge1xuICAgIHF1ZXN0aW9uOiBcIkRvIHlvdSBzdXBwb3J0IFVLIGNvbnN0cnVjdGlvbiBzdGFuZGFyZHMgYW5kIHRlcm1pbm9sb2d5P1wiLFxuICAgIGFuc3dlcjogXCJXZSBkby4gQ29uc3RydWN0YSBpcyBidWlsdCBpbiB0aGUgVUssIGZvciBVSy1iYXNlZCB0ZWFtc+KAlHNvIGV2ZXJ5dGhpbmcgZnJvbSBwcm9qZWN0IHBoYXNlcyB0byBwcm9wb3NhbCBmb3JtYXRzIGlzIG1hZGUgdG8gZml0IHlvdXIgd29ybGQuXCJcbiAgfSxcbiAge1xuICAgIHF1ZXN0aW9uOiBcIldoYXQgaWYgSSBuZWVkIGhlbHA/XCIsXG4gICAgYW5zd2VyOiBcIldlJ3ZlIGdvdCB5b3UuIE91ciBzdXBwb3J0IHRlYW0gaXMgc21hbGwsIGZyaWVuZGx5LCBhbmQgYWN0dWFsbHkgdW5kZXJzdGFuZHMgY29uc3RydWN0aW9uLiBJZiB5b3UgbmVlZCBoZWxwLCB5b3UnbGwgdGFsayB0byBzb21lb25lIHdobyBnZXRzIGl0LlwiXG4gIH1cbl07XG5cbmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIEZBUSgpIHtcbiAgcmV0dXJuIChcbiAgICA8c2VjdGlvbiBjbGFzc05hbWU9XCJyZWxhdGl2ZSBweS0zMiBtZDpweS00MCBweC00IG1kOnB4LThcIj5cbiAgICAgIDxkaXYgY2xhc3NOYW1lPVwibWF4LXctN3hsIG14LWF1dG9cIj5cbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJncmlkIGdyaWQtY29scy0xIG1kOmdyaWQtY29scy0yIGdhcC04IG1kOmdhcC0xNlwiPlxuICAgICAgICAgIHsvKiBMZWZ0IGNvbHVtbiB3aXRoIGhlYWRlciAqL31cbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInRleHQtbGVmdFwiPlxuICAgICAgICAgICAgPGgyIGNsYXNzTmFtZT1cInRleHQtNHhsIG1kOnRleHQtNXhsIGZvbnQtYm9sZFwiPkhhdmUgcXVlc3Rpb25zPzwvaDI+XG4gICAgICAgICAgPC9kaXY+XG5cbiAgICAgICAgICB7LyogUmlnaHQgY29sdW1uIHdpdGggYWNjb3JkaW9uICovfVxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic3BhY2UteS00XCI+XG4gICAgICAgICAgICA8QWNjb3JkaW9uIHR5cGU9XCJzaW5nbGVcIiBjb2xsYXBzaWJsZSBjbGFzc05hbWU9XCJ3LWZ1bGxcIj5cbiAgICAgICAgICAgICAgPEFjY29yZGlvbkl0ZW0gdmFsdWU9XCJpdGVtLTFcIiBjbGFzc05hbWU9XCJib3JkZXItYiBib3JkZXItZ3JheS04MDBcIj5cbiAgICAgICAgICAgICAgICA8QWNjb3JkaW9uVHJpZ2dlciBjbGFzc05hbWU9XCJ0ZXh0LWxlZnRcIj5XaGF0IGlzIENvbnN0cnVjdGE/PC9BY2NvcmRpb25UcmlnZ2VyPlxuICAgICAgICAgICAgICAgIDxBY2NvcmRpb25Db250ZW50IGNsYXNzTmFtZT1cInRleHQtbGVmdCB0ZXh0LWdyYXktNDAwXCI+XG4gICAgICAgICAgICAgICAgICBDb25zdHJ1Y3RhIGlzIGFuIEFJLXBvd2VyZWQgY29uc3RydWN0aW9uIG1hbmFnZW1lbnQgcGxhdGZvcm0gdGhhdCBzdHJlYW1saW5lcyBwcm9qZWN0IHBsYW5uaW5nLCBleGVjdXRpb24sIGFuZCBtb25pdG9yaW5nLlxuICAgICAgICAgICAgICAgIDwvQWNjb3JkaW9uQ29udGVudD5cbiAgICAgICAgICAgICAgPC9BY2NvcmRpb25JdGVtPlxuXG4gICAgICAgICAgICAgIDxBY2NvcmRpb25JdGVtIHZhbHVlPVwiaXRlbS0yXCIgY2xhc3NOYW1lPVwiYm9yZGVyLWIgYm9yZGVyLWdyYXktODAwXCI+XG4gICAgICAgICAgICAgICAgPEFjY29yZGlvblRyaWdnZXIgY2xhc3NOYW1lPVwidGV4dC1sZWZ0XCI+V2hhdCBmZWF0dXJlcyBhcmUgaW5jbHVkZWQ/PC9BY2NvcmRpb25UcmlnZ2VyPlxuICAgICAgICAgICAgICAgIDxBY2NvcmRpb25Db250ZW50IGNsYXNzTmFtZT1cInRleHQtbGVmdCB0ZXh0LWdyYXktNDAwXCI+XG4gICAgICAgICAgICAgICAgICBPdXIgcGxhdGZvcm0gaW5jbHVkZXMgcHJvamVjdCBtYW5hZ2VtZW50IHRvb2xzLCBBSS1hc3Npc3RlZCBzY2hlZHVsaW5nLCByZXNvdXJjZSBhbGxvY2F0aW9uLCByZWFsLXRpbWUgcHJvZ3Jlc3MgdHJhY2tpbmcsIGFuZCBhdXRvbWF0ZWQgcmVwb3J0aW5nIGZlYXR1cmVzLlxuICAgICAgICAgICAgICAgIDwvQWNjb3JkaW9uQ29udGVudD5cbiAgICAgICAgICAgICAgPC9BY2NvcmRpb25JdGVtPlxuXG4gICAgICAgICAgICAgIDxBY2NvcmRpb25JdGVtIHZhbHVlPVwiaXRlbS0zXCIgY2xhc3NOYW1lPVwiYm9yZGVyLWIgYm9yZGVyLWdyYXktODAwXCI+XG4gICAgICAgICAgICAgICAgPEFjY29yZGlvblRyaWdnZXIgY2xhc3NOYW1lPVwidGV4dC1sZWZ0XCI+SG93IGRvZXMgcHJpY2luZyB3b3JrPzwvQWNjb3JkaW9uVHJpZ2dlcj5cbiAgICAgICAgICAgICAgICA8QWNjb3JkaW9uQ29udGVudCBjbGFzc05hbWU9XCJ0ZXh0LWxlZnQgdGV4dC1ncmF5LTQwMFwiPlxuICAgICAgICAgICAgICAgICAgV2Ugb2ZmZXIgZmxleGlibGUgcHJpY2luZyBwbGFucyBiYXNlZCBvbiBwcm9qZWN0IHNpemUgYW5kIGZlYXR1cmUgcmVxdWlyZW1lbnRzLiBDb250YWN0IHVzIGZvciBhIGN1c3RvbWl6ZWQgcXVvdGUuXG4gICAgICAgICAgICAgICAgPC9BY2NvcmRpb25Db250ZW50PlxuICAgICAgICAgICAgICA8L0FjY29yZGlvbkl0ZW0+XG5cbiAgICAgICAgICAgICAgPEFjY29yZGlvbkl0ZW0gdmFsdWU9XCJpdGVtLTRcIiBjbGFzc05hbWU9XCJib3JkZXItYiBib3JkZXItZ3JheS04MDBcIj5cbiAgICAgICAgICAgICAgICA8QWNjb3JkaW9uVHJpZ2dlciBjbGFzc05hbWU9XCJ0ZXh0LWxlZnRcIj5JcyB0aGVyZSBhIGZyZWUgdHJpYWw/PC9BY2NvcmRpb25UcmlnZ2VyPlxuICAgICAgICAgICAgICAgIDxBY2NvcmRpb25Db250ZW50IGNsYXNzTmFtZT1cInRleHQtbGVmdCB0ZXh0LWdyYXktNDAwXCI+XG4gICAgICAgICAgICAgICAgICBZZXMsIHdlIG9mZmVyIGEgMTQtZGF5IGZyZWUgdHJpYWwgd2l0aCBmdWxsIGFjY2VzcyB0byBhbGwgZmVhdHVyZXMgdG8gaGVscCB5b3UgZXZhbHVhdGUgb3VyIHBsYXRmb3JtLlxuICAgICAgICAgICAgICAgIDwvQWNjb3JkaW9uQ29udGVudD5cbiAgICAgICAgICAgICAgPC9BY2NvcmRpb25JdGVtPlxuXG4gICAgICAgICAgICAgIDxBY2NvcmRpb25JdGVtIHZhbHVlPVwiaXRlbS01XCIgY2xhc3NOYW1lPVwiYm9yZGVyLWIgYm9yZGVyLWdyYXktODAwXCI+XG4gICAgICAgICAgICAgICAgPEFjY29yZGlvblRyaWdnZXIgY2xhc3NOYW1lPVwidGV4dC1sZWZ0XCI+Q2FuIEkgY2FuY2VsIG15IHN1YnNjcmlwdGlvbj88L0FjY29yZGlvblRyaWdnZXI+XG4gICAgICAgICAgICAgICAgPEFjY29yZGlvbkNvbnRlbnQgY2xhc3NOYW1lPVwidGV4dC1sZWZ0IHRleHQtZ3JheS00MDBcIj5cbiAgICAgICAgICAgICAgICAgIFllcywgeW91IGNhbiBjYW5jZWwgeW91ciBzdWJzY3JpcHRpb24gYXQgYW55IHRpbWUuIE5vIGxvbmctdGVybSBjb21taXRtZW50cyByZXF1aXJlZC5cbiAgICAgICAgICAgICAgICA8L0FjY29yZGlvbkNvbnRlbnQ+XG4gICAgICAgICAgICAgIDwvQWNjb3JkaW9uSXRlbT5cbiAgICAgICAgICAgIDwvQWNjb3JkaW9uPlxuICAgICAgICAgIDwvZGl2PlxuICAgICAgICA8L2Rpdj5cbiAgICAgIDwvZGl2PlxuICAgIDwvc2VjdGlvbj5cbiAgKTtcbn0gIl0sImZpbGUiOiIvc3JjL2FwcC9jb21wb25lbnRzL0ZBUS50c3gifQ==
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZSwiZGVwcyI6IjQiLCJkeW5hbWljRGVwcyI6IjUiLCJzdGF0aWNNb2NrcyI6bnVsbH0sIi9Vc2Vycy9yb2JlcnRzbWl0aC9kZXYvY29uc3RydWN0YS1mcmVzaC0yMDI2MTAyNS8uY3Etd3QvY3EtMDQzMi1hMDkxLWVycm9yLXJlY292ZXJ5L3NyYy9hcHAvY29tcG9uZW50cy9GQVEudHN4IiwiL3NyYy9hcHAvY29tcG9uZW50cy9GQVEudHN4IixbXSxbIjYiLCI3Il0sW10sIi9zcmMvY29tcG9uZW50cy91aS9hY2NvcmRpb24udHN4IiwiL0Bmcy9Vc2Vycy9yb2JlcnRzbWl0aC9kZXYvY29uc3RydWN0YS1mcmVzaC0yMDI2MTAyNS9ub2RlX21vZHVsZXMvcmVhY3QvanN4LWRldi1ydW50aW1lLmpzIl0=

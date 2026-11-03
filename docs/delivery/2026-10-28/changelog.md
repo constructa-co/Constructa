@@ -372,3 +372,10 @@
 - **`src/components/marketing/guides-hub.tsx`**, **`guide-article-view.tsx`**, **`guides.module.css`**: phase-one editorial layout inside existing `PublicChrome` (no nested `main`, no forms or external integrations).
 - **`src/components/marketing/phase-one.tsx`** (~L37–40): single footer nav link **`/guides`** in cohort `MarketingFooter`; full-profile footer unchanged.
 - Intent: local A099 source only — not publication, signup, or release claims. Runner commit/push/build pending.
+
+## A099 Guides attribution metadata — 4 Nov 2026
+
+- **`src/lib/marketing-guides.ts`** (~L8–24, ~L88–99): `GUIDE_ARTICLE_ATTRIBUTION` plus per-article author, AI-assisted preparation label, and content-updated ISO/display dates (`2026-11-04` / 4 November 2026) for both slugs.
+- **`src/components/marketing/guide-article-view.tsx`** (~L24–31): visible attribution copy and labelled `<time dateTime="2026-11-04">` content updated line; no reviewed-by or release claims.
+- **`src/app/guides/guides-routes.test.tsx`**: focused regression for attribution fields and semantic date markup on both articles.
+- Intent: close ROB0330 original-scope item for truthful preview-guide metadata only; runner commit/push pending.

@@ -1,0 +1,1217 @@
+__vite_ssr_exportName__("MarketingHeader", () => { try { return MarketingHeader } catch {} });
+__vite_ssr_exportName__("MarketingFooter", () => { try { return MarketingFooter } catch {} });
+__vite_ssr_exportName__("PhaseOneHome", () => { try { return PhaseOneHome } catch {} });
+__vite_ssr_exportName__("PhaseOneFeatures", () => { try { return PhaseOneFeatures } catch {} });
+__vite_ssr_exportName__("PhaseOnePricing", () => { try { return PhaseOnePricing } catch {} });
+const __vite_ssr_import_0__ = await __vite_ssr_import__("/@fs/Users/robertsmith/dev/constructa-fresh-20261025/node_modules/next/link.js", {"importedNames":["default"]});
+const __vite_ssr_import_1__ = await __vite_ssr_import__("/@fs/Users/robertsmith/dev/constructa-fresh-20261025/node_modules/lucide-react/dist/cjs/lucide-react.js", {"importedNames":["ArrowDown","ArrowRight","Check","Plus"]});
+const __vite_ssr_import_2__ = await __vite_ssr_import__("/src/components/marketing/home-business-visual.tsx", {"importedNames":["HomeBusinessVisual"]});
+const __vite_ssr_import_3__ = await __vite_ssr_import__("/src/components/marketing/product-review-guide.tsx", {"importedNames":["ProductReviewGuide"]});
+const __vite_ssr_import_4__ = await __vite_ssr_import__("/src/components/marketing/product-screenshots.tsx", {"importedNames":["ProductScreenshots"]});
+const __vite_ssr_import_5__ = await __vite_ssr_import__("/src/components/marketing/phase-one.module.css", {"importedNames":["default"]});
+const __vite_ssr_import_6__ = await __vite_ssr_import__("/@fs/Users/robertsmith/dev/constructa-fresh-20261025/node_modules/react/jsx-dev-runtime.js", {"importedNames":["jsxDEV"]});
+
+
+
+
+
+
+var _jsxFileName = "/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/cq-0432-a091-error-recovery/src/components/marketing/phase-one.tsx";
+
+const stages = [
+	{
+		number: "01",
+		title: "Make it your business.",
+		label: "Company",
+		description: "Introduce your company, your experience and the work you are proud of. Build a profile you can use again.",
+		detail: "Company details, your story and case studies."
+	},
+	{
+		number: "02",
+		title: "Put a price to the work.",
+		label: "Estimate",
+		description: "Describe the job, build your price lines and see how the total comes together. Your scope and your numbers, in one place.",
+		detail: "One-price items, quantities, rates and adjustments."
+	},
+	{
+		number: "03",
+		title: "Give the job a plan.",
+		label: "Programme",
+		description: "Set out when the work starts, how long it takes and the stages along the way. Give the client a clearer picture.",
+		detail: "Start dates, durations and a visual programme."
+	},
+	{
+		number: "04",
+		title: "Present the whole picture.",
+		label: "Proposal",
+		description: "Bring your business, scope, price, programme and terms together. Check the finished proposal before sharing it.",
+		detail: "A branded document, a draft PDF and client response options."
+	}
+];
+function MarketingHeader() {
+	return /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("header", {
+		className: `${__vite_ssr_import_5__.default.theme} ${__vite_ssr_import_5__.default.header}`,
+		children: /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+			className: __vite_ssr_import_5__.default.headerInner,
+			children: [
+				/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_0__.default), {
+					className: __vite_ssr_import_5__.default.brand,
+					href: "/",
+					"aria-label": "Constructa home",
+					children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", {
+						"aria-hidden": "true",
+						children: "C"
+					}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 19,
+						columnNumber: 74
+					}, this), "constructa"]
+				}, void 0, true, {
+					fileName: _jsxFileName,
+					lineNumber: 19,
+					columnNumber: 9
+				}, this),
+				/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("nav", {
+					"aria-label": "Main navigation",
+					className: __vite_ssr_import_5__.default.nav,
+					children: [
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_0__.default), {
+							href: "/#how-it-works",
+							children: "How it works"
+						}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 21,
+							columnNumber: 11
+						}, this),
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_0__.default), {
+							href: "/features",
+							children: "The product"
+						}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 22,
+							columnNumber: 11
+						}, this),
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_0__.default), {
+							href: "/pricing",
+							children: "Preview access"
+						}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 23,
+							columnNumber: 11
+						}, this)
+					]
+				}, void 0, true, {
+					fileName: _jsxFileName,
+					lineNumber: 20,
+					columnNumber: 9
+				}, this),
+				/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_0__.default), {
+					className: __vite_ssr_import_5__.default.signIn,
+					href: "/login",
+					children: ["Sign in ", /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_1__.ArrowRight), {
+						size: 16,
+						"aria-hidden": "true"
+					}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 25,
+						columnNumber: 59
+					}, this)]
+				}, void 0, true, {
+					fileName: _jsxFileName,
+					lineNumber: 25,
+					columnNumber: 9
+				}, this)
+			]
+		}, void 0, true, {
+			fileName: _jsxFileName,
+			lineNumber: 18,
+			columnNumber: 7
+		}, this)
+	}, void 0, false, {
+		fileName: _jsxFileName,
+		lineNumber: 17,
+		columnNumber: 5
+	}, this);
+};
+function MarketingFooter() {
+	return /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("footer", {
+		className: `${__vite_ssr_import_5__.default.theme} ${__vite_ssr_import_5__.default.footer}`,
+		children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+			className: __vite_ssr_import_5__.default.footerTop,
+			children: [
+				/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_0__.default), {
+					className: __vite_ssr_import_5__.default.brand,
+					href: "/",
+					"aria-label": "Constructa home",
+					children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", {
+						"aria-hidden": "true",
+						children: "C"
+					}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 35,
+						columnNumber: 74
+					}, this), "constructa"]
+				}, void 0, true, {
+					fileName: _jsxFileName,
+					lineNumber: 35,
+					columnNumber: 9
+				}, this),
+				/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", { children: [
+					"Built around your business.",
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("br", {}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 36,
+						columnNumber: 39
+					}, this),
+					"Not the other way around."
+				] }, void 0, true, {
+					fileName: _jsxFileName,
+					lineNumber: 36,
+					columnNumber: 9
+				}, this),
+				/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("nav", {
+					"aria-label": "Footer navigation",
+					children: [
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_0__.default), {
+							href: "/features",
+							children: "The product"
+						}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 38,
+							columnNumber: 11
+						}, this),
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_0__.default), {
+							href: "/guides",
+							children: "Guides"
+						}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 38,
+							columnNumber: 52
+						}, this),
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_0__.default), {
+							href: "/login",
+							children: "Sign in"
+						}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 38,
+							columnNumber: 86
+						}, this),
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_0__.default), {
+							href: "/terms-of-service",
+							children: "Terms"
+						}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 39,
+							columnNumber: 11
+						}, this),
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_0__.default), {
+							href: "/privacy-policy",
+							children: "Privacy"
+						}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 39,
+							columnNumber: 54
+						}, this),
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_0__.default), {
+							href: "/contact",
+							children: "Get in touch"
+						}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 40,
+							columnNumber: 11
+						}, this)
+					]
+				}, void 0, true, {
+					fileName: _jsxFileName,
+					lineNumber: 37,
+					columnNumber: 9
+				}, this)
+			]
+		}, void 0, true, {
+			fileName: _jsxFileName,
+			lineNumber: 34,
+			columnNumber: 7
+		}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+			className: __vite_ssr_import_5__.default.footerBottom,
+			children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { children: "Constructa © 2026" }, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 43,
+				columnNumber: 40
+			}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { children: "Phase one review · Company. Price. Programme. Proposal." }, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 43,
+				columnNumber: 70
+			}, this)]
+		}, void 0, true, {
+			fileName: _jsxFileName,
+			lineNumber: 43,
+			columnNumber: 7
+		}, this)]
+	}, void 0, true, {
+		fileName: _jsxFileName,
+		lineNumber: 33,
+		columnNumber: 5
+	}, this);
+};
+function AccountLink({ children = "Open Constructa" }) {
+	return /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_0__.default), {
+		className: __vite_ssr_import_5__.default.primary,
+		href: "/login",
+		children: [children, /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_1__.ArrowRight), {
+			size: 18,
+			"aria-hidden": "true"
+		}, void 0, false, {
+			fileName: _jsxFileName,
+			lineNumber: 49,
+			columnNumber: 63
+		}, this)]
+	}, void 0, true, {
+		fileName: _jsxFileName,
+		lineNumber: 49,
+		columnNumber: 10
+	}, this);
+}
+function ProposalIllustration() {
+	return /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("figure", {
+		className: __vite_ssr_import_5__.default.visual,
+		"aria-label": "Illustrative proposal for a kitchen refurbishment, not a live project",
+		children: [
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+				className: __vite_ssr_import_5__.default.visualHeader,
+				children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("i", {}, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 55,
+					columnNumber: 46
+				}, this), " A clearer first impression"] }, void 0, true, {
+					fileName: _jsxFileName,
+					lineNumber: 55,
+					columnNumber: 40
+				}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { children: "Illustrative example" }, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 55,
+					columnNumber: 85
+				}, this)]
+			}, void 0, true, {
+				fileName: _jsxFileName,
+				lineNumber: 55,
+				columnNumber: 7
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+				className: __vite_ssr_import_5__.default.paper,
+				children: [
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+						className: __vite_ssr_import_5__.default.paperTop,
+						children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("strong", { children: "Oak & Stone" }, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 57,
+							columnNumber: 38
+						}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { children: "PROPOSAL / 001" }, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 57,
+							columnNumber: 70
+						}, this)]
+					}, void 0, true, {
+						fileName: _jsxFileName,
+						lineNumber: 57,
+						columnNumber: 9
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", {
+						className: __vite_ssr_import_5__.default.paperKicker,
+						children: "Built on the details."
+					}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 58,
+						columnNumber: 9
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("h2", { children: [
+						"A kitchen.",
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("br", {}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 59,
+							columnNumber: 23
+						}, this),
+						"A fresh start."
+					] }, void 0, true, {
+						fileName: _jsxFileName,
+						lineNumber: 59,
+						columnNumber: 9
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", {
+						className: __vite_ssr_import_5__.default.paperIntro,
+						children: [
+							"Kitchen refurbishment",
+							/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("br", {}, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 60,
+								columnNumber: 59
+							}, this),
+							"Prepared for Alex & Sam"
+						]
+					}, void 0, true, {
+						fileName: _jsxFileName,
+						lineNumber: 60,
+						columnNumber: 9
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+						className: __vite_ssr_import_5__.default.paperLines,
+						children: [
+							/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", { children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { children: "Preparation & removal" }, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 62,
+								columnNumber: 16
+							}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("strong", { children: "£1,850" }, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 62,
+								columnNumber: 54
+							}, this)] }, void 0, true, {
+								fileName: _jsxFileName,
+								lineNumber: 62,
+								columnNumber: 11
+							}, this),
+							/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", { children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { children: "Installation & services" }, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 63,
+								columnNumber: 16
+							}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("strong", { children: "£8,400" }, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 63,
+								columnNumber: 56
+							}, this)] }, void 0, true, {
+								fileName: _jsxFileName,
+								lineNumber: 63,
+								columnNumber: 11
+							}, this),
+							/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", { children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { children: "Finishing works" }, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 64,
+								columnNumber: 16
+							}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("strong", { children: "£2,200" }, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 64,
+								columnNumber: 44
+							}, this)] }, void 0, true, {
+								fileName: _jsxFileName,
+								lineNumber: 64,
+								columnNumber: 11
+							}, this),
+							/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", { children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { children: "Total before VAT" }, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 65,
+								columnNumber: 16
+							}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("strong", { children: "£12,450" }, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 65,
+								columnNumber: 45
+							}, this)] }, void 0, true, {
+								fileName: _jsxFileName,
+								lineNumber: 65,
+								columnNumber: 11
+							}, this)
+						]
+					}, void 0, true, {
+						fileName: _jsxFileName,
+						lineNumber: 61,
+						columnNumber: 9
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+						className: __vite_ssr_import_5__.default.paperProgramme,
+						"aria-hidden": "true",
+						children: [
+							/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { children: "Prepare" }, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 67,
+								columnNumber: 63
+							}, this),
+							/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("i", {}, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 67,
+								columnNumber: 83
+							}, this),
+							/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { children: "Install" }, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 67,
+								columnNumber: 88
+							}, this),
+							/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("i", {}, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 67,
+								columnNumber: 108
+							}, this),
+							/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { children: "Finish" }, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 67,
+								columnNumber: 113
+							}, this),
+							/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("i", {}, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 67,
+								columnNumber: 132
+							}, this)
+						]
+					}, void 0, true, {
+						fileName: _jsxFileName,
+						lineNumber: 67,
+						columnNumber: 9
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+						className: __vite_ssr_import_5__.default.paperBottom,
+						children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { children: "Your work. Clearly presented." }, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 68,
+							columnNumber: 41
+						}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_1__.Check), {
+							size: 17,
+							"aria-hidden": "true"
+						}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 68,
+							columnNumber: 83
+						}, this)]
+					}, void 0, true, {
+						fileName: _jsxFileName,
+						lineNumber: 68,
+						columnNumber: 9
+					}, this)
+				]
+			}, void 0, true, {
+				fileName: _jsxFileName,
+				lineNumber: 56,
+				columnNumber: 7
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("figcaption", { children: "From the first conversation to a proposal that feels like you." }, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 70,
+				columnNumber: 7
+			}, this)
+		]
+	}, void 0, true, {
+		fileName: _jsxFileName,
+		lineNumber: 54,
+		columnNumber: 5
+	}, this);
+}
+function Journey() {
+	return /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("section", {
+		id: "how-it-works",
+		className: __vite_ssr_import_5__.default.section,
+		children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+			className: __vite_ssr_import_5__.default.sectionIntro,
+			children: [
+				/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", {
+					className: __vite_ssr_import_5__.default.eyebrow,
+					children: "One connected journey"
+				}, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 78,
+					columnNumber: 40
+				}, this),
+				/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("h2", { children: [
+					"Less starting again.",
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("br", {}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 78,
+						columnNumber: 115
+					}, this),
+					"More moving forward."
+				] }, void 0, true, {
+					fileName: _jsxFileName,
+					lineNumber: 78,
+					columnNumber: 91
+				}, this),
+				/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", { children: "From who you are to what you will deliver. Keep the company story, the job and the proposal connected." }, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 78,
+					columnNumber: 146
+				}, this)
+			]
+		}, void 0, true, {
+			fileName: _jsxFileName,
+			lineNumber: 78,
+			columnNumber: 7
+		}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("ol", {
+			className: __vite_ssr_import_5__.default.journey,
+			children: stages.map((stage) => /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("li", { children: [
+				/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+					className: __vite_ssr_import_5__.default.stageTop,
+					children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { children: stage.number }, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 81,
+						columnNumber: 40
+					}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { children: stage.label }, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 81,
+						columnNumber: 67
+					}, this)]
+				}, void 0, true, {
+					fileName: _jsxFileName,
+					lineNumber: 81,
+					columnNumber: 11
+				}, this),
+				/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("h3", { children: stage.title }, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 82,
+					columnNumber: 11
+				}, this),
+				/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", { children: stage.description }, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 82,
+					columnNumber: 33
+				}, this),
+				/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("small", { children: stage.detail }, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 82,
+					columnNumber: 59
+				}, this)
+			] }, stage.number, true, {
+				fileName: _jsxFileName,
+				lineNumber: 80,
+				columnNumber: 30
+			}, this))
+		}, void 0, false, {
+			fileName: _jsxFileName,
+			lineNumber: 79,
+			columnNumber: 7
+		}, this)]
+	}, void 0, true, {
+		fileName: _jsxFileName,
+		lineNumber: 77,
+		columnNumber: 5
+	}, this);
+}
+function Scope({ showAccessLink = true }) {
+	return /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("section", {
+		id: "phase-one",
+		className: `${__vite_ssr_import_5__.default.section} ${__vite_ssr_import_5__.default.scope}`,
+		children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", { children: [
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", {
+				className: __vite_ssr_import_5__.default.eyebrow,
+				children: "A focused first release"
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 92,
+				columnNumber: 12
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("h2", { children: [
+				"The work-winning essentials.",
+				/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("br", {}, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 92,
+					columnNumber: 97
+				}, this),
+				"Not a catalogue of add-ons."
+			] }, void 0, true, {
+				fileName: _jsxFileName,
+				lineNumber: 92,
+				columnNumber: 65
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", { children: "This phase-one preview brings together company profiles, estimating, programmes and proposals. It is a working review, not a claim that every part is ready for release." }, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 92,
+				columnNumber: 135
+			}, this)
+		] }, void 0, true, {
+			fileName: _jsxFileName,
+			lineNumber: 92,
+			columnNumber: 7
+		}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+			className: __vite_ssr_import_5__.default.scopeList,
+			children: [
+				[
+					"Company profile and past work",
+					"Job brief and estimating",
+					"Programme and proposal preparation"
+				].map((item) => /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", { children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_1__.Check), {
+					size: 18,
+					"aria-hidden": "true"
+				}, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 94,
+					columnNumber: 136
+				}, this), item] }, item, true, {
+					fileName: _jsxFileName,
+					lineNumber: 94,
+					columnNumber: 122
+				}, this)),
+				/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", {
+					className: __vite_ssr_import_5__.default.scopeNote,
+					children: "Later-phase delivery, finance and resource tools are outside this preview. No add-on checkout is offered here."
+				}, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 95,
+					columnNumber: 9
+				}, this),
+				showAccessLink && /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_0__.default), {
+					href: "/pricing",
+					className: __vite_ssr_import_5__.default.textLink,
+					children: ["About preview access ", /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_1__.ArrowRight), {
+						size: 16,
+						"aria-hidden": "true"
+					}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 96,
+						columnNumber: 95
+					}, this)]
+				}, void 0, true, {
+					fileName: _jsxFileName,
+					lineNumber: 96,
+					columnNumber: 28
+				}, this)
+			]
+		}, void 0, true, {
+			fileName: _jsxFileName,
+			lineNumber: 93,
+			columnNumber: 7
+		}, this)]
+	}, void 0, true, {
+		fileName: _jsxFileName,
+		lineNumber: 91,
+		columnNumber: 5
+	}, this);
+}
+function Questions() {
+	const questions = [
+		["Who is Constructa for?", "Small and medium construction businesses working for domestic and commercial clients. Your company description and your own work remain the starting point."],
+		["Can I use my own prices and company details?", "Yes. Add your business details and past work, describe the job and enter your price lines. Check the scope, programme and terms for each proposal before sharing it."],
+		["Is the AI chat assistant available?", "A contextual assistant for estimating and planning is part of the development work. It is not available as a live chatbot in this preview. Existing assisted-writing controls are separate and depend on their own availability."],
+		["Can I buy the later-phase tools here?", "No. This preview focuses on the work-winning journey. Later-phase workflows and commercial plans are not being offered for purchase here."],
+		["Is this ready for live customer work?", "This is a phase-one review. Authentication, data handling, commercial terms and the complete proposal journey need release verification before live customer use."]
+	];
+	return /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("section", {
+		className: `${__vite_ssr_import_5__.default.section} ${__vite_ssr_import_5__.default.questions}`,
+		children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", { children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", {
+			className: __vite_ssr_import_5__.default.eyebrow,
+			children: "A few useful answers"
+		}, void 0, false, {
+			fileName: _jsxFileName,
+			lineNumber: 110,
+			columnNumber: 68
+		}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("h2", { children: [
+			"Before you",
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("br", {}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 110,
+				columnNumber: 132
+			}, this),
+			"get started."
+		] }, void 0, true, {
+			fileName: _jsxFileName,
+			lineNumber: 110,
+			columnNumber: 118
+		}, this)] }, void 0, true, {
+			fileName: _jsxFileName,
+			lineNumber: 110,
+			columnNumber: 63
+		}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", { children: questions.map(([question, answer]) => /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("details", { children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("summary", { children: [question, /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_1__.Plus), {
+			size: 18,
+			"aria-hidden": "true"
+		}, void 0, false, {
+			fileName: _jsxFileName,
+			lineNumber: 110,
+			columnNumber: 248
+		}, this)] }, void 0, true, {
+			fileName: _jsxFileName,
+			lineNumber: 110,
+			columnNumber: 229
+		}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", { children: answer }, void 0, false, {
+			fileName: _jsxFileName,
+			lineNumber: 110,
+			columnNumber: 295
+		}, this)] }, question, true, {
+			fileName: _jsxFileName,
+			lineNumber: 110,
+			columnNumber: 205
+		}, this)) }, void 0, false, {
+			fileName: _jsxFileName,
+			lineNumber: 110,
+			columnNumber: 161
+		}, this)]
+	}, void 0, true, {
+		fileName: _jsxFileName,
+		lineNumber: 110,
+		columnNumber: 10
+	}, this);
+}
+function Invitation() {
+	return /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("section", {
+		className: __vite_ssr_import_5__.default.invitation,
+		children: [
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", {
+				className: __vite_ssr_import_5__.default.eyebrow,
+				children: "Your next chapter"
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 114,
+				columnNumber: 45
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("h2", { children: [
+				"Good work deserves",
+				/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("br", {}, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 114,
+					columnNumber: 114
+				}, this),
+				"a good introduction."
+			] }, void 0, true, {
+				fileName: _jsxFileName,
+				lineNumber: 114,
+				columnNumber: 92
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", { children: "Start with your business. Bring the next job into focus." }, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 114,
+				columnNumber: 145
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)(AccountLink, {}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 114,
+				columnNumber: 208
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("small", { children: "Account entry opens here. This preview does not take a payment." }, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 114,
+				columnNumber: 223
+			}, this)
+		]
+	}, void 0, true, {
+		fileName: _jsxFileName,
+		lineNumber: 114,
+		columnNumber: 10
+	}, this);
+}
+function PhaseOneHome() {
+	return /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+		className: `${__vite_ssr_import_5__.default.theme} ${__vite_ssr_import_5__.default.root}`,
+		children: [
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("section", {
+				id: "marketing-content",
+				className: __vite_ssr_import_5__.default.hero,
+				children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+					className: __vite_ssr_import_5__.default.heroCopy,
+					children: [
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", {
+							className: __vite_ssr_import_5__.default.eyebrow,
+							children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { className: __vite_ssr_import_5__.default.dot }, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 121,
+								columnNumber: 64
+							}, this), " Made for the way you win work"]
+						}, void 0, true, {
+							fileName: _jsxFileName,
+							lineNumber: 121,
+							columnNumber: 38
+						}, this),
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("h1", { children: [
+							"Good work.",
+							/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("br", {}, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 122,
+								columnNumber: 25
+							}, this),
+							"Clearly priced.",
+							/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("br", {}, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 122,
+								columnNumber: 46
+							}, this),
+							/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("em", { children: "Better presented." }, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 122,
+								columnNumber: 52
+							}, this)
+						] }, void 0, true, {
+							fileName: _jsxFileName,
+							lineNumber: 122,
+							columnNumber: 11
+						}, this),
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", {
+							className: __vite_ssr_import_5__.default.lede,
+							children: "Give your business the introduction it deserves. Bring your company, your price and your programme into a proposal worth putting your name to."
+						}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 123,
+							columnNumber: 11
+						}, this),
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+							className: __vite_ssr_import_5__.default.actions,
+							children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)(AccountLink, {}, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 124,
+								columnNumber: 39
+							}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_0__.default), {
+								className: __vite_ssr_import_5__.default.textLink,
+								href: "#how-it-works",
+								children: ["See how it connects ", /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_1__.ArrowDown), {
+									size: 17,
+									"aria-hidden": "true"
+								}, void 0, false, {
+									fileName: _jsxFileName,
+									lineNumber: 124,
+									columnNumber: 125
+								}, this)]
+							}, void 0, true, {
+								fileName: _jsxFileName,
+								lineNumber: 124,
+								columnNumber: 54
+							}, this)]
+						}, void 0, true, {
+							fileName: _jsxFileName,
+							lineNumber: 124,
+							columnNumber: 11
+						}, this),
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", {
+							className: __vite_ssr_import_5__.default.reviewNote,
+							children: "Phase one review · Built for domestic and commercial contractors"
+						}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 125,
+							columnNumber: 11
+						}, this)
+					]
+				}, void 0, true, {
+					fileName: _jsxFileName,
+					lineNumber: 121,
+					columnNumber: 9
+				}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)(ProposalIllustration, {}, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 127,
+					columnNumber: 9
+				}, this)]
+			}, void 0, true, {
+				fileName: _jsxFileName,
+				lineNumber: 120,
+				columnNumber: 7
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+				className: __vite_ssr_import_5__.default.chapterLine,
+				children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { children: "Built around your business" }, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 129,
+					columnNumber: 39
+				}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { children: [
+					"Company ",
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("i", {}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 129,
+						columnNumber: 92
+					}, this),
+					" Price ",
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("i", {}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 129,
+						columnNumber: 104
+					}, this),
+					" Programme ",
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("i", {}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 129,
+						columnNumber: 120
+					}, this),
+					" Proposal"
+				] }, void 0, true, {
+					fileName: _jsxFileName,
+					lineNumber: 129,
+					columnNumber: 78
+				}, this)]
+			}, void 0, true, {
+				fileName: _jsxFileName,
+				lineNumber: 129,
+				columnNumber: 7
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)(Journey, {}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 130,
+				columnNumber: 7
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("section", {
+				className: `${__vite_ssr_import_5__.default.section} ${__vite_ssr_import_5__.default.story}`,
+				children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+					className: __vite_ssr_import_5__.default.photo,
+					children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_2__.HomeBusinessVisual), {}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 132,
+						columnNumber: 35
+					}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("span", { children: "Construction is a people business." }, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 132,
+						columnNumber: 57
+					}, this)]
+				}, void 0, true, {
+					fileName: _jsxFileName,
+					lineNumber: 132,
+					columnNumber: 9
+				}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", { children: [
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", {
+						className: __vite_ssr_import_5__.default.eyebrow,
+						children: "The experience behind the estimate"
+					}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 133,
+						columnNumber: 14
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("h2", { children: [
+						"Your business.",
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("br", {}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 133,
+							columnNumber: 96
+						}, this),
+						"Not another",
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("br", {}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 133,
+							columnNumber: 113
+						}, this),
+						"blank template."
+					] }, void 0, true, {
+						fileName: _jsxFileName,
+						lineNumber: 133,
+						columnNumber: 78
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", { children: "Your experience, the challenges you have solved and the quality of your work belong alongside the numbers. Put them in a company profile and reuse the right examples when you prepare a proposal." }, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 133,
+						columnNumber: 139
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", { children: "Whether you fit kitchens, refurbish workplaces or run a multi-trade team, the story should be yours." }, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 133,
+						columnNumber: 340
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)(AccountLink, { children: "Start with your business" }, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 133,
+						columnNumber: 447
+					}, this)
+				] }, void 0, true, {
+					fileName: _jsxFileName,
+					lineNumber: 133,
+					columnNumber: 9
+				}, this)]
+			}, void 0, true, {
+				fileName: _jsxFileName,
+				lineNumber: 131,
+				columnNumber: 7
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)(Scope, {}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 135,
+				columnNumber: 7
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)(Questions, {}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 135,
+				columnNumber: 16
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)(Invitation, {}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 135,
+				columnNumber: 29
+			}, this)
+		]
+	}, void 0, true, {
+		fileName: _jsxFileName,
+		lineNumber: 119,
+		columnNumber: 5
+	}, this);
+};
+function PhaseOneFeatures() {
+	return /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+		className: `${__vite_ssr_import_5__.default.theme} ${__vite_ssr_import_5__.default.root}`,
+		children: [
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("section", {
+				className: __vite_ssr_import_5__.default.pageIntro,
+				children: [
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", {
+						className: __vite_ssr_import_5__.default.eyebrow,
+						children: "The phase-one product"
+					}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 141,
+						columnNumber: 86
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("h1", { children: [
+						"From first hello.",
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("br", {}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 141,
+							columnNumber: 158
+						}, this),
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("em", { children: "To a considered proposal." }, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 141,
+							columnNumber: 164
+						}, this)
+					] }, void 0, true, {
+						fileName: _jsxFileName,
+						lineNumber: 141,
+						columnNumber: 137
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", { children: "One connected work-winning journey. Company profile, brief, price, programme and proposal, with room for your own experience and judgement." }, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 141,
+						columnNumber: 203
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)(AccountLink, {}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 141,
+						columnNumber: 349
+					}, this)
+				]
+			}, void 0, true, {
+				fileName: _jsxFileName,
+				lineNumber: 141,
+				columnNumber: 52
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)(Journey, {}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 141,
+				columnNumber: 374
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_3__.ProductReviewGuide), {}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 141,
+				columnNumber: 385
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_4__.ProductScreenshots), {}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 141,
+				columnNumber: 407
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)(Scope, {}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 141,
+				columnNumber: 429
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)(Questions, {}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 141,
+				columnNumber: 438
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)(Invitation, {}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 141,
+				columnNumber: 451
+			}, this)
+		]
+	}, void 0, true, {
+		fileName: _jsxFileName,
+		lineNumber: 141,
+		columnNumber: 10
+	}, this);
+};
+function PhaseOnePricing() {
+	return /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+		className: `${__vite_ssr_import_5__.default.theme} ${__vite_ssr_import_5__.default.root}`,
+		children: [
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("section", {
+				className: __vite_ssr_import_5__.default.pageIntro,
+				children: [
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", {
+						className: __vite_ssr_import_5__.default.eyebrow,
+						children: "Preview access"
+					}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 148,
+						columnNumber: 9
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("h1", { children: [
+						"A focused first phase.",
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("br", {}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 149,
+							columnNumber: 35
+						}, this),
+						/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("em", { children: "No add-on checkout." }, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 149,
+							columnNumber: 41
+						}, this)
+					] }, void 0, true, {
+						fileName: _jsxFileName,
+						lineNumber: 149,
+						columnNumber: 9
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", { children: "We are reviewing the complete work-winning journey before release. This page does not sell a subscription, promise a free trial or take payment for later-phase features." }, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 150,
+						columnNumber: 9
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", { children: "This preview is for people using an existing review account. Sign in with the details you were given, then start with your company profile." }, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 151,
+						columnNumber: 9
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("div", {
+						className: __vite_ssr_import_5__.default.actions,
+						children: [/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)(AccountLink, { children: "Sign in with your review account" }, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 153,
+							columnNumber: 11
+						}, this), /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_0__.default), {
+							href: "/features",
+							className: __vite_ssr_import_5__.default.textLink,
+							children: ["Explore the phase-one scope ", /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_1__.ArrowRight), {
+								size: 16,
+								"aria-hidden": "true"
+							}, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 154,
+								columnNumber: 86
+							}, this)]
+						}, void 0, true, {
+							fileName: _jsxFileName,
+							lineNumber: 154,
+							columnNumber: 11
+						}, this)]
+					}, void 0, true, {
+						fileName: _jsxFileName,
+						lineNumber: 152,
+						columnNumber: 9
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)("p", { children: ["No account yet? ", /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_0__.default), {
+						href: "/contact",
+						className: __vite_ssr_import_5__.default.textLink,
+						children: ["Neutral preview-access questions ", /* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)((0,__vite_ssr_import_1__.ArrowRight), {
+							size: 16,
+							"aria-hidden": "true"
+						}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 156,
+							columnNumber: 107
+						}, this)]
+					}, void 0, true, {
+						fileName: _jsxFileName,
+						lineNumber: 156,
+						columnNumber: 28
+					}, this)] }, void 0, true, {
+						fileName: _jsxFileName,
+						lineNumber: 156,
+						columnNumber: 9
+					}, this)
+				]
+			}, void 0, true, {
+				fileName: _jsxFileName,
+				lineNumber: 147,
+				columnNumber: 7
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)(Scope, { showAccessLink: false }, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 158,
+				columnNumber: 7
+			}, this),
+			/* @__PURE__ */ (0,__vite_ssr_import_6__.jsxDEV)(Questions, {}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 159,
+				columnNumber: 7
+			}, this)
+		]
+	}, void 0, true, {
+		fileName: _jsxFileName,
+		lineNumber: 146,
+		columnNumber: 5
+	}, this);
+}
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,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QU07Ozs7OztBQUNyZDtBQUVPLFNBQVMsa0JBQWtCO0NBQ2hDLE9BQ0UsaURBQUMsT0FBRDtFQUFLLFdBQVcsR0FBRyw4QkFBRyxNQUFNLEdBQUcsOEJBQUc7WUFBbEM7R0FDRSxpREFBQyxXQUFEO0lBQVMsV0FBVyw4QkFBRztjQUF2QjtLQUNFLGlEQUFDLEtBQUQ7TUFBRyxXQUFXLDhCQUFHO2dCQUFTO0tBQWlCOzs7OztLQUMzQyxpREFBQyxNQUFEO01BQUk7TUFBc0IsaURBQUMsTUFBRCxDQUFLOzs7OztNQUFDLGlEQUFDLE1BQUQsWUFBSSxzQkFBdUI7Ozs7O0tBQUs7Ozs7O0tBQ2hFLGlEQUFDLEtBQUQsWUFBRyw0S0FBNEs7Ozs7O0tBQy9LLGlEQUFDLEtBQUQsWUFBRyw4SUFBOEk7Ozs7O0tBQ2pKLGlEQUFDLE9BQUQ7TUFBSyxXQUFXLDhCQUFHO2dCQUFuQixDQUNFLGlEQUFDLGFBQUQsWUFBYSxtQ0FBNkM7Ozs7Z0JBQzFELG9EQUFDLGdDQUFEO09BQU0sTUFBSztPQUFZLFdBQVcsOEJBQUc7aUJBQXJDLENBQStDLGdDQUE0QixvREFBQyxtQ0FBRDtRQUFZLE1BQU07UUFBSSxlQUFZO09BQVE7Ozs7ZUFBTzs7Ozs7Y0FDekg7Ozs7OztLQUNMLGlEQUFDLEtBQUQsYUFBRyxvQkFBZ0Isb0RBQUMsZ0NBQUQ7TUFBTSxNQUFLO01BQVcsV0FBVyw4QkFBRztnQkFBcEMsQ0FBOEMscUNBQWlDLG9EQUFDLG1DQUFEO09BQVksTUFBTTtPQUFJLGVBQVk7TUFBUTs7OztjQUFPOzs7OzthQUFJOzs7OztJQUNoSjs7Ozs7O0dBQ1QsaURBQUMsT0FBRCxFQUFPLGdCQUFnQixNQUFROzs7OztHQUMvQixpREFBQyxXQUFELENBQVk7Ozs7O0VBQ1Q7Ozs7OztBQUVUIiwibmFtZXMiOltdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJwaGFzZS1vbmUudHN4Il0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCBMaW5rIGZyb20gJ25leHQvbGluayc7XG5pbXBvcnQgeyBBcnJvd0Rvd24sIEFycm93UmlnaHQsIENoZWNrLCBQbHVzIH0gZnJvbSAnbHVjaWRlLXJlYWN0JztcbmltcG9ydCB7IEhvbWVCdXNpbmVzc1Zpc3VhbCB9IGZyb20gJy4vaG9tZS1idXNpbmVzcy12aXN1YWwnO1xuaW1wb3J0IHsgUHJvZHVjdFJldmlld0d1aWRlIH0gZnJvbSAnLi9wcm9kdWN0LXJldmlldy1ndWlkZSc7XG5pbXBvcnQgeyBQcm9kdWN0U2NyZWVuc2hvdHMgfSBmcm9tICcuL3Byb2R1Y3Qtc2NyZWVuc2hvdHMnO1xuaW1wb3J0IHVpIGZyb20gJy4vcGhhc2Utb25lLm1vZHVsZS5jc3MnO1xuXG5jb25zdCBzdGFnZXMgPSBbXG4gIHsgbnVtYmVyOiAnMDEnLCB0aXRsZTogJ01ha2UgaXQgeW91ciBidXNpbmVzcy4nLCBsYWJlbDogJ0NvbXBhbnknLCBkZXNjcmlwdGlvbjogJ0ludHJvZHVjZSB5b3VyIGNvbXBhbnksIHlvdXIgZXhwZXJpZW5jZSBhbmQgdGhlIHdvcmsgeW91IGFyZSBwcm91ZCBvZi4gQnVpbGQgYSBwcm9maWxlIHlvdSBjYW4gdXNlIGFnYWluLicsIGRldGFpbDogJ0NvbXBhbnkgZGV0YWlscywgeW91ciBzdG9yeSBhbmQgY2FzZSBzdHVkaWVzLicgfSxcbiAgeyBudW1iZXI6ICcwMicsIHRpdGxlOiAnUHV0IGEgcHJpY2UgdG8gdGhlIHdvcmsuJywgbGFiZWw6ICdFc3RpbWF0ZScsIGRlc2NyaXB0aW9uOiAnRGVzY3JpYmUgdGhlIGpvYiwgYnVpbGQgeW91ciBwcmljZSBsaW5lcyBhbmQgc2VlIGhvdyB0aGUgdG90YWwgY29tZXMgdG9nZXRoZXIuIFlvdXIgc2NvcGUgYW5kIHlvdXIgbnVtYmVycywgaW4gb25lIHBsYWNlLicsIGRldGFpbDogJ09uZS1wcmljZSBpdGVtcywgcXVhbnRpdGllcywgcmF0ZXMgYW5kIGFkanVzdG1lbnRzLicgfSxcbiAgeyBudW1iZXI6ICcwMycsIHRpdGxlOiAnR2l2ZSB0aGUgam9iIGEgcGxhbi4nLCBsYWJlbDogJ1Byb2dyYW1tZScsIGRlc2NyaXB0aW9uOiAnU2V0IG91dCB3aGVuIHRoZSB3b3JrIHN0YXJ0cywgaG93IGxvbmcgaXQgdGFrZXMgYW5kIHRoZSBzdGFnZXMgYWxvbmcgdGhlIHdheS4gR2l2ZSB0aGUgY2xpZW50IGEgY2xlYXJlciBwaWN0dXJlLicsIGRldGFpbDogJ1N0YXJ0IGRhdGVzLCBkdXJhdGlvbnMgYW5kIGEgdmlzdWFsIHByb2dyYW1tZS4nIH0sXG4gIHsgbnVtYmVyOiAnMDQnLCB0aXRsZTogJ1ByZXNlbnQgdGhlIHdob2xlIHBpY3R1cmUuJywgbGFiZWw6ICdQcm9wb3NhbCcsIGRlc2NyaXB0aW9uOiAnQnJpbmcgeW91ciBidXNpbmVzcywgc2NvcGUsIHByaWNlLCBwcm9ncmFtbWUgYW5kIHRlcm1zIHRvZ2V0aGVyLiBDaGVjayB0aGUgZmluaXNoZWQgcHJvcG9zYWwgYmVmb3JlIHNoYXJpbmcgaXQuJywgZGV0YWlsOiAnQSBicmFuZGVkIGRvY3VtZW50LCBhIGRyYWZ0IFBERiBhbmQgY2xpZW50IHJlc3BvbnNlIG9wdGlvbnMuJyB9LFxuXSBhcyBjb25zdDtcblxuZXhwb3J0IGZ1bmN0aW9uIE1hcmtldGluZ0hlYWRlcigpIHtcbiAgcmV0dXJuIChcbiAgICA8aGVhZGVyIGNsYXNzTmFtZT17YCR7dWkudGhlbWV9ICR7dWkuaGVhZGVyfWB9PlxuICAgICAgPGRpdiBjbGFzc05hbWU9e3VpLmhlYWRlcklubmVyfT5cbiAgICAgICAgPExpbmsgY2xhc3NOYW1lPXt1aS5icmFuZH0gaHJlZj1cIi9cIiBhcmlhLWxhYmVsPVwiQ29uc3RydWN0YSBob21lXCI+PHNwYW4gYXJpYS1oaWRkZW49XCJ0cnVlXCI+Qzwvc3Bhbj5jb25zdHJ1Y3RhPC9MaW5rPlxuICAgICAgICA8bmF2IGFyaWEtbGFiZWw9XCJNYWluIG5hdmlnYXRpb25cIiBjbGFzc05hbWU9e3VpLm5hdn0+XG4gICAgICAgICAgPExpbmsgaHJlZj1cIi8jaG93LWl0LXdvcmtzXCI+SG93IGl0IHdvcmtzPC9MaW5rPlxuICAgICAgICAgIDxMaW5rIGhyZWY9XCIvZmVhdHVyZXNcIj5UaGUgcHJvZHVjdDwvTGluaz5cbiAgICAgICAgICA8TGluayBocmVmPVwiL3ByaWNpbmdcIj5QcmV2aWV3IGFjY2VzczwvTGluaz5cbiAgICAgICAgPC9uYXY+XG4gICAgICAgIDxMaW5rIGNsYXNzTmFtZT17dWkuc2lnbklufSBocmVmPVwiL2xvZ2luXCI+U2lnbiBpbiA8QXJyb3dSaWdodCBzaXplPXsxNn0gYXJpYS1oaWRkZW49XCJ0cnVlXCIgLz48L0xpbms+XG4gICAgICA8L2Rpdj5cbiAgICA8L2hlYWRlcj5cbiAgKTtcbn1cblxuZXhwb3J0IGZ1bmN0aW9uIE1hcmtldGluZ0Zvb3RlcigpIHtcbiAgcmV0dXJuIChcbiAgICA8Zm9vdGVyIGNsYXNzTmFtZT17YCR7dWkudGhlbWV9ICR7dWkuZm9vdGVyfWB9PlxuICAgICAgPGRpdiBjbGFzc05hbWU9e3VpLmZvb3RlclRvcH0+XG4gICAgICAgIDxMaW5rIGNsYXNzTmFtZT17dWkuYnJhbmR9IGhyZWY9XCIvXCIgYXJpYS1sYWJlbD1cIkNvbnN0cnVjdGEgaG9tZVwiPjxzcGFuIGFyaWEtaGlkZGVuPVwidHJ1ZVwiPkM8L3NwYW4+Y29uc3RydWN0YTwvTGluaz5cbiAgICAgICAgPHA+QnVpbHQgYXJvdW5kIHlvdXIgYnVzaW5lc3MuPGJyIC8+Tm90IHRoZSBvdGhlciB3YXkgYXJvdW5kLjwvcD5cbiAgICAgICAgPG5hdiBhcmlhLWxhYmVsPVwiRm9vdGVyIG5hdmlnYXRpb25cIj5cbiAgICAgICAgICA8TGluayBocmVmPVwiL2ZlYXR1cmVzXCI+VGhlIHByb2R1Y3Q8L0xpbms+PExpbmsgaHJlZj1cIi9ndWlkZXNcIj5HdWlkZXM8L0xpbms+PExpbmsgaHJlZj1cIi9sb2dpblwiPlNpZ24gaW48L0xpbms+XG4gICAgICAgICAgPExpbmsgaHJlZj1cIi90ZXJtcy1vZi1zZXJ2aWNlXCI+VGVybXM8L0xpbms+PExpbmsgaHJlZj1cIi9wcml2YWN5LXBvbGljeVwiPlByaXZhY3k8L0xpbms+XG4gICAgICAgICAgPExpbmsgaHJlZj1cIi9jb250YWN0XCI+R2V0IGluIHRvdWNoPC9MaW5rPlxuICAgICAgICA8L25hdj5cbiAgICAgIDwvZGl2PlxuICAgICAgPGRpdiBjbGFzc05hbWU9e3VpLmZvb3RlckJvdHRvbX0+PHNwYW4+Q29uc3RydWN0YSDCqSAyMDI2PC9zcGFuPjxzcGFuPlBoYXNlIG9uZSByZXZpZXcgwrcgQ29tcGFueS4gUHJpY2UuIFByb2dyYW1tZS4gUHJvcG9zYWwuPC9zcGFuPjwvZGl2PlxuICAgIDwvZm9vdGVyPlxuICApO1xufVxuXG5mdW5jdGlvbiBBY2NvdW50TGluayh7IGNoaWxkcmVuID0gJ09wZW4gQ29uc3RydWN0YScgfTogeyBjaGlsZHJlbj86IFJlYWN0LlJlYWN0Tm9kZSB9KSB7XG4gIHJldHVybiA8TGluayBjbGFzc05hbWU9e3VpLnByaW1hcnl9IGhyZWY9XCIvbG9naW5cIj57Y2hpbGRyZW59PEFycm93UmlnaHQgc2l6ZT17MTh9IGFyaWEtaGlkZGVuPVwidHJ1ZVwiIC8+PC9MaW5rPjtcbn1cblxuZnVuY3Rpb24gUHJvcG9zYWxJbGx1c3RyYXRpb24oKSB7XG4gIHJldHVybiAoXG4gICAgPGZpZ3VyZSBjbGFzc05hbWU9e3VpLnZpc3VhbH0gYXJpYS1sYWJlbD1cIklsbHVzdHJhdGl2ZSBwcm9wb3NhbCBmb3IgYSBraXRjaGVuIHJlZnVyYmlzaG1lbnQsIG5vdCBhIGxpdmUgcHJvamVjdFwiPlxuICAgICAgPGRpdiBjbGFzc05hbWU9e3VpLnZpc3VhbEhlYWRlcn0+PHNwYW4+PGkgLz4gQSBjbGVhcmVyIGZpcnN0IGltcHJlc3Npb248L3NwYW4+PHNwYW4+SWxsdXN0cmF0aXZlIGV4YW1wbGU8L3NwYW4+PC9kaXY+XG4gICAgICA8ZGl2IGNsYXNzTmFtZT17dWkucGFwZXJ9PlxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT17dWkucGFwZXJUb3B9PjxzdHJvbmc+T2FrICZhbXA7IFN0b25lPC9zdHJvbmc+PHNwYW4+UFJPUE9TQUwgLyAwMDE8L3NwYW4+PC9kaXY+XG4gICAgICAgIDxwIGNsYXNzTmFtZT17dWkucGFwZXJLaWNrZXJ9PkJ1aWx0IG9uIHRoZSBkZXRhaWxzLjwvcD5cbiAgICAgICAgPGgyPkEga2l0Y2hlbi48YnIgLz5BIGZyZXNoIHN0YXJ0LjwvaDI+XG4gICAgICAgIDxwIGNsYXNzTmFtZT17dWkucGFwZXJJbnRyb30+S2l0Y2hlbiByZWZ1cmJpc2htZW50PGJyIC8+UHJlcGFyZWQgZm9yIEFsZXggJmFtcDsgU2FtPC9wPlxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT17dWkucGFwZXJMaW5lc30+XG4gICAgICAgICAgPGRpdj48c3Bhbj5QcmVwYXJhdGlvbiAmYW1wOyByZW1vdmFsPC9zcGFuPjxzdHJvbmc+wqMxLDg1MDwvc3Ryb25nPjwvZGl2PlxuICAgICAgICAgIDxkaXY+PHNwYW4+SW5zdGFsbGF0aW9uICZhbXA7IHNlcnZpY2VzPC9zcGFuPjxzdHJvbmc+wqM4LDQwMDwvc3Ryb25nPjwvZGl2PlxuICAgICAgICAgIDxkaXY+PHNwYW4+RmluaXNoaW5nIHdvcmtzPC9zcGFuPjxzdHJvbmc+wqMyLDIwMDwvc3Ryb25nPjwvZGl2PlxuICAgICAgICAgIDxkaXY+PHNwYW4+VG90YWwgYmVmb3JlIFZBVDwvc3Bhbj48c3Ryb25nPsKjMTIsNDUwPC9zdHJvbmc+PC9kaXY+XG4gICAgICAgIDwvZGl2PlxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT17dWkucGFwZXJQcm9ncmFtbWV9IGFyaWEtaGlkZGVuPVwidHJ1ZVwiPjxzcGFuPlByZXBhcmU8L3NwYW4+PGkgLz48c3Bhbj5JbnN0YWxsPC9zcGFuPjxpIC8+PHNwYW4+RmluaXNoPC9zcGFuPjxpIC8+PC9kaXY+XG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPXt1aS5wYXBlckJvdHRvbX0+PHNwYW4+WW91ciB3b3JrLiBDbGVhcmx5IHByZXNlbnRlZC48L3NwYW4+PENoZWNrIHNpemU9ezE3fSBhcmlhLWhpZGRlbj1cInRydWVcIiAvPjwvZGl2PlxuICAgICAgPC9kaXY+XG4gICAgICA8ZmlnY2FwdGlvbj5Gcm9tIHRoZSBmaXJzdCBjb252ZXJzYXRpb24gdG8gYSBwcm9wb3NhbCB0aGF0IGZlZWxzIGxpa2UgeW91LjwvZmlnY2FwdGlvbj5cbiAgICA8L2ZpZ3VyZT5cbiAgKTtcbn1cblxuZnVuY3Rpb24gSm91cm5leSgpIHtcbiAgcmV0dXJuIChcbiAgICA8c2VjdGlvbiBpZD1cImhvdy1pdC13b3Jrc1wiIGNsYXNzTmFtZT17dWkuc2VjdGlvbn0+XG4gICAgICA8ZGl2IGNsYXNzTmFtZT17dWkuc2VjdGlvbkludHJvfT48cCBjbGFzc05hbWU9e3VpLmV5ZWJyb3d9Pk9uZSBjb25uZWN0ZWQgam91cm5leTwvcD48aDI+TGVzcyBzdGFydGluZyBhZ2Fpbi48YnIgLz5Nb3JlIG1vdmluZyBmb3J3YXJkLjwvaDI+PHA+RnJvbSB3aG8geW91IGFyZSB0byB3aGF0IHlvdSB3aWxsIGRlbGl2ZXIuIEtlZXAgdGhlIGNvbXBhbnkgc3RvcnksIHRoZSBqb2IgYW5kIHRoZSBwcm9wb3NhbCBjb25uZWN0ZWQuPC9wPjwvZGl2PlxuICAgICAgPG9sIGNsYXNzTmFtZT17dWkuam91cm5leX0+XG4gICAgICAgIHtzdGFnZXMubWFwKHN0YWdlID0+IDxsaSBrZXk9e3N0YWdlLm51bWJlcn0+XG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9e3VpLnN0YWdlVG9wfT48c3Bhbj57c3RhZ2UubnVtYmVyfTwvc3Bhbj48c3Bhbj57c3RhZ2UubGFiZWx9PC9zcGFuPjwvZGl2PlxuICAgICAgICAgIDxoMz57c3RhZ2UudGl0bGV9PC9oMz48cD57c3RhZ2UuZGVzY3JpcHRpb259PC9wPjxzbWFsbD57c3RhZ2UuZGV0YWlsfTwvc21hbGw+XG4gICAgICAgIDwvbGk+KX1cbiAgICAgIDwvb2w+XG4gICAgPC9zZWN0aW9uPlxuICApO1xufVxuXG5mdW5jdGlvbiBTY29wZSh7IHNob3dBY2Nlc3NMaW5rID0gdHJ1ZSB9OiB7IHNob3dBY2Nlc3NMaW5rPzogYm9vbGVhbiB9KSB7XG4gIHJldHVybiAoXG4gICAgPHNlY3Rpb24gaWQ9XCJwaGFzZS1vbmVcIiBjbGFzc05hbWU9e2Ake3VpLnNlY3Rpb259ICR7dWkuc2NvcGV9YH0+XG4gICAgICA8ZGl2PjxwIGNsYXNzTmFtZT17dWkuZXllYnJvd30+QSBmb2N1c2VkIGZpcnN0IHJlbGVhc2U8L3A+PGgyPlRoZSB3b3JrLXdpbm5pbmcgZXNzZW50aWFscy48YnIgLz5Ob3QgYSBjYXRhbG9ndWUgb2YgYWRkLW9ucy48L2gyPjxwPlRoaXMgcGhhc2Utb25lIHByZXZpZXcgYnJpbmdzIHRvZ2V0aGVyIGNvbXBhbnkgcHJvZmlsZXMsIGVzdGltYXRpbmcsIHByb2dyYW1tZXMgYW5kIHByb3Bvc2Fscy4gSXQgaXMgYSB3b3JraW5nIHJldmlldywgbm90IGEgY2xhaW0gdGhhdCBldmVyeSBwYXJ0IGlzIHJlYWR5IGZvciByZWxlYXNlLjwvcD48L2Rpdj5cbiAgICAgIDxkaXYgY2xhc3NOYW1lPXt1aS5zY29wZUxpc3R9PlxuICAgICAgICB7WydDb21wYW55IHByb2ZpbGUgYW5kIHBhc3Qgd29yaycsICdKb2IgYnJpZWYgYW5kIGVzdGltYXRpbmcnLCAnUHJvZ3JhbW1lIGFuZCBwcm9wb3NhbCBwcmVwYXJhdGlvbiddLm1hcChpdGVtID0+IDxwIGtleT17aXRlbX0+PENoZWNrIHNpemU9ezE4fSBhcmlhLWhpZGRlbj1cInRydWVcIiAvPntpdGVtfTwvcD4pfVxuICAgICAgICA8cCBjbGFzc05hbWU9e3VpLnNjb3BlTm90ZX0+TGF0ZXItcGhhc2UgZGVsaXZlcnksIGZpbmFuY2UgYW5kIHJlc291cmNlIHRvb2xzIGFyZSBvdXRzaWRlIHRoaXMgcHJldmlldy4gTm8gYWRkLW9uIGNoZWNrb3V0IGlzIG9mZmVyZWQgaGVyZS48L3A+XG4gICAgICAgIHtzaG93QWNjZXNzTGluayAmJiA8TGluayBocmVmPVwiL3ByaWNpbmdcIiBjbGFzc05hbWU9e3VpLnRleHRMaW5rfT5BYm91dCBwcmV2aWV3IGFjY2VzcyA8QXJyb3dSaWdodCBzaXplPXsxNn0gYXJpYS1oaWRkZW49XCJ0cnVlXCIgLz48L0xpbms+fVxuICAgICAgPC9kaXY+XG4gICAgPC9zZWN0aW9uPlxuICApO1xufVxuXG5mdW5jdGlvbiBRdWVzdGlvbnMoKSB7XG4gIGNvbnN0IHF1ZXN0aW9ucyA9IFtcbiAgICBbJ1dobyBpcyBDb25zdHJ1Y3RhIGZvcj8nLCAnU21hbGwgYW5kIG1lZGl1bSBjb25zdHJ1Y3Rpb24gYnVzaW5lc3NlcyB3b3JraW5nIGZvciBkb21lc3RpYyBhbmQgY29tbWVyY2lhbCBjbGllbnRzLiBZb3VyIGNvbXBhbnkgZGVzY3JpcHRpb24gYW5kIHlvdXIgb3duIHdvcmsgcmVtYWluIHRoZSBzdGFydGluZyBwb2ludC4nXSxcbiAgICBbJ0NhbiBJIHVzZSBteSBvd24gcHJpY2VzIGFuZCBjb21wYW55IGRldGFpbHM/JywgJ1llcy4gQWRkIHlvdXIgYnVzaW5lc3MgZGV0YWlscyBhbmQgcGFzdCB3b3JrLCBkZXNjcmliZSB0aGUgam9iIGFuZCBlbnRlciB5b3VyIHByaWNlIGxpbmVzLiBDaGVjayB0aGUgc2NvcGUsIHByb2dyYW1tZSBhbmQgdGVybXMgZm9yIGVhY2ggcHJvcG9zYWwgYmVmb3JlIHNoYXJpbmcgaXQuJ10sXG4gICAgWydJcyB0aGUgQUkgY2hhdCBhc3Npc3RhbnQgYXZhaWxhYmxlPycsICdBIGNvbnRleHR1YWwgYXNzaXN0YW50IGZvciBlc3RpbWF0aW5nIGFuZCBwbGFubmluZyBpcyBwYXJ0IG9mIHRoZSBkZXZlbG9wbWVudCB3b3JrLiBJdCBpcyBub3QgYXZhaWxhYmxlIGFzIGEgbGl2ZSBjaGF0Ym90IGluIHRoaXMgcHJldmlldy4gRXhpc3RpbmcgYXNzaXN0ZWQtd3JpdGluZyBjb250cm9scyBhcmUgc2VwYXJhdGUgYW5kIGRlcGVuZCBvbiB0aGVpciBvd24gYXZhaWxhYmlsaXR5LiddLFxuICAgIFsnQ2FuIEkgYnV5IHRoZSBsYXRlci1waGFzZSB0b29scyBoZXJlPycsICdOby4gVGhpcyBwcmV2aWV3IGZvY3VzZXMgb24gdGhlIHdvcmstd2lubmluZyBqb3VybmV5LiBMYXRlci1waGFzZSB3b3JrZmxvd3MgYW5kIGNvbW1lcmNpYWwgcGxhbnMgYXJlIG5vdCBiZWluZyBvZmZlcmVkIGZvciBwdXJjaGFzZSBoZXJlLiddLFxuICAgIFsnSXMgdGhpcyByZWFkeSBmb3IgbGl2ZSBjdXN0b21lciB3b3JrPycsICdUaGlzIGlzIGEgcGhhc2Utb25lIHJldmlldy4gQXV0aGVudGljYXRpb24sIGRhdGEgaGFuZGxpbmcsIGNvbW1lcmNpYWwgdGVybXMgYW5kIHRoZSBjb21wbGV0ZSBwcm9wb3NhbCBqb3VybmV5IG5lZWQgcmVsZWFzZSB2ZXJpZmljYXRpb24gYmVmb3JlIGxpdmUgY3VzdG9tZXIgdXNlLiddLFxuICBdO1xuICByZXR1cm4gPHNlY3Rpb24gY2xhc3NOYW1lPXtgJHt1aS5zZWN0aW9ufSAke3VpLnF1ZXN0aW9uc31gfT48ZGl2PjxwIGNsYXNzTmFtZT17dWkuZXllYnJvd30+QSBmZXcgdXNlZnVsIGFuc3dlcnM8L3A+PGgyPkJlZm9yZSB5b3U8YnIgLz5nZXQgc3RhcnRlZC48L2gyPjwvZGl2PjxkaXY+e3F1ZXN0aW9ucy5tYXAoKFtxdWVzdGlvbiwgYW5zd2VyXSkgPT4gPGRldGFpbHMga2V5PXtxdWVzdGlvbn0+PHN1bW1hcnk+e3F1ZXN0aW9ufTxQbHVzIHNpemU9ezE4fSBhcmlhLWhpZGRlbj1cInRydWVcIiAvPjwvc3VtbWFyeT48cD57YW5zd2VyfTwvcD48L2RldGFpbHM+KX08L2Rpdj48L3NlY3Rpb24+O1xufVxuXG5mdW5jdGlvbiBJbnZpdGF0aW9uKCkge1xuICByZXR1cm4gPHNlY3Rpb24gY2xhc3NOYW1lPXt1aS5pbnZpdGF0aW9ufT48cCBjbGFzc05hbWU9e3VpLmV5ZWJyb3d9PllvdXIgbmV4dCBjaGFwdGVyPC9wPjxoMj5Hb29kIHdvcmsgZGVzZXJ2ZXM8YnIgLz5hIGdvb2QgaW50cm9kdWN0aW9uLjwvaDI+PHA+U3RhcnQgd2l0aCB5b3VyIGJ1c2luZXNzLiBCcmluZyB0aGUgbmV4dCBqb2IgaW50byBmb2N1cy48L3A+PEFjY291bnRMaW5rIC8+PHNtYWxsPkFjY291bnQgZW50cnkgb3BlbnMgaGVyZS4gVGhpcyBwcmV2aWV3IGRvZXMgbm90IHRha2UgYSBwYXltZW50Ljwvc21hbGw+PC9zZWN0aW9uPjtcbn1cblxuZXhwb3J0IGZ1bmN0aW9uIFBoYXNlT25lSG9tZSgpIHtcbiAgcmV0dXJuIChcbiAgICA8ZGl2IGNsYXNzTmFtZT17YCR7dWkudGhlbWV9ICR7dWkucm9vdH1gfT5cbiAgICAgIDxzZWN0aW9uIGlkPVwibWFya2V0aW5nLWNvbnRlbnRcIiBjbGFzc05hbWU9e3VpLmhlcm99PlxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT17dWkuaGVyb0NvcHl9PjxwIGNsYXNzTmFtZT17dWkuZXllYnJvd30+PHNwYW4gY2xhc3NOYW1lPXt1aS5kb3R9IC8+IE1hZGUgZm9yIHRoZSB3YXkgeW91IHdpbiB3b3JrPC9wPlxuICAgICAgICAgIDxoMT5Hb29kIHdvcmsuPGJyIC8+Q2xlYXJseSBwcmljZWQuPGJyIC8+PGVtPkJldHRlciBwcmVzZW50ZWQuPC9lbT48L2gxPlxuICAgICAgICAgIDxwIGNsYXNzTmFtZT17dWkubGVkZX0+R2l2ZSB5b3VyIGJ1c2luZXNzIHRoZSBpbnRyb2R1Y3Rpb24gaXQgZGVzZXJ2ZXMuIEJyaW5nIHlvdXIgY29tcGFueSwgeW91ciBwcmljZSBhbmQgeW91ciBwcm9ncmFtbWUgaW50byBhIHByb3Bvc2FsIHdvcnRoIHB1dHRpbmcgeW91ciBuYW1lIHRvLjwvcD5cbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT17dWkuYWN0aW9uc30+PEFjY291bnRMaW5rIC8+PExpbmsgY2xhc3NOYW1lPXt1aS50ZXh0TGlua30gaHJlZj1cIiNob3ctaXQtd29ya3NcIj5TZWUgaG93IGl0IGNvbm5lY3RzIDxBcnJvd0Rvd24gc2l6ZT17MTd9IGFyaWEtaGlkZGVuPVwidHJ1ZVwiIC8+PC9MaW5rPjwvZGl2PlxuICAgICAgICAgIDxwIGNsYXNzTmFtZT17dWkucmV2aWV3Tm90ZX0+UGhhc2Ugb25lIHJldmlldyDCtyBCdWlsdCBmb3IgZG9tZXN0aWMgYW5kIGNvbW1lcmNpYWwgY29udHJhY3RvcnM8L3A+XG4gICAgICAgIDwvZGl2PlxuICAgICAgICA8UHJvcG9zYWxJbGx1c3RyYXRpb24gLz5cbiAgICAgIDwvc2VjdGlvbj5cbiAgICAgIDxkaXYgY2xhc3NOYW1lPXt1aS5jaGFwdGVyTGluZX0+PHNwYW4+QnVpbHQgYXJvdW5kIHlvdXIgYnVzaW5lc3M8L3NwYW4+PHNwYW4+Q29tcGFueSA8aSAvPiBQcmljZSA8aSAvPiBQcm9ncmFtbWUgPGkgLz4gUHJvcG9zYWw8L3NwYW4+PC9kaXY+XG4gICAgICA8Sm91cm5leSAvPlxuICAgICAgPHNlY3Rpb24gY2xhc3NOYW1lPXtgJHt1aS5zZWN0aW9ufSAke3VpLnN0b3J5fWB9PlxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT17dWkucGhvdG99PjxIb21lQnVzaW5lc3NWaXN1YWwgLz48c3Bhbj5Db25zdHJ1Y3Rpb24gaXMgYSBwZW9wbGUgYnVzaW5lc3MuPC9zcGFuPjwvZGl2PlxuICAgICAgICA8ZGl2PjxwIGNsYXNzTmFtZT17dWkuZXllYnJvd30+VGhlIGV4cGVyaWVuY2UgYmVoaW5kIHRoZSBlc3RpbWF0ZTwvcD48aDI+WW91ciBidXNpbmVzcy48YnIgLz5Ob3QgYW5vdGhlcjxiciAvPmJsYW5rIHRlbXBsYXRlLjwvaDI+PHA+WW91ciBleHBlcmllbmNlLCB0aGUgY2hhbGxlbmdlcyB5b3UgaGF2ZSBzb2x2ZWQgYW5kIHRoZSBxdWFsaXR5IG9mIHlvdXIgd29yayBiZWxvbmcgYWxvbmdzaWRlIHRoZSBudW1iZXJzLiBQdXQgdGhlbSBpbiBhIGNvbXBhbnkgcHJvZmlsZSBhbmQgcmV1c2UgdGhlIHJpZ2h0IGV4YW1wbGVzIHdoZW4geW91IHByZXBhcmUgYSBwcm9wb3NhbC48L3A+PHA+V2hldGhlciB5b3UgZml0IGtpdGNoZW5zLCByZWZ1cmJpc2ggd29ya3BsYWNlcyBvciBydW4gYSBtdWx0aS10cmFkZSB0ZWFtLCB0aGUgc3Rvcnkgc2hvdWxkIGJlIHlvdXJzLjwvcD48QWNjb3VudExpbms+U3RhcnQgd2l0aCB5b3VyIGJ1c2luZXNzPC9BY2NvdW50TGluaz48L2Rpdj5cbiAgICAgIDwvc2VjdGlvbj5cbiAgICAgIDxTY29wZSAvPjxRdWVzdGlvbnMgLz48SW52aXRhdGlvbiAvPlxuICAgIDwvZGl2PlxuICApO1xufVxuXG5leHBvcnQgZnVuY3Rpb24gUGhhc2VPbmVGZWF0dXJlcygpIHtcbiAgcmV0dXJuIDxkaXYgY2xhc3NOYW1lPXtgJHt1aS50aGVtZX0gJHt1aS5yb290fWB9PjxzZWN0aW9uIGNsYXNzTmFtZT17dWkucGFnZUludHJvfT48cCBjbGFzc05hbWU9e3VpLmV5ZWJyb3d9PlRoZSBwaGFzZS1vbmUgcHJvZHVjdDwvcD48aDE+RnJvbSBmaXJzdCBoZWxsby48YnIgLz48ZW0+VG8gYSBjb25zaWRlcmVkIHByb3Bvc2FsLjwvZW0+PC9oMT48cD5PbmUgY29ubmVjdGVkIHdvcmstd2lubmluZyBqb3VybmV5LiBDb21wYW55IHByb2ZpbGUsIGJyaWVmLCBwcmljZSwgcHJvZ3JhbW1lIGFuZCBwcm9wb3NhbCwgd2l0aCByb29tIGZvciB5b3VyIG93biBleHBlcmllbmNlIGFuZCBqdWRnZW1lbnQuPC9wPjxBY2NvdW50TGluayAvPjwvc2VjdGlvbj48Sm91cm5leSAvPjxQcm9kdWN0UmV2aWV3R3VpZGUgLz48UHJvZHVjdFNjcmVlbnNob3RzIC8+PFNjb3BlIC8+PFF1ZXN0aW9ucyAvPjxJbnZpdGF0aW9uIC8+PC9kaXY+O1xufVxuXG5leHBvcnQgZnVuY3Rpb24gUGhhc2VPbmVQcmljaW5nKCkge1xuICByZXR1cm4gKFxuICAgIDxkaXYgY2xhc3NOYW1lPXtgJHt1aS50aGVtZX0gJHt1aS5yb290fWB9PlxuICAgICAgPHNlY3Rpb24gY2xhc3NOYW1lPXt1aS5wYWdlSW50cm99PlxuICAgICAgICA8cCBjbGFzc05hbWU9e3VpLmV5ZWJyb3d9PlByZXZpZXcgYWNjZXNzPC9wPlxuICAgICAgICA8aDE+QSBmb2N1c2VkIGZpcnN0IHBoYXNlLjxiciAvPjxlbT5ObyBhZGQtb24gY2hlY2tvdXQuPC9lbT48L2gxPlxuICAgICAgICA8cD5XZSBhcmUgcmV2aWV3aW5nIHRoZSBjb21wbGV0ZSB3b3JrLXdpbm5pbmcgam91cm5leSBiZWZvcmUgcmVsZWFzZS4gVGhpcyBwYWdlIGRvZXMgbm90IHNlbGwgYSBzdWJzY3JpcHRpb24sIHByb21pc2UgYSBmcmVlIHRyaWFsIG9yIHRha2UgcGF5bWVudCBmb3IgbGF0ZXItcGhhc2UgZmVhdHVyZXMuPC9wPlxuICAgICAgICA8cD5UaGlzIHByZXZpZXcgaXMgZm9yIHBlb3BsZSB1c2luZyBhbiBleGlzdGluZyByZXZpZXcgYWNjb3VudC4gU2lnbiBpbiB3aXRoIHRoZSBkZXRhaWxzIHlvdSB3ZXJlIGdpdmVuLCB0aGVuIHN0YXJ0IHdpdGggeW91ciBjb21wYW55IHByb2ZpbGUuPC9wPlxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT17dWkuYWN0aW9uc30+XG4gICAgICAgICAgPEFjY291bnRMaW5rPlNpZ24gaW4gd2l0aCB5b3VyIHJldmlldyBhY2NvdW50PC9BY2NvdW50TGluaz5cbiAgICAgICAgICA8TGluayBocmVmPVwiL2ZlYXR1cmVzXCIgY2xhc3NOYW1lPXt1aS50ZXh0TGlua30+RXhwbG9yZSB0aGUgcGhhc2Utb25lIHNjb3BlIDxBcnJvd1JpZ2h0IHNpemU9ezE2fSBhcmlhLWhpZGRlbj1cInRydWVcIiAvPjwvTGluaz5cbiAgICAgICAgPC9kaXY+XG4gICAgICAgIDxwPk5vIGFjY291bnQgeWV0PyA8TGluayBocmVmPVwiL2NvbnRhY3RcIiBjbGFzc05hbWU9e3VpLnRleHRMaW5rfT5OZXV0cmFsIHByZXZpZXctYWNjZXNzIHF1ZXN0aW9ucyA8QXJyb3dSaWdodCBzaXplPXsxNn0gYXJpYS1oaWRkZW49XCJ0cnVlXCIgLz48L0xpbms+PC9wPlxuICAgICAgPC9zZWN0aW9uPlxuICAgICAgPFNjb3BlIHNob3dBY2Nlc3NMaW5rPXtmYWxzZX0gLz5cbiAgICAgIDxRdWVzdGlvbnMgLz5cbiAgICA8L2Rpdj5cbiAgKTtcbn1cbiJdLCJmaWxlIjoiL3NyYy9jb21wb25lbnRzL21hcmtldGluZy9waGFzZS1vbmUudHN4In0=
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZSwiZGVwcyI6IjQiLCJkeW5hbWljRGVwcyI6IjUiLCJzdGF0aWNNb2NrcyI6bnVsbH0sIi9Vc2Vycy9yb2JlcnRzbWl0aC9kZXYvY29uc3RydWN0YS1mcmVzaC0yMDI2MTAyNS8uY3Etd3QvY3EtMDQzMi1hMDkxLWVycm9yLXJlY292ZXJ5L3NyYy9jb21wb25lbnRzL21hcmtldGluZy9waGFzZS1vbmUudHN4IiwiL3NyYy9jb21wb25lbnRzL21hcmtldGluZy9waGFzZS1vbmUudHN4IixbXSxbIjYiLCI3IiwiOCIsIjkiLCIxMCIsIjExIiwiMTIiXSxbXSwiL0Bmcy9Vc2Vycy9yb2JlcnRzbWl0aC9kZXYvY29uc3RydWN0YS1mcmVzaC0yMDI2MTAyNS9ub2RlX21vZHVsZXMvbmV4dC9saW5rLmpzIiwiL0Bmcy9Vc2Vycy9yb2JlcnRzbWl0aC9kZXYvY29uc3RydWN0YS1mcmVzaC0yMDI2MTAyNS9ub2RlX21vZHVsZXMvbHVjaWRlLXJlYWN0L2Rpc3QvY2pzL2x1Y2lkZS1yZWFjdC5qcyIsIi9zcmMvY29tcG9uZW50cy9tYXJrZXRpbmcvaG9tZS1idXNpbmVzcy12aXN1YWwudHN4IiwiL3NyYy9jb21wb25lbnRzL21hcmtldGluZy9wcm9kdWN0LXJldmlldy1ndWlkZS50c3giLCIvc3JjL2NvbXBvbmVudHMvbWFya2V0aW5nL3Byb2R1Y3Qtc2NyZWVuc2hvdHMudHN4IiwiL3NyYy9jb21wb25lbnRzL21hcmtldGluZy9waGFzZS1vbmUubW9kdWxlLmNzcyIsIi9AZnMvVXNlcnMvcm9iZXJ0c21pdGgvZGV2L2NvbnN0cnVjdGEtZnJlc2gtMjAyNjEwMjUvbm9kZV9tb2R1bGVzL3JlYWN0L2pzeC1kZXYtcnVudGltZS5qcyJd

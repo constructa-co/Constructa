@@ -5,12 +5,24 @@ export type GuideStepBlock = {
   check: string;
 };
 
+/** Shared attribution for phase-one preview guides — AI-assisted, not expert-reviewed. */
+export const GUIDE_ARTICLE_ATTRIBUTION = {
+  author: 'Constructa',
+  preparation: 'AI-assisted draft guidance',
+  contentUpdatedIso: '2026-11-04',
+  contentUpdatedDisplay: '4 November 2026',
+} as const;
+
 export type GuideArticle = {
   slug: string;
   title: string;
   summary: string;
   intro: string;
   previewNote: string;
+  author: string;
+  preparation: string;
+  contentUpdatedIso: string;
+  contentUpdatedDisplay: string;
   steps: readonly GuideStepBlock[];
   closingChecks: readonly string[];
 };
@@ -75,6 +87,7 @@ export const GUIDE_ARTICLES: readonly GuideArticle[] = [
     intro:
       'These notes follow the same connected journey as the product review guide on the phase-one product page. They are for checking your own work while using an existing review account — not for live customer jobs or release claims.',
     previewNote: 'In this phase-one preview, using an existing review account.',
+    ...GUIDE_ARTICLE_ATTRIBUTION,
     steps: [companyStep, briefPriceStep],
     closingChecks: [
       'Your company details are current and each past job suits the proposal it appears in.',
@@ -89,6 +102,7 @@ export const GUIDE_ARTICLES: readonly GuideArticle[] = [
     intro:
       'Use this when the price lines are in place and you are checking timing and the finished proposal. Held items such as live AI assistance, new sign-up, payments and complete photo or consent journeys are not part of this preview.',
     previewNote: 'In this phase-one preview, using an existing review account.',
+    ...GUIDE_ARTICLE_ATTRIBUTION,
     steps: [programmeStep, proposalStep],
     closingChecks: [
       'The dates, working days and stage order are realistic for this job.',

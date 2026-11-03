@@ -99,7 +99,8 @@ describe("the Company Profile form no longer edits case studies", () => {
         expect(links[0][2]).toBe("Go to case studies");
         // Large enough to press, and shows where keyboard focus is.
         expect(links[0][0]).toContain("min-h-11");
-        expect(links[0][0]).toContain("focus-visible:outline");
+        expect(links[0][0]).toContain("focus-visible:ring-2");
+        expect(links[0][0]).toContain("focus-visible:ring-emerald-600");
     });
 
     it("the link goes to the existing editor, which is open in the cohort profile", () => {

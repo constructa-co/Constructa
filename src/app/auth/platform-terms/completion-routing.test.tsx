@@ -15,7 +15,7 @@ import { PLATFORM_TERMS_COMPLETION_MESSAGES, PLATFORM_TERMS_COMPLETION_PATH } fr
 //   - the completion client treats a failed request as unconfirmed.
 // Offline React output and Response objects only; no browser or provider.
 const state = vi.hoisted(() => ({
-    slots: [] as unknown[], cursor: 0,
+    slots: [] as unknown[], refs: [] as { current: unknown }[], cursor: 0,
     exchange: vi.fn(), verifyOtp: vi.fn(), serverFrom: vi.fn(),
     signIn: vi.fn(), browserSignUp: vi.fn(), signupAction: vi.fn(), push: vi.fn(), refresh: vi.fn(),
     complete: vi.fn(),
@@ -26,6 +26,11 @@ vi.mock("react", async original => ({
         const index = state.cursor++;
         if (!(index in state.slots)) state.slots[index] = initial;
         return [state.slots[index], (value: unknown) => { state.slots[index] = value; }];
+    },
+    useRef: (initial: unknown) => {
+        const index = state.cursor++;
+        if (!(index in state.refs)) state.refs[index] = { current: initial };
+        return state.refs[index];
     },
 }));
 vi.mock("@/lib/supabase/server", () => ({
@@ -66,7 +71,7 @@ const callback = (query: string) => GET(new Request(`${ORIGIN}/auth/callback?${q
 
 beforeEach(() => {
     vi.resetAllMocks();
-    state.slots = []; state.cursor = 0;
+    state.slots = []; state.refs = []; state.cursor = 0;
     view = () => LoginPage() as Element;
     state.exchange.mockResolvedValue({ error: null });
     state.verifyOtp.mockResolvedValue({ error: null });

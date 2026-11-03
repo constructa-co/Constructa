@@ -8,6 +8,7 @@ vi.mock("@/components/project-picker", () => ({ default: () => null }));
 vi.mock("./review-send-client", () => ({ default: () => null }));
 vi.mock("@/lib/case-library/gate", () => ({ caseLibraryEnabled: () => false }));
 
+import { dashboardRouteShellBody } from "@/lib/__fixtures__/dashboard-route-shell-page";
 import ProposalPage from "./page";
 
 const projects = [
@@ -19,7 +20,7 @@ const history = { id: "publication-a", version_number: 2 };
 
 async function editor(projectId: string) {
     const page = await ProposalPage({ searchParams: Promise.resolve({ projectId }) });
-    return page.props.children[1];
+    return dashboardRouteShellBody(page);
 }
 
 describe("proposal project identity boundary", () => {

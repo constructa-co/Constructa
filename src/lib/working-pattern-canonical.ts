@@ -36,8 +36,25 @@ export function canonicalWorkingPatternComparable(value: unknown): string {
     return JSON.stringify(normalizeDraft(value));
 }
 
+/** Resolved weekdays are validated unique, so sorted order compares them as sets. */
+function canonicalResolvedComparable(pattern: JobWorkingPattern): string {
+    if (pattern.version === 1) return JSON.stringify({ version: 1, weekdays: sortNumbers([...pattern.weekdays]) });
+    return JSON.stringify({
+        version: 2,
+        timezone: pattern.timezone,
+        weekdays: sortNumbers([...pattern.weekdays]),
+        standardMinutesPerDay: pattern.standardMinutesPerDay,
+        productivityPct: pattern.productivityPct,
+        intervals: pattern.intervals.map(row => ({
+            weekday: row.weekday,
+            startMinute: row.startMinute,
+            endMinute: row.endMinute,
+        })).sort((a, b) => a.weekday - b.weekday || a.startMinute - b.startMinute || a.endMinute - b.endMinute),
+    });
+}
+
 function resolvedJsonEqual(left: JobWorkingPattern, right: JobWorkingPattern): boolean {
-    return JSON.stringify(left) === JSON.stringify(right);
+    return canonicalResolvedComparable(left) === canonicalResolvedComparable(right);
 }
 
 export function workingPatternsEquivalent(left: unknown, right: unknown): boolean {

@@ -340,3 +340,23 @@
 ## ROB0920 morning skip-link + Features landmark — prep 2 November 2026
 
 - Parent **1ad878b**. Five frozen paths (**rob0928** Kimi **`f990df2`** three paths; **rob0918** Cursor **`1941e2b`** two paths). Kimi rc130/theme overwrite disposition **rob0927** retained; not clean task PASS. ROOT vitest **60/60** five files, ESLint five TSX **0** (2 warnings), tsc **0** Node24; logs **rob0920-morning-root-***. All118 unchanged **82C17P18N1B**; A110 Complete/A093 Blocked unchanged; timestamp only. Eight candidates; **rob0930-morning** check null readbacks; **rob0917** helpers **88588b92**/**22c2fad1** not run. Cursor primary, Kimi source coauthor on skip-link paths. STOP before build/commit/bridge/backup.
+
+## ROB1925 merged candidate A079 recovery identity — prep 3 November 2026
+
+- Local merge HEAD **6654af7** / MERGE_HEAD **2d056**; six staged paths after integration: **gitignore**, Claude **47af72** two script blobs (**6f4faa87** / **89fa1933**), register timestamp only, two EOF prep blocks. **ROB1915** SCOPED_NNF; Claude raw FAIL retained. Full unit vitest + tsc once on merged candidate; private **rob1925-merge-integrated-check.json** null readbacks. A079 Partial unchanged. STOP before merge commit/build/backup.
+
+## ROB1945 eleven fixture tests — integration 3 Nov 2026
+
+- Seventeen staged paths; eleven test blobs (Claude/Cursor/Kimi grades). Index **fe3a888**; **rob1945** private receipt. NO-DEPLOY hold. No tests in task.
+
+## ROB1955 final delta + checks — 3 Nov 2026
+
+- Twenty staged paths: +2 tests (**1094784**) +1 production (**ce718a** calendar set repair). Register timestamp only **82C17P18N1B** unchanged. Full vitest **2/6244 fail**, tsc **exit 2**, 14-path eslint **0**; **rob1955-final-candidate-check** **failed**, null readbacks. Immutable **rob1925**/**rob1935** logs retained. STOP before build/backup/merge commit; NO-DEPLOY main hold.
+
+## ROB2010 proposal-entry type-only — 3 Nov 2026
+
+- **`02d990`** / blob **`0578c85`** type cast only; **ROB2005** grade. **rob2010** fulltype + single eslint; **6238+2** timing evidence retained, not single full green. Build/backup pending; NO-DEPLOY hold.
+
+## ROB2020 shell-child type alias — 3 Nov 2026
+
+- **`420a34`** / blob **`ae7e3cfe`** one-line **Element.children** union; **ROB2015** grade. **rob2020** fulltype **0**, single eslint **0**; **6238+2+4skips/full exit1** retained; not single full green. Build/backup pending; NO-DEPLOY hold.

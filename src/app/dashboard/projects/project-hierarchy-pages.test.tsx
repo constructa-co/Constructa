@@ -10,6 +10,7 @@ vi.mock("./costs/estimate-client", () => ({ default: () => null }));
 vi.mock("./schedule/simple-programme-client", () => ({ default: () => null }));
 vi.mock("./proposal/review-send-client", () => ({ default: () => null }));
 vi.mock("@/lib/case-library/gate", () => ({ caseLibraryEnabled: () => false }));
+import { dashboardRouteShellBody, dashboardRouteShellHeader } from "@/lib/__fixtures__/dashboard-route-shell-page";
 import BriefPage from "./brief/page";
 import EstimatingPage from "./costs/page";
 import SchedulePage from "./schedule/page";
@@ -38,7 +39,8 @@ beforeEach(() => {
 describe.each([["brief", BriefPage], ["estimating", EstimatingPage], ["programme", SchedulePage], ["proposal", ProposalPage]] as const)("%s job-context header", (_name, Page) => {
     it("uses the editor's actual server project identity and exact name with existing reads only", async () => {
         const page = await Page({ searchParams: Promise.resolve({ projectId: project.id }) }) as Element;
-        const [header, editor] = page.props.children;
+        const shell = page as unknown as ReactElement<{ header: Element; children: Element }>;
+        const header = dashboardRouteShellHeader(shell), editor = dashboardRouteShellBody(shell);
         expect(header.props.projectId).toBe(project.id); expect(header.props.projectName).toBe(project.name);
         expect(editor.key).toBe(project.id);
         expect((editor.props.project ?? editor.props.context?.project)?.name).toBe(project.name);

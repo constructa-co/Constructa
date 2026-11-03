@@ -46,6 +46,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("next/dynamic", () => ({ default: () => function VideoWalkthrough() { return null; } }));
 vi.mock("@/lib/theme-context", () => ({ useTheme: () => ({ theme: "light" }) }));
+vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: current.createClient }));
 vi.mock("@/components/project-navbar", () => ({ default: () => null }));
 vi.mock("./actions", () => ({ saveBriefAction: vi.fn(), suggestBriefAction: vi.fn() }));

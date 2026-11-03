@@ -75,7 +75,7 @@ describe("settings control sizing", () => {
 
     it("uses readable text and existing large targets for all text and selection controls", () => {
         const controls = markup().match(/<(?:input|select|textarea)\b[^>]*>/g)!.filter(control => !/type="(?:hidden|checkbox)"/.test(control));
-        expect(controls).toHaveLength(12);
+        expect(controls).toHaveLength(22);
         for (const control of controls) {
             expect(control).toContain("text-base");
             expect(control).not.toContain("text-sm");

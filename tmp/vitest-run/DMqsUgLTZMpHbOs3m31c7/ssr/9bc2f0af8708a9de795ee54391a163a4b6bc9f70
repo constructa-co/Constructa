@@ -1,0 +1,32 @@
+__vite_ssr_exportName__("PROFILE_LEAVE_WARNING", () => { try { return PROFILE_LEAVE_WARNING } catch {} });
+__vite_ssr_exportName__("PROFILE_SAVE_UNCONFIRMED", () => { try { return PROFILE_SAVE_UNCONFIRMED } catch {} });
+__vite_ssr_exportName__("profileFormSignature", () => { try { return profileFormSignature } catch {} });
+__vite_ssr_exportName__("attemptProfileSave", () => { try { return attemptProfileSave } catch {} });
+const PROFILE_LEAVE_WARNING = "Your profile has unsaved changes or a save that is not yet confirmed. Leave this page?";
+const PROFILE_SAVE_UNCONFIRMED = "We couldn't confirm that your profile was saved. Your edits are still here; check your connection and try again.";
+/** Compare the complete submitted payload, without changing or normalising its values. */
+function profileFormSignature(data) {
+	return JSON.stringify(Array.from(data.entries(), ([name, value]) => [name, typeof value === "string" ? value : {
+		name: value.name,
+		size: value.size,
+		type: value.type
+	}]).sort(([left], [right]) => left.localeCompare(right)));
+};
+async function attemptProfileSave(save, data) {
+	try {
+		const result = await save(data);
+		return result?.success ? result : {
+			success: false,
+			error: result?.error || PROFILE_SAVE_UNCONFIRMED
+		};
+	} catch {
+		return {
+			success: false,
+			error: PROFILE_SAVE_UNCONFIRMED
+		};
+	}
+}
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTs7OztBQUFPLE1BQU0sd0JBQXdCO0FBQzlCLE1BQU0sMkJBQTJCOztBQUdqQyxTQUFTLHFCQUFxQixNQUF3QjtDQUN6RCxPQUFPLEtBQUssVUFBVSxNQUFNLEtBQUssS0FBSyxRQUFRLElBQUksQ0FBQyxNQUFNLFdBQVcsQ0FBQyxNQUNqRSxPQUFPLFVBQVUsV0FBVyxRQUFRO0VBQUUsTUFBTSxNQUFNO0VBQU0sTUFBTSxNQUFNO0VBQU0sTUFBTSxNQUFNO0NBQUssQ0FDL0YsQ0FBVSxDQUFDLENBQUMsTUFBTSxDQUFDLE9BQU8sQ0FBQyxXQUFXLEtBQUssY0FBYyxLQUFLLENBQUMsQ0FBQztBQUNwRTtBQUVPLGVBQWUsbUJBQ2xCLE1BQ0EsTUFDNkM7Q0FDN0MsSUFBSTtFQUNBLE1BQU0sU0FBUyxNQUFNLEtBQUssSUFBSTtFQUM5QixPQUFPLFFBQVEsVUFBVSxTQUFTO0dBQUUsU0FBUztHQUFPLE9BQU8sUUFBUSxTQUFTO0VBQXlCO0NBQ3pHLFFBQVE7RUFDSixPQUFPO0dBQUUsU0FBUztHQUFPLE9BQU87RUFBeUI7Q0FDN0Q7QUFDSiIsIm5hbWVzIjpbXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsicHJvZmlsZS1mb3JtLXN0YXRlLnRzIl0sInNvdXJjZXNDb250ZW50IjpbImV4cG9ydCBjb25zdCBQUk9GSUxFX0xFQVZFX1dBUk5JTkcgPSBcIllvdXIgcHJvZmlsZSBoYXMgdW5zYXZlZCBjaGFuZ2VzIG9yIGEgc2F2ZSB0aGF0IGlzIG5vdCB5ZXQgY29uZmlybWVkLiBMZWF2ZSB0aGlzIHBhZ2U/XCI7XG5leHBvcnQgY29uc3QgUFJPRklMRV9TQVZFX1VOQ09ORklSTUVEID0gXCJXZSBjb3VsZG4ndCBjb25maXJtIHRoYXQgeW91ciBwcm9maWxlIHdhcyBzYXZlZC4gWW91ciBlZGl0cyBhcmUgc3RpbGwgaGVyZTsgY2hlY2sgeW91ciBjb25uZWN0aW9uIGFuZCB0cnkgYWdhaW4uXCI7XG5cbi8qKiBDb21wYXJlIHRoZSBjb21wbGV0ZSBzdWJtaXR0ZWQgcGF5bG9hZCwgd2l0aG91dCBjaGFuZ2luZyBvciBub3JtYWxpc2luZyBpdHMgdmFsdWVzLiAqL1xuZXhwb3J0IGZ1bmN0aW9uIHByb2ZpbGVGb3JtU2lnbmF0dXJlKGRhdGE6IEZvcm1EYXRhKTogc3RyaW5nIHtcbiAgICByZXR1cm4gSlNPTi5zdHJpbmdpZnkoQXJyYXkuZnJvbShkYXRhLmVudHJpZXMoKSwgKFtuYW1lLCB2YWx1ZV0pID0+IFtuYW1lLFxuICAgICAgICB0eXBlb2YgdmFsdWUgPT09IFwic3RyaW5nXCIgPyB2YWx1ZSA6IHsgbmFtZTogdmFsdWUubmFtZSwgc2l6ZTogdmFsdWUuc2l6ZSwgdHlwZTogdmFsdWUudHlwZSB9LFxuICAgIF0gYXMgY29uc3QpLnNvcnQoKFtsZWZ0XSwgW3JpZ2h0XSkgPT4gbGVmdC5sb2NhbGVDb21wYXJlKHJpZ2h0KSkpO1xufVxuXG5leHBvcnQgYXN5bmMgZnVuY3Rpb24gYXR0ZW1wdFByb2ZpbGVTYXZlKFxuICAgIHNhdmU6IChkYXRhOiBGb3JtRGF0YSkgPT4gUHJvbWlzZTx7IHN1Y2Nlc3M6IGJvb2xlYW47IGVycm9yPzogc3RyaW5nIH0+LFxuICAgIGRhdGE6IEZvcm1EYXRhLFxuKTogUHJvbWlzZTx7IHN1Y2Nlc3M6IGJvb2xlYW47IGVycm9yPzogc3RyaW5nIH0+IHtcbiAgICB0cnkge1xuICAgICAgICBjb25zdCByZXN1bHQgPSBhd2FpdCBzYXZlKGRhdGEpO1xuICAgICAgICByZXR1cm4gcmVzdWx0Py5zdWNjZXNzID8gcmVzdWx0IDogeyBzdWNjZXNzOiBmYWxzZSwgZXJyb3I6IHJlc3VsdD8uZXJyb3IgfHwgUFJPRklMRV9TQVZFX1VOQ09ORklSTUVEIH07XG4gICAgfSBjYXRjaCB7XG4gICAgICAgIHJldHVybiB7IHN1Y2Nlc3M6IGZhbHNlLCBlcnJvcjogUFJPRklMRV9TQVZFX1VOQ09ORklSTUVEIH07XG4gICAgfVxufVxuIl0sImZpbGUiOiIvc3JjL2FwcC9kYXNoYm9hcmQvc2V0dGluZ3MvcHJvZmlsZS9wcm9maWxlLWZvcm0tc3RhdGUudHMifQ==
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZSwiZGVwcyI6IjQiLCJkeW5hbWljRGVwcyI6IjUiLCJzdGF0aWNNb2NrcyI6bnVsbH0sIi9Vc2Vycy9yb2JlcnRzbWl0aC9kZXYvY29uc3RydWN0YS1mcmVzaC0yMDI2MTAyNS8uY3Etd3QvY3EtMDQzMi1hMDkxLWVycm9yLXJlY292ZXJ5L3NyYy9hcHAvZGFzaGJvYXJkL3NldHRpbmdzL3Byb2ZpbGUvcHJvZmlsZS1mb3JtLXN0YXRlLnRzIiwiL3NyYy9hcHAvZGFzaGJvYXJkL3NldHRpbmdzL3Byb2ZpbGUvcHJvZmlsZS1mb3JtLXN0YXRlLnRzIixbXSxbXSxbXV0=

@@ -1,0 +1,33 @@
+__vite_ssr_exportName__("CORE_ROUTE_MAX_WIDTH_CLASS", () => { try { return CORE_ROUTE_MAX_WIDTH_CLASS } catch {} });
+__vite_ssr_exportName__("CORE_ROUTE_HORIZONTAL_PADDING_CLASS", () => { try { return CORE_ROUTE_HORIZONTAL_PADDING_CLASS } catch {} });
+__vite_ssr_exportName__("CORE_ROUTE_TOP_PADDING_CLASS", () => { try { return CORE_ROUTE_TOP_PADDING_CLASS } catch {} });
+__vite_ssr_exportName__("CORE_ROUTE_BOTTOM_PADDING_CLASS", () => { try { return CORE_ROUTE_BOTTOM_PADDING_CLASS } catch {} });
+__vite_ssr_exportName__("coreRouteShellClassName", () => { try { return coreRouteShellClassName } catch {} });
+__vite_ssr_exportName__("corePipelineWorkspaceInsetClassName", () => { try { return corePipelineWorkspaceInsetClassName } catch {} });
+/**
+* Shared horizontal rhythm for dashboard routes inside DashboardShell main.
+* Marketing and empty pipeline states keep their own centred max-w-3xl shells.
+*/
+/** Pre-construction workflow column — matches wide estimating/programme surfaces. */
+const CORE_ROUTE_MAX_WIDTH_CLASS = "max-w-[1600px]";
+const CORE_ROUTE_HORIZONTAL_PADDING_CLASS = "px-4 sm:px-8";
+const CORE_ROUTE_TOP_PADDING_CLASS = "pt-4 sm:pt-8";
+const CORE_ROUTE_BOTTOM_PADDING_CLASS = "pb-16";
+/** Full shell wrapper classes for cohort project workflow pages. */
+function coreRouteShellClassName() {
+	return [
+		"w-full min-w-0 mx-auto",
+		CORE_ROUTE_MAX_WIDTH_CLASS,
+		CORE_ROUTE_HORIZONTAL_PADDING_CLASS,
+		CORE_ROUTE_TOP_PADDING_CLASS,
+		CORE_ROUTE_BOTTOM_PADDING_CLASS
+	].join(" ");
+};
+/** Operational pipeline (established) shares the same inset as workflow routes. */
+function corePipelineWorkspaceInsetClassName() {
+	return `${CORE_ROUTE_HORIZONTAL_PADDING_CLASS} ${CORE_ROUTE_TOP_PADDING_CLASS}`;
+}
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTs7Ozs7Ozs7Ozs7QUFNTyxNQUFNLDZCQUE2QjtBQUVuQyxNQUFNLHNDQUFzQztBQUU1QyxNQUFNLCtCQUErQjtBQUVyQyxNQUFNLGtDQUFrQzs7QUFHeEMsU0FBUywwQkFBa0M7Q0FDOUMsT0FBTztFQUNIO0VBQ0E7RUFDQTtFQUNBO0VBQ0E7Q0FDSixDQUFDLENBQUMsS0FBSyxHQUFHO0FBQ2Q7O0FBR08sU0FBUyxzQ0FBOEM7Q0FDMUQsT0FBTyxHQUFHLG9DQUFvQyxHQUFHO0FBQ3JEIiwibmFtZXMiOltdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJkYXNoYm9hcmQtcm91dGUtZ2VvbWV0cnkudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiBTaGFyZWQgaG9yaXpvbnRhbCByaHl0aG0gZm9yIGRhc2hib2FyZCByb3V0ZXMgaW5zaWRlIERhc2hib2FyZFNoZWxsIG1haW4uXG4gKiBNYXJrZXRpbmcgYW5kIGVtcHR5IHBpcGVsaW5lIHN0YXRlcyBrZWVwIHRoZWlyIG93biBjZW50cmVkIG1heC13LTN4bCBzaGVsbHMuXG4gKi9cblxuLyoqIFByZS1jb25zdHJ1Y3Rpb24gd29ya2Zsb3cgY29sdW1uIOKAlCBtYXRjaGVzIHdpZGUgZXN0aW1hdGluZy9wcm9ncmFtbWUgc3VyZmFjZXMuICovXG5leHBvcnQgY29uc3QgQ09SRV9ST1VURV9NQVhfV0lEVEhfQ0xBU1MgPSBcIm1heC13LVsxNjAwcHhdXCI7XG5cbmV4cG9ydCBjb25zdCBDT1JFX1JPVVRFX0hPUklaT05UQUxfUEFERElOR19DTEFTUyA9IFwicHgtNCBzbTpweC04XCI7XG5cbmV4cG9ydCBjb25zdCBDT1JFX1JPVVRFX1RPUF9QQURESU5HX0NMQVNTID0gXCJwdC00IHNtOnB0LThcIjtcblxuZXhwb3J0IGNvbnN0IENPUkVfUk9VVEVfQk9UVE9NX1BBRERJTkdfQ0xBU1MgPSBcInBiLTE2XCI7XG5cbi8qKiBGdWxsIHNoZWxsIHdyYXBwZXIgY2xhc3NlcyBmb3IgY29ob3J0IHByb2plY3Qgd29ya2Zsb3cgcGFnZXMuICovXG5leHBvcnQgZnVuY3Rpb24gY29yZVJvdXRlU2hlbGxDbGFzc05hbWUoKTogc3RyaW5nIHtcbiAgICByZXR1cm4gW1xuICAgICAgICBcInctZnVsbCBtaW4tdy0wIG14LWF1dG9cIixcbiAgICAgICAgQ09SRV9ST1VURV9NQVhfV0lEVEhfQ0xBU1MsXG4gICAgICAgIENPUkVfUk9VVEVfSE9SSVpPTlRBTF9QQURESU5HX0NMQVNTLFxuICAgICAgICBDT1JFX1JPVVRFX1RPUF9QQURESU5HX0NMQVNTLFxuICAgICAgICBDT1JFX1JPVVRFX0JPVFRPTV9QQURESU5HX0NMQVNTLFxuICAgIF0uam9pbihcIiBcIik7XG59XG5cbi8qKiBPcGVyYXRpb25hbCBwaXBlbGluZSAoZXN0YWJsaXNoZWQpIHNoYXJlcyB0aGUgc2FtZSBpbnNldCBhcyB3b3JrZmxvdyByb3V0ZXMuICovXG5leHBvcnQgZnVuY3Rpb24gY29yZVBpcGVsaW5lV29ya3NwYWNlSW5zZXRDbGFzc05hbWUoKTogc3RyaW5nIHtcbiAgICByZXR1cm4gYCR7Q09SRV9ST1VURV9IT1JJWk9OVEFMX1BBRERJTkdfQ0xBU1N9ICR7Q09SRV9ST1VURV9UT1BfUEFERElOR19DTEFTU31gO1xufVxuIl0sImZpbGUiOiIvc3JjL2xpYi9kYXNoYm9hcmQtcm91dGUtZ2VvbWV0cnkudHMifQ==
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZSwiZGVwcyI6IjQiLCJkeW5hbWljRGVwcyI6IjUiLCJzdGF0aWNNb2NrcyI6bnVsbH0sIi9Vc2Vycy9yb2JlcnRzbWl0aC9kZXYvY29uc3RydWN0YS1mcmVzaC0yMDI2MTAyNS8uY3Etd3QvY3EtMDQzMi1hMDkxLWVycm9yLXJlY292ZXJ5L3NyYy9saWIvZGFzaGJvYXJkLXJvdXRlLWdlb21ldHJ5LnRzIiwiL3NyYy9saWIvZGFzaGJvYXJkLXJvdXRlLWdlb21ldHJ5LnRzIixbXSxbXSxbXV0=

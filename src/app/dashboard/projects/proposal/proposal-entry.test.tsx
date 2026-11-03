@@ -72,6 +72,7 @@ vi.mock("@/components/project-navbar", () => ({ default: () => null }));
 vi.mock("./review-send-client", () => ({ default: () => null }));
 
 import ProjectEntry from "@/components/project-entry";
+import { dashboardRouteShellBody } from "@/lib/__fixtures__/dashboard-route-shell-page";
 import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
 import ProposalPage from "./page";
 
@@ -163,7 +164,7 @@ describe("proposal absent-id entry", () => {
 
     it("keeps an owned explicit id, including one past the old 25, on the single-project read", async () => {
         const page = await render("remembered-job");
-        const editor = (page.props.children as Element[])[1];
+        const editor = dashboardRouteShellBody(page);
         expect(page.type).not.toBe(ProjectEntry);
         expect(editor.key).toBe("remembered-job");
         expect(editor.props.context!.project.id).toBe("remembered-job");

@@ -1,0 +1,27 @@
+__vite_ssr_exportName__("literalNameMatches", () => { try { return literalNameMatches } catch {} });
+/**
+* A031: which existing names appear whole in the contractor's own text.
+*
+* Case, Unicode width and punctuation are folded, nothing else: no splitting
+* of compound names, stemming, plurals, synonyms, fuzzy or AI matching, and no
+* mapping between words and trades. A hyphen or apostrophe inside a word
+* joins it ("re-roofing" is not "Roofing"). Pure, with no imports.
+*/
+function fold(value) {
+	return value.normalize("NFKC").toLowerCase().replace(/(?<=[\p{L}\p{N}])['’\-‐‑](?=[\p{L}\p{N}])/gu, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+/** The names whose whole folded form appears in the text, in the names' own order, each once. */
+function literalNameMatches(names, text) {
+	const haystack = ` ${fold(text ?? "")} `;
+	if (!haystack.trim()) return [];
+	const matches = [];
+	for (const name of names) {
+		const needle = fold(name);
+		if (needle && !matches.includes(name) && haystack.includes(` ${needle} `)) matches.push(name);
+	};
+	return matches;
+}
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTs7Ozs7Ozs7O0FBUUEsU0FBUyxLQUFLLE9BQXVCO0NBQ2pDLE9BQU8sTUFBTSxVQUFVLE1BQU0sQ0FBQyxDQUFDLFlBQVksQ0FBQyxDQUN2QyxRQUFRLCtDQUErQyxFQUFFLENBQUMsQ0FDMUQsUUFBUSxvQkFBb0IsR0FBRyxDQUFDLENBQ2hDLEtBQUs7QUFDZDs7QUFHTyxTQUFTLG1CQUFtQixPQUEwQixNQUF3QjtDQUNqRixNQUFNLFdBQVcsSUFBSSxLQUFLLFFBQVEsRUFBRSxFQUFFO0NBQ3RDLElBQUksQ0FBQyxTQUFTLEtBQUssR0FBRyxPQUFPLENBQUM7Q0FDOUIsTUFBTSxVQUFvQixDQUFDO0NBQzNCLEtBQUssTUFBTSxRQUFRLE9BQU87RUFDdEIsTUFBTSxTQUFTLEtBQUssSUFBSTtFQUN4QixJQUFJLFVBQVUsQ0FBQyxRQUFRLFNBQVMsSUFBSSxLQUFLLFNBQVMsU0FBUyxJQUFJLE9BQU8sRUFBRSxHQUFHLFFBQVEsS0FBSyxJQUFJO0NBQ2hHO0NBQ0EsT0FBTztBQUNYIiwibmFtZXMiOltdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJ0cmFkZS1saXRlcmFsLW1hdGNoLnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogQTAzMTogd2hpY2ggZXhpc3RpbmcgbmFtZXMgYXBwZWFyIHdob2xlIGluIHRoZSBjb250cmFjdG9yJ3Mgb3duIHRleHQuXG4gKlxuICogQ2FzZSwgVW5pY29kZSB3aWR0aCBhbmQgcHVuY3R1YXRpb24gYXJlIGZvbGRlZCwgbm90aGluZyBlbHNlOiBubyBzcGxpdHRpbmdcbiAqIG9mIGNvbXBvdW5kIG5hbWVzLCBzdGVtbWluZywgcGx1cmFscywgc3lub255bXMsIGZ1enp5IG9yIEFJIG1hdGNoaW5nLCBhbmQgbm9cbiAqIG1hcHBpbmcgYmV0d2VlbiB3b3JkcyBhbmQgdHJhZGVzLiBBIGh5cGhlbiBvciBhcG9zdHJvcGhlIGluc2lkZSBhIHdvcmRcbiAqIGpvaW5zIGl0IChcInJlLXJvb2ZpbmdcIiBpcyBub3QgXCJSb29maW5nXCIpLiBQdXJlLCB3aXRoIG5vIGltcG9ydHMuXG4gKi9cbmZ1bmN0aW9uIGZvbGQodmFsdWU6IHN0cmluZyk6IHN0cmluZyB7XG4gICAgcmV0dXJuIHZhbHVlLm5vcm1hbGl6ZShcIk5GS0NcIikudG9Mb3dlckNhc2UoKVxuICAgICAgICAucmVwbGFjZSgvKD88PVtcXHB7TH1cXHB7Tn1dKVsn4oCZXFwt4oCQ4oCRXSg/PVtcXHB7TH1cXHB7Tn1dKS9ndSwgXCJcIilcbiAgICAgICAgLnJlcGxhY2UoL1teXFxwe0x9XFxwe059XSsvZ3UsIFwiIFwiKVxuICAgICAgICAudHJpbSgpO1xufVxuXG4vKiogVGhlIG5hbWVzIHdob3NlIHdob2xlIGZvbGRlZCBmb3JtIGFwcGVhcnMgaW4gdGhlIHRleHQsIGluIHRoZSBuYW1lcycgb3duIG9yZGVyLCBlYWNoIG9uY2UuICovXG5leHBvcnQgZnVuY3Rpb24gbGl0ZXJhbE5hbWVNYXRjaGVzKG5hbWVzOiByZWFkb25seSBzdHJpbmdbXSwgdGV4dDogc3RyaW5nKTogc3RyaW5nW10ge1xuICAgIGNvbnN0IGhheXN0YWNrID0gYCAke2ZvbGQodGV4dCA/PyBcIlwiKX0gYDtcbiAgICBpZiAoIWhheXN0YWNrLnRyaW0oKSkgcmV0dXJuIFtdO1xuICAgIGNvbnN0IG1hdGNoZXM6IHN0cmluZ1tdID0gW107XG4gICAgZm9yIChjb25zdCBuYW1lIG9mIG5hbWVzKSB7XG4gICAgICAgIGNvbnN0IG5lZWRsZSA9IGZvbGQobmFtZSk7XG4gICAgICAgIGlmIChuZWVkbGUgJiYgIW1hdGNoZXMuaW5jbHVkZXMobmFtZSkgJiYgaGF5c3RhY2suaW5jbHVkZXMoYCAke25lZWRsZX0gYCkpIG1hdGNoZXMucHVzaChuYW1lKTtcbiAgICB9XG4gICAgcmV0dXJuIG1hdGNoZXM7XG59XG4iXSwiZmlsZSI6Ii9zcmMvbGliL3RyYWRlLWxpdGVyYWwtbWF0Y2gudHMifQ==
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZSwiZGVwcyI6IjQiLCJkeW5hbWljRGVwcyI6IjUiLCJzdGF0aWNNb2NrcyI6bnVsbH0sIi9Vc2Vycy9yb2JlcnRzbWl0aC9kZXYvY29uc3RydWN0YS1mcmVzaC0yMDI2MTAyNS8uY3Etd3QvY3EtMDQzMi1hMDkxLWVycm9yLXJlY292ZXJ5L3NyYy9saWIvdHJhZGUtbGl0ZXJhbC1tYXRjaC50cyIsIi9zcmMvbGliL3RyYWRlLWxpdGVyYWwtbWF0Y2gudHMiLFtdLFtdLFtdXQ==

@@ -1,3 +1,4 @@
+import type { PlaywrightTestConfig } from "@playwright/test";
 import { serverEnv } from "./e2e/support/env";
 import { PLATFORM_CONSENT_CAPTURE, readPlatformConsentEnv } from "./e2e/support/platform-consent-guard";
 
@@ -13,9 +14,7 @@ const appEnv = serverEnv(env);
 const startApp = `node scripts/verify-build-supabase-target.mjs && npx next start -H ${appUrl.hostname} -p ${appUrl.port}`;
 const appCommand = process.env.E2E_SKIP_BUILD === "1" ? startApp : `npx next build && ${startApp}`;
 
-const { defineConfig } = await import("@playwright/test");
-
-export default defineConfig({
+export default {
     testDir: "./e2e",
     testMatch: "**/platform-consent.qa.ts",
     outputDir: "./test-results/platform-consent",
@@ -56,4 +55,4 @@ export default defineConfig({
             stderr: "pipe",
         },
     ],
-});
+} satisfies PlaywrightTestConfig;

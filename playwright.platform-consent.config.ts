@@ -1,10 +1,12 @@
-import { defineConfig } from "@playwright/test";
+import type { PlaywrightTestConfig } from "@playwright/test";
 import { serverEnv } from "./e2e/support/env";
 import { PLATFORM_CONSENT_CAPTURE, readPlatformConsentEnv } from "./e2e/support/platform-consent-guard";
 
 // Operator-only, headed and human-assisted. Fails closed here, before any
 // browser or server starts, while the runtime is held or prerequisites are
 // missing. No default config or CI job matches this runner.
+// Held check runs before @playwright/test loads so Vitest can reject this
+// module quickly under full-suite contention (static imports are hoisted).
 const env = readPlatformConsentEnv();
 const appUrl = new URL(env.baseUrl);
 const appEnv = serverEnv(env);
@@ -12,7 +14,7 @@ const appEnv = serverEnv(env);
 const startApp = `node scripts/verify-build-supabase-target.mjs && npx next start -H ${appUrl.hostname} -p ${appUrl.port}`;
 const appCommand = process.env.E2E_SKIP_BUILD === "1" ? startApp : `npx next build && ${startApp}`;
 
-export default defineConfig({
+export default {
     testDir: "./e2e",
     testMatch: "**/platform-consent.qa.ts",
     outputDir: "./test-results/platform-consent",
@@ -53,4 +55,4 @@ export default defineConfig({
             stderr: "pipe",
         },
     ],
-});
+} satisfies PlaywrightTestConfig;

@@ -103,6 +103,18 @@ describe("extractSuggestions", () => {
         discoverLinks(big);
         expect(Date.now() - started).toBeLessThan(2000);
     });
+
+    it("reads links and headings in malformed markup the same way as well-formed markup", () => {
+        // A label over 300 characters is not a link label; the link inside it is still read.
+        // A link with no closing tag at all gives nothing.
+        const links = byField([page("/", `<a href="tel:0113 496 0000">${"x".repeat(301)}<a href="mailto:hello@smithbuilders.co.uk">mail</a><a href="tel:0113 496 0001">0113 496 0001`)]);
+        expect(links.sales_email).toMatchObject({ value: "hello@smithbuilders.co.uk", basis: "contact-link", excerpt: "Email link on the page: mail" });
+        expect(links.phone).toBeUndefined();
+
+        // Long attributes are fine on headings, an over-long heading and an unclosed run of "<h2" are skipped.
+        const headings = byField([page("/services", `<h2>Extensions</h2><h3 data-x="${"y".repeat(5000)}">Loft conversions</H3 ><h2>${"z".repeat(301)}</h2><h2>Garden rooms</h2>${"<h2 ".repeat(2000)}`)]);
+        expect(headings.specialisms).toMatchObject({ value: "Extensions, Loft conversions, Garden rooms", basis: "page-heading" });
+    });
 });
 
 describe("discoverLinks", () => {
@@ -111,11 +123,23 @@ describe("discoverLinks", () => {
         expect(discoverLinks(`<a href="mailto:contact@x.co.uk">c</a><a href="javascript:about()">a</a><a href="#contact">c</a><a href="/gallery">g</a>`)).toEqual([]);
         expect(discoverLinks(`<!-- <a href="/contact-hidden">x</a> --><script>'<a href="/about-script">'</script><a href='/about'>a</a>`)).toEqual(["/about"]);
     });
+
+    it("skips tags whose end is too far away or missing, and reads one tag up to its first '>'", () => {
+        expect(discoverLinks(`<a href="/contact-far"${" ".repeat(2001)}><A HREF="/about">x</a><abbr href="/services">`)).toEqual(["/about"]);
+        expect(discoverLinks(`<a href="/about-1"<a href="/contact">`)).toEqual(["/about-1"]);
+        expect(discoverLinks(`<a href="/contact">c</a>${"<a href=/about ".repeat(1000)}`)).toEqual(["/contact"]);
+    });
 });
 
 describe("plainText", () => {
     it("decodes entities once and strips markup", () => {
         expect(plainText("Tom &amp; Sons &lt;b&gt; &#38; &#x26; &pound;5 &bogus;")).toBe("Tom & Sons <b> & & £5 &bogus;");
         expect(plainText("<p>a</p>\n\t<p>b</p>")).toBe("a b");
+    });
+
+    it("keeps a '<' with no '>' after it as text", () => {
+        expect(plainText("1 &lt; 2 <b>bold</b> 3 < 4")).toBe("1 < 2 bold 3 < 4");
+        expect(plainText("a < b <i>c</i> d < e")).toBe("a c d < e");
+        expect(plainText("<<<x")).toBe("<<<x");
     });
 });

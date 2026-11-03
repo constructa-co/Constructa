@@ -360,3 +360,7 @@
 ## ROB2020 shell-child type alias — 3 Nov 2026
 
 - **`420a34`** / blob **`ae7e3cfe`** one-line **Element.children** union; **ROB2015** grade. **rob2020** fulltype **0**, single eslint **0**; **6238+2+4skips/full exit1** retained; not single full green. Build/backup pending; NO-DEPLOY hold.
+
+## ROB2215 timing repair — 3 Nov 2026
+
+- **`de1c26c4`** + **`aa41eba`** four paths; Galileo whole grade SCOPED_NNF. Full suite **6244 pass / 4 skip** complete stdout (**389** files); child exit **not captured** in raw log — **`rob2218`** qualification; four-path eslint **0**; fulltype **0**. **rob2220** helpers/config prep only; build readbacks null; no backup yet. NO-DEPLOY hold.

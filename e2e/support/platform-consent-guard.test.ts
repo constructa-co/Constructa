@@ -368,7 +368,27 @@ describe("platform-consent guard: operator-only discovery", () => {
         for (const pattern of vitestIncludes) expect(path.matchesGlob(runner, pattern), pattern).toBe(false);
     });
 
+    it("the operator config avoids top-level await and a runtime @playwright/test import", () => {
+        const config = code("playwright.platform-consent.config.ts");
+        expect(config).not.toMatch(/\bawait\s+import\b/);
+        expect(config).not.toMatch(/^import\s+(?!type\b)[^;]*@playwright\/test/m);
+        expect(config).toMatch(/import\s+type\s+\{[^}]*PlaywrightTestConfig[^}]*\}\s+from\s+["']@playwright\/test["']/);
+        expect(config).toMatch(/\}\s+satisfies\s+PlaywrightTestConfig\s*;/);
+    });
+
     it("the operator config refuses to load while the runtime is held", async () => {
-        await expect(import("../../playwright.platform-consent.config")).rejects.toThrow(PLATFORM_CONSENT_RUNTIME_HELD_MESSAGE);
+        vi.resetModules();
+        let playwrightTouched = false;
+        vi.doMock("@playwright/test", () => {
+            playwrightTouched = true;
+            throw new Error("@playwright/test must not load while the hosted runtime is held");
+        });
+        try {
+            await expect(import("../../playwright.platform-consent.config")).rejects.toThrow(PLATFORM_CONSENT_RUNTIME_HELD_MESSAGE);
+            expect(playwrightTouched).toBe(false);
+        } finally {
+            vi.doUnmock("@playwright/test");
+            vi.resetModules();
+        }
     });
 });

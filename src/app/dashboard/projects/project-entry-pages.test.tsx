@@ -10,6 +10,7 @@ vi.mock("./brief/brief-client", () => ({ default: () => null }));
 vi.mock("./costs/estimate-client", () => ({ default: () => null }));
 vi.mock("./schedule/simple-programme-client", () => ({ default: () => null }));
 
+import { dashboardRouteShellBody, dashboardRouteShellHeader } from "@/lib/__fixtures__/dashboard-route-shell-page";
 import BriefPage from "./brief/page";
 import EstimatingPage from "./costs/page";
 import SchedulePage from "./schedule/page";
@@ -52,7 +53,8 @@ describe.each([
 
     it("keeps an explicit older job as the sole editor and navbar identity", async () => {
         const page = await render("remembered-job");
-        const [nav, editor] = page.props.children!;
+        const shell = page as unknown as ReactElement<{ header: Element; children: Element }>;
+        const nav = dashboardRouteShellHeader(shell), editor = dashboardRouteShellBody(shell);
         expect(nav.props.projectId).toBe("remembered-job");
         expect(editor.key).toBe("remembered-job");
         expect(editor.props.project!.id).toBe("remembered-job");

@@ -369,6 +369,15 @@ describe("platform-consent guard: operator-only discovery", () => {
     });
 
     it("the operator config refuses to load while the runtime is held", async () => {
+        vi.resetModules();
+        let playwrightTouched = false;
+        vi.doMock("@playwright/test", () => {
+            playwrightTouched = true;
+            throw new Error("@playwright/test must not load while the hosted runtime is held");
+        });
         await expect(import("../../playwright.platform-consent.config")).rejects.toThrow(PLATFORM_CONSENT_RUNTIME_HELD_MESSAGE);
+        expect(playwrightTouched).toBe(false);
+        vi.doUnmock("@playwright/test");
+        vi.resetModules();
     });
 });

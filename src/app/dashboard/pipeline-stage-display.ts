@@ -16,6 +16,8 @@ const DISPLAY_LABELS: Partial<Record<(typeof PIPELINE_STATUS_FILTER_OPTIONS)[num
 
 /** UI-only label for filters, list badges, board headers, and legend. */
 export function pipelineStageDisplayLabel(canonicalStatus: string): string {
-    const key = canonicalStatus as (typeof PIPELINE_STATUS_FILTER_OPTIONS)[number];
-    return DISPLAY_LABELS[key] ?? canonicalStatus;
+    if (Object.hasOwn(DISPLAY_LABELS, canonicalStatus)) {
+        return DISPLAY_LABELS[canonicalStatus as keyof typeof DISPLAY_LABELS]!;
+    }
+    return canonicalStatus;
 }

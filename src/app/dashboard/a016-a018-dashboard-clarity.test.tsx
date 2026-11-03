@@ -105,4 +105,15 @@ describe("A016/A018 dashboard clarity", () => {
         expect(source).toMatch(/operational/i);
         expect(source).toMatch(/view === "board"/);
     });
+
+    it("falls back to the exact input string for non-own display-map keys", () => {
+        expect(pipelineStageDisplayLabel("__proto__")).toBe("__proto__");
+        expect(pipelineStageDisplayLabel("constructor")).toBe("constructor");
+        expect(pipelineStageDisplayLabel("toString")).toBe("toString");
+        expect(pipelineStageDisplayLabel("not-a-pipeline-status")).toBe("not-a-pipeline-status");
+        expect(pipelineStageDisplayLabel("Lead")).toBe("Enquiries");
+        expect(pipelineStageDisplayLabel("Estimating")).toBe("Preparing estimate");
+        expect(pipelineStageDisplayLabel("Proposal Sent")).toBe("Proposal Sent");
+        expect(pipelineStageDisplayLabel("Won")).toBe("Won");
+    });
 });

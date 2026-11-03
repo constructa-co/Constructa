@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import PublicChrome from '@/components/public-chrome';
 import { MarketingFooter } from '@/components/marketing/phase-one';
-import { getAllGuideSlugs } from '@/lib/marketing-guides';
+import { GuideArticleView } from '@/components/marketing/guide-article-view';
+import { getAllGuideSlugs, getGuideArticle } from '@/lib/marketing-guides';
 import GuidesPage from './page';
 import GuideArticlePage, { generateStaticParams } from './[slug]/page';
 
@@ -85,6 +86,23 @@ describe('guides hub and articles', () => {
       { slug: 'review-brief-and-price' },
       { slug: 'programme-and-proposal-before-sharing' },
     ]);
+  });
+
+  it('binds step section aria-labelledby to one whitespace-free heading id and names recovery in the held note', () => {
+    for (const slug of getAllGuideSlugs()) {
+      const article = getGuideArticle(slug);
+      expect(article).toBeTruthy();
+      const markup = renderToStaticMarkup(<GuideArticleView article={article!} />);
+      expect(markup).toContain('complete photo, consent and recovery journeys');
+      const labelledSections = [...markup.matchAll(/<section[^>]*\saria-labelledby="([^"]+)"/g)];
+      expect(labelledSections.length).toBeGreaterThan(0);
+      for (const [, labelId] of labelledSections) {
+        expect(labelId).not.toMatch(/\s/);
+        const escaped = labelId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const idMatches = markup.match(new RegExp(`\\bid="${escaped}"`, 'g'));
+        expect(idMatches?.length).toBe(1);
+      }
+    }
   });
 
   it('adds a discoverable Guides link in the phase-one footer only', () => {

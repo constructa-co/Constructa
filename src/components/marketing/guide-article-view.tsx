@@ -27,9 +27,13 @@ export function GuideArticleView({ article }: { article: GuideArticle }) {
         </Link>
       </section>
 
-      {article.steps.map(step => (
-        <section key={step.title} className={`${ui.section} ${styles.articleSection}`} aria-labelledby={`step-${step.title}`}>
-          <h2 id={`step-${step.title}`}>{step.title}</h2>
+      {article.steps.map((step, index) => (
+        <section
+          key={step.title}
+          className={`${ui.section} ${styles.articleSection}`}
+          aria-labelledby={`guide-step-${index}`}
+        >
+          <h2 id={`guide-step-${index}`}>{step.title}</h2>
           <div className={styles.stepPanel}>
             <dl className={styles.grid}>
               <div>
@@ -64,7 +68,7 @@ export function GuideArticleView({ article }: { article: GuideArticle }) {
           ))}
         </ul>
         <p className={styles.note}>
-          Live AI assistance, new account sign-up, release for real customers, checkout, complete photo or consent
+          Live AI assistance, new account sign-up, release for real customers, checkout, complete photo, consent and recovery
           journeys and security certification are held back from this preview. None is claimed here.
         </p>
         <nav className={styles.footerNav} aria-label="Related links">

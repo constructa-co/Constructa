@@ -11,8 +11,10 @@ import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { attemptProfileSave, profileFormSignature, PROFILE_LEAVE_WARNING, PROFILE_SAVE_UNCONFIRMED } from "./profile-form-state";
 import { Upload, Loader2, Sparkles } from "lucide-react";
 import { literalNameMatches } from "@/lib/trade-literal-match";
+import { accreditationEntries, accreditationsValue } from "./accreditation-list";
 import ui from "@/components/company-profile.module.css";
 import {
+    coreFocusVisibleRing,
     coreFormAccent,
     coreProfileField,
     coreProfileSaveSubmit,
@@ -168,6 +170,15 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
     const [mdMessageSuggestion, setMdMessageSuggestion] = useState<string | null>(null);
     const [activeSection, setActiveSection] = useState<ProfileSectionId>("company-basics");
     const [revealNotice, setRevealNotice] = useState<string | null>(null);
+    // A030: accreditations edited as a list, still saved as one text field.
+    // null = untouched, so the stored text is posted back exactly as saved.
+    const storedAccreditations = profile?.accreditations ?? null;
+    const [accreditationList, setAccreditationList] = useState<string[] | null>(null);
+    const [accreditationDraft, setAccreditationDraft] = useState("");
+    const [accreditationNotice, setAccreditationNotice] = useState("");
+    const accreditationInputRef = useRef<HTMLInputElement>(null);
+    // The posted value as of the latest edit, read by the change check before React commits it.
+    const accreditationsPosted = useRef(accreditationsValue(storedAccreditations, null, ""));
     const proposalDefaultsView = activeSection === "company-style" || activeSection === "company-director";
 
     // A link such as /dashboard/settings/profile#company-style opens that section.
@@ -218,12 +229,37 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
         const data = new FormData(form);
         data.set("pdf_theme", form.dataset.pdfTheme ?? "slate");
         data.set("preferred_trades", form.dataset.preferredTrades ?? "[]");
+        data.set("accreditations", accreditationsPosted.current);
         for (const [name, value] of Object.entries(overrides)) data.set(name, value);
         return profileFormSignature(data);
     };
     const trackChanges = (overrides: Record<string, string> = {}) => {
         if (formRef.current) setDirty(snapshot(formRef.current, overrides) !== confirmedSignature.current);
         setSaveNotice(null);
+    };
+
+    const shownAccreditations = accreditationList ?? accreditationEntries(storedAccreditations);
+    const changeAccreditations = (list: string[] | null, draft: string, notice: string) => {
+        const value = accreditationsValue(storedAccreditations, list, draft);
+        accreditationsPosted.current = value;
+        setAccreditationList(list);
+        setAccreditationDraft(draft);
+        setAccreditationNotice(notice);
+        trackChanges({ accreditations: value });
+    };
+    const addAccreditation = () => {
+        const entry = accreditationDraft.trim();
+        if (!entry) {
+            setAccreditationNotice("Type an accreditation in the box first, then add it.");
+            return;
+        }
+        const next = [...shownAccreditations, entry];
+        changeAccreditations(next, "", `Added ${entry}. ${next.length} in the list.`);
+    };
+    const removeAccreditation = (index: number) => {
+        const entry = shownAccreditations[index];
+        changeAccreditations(shownAccreditations.filter((_, i) => i !== index), accreditationDraft, `Removed ${entry}.`);
+        accreditationInputRef.current?.focus();
     };
 
     const handleRewriteMdMessage = async () => {
@@ -488,15 +524,49 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                     />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1.5" data-profile-accreditations>
                     <label htmlFor="company-accreditations" className="text-sm font-medium text-slate-400">Accreditations</label>
-                    <input
-                        id="company-accreditations"
-                            name="accreditations"
-                        defaultValue={profile?.accreditations || ""}
-                        className={coreProfileField}
-                        placeholder="CITB, FMB Member, NHBC Registered"
-                    />
+                    <input type="hidden" name="accreditations" value={accreditationsValue(storedAccreditations, accreditationList, accreditationDraft)} />
+                    {shownAccreditations.length > 0 && (
+                        <ul className="flex flex-wrap gap-2">
+                            {shownAccreditations.map((entry, index) => (
+                                <li key={`${index}-${entry}`} className="flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 pl-3 text-sm text-slate-100">
+                                    <span className="break-words">{entry}</span>
+                                    <button
+                                        type="button"
+                                        aria-label={`Remove ${entry}`}
+                                        onClick={() => removeAccreditation(index)}
+                                        className={`min-h-11 min-w-11 rounded-md px-2 text-slate-400 hover:text-slate-100 ${coreFocusVisibleRing}`}
+                                    >
+                                        <span aria-hidden="true">×</span>
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    <div className="flex gap-2">
+                        <input
+                            id="company-accreditations"
+                            ref={accreditationInputRef}
+                            value={accreditationDraft}
+                            onChange={(e) => changeAccreditations(accreditationList, e.target.value, "")}
+                            onKeyDown={(e) => {
+                                if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+                                e.preventDefault();
+                                addAccreditation();
+                            }}
+                            aria-describedby="company-accreditations-hint"
+                            className={coreProfileField}
+                            placeholder="e.g. FMB Member"
+                        />
+                        <button type="button" onClick={addAccreditation} className={`shrink-0 ${coreSuggestionPrimary}`}>
+                            Add accreditation
+                        </button>
+                    </div>
+                    <p id="company-accreditations-hint" className="text-xs text-slate-500">
+                        Add one at a time, then add the next. Text left in this box is saved with the list.
+                    </p>
+                    <p aria-live="polite" className="sr-only">{accreditationNotice}</p>
                 </div>
 
                 <div className="space-y-1.5">

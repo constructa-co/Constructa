@@ -18,7 +18,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/case-library/store", async (original) => ({ ...(await original<typeof import("@/lib/case-library/store")>()), sessionReader: mocks.sessionReader }));
 
 import { fakeLibrary } from "@/lib/case-library/__fixtures__/fake-library";
-import { newDraft } from "@/lib/case-library/content";
+import { newDraft, toWireContent, type CaseStudyContent } from "@/lib/case-library/content";
 import { CASE_LIBRARY_VARIABLE } from "@/lib/case-library/gate";
 import { readProposalLibrary } from "@/lib/case-library/proposal-read";
 import { libraryTick } from "@/lib/case-library/resolve";
@@ -46,9 +46,12 @@ function setup(selected: unknown[]) {
     mocks.sessionReader.mockImplementation(() => library.reader);
 }
 
+/** Content as the service sends it to the write functions: the wire shape this build targets (`toWireContent`), not the editor's draft. */
+const wire = (content: CaseStudyContent) => toWireContent(content);
+
 /** An approved case study in the contractor's library. Returns its tick. */
 async function approved(title: string, delivered = `${title} delivered.`): Promise<string> {
-    const created = library.admin.rpc("case_study_create", { p_user_id: USER_ID, p_content: { ...newDraft(title), delivered, client_text: "Mrs Private" }, p_legacy_index: null });
+    const created = library.admin.rpc("case_study_create", { p_user_id: USER_ID, p_content: wire({ ...newDraft(title), delivered, client_text: "Mrs Private" }), p_legacy_index: null });
     const id = String((await created).data.id);
     await library.admin.rpc("case_study_approve", { p_user_id: USER_ID, p_id: id, p_expected_revision: 1, p_confirmed: true });
     return libraryTick(id);
@@ -105,7 +108,7 @@ describe("publishing with the case-study library switched on", () => {
         setup([tick]);
         const before = await reviewed(true);
         const id = tick.slice(4);
-        await library.admin.rpc("case_study_save_draft", { p_user_id: USER_ID, p_id: id, p_expected_revision: 1, p_content: { ...newDraft("Kitchen"), delivered: "Different words." } });
+        await library.admin.rpc("case_study_save_draft", { p_user_id: USER_ID, p_id: id, p_expected_revision: 1, p_content: wire({ ...newDraft("Kitchen"), delivered: "Different words." }) });
         await library.admin.rpc("case_study_approve", { p_user_id: USER_ID, p_id: id, p_expected_revision: 2, p_confirmed: true });
         expect(await publish(before)).toEqual({ success: false, error: REVIEW_CHANGED_ERROR, changed: true });
         expect(published()).toEqual([]);
@@ -115,7 +118,7 @@ describe("publishing with the case-study library switched on", () => {
         const tick = await approved("Kitchen");
         setup([tick]);
         const before = await reviewed(true);
-        await library.admin.rpc("case_study_save_draft", { p_user_id: USER_ID, p_id: tick.slice(4), p_expected_revision: 1, p_content: { ...newDraft("Kitchen"), delivered: "Unapproved edit." } });
+        await library.admin.rpc("case_study_save_draft", { p_user_id: USER_ID, p_id: tick.slice(4), p_expected_revision: 1, p_content: wire({ ...newDraft("Kitchen"), delivered: "Unapproved edit." }) });
         expect(await publish(before)).toMatchObject({ success: true });
         expect(JSON.stringify(published()[0].args.p_snapshot)).not.toContain("Unapproved edit.");
     });
@@ -134,14 +137,14 @@ describe("publishing with the case-study library switched on", () => {
     });
 
     it("a draft that was never approved cannot be published by ticking it", async () => {
-        const created = await library.admin.rpc("case_study_create", { p_user_id: USER_ID, p_content: newDraft("Only a draft"), p_legacy_index: null });
+        const created = await library.admin.rpc("case_study_create", { p_user_id: USER_ID, p_content: wire(newDraft("Only a draft")), p_legacy_index: null });
         setup([libraryTick(String(created.data.id))]);
         expect(await publish("0".repeat(64))).toEqual({ success: false, error: CASE_STUDY_UNSENDABLE_ERROR });
         expect(published()).toEqual([]);
     });
 
     it("another contractor's approved case study cannot be published by ticking its id", async () => {
-        const theirs = await library.admin.rpc("case_study_create", { p_user_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", p_content: { ...newDraft("Their job"), delivered: "Their words." }, p_legacy_index: null });
+        const theirs = await library.admin.rpc("case_study_create", { p_user_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", p_content: wire({ ...newDraft("Their job"), delivered: "Their words." }), p_legacy_index: null });
         await library.admin.rpc("case_study_approve", { p_user_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", p_id: theirs.data.id, p_expected_revision: 1, p_confirmed: true });
         setup([libraryTick(String(theirs.data.id))]);
         expect(await publish("0".repeat(64))).toEqual({ success: false, error: CASE_STUDY_UNSENDABLE_ERROR });

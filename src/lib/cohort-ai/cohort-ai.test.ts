@@ -405,8 +405,10 @@ describe("where the provider is reached from", () => {
      * cohort contractor cannot spend through it without a budget. A new
      * caller fails this test until it is listed with its reason.
      */
-    const INVENTORY: Record<string, { budgeted: true } | { gate: string }> = {
+    const INVENTORY: Record<string, { budgeted: true } | { gate: string } | { ledger: string }> = {
         "lib/ai-budget.ts": { budgeted: true },
+        // The job assistant's own transport: sent only by its generation seam after an atomic ledger reservation (proved below).
+        "lib/server/openai-job-assistant-transport.ts": { ledger: "lib/server/job-assistant-generation.ts" },
         // Voice and video in the Brief: refused outside the full profile before anything else runs.
         "app/dashboard/projects/brief/actions.ts": { gate: 'requireLaunchCapability("video-walkthrough")' },
         "app/dashboard/projects/costs/boq-import-action.ts": { gate: 'requireLaunchCapability("client-boq-import")' },
@@ -422,7 +424,47 @@ describe("where the provider is reached from", () => {
         expect(reaching).toEqual(Object.keys(INVENTORY).sort());
         for (const [path, reason] of Object.entries(INVENTORY)) {
             if ("gate" in reason) expect(all.find((file) => file.path === path)!.text, path).toContain(reason.gate);
+            if ("ledger" in reason) expect(all.some((file) => file.path === reason.ledger), path).toBe(true);
         }
+    });
+
+    it("the job assistant transport sends only through its seam, after the stop, approval, provider, ledger and a reservation", () => {
+        const text = (path: string) => all.find((file) => file.path === path)!.text;
+        const transport = text("lib/server/openai-job-assistant-transport.ts");
+        const activation = text("lib/server/job-assistant-transport.ts");
+        const seam = text("lib/server/job-assistant-generation.ts");
+        const inOrder = (body: string, steps: string[]) => {
+            const at = steps.map((step) => body.indexOf(step));
+            for (const [index, step] of steps.entries()) expect(at[index], step).toBeGreaterThan(index === 0 ? -1 : at[index - 1]);
+        };
+
+        // Only the activation point can get at the transport or its providers.
+        expect(all.filter((file) => /from\s+["'](?:\.\/|@\/lib\/server\/)openai-job-assistant-transport["']/.test(file.text)).map((file) => file.path)).toEqual(["lib/server/job-assistant-transport.ts"]);
+        expect(all.filter((file) => /\b(createOpenAIJobAssistantTransport|openAIJobAssistantProvider|deepSeekJobAssistantProvider|JOB_ASSISTANT_PROVIDERS)\b/.test(file.text)).map((file) => file.path).sort())
+            .toEqual(["lib/server/job-assistant-transport.ts", "lib/server/openai-job-assistant-transport.ts"]);
+
+        // The client is made once, inside send, after its own refusal.
+        expect(transport.match(/\bclient\(\)/g)).toHaveLength(1);
+        inOrder(transport, ["async send(", 'return { kind: "not_sent" };', "client().chat.completions.create("]);
+
+        // A transport is built only once every prerequisite has passed, and only into the seam. The server's stop is the operator's emergency stop.
+        expect(activation).toContain("stopped: aiEmergencyStop");
+        expect(activation.match(/provider\.transport\(/g)).toHaveLength(1);
+        const assess = activation.slice(activation.indexOf("async function assess"), activation.indexOf("async function prepare"));
+        inOrder(assess, [
+            'if (activation.stopped()) return refuse("emergency_stop");',
+            "approvedConfig(feature, activation.approvals[feature])",
+            "!provider.configured()",
+            'if (state !== "ready") return refuse(',
+            "createJobAssistantGenerator<C>(feature, { config, transport: provider.transport(",
+        ]);
+        // Approved only on the QA Preview target; everywhere else there is no approval, so nothing is built.
+        expect(activation).toContain("if (!onQaPreview()) return null;");
+
+        // The seam's single send follows a held reservation.
+        expect(seam.match(/transport\.send\(/g)).toHaveLength(1);
+        inOrder(seam, ["await ledger.reserve(", 'if (!held) throw new GenerationRefused("reservation");', "transport.send("]);
+        for (const file of [activation, seam]) expect(reachesProvider(file)).toBe(false);
     });
 
     it("within the Brief's actions, each direct provider call sits behind the full-profile gate", () => {

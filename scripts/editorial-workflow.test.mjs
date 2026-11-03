@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -121,6 +121,78 @@ test("cli status is read-only dry state without network", () => {
     const payload = JSON.parse(result.stdout);
     assert.equal(payload.report.export.ready, false);
     assert.equal(readStatus(state, "status-id").export.reason, "not approved");
+});
+
+test("cli update without --content preserves body (stdin default must not wipe)", () => {
+    const dir = storageRoot();
+    const repoRoot = repoRootFromHere();
+    const create = runCli(
+        ["create", "--dir", dir, "--title", "Original title", "--content", "Keep this body", "--id", "title-only-upd"],
+        { repoRoot, stdin: "stdin must not apply on update" },
+    );
+    assert.equal(create.exitCode, 0);
+    const result = runCli(
+        ["update", "title-only-upd", "--dir", dir, "--title", "Renamed title"],
+        { repoRoot, stdin: "stdin must not apply on update" },
+    );
+    assert.equal(result.exitCode, 0);
+    const state = loadState(dir);
+    assert.equal(state.drafts["title-only-upd"].title, "Renamed title");
+    assert.equal(state.drafts["title-only-upd"].content, "Keep this body");
+});
+
+test("cli update with explicit empty --content clears body and invalidates approval", () => {
+    const dir = storageRoot();
+    const repoRoot = repoRootFromHere();
+    const state = loadState(dir);
+    createDraft(state, { title: "T", content: "Body text", id: "empty-content-upd" });
+    addReview(state, "empty-content-upd", { reviewer: "r", feedback: "ok" });
+    approveDraft(state, "empty-content-upd", { approver: "a" });
+    saveState(dir, state);
+    const result = runCli(["update", "empty-content-upd", "--dir", dir, "--content", ""], { repoRoot });
+    assert.equal(result.exitCode, 0);
+    const next = loadState(dir);
+    assert.equal(next.drafts["empty-content-upd"].content, "");
+    assert.equal(next.drafts["empty-content-upd"].approval, null);
+});
+
+test("nonexistent --dir through symlink parent into repo is refused", () => {
+    const repoRoot = repoRootFromHere();
+    assert.ok(repoRoot);
+    const outside = storageRoot();
+    const linkParent = path.join(outside, "symlink-parent");
+    mkdirSync(linkParent);
+    const insideRepo = path.join(repoRoot, ".tmp-a100-symlink-target");
+    mkdirSync(insideRepo, { recursive: true });
+    roots.push(insideRepo);
+    const symlinkPath = path.join(linkParent, "into-repo");
+    symlinkSync(insideRepo, symlinkPath);
+    const statePath = path.join(symlinkPath, "missing", "state-dir");
+    const result = runCli(["status", "--dir", statePath], { repoRoot });
+    assert.equal(result.exitCode, 1);
+    assert.match(result.stderr, /outside the git worktree/);
+});
+
+test("nonexistent export --out through symlink parent into repo is refused", () => {
+    const repoRoot = repoRootFromHere();
+    assert.ok(repoRoot);
+    const dir = storageRoot();
+    const state = loadState(dir);
+    createDraft(state, { title: "T", content: "C", id: "symlink-export" });
+    addReview(state, "symlink-export", { reviewer: "r", feedback: "fine" });
+    approveDraft(state, "symlink-export", { approver: "a" });
+    saveState(dir, state);
+    const outside = storageRoot();
+    const linkParent = path.join(outside, "symlink-parent-export");
+    mkdirSync(linkParent);
+    const insideRepo = path.join(repoRoot, ".tmp-a100-export-symlink-target");
+    mkdirSync(insideRepo, { recursive: true });
+    roots.push(insideRepo);
+    symlinkSync(insideRepo, path.join(linkParent, "into-repo"));
+    const outPath = path.join(linkParent, "into-repo", "missing-handoff.txt");
+    const result = runCli(["export", "symlink-export", "--dir", dir, "--out", outPath], { repoRoot });
+    assert.equal(result.exitCode, 1);
+    assert.match(result.stderr, /outside the git worktree/);
 });
 
 test("export output is a local file only (no publication claim in json)", () => {

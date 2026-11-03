@@ -21,7 +21,10 @@ All paths below use a private directory you choose (example: `/Volumes/Private/c
 node scripts/editorial-workflow.mjs --dir /absolute/private/dir create \
   --title "Draft title" --content "Draft body text."
 
-# Update content (invalidates prior approval)
+# Update title or body (omit --content to keep existing body; `--content ''` clears body and invalidates approval)
+node scripts/editorial-workflow.mjs --dir /absolute/private/dir update DRAFT_ID \
+  --title "Revised title"
+
 node scripts/editorial-workflow.mjs --dir /absolute/private/dir update DRAFT_ID \
   --content "Revised body."
 

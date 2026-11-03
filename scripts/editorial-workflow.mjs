@@ -37,13 +37,42 @@ export function findGitRoot(startDir) {
     }
 }
 
+export function resolvePathForContainment(target) {
+    const resolved = path.resolve(target);
+    if (existsSync(resolved)) {
+        return realpathSync(resolved);
+    }
+    const tail = [];
+    let probe = resolved;
+    while (!existsSync(probe)) {
+        tail.unshift(path.basename(probe));
+        const parent = path.dirname(probe);
+        if (parent === probe) {
+            return resolved;
+        }
+        probe = parent;
+    }
+    const existingRoot = realpathSync(probe);
+    if (tail.length === 0) {
+        return existingRoot;
+    }
+    let candidate = existingRoot;
+    for (const segment of tail) {
+        if (segment === "." || segment === "..") {
+            return resolved;
+        }
+        candidate = path.join(candidate, segment);
+    }
+    return path.normalize(candidate);
+}
+
 export function isPathInside(base, target) {
     const root = realpathSync(base);
     let resolved;
     try {
         resolved = realpathSync(target);
     } catch (error) {
-        if (error && error.code === "ENOENT") resolved = path.resolve(target);
+        if (error && error.code === "ENOENT") resolved = resolvePathForContainment(target);
         else throw error;
     }
     return resolved === root || resolved.startsWith(root + path.sep);
@@ -374,7 +403,7 @@ export function runCli(argv, { repoRoot, stdin = "" } = {}) {
         if (command === "update") {
             const draftId = positional[0];
             if (!draftId) throw new Error("update requires a draft id.");
-            const content = options.content ?? stdin;
+            const content = options.content !== undefined ? options.content : undefined;
             const result = updateDraft(state, draftId, { title: options.title, content });
             saveState(options.dir, state);
             return { exitCode: 0, stdout: `${JSON.stringify({ ok: true, action: "update", ...result }, null, 2)}\n`, stderr: "" };

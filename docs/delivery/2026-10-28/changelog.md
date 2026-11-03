@@ -361,6 +361,10 @@
 
 - **`420a34`** / blob **`ae7e3cfe`** one-line **Element.children** union; **ROB2015** grade. **rob2020** fulltype **0**, single eslint **0**; **6238+2+4skips/full exit1** retained; not single full green. Build/backup pending; NO-DEPLOY hold.
 
-## ROB2215 timing repair — 3 Nov 2026
+## A100 editorial body preservation + symlink containment — 4 Nov 2026
 
-- **`de1c26c4`** + **`aa41eba`** four paths; Galileo whole grade SCOPED_NNF. Full suite **6244 pass / 4 skip** complete stdout (**389** files); child exit **not captured** in raw log — **`rob2218`** qualification; four-path eslint **0**; fulltype **0**. **rob2220** helpers/config prep only; build readbacks null; no backup yet. NO-DEPLOY hold.
+- **`scripts/editorial-workflow.mjs`** (~L40–L78, ~L404–L408): `resolvePathForContainment()` walks to nearest existing ancestor, `realpathSync`s it, re-appends missing suffix with `.`/`..` rejection; `isPathInside` uses it on `ENOENT` instead of bare `path.resolve`. `update` CLI passes `content` only when `--content` was present (explicit `''` still clears body); no `stdin` fallback on update.
+- **`scripts/editorial-workflow.test.mjs`** (~L126–L196): four regressions — title-only update preserves body with default stdin; explicit empty `--content` clears body and approval; nonexistent `--dir` / `--out` through symlink into repo refused; original seven tests unchanged.
+- **`docs/marketing/private-editorial-workflow.md`** (~L24–L28): document title-only update vs empty `--content`.
+- **Intent:** Fix title-only CLI updates wiping body via default empty stdin; close repo-containment bypass when state/export paths do not exist yet but pass through a symlink into the worktree.
+- **Runtime (Cursor sandbox):** `node --test scripts/editorial-workflow.test.mjs` → **exit 1**, **3 pass / 8 fail** (`EPERM` on `mkdtemp` under `$TMPDIR` outside workspace). **NOT_RUN** on full green proof here; runner strict TMPDIR expected.

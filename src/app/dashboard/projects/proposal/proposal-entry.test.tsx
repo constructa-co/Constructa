@@ -85,7 +85,7 @@ const foreign = { id: "foreign-job", name: "Foreign job", user_id: "other-owner"
 const rows = [...owned, foreign];
 const estimate = { id: "estimate-1", project_id: "remembered-job", is_active: true, estimate_lines: [] };
 const path = "/dashboard/projects/proposal";
-type Element = ReactElement<{ children?: Element[] | string; projects?: { id: string; name: string | null }[]; path?: string; context?: { project: { id: string } } }>;
+type Element = ReactElement<{ children?: Element[] | string | ReactElement<{ key?: string; context?: { project: { id: string } } }>; projects?: { id: string; name: string | null }[]; path?: string; context?: { project: { id: string } } }>;
 type RouteShellPage = ReactElement<{
     header?: ReactElement;
     children: ReactElement<{ key?: string; context?: { project: { id: string } } }>;

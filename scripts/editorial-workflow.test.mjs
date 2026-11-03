@@ -208,6 +208,50 @@ test("dangling --dir symlink pointing into repo is refused", () => {
     assert.match(result.stderr, /outside the git worktree/);
 });
 
+test("nonexistent export --out through symlink dir with parent dot-dot into repo is refused", () => {
+    const repoRoot = repoRootFromHere();
+    assert.ok(repoRoot);
+    const outside = storageRoot();
+    const linkParent = path.join(outside, "o");
+    mkdirSync(linkParent);
+    const insideRepo = path.join(repoRoot, "a");
+    mkdirSync(insideRepo, { recursive: true });
+    roots.push(insideRepo);
+    const symdir = path.join(linkParent, "symdir");
+    symlinkSync(insideRepo, symdir);
+    const outPath = `${linkParent}/symdir/../x/handoff.txt`;
+    const dir = storageRoot();
+    const state = loadState(dir);
+    createDraft(state, { title: "T", content: "C", id: "symdir-dotdot-out" });
+    addReview(state, "symdir-dotdot-out", { reviewer: "r", feedback: "fine" });
+    approveDraft(state, "symdir-dotdot-out", { approver: "a" });
+    saveState(dir, state);
+    const leakPath = path.join(repoRoot, "x", "handoff.txt");
+    const result = runCli(["export", "symdir-dotdot-out", "--dir", dir, "--out", outPath], { repoRoot });
+    assert.equal(result.exitCode, 1);
+    assert.match(result.stderr, /outside the git worktree/);
+    assert.equal(existsSync(leakPath), false);
+});
+
+test("self and mutual --dir symlink loops are refused without repo writes", () => {
+    const repoRoot = repoRootFromHere();
+    assert.ok(repoRoot);
+    const outside = storageRoot();
+    const selfLink = path.join(outside, "self-loop");
+    symlinkSync("self-loop", selfLink);
+    const selfResult = runCli(["status", "--dir", selfLink], { repoRoot });
+    assert.equal(selfResult.exitCode, 1);
+    assert.match(selfResult.stderr, /outside the git worktree/);
+
+    const loopA = path.join(outside, "loop-a");
+    const loopB = path.join(outside, "loop-b");
+    symlinkSync("loop-b", loopA);
+    symlinkSync("loop-a", loopB);
+    const mutualResult = runCli(["status", "--dir", loopA], { repoRoot });
+    assert.equal(mutualResult.exitCode, 1);
+    assert.match(mutualResult.stderr, /outside the git worktree/);
+});
+
 test("dangling export --out symlink into repo is refused without creating target", () => {
     const repoRoot = repoRootFromHere();
     assert.ok(repoRoot);

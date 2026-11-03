@@ -168,3 +168,11 @@
 | `scripts/editorial-workflow.mjs` | ~L6–L95 | `lstat`/`readlink` on symlink leaves and missing-path segments in `resolvePathForContainment()` | Refuse export/`--dir` when dangling outside symlink targets repo path |
 | `scripts/editorial-workflow.test.mjs` | ~L198–L228 | Two dangling symlink regressions (`--dir`, `--out`) | TMPDIR-only; no repo file leak |
 | `docs/delivery/2026-10-28/changelog.md` | EOF | Restore **ROB2215** block; append A100 dangling entry | Worker log only; not ROOT integration |
+
+## 2026-11-04 — A100 unresolved-path fail-closed containment (Cursor composer-2.5-fast)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `scripts/editorial-workflow.mjs` | ~L41–L155 | Iterative segment walk with `realpathSync` per symlink hop; skip full-path `realpathSync` when `..` present; refuse dangling symlinks and unresolvable `..` tails; bounded hops / `ELOOP` fail-closed | Close cq0340-style escape (`symdir/../x` lexical `/tmp/o/x` vs kernel `repo/x`); no readlink recursion stack overflow |
+| `scripts/editorial-workflow.test.mjs` | ~L211–L252 | `symdir/../x` export counterexample + self/mutual `--dir` loop refusal | Synthetic TMPDIR; assert no `repo/x` handoff leak |
+| `docs/delivery/2026-10-28/changelog.md` | EOF | Append A100 unresolved-path entry | Worker log only |

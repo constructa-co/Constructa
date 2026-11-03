@@ -9,7 +9,6 @@ import {
     lstatSync,
     mkdirSync,
     readFileSync,
-    readlinkSync,
     realpathSync,
     renameSync,
     writeFileSync,
@@ -39,66 +38,121 @@ export function findGitRoot(startDir) {
     }
 }
 
-function followSymlinkForContainment(linkPath) {
-    const linked = readlinkSync(linkPath);
-    return path.normalize(
-        path.isAbsolute(linked) ? linked : path.join(path.dirname(linkPath), linked),
-    );
+const CONTAINMENT_SYMLINK_LIMIT = 32;
+
+function containmentRefusal(message) {
+    const error = new Error(message);
+    error.containmentRefusal = true;
+    return error;
+}
+
+function absolutePathSegments(target) {
+    const absolute = path.isAbsolute(target) ? target : path.resolve(target);
+    const { root } = path.parse(absolute);
+    const rest = absolute.slice(root.length);
+    const parts = rest.split(path.sep).filter((segment) => segment.length > 0);
+    return { root, parts };
+}
+
+function pathHasExplicitDotDot(target) {
+    const { parts } = absolutePathSegments(target);
+    return parts.includes("..");
+}
+
+function joinUnderRoot(root, segment, current) {
+    if (current === root) {
+        return path.join(root, segment);
+    }
+    return path.join(current, segment);
 }
 
 export function resolvePathForContainment(target) {
-    const resolved = path.resolve(target);
-    try {
-        const stat = lstatSync(resolved);
-        if (stat.isSymbolicLink()) {
-            return resolvePathForContainment(followSymlinkForContainment(resolved));
-        }
-        if (existsSync(resolved)) {
-            return realpathSync(resolved);
-        }
-    } catch (error) {
-        if (!error || error.code !== "ENOENT") throw error;
+    if (typeof target !== "string" || target.trim() === "") {
+        throw containmentRefusal("Invalid path for containment.");
     }
-    const tail = [];
-    let probe = resolved;
-    while (!existsSync(probe)) {
-        tail.unshift(path.basename(probe));
-        const parent = path.dirname(probe);
-        if (parent === probe) {
-            return resolved;
-        }
-        probe = parent;
-    }
-    const existingRoot = realpathSync(probe);
-    if (tail.length === 0) {
-        return existingRoot;
-    }
-    let candidate = existingRoot;
-    for (const segment of tail) {
-        if (segment === "." || segment === "..") {
-            return resolved;
-        }
-        candidate = path.join(candidate, segment);
+
+    if (!pathHasExplicitDotDot(target)) {
         try {
-            const stat = lstatSync(candidate);
+            return realpathSync(target);
+        } catch (error) {
+            if (!error || (error.code !== "ENOENT" && error.code !== "ELOOP")) throw error;
+            if (error.code === "ELOOP") throw containmentRefusal("Symlink loop in path.");
+        }
+    }
+
+    const { root, parts } = absolutePathSegments(target);
+    let current = root;
+    let symlinkHops = 0;
+
+    for (const segment of parts) {
+        if (segment === ".") continue;
+        if (segment === "..") {
+            if (current === root) continue;
+            current = path.dirname(current);
+            continue;
+        }
+
+        const next = joinUnderRoot(root, segment, current);
+        try {
+            const stat = lstatSync(next);
             if (stat.isSymbolicLink()) {
-                candidate = resolvePathForContainment(followSymlinkForContainment(candidate));
+                symlinkHops += 1;
+                if (symlinkHops > CONTAINMENT_SYMLINK_LIMIT) {
+                    throw containmentRefusal("Symlink loop in path.");
+                }
+                try {
+                    current = realpathSync(next);
+                } catch (linkError) {
+                    if (linkError && linkError.code === "ELOOP") {
+                        throw containmentRefusal("Symlink loop in path.");
+                    }
+                    if (linkError && linkError.code === "ENOENT") {
+                        throw containmentRefusal("Dangling symlink in path.");
+                    }
+                    throw linkError;
+                }
+            } else {
+                current = next;
             }
         } catch (error) {
-            if (!error || error.code !== "ENOENT") throw error;
+            if (error && error.containmentRefusal) throw error;
+            if (error && error.code === "ENOENT") {
+                current = next;
+                continue;
+            }
+            throw error;
         }
     }
-    return path.normalize(candidate);
+
+    if (pathHasExplicitDotDot(target)) {
+        try {
+            return realpathSync(current);
+        } catch (error) {
+            if (!error || error.code !== "ENOENT") throw error;
+            throw containmentRefusal("Unresolved path with parent segments (..) cannot be proven outside repo.");
+        }
+    }
+
+    return current;
 }
 
 export function isPathInside(base, target) {
     const root = realpathSync(base);
     let resolved;
-    try {
-        resolved = realpathSync(target);
-    } catch (error) {
-        if (error && error.code === "ENOENT") resolved = resolvePathForContainment(target);
-        else throw error;
+    if (!pathHasExplicitDotDot(target)) {
+        try {
+            resolved = realpathSync(target);
+        } catch (error) {
+            if (error && error.code === "ELOOP") return true;
+            if (error && error.code !== "ENOENT") throw error;
+        }
+    }
+    if (resolved === undefined) {
+        try {
+            resolved = resolvePathForContainment(target);
+        } catch {
+            return true;
+        }
     }
     return resolved === root || resolved.startsWith(root + path.sep);
 }

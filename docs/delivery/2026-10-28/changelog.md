@@ -379,3 +379,10 @@
 - **`scripts/editorial-workflow.test.mjs`** (~L198–L228): two TMPDIR-only regressions — dangling `--dir` and dangling export `--out` into repo refused; prior eleven tests unchanged.
 - **Intent:** Close checker counterexample where `writeFileSync` followed a dangling outside symlink into the worktree after a false outside containment result.
 - **Runtime:** `node --test scripts/editorial-workflow.test.mjs` → **exit 1**, **3 pass / 10 fail** (`EPERM` on `mkdtemp` under `$TMPDIR` outside workspace). Prior **3/8 EPERM** sandbox record superseded by **13** total cases; runner strict TMPDIR required for green proof.
+
+## A100 unresolved-path fail-closed containment — 4 Nov 2026
+
+- **`scripts/editorial-workflow.mjs`** (~L41–L155): replace readlink-recursive resolver with iterative component walk; `realpathSync` fast path only without explicit `..`; per-hop `realpathSync` for symlinks; refuse dangling symlinks and unresolvable `..` tails; bounded symlink hops and native `ELOOP` → fail-closed `isPathInside`.
+- **`scripts/editorial-workflow.test.mjs`** (~L211–L252): export path `…/symdir/../x/…` (symlink into `repo/a`) refused without creating `repo/x`; self/mutual `--dir` symlink loops refused (no stack overflow).
+- **Intent:** Close cq0340 lexical-`..` escape and symlink-loop stack overflow without broad path hardening.
+- **Runtime (focused):** `TMPDIR=<worktree>/.tmp-a100-test node --test --test-name-pattern 'symlink dir with parent dot-dot|symlink loops' scripts/editorial-workflow.test.mjs` → **2 pass / 0 fail**. Default `$TMPDIR` outside workspace → **EPERM NOT_RUN** (same class as prior sandbox record).

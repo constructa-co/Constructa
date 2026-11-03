@@ -364,3 +364,6 @@
 ## ROB2215 timing repair — 3 Nov 2026
 
 - **`de1c26c4`** + **`aa41eba`** four paths; Galileo whole grade SCOPED_NNF. Full suite **6244 pass / 4 skip** complete stdout (**389** files); child exit **not captured** in raw log — **`rob2218`** qualification; four-path eslint **0**; fulltype **0**. **rob2220** helpers/config prep only; build readbacks null; no backup yet. NO-DEPLOY hold.
+## ROB0300 open-items — 4 Nov 2026
+
+- **19** paths integrated (method deviation retained); material **15-file/158 CHILD_EXIT=0**, eslint/tsc **0**; **`rob0300`** check/config prep; build readbacks null. NO-DEPLOY hold.

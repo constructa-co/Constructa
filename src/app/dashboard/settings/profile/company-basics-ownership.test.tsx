@@ -27,7 +27,9 @@ const section = (id: string) => {
 };
 const MOVED = [
     /<textarea[^>]*id="company-insurance_details"[^>]*name="insurance_details"/,
-    /<input[^>]*id="company-accreditations"[^>]*name="accreditations"/,
+    // A030: the labelled add box and the one posted value, kept as stored.
+    /<input type="hidden" name="accreditations" value="CITB, FMB Member"\/>/,
+    /<input id="company-accreditations"[^>]*aria-describedby="company-accreditations-hint"/,
     /<input(?=[^>]*name="logo_url")(?=[^>]*type="hidden")(?=[^>]*value="https:\/\/example.invalid\/logo.png")[^>]*\/>/,
     /<input id="company-logo-input" type="file" accept="image\/jpeg,image\/png,image\/webp"/,
     /<label for="company-insurance_details"/,

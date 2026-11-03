@@ -25,6 +25,10 @@ import ui from "@/components/project-chooser.module.css";
 import { corePipelineWorkspaceInsetClassName } from "@/lib/dashboard-route-geometry";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
 import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
+import {
+    PIPELINE_STATUS_FILTER_OPTIONS,
+    pipelineStageDisplayLabel,
+} from "./pipeline-stage-display";
 
 type Period = "week" | "month" | "quarter" | "year";
 
@@ -144,8 +148,6 @@ function calculateMetrics(projects: any[], financials: Record<string, number>, p
     };
 }
 
-const STATUS_OPTIONS = ["Lead", "Estimating", "Proposal Sent", "Active", "Won", "Completed", "Lost"];
-
 const PERIOD_OPTIONS: { value: Period; label: string }[] = [
     { value: "week", label: "This Week" },
     { value: "month", label: "This Month" },
@@ -157,7 +159,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
     const { theme } = useTheme();
     const isDark = theme === "dark";
 
-    const [view, setView] = useState<"board" | "list">("board");
+    const [view, setView] = useState<"board" | "list">("list");
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState("all");
     const [statusFilter, setStatusFilter] = useState("all");
@@ -270,7 +272,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     <h1 className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
                         {getGreeting()}, {companyName}
                     </h1>
-                    <p className={`text-sm mt-0.5 ${isDark ? "text-[#a0a0a0]" : "text-gray-500"}`}>Here&apos;s your pipeline overview for today</p>
+                    <p className={`text-sm mt-0.5 ${isDark ? "text-[#a0a0a0]" : "text-gray-500"}`}>Your jobs at a glance</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Link
@@ -436,30 +438,17 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                         }`}
                     >
                         <option value="all">All Stages</option>
-                        {STATUS_OPTIONS.map(s => (
-                            <option key={s} value={s}>{s}</option>
+                        {PIPELINE_STATUS_FILTER_OPTIONS.map(s => (
+                            <option key={s} value={s}>{pipelineStageDisplayLabel(s)}</option>
                         ))}
                     </select>
 
                     {/* View Toggle */}
-                    <div data-project-views className={`flex items-center gap-1 rounded-lg p-1 ${isDark ? "bg-[#0d0d0d]" : "bg-gray-100"}`}>
+                    <div data-project-views className={`flex items-center gap-1 rounded-lg p-1 ${isDark ? "bg-[#0d0d0d]" : "bg-gray-100"}`} role="group" aria-label="Pipeline view">
                         <button
-                            onClick={() => setView("board")}
-                            className={`inline-flex items-center gap-1.5 min-h-11 lg:min-h-0 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                                view === "board"
-                                    ? isDark
-                                        ? "bg-[#2a2a2a] text-white shadow-sm"
-                                        : "bg-white text-gray-900 shadow-sm"
-                                    : isDark
-                                        ? "text-[#a0a0a0] hover:text-white"
-                                        : "text-gray-600 hover:text-gray-900"
-                            }`}
-                        >
-                            <LayoutGrid className="w-3.5 h-3.5" />
-                            Board
-                        </button>
-                        <button
+                            type="button"
                             onClick={() => setView("list")}
+                            aria-pressed={view === "list"}
                             className={`inline-flex items-center gap-1.5 min-h-11 lg:min-h-0 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                                 view === "list"
                                     ? isDark
@@ -473,6 +462,23 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                             <List className="w-3.5 h-3.5" />
                             List
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => setView("board")}
+                            aria-pressed={view === "board"}
+                            className={`inline-flex items-center gap-1.5 min-h-11 lg:min-h-0 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                                view === "board"
+                                    ? isDark
+                                        ? "bg-[#2a2a2a] text-white shadow-sm"
+                                        : "bg-white text-gray-900 shadow-sm"
+                                    : isDark
+                                        ? "text-[#a0a0a0] hover:text-white"
+                                        : "text-gray-600 hover:text-gray-900"
+                            }`}
+                        >
+                            <LayoutGrid className="w-3.5 h-3.5" />
+                            Board
+                        </button>
                     </div>
                 </div>
             </div>
@@ -480,18 +486,18 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             {/* Pipeline progression legend */}
             {view === "board" && (
                 <div className={`flex items-center gap-1.5 px-1 pb-1 text-[10px] font-semibold uppercase tracking-wider flex-wrap ${isDark ? "text-[#a0a0a0]" : "text-gray-600"}`}>
-                    <span>Pipeline:</span>
+                    <span>Stages:</span>
                     {[
-                        { label: "Lead", hint: "New enquiry, no estimate started" },
-                        { label: "Estimating", hint: "Auto: when first estimate is created" },
-                        { label: "Proposal Sent", hint: "Operational stage only — sending the proposal document is in the proposal editor" },
-                        { label: "Active", hint: "Operational — work on site. Mark as Won records your win; it does not send or publish the proposal" },
-                        { label: "Completed", hint: "Manual — project finished" },
-                        { label: "Lost", hint: "Manual — project not won" },
+                        { status: "Lead", hint: "New enquiry, no estimate started" },
+                        { status: "Estimating", hint: "Auto: when first estimate is created" },
+                        { status: "Proposal Sent", hint: "Operational stage only — sending the proposal document is in the proposal editor" },
+                        { status: "Active", hint: "Operational — work on site. Mark as Won records your win; it does not send or publish the proposal" },
+                        { status: "Completed", hint: "Manual — project finished" },
+                        { status: "Lost", hint: "Manual — project not won" },
                     ].map((stage, i, arr) => (
-                        <span key={stage.label} className="flex items-center gap-1.5 group relative">
+                        <span key={stage.status} className="flex items-center gap-1.5 group relative">
                             <span className={`${isDark ? "text-[#a0a0a0] hover:text-white" : "text-gray-600 hover:text-gray-900"} cursor-default transition-colors`} title={stage.hint}>
-                                {stage.label}
+                                {pipelineStageDisplayLabel(stage.status)}
                             </span>
                             {i < arr.length - 1 && <span className={isDark ? "text-[#303030]" : "text-gray-200"}>→</span>}
                         </span>
@@ -500,7 +506,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             )}
 
             {/* SECTION D — Pipeline Board or List */}
-            <div className="overflow-x-auto pb-2">
+            <div className="overflow-x-auto pb-2" data-project-jobs>
                 {view === "board" ? (
                     <ProjectBoard projects={filteredProjects} financials={financials} />
                 ) : (

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 import ui from "@/components/project-chooser.module.css";
+import { pipelineStageDisplayLabel } from "./pipeline-stage-display";
 
 type SortKey = "name" | "client_name" | "project_type" | "status" | "value" | "proposal_sent_at" | "days_open";
 type SortDir = "asc" | "desc";
@@ -203,7 +204,7 @@ export default function ProjectList({ projects, financials }: { projects: any[],
                                 <td className={`px-4 py-3 text-xs ${isDark ? "text-[#a0a0a0]" : "text-gray-500"}`}>{p.project_type || "\u2014"}</td>
                                 <td className="px-4 py-3">
                                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${getStatusBadgeClass(p.status, isDark)}`}>
-                                        {p.status || "Lead"}
+                                        {pipelineStageDisplayLabel(p.status || "Lead")}
                                     </span>
                                 </td>
                                 <td className={`px-4 py-3 text-right font-mono text-xs ${isDark ? "text-[#a0a0a0]" : "text-gray-700"}`}>

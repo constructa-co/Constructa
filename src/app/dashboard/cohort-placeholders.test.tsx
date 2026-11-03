@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const current = vi.hoisted(() => ({ theme: "dark" }));
 vi.mock("@/lib/theme-context", () => ({ useTheme: () => ({ theme: current.theme }) }));
 vi.mock("./project-board", () => ({ default: ({ projects }: { projects: unknown[] }) => <div data-pipeline-board data-count={projects.length} /> }));
-vi.mock("./project-list", () => ({ default: () => <div data-pipeline-list /> }));
+vi.mock("./project-list", () => ({ default: ({ projects }: { projects: unknown[] }) => <div data-pipeline-list data-count={projects.length} /> }));
 import DashboardClient from "./dashboard-client";
 
 const project = { id: "job", name: "Example kitchen", client_name: "Test client", project_type: "Kitchen", status: "Lead", potential_value: 1000, created_at: "2026-10-19T00:00:00Z" };
@@ -19,7 +19,8 @@ describe("cohort dashboard placeholder presentation", () => {
         const html = render();
         for (const text of ["Resource Management", "Financial Dashboard", "Notify me", "coming in a future update"]) expect(html).not.toContain(text);
         expect(html).toContain("Pipeline Value"); expect(html).toContain("£1k");
-        expect(html).toContain("data-pipeline-board"); expect(html).toContain('data-count="1"');
+        expect(html).toContain("data-pipeline-list"); expect(html).toContain('data-count="1"');
+        expect(html).not.toContain("data-pipeline-board");
     });
     it.each([undefined, "unknown"])("keeps the existing safe cohort fallback for %s", profile => {
         vi.stubEnv("NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE", profile);
@@ -46,6 +47,7 @@ describe("cohort dashboard placeholder presentation", () => {
         const html = render(props.projects, true);
         expect(html).toContain("That module is retained for a later Constructa release.");
         for (const label of ["Proposals Sent", "Projects Won", "Active Jobs", "Win Rate", "Revenue Signed"]) expect(html).toContain(label);
+        expect(html).toContain("data-pipeline-list");
         expect(html).toContain('data-count="1"');
     });
 });

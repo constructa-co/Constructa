@@ -4,7 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 const current = vi.hoisted(() => ({ theme: "dark" }));
 vi.mock("@/lib/theme-context", () => ({ useTheme: () => ({ theme: current.theme }) }));
 vi.mock("./project-board", () => ({ default: ({ projects }: { projects: unknown[] }) => <div data-pipeline-board data-count={projects.length} /> }));
-vi.mock("./project-list", () => ({ default: () => <div data-pipeline-list /> }));
+vi.mock("./project-list", () => ({ default: ({ projects }: { projects: unknown[] }) => <div data-pipeline-list data-count={projects.length} /> }));
 import DashboardClient from "./dashboard-client";
 
 afterEach(() => vi.unstubAllEnvs());
@@ -24,7 +24,11 @@ it.each(["dark", "system-c"])("visibly identifies stage filtering as view-only i
     const stageSelect = html.match(/<select[^>]*aria-label="Filter by stage"[\s\S]*?<\/select>/)?.[0];
     expect(stageSelect).toContain('aria-describedby="pipeline-filters-help"');
     expect(stageSelect?.match(/<option[^>]*>([^<]+)<\/option>/g)?.map(option => option.replace(/<[^>]+>/g, "")))
-        .toEqual(["All Stages", "Lead", "Estimating", "Proposal Sent", "Active", "Won", "Completed", "Lost"]);
+        .toEqual(["All Stages", "Enquiries", "Preparing estimate", "Proposal Sent", "Active", "Won", "Completed", "Lost"]);
+    expect(stageSelect).toContain('value="Lead"');
+    expect(stageSelect).toContain('value="Estimating"');
     expect(stageSelect).toContain('value="all" selected=""');
+    expect(html).toContain("data-pipeline-list");
     expect(html).toContain('data-count="1"');
+    expect(html).not.toContain("data-pipeline-board");
 });

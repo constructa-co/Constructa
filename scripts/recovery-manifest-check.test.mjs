@@ -146,6 +146,37 @@ test("a declared bytes file with no storage.objects row is refused", () => {
     assert.ok(checkManifest(value).errors.includes("storage-object-bytes/orphan.bin: storage-object-bytes entry has no storage.objects row"));
 });
 
+// A second bytes file for storage rows, so the conflicting row is otherwise fully valid.
+function addBytesEntry(value, name, body) {
+    const entry = { path: `storage-object-bytes/${name}`, category: "storage-object-bytes", sha256: sha(body), bytes: Buffer.byteLength(body) };
+    value.entries.push(entry);
+    return entry;
+}
+
+test("two storage rows for one bucket and name with different payloads are refused", () => {
+    const value = manifest();
+    const other = addBytesEntry(value, "other-logo.bin", "a different logo payload\n");
+    value.storage.objects.push({ bucket: "logos", name: "user/logo.png", path: other.path, sha256: other.sha256, bytes: other.bytes });
+    const report = checkManifest(value);
+    assert.equal(report.verdict, "INVALID");
+    assert.ok(report.errors.some(error => error.startsWith("storage.objects[1]:") && error.includes("logos") && error.includes("user/logo.png") && error.includes("storage.objects[0]")));
+});
+
+test("an exact repeat of one storage row stays valid", () => {
+    const value = manifest();
+    value.storage.objects.push({ ...value.storage.objects[0] });
+    assert.equal(checkManifest(value).verdict, "COMPLETE_SET");
+});
+
+test("storage identity is the exact bucket and name pair", () => {
+    for (const [bucket, name] of [["logos", "user/other.png"], ["receipts", "user/logo.png"], ["logos", "User/logo.png"]]) {
+        const value = manifest();
+        const other = addBytesEntry(value, `${bucket}-${name.replaceAll("/", "_")}.bin`, `${bucket} ${name}\n`);
+        value.storage.objects.push({ bucket, name, path: other.path, sha256: other.sha256, bytes: other.bytes });
+        assert.deepEqual(checkManifest(value).errors, [], `${bucket} ${name}`);
+    }
+});
+
 test("conflicting duplicate git ref keys are refused before requiredRefs can match the last sha only", () => {
     const value = manifest();
     const firstSha = "1".repeat(40);

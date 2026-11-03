@@ -132,10 +132,22 @@ export function checkManifest(manifest, { root, rawText } = {}) {
             fail(`${entry.path}: storage-object-bytes entry has no storage.objects row`);
         }
     }
+    // One restore destination per exact (bucket, name): nested maps, so no delimiter, case folding or
+    // normalisation can merge distinct names. An exact repeat of a row adds nothing and stays accepted.
+    const destinations = new Map();
     for (const [index, object] of objects.entries()) {
         const label = `storage.objects[${index}]`;
         if (!buckets.has(object?.bucket)) fail(`${label}: bucket ${String(object?.bucket)} is not declared`);
         if (typeof object?.name !== "string" || object.name === "" || object.name.split("/").includes("..")) fail(`${label}: object name is unsafe`);
+        else if (typeof object.bucket === "string") {
+            if (!destinations.has(object.bucket)) destinations.set(object.bucket, new Map());
+            const names = destinations.get(object.bucket);
+            const first = names.get(object.name);
+            if (first === undefined) names.set(object.name, index);
+            else if (["path", "sha256", "bytes"].some(field => objects[first][field] !== object[field])) {
+                fail(`${label}: conflicting payload for ${object.bucket}:${object.name} (already recorded at storage.objects[${first}])`);
+            }
+        }
         const backing = byPath.get(object?.path);
         if (!backing || backing.category !== "storage-object-bytes") fail(`${label}: path must reference a storage-object-bytes entry`);
         else if (backing.sha256 !== object.sha256 || backing.bytes !== object.bytes) fail(`${label}: hash/size differs from its bytes entry`);

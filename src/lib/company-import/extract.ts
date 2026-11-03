@@ -59,7 +59,10 @@ function decodeEntities(text: string): string {
 
 /** One line of plain text: no tags, no control characters, single spaces. */
 export function plainText(fragment: string): string {
-    return decodeEntities(fragment.replace(/<[^>]*>/g, " "))
+    // A "<" with no ">" anywhere after it is text. Only the part up to the last ">" is searched for tags, so a long
+    // unclosed run is not rescanned from every "<" in it.
+    const tagsEnd = fragment.lastIndexOf(">") + 1;
+    return decodeEntities(fragment.slice(0, tagsEnd).replace(/<[^>]*>/g, " ") + fragment.slice(tagsEnd))
         .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202f\ufeff]/g, " ")
         .replace(/\s+/g, " ")
         .trim();
@@ -79,6 +82,48 @@ const attribute = (tag: string, name: string): string | null => {
     return match ? decodeEntities(match[1] ?? match[2] ?? match[3] ?? "").trim() : null;
 };
 
+interface Element {
+    /** The opening tag, from "<" to its first ">". */
+    tag: string;
+    /** What lies between the opening tag and the first closing tag after it ("" when no closing tag is asked for). */
+    inner: string;
+}
+
+/**
+ * The elements /<name\b[^>]{0,maxAttributes}>([\s\S]{0,maxInner}?)<\/closing\s*>/gi matches, found in one pass.
+ * That regex rescans a long stretch with no ">" (or no closing tag) from every "<name" inside it, which on a large
+ * malformed page means millions of repeated steps. Here the next ">" and the next closing tag are each looked up
+ * once and reused until a later tag starts past them.
+ */
+function elements(html: string, name: string, maxAttributes: number, closing?: { name: string; maxInner: number }): Element[] {
+    const found: Element[] = [];
+    const opening = new RegExp(`<(?:${name})\\b`, "gi");
+    const closingTag = closing ? new RegExp(`<\\/(?:${closing.name})\\s*>`, "gi") : null;
+    let tagEnd = -1;
+    let close: RegExpExecArray | null | undefined;
+    for (let match = opening.exec(html); match; match = opening.exec(html)) {
+        const from = opening.lastIndex;
+        if (tagEnd < from) tagEnd = html.indexOf(">", from);
+        if (tagEnd < 0) break;
+        if (tagEnd - from > maxAttributes) continue;
+        const tag = html.slice(match.index, tagEnd + 1);
+        if (!closing || !closingTag) {
+            found.push({ tag, inner: "" });
+            opening.lastIndex = tagEnd + 1;
+            continue;
+        }
+        if (close === undefined || (close && close.index <= tagEnd)) {
+            closingTag.lastIndex = tagEnd + 1;
+            close = closingTag.exec(html);
+        }
+        if (!close) break;
+        if (close.index - (tagEnd + 1) > closing.maxInner) continue;
+        found.push({ tag, inner: html.slice(tagEnd + 1, close.index) });
+        opening.lastIndex = close.index + close[0].length;
+    }
+    return found;
+}
+
 // ── Links worth reading next ─────────────────────────────────────────────────
 
 const LINK_PRIORITY = [/contact/i, /about/i, /services?|what-we-do/i];
@@ -86,8 +131,8 @@ const LINK_PRIORITY = [/contact/i, /about/i, /services?|what-we-do/i];
 /** Links on a page, the likeliest sources of company facts first. Resolving and bounding them is the fetcher's job. */
 export function discoverLinks(html: string): string[] {
     const found: { href: string; rank: number }[] = [];
-    for (const match of contentOnly(html).matchAll(/<a\b[^>]{0,2000}>/gi)) {
-        const href = attribute(match[0], "href");
+    for (const { tag } of elements(contentOnly(html), "a", 2000)) {
+        const href = attribute(tag, "href");
         if (!href || /^(#|mailto:|tel:|javascript:|data:)/i.test(href) || href.length > 500) continue;
         const rank = LINK_PRIORITY.findIndex((pattern) => pattern.test(href));
         if (rank >= 0) found.push({ href, rank });
@@ -218,9 +263,9 @@ function fromPage(page: ImportedPage): Suggestion[] {
 
     const body = contentOnly(page.html);
 
-    for (const match of body.matchAll(/<a\b[^>]{0,2000}>([\s\S]{0,300}?)<\/a\s*>/gi)) {
-        const href = attribute(match[0].slice(0, match[0].indexOf(">") + 1), "href") ?? "";
-        const label = plainText(match[1]);
+    for (const link of elements(body, "a", 2000, { name: "a", maxInner: 300 })) {
+        const href = attribute(link.tag, "href") ?? "";
+        const label = plainText(link.inner);
         if (/^tel:/i.test(href)) add("phone", cleanPhone(href) && (cleanPhone(label) ?? cleanPhone(href)), `Phone link on the page: ${label || href}`, "contact-link");
         if (/^mailto:/i.test(href)) add("sales_email", cleanEmail(href), `Email link on the page: ${label || href}`, "contact-link");
     }
@@ -243,8 +288,8 @@ function fromPage(page: ImportedPage): Suggestion[] {
     let path = "";
     try { path = new URL(page.url).pathname; } catch { /* a page URL is always absolute */ }
     if (/services?|what-we-do/i.test(path)) {
-        const headings = Array.from(body.matchAll(/<h[23]\b[^>]*>([\s\S]{0,300}?)<\/h[23]\s*>/gi))
-            .map((match) => plainText(match[1]))
+        const headings = elements(body, "h[23]", Infinity, { name: "h[23]", maxInner: 300 })
+            .map((heading) => plainText(heading.inner))
             .filter((heading) => heading && !HEADING_NOISE.test(heading));
         const services = joinServices(headings);
         add("specialisms", services, `Headings on the services page: ${services}`, "page-heading");

@@ -160,3 +160,11 @@
 | `src/app/dashboard/projects/schedule/simple-programme-client.tsx` | ~392–395 | Call `router.refresh()` after `router.push` on **Next: Proposal** | Re-fetch the proposal page server props so `programme_working_pattern` saved in Programme is not stale in Review & Send |
 | `src/app/dashboard/projects/schedule/simple-programme-workspace.test.tsx` | hoisted router mock, new test | Assert push + refresh on **Next: Proposal** | Lock the navigation seam after saved weekend working days |
 | `src/app/dashboard/projects/proposal/review-send-client.test.ts` | new test | All-week pattern shows Sunday 15 Nov finish in programme section | Prove production Review & Send uses saved pattern, not default Mon–Fri |
+
+## 2026-11-04 — A100 dangling symlink containment (Cursor composer-2.5)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `scripts/editorial-workflow.mjs` | ~L6–L95 | `lstat`/`readlink` on symlink leaves and missing-path segments in `resolvePathForContainment()` | Refuse export/`--dir` when dangling outside symlink targets repo path |
+| `scripts/editorial-workflow.test.mjs` | ~L198–L228 | Two dangling symlink regressions (`--dir`, `--out`) | TMPDIR-only; no repo file leak |
+| `docs/delivery/2026-10-28/changelog.md` | EOF | Restore **ROB2215** block; append A100 dangling entry | Worker log only; not ROOT integration |

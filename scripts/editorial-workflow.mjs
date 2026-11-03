@@ -6,8 +6,10 @@ import { createHash, randomUUID } from "node:crypto";
 import {
     chmodSync,
     existsSync,
+    lstatSync,
     mkdirSync,
     readFileSync,
+    readlinkSync,
     realpathSync,
     renameSync,
     writeFileSync,
@@ -37,10 +39,25 @@ export function findGitRoot(startDir) {
     }
 }
 
+function followSymlinkForContainment(linkPath) {
+    const linked = readlinkSync(linkPath);
+    return path.normalize(
+        path.isAbsolute(linked) ? linked : path.join(path.dirname(linkPath), linked),
+    );
+}
+
 export function resolvePathForContainment(target) {
     const resolved = path.resolve(target);
-    if (existsSync(resolved)) {
-        return realpathSync(resolved);
+    try {
+        const stat = lstatSync(resolved);
+        if (stat.isSymbolicLink()) {
+            return resolvePathForContainment(followSymlinkForContainment(resolved));
+        }
+        if (existsSync(resolved)) {
+            return realpathSync(resolved);
+        }
+    } catch (error) {
+        if (!error || error.code !== "ENOENT") throw error;
     }
     const tail = [];
     let probe = resolved;
@@ -62,6 +79,14 @@ export function resolvePathForContainment(target) {
             return resolved;
         }
         candidate = path.join(candidate, segment);
+        try {
+            const stat = lstatSync(candidate);
+            if (stat.isSymbolicLink()) {
+                candidate = resolvePathForContainment(followSymlinkForContainment(candidate));
+            }
+        } catch (error) {
+            if (!error || error.code !== "ENOENT") throw error;
+        }
     }
     return path.normalize(candidate);
 }

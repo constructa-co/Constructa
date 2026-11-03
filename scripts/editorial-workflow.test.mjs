@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -193,6 +193,39 @@ test("nonexistent export --out through symlink parent into repo is refused", () 
     const result = runCli(["export", "symlink-export", "--dir", dir, "--out", outPath], { repoRoot });
     assert.equal(result.exitCode, 1);
     assert.match(result.stderr, /outside the git worktree/);
+});
+
+test("dangling --dir symlink pointing into repo is refused", () => {
+    const repoRoot = repoRootFromHere();
+    assert.ok(repoRoot);
+    const outside = storageRoot();
+    const targetInRepo = path.join(repoRoot, ".tmp-a100-dangling-state-dir");
+    roots.push(targetInRepo);
+    const danglingDir = path.join(outside, "state-link");
+    symlinkSync(targetInRepo, danglingDir);
+    const result = runCli(["status", "--dir", danglingDir], { repoRoot });
+    assert.equal(result.exitCode, 1);
+    assert.match(result.stderr, /outside the git worktree/);
+});
+
+test("dangling export --out symlink into repo is refused without creating target", () => {
+    const repoRoot = repoRootFromHere();
+    assert.ok(repoRoot);
+    const dir = storageRoot();
+    const state = loadState(dir);
+    createDraft(state, { title: "T", content: "C", id: "dangling-out" });
+    addReview(state, "dangling-out", { reviewer: "r", feedback: "fine" });
+    approveDraft(state, "dangling-out", { approver: "a" });
+    saveState(dir, state);
+    const outside = storageRoot();
+    const targetInRepo = path.join(repoRoot, ".tmp-a100-dangling-handoff.txt");
+    roots.push(targetInRepo);
+    const outLink = path.join(outside, "handoff-link");
+    symlinkSync(targetInRepo, outLink);
+    const result = runCli(["export", "dangling-out", "--dir", dir, "--out", outLink], { repoRoot });
+    assert.equal(result.exitCode, 1);
+    assert.match(result.stderr, /outside the git worktree/);
+    assert.equal(existsSync(targetInRepo), false);
 });
 
 test("export output is a local file only (no publication claim in json)", () => {

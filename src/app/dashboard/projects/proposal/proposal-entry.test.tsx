@@ -86,6 +86,10 @@ const rows = [...owned, foreign];
 const estimate = { id: "estimate-1", project_id: "remembered-job", is_active: true, estimate_lines: [] };
 const path = "/dashboard/projects/proposal";
 type Element = ReactElement<{ children?: Element[] | string; projects?: { id: string; name: string | null }[]; path?: string; context?: { project: { id: string } } }>;
+type RouteShellPage = ReactElement<{
+    header?: ReactElement;
+    children: ReactElement<{ key?: string; context?: { project: { id: string } } }>;
+}>;
 const listed = owned.map(({ id, name }) => ({ id, name }));
 
 function render(projectId?: string) {
@@ -164,7 +168,7 @@ describe("proposal absent-id entry", () => {
 
     it("keeps an owned explicit id, including one past the old 25, on the single-project read", async () => {
         const page = await render("remembered-job");
-        const editor = dashboardRouteShellBody(page);
+        const editor = dashboardRouteShellBody(page as RouteShellPage);
         expect(page.type).not.toBe(ProjectEntry);
         expect(editor.key).toBe("remembered-job");
         expect(editor.props.context!.project.id).toBe("remembered-job");

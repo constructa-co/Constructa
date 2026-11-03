@@ -30,14 +30,15 @@ import { useTheme } from "@/lib/theme-context";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
 import ui from "@/components/project-board.module.css";
 import { PIPELINE_CHANGE_UNCONFIRMED, PIPELINE_REFRESH_UNCONFIRMED } from "@/lib/pipeline-feedback";
+import { pipelineStageDisplayLabel } from "./pipeline-stage-display";
 
 const COLUMNS = [
-    { id: "Lead",          label: "Leads",         icon: Users,        color: "bg-slate-50",      darkColor: "bg-white/5",        text: "text-slate-600",  darkText: "text-slate-300",  border: "border-slate-200",  darkBorder: "border-[#2a2a2a]" },
-    { id: "Estimating",    label: "Estimating",    icon: Clock,        color: "bg-blue-50/50",    darkColor: "bg-blue-500/10",    text: "text-blue-600",   darkText: "text-blue-400",   border: "border-blue-200",   darkBorder: "border-blue-500/20" },
-    { id: "Proposal Sent", label: "Proposal Sent", icon: FileText,     color: "bg-purple-50/50",  darkColor: "bg-purple-500/10",  text: "text-purple-600", darkText: "text-purple-400", border: "border-purple-200", darkBorder: "border-purple-500/20" },
-    { id: "Active",        label: "Active",        icon: Hammer,       color: "bg-emerald-50/50", darkColor: "bg-emerald-500/10", text: "text-emerald-600",darkText: "text-emerald-400",border: "border-emerald-200",darkBorder: "border-emerald-500/20" },
-    { id: "Completed",     label: "Completed",     icon: CheckCircle2, color: "bg-zinc-50",       darkColor: "bg-white/5",        text: "text-zinc-600",   darkText: "text-zinc-300",   border: "border-zinc-200",   darkBorder: "border-[#2a2a2a]" },
-    { id: "Lost",          label: "Lost",          icon: XCircle,      color: "bg-red-50/50",     darkColor: "bg-red-500/10",     text: "text-red-500",    darkText: "text-red-400",    border: "border-red-200",    darkBorder: "border-red-500/20" },
+    { id: "Lead",          label: pipelineStageDisplayLabel("Lead"),          icon: Users,        color: "bg-slate-50",      darkColor: "bg-white/5",        text: "text-slate-600",  darkText: "text-slate-300",  border: "border-slate-200",  darkBorder: "border-[#2a2a2a]" },
+    { id: "Estimating",    label: pipelineStageDisplayLabel("Estimating"),    icon: Clock,        color: "bg-blue-50/50",    darkColor: "bg-blue-500/10",    text: "text-blue-600",   darkText: "text-blue-400",   border: "border-blue-200",   darkBorder: "border-blue-500/20" },
+    { id: "Proposal Sent", label: pipelineStageDisplayLabel("Proposal Sent"), icon: FileText,     color: "bg-purple-50/50",  darkColor: "bg-purple-500/10",  text: "text-purple-600", darkText: "text-purple-400", border: "border-purple-200", darkBorder: "border-purple-500/20" },
+    { id: "Active",        label: pipelineStageDisplayLabel("Active"),        icon: Hammer,       color: "bg-emerald-50/50", darkColor: "bg-emerald-500/10", text: "text-emerald-600",darkText: "text-emerald-400",border: "border-emerald-200",darkBorder: "border-emerald-500/20" },
+    { id: "Completed",     label: pipelineStageDisplayLabel("Completed"),     icon: CheckCircle2, color: "bg-zinc-50",       darkColor: "bg-white/5",        text: "text-zinc-600",   darkText: "text-zinc-300",   border: "border-zinc-200",   darkBorder: "border-[#2a2a2a]" },
+    { id: "Lost",          label: pipelineStageDisplayLabel("Lost"),          icon: XCircle,      color: "bg-red-50/50",     darkColor: "bg-red-500/10",     text: "text-red-500",    darkText: "text-red-400",    border: "border-red-200",    darkBorder: "border-red-500/20" },
 ];
 
 const PROJECT_TYPE_COLORS: Record<string, { light: string; dark: string }> = {

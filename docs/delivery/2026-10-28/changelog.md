@@ -364,3 +364,11 @@
 ## ROB2215 timing repair — 3 Nov 2026
 
 - **`de1c26c4`** + **`aa41eba`** four paths; Galileo whole grade SCOPED_NNF. Full suite **6244 pass / 4 skip** complete stdout (**389** files); child exit **not captured** in raw log — **`rob2218`** qualification; four-path eslint **0**; fulltype **0**. **rob2220** helpers/config prep only; build readbacks null; no backup yet. NO-DEPLOY hold.
+
+## A099 Guides hub local source — 4 Nov 2026
+
+- **`src/app/guides/page.tsx`**, **`src/app/guides/[slug]/page.tsx`**, **`src/app/guides/guides-routes.test.tsx`**: static `/guides` hub and `/guides/[slug]` articles with `generateStaticParams`, `generateMetadata`, and `notFound` for unknown slugs; focused SSR tests for one `main`, card links, preview-access handoff, and invalid slug.
+- **`src/lib/marketing-guides.ts`**: authored article registry derived only from approved `ProductReviewGuide` facts (company through proposal checks, draft PDF sends nothing, non-binding client intent).
+- **`src/components/marketing/guides-hub.tsx`**, **`guide-article-view.tsx`**, **`guides.module.css`**: phase-one editorial layout inside existing `PublicChrome` (no nested `main`, no forms or external integrations).
+- **`src/components/marketing/phase-one.tsx`** (~L37–40): single footer nav link **`/guides`** in cohort `MarketingFooter`; full-profile footer unchanged.
+- Intent: local A099 source only — not publication, signup, or release claims. Runner commit/push/build pending.

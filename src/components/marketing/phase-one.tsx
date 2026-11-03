@@ -35,7 +35,7 @@ export function MarketingFooter() {
         <Link className={ui.brand} href="/" aria-label="Constructa home"><span aria-hidden="true">C</span>constructa</Link>
         <p>Built around your business.<br />Not the other way around.</p>
         <nav aria-label="Footer navigation">
-          <Link href="/features">The product</Link><Link href="/login">Sign in</Link>
+          <Link href="/features">The product</Link><Link href="/guides">Guides</Link><Link href="/login">Sign in</Link>
           <Link href="/terms-of-service">Terms</Link><Link href="/privacy-policy">Privacy</Link>
           <Link href="/contact">Get in touch</Link>
         </nav>

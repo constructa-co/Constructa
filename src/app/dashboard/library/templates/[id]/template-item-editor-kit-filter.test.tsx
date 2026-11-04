@@ -50,7 +50,8 @@ vi.mock("@/components/ui/select", () => ({
         return createElement("div", { className: "mock-select-root" }, children);
     },
     SelectTrigger: ({ children }: { children: ReactNode }) => createElement("button", { type: "button" }, children),
-    SelectValue: ({ placeholder }: { placeholder: string }) => createElement("span", null, placeholder),
+    SelectValue: ({ placeholder, children }: { placeholder?: string; children?: ReactNode }) =>
+        createElement("span", { "data-select-trigger-label": true }, children ?? placeholder),
     SelectContent: ({ children }: { children: ReactNode }) => createElement("div", { "data-select-content": true }, children),
     SelectItem: ({ children, value }: { children: ReactNode; value: string }) =>
         createElement("div", { role: "option", "data-item-value": value }, children),
@@ -102,6 +103,15 @@ function addButton(tree: Element[]) {
 
 function selectedId() {
     return hook.selectValue;
+}
+
+function selectedTriggerDescription(tree: Element[]) {
+    const label = tree.find(e => e.props["data-select-trigger-label"] === true);
+    if (!label) return undefined;
+    const descSpan = nodes(label).find(
+        e => e.type === "span" && e.props.className === "font-medium",
+    );
+    return descSpan?.props.children as string | undefined;
 }
 
 function filterInput(tree: Element[]) {
@@ -176,10 +186,18 @@ describe("TemplateItemEditor kit library filter (ROB1142)", () => {
         const heldSelection = renderEditor(new Map<number, unknown>([[0, "item-b"], [1, 1], [2, false], [3, "brick"]]));
         expect(visibleDescriptions(heldSelection.markup)).toEqual(["Brick wall panel"]);
         expect(selectedId()).toBe("item-b");
+        expect(selectedTriggerDescription(heldSelection.tree)).toBe("Cable run");
+        expect(heldSelection.markup.includes("Cable run")).toBe(true);
+
+        const heldNoMatch = renderEditor(new Map<number, unknown>([[0, "item-b"], [1, 1], [2, false], [3, "not-found-xyz"]]));
+        expect(visibleDescriptions(heldNoMatch.markup)).toEqual([]);
+        expect(selectedId()).toBe("item-b");
+        expect(selectedTriggerDescription(heldNoMatch.tree)).toBe("Cable run");
 
         const cleared = renderEditor(new Map<number, unknown>([[0, "item-b"], [1, 1], [2, false], [3, ""]]));
         expect(visibleDescriptions(cleared.markup)).toEqual([...DESCRIPTIONS]);
         expect(selectedId()).toBe("item-b");
+        expect(selectedTriggerDescription(cleared.tree)).toBe("Cable run");
     });
 
     it("Add uses the canonical library item payload even when the list was filtered", async () => {

@@ -70,6 +70,10 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
             String(item.description ?? "").toLowerCase().includes(normalizedFilter)
             || String(item.category ?? "").toLowerCase().includes(normalizedFilter));
 
+    const selectedLibraryItem = selectedItemId
+        ? libraryItems.find(item => item.id === selectedItemId)
+        : undefined;
+
     const handleAdd = async () => {
         if (!selectedItemId) return;
 
@@ -111,7 +115,14 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
                     <Label className="text-xs font-bold uppercase text-slate-400">Library Item</Label>
                     <Select value={selectedItemId} onValueChange={setSelectedItemId}>
                         <SelectTrigger className="bg-white">
-                            <SelectValue placeholder="Search library..." />
+                            <SelectValue placeholder="Search library...">
+                                {selectedLibraryItem ? (
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">{selectedLibraryItem.description}</span>
+                                        <span className="text-[10px] text-slate-400 uppercase tracking-tighter">{selectedLibraryItem.category} • £{selectedLibraryItem.unit_cost}/{selectedLibraryItem.unit}</span>
+                                    </div>
+                                ) : null}
+                            </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                             <div className="flex items-center px-3 pb-2 border-b mb-1">

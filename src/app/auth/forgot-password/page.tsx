@@ -28,6 +28,7 @@ export default function ForgotPasswordPage() {
     const [error, setError] = useState<string | null>(null);
     const [sent, setSent] = useState(false);
     const [expiredNotice, setExpiredNotice] = useState(false);
+    const [confirmedEmail, setConfirmedEmail] = useState('');
 
     useEffect(() => {
         if (!isRecoveryLinkExpiredNotice(window.location.search)) return;
@@ -40,10 +41,12 @@ export default function ForgotPasswordPage() {
         setLoading(true);
         setError(null);
 
+        const submittedAddress = email.trim();
+
         try {
             const supabase = createClient();
             const { error: resetErr } = await supabase.auth.resetPasswordForEmail(
-                email.trim(),
+                submittedAddress,
                 {
                     redirectTo: `${window.location.origin}/auth/reset-password`,
                 },
@@ -55,6 +58,7 @@ export default function ForgotPasswordPage() {
             }
             // Always show the generic confirmation — don't leak whether
             // the email exists in the system. Standard security practice.
+            setConfirmedEmail(submittedAddress);
             setSent(true);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Something went wrong.');
@@ -85,7 +89,7 @@ export default function ForgotPasswordPage() {
                                 Check your email
                             </h3>
                             <p className="text-sm text-gray-400 leading-relaxed">
-                                If an account exists for <strong className="text-gray-200">{email}</strong>,
+                                If an account exists for <strong className="text-gray-200">{confirmedEmail}</strong>,
                                 you&apos;ll receive a password reset link in the next few minutes.
                             </p>
                             <p className="text-xs text-gray-500">

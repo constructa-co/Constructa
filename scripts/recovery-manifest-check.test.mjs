@@ -177,6 +177,49 @@ test("storage identity is the exact bucket and name pair", () => {
     }
 });
 
+test("a malformed bucket declaration cannot satisfy an object with no bucket", () => {
+    // Counterexample: required buckets and matching bytes remain, but undefined used to match undefined.
+    const value = manifest();
+    value.storage.buckets.push({});
+    delete value.storage.objects[0].bucket;
+    const report = checkManifest(value);
+    assert.equal(report.verdict, "INVALID");
+    assert.ok(report.errors.includes(`storage.buckets[${REQUIRED_BUCKETS.length}]: bucket id must be a non-empty string`));
+    assert.ok(report.errors.includes("storage.objects[0]: bucket must be a non-empty string"));
+});
+
+test("malformed bucket declarations are refused, not silently dropped", () => {
+    for (const bucket of [{}, { id: undefined }, { id: null }, { id: "" }, { id: 0 }, { id: ["logos"] }, { id: { id: "logos" } }, null, "logos"]) {
+        const value = manifest();
+        value.storage.buckets.push(bucket);
+        const report = checkManifest(value);
+        assert.equal(report.verdict, "INVALID", JSON.stringify(bucket));
+        assert.ok(report.errors.includes(`storage.buckets[${REQUIRED_BUCKETS.length}]: bucket id must be a non-empty string`), JSON.stringify(bucket));
+    }
+});
+
+test("malformed object bucket identities are refused even when every declared bucket is valid", () => {
+    for (const bucket of [undefined, null, "", 0, false, ["logos"], { id: "logos" }]) {
+        const value = manifest();
+        value.storage.objects[0].bucket = bucket;
+        const report = checkManifest(value);
+        assert.equal(report.verdict, "INVALID", JSON.stringify(bucket));
+        assert.ok(report.errors.includes("storage.objects[0]: bucket must be a non-empty string"), JSON.stringify(bucket));
+    }
+});
+
+test("valid bucket strings, including Unicode and whitespace, are matched byte-exact", () => {
+    for (const bucket of ["fotos-é", " logos "]) {
+        const value = manifest();
+        value.storage.buckets.push({ id: bucket });
+        value.storage.objects[0].bucket = bucket;
+        assert.deepEqual(checkManifest(value).errors, [], JSON.stringify(bucket));
+    }
+    const value = manifest();
+    value.storage.objects[0].bucket = "logos ";
+    assert.ok(checkManifest(value).errors.includes("storage.objects[0]: bucket logos  is not declared"));
+});
+
 test("conflicting duplicate git ref keys are refused before requiredRefs can match the last sha only", () => {
     const value = manifest();
     const firstSha = "1".repeat(40);

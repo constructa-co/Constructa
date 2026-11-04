@@ -52,6 +52,11 @@ function text(value) {
     return typeof value === "string" && !PLACEHOLDER.test(value.trim());
 }
 
+// A bucket identity is any non-empty string, kept byte-exact; anything else is malformed.
+function bucketId(value) {
+    return typeof value === "string" && value !== "";
+}
+
 function sha256File(file) {
     const hash = createHash("sha256");
     const buffer = Buffer.allocUnsafe(1 << 20);
@@ -118,7 +123,12 @@ export function checkManifest(manifest, { root, rawText } = {}) {
 
     // Storage: bucket configuration is separate from object bytes; each object must be backed by a hashed file.
     const storage = manifest.storage ?? {};
-    const buckets = new Set((Array.isArray(storage.buckets) ? storage.buckets : []).map(bucket => bucket?.id));
+    // Malformed ids are refused rather than dropped or stored, so undefined can never match undefined.
+    const buckets = new Set();
+    for (const [index, bucket] of (Array.isArray(storage.buckets) ? storage.buckets : []).entries()) {
+        if (bucketId(bucket?.id)) buckets.add(bucket.id);
+        else fail(`storage.buckets[${index}]: bucket id must be a non-empty string`);
+    }
     const storageWaived = waived.includes("storage-bucket-config");
     if (!storageWaived) {
         for (const bucket of REQUIRED_BUCKETS) if (!buckets.has(bucket)) fail(`storage.buckets is missing ${bucket}`);
@@ -137,9 +147,11 @@ export function checkManifest(manifest, { root, rawText } = {}) {
     const destinations = new Map();
     for (const [index, object] of objects.entries()) {
         const label = `storage.objects[${index}]`;
-        if (!buckets.has(object?.bucket)) fail(`${label}: bucket ${String(object?.bucket)} is not declared`);
+        const validBucket = bucketId(object?.bucket);
+        if (!validBucket) fail(`${label}: bucket must be a non-empty string`);
+        else if (!buckets.has(object.bucket)) fail(`${label}: bucket ${object.bucket} is not declared`);
         if (typeof object?.name !== "string" || object.name === "" || object.name.split("/").includes("..")) fail(`${label}: object name is unsafe`);
-        else if (typeof object.bucket === "string") {
+        else if (validBucket) {
             if (!destinations.has(object.bucket)) destinations.set(object.bucket, new Map());
             const names = destinations.get(object.bucket);
             const first = names.get(object.name);

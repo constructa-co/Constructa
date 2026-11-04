@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { corePrimaryButton } from "@/lib/core-editing-palette";
 import { createTemplateAction } from "../templates-actions";
 
 export default function CreateKitForm() {
@@ -53,7 +54,7 @@ export default function CreateKitForm() {
             {outcome ? (
                 <p role={outcome.ok ? "status" : "alert"} className={`text-xs leading-snug ${outcome.ok ? "text-slate-600" : "text-red-600"}`}>{outcome.message}</p>
             ) : null}
-            <Button type="submit" disabled={isPending} className="w-full bg-slate-900 hover:bg-black text-white rounded-lg">Initialize Kit</Button>
+            <Button type="submit" disabled={isPending} className={`w-full rounded-lg ${corePrimaryButton}`}>Initialize Kit</Button>
         </form>
     );
 }

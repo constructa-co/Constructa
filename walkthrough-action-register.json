@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-11-04T08:25:00.000Z",
+  "updatedAt": "2026-11-04T09:51:53.119Z",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {
@@ -225,7 +225,7 @@
       "id": "A036",
       "phase": "Later",
       "requested": "Add a challenge/problem and how it was resolved narrative.",
-      "status": "Not started"
+      "status": "Complete"
     },
     {
       "id": "A037",

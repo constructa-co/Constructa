@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,38 @@ import {
 } from "@/components/ui/select";
 import { Plus, Search } from "lucide-react";
 import { addItemsToTemplateAction } from "../../templates-actions";
+
+const LIBRARY_KIT_FILTER_SELECT_KEYS = new Set([
+    "ArrowUp",
+    "ArrowDown",
+    "Home",
+    "End",
+    "Escape",
+    "Tab",
+    "Enter",
+    "PageUp",
+    "PageDown",
+]);
+
+function handleLibraryKitFilterKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.nativeEvent.isComposing || e.key === "Process") {
+        return;
+    }
+    if (LIBRARY_KIT_FILTER_SELECT_KEYS.has(e.key)) {
+        return;
+    }
+    if (e.ctrlKey || e.metaKey || e.altKey) {
+        return;
+    }
+    if (
+        e.key === " "
+        || e.key === "Backspace"
+        || e.key === "Delete"
+        || e.key.length === 1
+    ) {
+        e.stopPropagation();
+    }
+}
 
 interface Props {
     templateId: string;
@@ -87,7 +119,7 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
                                     placeholder="Filter..."
                                     value={filterQuery}
                                     onChange={(e) => setFilterQuery(e.target.value)}
-                                    onKeyDown={(e) => e.stopPropagation()}
+                                    onKeyDown={handleLibraryKitFilterKeyDown}
                                     className="text-xs bg-transparent outline-none w-full"
                                 />
                             </div>

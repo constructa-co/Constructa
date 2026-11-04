@@ -108,6 +108,20 @@ function filterInput(tree: Element[]) {
     return tree.find(e => e.type === "input" && e.props.name === "library-kit-filter")!;
 }
 
+function dispatchFilterKey(input: Element, key: string, extra: Record<string, unknown> = {}) {
+    const stop = vi.fn();
+    (input.props.onKeyDown as (ev: Record<string, unknown>) => void)({
+        key,
+        stopPropagation: stop,
+        ctrlKey: false,
+        metaKey: false,
+        altKey: false,
+        nativeEvent: { isComposing: false },
+        ...extra,
+    });
+    return stop;
+}
+
 function setFilter(tree: Element[], value: string) {
     const input = filterInput(tree);
     (input.props.onChange as (ev: { target: { value: string } }) => void)({ target: { value } });
@@ -184,8 +198,17 @@ describe("TemplateItemEditor kit library filter (ROB1142)", () => {
     it("keeps keyboard events on the filter input from bubbling to the select", () => {
         const { tree } = renderEditor();
         const input = filterInput(tree);
-        const stop = vi.fn();
-        (input.props.onKeyDown as (ev: { key: string; stopPropagation: () => void }) => void)({ key: " ", stopPropagation: stop });
-        expect(stop).toHaveBeenCalled();
+        expect(dispatchFilterKey(input, " ")).toHaveBeenCalled();
+        expect(dispatchFilterKey(input, "b")).toHaveBeenCalled();
+        expect(dispatchFilterKey(input, "Backspace")).toHaveBeenCalled();
+    });
+
+    it("lets select navigation and control keys bubble from the filter input", () => {
+        const { tree } = renderEditor();
+        const input = filterInput(tree);
+        for (const key of ["ArrowDown", "ArrowUp", "Home", "End", "Escape", "Tab", "Enter"] as const) {
+            expect(dispatchFilterKey(input, key)).not.toHaveBeenCalled();
+        }
+        expect(dispatchFilterKey(input, "a", { ctrlKey: true })).not.toHaveBeenCalled();
     });
 });

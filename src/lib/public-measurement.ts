@@ -1,6 +1,7 @@
 /**
  * Typed public marketing measurement contract. Collection is disabled by default;
- * production callsites invoke dispatch only — no loader, beacon, or persistence.
+ * production callsites invoke dispatch only — no loader, beacon, collector, or persistence.
+ * Enabling a collector requires a separately reviewed increment; this module does not forward events.
  */
 
 /** When false, production dispatch is a no-op unless a test sink is injected. */
@@ -75,10 +76,6 @@ export function isPublicMeasurementRoute(pathname: string): boolean {
   );
 }
 
-function reviewDispatchBlocked(): boolean {
-  return process.env.CONSTRUCTA_REVIEW_ONLY === "1";
-}
-
 function sanitizeProps(
   event: PublicMeasurementEventName,
   raw: Record<string, string> | undefined,
@@ -97,30 +94,11 @@ function sanitizeProps(
 }
 
 function resolvePathname(pathname?: string): string | null {
-  if (pathname) return normalizePathname(pathname);
-  if (typeof window === "undefined") return null;
-  return normalizePathname(window.location.pathname);
-}
-
-function forwardToPlausible(
-  event: PublicMeasurementEventName,
-  props: Record<string, string>,
-): void {
-  if (typeof window === "undefined") return;
-  const plausible = (
-    window as Window & {
-      plausible?: (
-        name: string,
-        options?: { props?: Record<string, string> },
-      ) => void;
-    }
-  ).plausible;
-  if (typeof plausible !== "function") return;
-  if (Object.keys(props).length > 0) {
-    plausible(event, { props });
-  } else {
-    plausible(event);
+  if (typeof window !== "undefined") {
+    return normalizePathname(window.location.pathname);
   }
+  if (pathname) return normalizePathname(pathname);
+  return null;
 }
 
 export function dispatchPublicMeasurementEvent<E extends PublicMeasurementEventName>(
@@ -138,7 +116,6 @@ export function dispatchPublicMeasurementEvent<E extends PublicMeasurementEventN
 
   const pathname = resolvePathname(options?.pathname);
   if (!pathname || !isPublicMeasurementRoute(pathname)) return;
-  if (reviewDispatchBlocked()) return;
 
   const props = sanitizeProps(
     event,
@@ -152,10 +129,6 @@ export function dispatchPublicMeasurementEvent<E extends PublicMeasurementEventN
   if (testSink) {
     testSink(event, props);
   }
-
-  if (!PUBLIC_MEASUREMENT_COLLECTION_ENABLED) return;
-
-  forwardToPlausible(event, props);
 }
 
 export function trackTryConstructaClick(

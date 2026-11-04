@@ -8,9 +8,9 @@ Reuse **Plausible** as the first collector when collection is explicitly enabled
 
 | Item | Meaning |
 |------|---------|
-| `src/lib/public-measurement.ts` | Shared typed event contract, route guard, review exclusion, optional Plausible forwarder |
+| `src/lib/public-measurement.ts` | Shared typed event contract and route guard; dispatch is inert in production (test sink only in unit tests) |
 | Marketing handlers | Wired to real UX boundaries on `/` and `/landing` only in this increment |
-| Collection | **Disabled by default** (`PUBLIC_MEASUREMENT_COLLECTION_ENABLED = false`). No script loader, SDK, beacon, env activation, cookies, or storage. **Partial** until a separate release enables collection and proves deployed events. |
+| Collection | **Globally disabled** (`PUBLIC_MEASUREMENT_COLLECTION_ENABLED = false`). Handlers may call dispatch, but production emits nothing to a collector — no script loader, SDK, beacon, forwarder, env activation, cookies, or storage. **Partial** until a separately reviewed release enables collection and proves deployed events. |
 
 ## Event definitions (truthful outcomes)
 
@@ -29,9 +29,9 @@ Unsupported unless an existing authorized path is wired later: account creation,
 
 ## Route guard
 
-Dispatch runs only on explicit public marketing paths (`/`, `/landing`, `/about`, `/contact`, `/pricing`, `/features`, `/product`, `/customers`, `/privacy-policy`, `/terms-of-service`, `/guides/*`). Application, auth, admin, onboarding, proposal, supervisor, and unknown routes fail closed.
+Dispatch runs only on explicit public marketing paths (`/`, `/landing`, `/about`, `/contact`, `/pricing`, `/features`, `/product`, `/customers`, `/privacy-policy`, `/terms-of-service`, `/guides/*`). Application, auth, admin, onboarding, proposal, supervisor, and unknown routes fail closed. In the browser, the guard uses the **current** `window.location.pathname` (call sites must not pin a stale marketing path after navigation).
 
-Review deployments (`CONSTRUCTA_REVIEW_ONLY=1`) do not dispatch.
+`CONSTRUCTA_REVIEW_ONLY` is a **server** layout guard only; it is not a browser measurement gate. This increment does not claim review-safe collection from client dispatch.
 
 ## Admin metrics honesty
 

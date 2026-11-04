@@ -12,6 +12,7 @@ import {
 afterEach(() => {
   __setPublicMeasurementTestSink(null);
   vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
 });
 
 describe("public measurement contract", () => {
@@ -36,10 +37,13 @@ describe("public measurement contract", () => {
       events.push({ event, props });
     });
 
-    trackContactFormSubmitAccepted("/");
-    trackWaitlistSubmitAttempt("/landing");
-    trackTryConstructaClick("solution", "/");
-    trackTryConstructaClick("not-allowed", "/");
+    vi.stubGlobal("window", { location: { pathname: "/" } });
+    trackContactFormSubmitAccepted();
+    vi.stubGlobal("window", { location: { pathname: "/landing" } });
+    trackWaitlistSubmitAttempt();
+    vi.stubGlobal("window", { location: { pathname: "/" } });
+    trackTryConstructaClick("solution");
+    trackTryConstructaClick("not-allowed");
 
     expect(events).toEqual([
       { event: "ContactFormSubmit", props: {} },
@@ -48,7 +52,7 @@ describe("public measurement contract", () => {
     ]);
   });
 
-  it("fail-closes dispatch on non-public routes and review deployments", () => {
+  it("fail-closes dispatch on non-public routes and ignores stale pathname overrides in the browser", () => {
     const events: string[] = [];
     __setPublicMeasurementTestSink((event) => {
       events.push(event);
@@ -59,19 +63,22 @@ describe("public measurement contract", () => {
     });
     expect(events).toHaveLength(0);
 
-    vi.stubEnv("CONSTRUCTA_REVIEW_ONLY", "1");
-    dispatchPublicMeasurementEvent("ContactFormSubmit", { pathname: "/" });
+    vi.stubGlobal("window", { location: { pathname: "/dashboard" } });
+    trackContactFormSubmitAccepted("/");
     expect(events).toHaveLength(0);
   });
 
-  it("does not call window.plausible while collection stays disabled", () => {
+  it("does not forward to a collector while collection stays disabled", () => {
     const plausible = vi.fn();
     vi.stubGlobal("window", {
       location: { pathname: "/" },
       plausible,
     } as Window & { plausible: typeof plausible });
+    __setPublicMeasurementTestSink(() => {
+      /* sink present; still no collector */
+    });
 
-    trackContactFormSubmitAccepted("/");
+    trackContactFormSubmitAccepted();
     expect(plausible).not.toHaveBeenCalled();
   });
 });

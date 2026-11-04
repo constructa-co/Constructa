@@ -117,7 +117,6 @@ export default function FullLandingPage() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Script src="/feature-scroll.js" strategy="afterInteractive" />
-      <Script id="plausible-contact" strategy="afterInteractive" />
       
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center py-32 md:py-32 px-4 md:px-8">
@@ -139,7 +138,7 @@ export default function FullLandingPage() {
                     action="https://app.convertkit.com/forms/7919715/subscriptions" 
                     className="seva-form formkit-form" 
                     method="post" 
-                    onSubmit={() => trackWaitlistSubmitAttempt('/landing')}
+                    onSubmit={() => trackWaitlistSubmitAttempt()}
                     data-sv-form="7919715" 
                     data-uid="0fbf2928bb" 
                     data-format="inline" 

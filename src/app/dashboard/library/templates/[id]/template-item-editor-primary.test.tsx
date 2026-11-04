@@ -98,7 +98,7 @@ describe("TemplateItemEditor Add to Kit primary palette (A001 kit)", () => {
         const html = renderMarkup();
         const open = addToKitButtonOpenTag(html);
 
-        expect(open).toContain("disabled");
+        expect(open).toMatch(/\sdisabled(?:=|\s|>)/);
         expect(open).toContain("w-full");
         expect(open).toContain("mt-4");
         expect(open).toContain("font-bold");
@@ -115,7 +115,7 @@ describe("TemplateItemEditor Add to Kit primary palette (A001 kit)", () => {
         const seed = new Map<number, unknown>([[0, "item-b"], [1, 1], [2, false], [3, ""], [4, null]]);
         const open = addToKitButtonOpenTag(renderMarkup(seed));
 
-        expect(open).not.toContain("disabled");
+        expect(open).not.toMatch(/\sdisabled(?:=|\s|>)/);
         expect(open).toContain("w-full");
         expect(open).toContain("font-bold");
         expect(open).toContain("h-11");

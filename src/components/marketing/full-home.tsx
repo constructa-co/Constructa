@@ -5,6 +5,10 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Script from 'next/script';
 import FAQ from '@/app/components/FAQ';
+import {
+  trackContactFormSubmitAccepted,
+  trackTryConstructaClick,
+} from '@/lib/public-measurement';
 
 // Add these price calculations at the top of the file, after imports
 const PLANS = {
@@ -181,6 +185,7 @@ export default function Home() {
       });
 
       if (response.ok) {
+        trackContactFormSubmitAccepted();
         setIsSubmitted(true);
         form.reset();
       } else {
@@ -216,34 +221,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Script src="/feature-scroll.js" strategy="afterInteractive" />
-      <Script id="plausible-contact" strategy="afterInteractive">
-        {`
-          document.addEventListener("DOMContentLoaded", function () {
-            const form = document.querySelector('form[action*="formspree.io"]');
-            if (form) {
-              form.addEventListener("submit", function () {
-                if (window.plausible) plausible("ContactFormSubmit");
-              });
-            }
-          });
-        `}
-      </Script>
-      <Script id="plausible-cta" strategy="afterInteractive">
-        {`
-          document.addEventListener("DOMContentLoaded", function () {
-            // Track all Try CONSTRUCTA buttons
-            document.querySelectorAll('a[id^="try-constructa-"]').forEach(function(button) {
-              button.addEventListener("click", function () {
-                if (window.plausible) plausible("TryConstructaClick", { 
-                  props: { 
-                    location: button.getAttribute('data-section') 
-                  }
-                });
-              });
-            });
-          });
-        `}
-      </Script>
 
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex items-center justify-center py-40 px-4 md:px-8 overflow-hidden">
@@ -305,6 +282,7 @@ export default function Home() {
                     href="#"
                     id="try-constructa-solution"
                     data-section="solution"
+                    onClick={() => trackTryConstructaClick('solution')}
                     className="inline-flex items-center px-8 py-3 rounded-full bg-white text-black text-sm font-black uppercase tracking-widest hover:bg-gray-100 transition-all duration-300 hover:scale-105 active:scale-95"
                   >
                     Try CONSTRUCTA
@@ -350,6 +328,7 @@ export default function Home() {
                     href="#"
                     id="try-constructa-apart"
                     data-section="apart"
+                    onClick={() => trackTryConstructaClick('apart')}
                     className="inline-flex items-center px-10 py-4 rounded-full bg-white text-black text-sm font-black uppercase tracking-widest hover:bg-gray-100 transition-all duration-300 hover:scale-105 active:scale-95 shadow-xl"
                   >
                     Try CONSTRUCTA
@@ -445,6 +424,7 @@ export default function Home() {
                     href="#"
                     id="try-constructa-how-it-works"
                     data-section="how-it-works"
+                    onClick={() => trackTryConstructaClick('how-it-works')}
                     className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
                   >
                     Try CONSTRUCTA
@@ -653,6 +633,7 @@ export default function Home() {
                     href="#"
                     id="try-constructa-about"
                     data-section="about"
+                    onClick={() => trackTryConstructaClick('about')}
                     className="inline-flex items-center px-10 py-4 rounded-full bg-white text-black text-sm font-black uppercase tracking-widest hover:bg-gray-100 transition-all duration-300 hover:scale-105 active:scale-95 shadow-xl"
                   >
                     Try CONSTRUCTA

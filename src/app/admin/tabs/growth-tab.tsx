@@ -316,7 +316,12 @@ export default function GrowthTab({ data }: { data: AdminData }) {
 
             {/* 4. Acquisition funnel */}
             <div className="flex flex-col gap-4">
-                <SectionHeading>Acquisition Funnel</SectionHeading>
+                <SectionHeading>Acquisition funnel (mixed periods)</SectionHeading>
+                <p className="text-xs text-zinc-500 -mt-2">
+                  Visitor counts are rolling 30 days from Plausible; signups are
+                  calendar-month totals. The middle percentage is not
+                  session-attributed conversion.
+                </p>
                 {plausible.available ? (
                     <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
                         <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-0">
@@ -346,7 +351,7 @@ export default function GrowthTab({ data }: { data: AdminData }) {
 
                             {/* Signups */}
                             <div className="flex flex-col items-center gap-1 flex-1">
-                                <span className="text-zinc-400 text-xs uppercase tracking-wide">Signups (30d)</span>
+                                <span className="text-zinc-400 text-xs uppercase tracking-wide">Signups (calendar month)</span>
                                 <span className="text-zinc-100 text-3xl font-black">
                                     {data.signupsThisMonth}
                                 </span>

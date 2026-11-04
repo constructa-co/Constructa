@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Script from 'next/script';
+import { trackWaitlistSubmitAttempt } from '@/lib/public-measurement';
 
 // Feature section component with sticky scroll
 const FeatureSection = () => {
@@ -116,18 +117,6 @@ export default function FullLandingPage() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Script src="/feature-scroll.js" strategy="afterInteractive" />
-      <Script id="plausible-contact" strategy="afterInteractive">
-        {`
-          document.addEventListener("DOMContentLoaded", function () {
-            const form = document.querySelector('form[action*="convertkit.com"]');
-            if (form) {
-              form.addEventListener("submit", function () {
-                if (window.plausible) plausible("WaitlistSignup");
-              });
-            }
-          });
-        `}
-      </Script>
       
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center py-32 md:py-32 px-4 md:px-8">
@@ -149,6 +138,7 @@ export default function FullLandingPage() {
                     action="https://app.convertkit.com/forms/7919715/subscriptions" 
                     className="seva-form formkit-form" 
                     method="post" 
+                    onSubmit={() => trackWaitlistSubmitAttempt()}
                     data-sv-form="7919715" 
                     data-uid="0fbf2928bb" 
                     data-format="inline" 

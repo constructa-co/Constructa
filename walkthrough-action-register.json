@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-11-03T23:49:00.000Z",
+  "updatedAt": "2026-11-04T08:25:00.000Z",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {
@@ -629,7 +629,7 @@
       "id": "A097",
       "phase": "Later",
       "requested": "Define and implement useful acquisition/conversion measurement with a justified primary analytics choice.",
-      "status": "Not started"
+      "status": "Partial"
     },
     {
       "id": "A098",

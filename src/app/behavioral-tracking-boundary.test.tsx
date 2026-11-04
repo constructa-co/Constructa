@@ -26,7 +26,9 @@ it('does not leave a landing analytics or replay loader that can survive navigat
     expect(html).toContain('Join the waitlist');
     expect(html).not.toContain('https://plausible.io/js/script.js');
     expect(html).toContain('src="/feature-scroll.js"');
-    expect(html).toContain('id="plausible-contact"');
+    expect(html).not.toContain('id="plausible-contact"');
+    expect(html).not.toContain('window.plausible');
+    expect(html).toContain('id="waitlist-form"');
     expect(html).not.toMatch(/clarity-script|microsoft-clarity|clarity\.ms\/tag\//);
 });
 

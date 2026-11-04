@@ -1,5 +1,4 @@
 import type { ReactElement, ReactNode } from "react";
-import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { corePrimaryButton } from "@/lib/core-editing-palette";
@@ -53,7 +52,7 @@ function nodes(value: unknown): Element[] {
 function renderKitForm() {
     hook.cursor = 0;
     hook.refCursor = 0;
-    const element = createElement(CreateKitForm);
+    const element = CreateKitForm();
     return { element, markup: renderToStaticMarkup(element), tree: nodes(element) };
 }
 

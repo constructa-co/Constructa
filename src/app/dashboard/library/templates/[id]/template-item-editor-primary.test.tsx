@@ -75,9 +75,16 @@ function renderMarkup(seed: Map<number, unknown> = new Map()) {
 }
 
 function addToKitButtonOpenTag(html: string) {
-    const match = html.match(/<button[^>]*>[\s\S]*?Add to Kit[\s\S]*?<\/button>/);
-    expect(match, "Add to Kit button").toBeTruthy();
-    return match![0].match(/^<button[^>]*>/)![0];
+    const buttonBlockRegex = /<button[^>]*>[\s\S]*?<\/button>/g;
+    let addToKitBlock: string | undefined;
+    for (const match of html.matchAll(buttonBlockRegex)) {
+        if (match[0].includes("Add to Kit")) {
+            addToKitBlock = match[0];
+            break;
+        }
+    }
+    expect(addToKitBlock, "Add to Kit button").toBeTruthy();
+    return addToKitBlock!.match(/^<button[^>]*>/)![0];
 }
 
 beforeEach(() => {

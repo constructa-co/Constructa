@@ -31,12 +31,14 @@ const LIBRARY_KIT_FILTER_SELECT_KEYS = new Set([
 
 function handleLibraryKitFilterKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (e.nativeEvent.isComposing || e.key === "Process") {
-        return;
-    }
-    if (LIBRARY_KIT_FILTER_SELECT_KEYS.has(e.key)) {
+        e.stopPropagation();
         return;
     }
     if (e.ctrlKey || e.metaKey || e.altKey) {
+        e.stopPropagation();
+        return;
+    }
+    if (LIBRARY_KIT_FILTER_SELECT_KEYS.has(e.key)) {
         return;
     }
     if (

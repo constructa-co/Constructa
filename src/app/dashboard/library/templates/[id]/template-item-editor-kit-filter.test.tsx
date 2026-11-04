@@ -209,6 +209,13 @@ describe("TemplateItemEditor kit library filter (ROB1142)", () => {
         for (const key of ["ArrowDown", "ArrowUp", "Home", "End", "Escape", "Tab", "Enter"] as const) {
             expect(dispatchFilterKey(input, key)).not.toHaveBeenCalled();
         }
-        expect(dispatchFilterKey(input, "a", { ctrlKey: true })).not.toHaveBeenCalled();
+    });
+
+    it("stops propagation for IME composition and modified navigation on the filter input", () => {
+        const { tree } = renderEditor();
+        const input = filterInput(tree);
+        expect(dispatchFilterKey(input, "b", { nativeEvent: { isComposing: true } })).toHaveBeenCalled();
+        expect(dispatchFilterKey(input, "Home", { ctrlKey: true })).toHaveBeenCalled();
+        expect(dispatchFilterKey(input, "ArrowDown")).not.toHaveBeenCalled();
     });
 });

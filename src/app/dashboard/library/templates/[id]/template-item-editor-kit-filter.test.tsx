@@ -92,8 +92,23 @@ function renderEditor(seed: Map<number, unknown> = new Map()) {
 
 const DESCRIPTIONS = ["Brick wall panel", "Cable run", "Block infill course"] as const;
 
-function visibleDescriptions(markup: string) {
-    return DESCRIPTIONS.filter(description => markup.includes(description));
+function optionDescriptionNodes(tree: Element[]) {
+    return tree.filter(e => e.props.role === "option");
+}
+
+function descriptionFromOptionRow(option: Element) {
+    const descSpan = nodes(option).find(
+        e => e.type === "span" && e.props.className === "font-medium",
+    );
+    return descSpan?.props.children as string | undefined;
+}
+
+function visibleDescriptions(tree: Element[]) {
+    const listed = optionDescriptionNodes(tree)
+        .map(descriptionFromOptionRow)
+        .filter((description): description is string => typeof description === "string");
+    const listedSet = new Set(listed);
+    return DESCRIPTIONS.filter(description => listedSet.has(description));
 }
 
 function addButton(tree: Element[]) {
@@ -106,9 +121,9 @@ function selectedId() {
 }
 
 function selectedTriggerDescription(tree: Element[]) {
-    const label = tree.find(e => e.props["data-select-trigger-label"] === true);
-    if (!label) return undefined;
-    const descSpan = nodes(label).find(
+    const selectValue = tree.find(e => e.props.placeholder === "Search library...");
+    if (!selectValue) return undefined;
+    const descSpan = nodes(selectValue).find(
         e => e.type === "span" && e.props.className === "font-medium",
     );
     return descSpan?.props.children as string | undefined;
@@ -147,15 +162,15 @@ beforeEach(() => {
 
 describe("TemplateItemEditor kit library filter (ROB1142)", () => {
     it("lists all library rows before any filter query", () => {
-        const { markup } = renderEditor();
-        expect(visibleDescriptions(markup)).toEqual([...DESCRIPTIONS]);
+        const { tree } = renderEditor();
+        expect(visibleDescriptions(tree)).toEqual([...DESCRIPTIONS]);
     });
 
     it("narrows visible rows by description or category case-insensitively", () => {
         const { tree: initial } = renderEditor();
         setFilter(initial, "brick");
         hook.cursor = 0;
-        const { markup: narrowed } = renderEditor(new Map(hook.slots.map((v, i) => [i, v])));
+        const { tree: narrowed } = renderEditor(new Map(hook.slots.map((v, i) => [i, v])));
         expect(visibleDescriptions(narrowed)).toEqual(["Brick wall panel"]);
 
         hook.slots = [];
@@ -164,7 +179,7 @@ describe("TemplateItemEditor kit library filter (ROB1142)", () => {
         setFilter(cat, "mason");
         const seeded = new Map(hook.slots.map((v, i) => [i, v]));
         hook.cursor = 0;
-        const { markup: masonry } = renderEditor(seeded);
+        const { tree: masonry } = renderEditor(seeded);
         expect(visibleDescriptions(masonry)).toEqual(["Brick wall panel", "Block infill course"]);
     });
 
@@ -172,7 +187,7 @@ describe("TemplateItemEditor kit library filter (ROB1142)", () => {
         const { tree } = renderEditor();
         setFilter(tree, "   ");
         hook.cursor = 0;
-        expect(visibleDescriptions(renderEditor(new Map(hook.slots.map((v, i) => [i, v]))).markup)).toEqual([...DESCRIPTIONS]);
+        expect(visibleDescriptions(renderEditor(new Map(hook.slots.map((v, i) => [i, v]))).tree)).toEqual([...DESCRIPTIONS]);
 
         hook.slots = [];
         hook.cursor = 0;
@@ -180,22 +195,22 @@ describe("TemplateItemEditor kit library filter (ROB1142)", () => {
         setFilter(t2, "not-found-xyz");
         hook.cursor = 0;
         const none = renderEditor(new Map(hook.slots.map((v, i) => [i, v])));
-        expect(visibleDescriptions(none.markup)).toEqual([]);
+        expect(visibleDescriptions(none.tree)).toEqual([]);
         expect(none.markup).toMatch(/No matching library items/i);
 
         const heldSelection = renderEditor(new Map<number, unknown>([[0, "item-b"], [1, 1], [2, false], [3, "brick"]]));
-        expect(visibleDescriptions(heldSelection.markup)).toEqual(["Brick wall panel"]);
+        expect(visibleDescriptions(heldSelection.tree)).toEqual(["Brick wall panel"]);
         expect(selectedId()).toBe("item-b");
         expect(selectedTriggerDescription(heldSelection.tree)).toBe("Cable run");
         expect(heldSelection.markup.includes("Cable run")).toBe(true);
 
         const heldNoMatch = renderEditor(new Map<number, unknown>([[0, "item-b"], [1, 1], [2, false], [3, "not-found-xyz"]]));
-        expect(visibleDescriptions(heldNoMatch.markup)).toEqual([]);
+        expect(visibleDescriptions(heldNoMatch.tree)).toEqual([]);
         expect(selectedId()).toBe("item-b");
         expect(selectedTriggerDescription(heldNoMatch.tree)).toBe("Cable run");
 
         const cleared = renderEditor(new Map<number, unknown>([[0, "item-b"], [1, 1], [2, false], [3, ""]]));
-        expect(visibleDescriptions(cleared.markup)).toEqual([...DESCRIPTIONS]);
+        expect(visibleDescriptions(cleared.tree)).toEqual([...DESCRIPTIONS]);
         expect(selectedId()).toBe("item-b");
         expect(selectedTriggerDescription(cleared.tree)).toBe("Cable run");
     });

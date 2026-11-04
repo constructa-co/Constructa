@@ -20,6 +20,7 @@ import {
     coreProfileTextarea,
     coreSuggestionPrimary,
 } from "@/lib/core-editing-palette";
+import ChallengeResolution, { NO_STORY, storyTyped, type StoryNotes } from "./challenge-resolution";
 
 type Enhance = (whatWeDelivered: string, valueAdded: string, projectName: string, projectType: string) => Promise<CaseStudyResult>;
 type Save = (caseStudies: unknown) => Promise<SaveCaseStudiesResult>;
@@ -66,9 +67,11 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
     const nextRowHandle = useRef(initialCaseStudies.length);
     /** The latest pick for each row and slot. A reply from an older pick for that slot is not used. */
     const latestPhotoPick = useRef(new Map<string, symbol>());
+    /** Rows, by handle, with a challenge or how it was resolved typed but not yet added to "What We Delivered". */
+    const [storyRows, setStoryRows] = useState<number[]>([]);
 
-    // Reload, closing the tab and plain links ask first. Navigation made by code, and Back and Forward, are not covered.
-    useUnsavedGuard(needsLeaveWarning(state), SAVE_MESSAGES.leaveConfirm);
+    // Reload, closing the tab and plain links ask first, also while a challenge is typed but not added. Navigation made by code, and Back and Forward, are not covered.
+    useUnsavedGuard(needsLeaveWarning(state) || storyRows.length > 0, SAVE_MESSAGES.leaveConfirm);
 
     // Sends the save the rules started: exactly the copy they recorded, once, however often this runs or the button is pressed.
     useEffect(() => {
@@ -110,8 +113,15 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
     };
 
     const removeCaseStudy = (index: number) => {
-        rowHandles.current.splice(index, 1);
+        const [removed] = rowHandles.current.splice(index, 1);
+        setStoryRows(prev => prev.filter(handle => handle !== removed));
         setCaseStudies(prev => prev.filter((_, i) => i !== index));
+    };
+
+    /** Keeps the leave warning on while a row has a challenge or how it was resolved typed but not added. */
+    const markStory = (index: number, typed: boolean) => {
+        const handle = rowHandles.current[index];
+        setStoryRows(prev => (typed ? (prev.includes(handle) ? prev : [...prev, handle]) : prev.filter(entry => entry !== handle)));
     };
 
     /** Asks the rules to start a save. They decide whether one starts; with nothing to save, nothing is sent. */
@@ -210,6 +220,7 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
                     onRemove={() => removeCaseStudy(index)}
                     onPhotoUpload={(slot, file) => handlePhotoUpload(index, slot, file)}
                     onPhotoRemove={(slot) => handlePhotoRemove(index, slot)}
+                    onStoryTyped={(typed) => markStory(index, typed)}
                     inputCls={inputCls}
                     labelCls={labelCls}
                     enhance={enhance}
@@ -247,6 +258,7 @@ function CaseStudyCard({
     onRemove,
     onPhotoUpload,
     onPhotoRemove,
+    onStoryTyped,
     inputCls,
     labelCls,
     enhance,
@@ -258,6 +270,7 @@ function CaseStudyCard({
     onRemove: () => void;
     onPhotoUpload: (slot: number, file: File) => void;
     onPhotoRemove: (slot: number) => void;
+    onStoryTyped: (typed: boolean) => void;
     inputCls: string;
     labelCls: string;
 }) {
@@ -267,6 +280,9 @@ function CaseStudyCard({
     // A reply is held here until the contractor decides. It never replaces what is in the form by arriving.
     const [pending, setPending] = useState<PendingCaseStudySuggestion | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
+    // A challenge and how it was resolved, as typed. Held by the card so closing it keeps them; never saved until added.
+    const [story, setStory] = useState<StoryNotes>(NO_STORY);
+    const changeStory = (next: StoryNotes) => { setStory(next); onStoryTyped(storyTyped(next)); };
 
     const handleEnhance = async () => {
         // One request at a time: the button is disabled while this runs, and this guards a double press.
@@ -400,6 +416,19 @@ function CaseStudyCard({
                         />
                         {suggestionPanel("whatWeDelivered", "What We Delivered")}
                     </div>
+
+                    <ChallengeResolution
+                        text={cs.whatWeDelivered ?? ""}
+                        notes={story}
+                        onNotes={changeStory}
+                        onAdd={next => onChange("whatWeDelivered", next)}
+                        idPrefix={fieldId}
+                        target="What We Delivered"
+                        labelCls={labelCls}
+                        inputCls={coreProfileTextarea}
+                        hintCls="text-xs text-slate-300"
+                        buttonCls={`min-h-11 px-3 rounded-lg border border-slate-400 text-sm font-semibold text-slate-100 hover:bg-white/5 ${coreFocusVisibleRing}`}
+                    />
 
                     <div>
                         <label htmlFor={`${fieldId}-added`} className={labelCls}>Value Added</label>

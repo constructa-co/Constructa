@@ -20,6 +20,7 @@ import { pendingFrom, sectionState, settle, type PendingCaseStudySuggestion } fr
 import { uploadProfileImageAction } from "@/app/storage/actions";
 import { approveCaseStudyAction, checkCaseStudyAction, createCaseStudyAction, saveCaseStudyAction, saveDisciplineAction } from "../library-actions";
 import { enhanceCaseStudyAction } from "../actions";
+import ChallengeResolution, { NO_STORY, storyTyped, type StoryNotes } from "../challenge-resolution";
 import CaseStudyPhotoSlots from "./case-study-photo-slots";
 import {
     coreFocusVisibleRing,
@@ -108,10 +109,14 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
     const [enhancing, setEnhancing] = useState(false);
     const [enhanceNotice, setEnhanceNotice] = useState<string | null>(null);
     const [pending, setPending] = useState<PendingCaseStudySuggestion | null>(null);
+    /** A challenge and how it was resolved, typed but not yet added to "What you did". Never saved on its own. */
+    const [story, setStory] = useState<StoryNotes>(NO_STORY);
     const stateRef = useRef(state);
     useEffect(() => { stateRef.current = state; });
 
     const dirty = isDirty(state);
+    // Something not saved, or a challenge typed but not added: leaving asks first.
+    const guard = dirty || storyTyped(story);
     const content = state.draft.content;
     const active = disciplines.filter((entry) => !entry.archived);
     const busy = state.saving !== null || working;
@@ -189,13 +194,13 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
         );
     };
 
-    // Leaving with something typed and not saved asks first.
+    // Leaving with something typed and not saved, or not yet added, asks first.
     useEffect(() => {
-        if (!dirty) return;
+        if (!guard) return;
         const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); };
         window.addEventListener("beforeunload", warn);
         return () => window.removeEventListener("beforeunload", warn);
-    }, [dirty]);
+    }, [guard]);
 
     const save = async () => {
         const now = stateRef.current;
@@ -301,7 +306,7 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
             <div className="space-y-2">
                 <Link href={listHref} className="inline-flex items-center min-h-11 text-base font-semibold text-blue-200 underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">Back to case studies</Link>
                 <h1 className="text-2xl font-bold text-slate-50">{state.id ? "Edit this past job" : "Add a past job"}</h1>
-                {guidedBase && !dirty && state.saving === null && (
+                {guidedBase && !guard && state.saving === null && (
                     <Link href={`${guidedBase}/${state.id ?? "new"}/guided`} data-guided-link className="inline-flex items-center min-h-11 text-base font-semibold text-blue-200 underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">{state.id ? "Go through the questions instead" : "Answer a few questions instead"}</Link>
                 )}
                 <p role="status" aria-live="polite" data-save-line className={`text-base font-semibold ${noticeTone}`}>{saveLine(state)}</p>
@@ -370,6 +375,7 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
                     <textarea id="cs-delivered" className={input} rows={5} aria-describedby="cs-delivered-help" value={content.delivered} maxLength={5000} onChange={(event) => set({ delivered: event.target.value })} {...invalid("delivered")} />
                     {suggestionPanel("delivered", "delivered")}
                 </div>
+                <ChallengeResolution text={content.delivered} notes={story} onNotes={setStory} onAdd={(next) => set({ delivered: next })} idPrefix="cs" target="What you did" labelCls={label} inputCls={input} hintCls={hint} buttonCls={secondary} />
                 <div>
                     <label htmlFor="cs-value-added" className={label}>What did it mean for the client? <span className="font-normal text-slate-300">(optional)</span></label>
                     <p id="cs-value-added-help" className={hint}>{questionOf("value_added").help}</p>

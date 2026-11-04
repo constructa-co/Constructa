@@ -65,6 +65,7 @@ vi.mock("../../templates-actions", () => ({
 
 import TemplateItemEditor from "./template-item-editor";
 import { addItemsToTemplateAction } from "../../templates-actions";
+import { SelectItem } from "@/components/ui/select";
 
 type Element = ReactElement<Record<string, unknown>>;
 
@@ -93,7 +94,7 @@ function renderEditor(seed: Map<number, unknown> = new Map()) {
 const DESCRIPTIONS = ["Brick wall panel", "Cable run", "Block infill course"] as const;
 
 function optionDescriptionNodes(tree: Element[]) {
-    return tree.filter(e => e.props.role === "option");
+    return tree.filter(e => e.type === SelectItem);
 }
 
 function descriptionFromOptionRow(option: Element) {

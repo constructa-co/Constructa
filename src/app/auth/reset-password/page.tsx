@@ -15,6 +15,11 @@ import {
     RECOVERY_LINK_EXPIRED_MESSAGE,
 } from '@/lib/auth-recovery-link-failure'
 
+const RECOVERY_LINK_VERIFY_FAILED_MESSAGE =
+    "We couldn't verify your reset link. Please try again or request a new reset link."
+const PASSWORD_UPDATE_UNCONFIRMED_MESSAGE =
+    "We couldn't confirm whether your password was updated — it may have changed. Try signing in with your new password, or submit again."
+
 export default function ResetPasswordPage() {
     const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
@@ -37,34 +42,44 @@ export default function ResetPasswordPage() {
             return
         }
 
-        const supabase = createClient()
+        // A thrown or rejected verification fails closed with a generic message.
+        const failVerification = () => {
+            setSessionReady(false)
+            setError(RECOVERY_LINK_VERIFY_FAILED_MESSAGE)
+        }
 
-        // Handle the case where we land here with a hash fragment from the
-        // Supabase recovery link (e.g. #access_token=...&refresh_token=...&type=recovery)
-        const hash = window.location.hash.substring(1)
-        const params = new URLSearchParams(hash)
-        const access_token = params.get('access_token')
-        const refresh_token = params.get('refresh_token')
+        try {
+            const supabase = createClient()
 
-        if (access_token && refresh_token) {
-            supabase.auth.setSession({ access_token, refresh_token }).then(({ error }) => {
-                if (error) {
-                    setError(RECOVERY_LINK_EXPIRED_MESSAGE)
-                } else {
-                    // Clear the hash from the URL bar
-                    window.history.replaceState(null, '', '/auth/reset-password')
-                    setSessionReady(true)
-                }
-            })
-        } else {
-            // Already have a session (landed here via /auth/confirm redirect)
-            supabase.auth.getSession().then(({ data: { session } }) => {
-                if (session) {
-                    setSessionReady(true)
-                } else {
-                    setError(RECOVERY_LINK_EXPIRED_MESSAGE)
-                }
-            })
+            // Handle the case where we land here with a hash fragment from the
+            // Supabase recovery link (e.g. #access_token=...&refresh_token=...&type=recovery)
+            const hash = window.location.hash.substring(1)
+            const params = new URLSearchParams(hash)
+            const access_token = params.get('access_token')
+            const refresh_token = params.get('refresh_token')
+
+            if (access_token && refresh_token) {
+                supabase.auth.setSession({ access_token, refresh_token }).then(({ error }) => {
+                    if (error) {
+                        setError(RECOVERY_LINK_EXPIRED_MESSAGE)
+                    } else {
+                        // Clear the hash from the URL bar
+                        window.history.replaceState(null, '', '/auth/reset-password')
+                        setSessionReady(true)
+                    }
+                }).catch(failVerification)
+            } else {
+                // Already have a session (landed here via /auth/confirm redirect)
+                supabase.auth.getSession().then(({ data: { session } }) => {
+                    if (session) {
+                        setSessionReady(true)
+                    } else {
+                        setError(RECOVERY_LINK_EXPIRED_MESSAGE)
+                    }
+                }).catch(failVerification)
+            }
+        } catch {
+            failVerification()
         }
     }, [])
 
@@ -84,8 +99,17 @@ export default function ResetPasswordPage() {
 
         setLoading(true)
 
-        const supabase = createClient()
-        const { error } = await supabase.auth.updateUser({ password })
+        let error: { message: string } | null
+        try {
+            const supabase = createClient()
+            const result = await supabase.auth.updateUser({ password })
+            error = result.error
+        } catch {
+            // The request may have reached the server, so the outcome is unknown.
+            setError(PASSWORD_UPDATE_UNCONFIRMED_MESSAGE)
+            setLoading(false)
+            return
+        }
 
         if (error) {
             setError(error.message)

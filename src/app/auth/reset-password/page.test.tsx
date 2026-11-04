@@ -12,6 +12,8 @@ const state = vi.hoisted(() => ({
     effects: [] as Array<() => void | (() => void)>,
     setSession: vi.fn(),
     getSession: vi.fn(),
+    updateUser: vi.fn(),
+    push: vi.fn(),
     replace: vi.fn(),
 }));
 vi.mock("react", async original => ({
@@ -28,11 +30,12 @@ vi.mock("@/lib/supabase/client", () => ({
         auth: {
             setSession: state.setSession,
             getSession: state.getSession,
+            updateUser: state.updateUser,
         },
     }),
 }));
 vi.mock("next/navigation", () => ({
-    useRouter: () => ({ push: vi.fn(), replace: state.replace }),
+    useRouter: () => ({ push: state.push, replace: state.replace }),
 }));
 
 import ResetPasswordPage from "./page";
@@ -50,6 +53,7 @@ function hydrate() {
     state.effects.splice(0).forEach(effect => effect());
 }
 const html = () => renderToStaticMarkup(render());
+const flush = () => new Promise(resolve => setTimeout(resolve, 0));
 
 const address = { search: "", hash: "" };
 const history = { replaceState: vi.fn() };
@@ -60,6 +64,8 @@ beforeEach(() => {
     state.effects = [];
     state.setSession.mockReset();
     state.getSession.mockReset();
+    state.updateUser.mockReset();
+    state.push.mockReset();
     state.replace.mockReset();
     history.replaceState.mockReset();
     address.search = "";
@@ -136,5 +142,65 @@ describe("reset password page", () => {
         expect(markup).toContain(RECOVERY_LINK_EXPIRED_MESSAGE);
         expect(markup).toContain(`href="${FORGOT_PASSWORD_PATH}"`);
         expect(markup).not.toContain("provider detail");
+    });
+
+    it("fails closed with a generic message when setSession rejects", async () => {
+        address.hash = "#access_token=fake-access&refresh_token=fake-refresh";
+        state.setSession.mockRejectedValue(new Error("raw fake-access network detail"));
+        hydrate();
+        await flush();
+
+        const markup = html();
+        expect(markup).toContain("We couldn&#x27;t verify your reset link.");
+        expect(markup).toContain(`href="${FORGOT_PASSWORD_PATH}"`);
+        expect(markup).toContain('href="/login"');
+        expect(markup).not.toContain('id="password"');
+        expect(markup).not.toContain("Verifying reset link");
+        expect(markup).not.toContain("fake-access");
+        expect(markup).not.toContain("network detail");
+    });
+
+    it("fails closed with a generic message when getSession rejects", async () => {
+        state.getSession.mockRejectedValue(new Error("raw session store detail"));
+        hydrate();
+        await flush();
+
+        const markup = html();
+        expect(markup).toContain("We couldn&#x27;t verify your reset link.");
+        expect(markup).toContain(`href="${FORGOT_PASSWORD_PATH}"`);
+        expect(markup).toContain('href="/login"');
+        expect(markup).not.toContain('id="password"');
+        expect(markup).not.toContain("Verifying reset link");
+        expect(markup).not.toContain("session store detail");
+    });
+
+    it("releases loading and reports an unconfirmed outcome when updateUser rejects", async () => {
+        address.hash = "#access_token=fake-access&refresh_token=fake-refresh";
+        state.updateUser.mockRejectedValue(new Error("raw server exception"));
+        hydrate();
+        await flush();
+
+        const typed = nodes(render());
+        const input = (id: string) => typed.find(node => node.props.id === id)!;
+        (input("password").props.onChange as (e: unknown) => void)({ target: { value: "fake-pass-123" } });
+        (input("confirmPassword").props.onChange as (e: unknown) => void)({ target: { value: "fake-pass-123" } });
+
+        const form = nodes(render()).find(node => typeof node.props.onSubmit === "function")!;
+        await (form.props.onSubmit as (e: unknown) => Promise<void>)({ preventDefault: () => {} });
+        await flush();
+
+        const markup = html();
+        expect(state.updateUser).toHaveBeenCalledTimes(1);
+        expect(state.updateUser).toHaveBeenCalledWith({ password: "fake-pass-123" });
+        expect(markup).toContain("We couldn&#x27;t confirm whether your password was updated");
+        expect(markup).toContain("it may have changed");
+        expect(markup).not.toContain("raw server exception");
+        expect(markup).not.toContain("Password updated");
+        expect(markup).toContain("Update password");
+        expect(markup).not.toContain("Updating...");
+        expect(markup).toContain('value="fake-pass-123"');
+        const button = nodes(render()).find(node => node.props.type === "submit")!;
+        expect(button.props.disabled).toBe(false);
+        expect(state.push).not.toHaveBeenCalled();
     });
 });

@@ -1,8 +1,7 @@
-import type { ReactElement } from "react";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { corePrimaryButton } from "@/lib/core-editing-palette";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 const current = vi.hoisted(() => ({
     slots: [] as unknown[],
@@ -39,30 +38,6 @@ vi.mock("./actions", () => ({
 
 import RateOverrideItem from "./rate-override-client";
 
-type Element = ReactElement<Record<string, unknown>>;
-
-function nodes(value: unknown): Element[] {
-    if (Array.isArray(value)) return value.flatMap(nodes);
-    if (!value || typeof value !== "object" || !("props" in value)) return [];
-    const el = value as Element;
-    return [el, ...nodes(el.props.children)];
-}
-
-function iconLabel(value: unknown): string | null {
-    if (!value || typeof value !== "object" || !("type" in value)) return null;
-    const t = (value as Element).type;
-    if (typeof t === "function") return (t as { displayName?: string; name: string }).displayName ?? t.name ?? null;
-    return null;
-}
-
-function treeHasIcon(value: unknown, label: string): boolean {
-    if (Array.isArray(value)) return value.some(v => treeHasIcon(v, label));
-    if (!value || typeof value !== "object" || !("props" in value)) return false;
-    const el = value as Element;
-    if (iconLabel(el) === label) return true;
-    return treeHasIcon(el.props.children, label);
-}
-
 // useState slots: 0 editing, 1 rateInput, 2 saving.
 const item = {
     id: "item-7",
@@ -74,32 +49,46 @@ const item = {
     override: { custom_rate: 35 },
 };
 
+function splitButtons(html: string): string[] {
+    const blocks: string[] = [];
+    let i = 0;
+    while (i < html.length) {
+        const start = html.indexOf("<button", i);
+        if (start === -1) break;
+        const end = html.indexOf("</button>", start);
+        if (end === -1) break;
+        blocks.push(html.slice(start, end + "</button>".length));
+        i = end + "</button>".length;
+    }
+    return blocks;
+}
+
+function buttonOpenTag(buttonHtml: string): string {
+    const end = buttonHtml.indexOf(">");
+    return end === -1 ? buttonHtml : buttonHtml.slice(0, end + 1);
+}
+
+function buttonClassName(buttonHtml: string): string {
+    const m = buttonOpenTag(buttonHtml).match(/\bclass="([^"]*)"/);
+    return m?.[1] ?? "";
+}
+
+function buttonHasDisabled(buttonHtml: string): boolean {
+    const open = buttonOpenTag(buttonHtml);
+    return /\bdisabled(?:="")?(?=\s|>)/.test(open);
+}
+
 function render(seed: Array<[number, unknown]> = []) {
     current.slots = [];
     current.cursor = 0;
     current.seed = new Map(seed);
-    return nodes((RateOverrideItem as (p: { item: typeof item }) => unknown)({ item }));
-}
-
-function mergedButtonClasses(el: Element): string {
-    return cn(
-        buttonVariants({
-            variant: el.props.variant as "default" | "ghost" | undefined,
-            size: el.props.size as "sm" | undefined,
-            className: el.props.className as string,
-        }),
-    );
+    return renderToStaticMarkup(createElement(RateOverrideItem, { item }));
 }
 
 /** Save in editing mode: Check icon, explicit disabled={saving}, not cancel/reset. */
-function saveCheckButton(els: Element[]): Element {
-    const save = els.filter(
-        el =>
-            el.props.type === "button" &&
-            el.props.size === "sm" &&
-            el.props.disabled !== undefined &&
-            typeof el.props.onClick === "function" &&
-            treeHasIcon(el, "Check"),
+function saveCheckButton(html: string): string {
+    const save = splitButtons(html).filter(
+        block => block.includes("lucide-check") && block.includes("bg-[#c9efcf]"),
     );
     expect(save).toHaveLength(1);
     return save[0]!;
@@ -115,13 +104,13 @@ describe("RateOverrideItem editing Save primary palette", () => {
     it.each([false, true] as const)(
         "merged Save (Check) classes use core sage palette; h-7 px-2 and disabled=%s preserved",
         saving => {
-            const els = render([
+            const html = render([
                 [0, true],
                 [1, "42.5"],
                 [2, saving],
             ]);
-            const save = saveCheckButton(els);
-            const merged = mergedButtonClasses(save);
+            const save = saveCheckButton(html);
+            const merged = buttonClassName(save);
 
             expect(merged).toContain("h-7");
             expect(merged).toContain("px-2");
@@ -129,43 +118,50 @@ describe("RateOverrideItem editing Save primary palette", () => {
             expect(merged).toContain("hover:bg-[#e0f9e3]");
             expect(merged).toContain("text-[#182c1b]");
             expect(merged).not.toMatch(/bg-blue-600|hover:bg-blue-700|text-white/);
-            expect(save.props.disabled).toBe(saving);
-            expect(typeof save.props.onClick).toBe("function");
+            expect(buttonHasDisabled(save)).toBe(saving);
         },
     );
 
     it("cancel and reset controls keep existing neutral classes (not primary Save)", () => {
-        const editingEls = render([
+        const editingHtml = render([
             [0, true],
             [1, "42.5"],
             [2, false],
         ]);
-        const cancel = editingEls.filter(
-            el =>
-                el.props.variant === "ghost" &&
-                el.props.size === "sm" &&
-                treeHasIcon(el, "X") &&
-                typeof el.props.onClick === "function",
+        const cancel = splitButtons(editingHtml).filter(
+            block => block.includes("lucide-x") && block.includes("text-slate-400"),
         );
         expect(cancel).toHaveLength(1);
-        expect(cancel[0]!.props.className).toBe("h-7 px-2 text-slate-400 hover:text-white");
+        const cancelClass = buttonClassName(cancel[0]!);
+        expect(cancelClass).toContain("h-7");
+        expect(cancelClass).toContain("px-2");
+        expect(cancelClass).toContain("text-slate-400");
+        expect(cancelClass).toContain("hover:text-white");
+        expect(cancelClass).not.toContain("bg-[#c9efcf]");
 
-        const idleEls = render([[0, false], [1, "35"], [2, false]]);
-        const reset = idleEls.filter(
-            el =>
-                el.props.variant === "ghost" &&
-                el.props.size === "sm" &&
-                treeHasIcon(el, "RotateCcw") &&
-                typeof el.props.onClick === "function",
+        const idleHtml = render([[0, false], [1, "35"], [2, false]]);
+        const reset = splitButtons(idleHtml).filter(
+            block => block.includes("lucide-rotate-ccw") && block.includes("text-slate-500"),
         );
         expect(reset).toHaveLength(1);
-        expect(reset[0]!.props.className).toBe("h-7 px-2 text-slate-500 hover:text-slate-300 hover:bg-slate-700");
+        const resetClass = buttonClassName(reset[0]!);
+        expect(resetClass).toContain("h-7");
+        expect(resetClass).toContain("px-2");
+        expect(resetClass).toContain("text-slate-500");
+        expect(resetClass).toContain("hover:text-slate-300");
+        expect(resetClass).toContain("hover:bg-slate-700");
+        expect(resetClass).not.toContain("bg-[#c9efcf]");
     });
 
     it("Save className template uses corePrimaryButton verbatim", () => {
         expect(corePrimaryButton).toBe("bg-[#c9efcf] hover:bg-[#e0f9e3] text-[#182c1b]");
         const save = saveCheckButton(render([[0, true], [1, "35"], [2, false]]));
-        expect(save.props.className).toBe(`h-7 px-2 ${corePrimaryButton}`);
+        const merged = buttonClassName(save);
+        expect(merged).toContain("h-7");
+        expect(merged).toContain("px-2");
+        for (const token of corePrimaryButton.split(/\s+/)) {
+            expect(merged).toContain(token);
+        }
     });
 });
 

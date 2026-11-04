@@ -160,3 +160,13 @@
 | `src/app/dashboard/projects/schedule/simple-programme-client.tsx` | ~392–395 | Call `router.refresh()` after `router.push` on **Next: Proposal** | Re-fetch the proposal page server props so `programme_working_pattern` saved in Programme is not stale in Review & Send |
 | `src/app/dashboard/projects/schedule/simple-programme-workspace.test.tsx` | hoisted router mock, new test | Assert push + refresh on **Next: Proposal** | Lock the navigation seam after saved weekend working days |
 | `src/app/dashboard/projects/proposal/review-send-client.test.ts` | new test | All-week pattern shows Sunday 15 Nov finish in programme section | Prove production Review & Send uses saved pattern, not default Mon–Fri |
+
+## 2026-11-04 — A097 public measurement contract (Cursor composer-2.5)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| `src/lib/public-measurement.ts`, `src/lib/public-measurement.test.ts` | Typed public events, route/review guards, disabled-by-default dispatch + test sink | Shared Plausible-first contract without live collection |
+| `src/components/marketing/full-home.tsx` | Remove inline Plausible scripts; wire contact OK + CTA clicks via module | Truthful success boundary and click intent |
+| `src/components/marketing/full-landing.tsx` | Remove WaitlistSignup script; waitlist submit attempt via module; keep `plausible-contact` id stub | Submit attempt ≠ confirmed subscription; preserve boundary test marker |
+| `src/app/admin/page.tsx`, `types.ts`, `website-tab.tsx`, `growth-tab.tsx` | Honest mixed-period ratio labels; no “tracking active” without proof | Admin copy matches existing counts |
+| `docs/marketing/public-measurement-spec.md` | Measurement spec | Primary choice Plausible; GSC unconfigured; Partial until enablement |

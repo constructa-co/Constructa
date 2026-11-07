@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-07 — A085 pending-edits test harness (Cursor)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `template-item-editor-add-outcomes.test.tsx` | hook hoisted ~6–35, `renderEditor` ~82–88, `beforeEach` ~103–110, new test ~220–240 | `useRef` mock with stable refs across re-renders; quantity-only edit while Add pending | Unblock A085 checker; prove single-field unsent quantity survives deferred Add success |
+| `template-item-editor-kit-filter.test.tsx` | hook + `renderEditor` + `beforeEach` | Same `useRef` mock pattern | Kit filter tests call `TemplateItemEditor`, which now uses refs for pending-edit guards |
+| `template-item-editor-primary.test.tsx` | hook + `renderMarkup` + `beforeEach` | Same `useRef` mock pattern | Primary palette tests render the editor without invalid hook errors |
+
+No production change: `template-item-editor.tsx` A085 refs (b216bad) already correct.
+
 ## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
 
 | Paths | Change | Intent |

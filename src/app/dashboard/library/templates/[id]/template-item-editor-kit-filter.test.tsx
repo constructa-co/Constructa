@@ -5,7 +5,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const hook = vi.hoisted(() => ({
     slots: [] as unknown[],
+    refs: [] as Array<{ current: unknown }>,
     cursor: 0,
+    refCursor: 0,
     seed: new Map<number, unknown>(),
     selectValue: "",
 }));
@@ -23,6 +25,11 @@ vi.mock("react", async original => ({
                 hook.slots[i] = typeof next === "function" ? (next as (v: unknown) => unknown)(hook.slots[i]) : next;
             },
         ];
+    },
+    useRef: (initial: unknown) => {
+        const i = hook.refCursor++;
+        if (!(i in hook.refs)) hook.refs[i] = { current: initial };
+        return hook.refs[i];
     },
     useEffect: () => {},
 }));
@@ -85,6 +92,7 @@ function nodes(value: unknown): Element[] {
 function renderEditor(seed: Map<number, unknown> = new Map()) {
     hook.slots = [];
     hook.cursor = 0;
+    hook.refCursor = 0;
     hook.seed = seed;
     const props = { templateId: "tpl-1", libraryItems };
     const rendered = TemplateItemEditor(props);
@@ -155,7 +163,9 @@ function setFilter(tree: Element[], value: string) {
 
 beforeEach(() => {
     hook.slots = [];
+    hook.refs = [];
     hook.cursor = 0;
+    hook.refCursor = 0;
     hook.seed = new Map();
     hook.selectValue = "";
     vi.mocked(addItemsToTemplateAction).mockClear();

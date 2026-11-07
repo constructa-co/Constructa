@@ -6,7 +6,9 @@ import { corePrimaryButton } from "@/lib/core-editing-palette";
 
 const hook = vi.hoisted(() => ({
     slots: [] as unknown[],
+    refs: [] as Array<{ current: unknown }>,
     cursor: 0,
+    refCursor: 0,
     seed: new Map<number, unknown>(),
 }));
 
@@ -28,6 +30,11 @@ vi.mock("react", async original => ({
                     typeof next === "function" ? (next as (v: unknown) => unknown)(hook.slots[i]) : next;
             },
         ];
+    },
+    useRef: (initial: unknown) => {
+        const i = hook.refCursor++;
+        if (!(i in hook.refs)) hook.refs[i] = { current: initial };
+        return hook.refs[i];
     },
     useEffect: () => {},
 }));
@@ -68,6 +75,7 @@ const libraryItems = [
 function renderMarkup(seed: Map<number, unknown> = new Map()) {
     hook.slots = [];
     hook.cursor = 0;
+    hook.refCursor = 0;
     hook.seed = seed;
     return renderToStaticMarkup(
         createElement(TemplateItemEditor, { templateId: "tpl-1", libraryItems }),
@@ -89,7 +97,9 @@ function addToKitButtonOpenTag(html: string) {
 
 beforeEach(() => {
     hook.slots = [];
+    hook.refs = [];
     hook.cursor = 0;
+    hook.refCursor = 0;
     hook.seed = new Map();
 });
 

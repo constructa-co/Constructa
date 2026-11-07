@@ -27,6 +27,10 @@
 /** Stable identifier of the platform terms document this record refers to. */
 export const PLATFORM_TERMS_DOCUMENT_ID = "constructa-platform-terms-of-service";
 
+/** Auth user_metadata keys for consent captured at sign-up (pre-migration fallback). */
+export const PLATFORM_TERMS_AUTH_METADATA_REVISION = "platform_terms_revision";
+export const PLATFORM_TERMS_AUTH_METADATA_ACCEPTED_AT = "platform_terms_accepted_at";
+
 /** Technical descriptor of the current revision of the visible document. */
 export const PLATFORM_TERMS_REVISION_MARCH_2026 = "platform-tos-2026-03";
 

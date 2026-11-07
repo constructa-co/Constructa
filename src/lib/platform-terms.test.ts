@@ -180,6 +180,20 @@ describe("recordPlatformTermsAcceptance", () => {
         });
     });
 
+    it("reports storage-not-installed when the consent table migration has not been applied", async () => {
+        const { deps } = makeDeps({
+            user: { id: "server-user-1" },
+            insertError: { message: "Could not find the table", code: "PGRST205" },
+        });
+
+        const result = await recordPlatformTermsAcceptance(
+            { acceptance: true, revision: PLATFORM_TERMS_CURRENT_REVISION },
+            deps,
+        );
+
+        expect(result).toEqual({ ok: false, code: "storage-not-installed" });
+    });
+
     it("reports a storage error honestly when the insert fails", async () => {
         const { deps } = makeDeps({
             user: { id: "server-user-1" },

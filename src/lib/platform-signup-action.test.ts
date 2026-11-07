@@ -33,7 +33,11 @@ vi.mock("@/lib/platform-terms-acceptance", () => ({
 }));
 
 import { platformSignupAction } from "@/lib/platform-signup-action";
-import { PLATFORM_TERMS_CURRENT_REVISION } from "@/lib/platform-terms";
+import {
+    PLATFORM_TERMS_AUTH_METADATA_ACCEPTED_AT,
+    PLATFORM_TERMS_AUTH_METADATA_REVISION,
+    PLATFORM_TERMS_CURRENT_REVISION,
+} from "@/lib/platform-terms";
 
 const VALID_INPUT = {
     email: "builder@example.com",
@@ -65,11 +69,14 @@ describe("signup source policy and defensive gate", () => {
 describe("signup orchestration behind the gate (offline mocks)", () => {
     beforeEach(() => {
         mocks.gate.disabled = false;
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date("2026-11-07T08:00:00.000Z"));
     });
 
     afterEach(() => {
         mocks.gate.disabled = true;
         vi.clearAllMocks();
+        vi.useRealTimers();
     });
 
     it("rejects malformed input without touching auth", async () => {
@@ -131,6 +138,10 @@ describe("signup orchestration behind the gate (offline mocks)", () => {
 
         expect(result).toEqual({ ok: true, outcome: "confirmation-required" });
         expect(mocks.signUp).toHaveBeenCalledTimes(1);
+        expect(mocks.signUp.mock.calls[0][0].options?.data).toEqual({
+            [PLATFORM_TERMS_AUTH_METADATA_REVISION]: PLATFORM_TERMS_CURRENT_REVISION,
+            [PLATFORM_TERMS_AUTH_METADATA_ACCEPTED_AT]: "2026-11-07T08:00:00.000Z",
+        });
         // No session → the recorder must not run and nothing is persisted.
         expect(mocks.recordConsent).not.toHaveBeenCalled();
     });
@@ -156,7 +167,13 @@ describe("signup orchestration behind the gate (offline mocks)", () => {
         expect(mocks.signUp).toHaveBeenCalledWith({
             email: "builder@example.com",
             password: "correct horse 1",
-            options: { emailRedirectTo: "https://constructa-nu.vercel.app/auth/callback?next=%2Fauth%2Fplatform-terms" },
+            options: {
+                emailRedirectTo: "https://constructa-nu.vercel.app/auth/callback?next=%2Fauth%2Fplatform-terms",
+                data: {
+                    [PLATFORM_TERMS_AUTH_METADATA_REVISION]: PLATFORM_TERMS_CURRENT_REVISION,
+                    [PLATFORM_TERMS_AUTH_METADATA_ACCEPTED_AT]: "2026-11-07T08:00:00.000Z",
+                },
+            },
         });
         // Sequencing: consent is recorded strictly after account creation,
         // with the trusted revision and explicit acceptance only.
@@ -185,6 +202,20 @@ describe("signup orchestration behind the gate (offline mocks)", () => {
         const result = await platformSignupAction(VALID_INPUT);
 
         expect(result).toEqual({ ok: true, outcome: "created-and-recorded", userId: "server-user-1" });
+    });
+
+    it("succeeds when the consent table is not installed yet because sign-up metadata carries revision and timestamp", async () => {
+        mocks.signUp.mockResolvedValue({
+            data: { user: { id: "server-user-1" }, session: { access_token: "server-session" } },
+            error: null,
+        });
+        mocks.recordConsent.mockResolvedValue({ ok: false, code: "storage-not-installed" });
+
+        const result = await platformSignupAction(VALID_INPUT);
+
+        expect(result).toEqual({ ok: true, outcome: "created-and-recorded", userId: "server-user-1" });
+        expect(mocks.signUp).toHaveBeenCalledTimes(1);
+        expect(mocks.recordConsent).toHaveBeenCalledTimes(1);
     });
 
     it("reports consent-not-stored honestly and never retries signup internally", async () => {

@@ -114,6 +114,18 @@ describe("auth confirm page", () => {
         expect(state.replace).toHaveBeenCalledWith("/fake-landing");
     });
 
+    it("passes hash carrier tokens to setSession exactly as present in the fragment", async () => {
+        address.hash = "#access_token=exact-access-carrier&refresh_token=exact-refresh-carrier&type=signup";
+        hydrate();
+        await settle();
+
+        expect(state.setSession).toHaveBeenCalledExactlyOnceWith({
+            access_token: "exact-access-carrier",
+            refresh_token: "exact-refresh-carrier",
+        });
+        expect(state.replace).toHaveBeenCalledWith("/fake-landing");
+    });
+
     it("keeps the existing returned-error and missing-token messages", async () => {
         state.setSession.mockResolvedValue({ error: { message: "Fake returned error" } });
         hydrate();

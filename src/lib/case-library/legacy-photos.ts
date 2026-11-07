@@ -12,8 +12,8 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 export const LEGACY_CASE_STUDY_PHOTOS_MESSAGE =
     "Check the pictures on each past work example. Each one can have up to three. Each link must start with https (or use http://localhost or http://127.0.0.1 when testing locally).";
 
-/** Null when `photos` is acceptable on one older entry; otherwise `"photos"`. */
-export function legacyEntryPhotosProblem(photos: unknown): "photos" | null {
+/** Null when `photos` is acceptable on one older entry; otherwise a problem code (always `"photos"` today). */
+export function legacyEntryPhotosProblem(photos: unknown): string | null {
     if (!Array.isArray(photos)) return "photos";
     if (photos.length > CASE_STUDY_PHOTO_COUNT) return "photos";
     if (photoInputWouldBeCut(photos)) return "photos";

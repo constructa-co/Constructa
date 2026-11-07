@@ -396,3 +396,10 @@ CompactA036Complete is ORIGINALLOCALnarrative candidate contingent on freshactua
 - **`src/app/dashboard/settings/case-studies/case-study-photo-journey.test.ts` (lines ~45–72):** added legacy max-three publication cap and proposal-document case-study photo wiring checks. Intent: close A038 end-to-end proof gaps without live storage or SQL.
 - **`src/app/dashboard/settings/case-studies/case-study-enhance-outcomes.test.tsx` (new):** mocked enhance outcomes — switch OFF, API failure, and transport throw must not overwrite contractor text; COHORT_AI_OFF notice when disabled. Intent: material check for optional AI text tidy alongside existing photo journey tests.
 - **Checks:** focused vitest **13 files / 197 tests** PASS; `npx tsc --noEmit` PASS (Node 24.19). No product switches changed (`CASE_LIBRARY_DRAFT_PHOTOS_ON_WIRE`, `CASE_STUDY_TEXT_ENHANCE_ENABLED` remain false); no deploy, SQL, or paid AI calls.
+
+### Legacy save enforces three photographs (7 Nov 2026, same branch)
+
+- **`src/lib/case-library/legacy-photos.ts`:** pure validation (`legacyEntryPhotosProblem`, `legacyCaseStudiesPhotosProblem`) using the same slot/url rules as the library (`photos.ts`).
+- **`src/app/dashboard/settings/case-studies/actions.ts`:** `saveCaseStudiesAction` refuses before write when pictures are invalid; message `LEGACY_CASE_STUDY_PHOTOS_MESSAGE`.
+- **`src/app/dashboard/settings/case-studies/legacy-save-photos.ts`:** thin re-export so older-editor `actions.ts` stays free of `case-library` imports (boundary test).
+- **Tests:** `legacy-photos.test.ts`, updated `save-action.test.ts` (refuse fourth/unsafe/non-list; valid bulk save unchanged).

@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { enhanceCaseStudy, type CaseStudyResult } from "@/lib/cohort-ai/case-study-enhance";
 import { caseStudyTextEnhanceEnabled } from "@/lib/cohort-ai/case-study-enhance-enabled";
 import { COHORT_AI_OFF, COHORT_AI_UNAVAILABLE } from "@/lib/cohort-ai/shared";
+import { legacyCaseStudiesPhotosProblem, LEGACY_CASE_STUDY_PHOTOS_MESSAGE } from "./legacy-save-photos";
 import { SAVE_MESSAGES, type SaveCaseStudiesResult } from "./save-state";
 
 /**
@@ -25,9 +26,10 @@ import { SAVE_MESSAGES, type SaveCaseStudiesResult } from "./save-state";
  *     that is not understood): NOT KNOWN. An error after a write is possible,
  *     so no error is taken as proof that nothing was written.
  *
- * What is inside the list is not inspected, capped, tidied or reshaped: every
- * entry and every key is sent as it was given. No other column is named.
- * The database's own words never reach the result or the log.
+ * Apart from photographs on each entry (up to three safe urls, checked with the
+ * same rules as the library journey), nothing in the list is capped, tidied or
+ * reshaped: every entry and every key is sent as it was given. No other column
+ * is named. The database's own words never reach the result or the log.
  */
 export async function saveCaseStudiesAction(caseStudies: unknown): Promise<SaveCaseStudiesResult> {
     let auth: Awaited<ReturnType<typeof requireAuth>>;
@@ -37,6 +39,9 @@ export async function saveCaseStudiesAction(caseStudies: unknown): Promise<SaveC
         return { status: "signed-out", message: SAVE_MESSAGES.signedOut };
     }
     if (!Array.isArray(caseStudies)) return { status: "refused", message: SAVE_MESSAGES.refused };
+    if (legacyCaseStudiesPhotosProblem(caseStudies) !== null) {
+        return { status: "refused", message: LEGACY_CASE_STUDY_PHOTOS_MESSAGE };
+    }
     const { user, supabase } = auth;
 
     const unknown = (kind: "error-returned" | "threw" | "reply-not-understood" | "row-not-own"): SaveCaseStudiesResult => {

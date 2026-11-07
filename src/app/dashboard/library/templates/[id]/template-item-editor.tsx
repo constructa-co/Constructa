@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type KeyboardEvent } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,6 +64,11 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
     const [filterQuery, setFilterQuery] = useState("");
     const [addError, setAddError] = useState<string | null>(null);
 
+    const selectedItemIdRef = useRef(selectedItemId);
+    const quantityRef = useRef(quantity);
+    selectedItemIdRef.current = selectedItemId;
+    quantityRef.current = quantity;
+
     const normalizedFilter = filterQuery.trim().toLowerCase();
     const visibleLibraryItems = normalizedFilter === ""
         ? libraryItems
@@ -78,6 +83,8 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
     const handleAdd = async () => {
         if (!selectedItemId) return;
 
+        const submittedItemId = selectedItemId;
+        const submittedQuantity = quantity;
         setAddError(null);
         setIsPending(true);
         try {
@@ -93,8 +100,12 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
                 unit_cost: item.unit_cost,
                 quantity: quantity
             }]);
-            setSelectedItemId("");
-            setQuantity(1);
+            if (selectedItemIdRef.current === submittedItemId) {
+                setSelectedItemId("");
+            }
+            if (quantityRef.current === submittedQuantity) {
+                setQuantity(1);
+            }
         } catch (error) {
             const detail = error instanceof Error ? error.message : "Unknown error";
             setAddError(

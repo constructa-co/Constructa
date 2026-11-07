@@ -68,6 +68,7 @@ import { addItemsToTemplateAction } from "../../templates-actions";
 type Element = ReactElement<Record<string, unknown>>;
 
 const libraryItems = [
+    { id: "item-a", category: "Plumbing", description: "Pipe section", unit: "nr", unit_cost: 12 },
     { id: "item-b", category: "Electrical", description: "Cable run", unit: "m", unit_cost: 4 },
 ];
 
@@ -171,5 +172,37 @@ describe("TemplateItemEditor Add to Kit outcomes (ROB1217)", () => {
         const done = renderEditor(new Map(hook.slots.map((v, i) => [i, v])));
         expect(done.markup).not.toMatch(/role="alert"/);
         expect(slot(0)).toBe("");
+    });
+
+    it("on deferred success preserves selection and quantity edited while pending, still resets when unchanged", async () => {
+        let resolveAdd!: () => void;
+        const addPromise = new Promise<void>(resolve => { resolveAdd = resolve; });
+        vi.mocked(addItemsToTemplateAction).mockReturnValueOnce(addPromise);
+
+        const seed = new Map<number, unknown>([[0, "item-b"], [1, 2.5], [2, false], [3, ""], [4, null]]);
+        const { tree } = renderEditor(seed);
+        const pending = clickAdd(tree);
+
+        hook.slots[0] = "item-a";
+        hook.slots[1] = 5;
+        renderEditor(new Map(hook.slots.map((v, i) => [i, v])));
+
+        resolveAdd();
+        await pending;
+
+        expect(addItemsToTemplateAction).toHaveBeenCalledWith("tpl-1", [{
+            category: "Electrical", description: "Cable run", unit: "m", unit_cost: 4, quantity: 2.5,
+        }]);
+        expect(slot(0)).toBe("item-a");
+        expect(slot(1)).toBe(5);
+        expect(slot(2)).toBe(false);
+        expect(slot(4)).toBeNull();
+
+        vi.mocked(addItemsToTemplateAction).mockResolvedValueOnce(undefined);
+        hook.cursor = 0;
+        const { tree: unchangedTree } = renderEditor(new Map(hook.slots.map((v, i) => [i, v])));
+        await clickAdd(unchangedTree);
+        expect(slot(0)).toBe("");
+        expect(slot(1)).toBe(1);
     });
 });

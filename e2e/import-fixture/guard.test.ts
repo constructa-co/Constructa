@@ -15,11 +15,36 @@ const run = promisify(execFile);
 const GIT_DEADLINE_MS = 4000;
 // .gitignore is tracked, so an index Git cannot see lists nothing and fails the exact match.
 const HARNESS_UNTRACKED = [".gitignore"];
+// Inherited core.fsmonitor (common on macOS) can block git ls-files for minutes waiting on Watchman.
+// Disable it for subprocess checks only — no repo metadata changes.
+const GIT_SUBPROCESS_CONFIG = ["-c", "core.fsmonitor=false", "-c", "core.untrackedCache=false"] as const;
+
+type ExecResult = { stdout: string };
+
+function argvForGit(binary: string, subcommand: string, args: string[]): string[] {
+    return binary === "git" ? [...GIT_SUBPROCESS_CONFIG, subcommand, ...args] : [subcommand, ...args];
+}
+
+async function runGit(
+    binary: string,
+    subcommand: string,
+    args: string[],
+    options: { cwd: string; deadlineMs?: number; env?: NodeJS.ProcessEnv },
+): Promise<ExecResult> {
+    const deadlineMs = options.deadlineMs ?? GIT_DEADLINE_MS;
+    return run(binary, argvForGit(binary, subcommand, args), {
+        cwd: options.cwd,
+        env: options.env ?? process.env,
+        encoding: "utf8",
+        timeout: deadlineMs,
+        killSignal: "SIGKILL",
+    }) as Promise<ExecResult>;
+}
 
 // Asynchronous so the event loop, and with it the Vitest timer, survives a child that cannot be killed.
 async function trackedAmong(cwd: string, git = "git", deadlineMs = GIT_DEADLINE_MS, env: NodeJS.ProcessEnv = process.env) {
     try {
-        const { stdout } = await run(git, ["ls-files", "--", `src/app/${HARNESS_ROUTE}`, ".gitignore"], { cwd, env, encoding: "utf8", timeout: deadlineMs, killSignal: "SIGKILL" });
+        const { stdout } = await runGit(git, "ls-files", ["--", `src/app/${HARNESS_ROUTE}`, ".gitignore"], { cwd, deadlineMs, env });
         return stdout.split("\n").filter(Boolean);
     } catch (error) {
         const { code, signal, killed, stderr } = error as NodeJS.ErrnoException & { signal?: string; killed?: boolean; stderr?: string };
@@ -30,9 +55,9 @@ async function trackedAmong(cwd: string, git = "git", deadlineMs = GIT_DEADLINE_
 async function withScratchRepo(check: (dir: string) => Promise<void>) {
     const dir = mkdtempSync(path.join(tmpdir(), "import-fixture-guard-"));
     try {
-        await run("git", ["init", "-q"], { cwd: dir, timeout: GIT_DEADLINE_MS, killSignal: "SIGKILL" });
+        await runGit("git", "init", ["-q"], { cwd: dir });
         writeFileSync(path.join(dir, ".gitignore"), "x\n");
-        await run("git", ["add", ".gitignore"], { cwd: dir, timeout: GIT_DEADLINE_MS, killSignal: "SIGKILL" });
+        await runGit("git", "add", [".gitignore"], { cwd: dir });
         await check(dir);
     } finally {
         rmSync(dir, { recursive: true, force: true });
@@ -68,7 +93,7 @@ describe("website-import fixture harness", () => {
             const file = `src/app/${HARNESS_ROUTE}/page.tsx`;
             mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
             writeFileSync(path.join(dir, file), "x\n");
-            await run("git", ["add", file], { cwd: dir, timeout: GIT_DEADLINE_MS, killSignal: "SIGKILL" });
+            await runGit("git", "add", [file], { cwd: dir });
             expect(await trackedAmong(dir)).not.toEqual(HARNESS_UNTRACKED);
         });
     });

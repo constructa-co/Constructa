@@ -18,6 +18,15 @@
 
 Base branch: `origin/cq/cq-0105-a001-initialize-kit-primary` (includes `5d73ebc`).
 
+## 2026-11-07 — A001 verify follow-up (cursor/a001-verify-20261107)
+
+| Paths | Lines (approx.) | Change | Intent |
+|-------|----------------|--------|--------|
+| `contract-admin/components/SupervisorInvite.tsx` | 17, 85–95 | Name/email inputs use `coreFocusRing` | Contract-admin focus off blue rings |
+| `dashboard-period-metrics.test.tsx` | 89–97 | List-first search assertion + board toggle | Replicate `09c446a` Vitest fix |
+| `e2e/local-phase1/a111-readability.spec.ts` | 53 | `const fg` | ESLint prefer-const |
+| `dashboard-route-shell.test.tsx`, `dashboard-route-shell-page.test.tsx` | tests | JSX composition (`.test.ts` → `.tsx`) | ESLint react/no-children-prop + tsc |
+
 ## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
 
 | Paths | Change | Intent |

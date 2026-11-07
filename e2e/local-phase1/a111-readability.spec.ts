@@ -50,7 +50,7 @@ async function measureReadableText(locator: Locator): Promise<MeasureResult> {
             fg.map((c, i) => Math.round(fgAlpha * c + (1 - fgAlpha) * bg[i]));
 
         let node: Element | null = element;
-        let fg = parse(getComputedStyle(element).color);
+        const fg = parse(getComputedStyle(element).color);
         const opacity = Number.parseFloat(getComputedStyle(element).opacity) || 1;
         const fontSizePx = Number.parseFloat(getComputedStyle(element).fontSize);
         const fontWeight = getComputedStyle(element).fontWeight;

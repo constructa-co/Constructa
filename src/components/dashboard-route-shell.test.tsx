@@ -1,4 +1,3 @@
-import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import DashboardRouteShell from "./dashboard-route-shell";
@@ -6,10 +5,9 @@ import DashboardRouteShell from "./dashboard-route-shell";
 describe("DashboardRouteShell", () => {
     it("exposes route shell markers and aligns header above body", () => {
         const html = renderToStaticMarkup(
-            createElement(DashboardRouteShell, {
-                header: createElement("nav", { "aria-label": "Job context" }, "Pipeline / Job / Brief"),
-                children: createElement("section", { "data-test": "body" }, "Content"),
-            }),
+            <DashboardRouteShell header={<nav aria-label="Job context">Pipeline / Job / Brief</nav>}>
+                <section data-test="body">Content</section>
+            </DashboardRouteShell>,
         );
         expect(html).toMatch(/data-dashboard-route-shell=/);
         expect(html).toMatch(/data-route-header=/);
@@ -21,7 +19,9 @@ describe("DashboardRouteShell", () => {
 
     it("renders body-only routes without a header slot", () => {
         const html = renderToStaticMarkup(
-            createElement(DashboardRouteShell, null, createElement("p", null, "Only body")),
+            <DashboardRouteShell>
+                <p>Only body</p>
+            </DashboardRouteShell>,
         );
         expect(html).toContain('data-route-body="true"');
         expect(html).not.toContain("data-route-header");

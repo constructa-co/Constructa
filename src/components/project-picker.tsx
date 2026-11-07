@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, FolderOpen, ArrowRight, Plus } from "lucide-react";
 import Link from "next/link";
+import { coreFocusRing, coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 interface Project {
     id: string;
@@ -85,7 +86,7 @@ export default function ProjectPicker({ projects, targetPath, title, description
                         value={query}
                         onChange={e => setQuery(e.target.value)}
                         placeholder="Search projects or clients…"
-                        className="w-full bg-slate-800/50 border border-slate-700 rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30"
+                        className={`w-full bg-slate-800/50 border border-slate-700 rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 ${coreFocusRing}`}
                     />
                 </div>
             )}
@@ -98,7 +99,7 @@ export default function ProjectPicker({ projects, targetPath, title, description
                     <p className="text-slate-600 text-sm mt-1">Create a project to get started</p>
                     <Link
                         href="/dashboard/projects/new"
-                        className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                        className={`inline-flex items-center gap-2 mt-4 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                     >
                         <Plus className="w-4 h-4" /> New Project
                     </Link>

@@ -15,6 +15,7 @@ import { computeContractSumValue } from "@/lib/financial";
 import { calendarDayDiff } from "@/lib/dates";
 import { getHomePresentation } from "@/lib/first-session";
 import FirstProjectStart from "@/components/first-project-start";
+import ui from "@/components/home-workspace.module.css";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmt = (n: number) => {
@@ -81,7 +82,7 @@ function KpiCard({ label, value, sub, colour, icon: Icon, href }: {
 }) {
     const inner = (
         <div className={`bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 ${href ? "hover:border-slate-600 transition-colors" : ""}`}>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2" data-home-kpi-heading>
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</p>
                 <Icon className={`w-4 h-4 ${colour}`} />
             </div>
@@ -89,7 +90,7 @@ function KpiCard({ label, value, sub, colour, icon: Icon, href }: {
             <p className="text-xs text-slate-500 mt-0.5">{sub}</p>
         </div>
     );
-    return href ? <Link href={href}>{inner}</Link> : inner;
+    return href ? <Link href={href} data-home-kpi>{inner}</Link> : inner;
 }
 
 // ── Alert banner ──────────────────────────────────────────────────────────────
@@ -292,11 +293,11 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
     });
 
     return (
-        <div className="min-h-screen bg-[#0a0a0a] p-6">
+        <div className={`${ui.frame} min-h-screen bg-[#0a0a0a] p-6`}>
             <div className="max-w-7xl mx-auto space-y-5">
 
                 {/* ── Header ── */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between" data-home-header>
                     <div>
                         <h1 className="text-2xl font-bold text-white">
                             {profile?.company_name ?? "Dashboard"}
@@ -495,7 +496,7 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
                 )}
 
                 {/* ── KPI strip row 1: financial ── */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-home-kpis>
                     <KpiCard label="Pipeline Value"    value={fmt(pipelineValue)}   sub={`${pipelineProjects.length} active proposals`} colour="text-blue-400"    icon={TrendingUp}  href="/dashboard" />
                     <KpiCard label="Active Projects"   value={String(activeProjects.length)} sub={activeProjects.length === 0 ? "none on site" : "on site"} colour="text-emerald-400" icon={HardHat} />
                     <KpiCard label="Certified Outstanding" value={totalOutstanding > 0 ? fmt(totalOutstanding) : "—"} sub={totalOutstanding > 0 ? `${sentInvoices.length} sent invoice${sentInvoices.length !== 1 ? "s" : ""}` : "all invoices paid"} colour={totalOutstanding > 0 ? "text-amber-400" : "text-slate-500"} icon={CreditCard} />
@@ -503,7 +504,7 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
                 </div>
 
                 {/* ── KPI strip row 2: project health ── */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-home-kpis>
                     <KpiCard label="Pending Variations" value={pendingVarValue > 0 ? fmt(pendingVarValue) : String(pendingVars.length)} sub={`${pendingVars.length} awaiting approval`} colour={pendingVars.length > 0 ? "text-violet-400" : "text-slate-500"} icon={GitBranch} />
                     <KpiCard label="CE Exposure"        value={ceExposure > 0 ? fmt(ceExposure) : "—"} sub={`${openCEs.length} open change event${openCEs.length !== 1 ? "s" : ""}`} colour={ceExposure > 0 ? "text-red-400" : "text-slate-500"} icon={ShieldAlert} />
                     <KpiCard label="Open RFIs"          value={String(openRfis.length)} sub={overdueRfis.length > 0 ? `${overdueRfis.length} overdue` : "none overdue"} colour={overdueRfis.length > 0 ? "text-red-400" : openRfis.length > 0 ? "text-amber-400" : "text-slate-500"} icon={MessageSquare} />
@@ -539,6 +540,7 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <Link href={`/dashboard/projects/overview?projectId=${p.id}`}
+                                                            data-home-project-name
                                                             className="text-sm font-semibold text-white hover:text-blue-300 transition-colors truncate">
                                                             {p.name}
                                                         </Link>

@@ -1,0 +1,25 @@
+{
+  "source": "Robert's direct Job brief Steps2-4 walkthrough feedback, 18 October 2026",
+  "status": "Record-only until Robert explicitly releases implementation after the tour.",
+  "correction": "Robert explicitly says he did not click Step2. Agent observed it already active but has no evidence explaining the transition; withdraw any suggestion that Robert caused it. Do not assign cause or acceptance.",
+  "step2": {
+    "problem": "Irrelevant exhaustive trade list, e.g. asbestos removal, repeated again. Dislikes Work included wording.",
+    "direction": "Contractor-led high-level elemental breakdown of actual activities, e.g. site setup, expressed by the contractor. Not a mandatory generic discipline checklist or automatically invented programme/estimate lines. Exact wording and input model still to design."
+  },
+  "step3": {
+    "problem": "Site and assumptions repeats information collected at new project.",
+    "removeDuplicateEntry": [
+      "Site address",
+      "Site postcode",
+      "Likely start date"
+    ],
+    "retain": "Access restrictions and assumptions are useful.",
+    "roughValue": "Robert explicitly states Rough value was to be removed. This supersedes earlier uncertainty over changing its label. Remove it from this capture flow; preserve existing stored values and any separate estimate/report use pending source review, no destructive data migration or pricing change."
+  },
+  "step4": {
+    "direction": "No separate Review step desired; proceed straight to Build the price.",
+    "bounds": "Simplify journey without silently dropping validation, saved/newer edits, failure handling or readiness rules. Existing Build the price may save; no action invoked in this tour."
+  },
+  "visual": "Step tiles and fonts feel clunky; improve sophistication/readability and flow. Blue Next and other blue accents remain unacceptable against approved charcoal/green palette.",
+  "execution": "At observation existing jobA brief was Step4/Saved, no cause assigned to the step change. Agent used read-only existing Estimates link, not Build the price, so no brief save/create/AI/provider action. No implementation/tests/diagnostics."
+}

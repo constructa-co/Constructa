@@ -1,10 +1,29 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useId, useReducer, useRef, useState, type Reducer } from "react";
+import ui from "@/components/past-work.module.css";
 import { toast } from "sonner";
 import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Loader2, MapPin, Briefcase, Calendar, PoundSterling, Sparkles } from "lucide-react";
 import { saveCaseStudiesAction, enhanceCaseStudyAction } from "./actions";
+import type { CaseStudyResult, CaseStudySection } from "@/lib/cohort-ai/case-study-enhance";
+import { caseStudyTextEnhanceEnabled } from "@/lib/cohort-ai/case-study-enhance-enabled";
+import { COHORT_AI_OFF } from "@/lib/cohort-ai/shared";
+import { pendingFrom, sectionState, settle, type PendingCaseStudySuggestion } from "@/lib/cohort-ai/case-study-suggestion";
 import { uploadProfileImageAction } from "@/app/storage/actions";
+import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
+import { SAVE_MESSAGES, initialSaveState, needsLeaveWarning, requestOf, saveReducer, statusLine, type SaveAction, type SaveCaseStudiesResult, type SaveState } from "./save-state";
+import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
+import {
+    coreFocusRing,
+    coreFocusVisibleRing,
+    coreProfileFieldBase,
+    coreProfileTextarea,
+    coreSuggestionPrimary,
+} from "@/lib/core-editing-palette";
+import ChallengeResolution, { NO_STORY, storyTyped, type StoryNotes } from "./challenge-resolution";
+
+type Enhance = (whatWeDelivered: string, valueAdded: string, projectName: string, projectType: string) => Promise<CaseStudyResult>;
+type Save = (caseStudies: unknown) => Promise<SaveCaseStudiesResult>;
 
 interface CaseStudy {
     id: string;
@@ -19,11 +38,62 @@ interface CaseStudy {
     photos: string[];
 }
 
-export default function CaseStudiesClient({ initialCaseStudies, userId }: { initialCaseStudies: CaseStudy[]; userId: string }) {
-    const [caseStudies, setCaseStudies] = useState<CaseStudy[]>(initialCaseStudies);
-    const [isPending, startTransition] = useTransition();
+/**
+ * The older case-study editor. Saving here replaces the whole stored list and
+ * is NOT protected against another tab: a tab that loaded an older list still
+ * overwrites a newer one. What this screen does guarantee is narrower: it
+ * says "saved" only when a save was confirmed, it never clears what was typed
+ * because a save failed, was slow or was not confirmed, and it warns before
+ * leaving by reload or by a link. It does not cover navigation made by code
+ * or the browser's Back and Forward buttons.
+ */
+export default function CaseStudiesClient({ initialCaseStudies, userId, enhance = enhanceCaseStudyAction, save = saveCaseStudiesAction }: {
+    initialCaseStudies: CaseStudy[];
+    userId: string;
+    /** Defaults to the real server action; replaced only by tests and the fixture harness. */
+    enhance?: Enhance;
+    /** Defaults to the real server action; replaced only by tests and the fixture harness. */
+    save?: Save;
+}) {
+    const [state, dispatch] = useReducer(saveReducer as Reducer<SaveState<CaseStudy>, SaveAction<CaseStudy>>, initialCaseStudies, initialSaveState<CaseStudy>);
+    const caseStudies = state.draft;
+    const isPending = state.saving !== null;
+    const sentToken = useRef(0);
+    /** Every change to the list goes through here: it changes what is on screen and nothing else. */
+    const setCaseStudies = (change: (previous: CaseStudy[]) => CaseStudy[]) => dispatch({ type: "edit", change });
+    // One handle per row on this page, in list order, changed only where a row is added or removed. A stored
+    // `id` can be missing or shared, so it cannot say which row an upload was for. Handles are never saved.
+    const rowHandles = useRef(initialCaseStudies.map((_, index) => index));
+    const nextRowHandle = useRef(initialCaseStudies.length);
+    /** The latest pick for each row and slot. A reply from an older pick for that slot is not used. */
+    const latestPhotoPick = useRef(new Map<string, symbol>());
+    /** Rows, by handle, with a challenge or how it was resolved typed but not yet added to "What We Delivered". */
+    const [storyRows, setStoryRows] = useState<number[]>([]);
+
+    // Reload, closing the tab and plain links ask first, also while a challenge is typed but not added. Navigation made by code, and Back and Forward, are not covered.
+    useUnsavedGuard(needsLeaveWarning(state) || storyRows.length > 0, SAVE_MESSAGES.leaveConfirm);
+
+    // Sends the save the rules started: exactly the copy they recorded, once, however often this runs or the button is pressed.
+    useEffect(() => {
+        const request = requestOf(state);
+        if (!request || sentToken.current === request.token) return;
+        sentToken.current = request.token;
+        void (async () => {
+            let result: SaveCaseStudiesResult;
+            try {
+                result = await save(request.sent);
+            } catch {
+                // The request itself failed. Whether it reached the server is not known.
+                result = { status: "unknown", message: SAVE_MESSAGES.unknown };
+            }
+            dispatch({ type: "save/reply", token: request.token, result });
+            // A success message only with evidence of a save.
+            if (result.status === "saved") toast.success("Case studies saved");
+        })();
+    });
 
     const addCaseStudy = () => {
+        rowHandles.current.push(nextRowHandle.current++);
         setCaseStudies(prev => [...prev, {
             id: crypto.randomUUID(),
             projectName: "",
@@ -43,43 +113,100 @@ export default function CaseStudiesClient({ initialCaseStudies, userId }: { init
     };
 
     const removeCaseStudy = (index: number) => {
+        const [removed] = rowHandles.current.splice(index, 1);
+        setStoryRows(prev => prev.filter(handle => handle !== removed));
         setCaseStudies(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleSave = () => {
-        startTransition(async () => {
-            await saveCaseStudiesAction(caseStudies);
-            toast.success("Case studies saved");
-        });
+    /** Keeps the leave warning on while a row has a challenge or how it was resolved typed but not added. */
+    const markStory = (index: number, typed: boolean) => {
+        const handle = rowHandles.current[index];
+        setStoryRows(prev => (typed ? (prev.includes(handle) ? prev : [...prev, handle]) : prev.filter(entry => entry !== handle)));
     };
 
+    /** Asks the rules to start a save. They decide whether one starts; with nothing to save, nothing is sent. */
+    const handleSave = () => dispatch({ type: "save/start" });
+    const status = statusLine(state);
+    const trouble = state.notice.kind === "failed" || state.notice.kind === "unknown" || state.uncertain;
+
     const handlePhotoUpload = async (csIndex: number, slot: number, file: File) => {
-        const cs = caseStudies[csIndex];
+        // Rows and photos can change while this waits, so the reply is placed from what is there when it arrives.
+        const row = rowHandles.current[csIndex];
+        const pickKey = `${row}:${slot}`;
+        const pick = Symbol();
+        latestPhotoPick.current.set(pickKey, pick);
         const formData = new FormData();
         formData.set("file", file);
         formData.set("purpose", "case-study");
-        const result = await uploadProfileImageAction(formData);
-        if (result.url) {
-            const newPhotos = [...(cs.photos || ["", "", ""])];
-            newPhotos[slot] = result.url;
-            updateCaseStudy(csIndex, "photos", newPhotos);
+        let result: Awaited<ReturnType<typeof uploadProfileImageAction>>;
+        try {
+            result = await uploadProfileImageAction(formData);
+        } catch {
+            // The request itself failed. Whether the file reached storage is not known; the photo has not been added.
+            result = { error: "We couldn't confirm that photo uploaded, so it hasn't been added. Please try again." };
+        }
+        const rowIndex = rowHandles.current.indexOf(row);
+        if (rowIndex === -1) {
+            toast.error("That past work was removed, so its photo wasn't added.");
+            return;
+        }
+        if (latestPhotoPick.current.get(pickKey) !== pick) return;
+        const { url } = result;
+        if (url) {
+            setCaseStudies(prev => prev.map((cs, i) => {
+                if (i !== rowIndex) return cs;
+                const newPhotos = [...(cs.photos || ["", "", ""])];
+                newPhotos[slot] = url;
+                return { ...cs, photos: newPhotos };
+            }));
             toast.success("Photo uploaded");
         } else {
             toast.error(result.error || "Upload failed");
         }
     };
 
-    const inputCls = "w-full h-10 rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600";
+    /** Takes a photo off the screen copy only. The file stays in storage; a pick still on its way for this slot no longer counts. */
+    const handlePhotoRemove = (csIndex: number, slot: number) => {
+        latestPhotoPick.current.set(`${rowHandles.current[csIndex]}:${slot}`, Symbol());
+        setCaseStudies(prev => prev.map((cs, i) => {
+            if (i !== csIndex) return cs;
+            const newPhotos = [...(cs.photos || ["", "", ""])];
+            newPhotos[slot] = "";
+            return { ...cs, photos: newPhotos };
+        }));
+    };
+
+    const inputCls = `${coreProfileFieldBase} h-10 ${coreFocusRing}`;
     const labelCls = "text-xs font-medium text-slate-400 block mb-1";
+    const editor = useRef<HTMLDivElement>(null);
+    const previousCount = useRef(caseStudies.length);
+    const focusedCard = useRef<number | null>(null);
+    useEffect(() => {
+        if (previousCount.current !== caseStudies.length && document.activeElement === document.body) {
+            const cards = editor.current?.querySelectorAll<HTMLElement>("[data-past-work-card]");
+            const index = caseStudies.length > previousCount.current ? caseStudies.length - 1 : Math.min(focusedCard.current ?? 0, caseStudies.length - 1);
+            const target = index >= 0 ? cards?.[index]?.querySelector<HTMLElement>("[data-past-work-heading]")
+                : editor.current?.querySelector<HTMLElement>("[data-add-example]");
+            target?.focus();
+        }
+        previousCount.current = caseStudies.length;
+    }, [caseStudies.length]);
 
     return (
-        <div className="space-y-6">
+        <div ref={editor} className={`${ui.editor} space-y-6`} onFocusCapture={(event) => {
+            const index = event.target.closest<HTMLElement>("[data-work-index]")?.dataset.workIndex;
+            focusedCard.current = index === undefined ? null : Number(index);
+        }}>
+            <datalist id="case-study-job-type-examples">
+                {JOB_TYPE_EXAMPLES.map(type => <option key={type} value={type} />)}
+            </datalist>
             {caseStudies.length === 0 && (
-                <div className="text-center py-16 border-2 border-dashed border-slate-700 rounded-xl">
-                    <Briefcase className="w-10 h-10 mx-auto text-slate-600 mb-3" />
-                    <p className="text-slate-500 text-sm mb-3">No case studies yet. Add your first to showcase past work in proposals.</p>
-                    <button onClick={addCaseStudy} className="text-sm font-semibold text-blue-400 hover:text-blue-300">
-                        + Add Case Study
+                <div className={ui.empty}>
+                    <Briefcase className="w-10 h-10" aria-hidden />
+                    <h2>Your next client hasn&apos;t seen your best work yet.</h2>
+                    <p>Start with one past project. Explain the work and the difference you made.</p>
+                    <button onClick={addCaseStudy} className={ui.primary}>
+                        Add your first example
                     </button>
                 </div>
             )}
@@ -92,28 +219,34 @@ export default function CaseStudiesClient({ initialCaseStudies, userId }: { init
                     onChange={(field, value) => updateCaseStudy(index, field, value)}
                     onRemove={() => removeCaseStudy(index)}
                     onPhotoUpload={(slot, file) => handlePhotoUpload(index, slot, file)}
+                    onPhotoRemove={(slot) => handlePhotoRemove(index, slot)}
+                    onStoryTyped={(typed) => markStory(index, typed)}
                     inputCls={inputCls}
                     labelCls={labelCls}
+                    enhance={enhance}
                 />
             ))}
 
-            <div className="flex items-center justify-between pt-2">
+            <div className={ui.saveBar}>
                 <button
                     onClick={addCaseStudy}
-                    className="flex items-center gap-2 text-sm font-semibold text-blue-400 hover:text-blue-300 bg-blue-900/20 hover:bg-blue-900/40 border border-blue-700/40 rounded-lg px-4 py-2.5 transition-colors"
+                    data-add-example
+                    className={`flex items-center gap-2 text-sm font-semibold text-emerald-200 hover:text-emerald-100 bg-emerald-950/30 hover:bg-emerald-950/50 border border-emerald-600/40 rounded-lg px-4 py-2.5 transition-colors ${coreFocusVisibleRing}`}
                 >
                     <Plus className="w-4 h-4" />
-                    Add Case Study
+                    Add another example
                 </button>
 
                 <button
                     onClick={handleSave}
                     disabled={isPending}
-                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-xl font-bold text-sm transition-all"
+                    className={ui.primary}
                 >
-                    {isPending ? "Saving..." : "Save All Case Studies"}
+                    {isPending ? "Saving..." : state.notice.kind === "failed" || state.notice.kind === "unknown" ? "Try again" : "Save all past work"}
                 </button>
             </div>
+            <p className={ui.saveNote}>Your changes stay on this page until you save. This button saves the whole list, not just the open example.</p>
+            <p role="status" aria-live="polite" data-case-studies-save-status data-trouble={trouble} className={status ? ui.status : "sr-only"}>{status}</p>
         </div>
     );
 }
@@ -124,133 +257,216 @@ function CaseStudyCard({
     onChange,
     onRemove,
     onPhotoUpload,
+    onPhotoRemove,
+    onStoryTyped,
     inputCls,
     labelCls,
+    enhance,
 }: {
+    enhance: Enhance;
     cs: CaseStudy;
     index: number;
     onChange: (field: keyof CaseStudy, value: string | string[]) => void;
     onRemove: () => void;
     onPhotoUpload: (slot: number, file: File) => void;
+    onPhotoRemove: (slot: number) => void;
+    onStoryTyped: (typed: boolean) => void;
     inputCls: string;
     labelCls: string;
 }) {
     const [expanded, setExpanded] = useState(true);
     const [enhancing, setEnhancing] = useState(false);
 
+    // A reply is held here until the contractor decides. It never replaces what is in the form by arriving.
+    const [pending, setPending] = useState<PendingCaseStudySuggestion | null>(null);
+    const [notice, setNotice] = useState<string | null>(null);
+    // A challenge and how it was resolved, as typed. Held by the card so closing it keeps them; never saved until added.
+    const [story, setStory] = useState<StoryNotes>(NO_STORY);
+    const changeStory = (next: StoryNotes) => { setStory(next); onStoryTyped(storyTyped(next)); };
+
     const handleEnhance = async () => {
+        // One request at a time: the button is disabled while this runs, and this guards a double press.
+        if (enhancing) return;
         if (!cs.whatWeDelivered && !cs.valueAdded) return;
+        if (!caseStudyTextEnhanceEnabled()) {
+            setNotice(COHORT_AI_OFF);
+            return;
+        }
+        // What the suggestion will have been written from, in case the contractor edits while it is on its way.
+        const askedFrom: Record<CaseStudySection, string> = { whatWeDelivered: cs.whatWeDelivered, valueAdded: cs.valueAdded };
         setEnhancing(true);
+        setNotice(null);
+        setPending(null);
         try {
-            const result = await enhanceCaseStudyAction(cs.whatWeDelivered, cs.valueAdded, cs.projectName, cs.projectType);
-            if (result.whatWeDelivered) onChange("whatWeDelivered", result.whatWeDelivered);
-            if (result.valueAdded) onChange("valueAdded", result.valueAdded);
-            toast.success("Case study enhanced");
+            const result = await enhance(askedFrom.whatWeDelivered, askedFrom.valueAdded, cs.projectName, cs.projectType);
+            const next = pendingFrom(result, askedFrom);
+            setPending(next);
+            // A suggestion is shown beside the text it is about, so that part of the card must be open.
+            if (next) setExpanded(true);
+            if (!result.suggested) setNotice(result.message ?? "The assistant isn't available right now. Nothing has been changed.");
+            else if (!next) setNotice("The assistant had nothing to change. Your wording is as it was.");
+            else setNotice("Suggested wording is shown below. Nothing changes unless you choose to use it.");
         } catch {
-            toast.error("AI enhance failed");
+            setNotice("The assistant isn't available right now. Nothing has been changed.");
         }
         setEnhancing(false);
     };
 
-    return (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 bg-slate-800/60 border-b border-slate-700">
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Case Study {index + 1}</span>
-                    {cs.projectName && <span className="text-sm font-semibold text-slate-200">— {cs.projectName}</span>}
+    const suggestionPanel = (section: CaseStudySection, label: string) => {
+        const state = sectionState(pending, section, cs[section]);
+        if (state === "none" || !pending) return null;
+        const suggestion = pending.suggestions[section] ?? "";
+        return (
+            <div data-case-study-suggestion={section} data-state={state} role="group" aria-label={`Suggested wording for ${label}`} className="mt-2 rounded-lg border border-dashed border-violet-300 bg-violet-950 p-3 space-y-2">
+                <p className="text-xs font-semibold text-violet-100">
+                    Suggested wording. Check it says only what you wrote. Nothing changes unless you use it.
+                </p>
+                {state === "stale" && (
+                    <p className="text-xs font-semibold text-amber-200">
+                        You have changed this since you asked. The suggestion was written from your earlier wording, not what is in the box now.
+                    </p>
+                )}
+                <p className="text-sm text-slate-100 whitespace-pre-wrap break-words">{suggestion}</p>
+                <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={() => { onChange(section, suggestion); setPending(settle(pending, section)); }} className={`${coreSuggestionPrimary} ${coreFocusVisibleRing}`}>
+                        {state === "stale" ? "Replace what I have now with this" : "Use this wording"}
+                    </button>
+                    <button type="button" onClick={() => setPending(settle(pending, section))} className="min-h-11 px-3 rounded-lg border border-slate-400 text-sm font-semibold text-slate-100 hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+                        Keep my own
+                    </button>
                 </div>
-                <div className="flex items-center gap-2">
+            </div>
+        );
+    };
+
+    const fieldId = useId();
+
+    return (
+        <div className={ui.card} data-past-work-card data-work-index={index}>
+            {/* Header */}
+            <div className={ui.cardHeader}>
+                <h2 className={ui.cardTitle} data-past-work-heading tabIndex={-1}>
+                    <span>Past work {index + 1}</span>
+                    {cs.projectName && <span className="text-sm font-semibold">{cs.projectName}</span>}
+                </h2>
+                <div className={ui.cardActions}>
                     {(cs.whatWeDelivered || cs.valueAdded) && (
                         <button
                             onClick={handleEnhance}
-                            disabled={enhancing}
-                            className="flex items-center gap-1.5 h-7 px-3 rounded-lg border border-purple-700 bg-purple-900/30 text-purple-300 hover:bg-purple-800/40 text-xs font-bold transition-colors disabled:opacity-60"
+                            disabled={enhancing || !caseStudyTextEnhanceEnabled()}
+                            className="flex items-center gap-1.5 h-7 px-3 rounded-lg border border-purple-700 bg-purple-900/30 text-purple-300 hover:bg-purple-800/40 text-xs font-bold transition-colors disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                         >
                             {enhancing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                            {enhancing ? "Enhancing..." : "AI Enhance"}
+                            {enhancing ? "Enhancing..." : caseStudyTextEnhanceEnabled() ? "AI Enhance" : "AI Enhance (not available yet)"}
                         </button>
                     )}
-                    <button onClick={() => setExpanded(!expanded)} className="p-1 text-slate-400 hover:text-white">
+                    <button onClick={() => setExpanded(!expanded)} aria-expanded={expanded} aria-controls={`${fieldId}-fields`} aria-label={`${expanded ? "Collapse" : "Expand"} past work ${index + 1}`}>
                         {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
-                    <button onClick={onRemove} className="p-1 text-red-400 hover:text-red-300">
+                    <button onClick={onRemove} aria-label={`Remove past work ${index + 1}`} className={ui.danger}>
                         <Trash2 className="w-4 h-4" />
                     </button>
                 </div>
             </div>
 
+            {/* Says what happened to a request for wording. Never a success unless there is a suggestion to look at. */}
+            <p data-case-study-notice role="status" aria-live="polite" className={notice ? "px-5 py-3 text-sm font-semibold text-slate-100 bg-slate-950 border-b border-slate-700" : "sr-only"}>
+                {notice ?? ""}
+            </p>
+
             {expanded && (
-                <div className="p-5 space-y-4">
+                <div id={`${fieldId}-fields`} className="p-5 space-y-4">
                     <div className="grid sm:grid-cols-2 gap-4">
                         <div>
-                            <label className={labelCls}>Project Name</label>
-                            <input className={inputCls} value={cs.projectName} onChange={e => onChange("projectName", e.target.value)} placeholder="e.g. Smith Residence Extension" />
+                            <label htmlFor={`${fieldId}-name`} className={labelCls}>Project Name</label>
+                            <input id={`${fieldId}-name`} className={inputCls} value={cs.projectName} onChange={e => onChange("projectName", e.target.value)} placeholder="e.g. Smith Residence Extension" />
                         </div>
                         <div>
-                            <label className={labelCls}>Project Type</label>
-                            <input className={inputCls} value={cs.projectType} onChange={e => onChange("projectType", e.target.value)} placeholder="e.g. Residential Extension" />
+                            <label htmlFor={`${fieldId}-type`} className={labelCls}>Project Type</label>
+                            <input id={`${fieldId}-type`} className={inputCls} list="case-study-job-type-examples" value={cs.projectType} onChange={e => onChange("projectType", e.target.value)} placeholder="Not sure yet" />
                         </div>
                         <div>
-                            <label className={labelCls}>Contract Value</label>
-                            <input className={inputCls} value={cs.contractValue} onChange={e => onChange("contractValue", e.target.value)} placeholder="e.g. £85,000" />
+                            <label htmlFor={`${fieldId}-value`} className={labelCls}>Contract Value</label>
+                            <input id={`${fieldId}-value`} className={inputCls} value={cs.contractValue} onChange={e => onChange("contractValue", e.target.value)} placeholder="e.g. £85,000" />
                         </div>
                         <div>
-                            <label className={labelCls}>Programme Duration</label>
-                            <input className={inputCls} value={cs.programmeDuration} onChange={e => onChange("programmeDuration", e.target.value)} placeholder="e.g. 12 weeks" />
+                            <label htmlFor={`${fieldId}-duration`} className={labelCls}>Programme Duration</label>
+                            <input id={`${fieldId}-duration`} className={inputCls} value={cs.programmeDuration} onChange={e => onChange("programmeDuration", e.target.value)} placeholder="e.g. 12 weeks" />
                         </div>
                         <div>
-                            <label className={labelCls}>Client Name</label>
-                            <input className={inputCls} value={cs.client} onChange={e => onChange("client", e.target.value)} placeholder="e.g. Mr & Mrs Smith" />
+                            <label htmlFor={`${fieldId}-client`} className={labelCls}>Client Name</label>
+                            <input id={`${fieldId}-client`} className={inputCls} value={cs.client} onChange={e => onChange("client", e.target.value)} placeholder="e.g. Mr & Mrs Smith" />
                         </div>
                         <div>
-                            <label className={labelCls}>Location</label>
-                            <input className={inputCls} value={cs.location} onChange={e => onChange("location", e.target.value)} placeholder="e.g. Surrey" />
+                            <label htmlFor={`${fieldId}-location`} className={labelCls}>Location</label>
+                            <input id={`${fieldId}-location`} className={inputCls} value={cs.location} onChange={e => onChange("location", e.target.value)} placeholder="e.g. Surrey" />
                         </div>
                     </div>
 
                     <div>
-                        <label className={labelCls}>What We Delivered</label>
+                        <label htmlFor={`${fieldId}-delivered`} className={labelCls}>What We Delivered</label>
                         <textarea
-                            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            id={`${fieldId}-delivered`}
+                            className={coreProfileTextarea}
                             rows={3}
+                            aria-label="What We Delivered"
                             value={cs.whatWeDelivered}
                             onChange={e => onChange("whatWeDelivered", e.target.value)}
-                            placeholder="Brief description of the works delivered..."
+                            placeholder="The work you carried out, in your own words. A few lines is plenty."
                         />
+                        {suggestionPanel("whatWeDelivered", "What We Delivered")}
                     </div>
 
+                    <ChallengeResolution
+                        text={cs.whatWeDelivered ?? ""}
+                        notes={story}
+                        onNotes={changeStory}
+                        onAdd={next => onChange("whatWeDelivered", next)}
+                        idPrefix={fieldId}
+                        target="What We Delivered"
+                        labelCls={labelCls}
+                        inputCls={coreProfileTextarea}
+                        hintCls="text-xs text-slate-300"
+                        buttonCls={`min-h-11 px-3 rounded-lg border border-slate-400 text-sm font-semibold text-slate-100 hover:bg-white/5 ${coreFocusVisibleRing}`}
+                    />
+
                     <div>
-                        <label className={labelCls}>Value Added</label>
+                        <label htmlFor={`${fieldId}-added`} className={labelCls}>Value Added</label>
                         <textarea
-                            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                            rows={2}
+                            id={`${fieldId}-added`}
+                            className={coreProfileTextarea}
+                            rows={3}
+                            aria-label="Value Added"
                             value={cs.valueAdded}
                             onChange={e => onChange("valueAdded", e.target.value)}
-                            placeholder="What made this project stand out..."
+                            placeholder="What it meant for the client, if you know. Only what actually happened."
                         />
+                        {suggestionPanel("valueAdded", "Value Added")}
                     </div>
 
                     {/* Photos */}
                     <div>
                         <label className={labelCls}>Photos (up to 3)</label>
-                        <div className="flex gap-3">
+                        <div className={ui.photos}>
                             {[0, 1, 2].map(slot => (
-                                <div key={slot} className="w-32 h-24 border border-slate-700 rounded-lg overflow-hidden bg-slate-800 relative group">
+                                <div key={slot} className={`${ui.photoSlot} border rounded-lg overflow-hidden relative group`}>
                                     {(cs.photos || [])[slot] ? (
                                         <>
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img src={cs.photos[slot]} alt={`Photo ${slot + 1}`} className="w-full h-full object-cover" />
                                             <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
                                                 <Upload className="w-5 h-5 text-white" />
-                                                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
+                                                <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Replace photo ${slot + 1} for past work ${index + 1}`} className="sr-only" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
                                             </label>
+                                            <button type="button" aria-label={`Remove photo ${slot + 1} for past work ${index + 1}`} onClick={() => onPhotoRemove(slot)} className={`absolute top-1 right-1 z-10 flex h-11 w-11 items-center justify-center rounded-lg bg-black/70 text-white hover:bg-black ${coreFocusVisibleRing}`}>
+                                                <Trash2 className="w-4 h-4" aria-hidden />
+                                            </button>
                                         </>
                                     ) : (
                                         <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-700 transition-colors">
                                             <Upload className="w-5 h-5 text-slate-500 mb-1" />
                                             <span className="text-[10px] text-slate-500">Upload</span>
-                                            <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
+                                            <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Upload photo ${slot + 1} for past work ${index + 1}`} className="sr-only" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
                                         </label>
                                     )}
                                 </div>

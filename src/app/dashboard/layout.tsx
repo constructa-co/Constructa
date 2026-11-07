@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { ThemeProvider } from '@/lib/theme-context';
 import DashboardShell from '@/components/dashboard-shell';
 import { Toaster } from 'sonner';
+import { reviewEnabled } from '@/lib/deployment/review-policy';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const supabase = await createClient();
@@ -11,12 +12,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
     if (!user) redirect('/login');
 
     const [{ data: projects }, { data: profile }] = await Promise.all([
-        supabase.from('projects').select('id, name, client_name').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+        supabase.from('projects').select('id, name, client_name').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('profiles').select('company_name, theme_preference').eq('id', user.id).single(),
     ]);
 
     const initialTheme = profile?.theme_preference || 'system-c';
-    const isAdmin = !!process.env.ADMIN_EMAIL && user.email === process.env.ADMIN_EMAIL;
+    const isAdmin = !!process.env.ADMIN_EMAIL && user.email === process.env.ADMIN_EMAIL && !reviewEnabled();
 
     return (
         <ThemeProvider initialTheme={initialTheme}>

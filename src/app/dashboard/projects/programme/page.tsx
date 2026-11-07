@@ -2,6 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProjectPicker from "@/components/project-picker";
 import ProgrammeClient from "./programme-client";
+import Link from "next/link";
+import ProgrammeOverview from "@/components/programme-overview";
+import { computeRelativeProgramme, hasRelativeProgramme } from "@/lib/relative-programme";
+import { readProgrammeInclusion } from "@/lib/programme-inclusion";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +42,21 @@ export default async function AsBuiltProgrammePage(props: { searchParams: Promis
         .eq("user_id", user.id)
         .single();
 
-    const phases: any[] = project?.programme_phases ?? [];
+    const inclusion = readProgrammeInclusion(project?.programme_phases);
+    if (inclusion.intent === "invalid") return <p role="alert">Check the programme inclusion choice in Programme before using live tracking.</p>;
+    if (hasRelativeProgramme(inclusion.phases)) {
+        const plan = computeRelativeProgramme(inclusion.phases);
+        return (
+            <div className="max-w-7xl mx-auto p-8 space-y-6" data-relative-live-programme>
+                <h1 className="text-2xl font-bold text-white">Programme: {project?.name}</h1>
+                <p className="text-slate-300">Start date not agreed. Live date tracking is unavailable until you explicitly save a dated programme. Your relative activities have not been changed.</p>
+                {plan ? <ProgrammeOverview plan={plan} isDark /> : <p role="alert">The relative programme needs checking in Programme.</p>}
+                <Link href={`/dashboard/projects/schedule?projectId=${encodeURIComponent(projectId)}`} className="inline-flex min-h-11 items-center text-emerald-300 underline">Open Programme</Link>
+            </div>
+        );
+    }
+
+    const phases: any[] = inclusion.phases;
 
     return (
         <div className="max-w-7xl mx-auto p-8 space-y-6">
@@ -56,6 +74,7 @@ export default async function AsBuiltProgrammePage(props: { searchParams: Promis
                 </div>
             </div>
 
+            {inclusion.intent === "omit" && <p className="text-sm text-slate-300">This programme is deliberately excluded from the proposal. These retained activities are for project tracking; editing them does not re-include the programme.</p>}
             <ProgrammeClient
                 projectId={projectId}
                 projectName={project?.name ?? ""}

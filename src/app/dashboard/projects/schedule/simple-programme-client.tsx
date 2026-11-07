@@ -5,14 +5,31 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, ChevronDown, Loader2, Plus, Trash2 } from "lucide-react";
-import ProgrammeTimeline from "@/components/programme-timeline";
+import ProgrammeOverview from "@/components/programme-overview";
+import ProgrammeStageFocus from "@/components/programme-stage-focus";
+import ProgrammeInclusionChoice from "@/components/programme-inclusion-choice";
+import ProgrammeEstimateActivity from "@/components/programme-estimate-activity";
+import PlanningConversationPanel from "@/components/planning-conversation-panel";
+import { copyProgrammeActivityName, programmeEstimateActivities } from "@/lib/programme-estimate-activities";
+import { readProgrammeInclusion } from "@/lib/programme-inclusion";
 import SaveStatus from "@/components/save-status";
+import ui from "@/components/programme.module.css";
 import { newClientId } from "@/lib/client-id";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
+import { createPlanningConversation, type PlanningGenerator } from "@/lib/planning-conversation";
+import { createPlanningRequestGenerator } from "@/lib/job-assistant-client";
+import type { JobAssistantOffReason } from "@/lib/job-assistant-readiness";
+import { planningAssistantTurnAction } from "./assistant-actions";
 import { formatPlanDate, formatWorkingDuration, PROGRAMME_BASIS_NOTE } from "@/lib/programme-plan";
+import { hasRelativeProgramme, programmeBasisNote, RELATIVE_PROGRAMME_BASIS, RELATIVE_PROGRAMME_NOTE } from "@/lib/relative-programme";
+import { resolveJobWorkingPattern, type JobWorkingInterval } from "@/lib/job-working-pattern";
+import {
+    createWorkingPatternV2Draft, draftWeekdays, isWorkingPatternV2Draft, type JobWorkingPatternV2Draft,
+} from "@/lib/working-pattern-draft";
 import {
     MAX_STAGES,
     MIN_STAGES,
+    PROGRAMME_NAVIGATION_ERROR,
     PROGRAMME_STATUS_LABEL,
     continueToProposal,
     draftPlan,
@@ -33,8 +50,13 @@ import {
 import { useTheme } from "@/lib/theme-context";
 import { useReducerStore } from "@/lib/use-reducer-store";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
+import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
 import { workspaceStyles, type WorkspaceStyles } from "@/lib/workspace-styles";
 import { saveSimpleProgrammeAction } from "./simple-actions";
+import { saveProgrammeInclusionAction, type SaveProgrammeInclusion } from "./inclusion-actions";
+
+const PROGRAMME_LEAVE_WARNING =
+    "Your programme has changes that are not saved yet.\n\nPress Cancel to stay here and save them, or OK to leave without saving.";
 
 // The drag-and-drop planner is only downloaded when it is opened.
 const DetailedPlanner = dynamic(() => import("./client-page"), {
@@ -43,6 +65,7 @@ const DetailedPlanner = dynamic(() => import("./client-page"), {
 });
 
 interface ProgrammeProject {
+    programme_working_pattern?: unknown;
     id: string;
     name: string;
     client_name?: string | null;
@@ -55,14 +78,21 @@ interface Props {
     project: ProgrammeProject;
     /** Why pre-contract information can no longer be changed, if it cannot. */
     lockReason: string | null;
-    /** The active estimate with lines, used only by the detailed planner. */
+    /** The selected estimate with saved lines; simple entry reuses names only. */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     estimate: any;
     /** Defaults to the real server action; replaced only by tests and evidence capture. */
     save?: SaveProgramme;
+    saveInclusion?: SaveProgrammeInclusion;
+    /** Test seam only. The page uses the real request path when the server says it is switched on. */
+    planningGenerator?: PlanningGenerator;
+    /** Set by the server from its approved activation point (A055). Off until a feature is approved. */
+    planningAssistantEnabled?: boolean;
+    /** Why it is off, for this job's owner only. */
+    planningAssistantOffReason?: JobAssistantOffReason | null;
 }
 
-export default function SimpleProgrammeClient({ project, lockReason, estimate, save }: Props) {
+export default function SimpleProgrammeClient({ project: incomingProject, lockReason, estimate, save, saveInclusion, planningGenerator, planningAssistantEnabled = false, planningAssistantOffReason = null }: Props) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
     const s = workspaceStyles(isDark);
@@ -75,18 +105,48 @@ export default function SimpleProgrammeClient({ project, lockReason, estimate, s
     // anything typed there and not yet saved. It is not opened over that.
     const [unsavedSimple, setUnsavedSimple] = useState(false);
     const [plannerRefused, setPlannerRefused] = useState(false);
+    const [relativeSimple, setRelativeSimple] = useState(hasRelativeProgramme(incomingProject.programme_phases));
+    const [override, setOverride] = useState<{ base: ProgrammeProject; value: ProgrammeProject } | null>(null);
+    const [inclusionBusy, setInclusionBusy] = useState(false);
+    const unsavedCheckRef = useRef<(() => boolean) | null>(null);
+    const project = override?.base === incomingProject ? override.value : incomingProject;
+    const inclusion = readProgrammeInclusion(project.programme_phases);
+    const relativePlannerBlocked = relativeSimple || hasRelativeProgramme(inclusion.phases);
+    const jobPattern = resolveJobWorkingPattern(project.programme_working_pattern);
+    const calendarPlannerBlocked = jobPattern === null;
 
     // Keys for saved stages are positional so the first render matches on the
     // server and in the browser.
     const view = useMemo(() => {
         let n = 0;
-        return viewForProject(project, () => `saved-${n++}`);
+        return viewForProject({ ...project, programme_phases: readProgrammeInclusion(project.programme_phases).phases }, () => `saved-${n++}`);
     }, [project]);
     const showExtended = isCapabilityEnabled("extended-modules");
+
+    // Discussion only, in this page's memory: it reads the saved project and
+    // never writes. Unsaved or in-progress programme work blocks a new turn.
+    const planningOpenWork = unsavedSimple || inclusionBusy || detailedOpen || refreshing;
+    // A055: the real request path. The server rebuilds the saved programme,
+    // compares the fingerprint and chooses the generator.
+    const planningTransport = useMemo(() => planningGenerator ?? (planningAssistantEnabled
+        ? createPlanningRequestGenerator(planningAssistantTurnAction) : undefined), [planningGenerator, planningAssistantEnabled]);
+    const planning = useMemo(() => {
+        const source = { project: incomingProject as ProgrammeProject, hasOpenWork: false };
+        return { source, session: createPlanningConversation(() => source, planningTransport) };
+        // A different job remounts this page; the session is per job and generator.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [incomingProject.id, planningTransport]);
+    useEffect(() => {
+        Object.assign(planning.source, { project, hasOpenWork: planningOpenWork });
+        planning.session.refresh();
+    }, [planning, project, planningOpenWork]);
+    useEffect(() => () => planning.session.detach(), [planning]);
 
     // The detailed planner saves as it goes. Closing it reloads the project so
     // the simple view shows what the planner left behind.
     const toggleDetailed = () => {
+        if (inclusionBusy) return;
+        if (!detailedOpen && (relativePlannerBlocked || calendarPlannerBlocked)) return;
         if (!detailedOpen && unsavedSimple) {
             setPlannerRefused(true);
             return;
@@ -96,10 +156,19 @@ export default function SimpleProgrammeClient({ project, lockReason, estimate, s
         setDetailedOpen((open) => !open);
     };
 
-    const detailedSection = (
+    const detailedSection = relativePlannerBlocked ? (
+        <section className={`${s.card} p-4 sm:p-5`} role="note" data-relative-planner-note>
+            <p className={`text-sm ${s.muted}`}>The detailed planner needs a known start date. To use it, choose a target start date, save the dated programme and reopen Programme. Your relative activities stay here until you explicitly save a change.</p>
+        </section>
+    ) : calendarPlannerBlocked ? (
+        <section className={`${s.card} p-4 sm:p-5`} role="note" data-calendar-planner-note>
+            <p role="alert" className={`text-sm ${s.muted}`}>Check this job&apos;s saved working days before editing its programme. The detailed planner cannot replace an invalid saved pattern.</p>
+        </section>
+    ) : (
         <section className={s.card} aria-labelledby="detailed-planner-title">
             <button
                 type="button"
+                disabled={inclusionBusy}
                 onClick={toggleDetailed}
                 aria-expanded={detailedOpen}
                 aria-controls="detailed-planner"
@@ -128,8 +197,8 @@ export default function SimpleProgrammeClient({ project, lockReason, estimate, s
                         This workspace is laid out for a wide screen.
                     </p>
                     <p className={`text-sm ${s.muted}`}>
-                        The planner lays stages out on a grid of whole weeks. The proposal states dates by working days, Monday to Friday,
-                        so its finish date can be a few days earlier than the planner&apos;s summary. Close the planner to see the programme as the proposal shows it.
+                        Stages are positioned on a grid of whole weeks. For a complete five-day programme, dates use the proposal&apos;s Monday-to-Friday calculation.
+                        Other working-week choices remain planner-only; the proposal&apos;s calendar does not change.
                     </p>
                     {view.kind === "simple" && !view.hasSaved && (
                         <p role="note" className={`text-sm ${s.noticeBox}`}>
@@ -157,7 +226,7 @@ export default function SimpleProgrammeClient({ project, lockReason, estimate, s
     );
 
     return (
-        <div className="space-y-5">
+        <div className={`${ui.root} space-y-5`} data-dark={isDark ? "true" : "false"}>
             {detailedOpen ? (
                 <>
                     <Heading project={project} s={s} />
@@ -172,17 +241,38 @@ export default function SimpleProgrammeClient({ project, lockReason, estimate, s
                 </>
             ) : (
                 <>
-                    {lockReason ? (
+                    {inclusion.intent === "invalid" ? (
+                        <p role="alert" className={s.errorBox}>Check the saved programme inclusion choice before editing it.</p>
+                    ) : inclusion.intent === "omit" ? (
+                        <>
+                            <Heading project={project} s={s} />
+                            <p role="status" className={s.noticeBox}>Programme deliberately omitted from the proposal. Your saved activities have not been deleted.</p>
+                            {lockReason && <p className={s.noticeBox}>{lockReason}</p>}
+                            <Link href={proposalPathForProject(project.id)} className={s.primaryButton}>Next: Proposal</Link>
+                        </>
+                    ) : lockReason ? (
                         <ReadOnlyProgramme project={project} view={view} note={lockReason} s={s} isDark={isDark} />
                     ) : view.kind === "simple" || startedSimple ? (
+                        <fieldset disabled={inclusionBusy} className="min-w-0 space-y-5 border-0 m-0 p-0">
                         <ProgrammeEditor
+                            key={project.id}
                             project={project}
-                            initial={view.kind === "simple" ? view : { kind: "simple", draft: emptyProgrammeDraft(view.startDate), hasSaved: false }}
-                            save={save ?? ((input) => saveSimpleProgrammeAction(project.id, input))}
+                            estimate={estimate}
+                            initial={view.kind === "simple" ? view : { kind: "simple", draft: emptyProgrammeDraft(view.startDate, project.programme_working_pattern == null ? undefined : jobPattern ?? undefined), hasSaved: false }}
+                            save={async input => {
+                                const result = await (save ? save(input) : saveSimpleProgrammeAction(project.id, input));
+                                if (result.success && result.confirmedProject) {
+                                    setOverride({ base: incomingProject, value: { ...project, ...result.confirmedProject } });
+                                }
+                                return result;
+                            }}
                             onUnsavedChange={setUnsavedSimple}
+                            onRelativeChange={setRelativeSimple}
+                            unsavedCheckRef={unsavedCheckRef}
                             s={s}
                             isDark={isDark}
                         />
+                        </fieldset>
                     ) : (
                         <ReadOnlyProgramme
                             project={project}
@@ -190,11 +280,24 @@ export default function SimpleProgrammeClient({ project, lockReason, estimate, s
                             note={view.reason}
                             s={s}
                             isDark={isDark}
-                            onStartSimple={view.canStartSimple ? () => setStartedSimple(true) : undefined}
+                            onStartSimple={view.canStartSimple ? () => { if (!inclusionBusy) setStartedSimple(true); } : undefined}
                             onOpenDetailed={view.origin === "programme" ? toggleDetailed : undefined}
                         />
                     )}
-                    {!lockReason && detailedSection}
+                    {!lockReason && inclusion.intent !== "invalid" && <ProgrammeInclusionChoice
+                        included={inclusion.intent !== "omit"} disabled={inclusionBusy}
+                        canChange={() => !unsavedCheckRef.current?.()}
+                        save={saveInclusion ?? (include => saveProgrammeInclusionAction(project.id, include))}
+                        onPending={setInclusionBusy}
+                        onConfirmed={phases => {
+                            setOverride({ base: incomingProject, value: { ...project, programme_phases: phases } });
+                            setRelativeSimple(hasRelativeProgramme(readProgrammeInclusion(phases).phases));
+                            setStartedSimple(false); setUnsavedSimple(false); unsavedCheckRef.current = null;
+                        }} s={s}
+                    />}
+                    {!lockReason && inclusion.intent === "include" && detailedSection}
+                    {inclusion.intent !== "invalid" && <PlanningConversationPanel session={planning.session} blocked={planningOpenWork || !!lockReason} offReason={planningAssistantOffReason}
+                        blockedNote={lockReason ? `${lockReason} The planning conversation is not available for this job.` : undefined} s={s} />}
                 </>
             )}
         </div>
@@ -203,12 +306,14 @@ export default function SimpleProgrammeClient({ project, lockReason, estimate, s
 
 function Heading({ project, s, children }: { project: ProgrammeProject; s: WorkspaceStyles; children?: React.ReactNode }) {
     return (
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className={`${ui.header} flex flex-wrap items-start justify-between gap-3`}>
             <div className="min-w-0">
-                <h1 className={`text-2xl sm:text-3xl font-bold break-words ${s.heading}`}>Programme</h1>
+                <p className={ui.eyebrow}>From your activities to a clear plan</p>
+                <h1 className={`${ui.title} text-2xl sm:text-3xl font-bold break-words ${s.heading}`}>Programme</h1>
                 <p className={`mt-1 text-base break-words ${s.muted}`}>
                     {project.name}{project.client_name ? ` for ${project.client_name}` : ""}
                 </p>
+                <p className={ui.guide}>Use a target start date or relative working days, then add optional stages. Check the preview before saving or moving to the proposal.</p>
             </div>
             {children}
         </div>
@@ -249,7 +354,7 @@ function ReadOnlyProgramme({
                 <h2 id="programme-summary-title" className={`text-lg font-bold ${s.heading}`}>Programme on the proposal</h2>
                 <div className="mt-4">
                     {plan
-                        ? <ProgrammeTimeline plan={plan} tone={isDark ? "dark" : "light"} />
+                        ? <ProgrammeOverview plan={plan} isDark={isDark} />
                         : <p className={`text-base ${s.muted}`}>No dated programme has been saved for this project.</p>}
                 </div>
             </section>
@@ -265,31 +370,48 @@ function ReadOnlyProgramme({
 // ─── The simple editor ───────────────────────────────────────────────────────
 
 function ProgrammeEditor({
-    project, initial, save, onUnsavedChange, s, isDark,
+    project, estimate, initial, save, onUnsavedChange, onRelativeChange, unsavedCheckRef, s, isDark,
 }: {
     project: ProgrammeProject;
+    estimate: unknown;
     initial: { kind: "simple"; draft: ProgrammeDraft; hasSaved: boolean };
     save: SaveProgramme;
     /** Told whenever there is, or is no longer, anything typed here that the server does not hold. */
     onUnsavedChange?: (unsaved: boolean) => void;
+    onRelativeChange?: (relative: boolean) => void;
+    unsavedCheckRef?: React.RefObject<(() => boolean) | null>;
     s: WorkspaceStyles;
     isDark: boolean;
 }) {
     const router = useRouter();
     const [state, store] = useReducerStore(programmeReducer, () => initialProgrammeState(initial.draft, initial.hasSaved));
     const [leaving, setLeaving] = useState(false);
+    const [leaveError, setLeaveError] = useState<string | null>(null);
     const { draft, fieldErrors } = state;
+    const estimateActivities = programmeEstimateActivities(project.id, estimate);
     const status = programmeSaveStatus(state);
+    useEffect(() => {
+        if (!unsavedCheckRef) return;
+        const check = () => ["unsaved", "failed", "saving"].includes(programmeSaveStatus(store.getState()));
+        unsavedCheckRef.current = check;
+        return () => { if (unsavedCheckRef.current === check) unsavedCheckRef.current = null; };
+    }, [store, unsavedCheckRef]);
     const saving = state.save.status === "saving";
     const staged = draft.stages.length > 0;
+    const relative = draft.timeBasis === "relative";
     const plan = useMemo(() => draftPlan(draft), [draft]);
     const alertRef = useRef<HTMLDivElement>(null);
 
     const unsaved = status === "unsaved" || status === "failed" || status === "saving";
-    useUnsavedGuard(
-        !leaving && unsaved,
-        "Your programme has changes that are not saved yet.\n\nPress Cancel to stay here and save them, or OK to leave without saving.",
-    );
+    useUnsavedGuard(!leaving && unsaved, PROGRAMME_LEAVE_WARNING);
+    useEffect(() => {
+        if (leaving || !unsaved) return;
+        const confirmProjectChange = (event: Event) => {
+            if (!window.confirm(PROGRAMME_LEAVE_WARNING)) event.preventDefault();
+        };
+        window.addEventListener(BEFORE_PROJECT_NAVIGATION, confirmProjectChange);
+        return () => window.removeEventListener(BEFORE_PROJECT_NAVIGATION, confirmProjectChange);
+    }, [leaving, unsaved]);
     useEffect(() => {
         onUnsavedChange?.(unsaved);
         return () => onUnsavedChange?.(false);
@@ -304,10 +426,19 @@ function ProgrammeEditor({
     }, [failed]);
 
     const handleSave = () => void saveProgramme(store, save);
-    const handleNext = () => void continueToProposal(store, save, () => {
-        setLeaving(true);
-        router.push(proposalPathForProject(project.id));
-    });
+    const handleNext = () => {
+        setLeaveError(null);
+        void continueToProposal(store, save, () => {
+            setLeaving(true);
+            router.push(proposalPathForProject(project.id));
+            router.refresh();
+        }).then((outcome) => {
+            if (outcome === "navigation-failed") {
+                setLeaving(false);
+                setLeaveError(PROGRAMME_NAVIGATION_ERROR);
+            }
+        });
+    };
 
     const unitSelect = (id: string, value: DurationUnit, onChange: (unit: DurationUnit) => void, label: string) => (
         <select
@@ -331,6 +462,7 @@ function ProgrammeEditor({
 
     return (
         <>
+            <ProgrammeStageFocus revision={state} />
             <Heading project={project} s={s}>
                 <SaveStatus status={status} label={PROGRAMME_STATUS_LABEL[status]} isDark={isDark} />
             </Heading>
@@ -343,18 +475,181 @@ function ProgrammeEditor({
                 </div>
             )}
 
+            {leaveError && (
+                <div role="alert" className={`${s.errorBox} flex flex-wrap items-center gap-3 text-sm scroll-mt-20`} data-programme-leave-error>
+                    <AlertTriangle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                    <p className="flex-1 min-w-[12rem]">{leaveError}</p>
+                    <button type="button" onClick={handleNext} className={`${s.secondaryButton} min-h-11 text-sm`}>Try again</button>
+                </div>
+            )}
+
             <form noValidate onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-5">
+                <section className={`${s.card} p-4 sm:p-6`} aria-labelledby="programme-preview-title" data-programme-preview>
+                    <div className={ui.overviewHeader}>
+                        <div>
+                            <h2 id="programme-preview-title" className={`text-lg font-bold ${s.heading}`}>Programme at a glance</h2>
+                            <p className={`mt-1 text-sm ${s.muted}`}>Your activities, dates and duration. Edit the details below, then save.</p>
+                        </div>
+                        <button type="submit" disabled={saving} className={s.secondaryButton}>
+                            {saving ? "Saving…" : state.save.status === "failed" ? "Try again" : "Save programme"}
+                        </button>
+                    </div>
+                    <div className="mt-4">
+                        {plan
+                            ? <ProgrammeOverview plan={plan} isDark={isDark} />
+                            : <p className={`text-base ${s.muted}`} data-programme-empty>
+                                {relative ? "Add how long the job takes to see a Day 1 onwards timeline." : "Add a weekday start date and how long the job takes to see the timeline."}
+                            </p>}
+                    </div>
+                    {status === "unsaved" && plan && (
+                        <p role="status" className={`mt-4 text-sm ${s.noticeBox}`}>Not saved yet. The proposal uses the programme you last saved.</p>
+                    )}
+                </section>
+
                 {/* Start and length */}
                 <section className={`${s.card} p-4 sm:p-6 space-y-5`} aria-labelledby="programme-when-title">
                     <div>
                         <h2 id="programme-when-title" className={`text-lg font-bold ${s.heading}`}>When does the job run?</h2>
                         <p className={`mt-1 text-sm ${s.muted}`}>
-                            A start date and how long it takes is enough. Every proposal shows this programme.
+                            Use a target date when known, or show working days from Day 1 without agreeing a start date.
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
+                    <div>
+                        <label htmlFor="programme-time-basis" className={s.label}>Programme timing</label>
+                        <select id="programme-time-basis" value={relative ? "relative" : "dated"} disabled={saving}
+                            onChange={event => {
+                                const chosenRelative = event.target.value === "relative";
+                                store.dispatch({ type: "field/change", patch: { timeBasis: chosenRelative ? "relative" : undefined } });
+                                onRelativeChange?.(chosenRelative);
+                            }}
+                            className={`${s.input} mt-1.5`}>
+                            <option value="dated">Target start date known</option>
+                            <option value="relative">Start date not known - Day 1 onwards</option>
+                        </select>
+                    </div>
+
+                    <fieldset disabled={saving} className="min-w-0 border-0 m-0 p-0 space-y-2" aria-describedby="programme-working-days-note">
+                        <legend className={s.label}>Working days for this job</legend>
+                        <p id="programme-working-days-note" className={`text-sm ${s.muted}`}>Monday to Friday is the default. Include weekends only when this job works them. A week uses the selected working days. Review the dates, then save the programme; these choices are not saved just in this browser.</p>
+                        {([6, 0] as const).map(day => (
+                            <label key={day} className={`flex items-center gap-3 min-h-11 text-sm ${s.body}`}>
+                                <input type="checkbox" id={`programme-weekend-${day}`}
+                                    checked={draftWeekdays(draft.workingPattern).includes(day)}
+                                    onChange={event => {
+                                        const weekdays = event.target.checked
+                                            ? [...new Set([...draftWeekdays(draft.workingPattern), day])].sort()
+                                            : draftWeekdays(draft.workingPattern).filter(value => value !== day);
+                                        if (isWorkingPatternV2Draft(draft.workingPattern)) {
+                                            store.dispatch({ type: "field/change", patch: { workingPattern: { ...draft.workingPattern, weekdays } } });
+                                        } else {
+                                            store.dispatch({ type: "field/change", patch: { workingPattern: { version: 1, weekdays } } });
+                                        }
+                                    }} />
+                                {day === 6 ? "Work on Saturdays" : "Work on Sundays"}
+                            </label>
+                        ))}
+                        {errorText("programme-working-days-error", fieldErrors.workingPattern)}
+                        <label className={`flex items-center gap-3 min-h-11 text-sm ${s.body}`}>
+                            <input type="checkbox" id="programme-local-hours"
+                                checked={isWorkingPatternV2Draft(draft.workingPattern)}
+                                onChange={event => {
+                                    if (event.target.checked) {
+                                        store.dispatch({ type: "field/change", patch: {
+                                            workingPattern: createWorkingPatternV2Draft(draftWeekdays(draft.workingPattern)),
+                                        } });
+                                    } else if (isWorkingPatternV2Draft(draft.workingPattern)) {
+                                        store.dispatch({ type: "field/change", patch: {
+                                            workingPattern: { version: 1, weekdays: [...draft.workingPattern.weekdays] },
+                                        } });
+                                    }
+                                }} />
+                            Set local timezone and working hours (all fields required before save)
+                        </label>
+                        {isWorkingPatternV2Draft(draft.workingPattern) && (() => {
+                            const local = draft.workingPattern as JobWorkingPatternV2Draft;
+                            const patchInterval = (index: number, next: Partial<JobWorkingInterval>) => {
+                                const intervals = local.intervals.map((row, i) => i === index ? { ...row, ...next } : row);
+                                store.dispatch({ type: "field/change", patch: { workingPattern: { ...local, intervals } } });
+                            };
+                            const patchLocal = (patch: Partial<JobWorkingPatternV2Draft>) => {
+                                store.dispatch({ type: "field/change", patch: { workingPattern: { ...local, ...patch } } });
+                            };
+                            const minuteInput = (label: string, id: string, value: number, onChange: (minute: number) => void) => (
+                                <div>
+                                    <label htmlFor={id} className={s.label}>{label}</label>
+                                    <input id={id} type="time" disabled={saving} className={`${s.input} mt-1.5`}
+                                        value={`${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`}
+                                        onChange={e => {
+                                            const [h, m] = e.target.value.split(":").map(Number);
+                                            if (Number.isInteger(h) && Number.isInteger(m)) onChange(h * 60 + m);
+                                        }} />
+                                </div>
+                            );
+                            return (
+                                <div className="space-y-3 rounded-lg border border-slate-700/80 p-3" data-programme-local-hours>
+                                    <div>
+                                        <label htmlFor="programme-timezone" className={s.label}>Job timezone (IANA)</label>
+                                        <input id="programme-timezone" type="text" disabled={saving} placeholder="e.g. Europe/London"
+                                            value={local.timezone}
+                                            onChange={e => patchLocal({ timezone: e.target.value })}
+                                            className={`${s.input} mt-1.5`} />
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <label htmlFor="programme-standard-minutes" className={s.label}>Productive minutes per programme day</label>
+                                            <input id="programme-standard-minutes" inputMode="numeric" disabled={saving}
+                                                value={local.standardMinutesPerDay || ""}
+                                                onChange={e => patchLocal({ standardMinutesPerDay: Number(e.target.value) || 0 })}
+                                                className={`${s.input} mt-1.5`} />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="programme-productivity" className={s.label}>Productivity (%)</label>
+                                            <input id="programme-productivity" inputMode="numeric" disabled={saving}
+                                                value={local.productivityPct || ""}
+                                                onChange={e => patchLocal({ productivityPct: Number(e.target.value) || 0 })}
+                                                className={`${s.input} mt-1.5`} />
+                                        </div>
+                                    </div>
+                                    {local.intervals.map((interval, index) => (
+                                        <div key={index} className="space-y-2 rounded border border-slate-700/60 p-2">
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                                <div>
+                                                    <label className={s.label} htmlFor={`programme-interval-weekday-${index}`}>Interval day</label>
+                                                    <select id={`programme-interval-weekday-${index}`} disabled={saving} className={`${s.input} mt-1.5`}
+                                                        value={interval.weekday}
+                                                        onChange={e => patchInterval(index, { weekday: Number(e.target.value) })}>
+                                                        {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((name, day) => (
+                                                            <option key={name} value={day}>{name}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                {minuteInput("Start (local)", `programme-interval-start-${index}`, interval.startMinute, minute => patchInterval(index, { startMinute: minute }))}
+                                                {minuteInput("End (local, overnight if earlier)", `programme-interval-end-${index}`, interval.endMinute, minute => patchInterval(index, { endMinute: minute }))}
+                                            </div>
+                                            {local.intervals.length > 1 && (
+                                                <button type="button" disabled={saving} className={s.secondaryButton}
+                                                    onClick={() => patchLocal({ intervals: local.intervals.filter((_, i) => i !== index) })}>
+                                                    Remove interval
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {local.intervals.length < 21 && (
+                                        <button type="button" disabled={saving} className={s.secondaryButton}
+                                            onClick={() => patchLocal({ intervals: [...local.intervals, {
+                                                weekday: local.weekdays[0] ?? 1, startMinute: 0, endMinute: 0,
+                                            }] })}>
+                                            Add interval
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })()}
+                    </fieldset>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" data-programme-timing>
+                        {!relative && <div>
                             <label htmlFor="programme-start" className={s.label}>Start on site</label>
                             <input
                                 id="programme-start"
@@ -367,7 +662,7 @@ function ProgrammeEditor({
                                 className={`${s.input} mt-1.5`}
                             />
                             {errorText("programme-start-error", fieldErrors.startDate)}
-                        </div>
+                        </div>}
 
                         {staged ? (
                             <div>
@@ -379,7 +674,7 @@ function ProgrammeEditor({
                         ) : (
                             <div>
                                 <label htmlFor="programme-duration" className={s.label}>How long it takes</label>
-                                <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-2">
+                                <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-2" data-programme-duration>
                                     <input
                                         id="programme-duration"
                                         inputMode="numeric"
@@ -401,10 +696,10 @@ function ProgrammeEditor({
 
                     <p className={`text-base ${s.body}`} aria-live="polite" data-programme-finish>
                         {plan
-                            ? <>Finishes <strong className={s.heading}>{formatPlanDate(plan.end_date)}</strong> ({formatWorkingDuration(plan.working_days)}).</>
-                            : <span className={s.muted}>The finish date appears here once there is a start date and a length.</span>}
+                            ? <>Finishes <strong className={s.heading}>{plan.basis === RELATIVE_PROGRAMME_BASIS ? `Day ${plan.working_days}` : formatPlanDate(plan.end_date)}</strong> ({formatWorkingDuration(plan.working_days, draft.workingPattern)}).</>
+                            : <span className={s.muted}>{relative ? "The finish day appears here once there is a valid length." : "The finish date appears here once there is a start date and a length."}</span>}
                     </p>
-                    <p className={`text-sm ${s.muted}`}>{PROGRAMME_BASIS_NOTE}</p>
+                    <p className={`text-sm ${s.muted}`}>{plan ? programmeBasisNote(plan) : relative ? RELATIVE_PROGRAMME_NOTE : PROGRAMME_BASIS_NOTE}</p>
                 </section>
 
                 {/* Stages */}
@@ -412,7 +707,7 @@ function ProgrammeEditor({
                     <div>
                         <h2 id="programme-stages-title" className={`text-lg font-bold ${s.heading}`}>Stages</h2>
                         <p className={`mt-1 text-sm ${s.muted}`}>
-                            Optional. Break the job into {MIN_STAGES} to {MAX_STAGES} stages in your own words. They run one after another.
+                            Optional. Add only the stages this job needs, up to {MAX_STAGES}, in your own words. They run one after another.
                         </p>
                     </div>
 
@@ -434,7 +729,7 @@ function ProgrammeEditor({
                                     const label = stage.name.trim() || `stage ${index + 1}`;
                                     return (
                                         <li key={stage.key} className={`${s.inset} p-3 sm:p-4`} data-programme-stage>
-                                            <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-3" data-programme-stage-fields>
                                                 <div>
                                                     <label htmlFor={`stage-${stage.key}-name`} className={s.label}>Stage {index + 1}</label>
                                                     <input
@@ -450,10 +745,18 @@ function ProgrammeEditor({
                                                         className={`${s.input} mt-1.5`}
                                                     />
                                                     {errorText(`stage-${stage.key}-name-error`, nameError)}
+                                                    {stage.name === "" && estimateActivities.names.length > 0 && <ProgrammeEstimateActivity
+                                                        key={estimateActivities.revision}
+                                                        id={`stage-${stage.key}`}
+                                                        names={estimateActivities.names}
+                                                        disabled={state.save.status !== "idle"}
+                                                        copy={name => copyProgrammeActivityName(store, state, stage.key, name, estimateActivities.names)}
+                                                        s={s}
+                                                    />}
                                                 </div>
                                                 <div>
                                                     <label htmlFor={`stage-${stage.key}-duration`} className={s.label}>How long</label>
-                                                    <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-2">
+                                                    <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-2" data-programme-duration>
                                                         <input
                                                             id={`stage-${stage.key}-duration`}
                                                             inputMode="numeric"
@@ -509,8 +812,6 @@ function ProgrammeEditor({
                                 })}
                             </ol>
 
-                            {fieldErrors.stages && <p role="alert" className={`text-sm ${s.errorText}`}>{fieldErrors.stages}</p>}
-
                             <div className="flex flex-col sm:flex-row gap-2">
                                 {draft.stages.length < MAX_STAGES && (
                                     <button
@@ -533,21 +834,7 @@ function ProgrammeEditor({
                             </div>
                         </>
                     )}
-                </section>
-
-                {/* Preview */}
-                <section className={`${s.card} p-4 sm:p-6`} aria-labelledby="programme-preview-title">
-                    <h2 id="programme-preview-title" className={`text-lg font-bold ${s.heading}`}>How it looks on the proposal</h2>
-                    <div className="mt-4">
-                        {plan
-                            ? <ProgrammeTimeline plan={plan} tone={isDark ? "dark" : "light"} />
-                            : <p className={`text-base ${s.muted}`} data-programme-empty>
-                                Add a weekday start date and how long the job takes to see the timeline.
-                            </p>}
-                    </div>
-                    {status === "unsaved" && plan && (
-                        <p role="status" className={`mt-4 text-sm ${s.noticeBox}`}>Not saved yet. The proposal uses the programme you last saved.</p>
-                    )}
+                    {fieldErrors.stages && <p role="alert" className={`text-sm ${s.errorText}`}>{fieldErrors.stages}</p>}
                 </section>
 
                 <div className="flex flex-col sm:flex-row sm:justify-end gap-2">

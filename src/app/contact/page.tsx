@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
+import { PhaseOneContact } from "@/components/marketing/cohort-contact";
+import { getLaunchProfile } from "@/lib/launch-profile";
+
+export const metadata: Metadata = {
+  title: "Contact | Constructa",
+  description: "Contact the Constructa team.",
+};
+
 export default function ContactPage() {
+  if (getLaunchProfile() !== "full") return <PhaseOneContact />;
   return (
     <main className="min-h-screen pt-16 bg-black">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -17,7 +27,9 @@ export default function ContactPage() {
           className="space-y-6"
         >
           <div>
+            <label htmlFor="contact-name" className="block text-sm font-medium text-gray-300 mb-2">Name</label>
             <input 
+              id="contact-name"
               type="text" 
               name="name" 
               placeholder="Your Name" 
@@ -27,7 +39,9 @@ export default function ContactPage() {
           </div>
           
           <div>
+            <label htmlFor="contact-email" className="block text-sm font-medium text-gray-300 mb-2">Email</label>
             <input 
+              id="contact-email"
               type="email" 
               name="email" 
               placeholder="Your Email" 
@@ -37,7 +51,9 @@ export default function ContactPage() {
           </div>
           
           <div>
+            <label htmlFor="contact-message" className="block text-sm font-medium text-gray-300 mb-2">Message</label>
             <textarea 
+              id="contact-message"
               name="message" 
               rows={5}
               placeholder="Your Message" 

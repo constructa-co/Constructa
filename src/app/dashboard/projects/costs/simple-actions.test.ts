@@ -14,7 +14,7 @@ import {
     saveSimplePriceLineAction,
     updateSimplePriceLineAction,
 } from "./simple-actions";
-import { LINE_SAVE_ERROR } from "@/lib/simple-estimate";
+import { EMPTY_PRICE_LINE_DRAFT, LINE_SAVE_ERROR, currentSummary, estimatingReducer, initialEstimatingState, submitPriceLine } from "@/lib/simple-estimate";
 
 const USER_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const PROJECT_ID = "11111111-1111-4111-8111-111111111111";
@@ -312,6 +312,127 @@ describe("saveSimplePriceLineAction — lazy estimate creation", () => {
     it("returns a retryable message, not a thrown error, when the session fails", async () => {
         mocks.requireEditableProjectAccess.mockRejectedValue(new Error("Unauthorized project access."));
         expect(await saveSimplePriceLineAction(request())).toEqual({ ok: false, error: LINE_SAVE_ERROR });
+    });
+});
+
+describe("contractor activity in the same new-line insert", () => {
+    it("stores the explicitly chosen activity with one line insert and no activity update", async () => {
+        const db = fakeDb(); useDb(db);
+        const result = await saveSimplePriceLineAction({ ...request(), activity: "  Kitchen fitting  " });
+        expect(result).toMatchObject({ ok: true, line: { trade_section: "Kitchen fitting", line_total: 2500 } });
+        expect(db.tables.estimate_lines).toHaveLength(1);
+        expect(db.log.filter(entry => entry === "insert:estimate_lines")).toHaveLength(1);
+        expect(db.log).not.toContain("update:estimate_lines");
+        expect(db.tables.estimates[0].total_cost).toBe(2500);
+    });
+    it.each(["Preliminaries", "x".repeat(101), "", "   "])("refuses invalid or reserved activity %j before access or writes", async activity => {
+        const db = fakeDb(); useDb(db);
+        expect((await saveSimplePriceLineAction({ ...request(), activity })).ok).toBe(false);
+        expect(db.log).toEqual([]); expect(mocks.requireEditableProjectAccess).not.toHaveBeenCalled();
+    });
+    it("accepts exactly 100 characters without truncation", async () => {
+        const db = fakeDb(); useDb(db); const activity = "a".repeat(100);
+        expect(await saveSimplePriceLineAction({ ...request(), activity })).toMatchObject({ ok: true, line: { trade_section: activity } });
+    });
+    it("retries the same activity under the same identity without duplicating or rewriting it", async () => {
+        const db = fakeDb(); useDb(db);
+        const first = await saveSimplePriceLineAction({ ...request(), activity: "Actual work" });
+        expect(await saveSimplePriceLineAction({ ...request(), activity: "Actual work" })).toEqual(first);
+        expect(db.tables.estimate_lines).toHaveLength(1); expect(db.log).not.toContain("update:estimate_lines");
+    });
+    it.each(["Another activity", undefined])("does not overwrite an earlier saved choice when a lost-response retry asks for %j", async activity => {
+        const db = fakeDb(); useDb(db);
+        await saveSimplePriceLineAction({ ...request(), activity: "Actual work" });
+        const result = await saveSimplePriceLineAction({ ...request(), ...(activity ? { activity } : {}) });
+        expect(result).toMatchObject({ ok: false, error: expect.stringContaining("already saved") });
+        expect(db.tables.estimate_lines).toHaveLength(1); expect(db.tables.estimate_lines[0].trade_section).toBe("Actual work");
+        expect(db.log).not.toContain("update:estimate_lines");
+    });
+    it.each([false, true])("preserves client BoQ structure for named estimate=%s", async named => {
+        const db = fakeDb({ estimates: [{ id: NEW_ESTIMATE_ID, project_id: PROJECT_ID, is_active: true, is_client_boq: true }] }); useDb(db);
+        const result = await saveSimplePriceLineAction({ ...request(), estimateId: named ? NEW_ESTIMATE_ID : null, activity: "Own activity" });
+        expect(result).toMatchObject({ ok: false, error: expect.stringContaining("client BoQ") });
+        expect(db.tables.estimate_lines).toEqual([]); expect(db.tables.estimates).toHaveLength(1);
+        expect(db.log.filter(entry => entry.startsWith("insert:") || entry.startsWith("update:") || entry.startsWith("delete:"))).toEqual([]);
+    });
+});
+
+describe("lost-acknowledgement new-line retry identity", () => {
+    it("keeps the exact edited failed draft when the actual action refuses the stale stored price", async () => {
+        const db = fakeDb(); useDb(db);
+        let state = initialEstimatingState([], { pendingEstimateId: NEW_ESTIMATE_ID });
+        const store = {
+            getState: () => state,
+            dispatch: (action: Parameters<typeof estimatingReducer>[1]) => { state = estimatingReducer(state, action); },
+        };
+        const server = { saveLine: vi.fn(saveSimplePriceLineAction), updateLine: vi.fn(updateSimplePriceLineAction) };
+        const key = "retry-integration";
+        store.dispatch({ type: "op/open", key, kind: "add", lineId: LINE_ID,
+            draft: { ...EMPTY_PRICE_LINE_DRAFT, activity: "  Roof work  ", description: "  Keep this wording  ", amount: "1,000.00" } });
+        db.failNext("estimate_lines", "select");
+        expect(await submitPriceLine(store, server, PROJECT_ID, key)).toBe(false);
+        store.dispatch({ type: "op/change", key, patch: { amount: "1,500.00" } });
+        const edited = structuredClone(state.ops[key].draft);
+
+        expect(await submitPriceLine(store, server, PROJECT_ID, key)).toBe(false);
+
+        expect(state.ops[key]).toMatchObject({ status: "failed", lineId: LINE_ID, draft: edited });
+        expect(state.ops[key].error).toContain("draft");
+        expect(state.estimates).toEqual([]);
+        expect(currentSummary(state).contractSum).toBe(0);
+        expect(server.saveLine.mock.calls.map(([input]) => input.lineId)).toEqual([LINE_ID, LINE_ID]);
+        expect(server.saveLine.mock.calls.map(([input]) => input.line.unit_rate)).toEqual([1000, 1500]);
+        expect(db.tables.estimate_lines).toHaveLength(1);
+        expect(db.tables.estimate_lines[0].unit_rate).toBe(1000);
+        expect(db.log).not.toContain("update:estimate_lines");
+    });
+
+    it.each([
+        { description: "Edited bathroom refit" },
+        { quantity: 2 },
+        { unit: "set" },
+        { unit_rate: 1500 },
+    ])("does not acknowledge an older stored row for changed fields %j", async change => {
+        const db = fakeDb(); useDb(db);
+        const original = { description: "Bathroom refit", quantity: 1, unit: "item", unit_rate: 1000 };
+        db.failNext("estimate_lines", "select");
+        expect(await saveSimplePriceLineAction(request({ line: original }))).toMatchObject({ ok: false });
+        expect(db.tables.estimate_lines).toHaveLength(1);
+        const saved = structuredClone(db.tables.estimate_lines[0]);
+        const totals = structuredClone(db.tables.estimates);
+        const logLength = db.log.length;
+
+        const result = await saveSimplePriceLineAction(request({ line: { ...original, ...change } }));
+
+        expect(result).toMatchObject({ ok: false, error: expect.stringContaining("draft") });
+        expect(db.tables.estimate_lines).toEqual([saved]);
+        expect(db.tables.estimates).toEqual(totals);
+        expect(db.log.slice(logLength)).not.toContain("update:estimate_lines");
+        expect(db.log.slice(logLength)).not.toContain("update:estimates");
+    });
+
+    it.each([
+        { pricing_mode: "buildup" },
+        { line_type: "material" },
+        { line_total: 999 },
+        { quantity: null },
+        { unit_rate: "not-a-number" },
+    ])("does not confirm conflicting persisted data %j on a duplicate ID", async change => {
+        const db = fakeDb(); useDb(db);
+        expect((await saveSimplePriceLineAction(request())).ok).toBe(true);
+        Object.assign(db.tables.estimate_lines[0], change);
+        const before = structuredClone(db.tables.estimate_lines);
+        expect(await saveSimplePriceLineAction(request())).toMatchObject({ ok: false });
+        expect(db.tables.estimate_lines).toEqual(before);
+    });
+
+    it("recognises the same normalised payload when database numerics are strings", async () => {
+        const db = fakeDb(); useDb(db);
+        expect((await saveSimplePriceLineAction(request())).ok).toBe(true);
+        Object.assign(db.tables.estimate_lines[0], { quantity: "1.0000", unit_rate: "2500.00", line_total: "2500.00" });
+        expect(await saveSimplePriceLineAction(request({ line: { description: "  Bathroom refit  ", quantity: 1, unit: " item ", unit_rate: 2500 } }))).toMatchObject({ ok: true });
+        expect(db.tables.estimate_lines).toHaveLength(1);
+        expect(db.log).not.toContain("update:estimate_lines");
     });
 });
 

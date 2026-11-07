@@ -43,6 +43,7 @@ import {
   updateClaimAction,
   draftClaimAction,
 } from "./actions";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 // P2-6 — extracted tabs/cards. Keeping each piece in its own file
 // means future edits to (say) DelayAnalysisTab don't risk breaking
 // the events tab or obligation timeline above.
@@ -267,7 +268,7 @@ function ContractSetupForm({ projectId, project, canonicalContractSum, onSaved }
       </div>
 
       <button onClick={save} disabled={saving || !form.awardDate}
-        className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors">
+        className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
         Set Up Contract & Seed Obligations
       </button>
@@ -499,17 +500,17 @@ export default function ContractAdminClient({ projectId, project, projects, cont
         </div>
         <div className="flex gap-2">
           {tab === "events" && (
-            <button onClick={() => setShowRaiseEvent(true)} className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-colors">
+            <button onClick={() => setShowRaiseEvent(true)} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
               <Plus className="w-3.5 h-3.5" /> Raise {term?.mainEvent}
             </button>
           )}
           {tab === "comms" && (
-            <button onClick={() => setShowLogComm(true)} className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-colors">
+            <button onClick={() => setShowLogComm(true)} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
               <Plus className="w-3.5 h-3.5" /> Log Communication
             </button>
           )}
           {tab === "claims" && (
-            <button onClick={() => setShowRaiseClaim(true)} className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-colors">
+            <button onClick={() => setShowRaiseClaim(true)} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
               <Plus className="w-3.5 h-3.5" /> New Claim
             </button>
           )}
@@ -936,7 +937,7 @@ export default function ContractAdminClient({ projectId, project, projects, cont
             </div>
 
             <button onClick={handleRaiseEvent} disabled={saving || !eventForm.title}
-              className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors">
+              className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
               Raise Event & Create Obligation Chain
             </button>
@@ -1011,7 +1012,7 @@ export default function ContractAdminClient({ projectId, project, projects, cont
             </div>
 
             <button onClick={handleLogComm} disabled={saving || !commForm.subject}
-              className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors">
+              className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageSquare className="w-4 h-4" />}
               Log Communication
             </button>
@@ -1062,7 +1063,7 @@ export default function ContractAdminClient({ projectId, project, projects, cont
             </div>
 
             <button onClick={handleRaiseClaim} disabled={saving || !claimForm.title}
-              className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors">
+              className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
               Create Claim
             </button>
@@ -1097,7 +1098,7 @@ export default function ContractAdminClient({ projectId, project, projects, cont
               }} className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg text-sm transition-colors">
                 Copy to Clipboard
               </button>
-              <button onClick={() => setViewingNotice(null)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">Done</button>
+              <button onClick={() => setViewingNotice(null)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>Done</button>
             </div>
           </div>
         </div>
@@ -1129,7 +1130,7 @@ export default function ContractAdminClient({ projectId, project, projects, cont
               }} className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg text-sm transition-colors">
                 Copy to Clipboard
               </button>
-              <button onClick={() => setViewingClaim(null)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">Done</button>
+              <button onClick={() => setViewingClaim(null)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>Done</button>
             </div>
           </div>
         </div>

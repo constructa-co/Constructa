@@ -59,10 +59,15 @@ describe("project entry points", () => {
     });
 
     it("Home and Pipeline both switch to the first-project state through the shared rule", () => {
-        for (const file of ["app/dashboard/home/home-client.tsx", "app/dashboard/dashboard-client.tsx"]) {
-            const source = read(file);
+        const home = read("app/dashboard/home/home-client.tsx");
+        const pipeline = read("app/dashboard/dashboard-client.tsx");
+        for (const [file, source] of [
+            ["home", home],
+            ["pipeline", pipeline],
+        ] as const) {
             expect(source, file).toContain('getHomePresentation(projects.length) === "first-project"');
             expect(source, file).toContain("<FirstProjectStart");
+            expect(source, file).toContain("max-w-3xl mx-auto");
         }
     });
 });

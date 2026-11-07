@@ -1,0 +1,71 @@
+{
+  "project": "phone",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "input": "touch",
+  "outcome": "passed",
+  "checkpoints": [
+    {
+      "name": "depth-question",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "01-depth-question-390x844.jpg"
+    },
+    {
+      "name": "leave-with-note",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "02-leave-with-note-390x844.jpg"
+    },
+    {
+      "name": "next-held-by-note",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "03-next-held-by-note-390x844.jpg"
+    },
+    {
+      "name": "leave-held-by-note",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "04-leave-held-by-note-390x844.jpg"
+    },
+    {
+      "name": "note-beside-existing-paragraph",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "05-note-beside-existing-paragraph-390x844.jpg"
+    },
+    {
+      "name": "ready-to-add",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "06-ready-to-add-390x844.jpg"
+    },
+    {
+      "name": "replace-warning",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "07-replace-warning-390x844.jpg"
+    },
+    {
+      "name": "no-room",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": "08-no-room-390x844.jpg"
+    }
+  ],
+  "blockedThirdPartyHosts": [
+    "plausible.io",
+    "www.clarity.ms"
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "at": "2026-10-18T12:19:00Z",
+  "action": "A079",
+  "status": "Partial",
+  "branch": "backup/welcome-first-slice-20261018",
+  "sourceCommit": "5f40efa5d882d7eb6518fdbcd180b3e0ba8b7dad",
+  "origin": "https://github.com/constructa-co/Constructa.git",
+  "remoteReadback": {
+    "at": "2026-10-18T12:17:00Z",
+    "branch": "backup/welcome-first-slice-20261018",
+    "sha": "5f40efa5d882d7eb6518fdbcd180b3e0ba8b7dad",
+    "main": "9405c2fca87174d51b7d1fb480aec73d2ba3c839"
+  },
+  "candidate": {
+    "files": 1473,
+    "bytes": 208157387,
+    "exactIndexAndWorkingTreeMatch": true,
+    "gitleaksExit": 0,
+    "findings": 0,
+    "excluded": [
+      ".mcp.json",
+      ".env files",
+      "private keys",
+      "ignored generated files",
+      "private verification archives"
+    ]
+  },
+  "push": {
+    "exit": 0,
+    "method": "Exact-object temporary bare transport, no checkout/source/history repair",
+    "temporaryParentBoundary": "c87aacaa240d2be793fed0a24358cdf6498cdf6a",
+    "priorFailuresRetained": [
+      "commit command ETIMEDOUT60s after valid commit was written",
+      "normalpushETIMEDOUT120s",
+      "firstsharedobjecttransportETIMEDOUT120s"
+    ]
+  },
+  "deploymentSafety": {
+    "observedProductionBranch": "main",
+    "productionAutoAssign": true,
+    "config": "Vercel Production environment read-only UI; local GitHub workflows and live main workflows contain no production-deploy command; vercel.json enablesGit withoutbranchoverride",
+    "preview": {
+      "id": "dpl_3b4kZn1BqpVofGVxB4B75es4vXkZ",
+      "state": "ERROR",
+      "target": null,
+      "branch": "backup/welcome-first-slice-20261018"
+    },
+    "productionChanged": false,
+    "warning": "New backup branches inherit preview environment configuration. Preview failure is not a working protected review preview, and no resulting preview was exercised."
+  },
+  "stillUnprotected": [
+    "Other local-only branch commits and other worktrees' dirty files",
+    "Full independent Git history/offline disaster-recovery copy",
+    "Private verification receipts, preservation tar archives and working-source tar on this Mac",
+    "Provider configuration/accounts, database contents and credentials intentionally excluded",
+    "Any unsaved editor-only buffer or later work not committed and pushed"
+  ],
+  "security": "Current main/history exposure remains unresolved; no token changes, privacy settings, history rewrite, main merge or production deployment.",
+  "diskFreeBefore": "18GiB/96%used",
+  "metadataSnapshot": "A separate immutable, secret-scanned register/original-feedback snapshot will be added to the same backup branch. Canonical register remains in sibling verification. Private receipts are excluded."
+}

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Loader2, Pencil, AlertTriangle, CheckCircle2, Clock, TrendingUp } from "lucide-react";
 import { saveAsBuiltPhasesAction } from "./actions";
+import { computeProgrammePlan, parseIsoDate, PROGRAMME_BASIS_NOTE } from "@/lib/programme-plan";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Phase {
@@ -123,10 +124,17 @@ export default function ProgrammeClient({ projectId, projectName, startDate, ini
 
     const today = new Date();
 
-    const computed = useMemo(() => phases.map(ph => {
+    // Only a complete saved working-day programme can replace the legacy baseline.
+    const proposalPlan = parseIsoDate(startDate) !== null ? computeProgrammePlan(startDate, phases) : null;
+    const baselinePlan = proposalPlan && proposalPlan.stages.length === phases.length && phases.every(ph =>
+        Number.isInteger(ph.manualDays ?? ph.calculatedDays) && (ph.manualDays ?? ph.calculatedDays) > 0
+        && Number.isInteger(ph.startOffset) && ph.startOffset >= 0) ? proposalPlan : null;
+
+    const computed = useMemo(() => phases.map((ph, index) => {
         const baseDays        = ph.manualDays ?? ph.calculatedDays ?? 1;
-        const baselineStart   = addDays(projectStart, ph.startOffset);
-        const baselineFinish  = addDays(baselineStart, baseDays);
+        const baselineStage   = baselinePlan?.stages[index];
+        const baselineStart   = baselineStage ? parseDate(baselineStage.start_date) : addDays(projectStart, ph.startOffset);
+        const baselineFinish  = baselineStage ? parseDate(baselineStage.end_date) : addDays(baselineStart, baseDays);
         const revisedFinish   = ph.revised_planned_finish ? parseDate(ph.revised_planned_finish) : null;
         const actualStart     = ph.actual_start_date  ? parseDate(ph.actual_start_date)  : null;
         const actualFinish    = ph.actual_finish_date ? parseDate(ph.actual_finish_date) : null;
@@ -157,7 +165,7 @@ export default function ProgrammeClient({ projectId, projectName, startDate, ini
         })();
 
         return { ph, baseDays, baselineStart, baselineFinish, revisedFinish, actualStart, actualFinish, pct, delayDays, status, plannedFinish };
-    }), [phases, projectStart, today]);
+    }), [phases, projectStart, today, baselinePlan]);
 
     // ── Gantt date range ──────────────────────────────────────────────────────
     const { ganttStart, totalDays } = useMemo(() => {
@@ -228,6 +236,7 @@ export default function ProgrammeClient({ projectId, projectName, startDate, ini
 
     return (
         <div className="space-y-5">
+            {baselinePlan && <p className="text-sm text-slate-300" data-canonical-baseline>Baseline matches the saved proposal programme. {PROGRAMME_BASIS_NOTE}</p>}
             {/* ── Summary cards ── */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">

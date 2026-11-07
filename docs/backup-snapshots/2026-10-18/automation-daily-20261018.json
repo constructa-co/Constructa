@@ -1,0 +1,13 @@
+{
+  "at": "2026-10-18T12:19:00Z",
+  "id": "constructa-programme-monitor",
+  "kind": "heartbeat",
+  "status": "ACTIVE",
+  "rrule": "FREQ=DAILY;BYHOUR=17;BYMINUTE=30;BYSECOND=0",
+  "timezone": "Asia/Dubai",
+  "localTime": "17:30",
+  "utcEquivalent": "13:30",
+  "readback": "automation.toml matches requested dailyRRULE/status/targetthread; hostIntl timezoneAsia/Dubai",
+  "evidenceLimitPerAction": 3,
+  "prompt": "ConciseP1/current-source/safety guidance; no recurring push or remote settings authority."
+}

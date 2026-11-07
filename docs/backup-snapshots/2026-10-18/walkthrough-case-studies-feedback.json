@@ -1,0 +1,15 @@
+{
+  "source": "Robert's direct case-studies walkthrough feedback, 18 October 2026",
+  "status": "Record-only until release after walkthrough.",
+  "approved": [
+    "Show what you've built heading",
+    "Overall page direction",
+    "Retain project name, type, contract value, duration, client, location, delivered work and value added",
+    "Up to three photos",
+    "AI Enhance concept, not tested or activated"
+  ],
+  "salesMessage": "Right-hand column should explain why to add past work: reusable case studies in proposals, proof of similar successful work, and selling the contractor's business. Current field language feels vanilla; make storytelling more compelling without inventing claims.",
+  "classification": "Broad discipline/sector multi-selection belongs on individual case studies to tag the works actually performed, rather than repeatedly presenting an exhaustive unrelated company-trades list. Exact taxonomy/storage/mapping remains to design, not silently transferred.",
+  "storyFields": "Make What We Delivered and Value Added boxes equal-sized. Add a challenge/problem and how the contractor solved it narrative; exact one-field-versus-paired-field wording/structure not settled. Preserve existing data.",
+  "bounds": "No app change, new schema, AI/provider/upload activation, case-study edit/save/add/remove or benchmarking functionality claim. Only existing read-only routes used."
+}

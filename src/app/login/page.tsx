@@ -5,6 +5,30 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getLaunchLandingPath } from '@/lib/launch-profile';
+import { ArrowRight } from 'lucide-react';
+import { FirstSessionFrame, FirstSessionPanel } from '@/components/first-session-frame';
+import AccountConfirmation from '@/components/account-confirmation';
+import ui from '@/components/first-session.module.css';
+import { platformSignupAction, type PlatformSignupErrorCode } from '@/lib/platform-signup-action';
+import { PLATFORM_TERMS_CURRENT_REVISION } from '@/lib/platform-terms';
+import { PLATFORM_TERMS_COMPLETION_PATH, platformTermsCompletionReturn } from '@/lib/platform-terms-completion';
+import AuthCallbackNotice from '@/components/auth-callback-notice';
+
+// A023 (Rob 15:05) — signup now runs through the server action seam
+// (platform-signup-action): the server verifies explicit terms acceptance
+// and the trusted technical revision before any account call, creates the
+// account with the cookie-bound server client, and records consent only
+// when a server session exists. While signup stays OFF the action's
+// hard-coded gate answers signup-disabled and the page says so truthfully.
+// Typed failures are shown as fixed copy — no raw provider/transport data.
+const SIGNUP_ERROR_MESSAGES: Record<PlatformSignupErrorCode, string> = {
+    "signup-disabled": "Sign-up is currently disabled.",
+    "invalid-input": "Please check your email address and password and try again.",
+    "terms-refused": "Please accept the platform terms of service before creating an account.",
+    "unrecognized-revision": "The platform terms have been updated. Please review them and try again.",
+    "signup-failed": "We couldn't create your account. Please try again.",
+    "consent-not-stored": "Your account was created, but we couldn't record your terms acceptance. Please sign in to complete it.",
+};
 
 // P2-3 — sign-up UX overhaul.
 // Previously "Sign up" was a button below the sign-in form that
@@ -26,13 +50,18 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [termsAccepted, setTermsAccepted] = useState(false);
+    // The typed success the server returned, so the page never guesses it from the message.
+    const [successOutcome, setSuccessOutcome] = useState<"confirmation-required" | "created-and-recorded" | null>(null);
     const router = useRouter();
     const supabase = createClient();
 
     const switchMode = (next: Mode) => {
+        if (next !== mode) setTermsAccepted(false);
         setMode(next);
         setErrorMessage(null);
         setSuccessMessage(null);
+        setSuccessOutcome(null);
         setConfirmPassword("");
     };
 
@@ -41,27 +70,34 @@ export default function LoginPage() {
         setLoading(true);
         setErrorMessage(null);
         setSuccessMessage(null);
+        setSuccessOutcome(null);
 
-        const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
+        try {
+            const { error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
 
-        if (error) {
-            setErrorMessage(error.message);
+            if (error) {
+                setErrorMessage("We couldn't confirm sign-in. Check your details and try again.");
+                return;
+            }
+
+            // Only the exact platform terms completion page is honoured as a return.
+            router.push(platformTermsCompletionReturn(globalThis.location?.search) ?? getLaunchLandingPath());
+            router.refresh();
+        } catch {
+            setErrorMessage("We couldn't confirm sign-in. Check your details and try again.");
+        } finally {
             setLoading(false);
-            return;
         }
-
-        router.push(getLaunchLandingPath());
-        router.refresh();
-        setLoading(false);
     };
 
     const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
         setErrorMessage(null);
         setSuccessMessage(null);
+        setSuccessOutcome(null);
 
         // Client-side validation
         if (password.length < 8) {
@@ -72,42 +108,79 @@ export default function LoginPage() {
             setErrorMessage("Passwords don't match.");
             return;
         }
-
-        setLoading(true);
-        const { error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                emailRedirectTo: `${location.origin}/auth/callback`,
-            },
-        });
-
-        if (error) {
-            setErrorMessage(error.message);
-            setLoading(false);
+        if (!termsAccepted) {
+            setErrorMessage("Please accept the platform terms of service before creating an account.");
             return;
         }
 
-        setSuccessMessage("Account created. Check your email for the confirmation link — once confirmed, sign in to get started.");
-        setLoading(false);
+        setLoading(true);
+        try {
+            const result = await platformSignupAction({
+                email,
+                password,
+                acceptance: termsAccepted,
+                revision: PLATFORM_TERMS_CURRENT_REVISION,
+            });
+
+            if (!result.ok) {
+                setErrorMessage(SIGNUP_ERROR_MESSAGES[result.code]);
+                return;
+            }
+
+            setSuccessMessage(result.outcome === "confirmation-required"
+                ? "Account created. Check your email for the confirmation link — once confirmed, sign in to get started."
+                : "Account created and your acceptance of the platform terms is recorded. Sign in to get started.");
+            setSuccessOutcome(result.outcome);
+        } catch {
+            // Transport-level rejection OUTSIDE the action's typed errors
+            // (Rob 18:15 gap). The request may have died after the account
+            // was created, so neither failure nor success may be claimed.
+            // Fixed redacted copy advises checking by signing in, and never
+            // retries automatically. Draft inputs, checkbox and mode are
+            // deliberately left untouched.
+            setErrorMessage("We couldn't confirm whether your account was created. Please try signing in before creating another account.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const isSignUp = mode === "signup";
+    // The checkbox is invalid only while its own refusal is shown and it is still unchecked.
+    const termsRefused = isSignUp && !termsAccepted
+        && errorMessage === "Please accept the platform terms of service before creating an account.";
 
     return (
-        <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
-            <div className="w-full max-w-md space-y-8">
-                <div className="text-center">
-                    <Link href="/" className="text-3xl font-bold tracking-tight">CONSTRUCTA</Link>
-                    <h2 className="mt-6 text-xl font-medium text-gray-400">
-                        {isSignUp ? "Create your account" : "Sign in to your account"}
-                    </h2>
-                </div>
+        <FirstSessionFrame>
+            <FirstSessionPanel step={isSignUp ? 0 : undefined}>
+                <p className={ui.eyebrow}>{isSignUp ? "Your next chapter starts here" : "Good to see you again"}</p>
+                <h1 className={ui.heading}>
+                    {successMessage ? (successOutcome === "created-and-recorded" ? "Account created." : "Check your inbox.") : isSignUp ? <>Get started.<br />Make it yours.</> : <>Welcome back.<br />Let&apos;s get to work.</>}
+                </h1>
+                <p className={ui.lede}>
+                    {successMessage ? (successOutcome === "created-and-recorded" ? "Sign in with your email and password to get started." : "Confirm your email, then sign in to get started.") : isSignUp ? "A few simple steps. Then shape your company profile and your first job." : "Pick up where you left off."}
+                </p>
 
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8 backdrop-blur-sm">
-                    <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-6">
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-400">Email address</label>
+                {successMessage ? (
+                    <AccountConfirmation
+                        message={successMessage}
+                        onSignIn={() => switchMode("signin")}
+                        footnote={successOutcome === "created-and-recorded" ? "Sign in with the email and password you used here." : undefined}
+                    />
+                ) : (
+                    <>
+                    {/* Shown only after the auth callback reports a link it could not confirm. */}
+                    <AuthCallbackNotice />
+                    <div className={ui.modeToggle} role="group" aria-label="Account mode">
+                        <button type="button" disabled={loading} aria-pressed={isSignUp} onClick={() => switchMode("signup")}>Get started</button>
+                        <button type="button" disabled={loading} aria-pressed={!isSignUp} onClick={() => switchMode("signin")}>Sign in</button>
+                    </div>
+                    <form
+                        onSubmit={isSignUp ? handleSignUp : handleSignIn}
+                        className={isSignUp ? ui.journeyStepForm : undefined}
+                        aria-busy={loading}
+                    >
+                        <div className={ui.field}>
+                            <label htmlFor="email" className={ui.label}>Email address</label>
                             <input
                                 id="email"
                                 type="email"
@@ -115,18 +188,19 @@ export default function LoginPage() {
                                 autoComplete="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="mt-2 w-full min-h-12 px-4 py-2 bg-black border border-zinc-800 rounded-lg focus:ring-2 focus:ring-white focus:border-transparent outline-none transition-all text-white"
+                                disabled={loading}
+                                className={ui.input}
                                 placeholder="you@example.com"
                             />
                         </div>
 
-                        <div>
-                            <div className="flex items-center justify-between">
-                                <label htmlFor="password" className="block text-sm font-medium text-gray-400">Password</label>
+                        <div className={ui.field}>
+                            <div className={ui.fieldHeading}>
+                                <label htmlFor="password" className={ui.label}>Password</label>
                                 {!isSignUp && (
                                     <Link
                                         href="/auth/forgot-password"
-                                        className="inline-flex items-center min-h-11 text-xs text-gray-400 hover:text-white transition-colors"
+                                        className={ui.textButton}
                                     >
                                         Forgot password?
                                     </Link>
@@ -139,17 +213,19 @@ export default function LoginPage() {
                                 autoComplete={isSignUp ? "new-password" : "current-password"}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="mt-2 w-full min-h-12 px-4 py-2 bg-black border border-zinc-800 rounded-lg focus:ring-2 focus:ring-white focus:border-transparent outline-none transition-all text-white"
+                                disabled={loading}
+                                aria-describedby={isSignUp ? "password-help" : undefined}
+                                className={ui.input}
                                 placeholder="••••••••"
                             />
                             {isSignUp && (
-                                <p className="mt-1.5 text-xs text-gray-400">At least 8 characters.</p>
+                                <p id="password-help" className={ui.help}>At least 8 characters.</p>
                             )}
                         </div>
 
                         {isSignUp && (
-                            <div>
-                                <label htmlFor="confirm" className="block text-sm font-medium text-gray-400">Confirm password</label>
+                            <div className={ui.field}>
+                                <label htmlFor="confirm" className={ui.label}>Confirm password</label>
                                 <input
                                     id="confirm"
                                     type="password"
@@ -157,56 +233,80 @@ export default function LoginPage() {
                                     autoComplete="new-password"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className="mt-2 w-full min-h-12 px-4 py-2 bg-black border border-zinc-800 rounded-lg focus:ring-2 focus:ring-white focus:border-transparent outline-none transition-all text-white"
+                                    disabled={loading}
+                                    className={ui.input}
                                     placeholder="••••••••"
                                 />
                             </div>
                         )}
 
-                        {errorMessage && (
-                            <div className="p-3 bg-red-900/20 border border-red-900/50 rounded-lg text-red-200 text-sm">
-                                {errorMessage}
+                        {isSignUp && (
+                            <div className={ui.field}>
+                                <label htmlFor="platform-terms" className={`${ui.label} flex min-h-11 items-start gap-3`}>
+                                    <input
+                                        id="platform-terms"
+                                        type="checkbox"
+                                        required
+                                        checked={termsAccepted}
+                                        onChange={(e) => setTermsAccepted(e.target.checked)}
+                                        disabled={loading}
+                                        aria-describedby={termsRefused ? "login-error platform-terms-link" : "platform-terms-link"}
+                                        aria-invalid={termsRefused || undefined}
+                                        className="mt-1 h-4 w-4 shrink-0"
+                                    />
+                                    <span>I accept Constructa&apos;s platform terms of service.</span>
+                                </label>
+                                <Link id="platform-terms-link" href="/terms-of-service" target="_blank" rel="noopener noreferrer" className={ui.textButton}>
+                                    Read the full platform terms (opens in a new tab)
+                                </Link>
                             </div>
                         )}
 
-                        {successMessage && (
-                            <div className="p-3 bg-emerald-900/20 border border-emerald-900/50 rounded-lg text-emerald-200 text-sm">
-                                {successMessage}
+                        {errorMessage && (
+                            <div id="login-error" role="alert" className={ui.error}>
+                                {errorMessage}
                             </div>
+                        )}
+                        {errorMessage === SIGNUP_ERROR_MESSAGES["consent-not-stored"] && (
+                            <Link href={PLATFORM_TERMS_COMPLETION_PATH} className={ui.textButton}>
+                                Complete platform terms acceptance
+                            </Link>
                         )}
 
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full min-h-12 flex items-center justify-center py-2.5 px-4 border border-transparent rounded-lg text-sm font-medium text-black bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className={`${ui.primary} ${ui.block}`}
                         >
                             {loading
                                 ? 'Processing...'
                                 : isSignUp
                                     ? 'Create account'
                                     : 'Sign in'}
+                            <ArrowRight size={18} aria-hidden="true" />
                         </button>
 
-                        <div className="text-center text-sm">
+                        <div className={ui.footnote}>
                             {isSignUp ? (
                                 <>
                                     <span className="text-gray-400">Already have an account? </span>
-                                    <button type="button" onClick={() => switchMode("signin")} className="inline-flex items-center min-h-11 px-2 text-white hover:underline">
+                                    <button type="button" disabled={loading} onClick={() => switchMode("signin")} className={`${ui.textButton} ml-2`}>
                                         Sign in
                                     </button>
                                 </>
                             ) : (
                                 <>
                                     <span className="text-gray-400">Don&apos;t have an account? </span>
-                                    <button type="button" onClick={() => switchMode("signup")} className="inline-flex items-center min-h-11 px-2 text-white hover:underline">
-                                        Sign up
+                                    <button type="button" disabled={loading} onClick={() => switchMode("signup")} className={`${ui.textButton} ml-2`}>
+                                        Get started
                                     </button>
                                 </>
                             )}
                         </div>
                     </form>
-                </div>
-            </div>
-        </div>
+                    </>
+                )}
+            </FirstSessionPanel>
+        </FirstSessionFrame>
     );
 }

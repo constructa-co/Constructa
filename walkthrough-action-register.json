@@ -1,0 +1,767 @@
+{
+  "schemaVersion": 1,
+  "kind": "compact-delivery-status-snapshot",
+  "updatedAt": "2026-11-07T07:58:41.000Z",
+  "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
+  "actions": [
+    {
+      "id": "A001",
+      "phase": "P1-Jan2027",
+      "requested": "Use the approved charcoal and green palette consistently across the whole application and marketing site.",
+      "status": "Partial",
+      "evidence20261107": "cursor/a001-verify-20261107 (e647677, a8835ed): app dashboard primaries on palette + audit test; Vitest 6278 pass/0 fail; eslint 0 errors (Cursor cloud). Marketing and semantic blues intentionally kept, so 'whole application and marketing site' not met. Stays Partial."
+    },
+    {
+      "id": "A002",
+      "phase": "P1-Jan2027",
+      "requested": "Use one Constructa wordmark and typeface everywhere, with no trailing full stop.",
+      "status": "Complete"
+    },
+    {
+      "id": "A003",
+      "phase": "P1-Jan2027",
+      "requested": "Remove clashing blue sidebar, selection and Next-button styling, including advanced estimating and programme.",
+      "status": "Complete"
+    },
+    {
+      "id": "A004",
+      "phase": "P1-Jan2027",
+      "requested": "Replace duplicated top module tabs and left navigation with a clear, consistent hierarchy and retained page header.",
+      "status": "Complete"
+    },
+    {
+      "id": "A005",
+      "phase": "P1-Jan2027",
+      "requested": "Use desktop width properly and reduce empty top/right space; keep balanced, symmetrical layouts.",
+      "status": "Complete"
+    },
+    {
+      "id": "A006",
+      "phase": "Later",
+      "requested": "Research broader UK SME construction disciplines covering domestic and commercial work.",
+      "status": "Partial"
+    },
+    {
+      "id": "A007",
+      "phase": "P1-Jan2027",
+      "requested": "Replace irregular pills with refined, symmetrical, evenly aligned discipline choices while retaining free text.",
+      "status": "Complete"
+    },
+    {
+      "id": "A008",
+      "phase": "P1-Jan2027",
+      "requested": "Compact discipline choices and step frames so the journey does not jump from short to excessively long pages.",
+      "status": "Complete"
+    },
+    {
+      "id": "A009",
+      "phase": "P1-Jan2027",
+      "requested": "Keep the same right-panel styling, numbered bullets and lines, but change the sales message for each individual step.",
+      "status": "Complete"
+    },
+    {
+      "id": "A010",
+      "phase": "P1-Jan2027",
+      "requested": "Route a newly introduced company to the existing welcome/readiness page, not the operational pipeline.",
+      "status": "Complete"
+    },
+    {
+      "id": "A011",
+      "phase": "P1-Jan2027",
+      "requested": "Present four compact landscape tiles: company profile, case studies/benchmarks, proposal defaults, first proposal.",
+      "status": "Complete"
+    },
+    {
+      "id": "A012",
+      "phase": "P1-Jan2027",
+      "requested": "Move guided/manual/import choices behind the company-profile tile.",
+      "status": "Complete"
+    },
+    {
+      "id": "A013",
+      "phase": "P1-Jan2027",
+      "requested": "Make first proposal a clear outcome rather than duplicate Price next job and Build next proposal entries.",
+      "status": "Complete"
+    },
+    {
+      "id": "A014",
+      "phase": "P1-Jan2027",
+      "requested": "Place the useful readiness checklist in context instead of leaving it detached at the bottom.",
+      "status": "Complete"
+    },
+    {
+      "id": "A015",
+      "phase": "P1-Jan2027",
+      "requested": "Show sequential company-setup pages and the current position in the left navigation.",
+      "status": "Complete"
+    },
+    {
+      "id": "A016",
+      "phase": "Later",
+      "requested": "Keep the dashboard for established operational use and simplify its cluttered Kanban layout.",
+      "status": "Complete"
+    },
+    {
+      "id": "A017",
+      "phase": "P1-Jan2027",
+      "requested": "Make stage filters visibly different from controls that change a job's stage.",
+      "status": "Complete"
+    },
+    {
+      "id": "A018",
+      "phase": "Later",
+      "requested": "Use clearer, more engaging professional pipeline language.",
+      "status": "Complete"
+    },
+    {
+      "id": "A019",
+      "phase": "P1-Jan2027",
+      "requested": "Retain search and week/month/quarter controls, and verify that real project metrics respond correctly.",
+      "status": "Complete"
+    },
+    {
+      "id": "A020",
+      "phase": "Later",
+      "requested": "Integrate useful resource and financial metrics without blank, disconnected future-feature blocks.",
+      "status": "Not started"
+    },
+    {
+      "id": "A021",
+      "phase": "P1-Jan2027",
+      "requested": "Replace Your website Your choices heading and make the import layout balanced and symmetrical.",
+      "status": "Complete"
+    },
+    {
+      "id": "A022",
+      "phase": "Later",
+      "requested": "Consider importing the contractor's own website, LinkedIn and Facebook business information.",
+      "status": "Partial"
+    },
+    {
+      "id": "A023",
+      "phase": "P1-Jan2027",
+      "requested": "Add Constructa platform terms acceptance at signup, with an explicit checkbox and accessible full terms.",
+      "status": "Partial",
+      "delivery": "Claude658 safeHELDoperatorconsentrunner integrated afterP1bounded-identityrepair and independentrecheck;21actualguardPASS/lint/typecheck+12oldpassesretained. AuthverifiessessionidentitybeforeownRLSrow/docread; capturesOFF; humanalonelegal/signup/email; hardruntimeholdTRUE. Build/scans/backupactuals inprivateacceptancereceipt; no currentruntimeacceptance. QAconsentschemaalreadyapplied/metadataverified; realcurrentconsentacceptance NOT_RUN.",
+      "evidence": [
+        "docs/delivery/2026-10-27/handoff.md",
+        "docs/delivery/2026-10-27/changelog.md"
+      ],
+      "previousDeliveryBeforeA079Evening20261027": "QA access and exact constructa-e2e-pr79 name-ref binding now VERIFIED in authenticated UI; public schema search finds no platform_terms_acceptances table. SQL/signup/Preview holds remain. Unsafe runner rejected, no real consent or canonical source landed; Partial.",
+      "historyBeforeSafeRunner20261027": "Reviewed consent-table migration APPLIED to verified QA only on Rob21:50 authority; exact columns/constraints/RLS/policies/narrow grants metadata verified. No consent rows accessed in that operation. Current A023 signup/email/firstlogin not run. Later unintended legacy PR106 QA journey is a separate incident, not current-consent acceptance.",
+      "evidence20261107": "cursor/a023-terms-checkbox-20261107 (7e0dcef): checkbox + server gate + metadata fallback + placeholder terms page + draft migration (NOT applied); 77 tests pass (Cursor cloud). Needs Rob: legal wording and migration approval; real consent acceptance NOT_RUN. Stays Partial."
+    },
+    {
+      "id": "A024",
+      "phase": "P1-Jan2027",
+      "requested": "Explain privacy, security and use of personal/company/tax/pricing/salary information clearly.",
+      "status": "Complete"
+    },
+    {
+      "id": "A025",
+      "phase": "Later",
+      "requested": "Scope future regional/discipline pricing and programme benchmarks and reconcile the existing benchmark checkbox.",
+      "status": "Partial"
+    },
+    {
+      "id": "A026",
+      "phase": "Later",
+      "requested": "Track future customer insights on market pricing, durations, missing activities and estimate-versus-actual costs.",
+      "status": "Not started"
+    },
+    {
+      "id": "A027",
+      "phase": "P1-Jan2027",
+      "requested": "Replace the long profile scroll with compact sections shown one at a time and persistent section navigation.",
+      "status": "Complete"
+    },
+    {
+      "id": "A028",
+      "phase": "P1-Jan2027",
+      "requested": "Keep initial company name/work description prefilled and retain useful company basics.",
+      "status": "Complete"
+    },
+    {
+      "id": "A029",
+      "phase": "P1-Jan2027",
+      "requested": "Move insurance, accreditations and company logo into Company Basics.",
+      "status": "Complete"
+    },
+    {
+      "id": "A030",
+      "phase": "Later",
+      "requested": "Provide repeatable free-text accreditations: add to a list, then add another.",
+      "status": "Complete"
+    },
+    {
+      "id": "A031",
+      "phase": "P1-Jan2027",
+      "requested": "Make visible trade discovery relevant to the contractor's earlier work description.",
+      "status": "Complete"
+    },
+    {
+      "id": "A032",
+      "phase": "P1-Jan2027",
+      "requested": "Keep capability statement and rewrite affordance, with a more coherent work-story section.",
+      "status": "Complete"
+    },
+    {
+      "id": "A033",
+      "phase": "P1-Jan2027",
+      "requested": "Move proposal style/theme and managing director message to the proposal-defaults journey; keep case studies separate.",
+      "status": "Complete"
+    },
+    {
+      "id": "A034",
+      "phase": "P1-Jan2027",
+      "requested": "Strengthen the right-column explanation of proof of similar work and reuse in proposals.",
+      "status": "Complete"
+    },
+    {
+      "id": "A035",
+      "phase": "P1-Jan2027",
+      "requested": "Make delivered-work and value-added boxes equal sized and improve storytelling prompts.",
+      "status": "Complete"
+    },
+    {
+      "id": "A036",
+      "phase": "Later",
+      "requested": "Add a challenge/problem and how it was resolved narrative.",
+      "status": "Complete"
+    },
+    {
+      "id": "A037",
+      "phase": "Later",
+      "requested": "Tag each example with relevant discipline/sector selections.",
+      "status": "Not started"
+    },
+    {
+      "id": "A038",
+      "phase": "P1-Jan2027",
+      "requested": "Retain up to three photos and optional AI enhancement within the improved case-study journey.",
+      "status": "Partial",
+      "evidence20261107": "cursor/a038-photo-checks-20261107 (e41e09c, d833dea, c1c45e0): all material checks pass; legacy save refuses >3 photos (Cursor cloud). Library wire photos/AI enhance still off; photos migration unapplied. Stays Partial."
+    },
+    {
+      "id": "A039",
+      "phase": "P1-Jan2027",
+      "requested": "Keep job/client/contact/date content but restore context header and improve spacing/polish.",
+      "status": "Complete"
+    },
+    {
+      "id": "A040",
+      "phase": "P1-Jan2027",
+      "requested": "Offer postcode-first site and separate client-address selection with manual/unusual-site fallback.",
+      "status": "Complete"
+    },
+    {
+      "id": "A041",
+      "phase": "P1-Jan2027",
+      "requested": "Offer contractor-written custom job types and a small set of relevant examples consistently in create/settings/proposal.",
+      "status": "Complete"
+    },
+    {
+      "id": "A042",
+      "phase": "P1-Jan2027",
+      "requested": "Remove Rough value from the new-project/brief capture journey.",
+      "status": "Complete"
+    },
+    {
+      "id": "A043",
+      "phase": "P1-Jan2027",
+      "requested": "Improve brief heading, introduction, fonts and step tiles while retaining useful description/client categories.",
+      "status": "Complete"
+    },
+    {
+      "id": "A044",
+      "phase": "P1-Jan2027",
+      "requested": "Replace the exhaustive Work included trade checklist with contractor-led elemental activities.",
+      "status": "Complete"
+    },
+    {
+      "id": "A045",
+      "phase": "P1-Jan2027",
+      "requested": "Remove duplicate site address, postcode and start-date entry; retain access restrictions and assumptions.",
+      "status": "Complete"
+    },
+    {
+      "id": "A046",
+      "phase": "P1-Jan2027",
+      "requested": "Remove the standalone Review step and proceed directly to Build the price.",
+      "status": "Complete"
+    },
+    {
+      "id": "A047",
+      "phase": "P1-Jan2027",
+      "requested": "Carry the brief and contractor-defined activities into the estimate as a starting point.",
+      "status": "Complete"
+    },
+    {
+      "id": "A048",
+      "phase": "P1-Jan2027",
+      "requested": "Build a professional tabular line-item workspace inspired by Excel/Candy instead of serial rudimentary forms. Use STACK's clean presentation as the starting point, not an Excel clone; keep everyday contractor input streamlined.",
+      "status": "Complete"
+    },
+    {
+      "id": "A049",
+      "phase": "P1-Jan2027",
+      "requested": "Keep quick lump-sum/all-in pricing and detailed build-ups in one coherent journey. Advanced worksheet detail stays optional; Constructa performs the mathematics without contractor-written formulas.",
+      "status": "Complete"
+    },
+    {
+      "id": "A050",
+      "phase": "P1-Jan2027",
+      "requested": "Support meaningful per-unit build-ups with multiple named labour, plant, materials and subcontract rows, plus consultancy where relevant.",
+      "status": "Complete"
+    },
+    {
+      "id": "A051",
+      "phase": "P1-Jan2027",
+      "requested": "Use actual job activities for estimate sections instead of irrelevant generic section sprawl.",
+      "status": "Complete"
+    },
+    {
+      "id": "A052",
+      "phase": "P1-Jan2027",
+      "requested": "Remove version/name/New Estimate confusion from the core first-estimate task.",
+      "status": "Complete"
+    },
+    {
+      "id": "A053",
+      "phase": "P1-Jan2027",
+      "requested": "Add an explicit length-times-width quantity aid using exact products with at most three decimal places.",
+      "status": "Complete"
+    },
+    {
+      "id": "A054",
+      "phase": "P1-Jan2027",
+      "requested": "Finish running-total usability while entering/editing price lines.",
+      "status": "Complete"
+    },
+    {
+      "id": "A055",
+      "phase": "P1-Jan2027",
+      "requested": "Build a genuine job-aware assistant across brief, estimate and programme, not a fixed questionnaire presented as chat. Guide the contractor through pricing to simplify input, rather than bolt chat onto a complicated worksheet.",
+      "status": "Partial"
+    },
+    {
+      "id": "A056",
+      "phase": "P1-Jan2027",
+      "requested": "Offer a high-level elemental mini-Gantt by default, with optional detailed contractor planning. Use TeamGantt's supplied simple timeline visuals as the starting reference, not a dense scheduling worksheet.",
+      "status": "Complete"
+    },
+    {
+      "id": "A057",
+      "phase": "P1-Jan2027",
+      "requested": "Support a known target start or relative Day 1 to Day N when no start date is known.",
+      "status": "Complete"
+    },
+    {
+      "id": "A058",
+      "phase": "P1-Jan2027",
+      "requested": "Resolve the three-week/6 November versus 21-day/four-calendar-week/9 November mismatch.",
+      "status": "Complete"
+    },
+    {
+      "id": "A059",
+      "phase": "P1-Jan2027",
+      "requested": "Align Gantt bars with the date/week grid, durations and the proposal timeline.",
+      "status": "Complete",
+      "originalScopeClosure30Oct": {
+        "at": "2026-10-30T19:25:06.684Z",
+        "sourceCommit": "dfbf9f1e6d90852b81bb62e4051421c09e906a70",
+        "evidence": "rob2324-a059-parent-acceptance-20261030.json",
+        "qa": "evening2300-ready-qa-and-overnight-20261030.json",
+        "checker": "Grok2246 SCOPED_NNF plus prior accepted A059 source qualification; parent exact committed-blob/build/remote and signed-in QA grade",
+        "qualification": "Original Gantt/date/week/duration/proposal alignment closed with real save/reopen/proposal parity. Known v2 parallel/gap totals, overscan latency and P3 limits retained, not declared fixed. No AI/Production acceptance.",
+        "packaging": "Post-acceptance register metadata only, intentionally uncommitted for the next genuine source package; do not reuse dfbf build after this metadata change or make an empty documentation backup."
+      },
+      "delivery": "28Oct: Kimi ONE new refresh-after-successful-push failure/retry case independently accepted;48line addition exact. Composer explicitly conditions newer-edits warning and fixes actual leaving-state test slot. Actual2affected mounted cases PASS/17NOT_SELECTED, lintPASS. Grok SAMEsession: promise finding rejected against actual AppRouter void API; conditional-copy clarity accepted, held-consent scopedsourceNNF only. Exact originalbuild/scans/normalbackup PENDING at metadata freeze; no new Complete or hosted acceptance. 30Oct ROB2315 ROOT: frozen Claude ROB2228 grant SQL+5case source test only (patch 9bbcdc396f…); Grok2246 SCOPED_NNF on exact hunks; parent actual QA grant applied once readback authenticatedExecute true anon false; programme Saved/freshreopen/proposal parity and new-job/closing journeys PASS on umq; SQL header still says SOURCE ONLY/unapplied for repo history — superseded for runtime by parent evening2300 receipt not by rewriting frozen migration bytes; no SQL replay this integration; A059 status unchanged Partial pending parent scope closure.",
+      "evidence": [
+        "evening2300-ready-qa-and-overnight-20261030.json",
+        "grok2246-a059-independent-disposition-20261030.json",
+        "rob2315-a059-source-backup-20261030.json"
+      ],
+      "previousEvidenceBeforeRob2315": [
+        "a059-final-independent-disposition-20261028.json",
+        "CURSOR-A059-FINAL-INTEGRATION-RETURN-20261028.md",
+        "grok-f850-independent-disposition-20261028.json"
+      ],
+      "previousDeliveryBeforeNavigationBackup20261027": "SOURCE BACKED ba1c34c including aa6d349, Node24 original Next/TypeScript/QAguardPASS31pages1906readbacks0events/scans0/nonforcebackupremoteMATCH20:45:10. A059 remainsPartial: SQL and real QA save/reopen/readback NOT_RUN.",
+      "historyBeforeSafeRunner20261027": "Bounded navigation failure/retry handling integrated from7e4; source acceptance uses local3case/lint/originalbuild/propersecret-scan receipt. A059Partial: no calendarSQL/realQAsave-reopen-readback or completedshiftintervalcapacity.",
+      "previousDeliveryBefore20261028": "Navigationrepairbacked05595c4 afterlocal3PASS/lint/build/scans/remoteMATCH. A059Partial: QAcalendarSQL/save-reopen andshiftintervalcapacityunfinished."
+    },
+    {
+      "id": "A060",
+      "phase": "P1-Jan2027",
+      "requested": "Present weekends and non-working time cleanly without disconnected-looking stages.",
+      "status": "Complete"
+    },
+    {
+      "id": "A061",
+      "phase": "Later",
+      "requested": "Improve baseline and detailed Gantt design, desktop workspace and purposeful activity colours. TeamGantt leads the visual direction; a cleaner Smartsheet-style advanced grid is a secondary cue, with current/baseline comparison as a later tracking reference.",
+      "status": "Not started"
+    },
+    {
+      "id": "A062",
+      "phase": "P1-Jan2027",
+      "requested": "Make Save programme discoverable and clarify Regenerate from estimate behaviour.",
+      "status": "Complete"
+    },
+    {
+      "id": "A063",
+      "phase": "P1-Jan2027",
+      "requested": "Have the assistant discuss milestones, procurement lead times and client decisions/requirements.",
+      "status": "Partial"
+    },
+    {
+      "id": "A064",
+      "phase": "P1-Jan2027",
+      "requested": "Make the final proposal stage show a finished product rather than introduce substantive drafting for the first time.",
+      "status": "Complete"
+    },
+    {
+      "id": "A065",
+      "phase": "P1-Jan2027",
+      "requested": "Choose payment stages during pricing, before the final proposal screen.",
+      "status": "Complete"
+    },
+    {
+      "id": "A066",
+      "phase": "P1-Jan2027",
+      "requested": "Resolve opening copy, relevant experience, scope, exclusions and clarifications earlier in the journey.",
+      "status": "Complete"
+    },
+    {
+      "id": "A067",
+      "phase": "P1-Jan2027",
+      "requested": "Locate Robert's substantive original terms and trace them through defaults, editor, snapshot, document and PDF.",
+      "status": "Complete"
+    },
+    {
+      "id": "A068",
+      "phase": "P1-Jan2027",
+      "requested": "Select/review contractor-to-client terms during preparation and reuse proposal defaults.",
+      "status": "Complete"
+    },
+    {
+      "id": "A069",
+      "phase": "P1-Jan2027",
+      "requested": "Prefill the closing message from the managing director message, with proposal-specific editing.",
+      "status": "Complete"
+    },
+    {
+      "id": "A070",
+      "phase": "P1-Jan2027",
+      "requested": "Use a proposal-focused heading and clear wording for genuinely optional improvements.",
+      "status": "Complete"
+    },
+    {
+      "id": "A071",
+      "phase": "P1-Jan2027",
+      "requested": "Move client response intent into the workflow rather than beneath the document preview.",
+      "status": "Complete"
+    },
+    {
+      "id": "A072",
+      "phase": "P1-Jan2027",
+      "requested": "Present the finished document separately from editing/send controls and make web preview page aware.",
+      "status": "Complete"
+    },
+    {
+      "id": "A073",
+      "phase": "P1-Jan2027",
+      "requested": "Align summary metrics and improve company credentials hierarchy and relevant work-type presentation.",
+      "status": "Complete"
+    },
+    {
+      "id": "A074",
+      "phase": "Later",
+      "requested": "Offer an appropriate real cover photo or clearly labelled design/before-after render.",
+      "status": "Not started"
+    },
+    {
+      "id": "A075",
+      "phase": "P1-Jan2027",
+      "requested": "Improve PDF page structure and spacing while retaining its tidy professional baseline.",
+      "status": "Complete"
+    },
+    {
+      "id": "A076",
+      "phase": "P1-Jan2027",
+      "requested": "Verify why a draft PDF says Client receipt confirmed without a client action in this tour.",
+      "status": "Complete"
+    },
+    {
+      "id": "A077",
+      "phase": "P1-Jan2027",
+      "requested": "Preserve a verified local snapshot of current uncommitted source and assets before marketing edits.",
+      "status": "Complete"
+    },
+    {
+      "id": "A078",
+      "phase": "P1-Jan2027",
+      "requested": "Keep all later-phase application modules and original marketing functionality while adding phase one.",
+      "status": "Complete"
+    },
+    {
+      "id": "A079",
+      "phase": "P1-Jan2027",
+      "requested": "Fully preserve both exact deployed repositories, history and assets with a separately verified backup.",
+      "status": "Partial",
+      "delivery": "Reviewed source-only recovery runbook/checker BACKED c21457e;24tests/lint/originalbuild/scans/remoteMATCH. No actual independent DB/Auth/Storage/refs/assets/privatework recovery; originalA079Partial.",
+      "evidence": [
+        "docs/delivery/2026-10-27/handoff.md",
+        "docs/delivery/2026-10-27/changelog.md",
+        "docs/recovery/a079-recovery-runbook.md"
+      ],
+      "previousDeliveryBeforeA079Evening20261027": "Partial. Actual QA overview says LAST BACKUP No backups, not a Production/private-export verdict. Independent DB/Auth/Storage restore, refs/history/assets/private-unsaved reconciliation and constructa-ops export remain unproved; no export/restore executed.",
+      "previousDeliveryBeforeNavigationBackup20261027": "Claude A079 repaired three-file recovery runbook/manifest checker d1acd99 integrated exactly; 24 offline tests and lint PASS, independent Composer findings recheck cleared. Exact-input build/secret scans/backup pending. No actual export/restore; original full recoverability remains Partial."
+    },
+    {
+      "id": "A080",
+      "phase": "P1-Jan2027",
+      "requested": "Plan a recoverable phase-two/three hosted continuation before replacing the existing public site.",
+      "status": "Complete"
+    },
+    {
+      "id": "A081",
+      "phase": "P1-Jan2027",
+      "requested": "Build a local phase-one homepage and supporting marketing routes in the approved brand.",
+      "status": "Complete"
+    },
+    {
+      "id": "A082",
+      "phase": "P1-Jan2027",
+      "requested": "Link local marketing Sign in/Get started through the existing account entry, with correct navigation back to marketing.",
+      "status": "Complete"
+    },
+    {
+      "id": "A083",
+      "phase": "P1-Jan2027",
+      "requested": "Remove not-ready add-on sales from phase-one marketing without deleting their implementation.",
+      "status": "Complete"
+    },
+    {
+      "id": "A084",
+      "phase": "Later",
+      "requested": "Refresh marketing imagery and explanation to match the product and brand.",
+      "status": "Partial"
+    },
+    {
+      "id": "A085",
+      "phase": "P1-Jan2027",
+      "requested": "Deliver a complete improved marketing-to-finished-proposal workflow for the next review.",
+      "status": "Partial"
+    },
+    {
+      "id": "A086",
+      "phase": "P1-Jan2027",
+      "requested": "Provide a separately protected, shareable phase-one Vercel preview for comments without replacing either current site.",
+      "status": "Partial"
+    },
+    {
+      "id": "A087",
+      "phase": "P1-Jan2027",
+      "requested": "Exclude generated isolated Next output from normal lint without relaxing source rules.",
+      "status": "Complete"
+    },
+    {
+      "id": "A088",
+      "phase": "P1-Jan2027",
+      "requested": "Diagnose and repair the bounded local transport verification failure without weakening network isolation.",
+      "status": "Complete"
+    },
+    {
+      "id": "A089",
+      "phase": "P1-Jan2027",
+      "requested": "Diagnose the Git-check fixture timeout without Git repair or raised thresholds.",
+      "status": "Partial",
+      "evidence20261107": "cursor/a089-gitcheck-timeout-20261107 (6938141): runGit() with -c core.fsmonitor=false, core.untrackedCache=false, SIGKILL 4000ms; 9/9 Linux (Cursor cloud). Mac check 7 Nov 11:58 UAE: 9/9 pass in 0.49s on fix, and 9/9 in 0.54s on unfixed b09dd69; core.fsmonitor/untrackedCache not set in any Mac git config. Hang not reproduced, historical cause unproved. Stays Partial."
+    },
+    {
+      "id": "A090",
+      "phase": "P1-Jan2027",
+      "requested": "Isolate build-generated files and enforce credential-free Google Fonts access to only the two approved domains.",
+      "status": "Complete"
+    },
+    {
+      "id": "A091",
+      "phase": "P1-Jan2027",
+      "requested": "Verify current-source units/build and full marketing-to-proposal flow at meaningful integration boundaries.",
+      "status": "Partial",
+      "delivery": "Claude658 safeHELDoperatorconsentrunner integrated afterP1bounded-identityrepair and independentrecheck;21actualguardPASS/lint/typecheck+12oldpassesretained. AuthverifiessessionidentitybeforeownRLSrow/docread; capturesOFF; humanalonelegal/signup/email; hardruntimeholdTRUE. Build/scans/backupactuals inprivateacceptancereceipt; no currentruntimeacceptance. PriorA059navigation/sourceMOCKproofretained; fullrealmarketingjourneyNOTaccepted.",
+      "evidence": [
+        "docs/delivery/2026-10-27/handoff.md",
+        "docs/delivery/2026-10-27/changelog.md"
+      ],
+      "previousDeliveryBeforeA079Evening20261027": "Existing288c096..7b60157 scoped MOCK integration diff reviewed/accepted. Separate new one-assertion About-facts fix aligns exact five existing credentials; actual priorRED -> ONLYfailedcasePASS1/lint0/32oldNOT_SELECTED, no product change. Packaging exact build/scans next; full real marketing/AuthDB/hosted still NOT_RUN.",
+      "historyBeforeSafeRunner20261027": "Existing assertion repair679 remains backed; Kimi current About/proposal62PASS and actualbase7b planner91PASS. Friday draftPR106 automatically ran legacy hosted Phase1: 2PASS on real synthetic QA but unintended under holds, NOT accepted release evidence. PR106 closed/unmerged; Composer cloud source-only draft gate103f489 returned, independent check pending.",
+      "evidence20261107": "cursor/a091-verify-20261107 (f64cd1c+09c446a): website-to-proposal boundary proven by tests; full Vitest 6283 pass/0 fail (Cursor cloud). Hosted real-email run NOT_RUN (sign-up disabled on preview). Stays Partial."
+    },
+    {
+      "id": "A092",
+      "phase": "P1-Jan2027",
+      "requested": "Close confirmation-dialog evidence in one designated local QA session with Robert operating Cancel/Leave when ready.",
+      "status": "Partial"
+    },
+    {
+      "id": "A093",
+      "phase": "P1-Jan2027",
+      "requested": "Complete independent exact-candidate review and release readiness before promoting a replacement.",
+      "status": "Blocked"
+    },
+    {
+      "id": "A094",
+      "phase": "P1-Jan2027",
+      "requested": "Maintain a numbered table of every requested action, its status, remaining work and verification evidence.",
+      "status": "Complete"
+    },
+    {
+      "id": "A095",
+      "phase": "P1-Jan2027",
+      "requested": "Provide concrete construction and wider SaaS benchmarks for professional estimating/programme data entry and presentation.",
+      "status": "Complete"
+    },
+    {
+      "id": "A096",
+      "phase": "Later",
+      "requested": "Audit existing analytics/newsletter work against current requirements before replacing or adding tools.",
+      "status": "Partial"
+    },
+    {
+      "id": "A097",
+      "phase": "Later",
+      "requested": "Define and implement useful acquisition/conversion measurement with a justified primary analytics choice.",
+      "status": "Partial"
+    },
+    {
+      "id": "A098",
+      "phase": "P1-Jan2027",
+      "requested": "Scope consent/privacy controls and exclude confidential contractor pages/data from behavioural tracking.",
+      "status": "Complete"
+    },
+    {
+      "id": "A099",
+      "phase": "Later",
+      "requested": "Create a public Guides and Insights hub and article pages on Constructa's marketing site.",
+      "status": "Complete"
+    },
+    {
+      "id": "A100",
+      "phase": "Later",
+      "requested": "Provide a lightweight private editorial workflow for drafting, review and publishing.",
+      "status": "Complete"
+    },
+    {
+      "id": "A101",
+      "phase": "Later",
+      "requested": "Integrate optional newsletter signup with a reviewed Kit or equivalent provider setup.",
+      "status": "Not started"
+    },
+    {
+      "id": "A102",
+      "phase": "Later",
+      "requested": "Repurpose approved site content for LinkedIn, Facebook and optional Medium with links back to Constructa.",
+      "status": "Partial"
+    },
+    {
+      "id": "A103",
+      "phase": "Later",
+      "requested": "Establish a small useful contractor-content pilot and review search/traffic/conversion results.",
+      "status": "Not started"
+    },
+    {
+      "id": "A104",
+      "phase": "Later",
+      "requested": "Define a staged path from phase-one estimating/proposal/programme to one integrated platform contractors use to run projects, preserving existing phase-two/three work.",
+      "status": "Complete"
+    },
+    {
+      "id": "A105",
+      "phase": "P1-Jan2027",
+      "requested": "Confirm and contain the public Perplexity agent-proxy credential, explain its access and consumers, and give Rob verified revocation/replacement steps.",
+      "status": "Partial"
+    },
+    {
+      "id": "A106",
+      "phase": "P1-Jan2027",
+      "requested": "Confirm the historical Supabase PAT exposure, determine scope/consumer risks and explain safe revocation and least-privilege replacement.",
+      "status": "Partial"
+    },
+    {
+      "id": "A107",
+      "phase": "P1-Jan2027",
+      "requested": "Prepare local MCP untracking/ignore plus secret-scanning guard, without pushing or activating settings.",
+      "status": "Complete"
+    },
+    {
+      "id": "A108",
+      "phase": "P1-Jan2027",
+      "requested": "Advise on private repository visibility and whether revoked credentials justify rewriting history.",
+      "status": "Complete"
+    },
+    {
+      "id": "A109",
+      "phase": "P1-Jan2027",
+      "requested": "Provide one clear Apply to the founding cohort entry separate from existing-user sign-in.",
+      "status": "Partial",
+      "evidence20261107": "cursor/a109-apply-cta-20261107 (73cfa64): /apply page + header/hero/footer CTAs, no-op submission adapter; 60 tests pass (Cursor cloud). Needs Rob: where applications go; nothing activated. Not started -> Partial."
+    },
+    {
+      "id": "A110",
+      "phase": "Later",
+      "requested": "Give product/access pages distinct useful purposes and add representative test-data product screenshots.",
+      "status": "Complete"
+    },
+    {
+      "id": "A111",
+      "phase": "P1-Jan2027",
+      "requested": "Improve small marketing/sidebar text and measure contrast across real rendered states.",
+      "status": "Complete"
+    },
+    {
+      "id": "A112",
+      "phase": "P1-Jan2027",
+      "requested": "Remove onboarding progress from ordinary sign-in and align right-panel step numbers with their labels.",
+      "status": "Complete"
+    },
+    {
+      "id": "A113",
+      "phase": "P1-Jan2027",
+      "requested": "Clarify Access route naming, remove its self-referential access link and make decorative arrows unambiguous.",
+      "status": "Complete"
+    },
+    {
+      "id": "A114",
+      "phase": "P1-Jan2027",
+      "requested": "Review and verify the existing client-response-to-Won journey and distinguish preview restrictions from missing functionality.",
+      "status": "Complete"
+    },
+    {
+      "id": "A115",
+      "phase": "P1-Jan2027",
+      "requested": "Reconcile pipeline actions with saved workflow state, publication/readiness and confirmed mutation results.",
+      "status": "Complete"
+    },
+    {
+      "id": "A116",
+      "phase": "P1-Jan2027",
+      "requested": "Use one explicit resolved project identity across the page, URL and sidebar when no project is selected.",
+      "status": "Complete"
+    },
+    {
+      "id": "A117",
+      "phase": "P1-Jan2027",
+      "requested": "Hide unavailable Admin entry in cohort review or provide a useful guarded return path.",
+      "status": "Complete"
+    },
+    {
+      "id": "A118",
+      "phase": "P1-Jan2027",
+      "requested": "Hide future resource/financial placeholder panels from cohort view without removing later-phase modules.",
+      "status": "Complete"
+    }
+  ]
+}

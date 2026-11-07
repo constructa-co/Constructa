@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { RecordedResponseKind } from "@/lib/proposal-response";
 import { respondToProposalAction } from "./actions";
 
@@ -25,6 +25,8 @@ interface Props {
     respond?: typeof respondToProposalAction;
 }
 
+const UNCONFIRMED = "Your response could not be confirmed. Refresh this page to check whether it was recorded before trying again, or contact the contractor.";
+
 function formatDate(value: string): string {
     return new Date(value).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/London" });
 }
@@ -46,28 +48,36 @@ export default function ResponseClient({
     const [recorded, setRecorded] = useState<{ status: string; at: string | null; by: string | null }>(
         { status, at: respondedAt, by: respondedBy },
     );
+    const submitPending = useRef(false);
 
     const hasResponded = ["acknowledged", "accepted", "declined"].includes(recorded.status);
     const canRespondOnline = kind !== "binding_acceptance";
 
     const submit = async () => {
-        if (busy) return;
+        if (busy || submitPending.current) return;
         if (name.trim().length < 2) {
             setError("Enter your full name.");
             return;
         }
+        submitPending.current = true;
         setBusy(true);
         setError("");
         try {
             const result = await respond(token, name, email);
-            if (result?.success) {
-                setRecorded({ status: result.status || "acknowledged", at: result.respondedAt || new Date().toISOString(), by: name.trim() });
+            // Only the acknowledgement this page asks for, with the server's own
+            // time, is shown as recorded. Anything else is not invented locally.
+            if (result?.success && result.status === "acknowledged"
+                && typeof result.respondedAt === "string" && Number.isFinite(Date.parse(result.respondedAt))) {
+                setRecorded({ status: result.status, at: result.respondedAt, by: name.trim() });
+            } else if (result?.success || result?.unconfirmed) {
+                setError(result.unconfirmed && result.error ? result.error : UNCONFIRMED);
             } else {
                 setError(result?.error || "Your response could not be recorded. Please try again.");
             }
         } catch {
-            setError("Your response could not be recorded. Nothing was sent. Please try again, or contact the contractor.");
+            setError("Your response could not be confirmed. Please try again, or contact the contractor.");
         } finally {
+            submitPending.current = false;
             setBusy(false);
         }
     };

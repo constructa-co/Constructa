@@ -53,6 +53,24 @@ const blocksOf = (doc: ProposalDocument, id: string) => doc.sections.find((secti
 const blockOf = <T extends DocBlock["type"]>(doc: ProposalDocument, id: string, type: T) =>
     blocksOf(doc, id).find((block): block is Extract<DocBlock, { type: T }> => block.type === type);
 
+describe("independent site address in the document", () => {
+    it.each([null, "", "SITE ONLY - Plot 9\nNo postal address"])("uses only the saved site value %j, never the client's address", (site) => {
+        const current = buildProposalPublicationSnapshot(representativeInput());
+        current.project.site_address = site;
+        current.project.client_address = "CLIENT ONLY - Separate billing office";
+        const before = structuredClone(current);
+        const doc = buildProposalDocument(current);
+        expect(doc.siteAddress).toBe(site || null);
+        expect(htmlText(doc)).not.toContain("CLIENT ONLY - Separate billing office");
+        expect(pdfStrings(doc)).not.toContain("CLIENT ONLY - Separate billing office");
+        if (site) {
+            expect(htmlText(doc)).toContain("SITE ONLY - Plot 9 No postal address");
+            expect(pdfStrings(doc)).toContain("SITE ONLY - Plot 9");
+        }
+        expect(current).toEqual(before);
+    });
+});
+
 describe("document order and content", () => {
     it("reads in the order the client receives it", () => {
         expect(document.sections.map((section) => section.id)).toEqual([
@@ -292,9 +310,18 @@ describe("truthful content", () => {
 
     it("states years trading, accreditations and insurance only as saved", () => {
         const about = blocksOf(document, "about");
-        expect(about).toContainEqual({ type: "facts", items: [{ label: "Years trading", value: "12" }] });
-        expect(about).toContainEqual({ type: "bullets", items: ["Example Trade Register member"] });
+        expect(about[0]).toEqual({
+            type: "facts",
+            items: [
+                { label: "Type of work", value: "Bathroom refurbishment" },
+                { label: "Years trading", value: "12" },
+                { label: "Specialisms", value: "Bathrooms, Kitchens, Tiling" },
+                { label: "Accreditations", value: "Example Trade Register member" },
+                { label: "Insurance", value: "Public liability cover, certificate available on request" },
+            ],
+        });
         expect(about).toContainEqual({ type: "quote", paragraphs: ["I visit every job at the start and at the end."], attribution: "Sam Builder" });
+        expect(about.some((block) => block.type === "subheading" && block.text === "Accreditations")).toBe(false);
     });
 
     it("drops an unsafe image link rather than showing it", () => {

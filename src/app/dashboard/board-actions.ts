@@ -1,53 +1,82 @@
 "use server";
 import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
+import { PIPELINE_CHANGE_UNCONFIRMED, PIPELINE_REFRESH_UNCONFIRMED, type PipelineMutationResult } from "@/lib/pipeline-feedback";
 
 const VALID_STATUSES = ["Lead", "Estimating", "Proposal Sent", "Active", "Won", "Completed", "Lost"];
 
-export async function updateStatusAction(projectId: string, newStatus: string) {
+async function confirmedStageWrite(
+    projectId: string,
+    update: { status: string; proposal_status?: string; proposal_accepted_at?: string },
+    paths: string[],
+): Promise<PipelineMutationResult> {
+    try {
+        const { user, supabase } = await requireAuth();
+        const { data, error } = await supabase
+            .from("projects")
+            .update(update)
+            .eq("id", projectId)
+            .eq("user_id", user.id)
+            .select("id, status, proposal_status, proposal_accepted_at")
+            .single();
+        if (error || !data || data.id !== projectId || data.status !== update.status ||
+            (update.proposal_status !== undefined && data.proposal_status !== update.proposal_status) ||
+            (update.proposal_accepted_at !== undefined && Date.parse(data.proposal_accepted_at ?? "") !== Date.parse(update.proposal_accepted_at))) {
+            return { success: false, error: PIPELINE_CHANGE_UNCONFIRMED };
+        }
+    } catch {
+        return { success: false, error: PIPELINE_CHANGE_UNCONFIRMED };
+    }
+    // A cache failure after the returned-row acknowledgement must not turn
+    // an already confirmed database write into an "unsaved" response.
+    try { paths.forEach(path => revalidatePath(path)); }
+    catch { return { success: true, warning: PIPELINE_REFRESH_UNCONFIRMED }; }
+    return { success: true };
+}
+
+async function confirmedProjectTypeWrite(
+    projectId: string,
+    projectType: string | null,
+    paths: string[],
+): Promise<PipelineMutationResult> {
+    try {
+        const { user, supabase } = await requireAuth();
+        const { data, error } = await supabase
+            .from("projects")
+            .update({ project_type: projectType })
+            .eq("id", projectId)
+            .eq("user_id", user.id)
+            .select("id, project_type")
+            .single();
+        if (error || !data || data.id !== projectId || data.project_type !== projectType) {
+            return { success: false, error: PIPELINE_CHANGE_UNCONFIRMED };
+        }
+    } catch {
+        return { success: false, error: PIPELINE_CHANGE_UNCONFIRMED };
+    }
+    try { paths.forEach(path => revalidatePath(path)); }
+    catch { return { success: true, warning: PIPELINE_REFRESH_UNCONFIRMED }; }
+    return { success: true };
+}
+
+export async function updateStatusAction(projectId: string, newStatus: string): Promise<PipelineMutationResult> {
     if (!VALID_STATUSES.includes(newStatus)) {
         return { success: false, error: "Invalid status" };
     }
-    const { user, supabase } = await requireAuth();
-    // Scope to user so one user can't move another user's projects even if they
-    // guess the id (RLS already blocks this but defence-in-depth).
-    await supabase
-        .from("projects")
-        .update({ status: newStatus })
-        .eq("id", projectId)
-        .eq("user_id", user.id);
-    revalidatePath("/dashboard");
-    return { success: true };
+    return confirmedStageWrite(projectId, { status: newStatus }, ["/dashboard"]);
 }
 
-export async function markAsWonAction(projectId: string) {
-    const { user, supabase } = await requireAuth();
-
-    await supabase
-        .from("projects")
-        .update({
+export async function markAsWonAction(projectId: string): Promise<PipelineMutationResult> {
+    return confirmedStageWrite(projectId, {
             status: "Active",
             proposal_status: "accepted",
             proposal_accepted_at: new Date().toISOString(),
-        })
-        .eq("id", projectId)
-        .eq("user_id", user.id);
-
-    revalidatePath("/dashboard");
-    revalidatePath("/dashboard/live");
-    revalidatePath("/dashboard/projects/p-and-l");
-    return { success: true };
+        }, ["/dashboard", "/dashboard/live", "/dashboard/projects/p-and-l"]);
 }
 
-export async function updateTypeAction(formData: FormData) {
-    const { user, supabase } = await requireAuth();
+export async function updateTypeAction(formData: FormData): Promise<PipelineMutationResult> {
     const id = formData.get("id") as string;
-    const newType = formData.get("type") as string;
-
-    await supabase
-        .from("projects")
-        .update({ project_type: newType })
-        .eq("id", id)
-        .eq("user_id", user.id);
-    revalidatePath("/dashboard");
+    const rawType = formData.get("type");
+    const newType = typeof rawType === "string" ? rawType : null;
+    return confirmedProjectTypeWrite(id, newType, ["/dashboard"]);
 }

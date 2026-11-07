@@ -1,8 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import DashboardRouteShell from "@/components/dashboard-route-shell";
 import ProjectNavBar from "@/components/project-navbar";
+import ProjectEntry from "@/components/project-entry";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import SimpleProgrammeClient from "./simple-programme-client";
+import { jobAssistantReadiness } from "@/lib/server/job-assistant-transport";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +24,12 @@ export default async function SchedulePage(props: { searchParams: Promise<{ proj
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-    const activeProjectId = searchParams.projectId || allProjects?.[0]?.id;
+    // Canonicalise the project identity before mounting any editable job state.
+    if (searchParams.projectId === undefined) {
+        if (!allProjects?.length) return <div className="p-8 text-slate-400">No projects found. Create one in the dashboard first.</div>;
+        return <ProjectEntry projects={allProjects} path="/dashboard/projects/schedule" />;
+    }
+    const activeProjectId = searchParams.projectId;
 
     // Fetch active project
     const { data: project } = await supabase
@@ -35,8 +43,8 @@ export default async function SchedulePage(props: { searchParams: Promise<{ proj
         return <div className="p-8 text-slate-400">No projects found. Create one in the dashboard first.</div>;
     }
 
-    // The active estimate with lines and components. Only the detailed planner
-    // uses it, to suggest stage lengths from man-hours.
+    // Reuse selected-estimate names in simple stage drafts; the detailed planner
+    // also uses these existing lines/components for its stage-length suggestions.
     const { data: estimates } = await supabase
         .from("estimates")
         .select("*, estimate_lines(*, estimate_line_components(*))")
@@ -47,16 +55,18 @@ export default async function SchedulePage(props: { searchParams: Promise<{ proj
         (estimates || []).find((e: { is_active?: boolean }) => e.is_active) ||
         (estimates || [])[0] ||
         null;
+    const assistant = await jobAssistantReadiness("planning", { owner: project.user_id === user.id });
 
     return (
-        <div className="max-w-5xl mx-auto px-4 sm:px-8 pt-4 sm:pt-8 pb-16">
-            <ProjectNavBar projectId={activeProjectId} activeTab="programme" />
-
+        <DashboardRouteShell header={<ProjectNavBar projectId={activeProjectId} projectName={project.name || ""} activeTab="programme" />}>
             <SimpleProgrammeClient
+                key={project.id}
                 project={project}
                 lockReason={getPrecontractEditLockReason(project)}
+                planningAssistantEnabled={assistant.available}
+                planningAssistantOffReason={assistant.offReason}
                 estimate={activeEstimate}
             />
-        </div>
+        </DashboardRouteShell>
     );
 }

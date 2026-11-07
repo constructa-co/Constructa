@@ -131,13 +131,20 @@ export async function bulkAddMoMItemsAction(items: any[]) {
             .upsert(rows, { onConflict: "organization_id, code" })
             .select("id, code");
 
+        // Items depend on these ids, so stop rather than write them uncategorised.
+        // Earlier levels may already be saved; there is no rollback.
+        const earlier = depth > 0 ? " Categories from earlier levels may already have been saved." : "";
         if (error) {
             console.error(`[bulkAddMoMItems] category upsert depth ${depth} failed`, error);
-            continue;
+            return { error: `Categories couldn't be saved (${error.message}). No items were imported.${earlier}` };
         }
 
         for (const row of (upserted ?? []) as { id: string; code: string }[]) {
             codeToId.set(row.code, row.id);
+        }
+        const unconfirmed = Array.from(nodes.keys()).filter(code => !codeToId.has(code));
+        if (unconfirmed.length > 0) {
+            return { error: `Couldn't confirm the category ${unconfirmed.join(", ")} was saved. No items were imported.${earlier}` };
         }
     }
 
@@ -164,9 +171,10 @@ export async function bulkAddMoMItemsAction(items: any[]) {
 
         if (error) {
             console.error("[bulkAddMoMItems] item upsert failed", error);
-        } else {
-            count = (insertedItems ?? []).length;
+            // A lost response also arrives here as a returned error, so the write may have happened.
+            return { error: `Couldn't confirm the items were imported (${error.message}). Categories or items may already have been saved; reload the library to check before importing again.` };
         }
+        count = (insertedItems ?? []).length;
     }
 
     revalidatePath("/dashboard/library");
@@ -211,11 +219,13 @@ export async function deleteRateOverrideAction(formData: FormData) {
 
     const momItemId = formData.get("mom_item_id") as string;
 
-    await supabase
+    const { error } = await supabase
         .from("mom_item_overrides")
         .delete()
         .eq("organization_id", orgId)
         .eq("mom_item_id", momItemId);
+
+    if (error) return { error: error.message };
 
     revalidatePath("/dashboard/library");
     return { success: true };

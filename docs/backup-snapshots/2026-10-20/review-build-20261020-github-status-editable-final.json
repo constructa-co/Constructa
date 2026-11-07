@@ -1,0 +1,186 @@
+{
+  "startedAt": "2026-10-20T19:40:34.845Z",
+  "status": "passed",
+  "output": "/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/review-build-20261020-github-status-editable-final",
+  "configDir": "/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/review-inputs-20261020-github-status-editable-final",
+  "diskAvailableBytes": 86263504896,
+  "priorOutputsProtected": [
+    ".next-company-first/dev",
+    ".next-company-first/github-status-clean-install-20261020",
+    ".next-company-first/github-status-clean-install-20261020-final",
+    ".next-company-first/preserved-node-modules-20261020",
+    ".next-company-first/production-check",
+    ".next-company-first/production-check-3",
+    ".next-company-first/review-build-20261018",
+    ".next-company-first/review-build-20261018-editable",
+    ".next-company-first/review-build-20261018-editable-final",
+    ".next-company-first/review-build-20261018-inputs",
+    ".next-company-first/review-build-20261018-ipc",
+    ".next-company-first/review-build-20261018-policy",
+    ".next-company-first/review-build-20261018-relative",
+    ".next-company-first/review-build-20261019-current-editable-final",
+    ".next-company-first/review-inputs-20261018",
+    ".next-company-first/review-inputs-20261018-editable",
+    ".next-company-first/review-inputs-20261018-editable-final",
+    ".next-company-first/review-inputs-20261018-policy",
+    ".next-company-first/review-inputs-20261018-relative",
+    ".next-company-first/review-inputs-20261019-current-editable-final"
+  ],
+  "verificationBaseline": {
+    "review-font-proxy.mjs": "bf364ce3d9499fccc2cfac73dcb83f6bb6aa7f4660985da5f3c55b3d3dc2f168",
+    "local-network-guard.cjs": "e39dc84c6e2b2e317bcd33d7d70139fe9fe10f76475dd78163e6ad5371f9764d",
+    "review-build-isolation.cjs": "e6889fff604e2e46ed5b6426087a5648b6590b5826df60653a73afe153dd271e",
+    "github-status-build-isolation-20261020.cjs": "51b51f2ded7f2850627df55811e5acbab0c7afdd199ab3f0550a497499edd29d"
+  },
+  "profile": "(version 1)(allow default)(deny network-outbound)(allow network-outbound (remote ip \"localhost:*\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/src\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/public\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/node_modules\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.git\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/next.config.mjs\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/next-env.d.ts\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/tsconfig.json\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/package.json\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/package-lock.json\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/dev\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/github-status-clean-install-20261020\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/github-status-clean-install-20261020-final\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/preserved-node-modules-20261020\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/production-check\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/production-check-3\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/review-build-20261018\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/review-build-20261018-editable\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/review-build-20261018-editable-final\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/review-build-20261018-inputs\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/review-build-20261018-ipc\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/review-build-20261018-policy\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/review-build-20261018-relative\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/review-build-20261019-current-editable-final\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/review-inputs-20261018\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/review-inputs-20261018-editable\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/review-inputs-20261018-editable-final\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/review-inputs-20261018-policy\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/review-inputs-20261018-relative\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/.next-company-first/review-inputs-20261019-current-editable-final\"))(deny file-write* (subpath \"/Users/robertsmith/.codex/worktrees/welcome-first-slice/constructa/node_modules\"))",
+  "credentialFree": true,
+  "generatedTypes": "Next original declaration writer redirected to private output; same actual typecheck, no skip or ignored diagnostics",
+  "command": "npm run build (actual package script; output-only isolation; default Turbopack and compiled-target verifier)",
+  "finishedAt": "2026-10-20T19:41:17.079Z",
+  "exitCode": 0,
+  "signal": null,
+  "proxyEvents": [
+    {
+      "kind": "refused",
+      "reason": "unapproved authority or credentials"
+    },
+    {
+      "kind": "refused",
+      "reason": "unapproved authority or credentials"
+    },
+    {
+      "kind": "refused",
+      "reason": "unapproved authority or credentials"
+    },
+    {
+      "kind": "refused",
+      "reason": "unapproved authority or credentials"
+    },
+    {
+      "kind": "refused",
+      "reason": "unapproved authority or credentials"
+    },
+    {
+      "kind": "refused",
+      "reason": "unapproved authority or credentials"
+    },
+    {
+      "kind": "refused",
+      "reason": "unapproved authority or credentials"
+    },
+    {
+      "kind": "connect",
+      "host": "fonts.googleapis.com",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "fonts.gstatic.com",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "fonts.gstatic.com",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "fonts.gstatic.com",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "fonts.gstatic.com",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "fonts.gstatic.com",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "fonts.gstatic.com",
+      "port": 443
+    },
+    {
+      "kind": "connect",
+      "host": "fonts.gstatic.com",
+      "port": 443
+    }
+  ],
+  "protectedReadback": {
+    "src/app/dashboard/layout.tsx": true,
+    "src/app/dashboard/dashboard-client.tsx": true,
+    "src/components/marketing/phase-one.tsx": true,
+    "src/components/dashboard-shell.tsx": true,
+    "src/lib/supabase/admin-auth.ts": true,
+    "src/lib/server/pricing-request.ts": true,
+    "src/app/login/page.tsx": true,
+    "src/components/first-session-frame.tsx": true,
+    "src/components/first-session.module.css": true,
+    "src/components/account-confirmation.tsx": true,
+    "src/app/onboarding/onboarding-client.tsx": true,
+    "src/app/onboarding/actions.ts": true,
+    "src/lib/first-session.ts": true,
+    "src/lib/supabase/client.ts": true,
+    "src/lib/supabase/server.ts": true,
+    "src/app/auth/callback/route.ts": true,
+    "src/app/dashboard/projects/costs/estimate-client.tsx": true,
+    "src/components/estimating.module.css": true,
+    "src/lib/pricing-assistant-session.ts": true,
+    "src/components/pricing-assistant-panel.tsx": true,
+    "src/lib/supabase/auth-utils.ts": true,
+    "src/lib/project-editability.ts": true,
+    "src/app/dashboard/projects/costs/estimate-mapping.ts": true,
+    "src/lib/pricing-conversation.ts": true,
+    "src/lib/pricing-review.ts": true,
+    "src/lib/simple-estimate.ts": true,
+    "src/lib/financial.ts": true,
+    "src/lib/ai.ts": true,
+    "src/lib/ai-budget.ts": true,
+    "src/lib/launch-profile.ts": true,
+    "src/lib/cohort-ai/shared.ts": true,
+    "src/lib/cohort-ai/brief-suggest.ts": true,
+    "src/lib/supabase/project-resource-access.ts": true,
+    "src/app/dashboard/projects/costs/actions.ts": true,
+    "src/app/dashboard/projects/costs/simple-actions.ts": true,
+    "src/app/dashboard/projects/costs/advanced-estimate.tsx": true,
+    "src/app/dashboard/projects/costs/build-up-panel.tsx": true,
+    "src/app/dashboard/projects/costs/estimate-navigation.ts": true,
+    "src/lib/use-unsaved-guard.ts": true,
+    "src/lib/project-navigation.ts": true,
+    "src/app/dashboard/projects/brief/actions.ts": true,
+    "src/app/dashboard/projects/schedule/actions.ts": true,
+    "src/app/dashboard/projects/proposal/actions.ts": true,
+    "src/lib/deployment/review-policy.ts": true,
+    "src/lib/deployment/review-editable.ts": true,
+    "src/proxy.ts": true,
+    "package.json": true,
+    "package-lock.json": true,
+    "next.config.mjs": true,
+    "tsconfig.json": true,
+    "next-env.d.ts": true,
+    ".next/BUILD_ID": true,
+    ".next-company-first/dev/build-manifest.json": true,
+    "src/components/sidebar-nav.tsx": true,
+    "src/components/marketing/phase-one.module.css": true,
+    "scripts/verify-build-supabase-target.mjs": true
+  },
+  "targetVerifier": {
+    "exitCode": 0,
+    "output": "Supabase target check: context=preview (from CONSTRUCTA_DEPLOY_CONTEXT) expected=umqtzfsnyoofmgfbnrgv url=umqtzfsnyoofmgfbnrgv anon-key=not stated by this key format service-key=not stated by this key format -> PASS\nCompiled Supabase target: context=preview (from CONSTRUCTA_DEPLOY_CONTEXT) expected=umqtzfsnyoofmgfbnrgv projects in build=umqtzfsnyoofmgfbnrgv -> PASS\n"
+  },
+  "dbUnchanged": true,
+  "requestMapUnchanged": true,
+  "events": [],
+  "verificationReadback": {
+    "review-font-proxy.mjs": true,
+    "local-network-guard.cjs": true,
+    "review-build-isolation.cjs": true,
+    "github-status-build-isolation-20261020.cjs": true
+  },
+  "onlyApprovedFontConnections": true,
+  "backupExtractOnly": true,
+  "excluded": "Source fingerprint map omitted from public export; exact canonical engineering receipt retained privately. Protected readback results retained."
+}

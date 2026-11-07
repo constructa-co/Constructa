@@ -1,0 +1,64 @@
+{
+  "project": "desktop-keyboard",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "input": "keyboard",
+  "outcome": "passed",
+  "checkpoints": [
+    {
+      "name": "suggestion-waiting",
+      "sidewaysOverflowPx": 0,
+      "undersizedPanelButtons": [],
+      "panelPastViewport": 0,
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "suggestion-out-of-date",
+      "sidewaysOverflowPx": 0,
+      "undersizedPanelButtons": [],
+      "panelPastViewport": 0,
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "suggestion-dropped",
+      "sidewaysOverflowPx": 0,
+      "undersizedPanelButtons": [],
+      "panelPastViewport": 0,
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "switched-off",
+      "sidewaysOverflowPx": 0,
+      "undersizedPanelButtons": [],
+      "panelPastViewport": 0,
+      "blockingAccessibility": [],
+      "screenshot": null
+    }
+  ],
+  "keyboard": {
+    "controlsReached": 10,
+    "panelControlsWithoutVisibleFocus": []
+  },
+  "provider": {
+    "calls": 3,
+    "attempts": [
+      "ok",
+      "ok",
+      "rejected:tripwire"
+    ],
+    "charged": [
+      30,
+      30,
+      30
+    ]
+  },
+  "blockedThirdPartyHosts": [
+    "plausible.io",
+    "www.clarity.ms"
+  ]
+}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AlertTriangle, RefreshCw, Home, LayoutDashboard } from "lucide-react";
 import { reportError } from "@/lib/observability";
 import { getLaunchLandingPath } from "@/lib/launch-profile";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 /**
  * Projects sub-route error boundary.
@@ -63,7 +64,7 @@ export default function ProjectsError({
                     <button
                         type="button"
                         onClick={() => reset()}
-                        className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
+                        className={`inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg ${corePrimaryButton} ${coreFocusVisibleRing} text-sm font-semibold transition-colors`}
                     >
                         <RefreshCw className="w-4 h-4" />
                         Try again

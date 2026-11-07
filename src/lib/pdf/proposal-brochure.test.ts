@@ -236,3 +236,72 @@ describe("text and file name", () => {
         expect(brochureFilename(doc)).toBe("14_Example_Road_bathroom_refit_Proposal_22222222-V1.pdf");
     });
 });
+
+describe("compact page composition (A075)", () => {
+    function sectionPages(result: BrochureResult, id: string) {
+        return result.layout.filter((entry) => entry.kind === "section-heading" && entry.section === id).map((entry) => entry.page);
+    }
+
+    it("keeps scope, price and programme on one page for a short proposal", () => {
+        const { result } = render(minimalInput());
+        const pages = new Set([...sectionPages(result, "scope"), ...sectionPages(result, "price"), ...sectionPages(result, "programme")]);
+        expect(pages.size).toBe(1);
+        expect([...pages][0]).toBeGreaterThan(1);
+    });
+
+    it("does not leave a receipt-only page mostly blank on a short proposal", () => {
+        const { result } = render(minimalInput());
+        const response = result.layout.find((entry) => entry.kind === "response")!;
+        const onPage = result.layout.filter((entry) => entry.page === response.page);
+        expect(onPage.some((entry) => entry.section === "terms")).toBe(true);
+        expect(PAGE.contentBottom - response.bottom).toBeLessThan(60);
+        const used = Math.max(...onPage.map((entry) => entry.bottom)) - Math.min(...onPage.map((entry) => entry.top));
+        expect(used / (PAGE.contentBottom - PAGE.contentTop)).toBeGreaterThan(0.65);
+    });
+
+    it("still separates the cover from scope on a short proposal", () => {
+        const { result } = render(minimalInput());
+        expect(sectionPages(result, "scope")[0]).toBeGreaterThan(sectionPages(result, "cover")[0]);
+    });
+});
+
+describe("draft footer lanes", () => {
+    function textRuns(result: BrochureResult, pageNumber: number) {
+        const internal = result.doc.internal as unknown as { pages: Array<string[] | undefined> };
+        return [...(internal.pages[pageNumber] ?? []).join("\n").matchAll(/BT\n\/F\d+ ([\d.]+) Tf\n[\d.]+ TL\n[\d. ]+ rg\n[\d.]+ Tc\n([\d.]+) ([\d.]+) Td\n\(((?:\\.|[^\\)])*)\) Tj/g)]
+            .map(([, size, x, y, text]) => ({ size: Number(size), x: Number(x), y: Number(y), text }));
+    }
+
+    it.each([representativeInput, stressInput])("keeps the draft warning below the unchanged contact and page-number line (%#)", (input) => {
+        const doc = buildProposalDocument(buildProposalPublicationSnapshot(input()), { isDraft: true });
+        const draft = renderProposalBrochure(doc, images(doc));
+        const published = renderProposalBrochure({ ...doc, isDraft: false }, images(doc));
+        expect(draft.pages).toBeGreaterThan(1);
+        expect(draft.pages).toBe(published.pages);
+        const footerBaseline = (PAGE.height - PAGE.footerText) * 72 / 25.4;
+        for (let page = 1; page <= draft.pages; page += 1) {
+            const runs = textRuns(draft, page);
+            const contactAndNumber = runs.filter(run => Math.abs(run.y - footerBaseline) < 0.02);
+            expect(contactAndNumber).toHaveLength(2);
+            expect(contactAndNumber).toEqual(textRuns(published, page).filter(run => Math.abs(run.y - footerBaseline) < 0.02));
+            const warnings = runs.filter(run => run.text === "DRAFT PREVIEW - NOT SENT TO THE CLIENT");
+            expect(warnings).toHaveLength(1);
+            const warning = warnings[0];
+            if (page === 1) {
+                expect(warning.y).toBeCloseTo((PAGE.height - 11) * 72 / 25.4, 1);
+            } else {
+                // PDF coordinates rise from the bottom: even the full font
+                // height stays below the ordinary footer baseline.
+                expect(warning.y + warning.size).toBeLessThan(contactAndNumber[0].y);
+                expect(warning.y).toBeGreaterThan(warning.size);
+            }
+        }
+    });
+
+    it("never adds draft warnings to a non-draft document", () => {
+        const { result } = render(representativeInput());
+        for (let page = 1; page <= result.pages; page += 1) {
+            expect(textRuns(result, page).some(run => run.text.includes("DRAFT PREVIEW"))).toBe(false);
+        }
+    });
+});

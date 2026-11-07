@@ -11,7 +11,7 @@ function flat(groups: ReturnType<typeof buildPhoneNav>) {
 describe("buildPhoneNav", () => {
     it("reaches every Phase 1 destination with short labels", () => {
         expect(flat(buildPhoneNav(null, "cohort")).map((item) => item.label)).toEqual([
-            "Pipeline", "New Project", "Brief", "Estimates", "Programmes", "Proposals", "Profile", "Case Studies",
+            "Pipeline", "New Project", "Job brief", "Estimate", "Programme", "Proposal", "Profile", "Case Studies",
         ]);
     });
 
@@ -68,7 +68,7 @@ describe("getPhoneNavTitle", () => {
 
     it("names the current Phase 1 page", () => {
         expect(getPhoneNavTitle("/dashboard", groups)).toBe("Pipeline");
-        expect(getPhoneNavTitle("/dashboard/projects/costs", groups)).toBe("Estimates");
+        expect(getPhoneNavTitle("/dashboard/projects/costs", groups)).toBe("Estimate");
         expect(getPhoneNavTitle("/dashboard/settings/case-studies", groups)).toBe("Case Studies");
     });
 

@@ -106,10 +106,10 @@ describe("stages", () => {
         expect(plan.duration_label).toBe("23 working days");
     });
 
-    it("must number three to six, each with a name and a duration", () => {
+    it("accepts one to six stages, each with a name and a duration", () => {
+        expect(buildSimpleProgramme({ ...staged, stages: staged.stages.slice(0, 1) }).ok).toBe(true);
         const two = buildSimpleProgramme({ ...staged, stages: staged.stages.slice(0, 2) });
-        expect(two.ok).toBe(false);
-        if (!two.ok) expect(two.fieldErrors.stages).toContain("between 3 and 6");
+        expect(two.ok).toBe(true);
 
         const seven = buildSimpleProgramme({ ...staged, stages: Array.from({ length: 7 }, (_, i) => stage(`s${i}`, `Stage ${i}`, "1")) });
         expect(seven.ok).toBe(false);
@@ -138,7 +138,7 @@ describe("stages", () => {
     it("limits the editor to six stages", () => {
         const store = storeFor(initialProgrammeState(emptyProgrammeDraft(MONDAY), false));
         store.dispatch({ type: "stages/enable", keys: ["a", "b", "c"] });
-        expect(store.getState().draft.stages).toHaveLength(3);
+        expect(store.getState().draft.stages).toHaveLength(1);
         ["d", "e", "f", "g", "h"].forEach((key) => store.dispatch({ type: "stage/add", key }));
         expect(store.getState().draft.stages).toHaveLength(MAX_STAGES);
     });
@@ -208,7 +208,7 @@ describe("established programme data", () => {
         ["a gap between stages", [{ name: "A", calculatedDays: 5, startOffset: 0 }, { name: "B", calculatedDays: 5, startOffset: 14 }, { name: "C", calculatedDays: 5, startOffset: 21 }]],
         ["a dependency", [{ name: "A", calculatedDays: 5, startOffset: 0 }, { name: "B", calculatedDays: 5, startOffset: 7, dependsOn: [0] }, { name: "C", calculatedDays: 5, startOffset: 14 }]],
         ["progress recorded", [{ name: "A", calculatedDays: 5, startOffset: 0, pct_complete: 40 }, { name: "B", calculatedDays: 5, startOffset: 7 }, { name: "C", calculatedDays: 5, startOffset: 14 }]],
-        ["two stages", [{ name: "A", calculatedDays: 5, startOffset: 0 }, { name: "B", calculatedDays: 5, startOffset: 7 }]],
+        ["two stages with a gap", [{ name: "A", calculatedDays: 5, startOffset: 0 }, { name: "B", calculatedDays: 5, startOffset: 14 }]],
         ["more than six stages", Array.from({ length: 7 }, (_, i) => ({ name: `S${i}`, calculatedDays: 5, startOffset: i * 7 }))],
     ])("leaves a programme with %s to the detailed planner, untouched", (_label, phases) => {
         const view = viewForProject({ start_date: MONDAY, programme_phases: phases }, keys());
@@ -332,5 +332,32 @@ describe("continuing to the proposal", () => {
         const navigate = vi.fn();
         await expect(continueToProposal(store, vi.fn(), navigate)).resolves.toBe("invalid");
         expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it("reports navigation failure without mutating a programme the server already holds", async () => {
+        const store = storeFor(initialProgrammeState(whole, true));
+        const save = vi.fn();
+        const navigate = vi.fn(() => {
+            throw new Error("router push failed");
+        });
+        await expect(continueToProposal(store, save, navigate)).resolves.toBe("navigation-failed");
+        expect(save).not.toHaveBeenCalled();
+        expect(isProgrammeSaved(store.getState())).toBe(true);
+        expect(store.getState().draft).toEqual(store.getState().saved);
+    });
+
+    it("does not save again when Next is retried after navigation fails post-save", async () => {
+        const store = storeFor(initialProgrammeState(whole, false));
+        const save = vi.fn().mockResolvedValue({ success: true });
+        let attempts = 0;
+        const navigate = vi.fn(() => {
+            attempts += 1;
+            if (attempts === 1) throw new Error("router push failed");
+        });
+        await expect(continueToProposal(store, save, navigate)).resolves.toBe("navigation-failed");
+        expect(save).toHaveBeenCalledTimes(1);
+        await expect(continueToProposal(store, save, navigate)).resolves.toBe("navigated");
+        expect(save).toHaveBeenCalledTimes(1);
+        expect(navigate).toHaveBeenCalledTimes(2);
     });
 });

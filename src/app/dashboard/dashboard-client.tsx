@@ -21,6 +21,14 @@ import { useTheme } from "@/lib/theme-context";
 import { isActiveProject } from "@/lib/project-helpers";
 import { getHomePresentation } from "@/lib/first-session";
 import FirstProjectStart from "@/components/first-project-start";
+import ui from "@/components/project-chooser.module.css";
+import { corePipelineWorkspaceInsetClassName } from "@/lib/dashboard-route-geometry";
+import { isCapabilityEnabled } from "@/lib/launch-profile";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
+import {
+    PIPELINE_STATUS_FILTER_OPTIONS,
+    pipelineStageDisplayLabel,
+} from "./pipeline-stage-display";
 
 type Period = "week" | "month" | "quarter" | "year";
 
@@ -75,25 +83,25 @@ function getPeriodRange(period: Period): { start: Date; end: Date; label: string
             const dayOfWeek = now.getDay(); // 0 = Sunday
             const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
             start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diff);
-            end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6, 23, 59, 59);
+            end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6, 23, 59, 59, 999);
             label = "This Week";
             break;
         }
         case "month":
             start = new Date(now.getFullYear(), now.getMonth(), 1);
-            end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+            end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
             label = "This Month";
             break;
         case "quarter": {
             const quarter = Math.floor(now.getMonth() / 3);
             start = new Date(now.getFullYear(), quarter * 3, 1);
-            end = new Date(now.getFullYear(), quarter * 3 + 3, 0, 23, 59, 59);
+            end = new Date(now.getFullYear(), quarter * 3 + 3, 0, 23, 59, 59, 999);
             label = "This Quarter";
             break;
         }
         case "year":
             start = new Date(now.getFullYear(), 0, 1);
-            end = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+            end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
             label = "This Year";
             break;
     }
@@ -140,8 +148,6 @@ function calculateMetrics(projects: any[], financials: Record<string, number>, p
     };
 }
 
-const STATUS_OPTIONS = ["Lead", "Estimating", "Proposal Sent", "Active", "Won", "Completed", "Lost"];
-
 const PERIOD_OPTIONS: { value: Period; label: string }[] = [
     { value: "week", label: "This Week" },
     { value: "month", label: "This Month" },
@@ -153,7 +159,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
     const { theme } = useTheme();
     const isDark = theme === "dark";
 
-    const [view, setView] = useState<"board" | "list">("board");
+    const [view, setView] = useState<"board" | "list">("list");
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState("all");
     const [statusFilter, setStatusFilter] = useState("all");
@@ -190,36 +196,24 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             label: "Pipeline Value",
             value: formatCurrency(metrics.totalPipelineValue),
             subtitle: "Open opportunities",
-            color: "text-blue-600",
-            bgColor: isDark ? "bg-blue-500/10" : "bg-blue-50",
-            borderColor: isDark ? "border-blue-500/20" : "border-blue-100",
         },
         {
             icon: Send,
             label: "Proposals Sent",
             value: metrics.proposalsSent.toString(),
             subtitle: "Awaiting client decision",
-            color: "text-purple-600",
-            bgColor: isDark ? "bg-purple-500/10" : "bg-purple-50",
-            borderColor: isDark ? "border-purple-500/20" : "border-purple-100",
         },
         {
             icon: Trophy,
             label: "Projects Won",
             value: metrics.wonThisMonth.toString(),
             subtitle: "Accepted proposals",
-            color: "text-green-600",
-            bgColor: isDark ? "bg-green-500/10" : "bg-green-50",
-            borderColor: isDark ? "border-green-500/20" : "border-green-100",
         },
         {
             icon: Hammer,
             label: "Active Jobs",
             value: metrics.activeJobs.toString(),
             subtitle: "Currently on site",
-            color: "text-amber-600",
-            bgColor: isDark ? "bg-amber-500/10" : "bg-amber-50",
-            borderColor: isDark ? "border-amber-500/20" : "border-amber-100",
         },
         {
             icon: TrendingUp,
@@ -235,18 +229,12 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             subtitle: metrics.winRateSampleSize >= MIN_SAMPLE_WIN_RATE
                 ? `${metrics.winRateSampleSize} proposals sent`
                 : `Need ${MIN_SAMPLE_WIN_RATE - metrics.winRateSampleSize} more proposal${MIN_SAMPLE_WIN_RATE - metrics.winRateSampleSize === 1 ? "" : "s"}`,
-            color: "text-teal-600",
-            bgColor: isDark ? "bg-teal-500/10" : "bg-teal-50",
-            borderColor: isDark ? "border-teal-500/20" : "border-teal-100",
         },
         {
             icon: PoundSterling,
             label: "Revenue Signed",
             value: formatCurrency(metrics.totalRevenueSigned),
             subtitle: "Contracted value",
-            color: "text-emerald-600",
-            bgColor: isDark ? "bg-emerald-500/10" : "bg-emerald-50",
-            borderColor: isDark ? "border-emerald-500/20" : "border-emerald-100",
         },
     ];
 
@@ -266,7 +254,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
         return (
             <div className={`min-h-screen px-4 py-6 sm:p-8 space-y-6 ${isDark ? "bg-[#0d0d0d] text-white" : "bg-white text-gray-900"}`}>
                 {launchNoticeBanner}
-                <div className="max-w-3xl">
+                <div className="max-w-3xl mx-auto w-full">
                     <FirstProjectStart companyName={companyName} />
                 </div>
             </div>
@@ -274,26 +262,22 @@ export default function DashboardClient({ projects, financials, metrics: serverM
     }
 
     return (
-        <div className={`pt-8 px-8 pb-12 space-y-8 ${isDark ? "bg-[#0d0d0d] text-white" : "bg-white text-gray-900"}`}>
+        <div className={`${ui.workspace} ${corePipelineWorkspaceInsetClassName()} pb-12 space-y-8 ${isDark ? "bg-[#0d0d0d] text-white" : "bg-white text-gray-900"}`} data-dark={isDark}>
 
             {launchNoticeBanner}
 
             {/* SECTION A — Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between" data-project-header>
                 <div>
                     <h1 className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
                         {getGreeting()}, {companyName}
                     </h1>
-                    <p className={`text-sm mt-0.5 ${isDark ? "text-[#a0a0a0]" : "text-gray-500"}`}>Here&apos;s your pipeline overview for today</p>
+                    <p className={`text-sm mt-0.5 ${isDark ? "text-[#a0a0a0]" : "text-gray-500"}`}>Your jobs at a glance</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Link
                         href="/dashboard/projects/new"
-                        className={`inline-flex items-center gap-2 font-semibold text-sm px-5 py-2.5 rounded-xl shadow-sm transition-colors ${
-                            isDark
-                                ? "bg-white text-[#0d0d0d] hover:bg-gray-200"
-                                : "bg-blue-600 hover:bg-blue-700 text-white"
-                        }`}
+                        className={`inline-flex items-center gap-2 font-semibold text-sm px-5 py-2.5 rounded-xl shadow-sm transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                     >
                         + New Project
                     </Link>
@@ -305,8 +289,8 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                 <div className={`rounded-2xl border-2 border-dashed p-8 text-center ${
                     isDark ? "border-[#2a2a2a] bg-[#1a1a1a]/50" : "border-gray-200 bg-gray-50"
                 }`}>
-                    <div className="mx-auto w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center mb-4">
-                        <span className="text-white font-bold text-2xl">C</span>
+                    <div className="mx-auto w-14 h-14 rounded-2xl bg-[#203d2b] border border-[#c9efcf]/40 flex items-center justify-center mb-4">
+                        <span className="text-[#f3fff2] font-bold text-2xl">C</span>
                     </div>
                     <h2 className={`text-xl font-bold mb-2 ${isDark ? "text-white" : "text-gray-900"}`}>
                         Let&apos;s win your first job 🎉
@@ -335,7 +319,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     </div>
                     <Link
                         href="/dashboard/projects/new"
-                        className="inline-flex items-center gap-2 font-bold text-sm px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-colors shadow-lg shadow-blue-600/20"
+                        className={`inline-flex items-center gap-2 font-bold text-sm px-6 py-3 rounded-xl transition-colors shadow-lg ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                     >
                         + Create Your First Project
                     </Link>
@@ -345,28 +329,19 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             {/* SECTION B — KPI Strip with period selector */}
             <div className="space-y-3">
                 {/* Period selector header */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between" data-project-period>
                     <h2 className={`text-sm font-semibold ${isDark ? "text-[#a0a0a0]" : "text-gray-500"}`}>
                         Performance — <span className={isDark ? "text-white" : "text-gray-900"}>{periodLabel}</span>
                     </h2>
-                    <div className={`flex items-center gap-1 rounded-lg p-1 shadow-sm ${
-                        isDark
-                            ? "bg-[#1a1a1a] border border-[#2a2a2a]"
-                            : "bg-white border border-gray-200"
-                    }`}>
+                    <div className={ui.periodBar}>
                         {PERIOD_OPTIONS.map(opt => (
                             <button
                                 key={opt.value}
+                                type="button"
                                 onClick={() => setPeriod(opt.value)}
-                                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                                    period === opt.value
-                                        ? isDark
-                                            ? "bg-white text-[#0d0d0d] shadow-sm"
-                                            : "bg-gray-900 text-white shadow-sm"
-                                        : isDark
-                                            ? "text-[#a0a0a0] hover:text-white"
-                                            : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-                                }`}
+                                aria-pressed={period === opt.value}
+                                data-selected={period === opt.value ? "true" : "false"}
+                                className={ui.periodButton}
                             >
                                 {opt.label}
                             </button>
@@ -374,20 +349,17 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4" data-project-kpi-strip>
                     {kpiCards.map((card) => {
                         const Icon = card.icon;
                         return (
                             <div
                                 key={card.label}
-                                className={`rounded-xl border p-4 flex flex-col gap-3 transition-shadow ${
-                                    isDark
-                                        ? "bg-[#1a1a1a] border-[#2a2a2a] hover:shadow-lg hover:shadow-black/20"
-                                        : "bg-white border-gray-200 shadow-sm hover:shadow-md"
-                                }`}
+                                className={`${ui.kpiCard} p-4 flex flex-col gap-3`}
+                                data-project-kpi-card
                             >
-                                <div className={`w-9 h-9 rounded-lg ${card.bgColor} flex items-center justify-center`}>
-                                    <Icon className={`w-4 h-4 ${card.color}`} />
+                                <div className={ui.kpiIcon} data-project-kpi-icon>
+                                    <Icon className="w-4 h-4" aria-hidden />
                                 </div>
                                 <div>
                                     <div className={`text-2xl font-bold leading-none ${isDark ? "text-white" : "text-gray-900"}`}>
@@ -407,12 +379,18 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             </div>
 
             {/* SECTION C — Search & Filter Bar */}
-            <div className={`rounded-xl border p-4 ${
+            <div data-project-filters role="group" aria-labelledby="pipeline-filters-heading" className={`rounded-xl border p-4 ${
                 isDark
                     ? "bg-[#1a1a1a] border-[#2a2a2a]"
                     : "bg-white border-gray-200 shadow-sm"
             }`}>
-                <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+                <h2 id="pipeline-filters-heading" className={`text-sm font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
+                    Filter jobs
+                </h2>
+                <p id="pipeline-filters-help" className={`text-xs mt-1 mb-3 ${isDark ? "text-[#a0a0a0]" : "text-gray-600"}`}>
+                    View only: these filters do not change a job&apos;s stage.
+                </p>
+                <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3" data-project-toolbar>
                     {/* Search */}
                     <div className="relative flex-1">
                         <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`} />
@@ -452,6 +430,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                         value={statusFilter}
                         onChange={e => setStatusFilter(e.target.value)}
                         aria-label="Filter by stage"
+                        aria-describedby="pipeline-filters-help"
                         className={`min-h-11 lg:min-h-0 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                             isDark
                                 ? "bg-[#0d0d0d] border border-[#2a2a2a] text-white"
@@ -459,30 +438,17 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                         }`}
                     >
                         <option value="all">All Stages</option>
-                        {STATUS_OPTIONS.map(s => (
-                            <option key={s} value={s}>{s}</option>
+                        {PIPELINE_STATUS_FILTER_OPTIONS.map(s => (
+                            <option key={s} value={s}>{pipelineStageDisplayLabel(s)}</option>
                         ))}
                     </select>
 
                     {/* View Toggle */}
-                    <div className={`flex items-center gap-1 rounded-lg p-1 ${isDark ? "bg-[#0d0d0d]" : "bg-gray-100"}`}>
+                    <div data-project-views className={`flex items-center gap-1 rounded-lg p-1 ${isDark ? "bg-[#0d0d0d]" : "bg-gray-100"}`} role="group" aria-label="Pipeline view">
                         <button
-                            onClick={() => setView("board")}
-                            className={`inline-flex items-center gap-1.5 min-h-11 lg:min-h-0 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                                view === "board"
-                                    ? isDark
-                                        ? "bg-[#2a2a2a] text-white shadow-sm"
-                                        : "bg-white text-gray-900 shadow-sm"
-                                    : isDark
-                                        ? "text-[#a0a0a0] hover:text-white"
-                                        : "text-gray-600 hover:text-gray-900"
-                            }`}
-                        >
-                            <LayoutGrid className="w-3.5 h-3.5" />
-                            Board
-                        </button>
-                        <button
+                            type="button"
                             onClick={() => setView("list")}
+                            aria-pressed={view === "list"}
                             className={`inline-flex items-center gap-1.5 min-h-11 lg:min-h-0 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                                 view === "list"
                                     ? isDark
@@ -496,6 +462,23 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                             <List className="w-3.5 h-3.5" />
                             List
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => setView("board")}
+                            aria-pressed={view === "board"}
+                            className={`inline-flex items-center gap-1.5 min-h-11 lg:min-h-0 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                                view === "board"
+                                    ? isDark
+                                        ? "bg-[#2a2a2a] text-white shadow-sm"
+                                        : "bg-white text-gray-900 shadow-sm"
+                                    : isDark
+                                        ? "text-[#a0a0a0] hover:text-white"
+                                        : "text-gray-600 hover:text-gray-900"
+                            }`}
+                        >
+                            <LayoutGrid className="w-3.5 h-3.5" />
+                            Board
+                        </button>
                     </div>
                 </div>
             </div>
@@ -503,18 +486,18 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             {/* Pipeline progression legend */}
             {view === "board" && (
                 <div className={`flex items-center gap-1.5 px-1 pb-1 text-[10px] font-semibold uppercase tracking-wider flex-wrap ${isDark ? "text-[#a0a0a0]" : "text-gray-600"}`}>
-                    <span>Pipeline:</span>
+                    <span>Stages:</span>
                     {[
-                        { label: "Lead", hint: "New enquiry, no estimate started" },
-                        { label: "Estimating", hint: "Auto: when first estimate is created" },
-                        { label: "Proposal Sent", hint: "Auto: when proposal is sent to client" },
-                        { label: "Active", hint: "Mark as Won button, or drag here" },
-                        { label: "Completed", hint: "Manual — project finished" },
-                        { label: "Lost", hint: "Manual — project not won" },
+                        { status: "Lead", hint: "New enquiry, no estimate started" },
+                        { status: "Estimating", hint: "Auto: when first estimate is created" },
+                        { status: "Proposal Sent", hint: "Operational stage only — sending the proposal document is in the proposal editor" },
+                        { status: "Active", hint: "Operational — work on site. Mark as Won records your win; it does not send or publish the proposal" },
+                        { status: "Completed", hint: "Manual — project finished" },
+                        { status: "Lost", hint: "Manual — project not won" },
                     ].map((stage, i, arr) => (
-                        <span key={stage.label} className="flex items-center gap-1.5 group relative">
+                        <span key={stage.status} className="flex items-center gap-1.5 group relative">
                             <span className={`${isDark ? "text-[#a0a0a0] hover:text-white" : "text-gray-600 hover:text-gray-900"} cursor-default transition-colors`} title={stage.hint}>
-                                {stage.label}
+                                {pipelineStageDisplayLabel(stage.status)}
                             </span>
                             {i < arr.length - 1 && <span className={isDark ? "text-[#303030]" : "text-gray-200"}>→</span>}
                         </span>
@@ -523,7 +506,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             )}
 
             {/* SECTION D — Pipeline Board or List */}
-            <div className="overflow-x-auto pb-2">
+            <div className="overflow-x-auto pb-2" data-project-jobs>
                 {view === "board" ? (
                     <ProjectBoard projects={filteredProjects} financials={financials} />
                 ) : (
@@ -532,6 +515,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
             </div>
 
             {/* SECTION E — Bottom Placeholder Panels */}
+            {isCapabilityEnabled("extended-modules") && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Resource Management */}
                 <div className={`rounded-xl border-2 border-dashed p-8 flex flex-col items-center justify-center text-center gap-4 ${
@@ -591,6 +575,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     </button>
                 </div>
             </div>
+            )}
         </div>
     );
 }

@@ -1,0 +1,69 @@
+.root {
+    --job-bg: #f5f7f2;
+    --job-panel: #fff;
+    --job-inset: #edf1e8;
+    --job-text: #17231b;
+    --job-muted: #536356;
+    --job-line: #c9d3c7;
+    --job-accent: #203d2b;
+    --job-accent-text: #f3fff2;
+    --job-error: #a42c31;
+    color: var(--job-text);
+    background: radial-gradient(ellipse at top right, #dcebd6, transparent 65%), var(--job-bg);
+    max-width: 1200px;
+    margin: 24px auto;
+    border-radius: 28px;
+    padding: clamp(24px, 5vw, 64px);
+    font-family: "Avenir Next", Avenir, "Trebuchet MS", sans-serif;
+    line-height: 1.6;
+}
+.root[data-theme="dark"] {
+    --job-bg: #111812;
+    --job-panel: #1a231c;
+    --job-inset: #101611;
+    --job-text: #f1f5ed;
+    --job-muted: #b5c4b4;
+    --job-line: #475449;
+    --job-accent: #c9efcf;
+    --job-accent-text: #13251a;
+    --job-error: #ffb4b7;
+    background: radial-gradient(ellipse at top right, #2b3c2b, transparent 65%), var(--job-bg);
+}
+.header { max-width: 780px; margin-bottom: 36px; }
+.back { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-bottom: 16px; color: var(--job-accent); font-size: 14px; font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
+.eyebrow { font-size: 11px; letter-spacing: .17em; text-transform: uppercase; font-weight: 800; color: var(--job-accent); }
+.header h1 { font-size: clamp(34px, 4.5vw, 60px); line-height: 1.06; letter-spacing: -.05em; font-weight: 800; margin: 18px 0; }
+.header > p:not(.eyebrow) { max-width: 650px; color: var(--job-muted); }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 30px; align-items: start; }
+.editor, .form { min-width: 0; }
+.form { background: var(--job-panel); border: 1px solid var(--job-line); border-radius: 18px; padding: 24px; display: grid; gap: 24px; }
+.root label { display: block; color: var(--job-text); font-size: 14px; font-weight: 700; }
+.root input, .root textarea, .root select { font-size: 16px; min-height: 48px; color: var(--job-text); background: var(--job-inset); border: 1px solid var(--job-line); border-radius: 10px; padding: 12px; width: 100%; }
+.root input::placeholder, .root textarea::placeholder { color: var(--job-muted); }
+.root :is(a, button, input, textarea, select, [tabindex="-1"]):focus-visible { outline: 3px solid var(--job-accent); outline-offset: 4px; }
+.root button { min-height: 48px; font-size: 14px; font-weight: 700; border-radius: 10px; color: var(--job-text); background: var(--job-panel); border: 1px solid var(--job-line); }
+.root button[type="submit"] { background: var(--job-accent); border-color: var(--job-accent); color: var(--job-accent-text); }
+.root button:disabled { opacity: .6; cursor: wait; }
+.optional { border: 1px solid var(--job-line); border-radius: 12px; }
+.optional button { border: 0; background: transparent; }
+.optional [class~="sm:grid-cols-2"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.root [aria-invalid="true"] { border-color: var(--job-error); }
+.root [id$="-error"], .root [data-job-create-error] { color: var(--job-error); }
+.root [data-job-create-error] { border-color: var(--job-error); background: var(--job-inset); }
+.guide { border-top: 2px solid var(--job-accent); padding-top: 20px; }
+.guide h2 { font-size: 24px; line-height: 1.2; font-weight: 800; margin: 18px 0; }
+.guide > p:not(.eyebrow) { color: var(--job-muted); font-size: 14px; }
+.note { border-top: 1px solid var(--job-line); margin-top: 24px; padding-top: 16px; }
+@media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); } .guide { max-width: 680px; } }
+@media (max-width: 639px) { .optional [class~="sm:grid-cols-2"] { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 540px) { .root { margin: 0; border-radius: 0; padding: 28px 16px; } .header { margin-bottom: 24px; } .form { padding: 20px; } }
+@media (prefers-reduced-motion: reduce) { .root *, .root *::before, .root *::after { transition: none !important; animation: none !important; } }
+.root { container: new-job / inline-size; }
+.editor { container: job-editor / inline-size; }
+@container new-job (max-width: 900px) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    .guide { max-width: 680px; }
+}
+@container job-editor (max-width: 639px) {
+    .optional [class~="sm:grid-cols-2"] { grid-template-columns: minmax(0, 1fr); }
+}

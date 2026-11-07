@@ -16,6 +16,7 @@ import {
     MAX_LINE_AMOUNT,
     MAX_LINE_QUANTITY,
     MAX_UNIT_LENGTH,
+    MAX_PRICE_ACTIVITY_LENGTH,
     SIMPLE_LINE_SECTION,
     lineTotal,
     type AdjustmentsInput,
@@ -35,6 +36,12 @@ import type { CostLibraryItem, LabourRate, RateBuildup } from "./types";
 const UNIQUE_VIOLATION = "23505";
 const TOTAL_WARNING = "The line was saved, but the stored estimate total could not be refreshed. Reload the page to check it.";
 
+function matchesStoredNumber(value: unknown, expected: number): boolean {
+    if (typeof value !== "number" && (typeof value !== "string" || !value.trim())) return false;
+    const stored = Number(value);
+    return Number.isFinite(stored) && stored === expected;
+}
+
 const LineSchema = z.object({
     description: z.string().trim().min(1).max(MAX_DESCRIPTION_LENGTH),
     quantity: z.number().positive().max(MAX_LINE_QUANTITY),
@@ -44,6 +51,7 @@ const LineSchema = z.object({
 
 const SaveLineSchema = z.object({
     projectId: z.string().uuid(),
+    activity: z.string().trim().min(1).max(MAX_PRICE_ACTIVITY_LENGTH).refine(value => value !== "Preliminaries").optional(),
     estimateId: z.string().uuid().nullable(),
     newEstimateId: z.string().uuid(),
     lineId: z.string().uuid(),
@@ -91,22 +99,24 @@ export async function saveSimplePriceLineAction(request: SavePriceLineRequest): 
         if (projectError || !project) return { ok: false, error: LINE_SAVE_ERROR };
 
         let estimateId = parsed.data.estimateId;
+        let clientBoQ = false;
         let createdHere = false;
         const clientHadNoEstimate = estimateId === null;
 
         if (estimateId) {
             const { data: owned } = await supabase
                 .from("estimates")
-                .select("id")
+                .select("id, is_client_boq")
                 .eq("id", estimateId)
                 .eq("project_id", projectId)
                 .maybeSingle();
             if (!owned) return { ok: false, error: "This estimate is no longer available. Reload the page and try again." };
+            clientBoQ = !!owned.is_client_boq;
         } else {
             // Another tab, or an earlier attempt, may already have made one.
             const { data: existing, error: existingError } = await supabase
                 .from("estimates")
-                .select("id, is_active")
+                .select("id, is_active, is_client_boq")
                 .eq("project_id", projectId)
                 .order("created_at");
             if (existingError) return { ok: false, error: LINE_SAVE_ERROR };
@@ -114,6 +124,7 @@ export async function saveSimplePriceLineAction(request: SavePriceLineRequest): 
             const reuse = (existing || []).find((e) => e.is_active) ?? (existing || [])[0];
             if (reuse) {
                 estimateId = reuse.id;
+                clientBoQ = !!reuse.is_client_boq;
             } else {
                 // No template, no seeded lines, and no mark-up the contractor
                 // did not choose: the total starts as exactly what they type.
@@ -149,12 +160,14 @@ export async function saveSimplePriceLineAction(request: SavePriceLineRequest): 
         }
 
         if (!estimateId) return { ok: false, error: LINE_SAVE_ERROR };
+        if (parsed.data.activity && clientBoQ) return { ok: false, error: "Keep the client BoQ structure in Advanced estimating." };
+        const activity = parsed.data.activity ?? SIMPLE_LINE_SECTION;
 
         const { error: lineError } = await supabase.from("estimate_lines").insert({
             id: lineId,
             estimate_id: estimateId,
             organization_id: project.organization_id ?? null,
-            trade_section: SIMPLE_LINE_SECTION,
+            trade_section: activity,
             description: line.description,
             quantity: line.quantity,
             unit: line.unit,
@@ -187,6 +200,23 @@ export async function saveSimplePriceLineAction(request: SavePriceLineRequest): 
             .eq("estimate_id", estimateId)
             .maybeSingle();
         if (!savedLine) return { ok: false, error: LINE_SAVE_ERROR };
+        if (savedLine.trade_section !== activity) return {
+            ok: false, error: "This line was already saved with a different activity. Your draft is still here. Reload to reconcile it; no activity was overwritten.",
+        };
+
+        // The same ID confirms only the same request, not a newer editable draft.
+        if (lineError?.code === UNIQUE_VIOLATION && (
+            savedLine.description !== line.description
+            || savedLine.unit !== line.unit
+            || !matchesStoredNumber(savedLine.quantity, line.quantity)
+            || !matchesStoredNumber(savedLine.unit_rate, line.unit_rate)
+            || !matchesStoredNumber(savedLine.line_total, lineTotal(line.quantity, line.unit_rate))
+            || savedLine.line_type !== "general"
+            || savedLine.pricing_mode !== "simple"
+        )) return {
+            ok: false,
+            error: "This line was already saved with different details. Your draft is still here. Reload to reconcile it; no saved price was overwritten.",
+        };
 
         let warning: string | undefined;
         try {

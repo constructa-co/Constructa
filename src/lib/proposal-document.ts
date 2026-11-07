@@ -13,7 +13,8 @@
 
 import { roundMoney } from "@/lib/financial";
 import { formatGbp } from "@/lib/pdf/pdf-money";
-import { formatPlanDate, type ProgrammePlan } from "@/lib/programme-plan";
+import { formatPlanDate } from "@/lib/programme-plan";
+import { programmeFacts, type DisplayProgrammePlan } from "@/lib/relative-programme";
 import { safeImageUrl, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
 import {
     responseKindOfSnapshot,
@@ -44,7 +45,7 @@ export type DocBlock =
     | { type: "photos"; photos: Array<{ url: string; caption: string | null }> }
     | { type: "price"; groups: DocPriceGroup[]; totals: Array<DocFact & { strong: boolean }>; note: string | null }
     | { type: "payments"; rows: Array<{ stage: string; when: string | null; share: string; amount: string }>; note: string | null }
-    | { type: "timeline"; plan: ProgrammePlan }
+    | { type: "timeline"; plan: DisplayProgrammePlan }
     | { type: "stageList"; start: string | null; rows: Array<{ name: string; duration: string }> }
     | { type: "terms"; clauses: Array<{ number: number; title: string; body: string }> }
     | { type: "caseStudy"; title: string; facts: DocFact[]; delivered: string[]; valueAdded: string[]; photos: string[] };
@@ -166,20 +167,39 @@ function formatTypedValue(value: string): string {
 
 // ── Sections ─────────────────────────────────────────────────────────────────
 
+function hasSavedCredentialText(value: string | null | undefined): boolean {
+    return Boolean(value?.trim());
+}
+
+/** Saved contractor profile facts only (not the job work type). Literal strings. */
+function contractorProfileCredentialFacts(contractor: ProposalPublicationSnapshot["contractor"]): DocFact[] {
+    const items: DocFact[] = [];
+    if (contractor.years_trading && contractor.years_trading > 0) {
+        items.push({ label: "Years trading", value: String(contractor.years_trading) });
+    }
+    if (hasSavedCredentialText(contractor.specialisms)) items.push({ label: "Specialisms", value: contractor.specialisms! });
+    if (hasSavedCredentialText(contractor.accreditations)) items.push({ label: "Accreditations", value: contractor.accreditations! });
+    if (hasSavedCredentialText(contractor.insurance_details)) items.push({ label: "Insurance", value: contractor.insurance_details! });
+    return items;
+}
+
 function aboutSection(snapshot: ProposalPublicationSnapshot): DocSection | null {
     const c = snapshot.contractor;
-    const blocks: DocBlock[] = [...textBlocks(c.capability_statement)];
-
-    if (c.years_trading && c.years_trading > 0) {
-        blocks.push({ type: "facts", items: [{ label: "Years trading", value: String(c.years_trading) }] });
-    }
-    const specialisms = splitList(c.specialisms);
-    if (specialisms.length > 0) blocks.push({ type: "subheading", text: "Specialisms" }, { type: "bullets", items: specialisms });
-    const accreditations = splitList(c.accreditations);
-    if (accreditations.length > 0) blocks.push({ type: "subheading", text: "Accreditations" }, { type: "bullets", items: accreditations });
-    const insurance = lines(c.insurance_details);
-    if (insurance.length > 0) blocks.push({ type: "subheading", text: "Insurance" }, { type: "paragraphs", paragraphs: insurance });
+    const profileCredentials = contractorProfileCredentialFacts(c);
+    const capabilityBlocks = textBlocks(c.capability_statement);
     const message = lines(c.md_message);
+    if (profileCredentials.length === 0 && capabilityBlocks.length === 0 && message.length === 0) {
+        return null;
+    }
+
+    const blocks: DocBlock[] = [];
+    const credentialFacts: DocFact[] = [];
+    if (hasSavedCredentialText(snapshot.project.project_type)) {
+        credentialFacts.push({ label: "Type of work", value: snapshot.project.project_type! });
+    }
+    credentialFacts.push(...profileCredentials);
+    if (credentialFacts.length > 0) blocks.push({ type: "facts", items: credentialFacts });
+    blocks.push(...capabilityBlocks);
     if (message.length > 0) blocks.push({ type: "quote", paragraphs: message, attribution: c.md_name?.trim() || null });
 
     if (blocks.length === 0) return null;
@@ -319,6 +339,7 @@ function priceSection(snapshot: ProposalPublicationSnapshot): DocSection | null 
 }
 
 function programmeSection(snapshot: ProposalPublicationSnapshot): DocSection | null {
+    if (snapshot.programme_intent === "omit") return null;
     if (snapshot.programme_plan) {
         return { id: "programme", title: "Programme", blocks: [{ type: "timeline", plan: snapshot.programme_plan }] };
     }
@@ -361,7 +382,10 @@ function closingSection(snapshot: ProposalPublicationSnapshot): DocSection | nul
 
 // ── Build ────────────────────────────────────────────────────────────────────
 
-export function proposalReference(snapshot: Pick<ProposalPublicationSnapshot, "project" | "publication">): string {
+export function proposalReference(snapshot: {
+    project: Pick<ProposalPublicationSnapshot["project"], "id">;
+    publication: Pick<ProposalPublicationSnapshot["publication"], "version_number">;
+}): string {
     return `${snapshot.project.id.substring(0, 8).toUpperCase()}-V${snapshot.publication.version_number}`;
 }
 
@@ -375,7 +399,7 @@ export interface BuildDocumentOptions {
 
 export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, options: BuildDocumentOptions = {}): ProposalDocument {
     const commercial = snapshot.commercial;
-    const plan = snapshot.programme_plan;
+    const plan = snapshot.programme_intent === "omit" ? undefined : snapshot.programme_plan;
     const kind = responseKindOfSnapshot(snapshot);
     const wording = responseWording(kind);
 
@@ -386,12 +410,8 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
             : { label: "Price", value: formatGbp(commercial.contract_sum_ex_vat) });
     }
     if (plan) {
-        keyFacts.push(
-            { label: "Start on site", value: formatPlanDate(plan.start_date, "short") },
-            { label: "Finish", value: formatPlanDate(plan.end_date, "short") },
-            { label: "Duration", value: plan.duration_label },
-        );
-    } else if (snapshot.project.start_date && formatPlanDate(snapshot.project.start_date, "short")) {
+        keyFacts.push(...programmeFacts(plan, "short"));
+    } else if (snapshot.programme_intent !== "omit" && snapshot.project.start_date && formatPlanDate(snapshot.project.start_date, "short")) {
         keyFacts.push({ label: "Start on site", value: formatPlanDate(snapshot.project.start_date, "short") });
     }
 
@@ -417,7 +437,7 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
         reference: options.isDraft ? "Draft" : proposalReference(snapshot),
         title: snapshot.project.name,
         clientName: snapshot.project.client_name,
-        siteAddress: snapshot.project.site_address || snapshot.project.client_address,
+        siteAddress: snapshot.project.site_address || null,
         projectType: snapshot.project.project_type,
         issued: formatLongDate(snapshot.publication.sent_at),
         validUntil: formatLongDate(snapshot.publication.expires_at),

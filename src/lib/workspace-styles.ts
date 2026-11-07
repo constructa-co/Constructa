@@ -4,7 +4,7 @@
  * zoom, and every control is at least 44px tall.
  */
 export function workspaceStyles(isDark: boolean) {
-    const inputBase = `w-full rounded-lg border px-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+    const inputBase = `w-full rounded-lg border px-3 text-base focus:outline-none focus:ring-2 focus:ring-emerald-600 ${
         isDark
             ? "bg-[#0d0d0d] border-[#3a3a3a] text-white placeholder:text-slate-500 [color-scheme:dark]"
             : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
@@ -21,12 +21,12 @@ export function workspaceStyles(isDark: boolean) {
         label: `block text-sm font-semibold ${isDark ? "text-slate-200" : "text-gray-800"}`,
         input: `${inputBase} h-12`,
         textarea: `${inputBase} py-2.5`,
-        primaryButton: `${button} bg-blue-600 hover:bg-blue-700 text-white`,
+        primaryButton: `${button} bg-[#c9efcf] hover:bg-[#e0f9e3] text-[#182c1b]`,
         secondaryButton: `${button} border ${
             isDark ? "border-[#3a3a3a] text-slate-100 hover:bg-white/5" : "border-gray-300 text-gray-900 hover:bg-gray-50"
         }`,
         quietButton: `min-h-11 px-3 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-60 ${
-            isDark ? "text-blue-300 hover:bg-white/5" : "text-blue-700 hover:bg-blue-50"
+            isDark ? "text-[#c9efcf] hover:bg-white/5" : "text-emerald-800 hover:bg-emerald-50"
         }`,
         errorText: isDark ? "text-red-300" : "text-red-700",
         errorBox: `rounded-xl border px-4 py-3 ${

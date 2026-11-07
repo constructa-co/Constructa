@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 import { FIRST_PROJECT_STEPS, NEW_PROJECT_PATH } from "@/lib/first-session";
+import ui from "@/components/first-project.module.css";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 /**
  * What Home and Pipeline show before a contractor has any projects: one
@@ -22,7 +24,8 @@ export default function FirstProjectStart({ companyName, forceDark = false }: {
     return (
         <section
             aria-labelledby="first-project-heading"
-            className={`rounded-2xl border p-5 sm:p-8 ${
+            data-dark={isDark}
+            className={`${ui.frame} rounded-2xl border p-5 sm:p-8 ${
                 isDark ? "bg-[#1a1a1a] border-[#2a2a2a]" : "bg-white border-gray-200 shadow-sm"
             }`}
         >
@@ -35,7 +38,7 @@ export default function FirstProjectStart({ companyName, forceDark = false }: {
 
             <Link
                 href={NEW_PROJECT_PATH}
-                className="mt-6 w-full sm:w-auto min-h-12 px-6 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-bold transition-colors"
+                className={`mt-6 w-full sm:w-auto min-h-12 px-6 inline-flex items-center justify-center gap-2 rounded-xl text-base font-bold transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
             >
                 Add your first job
                 <ArrowRight className="w-5 h-5" />
@@ -54,6 +57,7 @@ export default function FirstProjectStart({ companyName, forceDark = false }: {
                     >
                         <span
                             aria-hidden
+                            data-step-number
                             className={`w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-sm font-bold ${
                                 isDark ? "bg-blue-500/20 text-blue-300" : "bg-blue-100 text-blue-700"
                             }`}

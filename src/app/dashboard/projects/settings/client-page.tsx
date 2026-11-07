@@ -1,7 +1,16 @@
 "use client";
 
-import { updateProjectAction } from "./actions";
-import { useTransition } from "react";
+import { updateProjectAction, updateProjectStatusAction } from "./actions";
+import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
+import { useTheme } from "@/lib/theme-context";
+import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
+import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
+import { SETTINGS_LEAVE_WARNING, settingsFormSignature } from "./form-state";
+import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
+import { getPrecontractEditLockReason } from "@/lib/project-editability";
+import ManualAddressEntry from "@/components/manual-address-entry";
+import PostcodeAddressPicker from "@/components/postcode-address-picker";
+import { coreFocusRing } from "@/lib/core-editing-palette";
 
 // --- Inline UI Components ---
 function Card({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -26,7 +35,7 @@ function Input({ ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
     return (
         <input
             {...props}
-            className={`flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-50 ${props.className || ""}`}
+            className={`flex h-12 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 ${coreFocusRing} disabled:opacity-50 ${props.className || ""}`}
         />
     );
 }
@@ -34,7 +43,7 @@ function Textarea({ ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement
     return (
         <textarea
             {...props}
-            className={`flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none disabled:opacity-50 ${props.className || ""}`}
+            className={`flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 ${coreFocusRing} resize-none disabled:opacity-50 ${props.className || ""}`}
         />
     );
 }
@@ -42,39 +51,170 @@ function Select({ children, ...props }: React.SelectHTMLAttributes<HTMLSelectEle
     return (
         <select
             {...props}
-            className={`flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 ${props.className || ""}`}
+            className={`flex h-12 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 ${coreFocusRing} ${props.className || ""}`}
         >
             {children}
         </select>
     );
 }
 
-const PROJECT_TYPES = ["Extension", "Loft Conversion", "New Build", "Renovation", "Bathroom/Kitchen", "Roofing", "General Works", "Other"];
 const PAYMENT_TERMS = ["14 days", "21 days", "28 days", "30 days", "Stage payments"];
 
-export default function ClientProjectSettings({ project }: { project: any }) {
+export default function ClientProjectSettings({
+    project,
+    jobTypeDatalistOptions = JOB_TYPE_EXAMPLES,
+}: {
+    project: any;
+    jobTypeDatalistOptions?: readonly string[];
+}) {
     const [isPending, startTransition] = useTransition();
+    const [dirty, setDirty] = useState(false);
+    const [feedback, setFeedback] = useState<"idle" | "saved" | "error">("idle");
+    const [statusDirty, setStatusDirty] = useState(false);
+    const [statusFeedback, setStatusFeedback] = useState<"idle" | "saved" | "error">("idle");
+    const [pendingIntent, setPendingIntent] = useState<"details" | "status" | null>(null);
+    const [structuredAddressDraftPending, setStructuredAddressDraftPending] = useState({ site: false, client: false });
+    const hasStructuredAddressDraft = structuredAddressDraftPending.site || structuredAddressDraftPending.client;
+    const [serverLock, setServerLock] = useState<{ of: object; message: string } | null>(null);
+    const formRef = useRef<HTMLFormElement | null>(null);
+    const confirmedSignature = useRef<string | null>(null);
+    const statusFormRef = useRef<HTMLFormElement | null>(null);
+    const confirmedStatusSignature = useRef<string | null>(null);
+    const lockReason = getPrecontractEditLockReason(project) ?? (serverLock && serverLock.of === project ? serverLock.message : null);
+    const lockRef = useRef(lockReason);
+    const projectRef = useRef(project.id);
+    const pendingRef = useRef(false);
+    const aliveRef = useRef(true);
+    useLayoutEffect(() => {
+        lockRef.current = lockReason;
+        projectRef.current = project.id;
+    }, [lockReason, project.id]);
+    useEffect(() => {
+        aliveRef.current = true;
+        return () => { aliveRef.current = false; };
+    }, []);
+    const mustWarn = dirty || statusDirty || isPending || hasStructuredAddressDraft;
+    useUnsavedGuard(mustWarn, SETTINGS_LEAVE_WARNING);
+    useEffect(() => {
+        if (!mustWarn) return;
+        const confirmProjectChange = (event: Event) => {
+            if (!window.confirm(SETTINGS_LEAVE_WARNING)) event.preventDefault();
+        };
+        window.addEventListener(BEFORE_PROJECT_NAVIGATION, confirmProjectChange);
+        return () => window.removeEventListener(BEFORE_PROJECT_NAVIGATION, confirmProjectChange);
+    }, [mustWarn]);
+    const { theme } = useTheme();
+    const isDark = theme === "dark";
 
     const handleSubmit = (formData: FormData) => {
+        if (!aliveRef.current || pendingRef.current || lockRef.current || projectRef.current !== project.id) return;
+        pendingRef.current = true;
+        setPendingIntent("details");
+        const submittedSignature = settingsFormSignature(formData);
+        setFeedback("idle");
         startTransition(async () => {
-            await updateProjectAction(formData);
+            try {
+                const result = await updateProjectAction(formData);
+                if (!aliveRef.current || projectRef.current !== project.id) return;
+                if (!result.success) {
+                    if ("lockReason" in result && result.lockReason) {
+                        lockRef.current = result.lockReason;
+                        setServerLock({ of: project, message: result.lockReason });
+                    }
+                    setFeedback("error");
+                    return;
+                }
+                if (lockRef.current) {
+                    setFeedback("error");
+                    return;
+                }
+                if (formRef.current) {
+                    confirmedSignature.current = submittedSignature;
+                    setDirty(settingsFormSignature(new FormData(formRef.current)) !== submittedSignature);
+                }
+                setFeedback("saved");
+            } catch {
+                if (aliveRef.current) setFeedback("error");
+            } finally {
+                pendingRef.current = false;
+                if (aliveRef.current) setPendingIntent(null);
+            }
         });
+    };
+    const handleStatusSubmit = (formData: FormData) => {
+        if (!aliveRef.current || pendingRef.current || projectRef.current !== project.id) return;
+        pendingRef.current = true;
+        setPendingIntent("status");
+        const submittedSignature = settingsFormSignature(formData);
+        setStatusFeedback("idle");
+        startTransition(async () => {
+            try {
+                const result = await updateProjectStatusAction(formData);
+                if (!aliveRef.current || projectRef.current !== project.id) return;
+                if (!result.success) { setStatusFeedback("error"); return; }
+                if (statusFormRef.current) {
+                    confirmedStatusSignature.current = submittedSignature;
+                    setStatusDirty(settingsFormSignature(new FormData(statusFormRef.current)) !== submittedSignature);
+                }
+                setStatusFeedback("saved");
+            } catch {
+                if (aliveRef.current) setStatusFeedback("error");
+            } finally {
+                pendingRef.current = false;
+                if (aliveRef.current) setPendingIntent(null);
+            }
+        });
+    };
+    const statusText = isPending && pendingIntent === "details" ? "Saving..." : feedback === "saved"
+        ? dirty ? "Submitted changes saved. Newer edits are still unsaved." : "Saved"
+        : dirty ? "Unsaved changes" : "";
+
+    const labelCls = `text-sm font-semibold ${isDark ? "text-slate-300" : "text-slate-700"}`;
+    const inputCls = `flex h-12 w-full rounded-lg border ${isDark ? "border-slate-600 bg-slate-900/50 text-slate-100" : "border-slate-200 bg-white text-slate-900"} px-3 py-2 text-base placeholder:text-slate-400 ${coreFocusRing} disabled:opacity-50`;
+    const muted = isDark ? "text-slate-400" : "text-slate-500";
+
+    const applyAddressField = (fieldName: "client_address" | "site_address", preview: string): boolean => {
+        if (!aliveRef.current || pendingRef.current || lockRef.current || projectRef.current !== project.id) return false;
+        const form = formRef.current;
+        if (!form) return false;
+        const field = form.elements.namedItem(fieldName);
+        if (!(field instanceof HTMLTextAreaElement)) return false;
+        field.value = preview;
+        setDirty(settingsFormSignature(new FormData(form)) !== confirmedSignature.current);
+        return true;
     };
 
     return (
         <div className="max-w-4xl mx-auto p-8 space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">Project Settings</h1>
-                    <p className="text-slate-500 text-sm mt-0.5">Manage the details for {project.name}</p>
+                    <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "text-slate-100" : "text-slate-900"}`}>Project Settings</h1>
+                    <p className={`text-sm mt-0.5 ${isDark ? "text-slate-300" : "text-slate-600"}`}>Manage the details for {project.name}</p>
                 </div>
                 <div className="bg-slate-100 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-700">
                     {project.status || "Draft"}
                 </div>
             </div>
 
-            <form action={handleSubmit} className="space-y-5">
+            <form
+                ref={form => {
+                    formRef.current = form;
+                    if (form && confirmedSignature.current === null) confirmedSignature.current = settingsFormSignature(new FormData(form));
+                }}
+                onChange={event => {
+                    if (aliveRef.current && !lockRef.current) setDirty(settingsFormSignature(new FormData(event.currentTarget)) !== confirmedSignature.current);
+                }}
+                onSubmit={event => {
+                    // A returned action failure must not reset uncontrolled inputs.
+                    event.preventDefault();
+                    handleSubmit(new FormData(event.currentTarget));
+                }}
+                className="space-y-5"
+                aria-label="Job details"
+            >
                 <input type="hidden" name="projectId" value={project.id} />
+                {lockReason && <p role="status" className={`text-sm ${isDark ? "text-slate-300" : "text-slate-600"}`} data-settings-lock>{lockReason} Your current text remains here. Status changes can be saved separately below.</p>}
+                <fieldset disabled={!!lockReason} className="min-w-0 space-y-5 border-0 p-0">
 
                 {/* 1. Project Basics */}
                 <Card>
@@ -83,26 +223,28 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                         <CardDescription>Core project information.</CardDescription>
                     </CardHeader>
                     <CardContent className="grid gap-5">
-                        <div className="grid sm:grid-cols-2 gap-4">
+                        <div className="grid lg:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                                 <Label htmlFor="name">Project Name</Label>
                                 <Input id="name" name="name" defaultValue={project.name} required />
                             </div>
                             <div className="space-y-1.5">
-                                <Label htmlFor="status">Status</Label>
-                                <Select id="status" name="status" defaultValue={project.status || "Draft"}>
-                                    <option value="Draft">Draft</option>
-                                    <option value="Review">Under Review</option>
-                                    <option value="Sent">Proposal Sent</option>
-                                    <option value="Won">Won / Active</option>
-                                    <option value="Lost">Lost</option>
-                                </Select>
-                            </div>
-                            <div className="space-y-1.5">
                                 <Label htmlFor="project_type">Project Type</Label>
-                                <Select id="project_type" name="project_type" defaultValue={project.project_type || "Extension"}>
-                                    {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                                </Select>
+                                {/[\r\n]/.test(project.project_type || "") ? (
+                                    // A text input strips line endings, so retain the legacy select for these saved values.
+                                    <Select id="project_type" name="project_type" defaultValue={project.project_type}>
+                                        <option value={project.project_type}>{project.project_type}</option>
+                                        {JOB_TYPE_EXAMPLES.map(t => <option key={t} value={t}>{t}</option>)}
+                                    </Select>
+                                ) : (
+                                    <Input id="project_type" name="project_type" type="text" list="settings-job-type-examples" defaultValue={project.project_type || "Extension"} />
+                                )}
+                                <datalist id="settings-job-type-examples">
+                                    {jobTypeDatalistOptions.map(t => <option key={t} value={t} />)}
+                                </datalist>
+                                <p className="text-sm text-slate-500">{/[\r\n]/.test(project.project_type || "")
+                                    ? "This saved multi-line type is retained. Choose an example to replace it."
+                                    : "Write your own type of job, or choose an example."}</p>
                             </div>
                             <div className="space-y-1.5">
                                 <Label htmlFor="start_date">Target Start Date</Label>
@@ -131,19 +273,19 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                         </div>
 
                         {/* P1-1 — VAT Domestic Reverse Charge toggle (HMRC VAT Notice 735). */}
-                        <div className="mt-5 p-4 rounded-lg border border-slate-700/40 bg-slate-900/30">
+                        <div className="mt-5 p-4 rounded-lg border border-slate-200 bg-slate-50">
                             <label className="flex items-start gap-3 cursor-pointer">
                                 <input
                                     type="checkbox"
                                     name="is_vat_reverse_charge"
                                     defaultChecked={project.is_vat_reverse_charge === true}
-                                    className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-2 focus:ring-blue-600"
+                                    className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-emerald-600 focus:ring-2 focus:ring-emerald-600"
                                 />
                                 <div className="flex-1">
-                                    <div className="text-sm font-medium text-slate-200">
+                                    <div className="text-sm font-medium text-slate-900">
                                         VAT Domestic Reverse Charge applies
                                     </div>
-                                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                                         Turn this on if both you and your client are CIS-registered and these services are within the scope of CIS.
                                         Under HMRC VAT Notice 735 (effective 1 March 2021), VAT is not charged on the invoice — your customer
                                         accounts for it on their own return. Leave off for domestic end-user clients.
@@ -177,6 +319,14 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                         </div>
                         <div className="space-y-1.5">
                             <Label htmlFor="client_address">Client Address</Label>
+                            <PostcodeAddressPicker
+                                idPrefix="settings-client-picker"
+                                disabled={!!lockReason || isPending}
+                                onSelect={(preview) => applyAddressField("client_address", preview)}
+                                isDark={isDark}
+                                inputCls={inputCls}
+                                muted={muted}
+                            />
                             <Textarea
                                 id="client_address"
                                 name="client_address"
@@ -184,15 +334,54 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                                 placeholder="Client billing address..."
                                 rows={2}
                             />
+                            <ManualAddressEntry
+                                idPrefix="settings-client-manual"
+                                disabled={!!lockReason || isPending}
+                                onApply={(preview) => applyAddressField("client_address", preview)}
+                                onPendingChange={(pending) => setStructuredAddressDraftPending((prev) => ({ ...prev, client: pending }))}
+                                isDark={isDark}
+                                labelCls={labelCls}
+                                inputCls={inputCls}
+                                muted={muted}
+                            />
                         </div>
                         <div className="space-y-1.5">
                             <Label htmlFor="site_address">Site Address (if different)</Label>
+                            <PostcodeAddressPicker
+                                idPrefix="settings-site-picker"
+                                disabled={!!lockReason || isPending}
+                                onSelect={(preview) => applyAddressField("site_address", preview)}
+                                isDark={isDark}
+                                inputCls={inputCls}
+                                muted={muted}
+                            />
+                            <details
+                                className={`rounded-lg border px-3 py-2 ${isDark ? "border-slate-600" : "border-slate-200"}`}
+                                data-unusual-site-fallback="settings-site"
+                            >
+                                <summary className={`cursor-pointer text-sm font-semibold ${isDark ? "text-slate-200" : "text-slate-800"}`}>
+                                    Unusual site (no normal postal address)
+                                </summary>
+                                <p className={`mt-2 text-sm ${muted}`}>
+                                    Describe the works location in the site box below. Client billing address is kept separate.
+                                </p>
+                            </details>
                             <Textarea
                                 id="site_address"
                                 name="site_address"
                                 defaultValue={project.site_address || ""}
                                 placeholder="Works site address..."
                                 rows={2}
+                            />
+                            <ManualAddressEntry
+                                idPrefix="settings-site-manual"
+                                disabled={!!lockReason || isPending}
+                                onApply={(preview) => applyAddressField("site_address", preview)}
+                                onPendingChange={(pending) => setStructuredAddressDraftPending((prev) => ({ ...prev, site: pending }))}
+                                isDark={isDark}
+                                labelCls={labelCls}
+                                inputCls={inputCls}
+                                muted={muted}
                             />
                         </div>
                     </CardContent>
@@ -201,11 +390,12 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                 {/* 3. Scope Description */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Scope Description</CardTitle>
+                        <CardTitle><label htmlFor="project-scope">Scope Description</label></CardTitle>
                         <CardDescription>Brief executive summary (also editable in the Proposal Editor).</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Textarea
+                            id="project-scope"
                             name="scope"
                             placeholder="e.g. Construction of a single-storey rear extension including strip foundations..."
                             defaultValue={project.scope_description || ""}
@@ -214,13 +404,71 @@ export default function ClientProjectSettings({ project }: { project: any }) {
                     </CardContent>
                 </Card>
 
+                </fieldset>
+                {feedback === "error" ? (
+                    <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                        Saving could not be confirmed. Your edits are still here. Try again.
+                    </p>
+                ) : statusText && (
+                    <p role="status" className={`text-sm ${isDark ? "text-slate-300" : "text-slate-600"}`}>{statusText}</p>
+                )}
                 <div className="flex justify-end gap-3">
                     <button
                         type="submit"
-                        disabled={isPending}
-                        className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-lg disabled:opacity-60 transition-all"
+                        disabled={isPending || !!lockReason}
+                        className="min-h-12 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-base font-bold rounded-lg disabled:opacity-60 transition-all"
                     >
-                        {isPending ? "Saving..." : "Save Changes"}
+                        {isPending && pendingIntent === "details" ? "Saving..." : "Save Changes"}
+                    </button>
+                </div>
+            </form>
+            <form
+                aria-label="Project status"
+                ref={form => {
+                    statusFormRef.current = form;
+                    if (form && confirmedStatusSignature.current === null) confirmedStatusSignature.current = settingsFormSignature(new FormData(form));
+                }}
+                onChange={event => {
+                    if (aliveRef.current) setStatusDirty(settingsFormSignature(new FormData(event.currentTarget)) !== confirmedStatusSignature.current);
+                }}
+                onSubmit={event => {
+                    event.preventDefault();
+                    handleStatusSubmit(new FormData(event.currentTarget));
+                }}
+                className="space-y-5"
+            >
+                <input type="hidden" name="projectId" value={project.id} />
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Project Status</CardTitle>
+                        <CardDescription>Save the status separately. This does not save any changes to the job details above.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Label htmlFor="status">Status</Label>
+                        <Select id="status" name="status" defaultValue={project.status || "Draft"}>
+                            {project.status && !["Draft", "Review", "Sent", "Won", "Lost"].includes(project.status) && (
+                                <option value={project.status}>{project.status}</option>
+                            )}
+                            <option value="Draft">Draft</option>
+                            <option value="Review">Under Review</option>
+                            <option value="Sent">Proposal Sent</option>
+                            <option value="Won">Won / Active</option>
+                            <option value="Lost">Lost</option>
+                        </Select>
+                    </CardContent>
+                </Card>
+                {statusFeedback === "error" ? (
+                    <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">The status save could not be confirmed. Your selection is still here.</p>
+                ) : (statusDirty || statusFeedback === "saved" || isPending && pendingIntent === "status") && (
+                    <p role="status" className={`text-sm ${isDark ? "text-slate-300" : "text-slate-600"}`}>
+                        {isPending && pendingIntent === "status" ? "Saving status..." : statusFeedback === "saved"
+                            ? statusDirty ? "Submitted status saved. Newer selection is still unsaved." : "Status saved"
+                            : "Unsaved status change"}
+                    </p>
+                )}
+                <div className="flex justify-end">
+                    <button type="submit" disabled={isPending} className="min-h-12 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-base font-bold rounded-lg disabled:opacity-60 transition-all">
+                        {isPending && pendingIntent === "status" ? "Saving status..." : "Save Status"}
                     </button>
                 </div>
             </form>

@@ -1,0 +1,60 @@
+{
+  "project": "phone",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "input": "touch",
+  "outcome": "passed",
+  "checkpoints": [
+    {
+      "name": "suggestion-waiting",
+      "sidewaysOverflowPx": 0,
+      "undersizedPanelButtons": [],
+      "panelPastViewport": 0,
+      "blockingAccessibility": [],
+      "screenshot": "01-suggestion-waiting-390x844.jpg"
+    },
+    {
+      "name": "suggestion-out-of-date",
+      "sidewaysOverflowPx": 0,
+      "undersizedPanelButtons": [],
+      "panelPastViewport": 0,
+      "blockingAccessibility": [],
+      "screenshot": "02-suggestion-out-of-date-390x844.jpg"
+    },
+    {
+      "name": "suggestion-dropped",
+      "sidewaysOverflowPx": 0,
+      "undersizedPanelButtons": [],
+      "panelPastViewport": 0,
+      "blockingAccessibility": [],
+      "screenshot": "03-suggestion-dropped-390x844.jpg"
+    },
+    {
+      "name": "switched-off",
+      "sidewaysOverflowPx": 0,
+      "undersizedPanelButtons": [],
+      "panelPastViewport": 0,
+      "blockingAccessibility": [],
+      "screenshot": "04-switched-off-390x844.jpg"
+    }
+  ],
+  "provider": {
+    "calls": 3,
+    "attempts": [
+      "ok",
+      "ok",
+      "rejected:tripwire"
+    ],
+    "charged": [
+      30,
+      30,
+      30
+    ]
+  },
+  "blockedThirdPartyHosts": [
+    "plausible.io",
+    "www.clarity.ms"
+  ]
+}

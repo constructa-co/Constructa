@@ -23,6 +23,7 @@ describe("public measurement contract", () => {
   it("allows only explicit public marketing routes", () => {
     expect(isPublicMeasurementRoute("/")).toBe(true);
     expect(isPublicMeasurementRoute("/landing")).toBe(true);
+    expect(isPublicMeasurementRoute("/apply")).toBe(true);
     expect(isPublicMeasurementRoute("/guides/site-surveys")).toBe(true);
     expect(isPublicMeasurementRoute("/dashboard")).toBe(false);
     expect(isPublicMeasurementRoute("/admin")).toBe(false);

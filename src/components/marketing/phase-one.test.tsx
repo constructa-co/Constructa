@@ -51,7 +51,7 @@ describe('phase-one marketing integration', () => {
     expect(journey).not.toMatch(/<a\b|<button\b|tabindex=/i);
     const arrows = journey!.match(/<svg\b[^>]*>/g) ?? [];
     expect(arrows).toHaveLength(0);
-    for (const destination of ['/login', '/pricing']) {
+    for (const destination of ['/apply', '/login', '/pricing']) {
       const links = html.match(/<a\b[^>]*>[\s\S]*?<\/a>/g) ?? [];
       expect(links.some(link => link.includes(`href="${destination}"`) && /<svg\b/.test(link))).toBe(true);
     }
@@ -62,6 +62,8 @@ describe('phase-one marketing integration', () => {
     expect(html).toContain('Good work.');
     for (const label of ['Make it your business.', 'Put a price to the work.', 'Give the job a plan.', 'Present the whole picture.']) expect(html).toContain(label);
     expect(html).toContain('href="/login"');
+    expect(html).toContain('href="/apply"');
+    expect(html).toContain('Apply to the founding cohort');
     expect(html).toContain('id="how-it-works"');
     expect(html).toContain('id="marketing-content"');
     expect(html).toContain('Illustrative example');
@@ -106,6 +108,8 @@ describe('phase-one marketing integration', () => {
     const html = renderToStaticMarkup(<><MarketingHeader /><MarketingFooter /></>);
     expect(html).toContain('aria-label="Main navigation"');
     expect(html).toContain('href="/login"');
+    expect(html).toContain('href="/apply"');
+    expect(html).toContain('Apply to the founding cohort');
     expect(html).toContain('href="/privacy-policy"');
     expect(html).toContain('href="/terms-of-service"');
     expect(html).not.toContain('/dashboard/resources');

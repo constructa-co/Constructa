@@ -37,6 +37,7 @@ const PUBLIC_ROUTE_EXACT = new Set([
   "/",
   "/landing",
   "/about",
+  "/apply",
   "/contact",
   "/pricing",
   "/features",

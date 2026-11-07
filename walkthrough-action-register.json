@@ -1,14 +1,15 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-11-04T09:51:53.119Z",
+  "updatedAt": "2026-11-07T07:58:41.000Z",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {
       "id": "A001",
       "phase": "P1-Jan2027",
       "requested": "Use the approved charcoal and green palette consistently across the whole application and marketing site.",
-      "status": "Partial"
+      "status": "Partial",
+      "evidence20261107": "cursor/a001-verify-20261107 (e647677, a8835ed): app dashboard primaries on palette + audit test; Vitest 6278 pass/0 fail; eslint 0 errors (Cursor cloud). Marketing and semantic blues intentionally kept, so 'whole application and marketing site' not met. Stays Partial."
     },
     {
       "id": "A002",
@@ -147,7 +148,8 @@
         "docs/delivery/2026-10-27/changelog.md"
       ],
       "previousDeliveryBeforeA079Evening20261027": "QA access and exact constructa-e2e-pr79 name-ref binding now VERIFIED in authenticated UI; public schema search finds no platform_terms_acceptances table. SQL/signup/Preview holds remain. Unsafe runner rejected, no real consent or canonical source landed; Partial.",
-      "historyBeforeSafeRunner20261027": "Reviewed consent-table migration APPLIED to verified QA only on Rob21:50 authority; exact columns/constraints/RLS/policies/narrow grants metadata verified. No consent rows accessed in that operation. Current A023 signup/email/firstlogin not run. Later unintended legacy PR106 QA journey is a separate incident, not current-consent acceptance."
+      "historyBeforeSafeRunner20261027": "Reviewed consent-table migration APPLIED to verified QA only on Rob21:50 authority; exact columns/constraints/RLS/policies/narrow grants metadata verified. No consent rows accessed in that operation. Current A023 signup/email/firstlogin not run. Later unintended legacy PR106 QA journey is a separate incident, not current-consent acceptance.",
+      "evidence20261107": "cursor/a023-terms-checkbox-20261107 (7e0dcef): checkbox + server gate + metadata fallback + placeholder terms page + draft migration (NOT applied); 77 tests pass (Cursor cloud). Needs Rob: legal wording and migration approval; real consent acceptance NOT_RUN. Stays Partial."
     },
     {
       "id": "A024",
@@ -237,7 +239,8 @@
       "id": "A038",
       "phase": "P1-Jan2027",
       "requested": "Retain up to three photos and optional AI enhancement within the improved case-study journey.",
-      "status": "Partial"
+      "status": "Partial",
+      "evidence20261107": "cursor/a038-photo-checks-20261107 (e41e09c, d833dea, c1c45e0): all material checks pass; legacy save refuses >3 photos (Cursor cloud). Library wire photos/AI enhance still off; photos migration unapplied. Stays Partial."
     },
     {
       "id": "A039",
@@ -574,7 +577,8 @@
       "id": "A089",
       "phase": "P1-Jan2027",
       "requested": "Diagnose the Git-check fixture timeout without Git repair or raised thresholds.",
-      "status": "Partial"
+      "status": "Partial",
+      "evidence20261107": "cursor/a089-gitcheck-timeout-20261107 (6938141): runGit() with -c core.fsmonitor=false, core.untrackedCache=false, SIGKILL 4000ms; 9/9 Linux (Cursor cloud). Mac check 7 Nov 11:58 UAE: 9/9 pass in 0.49s on fix, and 9/9 in 0.54s on unfixed b09dd69; core.fsmonitor/untrackedCache not set in any Mac git config. Hang not reproduced, historical cause unproved. Stays Partial."
     },
     {
       "id": "A090",
@@ -593,7 +597,8 @@
         "docs/delivery/2026-10-27/changelog.md"
       ],
       "previousDeliveryBeforeA079Evening20261027": "Existing288c096..7b60157 scoped MOCK integration diff reviewed/accepted. Separate new one-assertion About-facts fix aligns exact five existing credentials; actual priorRED -> ONLYfailedcasePASS1/lint0/32oldNOT_SELECTED, no product change. Packaging exact build/scans next; full real marketing/AuthDB/hosted still NOT_RUN.",
-      "historyBeforeSafeRunner20261027": "Existing assertion repair679 remains backed; Kimi current About/proposal62PASS and actualbase7b planner91PASS. Friday draftPR106 automatically ran legacy hosted Phase1: 2PASS on real synthetic QA but unintended under holds, NOT accepted release evidence. PR106 closed/unmerged; Composer cloud source-only draft gate103f489 returned, independent check pending."
+      "historyBeforeSafeRunner20261027": "Existing assertion repair679 remains backed; Kimi current About/proposal62PASS and actualbase7b planner91PASS. Friday draftPR106 automatically ran legacy hosted Phase1: 2PASS on real synthetic QA but unintended under holds, NOT accepted release evidence. PR106 closed/unmerged; Composer cloud source-only draft gate103f489 returned, independent check pending.",
+      "evidence20261107": "cursor/a091-verify-20261107 (f64cd1c+09c446a): website-to-proposal boundary proven by tests; full Vitest 6283 pass/0 fail (Cursor cloud). Hosted real-email run NOT_RUN (sign-up disabled on preview). Stays Partial."
     },
     {
       "id": "A092",
@@ -701,7 +706,8 @@
       "id": "A109",
       "phase": "P1-Jan2027",
       "requested": "Provide one clear Apply to the founding cohort entry separate from existing-user sign-in.",
-      "status": "Not started"
+      "status": "Partial",
+      "evidence20261107": "cursor/a109-apply-cta-20261107 (73cfa64): /apply page + header/hero/footer CTAs, no-op submission adapter; 60 tests pass (Cursor cloud). Needs Rob: where applications go; nothing activated. Not started -> Partial."
     },
     {
       "id": "A110",

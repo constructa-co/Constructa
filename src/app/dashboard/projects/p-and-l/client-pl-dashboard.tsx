@@ -24,6 +24,7 @@ import {
     Paperclip,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 import {
     Select,
     SelectContent,
@@ -585,7 +586,7 @@ export default function ClientPLDashboard({
                         <Button
                             size="sm"
                             onClick={() => setIsLogOpen(true)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white gap-2"
+                            className={`gap-2 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                         >
                             <Plus className="w-4 h-4" /> Log Cost
                         </Button>

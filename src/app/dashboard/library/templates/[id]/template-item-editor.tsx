@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Search } from "lucide-react";
 import { addItemsToTemplateAction } from "../../templates-actions";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 interface Props {
     templateId: string;
@@ -124,7 +125,7 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
                 <Button
                     onClick={handleAdd}
                     disabled={!selectedItemId || isPending}
-                    className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold h-11"
+                    className={`w-full mt-4 font-bold h-11 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                 >
                     {isPending ? "Adding..." : <><Plus className="w-4 h-4 mr-2" /> Add to Kit</>}
                 </Button>

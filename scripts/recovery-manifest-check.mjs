@@ -57,11 +57,11 @@ function bucketId(value) {
     return typeof value === "string" && value !== "";
 }
 
-// Git ref names must be primitive strings before REF/traversal checks and map keys (arrays must not slip through).
-function gitRefName(value) {
-    if (typeof value === "string") return value;
-    if (Array.isArray(value) && value.length === 1 && typeof value[0] === "string") return value[0];
-    return null;
+// Git ref names must be primitive strings before REF/traversal checks and map keys (no coercion).
+export function gitRefName(value) {
+    if (typeof value !== "string") return null;
+    if (value.length === 0 || value.trim().length === 0) return null;
+    return value;
 }
 
 function gitRefKey(repository, refName) {

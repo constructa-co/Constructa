@@ -277,16 +277,32 @@ test("git ref rows reject non-primitive ref identities before validation or map 
     }
 });
 
-test("a single-string git ref array coerces to the same map key as a plain string ref", () => {
-    const arrayRef = manifest();
-    arrayRef.git.refs = [{ repository: "app", ref: ["refs/heads/backup"], sha: appSha }];
-    arrayRef.git.requiredRefs = [{ repository: "app", ref: "refs/heads/backup", sha: appSha }];
-    assert.equal(checkManifest(arrayRef).verdict, "COMPLETE_SET");
+test("single-element git ref arrays are refused rather than coerced", () => {
+    for (const [field, label] of [
+        ["refs", "git.refs[0]"],
+        ["requiredRefs", "git.requiredRefs[0]"],
+    ]) {
+        const value = manifest();
+        value.git[field] = [{ repository: "app", ref: ["refs/heads/backup"], sha: appSha }];
+        const report = checkManifest(value);
+        assert.equal(report.verdict, "INVALID", field);
+        assert.ok(report.errors.some(error => error.startsWith(`${label}:`) && error.includes("unsafe ref name")));
+    }
+});
 
-    const requiredArray = manifest();
-    requiredArray.git.refs = [{ repository: "app", ref: "refs/heads/backup", sha: appSha }];
-    requiredArray.git.requiredRefs = [{ repository: "app", ref: ["refs/heads/backup"], sha: appSha }];
-    assert.equal(checkManifest(requiredArray).verdict, "COMPLETE_SET");
+test("empty and whitespace-only git ref strings are unsafe ref names", () => {
+    for (const ref of ["", "   ", "\t", "\n", " \t\n "]) {
+        for (const [field, label] of [
+            ["refs", "git.refs[0]"],
+            ["requiredRefs", "git.requiredRefs[0]"],
+        ]) {
+            const value = manifest();
+            value.git[field] = [{ repository: "app", ref, sha: appSha }];
+            const report = checkManifest(value);
+            assert.equal(report.verdict, "INVALID", JSON.stringify({ field, ref }));
+            assert.ok(report.errors.some(error => error.startsWith(`${label}:`) && error.includes("unsafe ref name")));
+        }
+    }
 });
 
 test("byte verification catches missing, altered, resized and symlinked files", () => {

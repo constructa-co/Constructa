@@ -260,6 +260,35 @@ test("required Git refs must be recorded at the expected commit with safe names"
     assert.ok(errors.some(error => error.includes("sha must be 40")));
 });
 
+test("git ref rows reject non-primitive ref identities before validation or map lookup", () => {
+    for (const [field, ref, label] of [
+        ["refs", ["refs/heads/../main"], "git.refs[0]"],
+        ["refs", ["refs/heads/backup", "refs/heads/other"], "git.refs[0]"],
+        ["refs", [42], "git.refs[0]"],
+        ["refs", { ref: "refs/heads/backup" }, "git.refs[0]"],
+        ["requiredRefs", ["refs/heads/../main"], "git.requiredRefs[0]"],
+        ["requiredRefs", [{ nested: "refs/heads/backup" }], "git.requiredRefs[0]"],
+    ]) {
+        const value = manifest();
+        value.git[field] = [{ repository: "app", ref, sha: appSha }];
+        const report = checkManifest(value);
+        assert.equal(report.verdict, "INVALID", JSON.stringify({ field, ref }));
+        assert.ok(report.errors.some(error => error.startsWith(`${label}:`) && error.includes("unsafe ref name")), JSON.stringify(report.errors));
+    }
+});
+
+test("a single-string git ref array coerces to the same map key as a plain string ref", () => {
+    const arrayRef = manifest();
+    arrayRef.git.refs = [{ repository: "app", ref: ["refs/heads/backup"], sha: appSha }];
+    arrayRef.git.requiredRefs = [{ repository: "app", ref: "refs/heads/backup", sha: appSha }];
+    assert.equal(checkManifest(arrayRef).verdict, "COMPLETE_SET");
+
+    const requiredArray = manifest();
+    requiredArray.git.refs = [{ repository: "app", ref: "refs/heads/backup", sha: appSha }];
+    requiredArray.git.requiredRefs = [{ repository: "app", ref: ["refs/heads/backup"], sha: appSha }];
+    assert.equal(checkManifest(requiredArray).verdict, "COMPLETE_SET");
+});
+
 test("byte verification catches missing, altered, resized and symlinked files", () => {
     const value = manifest();
     const root = exportRoot(value);

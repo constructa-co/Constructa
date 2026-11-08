@@ -1,86 +1,40 @@
-# A103 — Contractor-content pilot design (draft)
+# A103 — Contractor-content pilot outline (batch 4)
 
-**Status: DRAFT — ROB REVIEW REQUIRED. No publication, no CMS posting, no ranking/traffic guarantee, no analytics change.**
-Author: Kimi, 2026-11-08, branch `kimi/marketing-drafts-20261108-1020`. Purpose: design a small, expert-reviewed content pilot tied to the product, with explicit human-review gates, per the A103 register wording ("small useful contractor-content pilot and review search/traffic/conversion results").
+**Status: DRAFT - ROB REVIEW REQUIRED. Later-release expert-review and measurement plan only — no ranking promises, no publishing, no CMS/route change, no analytics change.**
+Author: Kimi, 2026-11-08 (batch 4), branch `kimi/marketing-drafts-20261108-1020`.
 
-## 1. Pilot shape (proposal)
+Companion to the batch-2 design draft `kimi-a103-content-pilot.md`, which holds the four article briefs, SEO/accessibility rules, and human-review gates. This outline focuses on the two things the register wording emphasises for later release: **expert review** and **measurement**. No content has been written to production, nothing published, no traffic outcome promised.
 
-- **Volume:** 4 articles total, published over ~8 weeks (fortnightly cadence). Small on purpose — quality and review depth over volume.
-- **Audience:** UK SME construction firms — general builders, small commercial contractors, specialist trades doing quoted work (vocabulary grounded in the A006 draft in this folder).
-- **Home:** a `/guides`-style area already exists in the app (`src/lib/marketing-guides.ts`, `src/components/marketing/guide-article-view.tsx`, `src/app/guides/...`) with a prior "truthful Guides attribution" commit — new pilot content should follow that same truthful-attribution pattern. Publishing mechanism itself is a separate reviewed action.
-- **Goal:** earn qualified organic visits from contractor-intent searches and demonstrate those visitors reaching the product (signup/preview interest), not to hit volume targets.
+## 1. Expert-review plan (per article)
 
-## 2. Article briefs (4)
+| Article (from batch-2 briefs) | Reviewer profile | Review depth | Hard rule |
+| --- | --- | --- | --- |
+| 1. Pricing/quoting guide | Practising builder or estimator (10+ yrs quoting domestic work) | Technical accuracy of the pricing steps; realism of failure modes; vocabulary check against A006 brief | No invented numbers; every example marked illustrative |
+| 2. Programme vs schedule of works | Working contracts manager / site agent | Planning language matches site reality; what clients should/shouldn't see | Screenshots labelled as product captures (A084 imagery rules) |
+| 3. CIS paperwork explainer | Accountant or contractor with CIS filing experience **plus Rob** | Regulatory accuracy; "not tax advice" framing; GOV.UK links current | **Highest gate** — if no qualified reviewer, the article is dropped, not published unreviewed |
+| 4. Winning repeat work | Owner-operator + marketing voice check | Advice not generic; product mentions honest, no invented results | Practitioner can veto any claim |
 
-Each brief: working title, target reader, search intent, product tie, structure, review needs. Titles are drafts and may change at review.
+Process per article: draft → named reviewer pass (recorded: name/role/date) → Rob final read → only then eligible for the (separate, reviewed) publishing action. Review evidence (who checked what) is retained alongside the article, consistent with the app's existing truthful-attribution pattern for guides.
 
-### Brief 1 — "How to price a building job: a small builder's guide to quoting"
-- Reader: general builders / single-trade firms quoting domestic extensions, refurb, small commercial works.
-- Intent: informational ("how to quote a building job", "how to price building work UK").
-- Angle: walk through measure → materials/labour build-up → margin → presenting the quote, with the failure modes (under-pricing variations, forgetting prelims, dayworks).
-- Product tie: the estimate/proposal flow (existing pillars "Fast, accurate proposals", "Built-in cost control"). Reference the product once, honestly, near the end.
-- Review: needs a practising builder or estimator to sanity-check the pricing steps; Rob to approve the product mention.
+## 2. Measurement plan (read-only reporting; nothing instrumented now)
 
-### Brief 2 — "Programme vs schedule of works: what small contractors actually need to plan a job"
-- Reader: small contractors moving from verbal/handwritten planning to a visible programme.
-- Intent: mixed informational/comparison ("construction programme template", "schedule of works template").
-- Angle: demystify the programme as a client-communication tool (ties to existing "One-tap updates"/client-delivery imagery) — milestones, look-ahead weeks, what to show clients vs what is internal.
-- Product tie: simple programme feature; show a real screen capture if Rob approves, labelled as such per A084 imagery rules.
-- Review: practitioner check that the planning language matches site reality; accessibility check on any table/images.
+Constraint first: public acquisition measurement is currently disabled by design (register notes on A059 / review-policy guards), and this plan **does not propose re-enabling it**. All measurement below is manual/export-based and only with Rob's approval.
 
-### Brief 3 — "CIS for small builders: the subcontractor paperwork that trips people up"
-- Reader: builders who engage subbies (labour-only and supply-and-fix).
-- Intent: informational with compliance weight ("CIS tax subcontractors", "construction industry scheme guide").
-- Angle: plain-English explainer — registration, monthly returns, deduction rates, record keeping; explicitly **not** tax advice, point to GOV.UK.
-- Product tie: light — cost-control/record-keeping framing only; no tax claims in product copy.
-- Review: **higher gate** — this touches tax/regulation; requires a human with relevant knowledge (accountant or experienced contractor) plus Rob sign-off; if no reviewer available, drop this brief rather than publish unreviewed.
+1. **Search visibility** — monthly manual check of each guide URL's indexed status and approximate ranking for its target query (logged in a spreadsheet; no rank-tracker subscription proposed).
+2. **Traffic** — when Rob re-enables acquisition measurement as a separate reviewed action, guide-page visits and product-page referrals per article; until then, "not measurable" is the honest recorded state.
+3. **Conversion signal** — count of signups/preview-interest events whose last-touch page was a guide (only measurable under the same re-enabled-measurement condition).
+4. **Qualitative** — any user messages referencing articles, recorded verbatim.
+5. **Cadence** — one-page monthly report to Rob during the pilot; explicit decision point after article 4: continue / revise / stop.
 
-### Brief 4 — "Winning repeat work: how clients choose a small building firm"
-- Reader: owner-operators doing domestic work.
-- Intent: commercial-adjacent ("how to get more building work", "win construction clients").
-- Angle: trust signals (checked trades memberships, references, clear written quotes, tidy variations handling), mapped to what Constructa helps evidence (professional proposals, case-study narratives — the case-library feature).
-- Product tie: case-study/capability framing; honest, no invented results.
-- Review: marketing voice + practitioner check that advice isn't generic fluff.
+Pre-registered honesty rules: baseline numbers are recorded **before** article 1 goes live; no cherry-picked date ranges; if after 8 weeks the guides have near-zero impressions, the report says so plainly and recommends stop or revise. **No ranking, traffic, or conversion outcome is promised or implied anywhere.**
 
-## 3. SEO guidance (draft rules for the pilot)
+## 3. Dependencies and sequencing
 
-- One primary search intent per article; title and H1 aligned; no keyword stuffing.
-- URL slugs short and literal (`/guides/how-to-price-a-building-job`).
-- Internal links: each article links to the relevant product area and to one other guide where natural.
-- Canonical: self-referencing canonical on each guide page; if content is ever syndicated, canonical must point back (this is guidance for the publishing action, not a code change here).
-- No AI-content-spam patterns: every article has a named human reviewer; publish only reviewed versions.
-- Search-demand claims (volumes, difficulty) are **not asserted** in this draft — verify with Rob's keyword tool before finalising titles.
+1. Rob approves this outline and the batch-2 briefs.
+2. Reviewers are named (volunteer/paid — Rob's decision) **before** drafting starts, so Brief 3's drop-dead rule can actually bite.
+3. Publishing mechanism remains a separate reviewed action (guides surface already exists in-app; no change made here).
+4. Optional coupling with A101 newsletter (guides as newsletter content) — see A101 plan §3.3.
 
-## 4. Accessibility & quality guidance
+## 4. Status
 
-- Plain English (aim: readable by a busy tradesperson on a phone).
-- Semantic headings, descriptive alt text on images, tables avoided for layout; data tables marked up properly.
-- No stats without a citable source (consistent with the A084 recommendation); date-stamp factual articles and review annually.
-- Reading level and mobile rendering checked by a human before publication.
-
-## 5. Metrics & review loop (read-only reporting, no new analytics)
-
-With Rob's approval only, the pilot would measure, from existing/planned reporting:
-1. Organic impressions/clicks per article (search console).
-2. Guide-page visits → product-page visits → signup/preview-interest events (using the acquisition measurement only when Rob re-enables it — currently disabled per register).
-3. Qualitative: replies/messages referencing articles.
-Review loop: monthly one-page report to Rob for the pilot duration; decision point after article 4 — continue, change, or stop. **No ranking or traffic outcome is promised.**
-
-## 6. Explicit human-review gates
-
-| Gate | Owner | Blocks |
-| --- | --- | --- |
-| Brief approval (all 4) | Rob | Any writing |
-| Practitioner/technical review per article | Named human (builder/estimator; accountant for Brief 3) | Publication of that article |
-| Final read + product-mention approval | Rob | Publication of that article |
-| Publishing mechanism + analytics | Separate reviewed action | Anything going live |
-
-## 7. What this draft deliberately does NOT do
-
-- No articles written to production/published state, no CMS or route changes.
-- No keyword-volume assertions, no traffic/ranking guarantees.
-- No overlap with A084 (copy/imagery review) or A102 (social drafts) in `kimi-marketing-drafts.md` — those are separate drafts.
-
-## 8. Status
-
-A103 remains **Not started** — this is the pilot design; no content created, published, or measured.
+A103 remains **Not started** — outline only; no articles drafted to production, nothing published, nothing measured, no register/dashboard mutation.

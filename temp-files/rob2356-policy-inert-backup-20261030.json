@@ -1,0 +1,93 @@
+{
+  "job": "ROB2356-POLICY-INERT-BACKUP",
+  "selfComplete": false,
+  "copyTo": "/Users/robertsmith/dev/constructa-private-20261027/rob2356-policy-inert-backup-20261030.json",
+  "startedAt": "2026-10-30T19:56:24.000Z",
+  "endedAt": "2026-10-30T19:56:35.000Z",
+  "cwd": "/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/cq-costlib-policy-draft",
+  "branch": "cq/cq-costlib-policy-draft",
+  "startHead": "e90f24360b26c60c5dc95dec470718fab1367622",
+  "endHead": "06767f247e28fca2759bfbdb24106ae73cd855e5",
+  "parent": "e90f24360b26c60c5dc95dec470718fab1367622",
+  "commit": {
+    "sha": "06767f247e28fca2759bfbdb24106ae73cd855e5",
+    "authorName": "Cursor",
+    "authorEmail": "cursor@constructa.co",
+    "subject": "fix(cq): move cost library policy draft off migrations apply path"
+  },
+  "reconciledOnce": {
+    "grok2342Return": "/Users/robertsmith/dev/constructa-private-20261027/GROK2342-POLICY-INERT-REVIEW-RETURN.md",
+    "grok2342Grade": "SCOPED_NNF",
+    "rob2338Dispositions": "/Users/robertsmith/dev/constructa-private-20261027/rob2338-four-runner-job-dispositions-20261030.json",
+    "publicPatchSha256": "adc17d960faf8b640dc62ab784d7e413161b561cbf3383d67e1d5d26d3981675"
+  },
+  "exactThreeCommitted": [
+    {
+      "action": "MODIFY",
+      "path": "docs/reviews/cq-costlib-policy-draft.md",
+      "blobSha256": "74b79062526383553374e44183736e5f34242721d9a90eb87c8c4eba67ade414"
+    },
+    {
+      "action": "ADD",
+      "path": "docs/reviews/drafts/20261030120000_cost_library_public_read_system_only.sql.txt",
+      "blobSha256": "b7cbb5a6caf0832667948ae87928b8cee53f693d067fc6a7f14320a267007a80"
+    },
+    {
+      "action": "DELETE",
+      "path": "supabase/migrations/20261030120000_cost_library_public_read_system_only.sql",
+      "presentAtHead": false
+    }
+  ],
+  "gitleaks": {
+    "binary": "/Users/robertsmith/.codex/worktrees/welcome-first-slice/verification/status-tools-20261020/gitleaks",
+    "config": ".gitleaks.toml",
+    "sourceScans": [
+      {
+        "path": "docs/reviews/cq-costlib-policy-draft.md",
+        "findings": 0
+      },
+      {
+        "path": "docs/reviews/drafts/20261030120000_cost_library_public_read_system_only.sql.txt",
+        "findings": 0
+      }
+    ],
+    "exactRange": "e90f24360b26c60c5dc95dec470718fab1367622..06767f247e28fca2759bfbdb24106ae73cd855e5",
+    "rangeFindings": 0
+  },
+  "push": {
+    "command": "git push origin HEAD:refs/heads/cq/cq-costlib-policy-draft",
+    "force": false,
+    "status": "OK",
+    "remoteRange": "e90f243..06767f2"
+  },
+  "remote": {
+    "ref": "refs/heads/cq/cq-costlib-policy-draft",
+    "expectedMatchHead": "06767f247e28fca2759bfbdb24106ae73cd855e5",
+    "independentMatchVerified": true,
+    "verifiedAt": "2026-10-30T19:57:30.000Z",
+    "method": "git rev-parse HEAD vs git ls-remote origin refs/heads/cq/cq-costlib-policy-draft"
+  },
+  "workflowIfPushed": {
+    "secretScanOnPush": true,
+    "ciMainPushOnly": false,
+    "e2ePrOnly": false,
+    "migrationReplayPrPathsOnly": true
+  },
+  "residualsUntrackedPreserved": [
+    "docs/reviews/drafts/20261030120000_cost_library_public_read_system_only.sql.pre-rework-archival",
+    "docs/reviews/drafts/ROB2335-POLICY-DRAFT-REWORK-RETURN.md",
+    "docs/reviews/drafts/ROB2335-POLICY-DRAFT-REWORK.patch"
+  ],
+  "notDone": [
+    "nextBuild",
+    "runnerRepair",
+    "sqlApply",
+    "prOrCiDispatch",
+    "mainMerge",
+    "deploy",
+    "settingsChange",
+    "privateReceiptsOnPublicBranch"
+  ],
+  "model": "composer-2.5",
+  "pidLaunch": 41520
+}

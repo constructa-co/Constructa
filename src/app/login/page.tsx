@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { tryCreateClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getLaunchLandingPath } from '@/lib/launch-profile';
@@ -54,7 +54,6 @@ export default function LoginPage() {
     // The typed success the server returned, so the page never guesses it from the message.
     const [successOutcome, setSuccessOutcome] = useState<"confirmation-required" | "created-and-recorded" | null>(null);
     const router = useRouter();
-    const supabase = createClient();
 
     const switchMode = (next: Mode) => {
         if (next !== mode) setTermsAccepted(false);
@@ -73,6 +72,11 @@ export default function LoginPage() {
         setSuccessOutcome(null);
 
         try {
+            const supabase = tryCreateClient();
+            if (!supabase) {
+                setErrorMessage("We couldn't confirm sign-in. Check your details and try again.");
+                return;
+            }
             const { error } = await supabase.auth.signInWithPassword({
                 email,
                 password,

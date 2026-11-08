@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { coreFocusRing, corePrimaryButton } from "@/lib/core-editing-palette";
 import { createTemplateAction } from "../templates-actions";
 
 export default function CreateKitForm() {
@@ -49,11 +50,11 @@ export default function CreateKitForm() {
 
     return (
         <form onSubmit={handleSubmit} className="mt-6 w-full space-y-3">
-            <input name="name" placeholder="e.g. Groundworks" required value={name} onChange={e => setName(e.target.value)} className="w-full h-10 px-3 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input name="name" placeholder="e.g. Groundworks" required value={name} onChange={e => setName(e.target.value)} className={`w-full h-10 px-3 rounded-lg border border-slate-200 text-sm ${coreFocusRing}`} />
             {outcome ? (
                 <p role={outcome.ok ? "status" : "alert"} className={`text-xs leading-snug ${outcome.ok ? "text-slate-600" : "text-red-600"}`}>{outcome.message}</p>
             ) : null}
-            <Button type="submit" disabled={isPending} className="w-full bg-slate-900 hover:bg-black text-white rounded-lg">Initialize Kit</Button>
+            <Button type="submit" disabled={isPending} className={`w-full rounded-lg ${corePrimaryButton}`}>Initialize Kit</Button>
         </form>
     );
 }

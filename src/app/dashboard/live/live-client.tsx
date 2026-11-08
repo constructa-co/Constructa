@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 import {
     PoundSterling,
     Hammer,
@@ -161,7 +162,7 @@ export default function LiveProjectsClient({ projects, totalContractValue, total
                 </div>
                 <Link
                     href="/dashboard/projects/new"
-                    className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
+                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                 >
                     <Plus className="w-3.5 h-3.5" /> New Project
                 </Link>

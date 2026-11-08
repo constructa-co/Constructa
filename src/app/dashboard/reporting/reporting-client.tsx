@@ -38,6 +38,7 @@ import {
 // OH/Risk/Profit/Discount math and omitted the prelims summand, so figures
 // were quietly lower than billing / proposal / final-account.
 import { computeContractSumValue } from "@/lib/financial";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -629,7 +630,7 @@ export default function ReportingClient({
                 <button
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading || !selectedProjectId}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+                  className={`flex items-center gap-2 px-4 py-2 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                 >
                   {uploading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -758,7 +759,7 @@ export default function ReportingClient({
               <button
                 onClick={handleSaveReport}
                 disabled={saving || !selectedProjectId || !reportForm.weekEnding}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+                className={`w-full flex items-center justify-center gap-2 py-2.5 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
               >
                 {saving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -869,7 +870,7 @@ export default function ReportingClient({
                   variations: variations.filter(v => v.project_id === selectedProjectId),
                 })}
                 disabled={!selectedProject}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+                className={`flex items-center gap-2 px-4 py-2 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
               >
                 <Download className="w-4 h-4" />
                 Export PDF
@@ -1155,7 +1156,7 @@ export default function ReportingClient({
                   expenses,
                   progressReports,
                 })}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
               >
                 <Download className="w-4 h-4" />
                 Export Portfolio PDF

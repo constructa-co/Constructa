@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Search } from "lucide-react";
 import { addItemsToTemplateAction } from "../../templates-actions";
-import { corePrimaryButton } from "@/lib/core-editing-palette";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 const LIBRARY_KIT_FILTER_SELECT_KEYS = new Set([
     "ArrowUp",
@@ -181,7 +181,7 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
                 <Button
                     onClick={handleAdd}
                     disabled={!selectedItemId || isPending}
-                    className={`w-full mt-4 ${corePrimaryButton} font-bold h-11`}
+                    className={`w-full mt-4 font-bold h-11 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                 >
                     {isPending ? "Adding..." : <><Plus className="w-4 h-4 mr-2" /> Add to Kit</>}
                 </Button>

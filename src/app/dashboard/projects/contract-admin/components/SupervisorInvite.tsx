@@ -14,6 +14,7 @@ import { useState } from "react";
 import { Copy, Link2, Loader2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { createSupervisorTokenAction } from "../actions";
+import { coreFocusRing } from "@/lib/core-editing-palette";
 
 export function SupervisorInvite({ projectId }: { projectId: string }) {
     const [open, setOpen] = useState(false);
@@ -82,7 +83,7 @@ export function SupervisorInvite({ projectId }: { projectId: string }) {
                             value={name}
                             onChange={e => setName(e.target.value)}
                             placeholder="e.g. John Smith"
-                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className={`w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-600 ${coreFocusRing}`}
                         />
                     </div>
                     <div>
@@ -92,7 +93,7 @@ export function SupervisorInvite({ projectId }: { projectId: string }) {
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                             placeholder="supervisor@example.com"
-                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className={`w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-600 ${coreFocusRing}`}
                         />
                     </div>
                     <div className="flex gap-2">

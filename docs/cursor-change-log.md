@@ -24,6 +24,33 @@ No production change: `template-item-editor.tsx` A085 refs (b216bad) already cor
 |------|-----------------|--------|--------|
 | `e2e/import-fixture/guard.test.ts` | 11–55, 71, 124 | `runGit` helper with `-c core.fsmonitor=false`, `-c core.untrackedCache=false`, centralized `SIGKILL` + 4000ms budget | Stop inherited fsmonitor/untracked-cache from blocking `git ls-files` for minutes; keep bounded async Git checks (A089) |
 
+## 2026-11-07 — A001 palette verify (cursor/a001-verify-20261107)
+
+| Paths | Lines (approx) | Change | Intent |
+|-------|----------------|--------|--------|
+| `src/lib/a001-palette-audit.ts` | 1–34 | Shared forbidden-primary regex + line scanner | Evidence helper for A001 token audit |
+| `src/lib/a001-palette-audit.test.ts` | 1–67 | Dashboard/component scan + filter/create-kit focus checks | Regression guard for legacy blue primaries |
+| `dashboard-client.tsx` | 27, 403–438 | `coreFocusRing` on pipeline search/type/status filters | Emerald focus matches charcoal/sage palette |
+| `library/templates/create-kit-form.tsx` | 6–7, 53 | Name field `coreFocusRing` | Matches Initialize Kit primary token seam |
+| `library/rate-override-client.tsx` | 9, 113 | Save rate uses `corePrimaryButton` | Library action primary off blue |
+| `library/templates/[id]/template-item-editor.tsx` | 19, 128 | Add to Kit primary | Kit editor sage CTA |
+| `projects/p-and-l/client-pl-dashboard.tsx` | 27, 589 | Log Cost opener | Commercial P&L primary alignment |
+| `live/live-client.tsx` | import, 164 | New Project link | Live hub CTA |
+| `materials/materials-client.tsx` | import, 140–355 | Basket + log costs primaries | Materials hub CTAs |
+| `mobile/mobile-hub-client.tsx` | import, 307–355 | FAB + quick log + field focus | Mobile sage primaries/focus |
+| `reporting/reporting-client.tsx` | import, 632–1158 | Four export/save primaries | Reporting actions |
+
+Base branch: `origin/cq/cq-0105-a001-initialize-kit-primary` (includes `5d73ebc`).
+
+## 2026-11-07 — A001 verify follow-up (cursor/a001-verify-20261107)
+
+| Paths | Lines (approx.) | Change | Intent |
+|-------|----------------|--------|--------|
+| `contract-admin/components/SupervisorInvite.tsx` | 17, 85–95 | Name/email inputs use `coreFocusRing` | Contract-admin focus off blue rings |
+| `dashboard-period-metrics.test.tsx` | 89–97 | List-first search assertion + board toggle | Replicate `09c446a` Vitest fix |
+| `e2e/local-phase1/a111-readability.spec.ts` | 53 | `const fg` | ESLint prefer-const |
+| `dashboard-route-shell.test.tsx`, `dashboard-route-shell-page.test.tsx` | tests | JSX composition (`.test.ts` → `.tsx`) | ESLint react/no-children-prop + tsc |
+
 ## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
 
 | Paths | Change | Intent |

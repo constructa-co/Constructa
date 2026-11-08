@@ -24,7 +24,7 @@ import FirstProjectStart from "@/components/first-project-start";
 import ui from "@/components/project-chooser.module.css";
 import { corePipelineWorkspaceInsetClassName } from "@/lib/dashboard-route-geometry";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
-import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
+import { coreFocusRing, coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 import {
     PIPELINE_STATUS_FILTER_OPTIONS,
     pipelineStageDisplayLabel,
@@ -400,7 +400,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                             aria-label="Search by client or project name"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className={`w-full min-h-11 lg:min-h-0 pl-9 pr-4 py-2 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                            className={`w-full min-h-11 lg:min-h-0 pl-9 pr-4 py-2 text-sm rounded-lg ${coreFocusRing} focus:border-transparent ${
                                 isDark
                                     ? "bg-[#0d0d0d] border border-[#2a2a2a] text-white placeholder-[#a0a0a0]"
                                     : "bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400"
@@ -413,7 +413,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                         value={typeFilter}
                         onChange={e => setTypeFilter(e.target.value)}
                         aria-label="Filter by type of job"
-                        className={`min-h-11 lg:min-h-0 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        className={`min-h-11 lg:min-h-0 text-sm rounded-lg px-3 py-2 ${coreFocusRing} ${
                             isDark
                                 ? "bg-[#0d0d0d] border border-[#2a2a2a] text-white"
                                 : "bg-gray-50 border border-gray-200 text-gray-700"
@@ -431,7 +431,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                         onChange={e => setStatusFilter(e.target.value)}
                         aria-label="Filter by stage"
                         aria-describedby="pipeline-filters-help"
-                        className={`min-h-11 lg:min-h-0 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        className={`min-h-11 lg:min-h-0 text-sm rounded-lg px-3 py-2 ${coreFocusRing} ${
                             isDark
                                 ? "bg-[#0d0d0d] border border-[#2a2a2a] text-white"
                                 : "bg-gray-50 border border-gray-200 text-gray-700"

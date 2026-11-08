@@ -51,7 +51,7 @@ export default defineConfig({
     webServer: {
         command: `node e2e/import-fixture/prepare.mjs && npx next build && npx next start -H 127.0.0.1 -p ${PORT}`,
         url: `http://127.0.0.1:${PORT}/admin-e2e-import-fixture`,
-        env: { ...BLANK, CONSTRUCTA_IMPORT_FIXTURE: "1", NEXT_TELEMETRY_DISABLED: "1" },
+        env: { ...BLANK, CONSTRUCTA_IMPORT_FIXTURE: "1", NEXT_PUBLIC_CONSTRUCTA_IMPORT_FIXTURE: "1", NEXT_TELEMETRY_DISABLED: "1" },
         reuseExistingServer: false,
         timeout: 5 * 60_000,
         stdout: "ignore",

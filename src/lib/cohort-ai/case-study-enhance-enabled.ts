@@ -6,5 +6,6 @@
 export const CASE_STUDY_TEXT_ENHANCE_ENABLED = false as const;
 
 export function caseStudyTextEnhanceEnabled(): boolean {
+    if (process.env.CONSTRUCTA_IMPORT_FIXTURE === "1" || process.env.NEXT_PUBLIC_CONSTRUCTA_IMPORT_FIXTURE === "1") return true;
     return CASE_STUDY_TEXT_ENHANCE_ENABLED;
 }

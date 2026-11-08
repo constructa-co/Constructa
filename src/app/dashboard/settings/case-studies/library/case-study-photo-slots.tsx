@@ -31,8 +31,8 @@ export default function CaseStudyPhotoSlots({
     const slots = photos.length === CASE_STUDY_PHOTO_COUNT ? photos : photos.slice(0, CASE_STUDY_PHOTO_COUNT);
     return (
         <div data-case-study-photos className="space-y-2">
-            <p className="text-base font-semibold text-slate-100">Photos {!persistenceAvailable && <span className="font-normal text-slate-400">(not available yet)</span>}{persistenceAvailable && <span className="font-normal text-slate-300">(optional, up to 3)</span>}</p>
-            <p className="text-sm text-slate-300">{persistenceAvailable ? "Add your own pictures in order. A caption is optional and stays with each slot." : unavailableCopy}</p>
+            <p className="text-base font-semibold text-slate-100">Photos {!persistenceAvailable && <span className="font-normal text-slate-300">(not available yet)</span>}{persistenceAvailable && <span className="font-normal text-slate-200">(optional, up to 3)</span>}</p>
+            <p className="text-sm text-slate-200">{persistenceAvailable ? "Add your own pictures in order. A caption is optional and stays with each slot." : unavailableCopy}</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {Array.from({ length: CASE_STUDY_PHOTO_COUNT }, (_, slot) => {
                     const photo = slots[slot] ?? { url: "", caption: "" };
@@ -52,12 +52,12 @@ export default function CaseStudyPhotoSlots({
                                     </>
                                 ) : canUpload ? (
                                     <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800 transition-colors">
-                                        <Upload className="w-5 h-5 text-slate-500 mb-1" aria-hidden />
-                                        <span className="text-[10px] text-slate-500">Upload</span>
+                                        <Upload className="w-5 h-5 text-slate-300 mb-1" aria-hidden />
+                                        <span className="text-xs text-slate-300">Upload</span>
                                         <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Upload photo ${slot + 1} for past work ${cardIndex + 1}`} className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void onUpload!(slot, file); }} />
                                     </label>
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-xs text-slate-500 px-2 text-center">No picture</div>
+                                    <div className="w-full h-full flex items-center justify-center text-xs text-slate-300 px-2 text-center">No picture</div>
                                 )}
                             </div>
                             {persistenceAvailable && (
@@ -65,7 +65,7 @@ export default function CaseStudyPhotoSlots({
                                     <label htmlFor={`cs-photo-caption-${cardIndex}-${slot}`} className="sr-only">Caption for photo {slot + 1}</label>
                                     <input
                                         id={`cs-photo-caption-${cardIndex}-${slot}`}
-                                        className="w-full border-t border-slate-700 bg-slate-950 px-2 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+                                        className="w-full border-t border-slate-700 bg-slate-950 px-2 py-2 text-sm text-slate-100 placeholder:text-slate-400"
                                         value={photo.caption}
                                         maxLength={300}
                                         placeholder="Caption (optional)"

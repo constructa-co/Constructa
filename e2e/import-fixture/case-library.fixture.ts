@@ -37,6 +37,19 @@ test("Case-study library: add, save, fail and retry, conflict, approve, rename a
     const run = `lib-${project}-${Date.now()}`;
     const control = async (op: Record<string, unknown> = {}) => (await page.request.post(`${ROOT}/${run}/state`, { data: op })).json();
     const button = (name: string | RegExp) => page.getByRole("button", { name, exact: typeof name === "string" });
+    /** Send-blocker items live under Review document; the screen opens on Prepare proposal. */
+    const showSendBlock = async () => {
+        if (await page.locator("#proposal-final-review").isHidden()) {
+            await use.activate(page.getByRole("button", { name: "2. Review document", exact: true }));
+        }
+        await expect(page.locator("#proposal-final-review")).toBeVisible();
+    };
+    const showPrepare = async () => {
+        if (await page.locator("#proposal-preparation").isHidden()) {
+            await use.activate(page.getByRole("button", { name: "1. Prepare proposal", exact: true }));
+        }
+        await expect(page.locator("#proposal-preparation")).toBeVisible();
+    };
     const saveLine = page.locator("[data-save-line]");
     const delivered = page.getByLabel(/What did you do\?/);
     const wouldWarnOnLeaving = (target: Page) => target.evaluate(() => { const event = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(event); return event.defaultPrevented; });
@@ -217,7 +230,9 @@ test("Case-study library: add, save, fail and retry, conflict, approve, rename a
         await expect(extras.locator("[data-past-jobs-count]")).toContainText("Showing 1 past job (0 older, 1 from your library)");
         for (const n of [1, 2, 3, 4, 5, 6]) await use.check(page.getByRole("checkbox", { name: new RegExp(`^Older job ${n} `) }));
         await expect(extras.locator("[data-past-jobs-blocked]")).toHaveText("You've chosen 7 past jobs to show (6 older and 1 new). A proposal shows up to 6. Untick 1.");
+        await showSendBlock();
         await expect(page.locator('[data-send-missing="caseStudySelection"]')).toBeVisible();
+        await showPrepare();
         await checkpoint("review-too-many", "[data-past-jobs-extras]");
         await use.check(page.getByRole("checkbox", { name: /^Older job 7 / }));
         await expect(extras.locator("[data-past-jobs-blocked]")).toContainText("Only 6 of your 7 older ones are counted, because only 6 are ever shown.");
@@ -232,9 +247,15 @@ test("Case-study library: add, save, fail and retry, conflict, approve, rename a
         await page.goto(`${ROOT}/${run}/review`);
         const cannot = page.locator("[data-past-jobs-cannot-send]");
         await expect(cannot).toContainText("This case study has been archived, so it can't be sent.");
-        await expect(page.locator('[data-send-missing="caseStudySelection"]')).toBeVisible();
+        await showPrepare();
         await expect(page.getByRole("checkbox", { name: /^Older job 1 / }), "the older choice is untouched").toBeChecked();
-        expect((await control({ publish: true })).publish, "the stand-in publish refuses too").toMatchObject({ success: false, error: expect.stringContaining("can't be sent") });
+        await showSendBlock();
+        await expect(page.locator('[data-send-missing="caseStudySelection"]')).toBeVisible();
+        expect((await control({ publish: true })).publish, "the stand-in publish refuses too").toMatchObject({
+            success: false,
+            error: "One of the past jobs you chose can't be sent. Untick it under Relevant experience, or fix it in Case Studies, then check the proposal again.",
+        });
+        await showPrepare();
         await checkpoint("review-cannot-send", "[data-past-jobs-extras]");
         await use.activate(cannot.getByRole("button", { name: "Untick it" }));
         await expect(cannot).toHaveCount(0);

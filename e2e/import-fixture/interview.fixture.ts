@@ -74,7 +74,7 @@ test("Guided company interview: one question at a time, skip, back, resume, draf
         // A save fails: the words stay, and it can be retried.
         await control({ fail: "company_interview_save_answer" });
         await next("We tidy up every day and turn up when we say we will");
-        await expect(alert).toContainText("Nothing was changed");
+        await expect(alert).toContainText("We couldn't confirm that was saved");
         await expect(answer).toHaveValue("We tidy up every day and turn up when we say we will");
         await recorder.checkpoint("interview-save-failed", { scope: "main main" });
         await use.activate(button("Try again"));
@@ -142,7 +142,7 @@ test("Guided company interview: one question at a time, skip, back, resume, draf
         await expect(main).toContainText("You have changed the wording, so it will be saved as your own words.");
         await control({ fail: "record-approval" });
         await use.activate(button("Replace my introduction with this"));
-        await expect(alert).toContainText("Nothing was changed");
+        await expect(alert).toContainText("We couldn't confirm that was saved");
         await expect(draftBox).toHaveValue(own);
         expect((await control()).profile.capability_statement).toBe("Typed by hand in another tab");
         await use.activate(button("Try again"));

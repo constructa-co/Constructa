@@ -354,7 +354,7 @@ function CaseStudyCard({
                         <button
                             onClick={handleEnhance}
                             disabled={enhancing || !caseStudyTextEnhanceEnabled()}
-                            className="flex items-center gap-1.5 h-7 px-3 rounded-lg border border-purple-700 bg-purple-900/30 text-purple-300 hover:bg-purple-800/40 text-xs font-bold transition-colors disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                            className="flex items-center gap-1.5 h-7 px-3 rounded-lg border border-purple-700 bg-purple-900/30 text-purple-50 hover:bg-purple-800/40 text-xs font-bold transition-colors disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                         >
                             {enhancing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                             {enhancing ? "Enhancing..." : caseStudyTextEnhanceEnabled() ? "AI Enhance" : "AI Enhance (not available yet)"}

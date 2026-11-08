@@ -23,6 +23,7 @@ import { fakeLibrary } from "@/lib/case-library/__fixtures__/fake-library";
 import { legacyCaseStudies } from "@/lib/case-library/legacy";
 import type { ProposalLibrary } from "@/lib/case-library/past-jobs";
 import { readProposalLibrary } from "@/lib/case-library/proposal-read";
+import { contentFromInput, toWireContent } from "@/lib/case-library/content";
 import {
     approveStudy, archiveDiscipline, archiveStudy, createStudy, loadForApproval, saveDiscipline, saveStudy, startFromOlder, viewOf,
     type LibraryContext, type StudyView,
@@ -195,7 +196,13 @@ export async function fixtureLibraryControl(run: string, op: {
     if (op.select) state.selected = op.select;
     if (op.editElsewhere) {
         const row = db.studies.find((study) => study.id === op.editElsewhere!.id)!;
-        await db.admin.rpc("case_study_save_draft", { p_user_id: ME, p_id: row.id, p_expected_revision: row.revision, p_content: { ...row.draft, delivered: op.editElsewhere.delivered } });
+        const content = contentFromInput({ ...row.draft, delivered: op.editElsewhere.delivered });
+        await db.admin.rpc("case_study_save_draft", {
+            p_user_id: ME,
+            p_id: row.id,
+            p_expected_revision: row.revision,
+            p_content: toWireContent(content),
+        });
     }
     if (op.renameElsewhere) {
         const row = db.disciplines.find((entry) => entry.user_id === ME && entry.label === op.renameElsewhere!.from)!;

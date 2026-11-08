@@ -46,7 +46,7 @@ test("Website import: permission, failure and retry, selective approval, stale v
 
     try {
         await page.goto(`${HARNESS}?run=${t.run}`);
-        await expect(page.getByRole("heading", { level: 1, name: "Bring in details from your website" })).toBeVisible();
+        await expect(page.getByRole("heading", { level: 1, name: "Your company, brought into focus." })).toBeVisible();
         await recorder.checkpoint("import-start", { scope: "main main" });
 
         // Permission is required and is not ticked for the contractor.
@@ -105,7 +105,8 @@ test("Website import: permission, failure and retry, selective approval, stale v
         // Approved again knowingly. The approval cannot be recorded, so the profile is not changed and the tick is kept.
         await use.check(row("phone").getByRole("checkbox"));
         await use.activate(button("Save 1 ticked change"));
-        await expect(alert.filter({ hasText: "Nothing was changed" })).toBeVisible();
+        await expect(alert).toContainText("couldn't confirm that save");
+        await expect(alert).toContainText("does not prove nothing changed");
         await expect(row("phone").getByRole("checkbox")).toBeChecked();
         expect((await state()).profile.phone, "a save that cannot be recorded changes nothing").toBe("0113 222 2222");
         await recorder.checkpoint("import-save-failed", { scope: "main main", focusOn: row("phone") });

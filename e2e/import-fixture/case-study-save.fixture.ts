@@ -40,7 +40,7 @@ test("Older case-study editor: says saved only when it was, keeps what was typed
     const run = `save-${project}-${Date.now()}`;
     const control = async (op: Record<string, unknown> = {}) => (await page.request.post(`${HARNESS}/state?run=${run}`, { data: op })).json();
     const delivered = page.getByLabel("What We Delivered", { exact: true });
-    const saveButton = page.getByRole("button", { name: /^(Save All Case Studies|Try again|Saving\.\.\.)$/ });
+    const saveButton = page.getByRole("button", { name: /^(Save all past work|Try again|Saving\.\.\.)$/ });
     const status = page.locator("[data-case-studies-save-status]");
     const storedText = async () => ((await control()).stored as Array<{ whatWeDelivered: string }>)[0]?.whatWeDelivered;
     const wouldWarnOnLeaving = (target: Page) => target.evaluate(() => { const event = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(event); return event.defaultPrevented; });

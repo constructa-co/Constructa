@@ -1,5 +1,19 @@
 # Cursor change log
 
+## 2026-11-08 — RC integration import-fixture e2e (cursor/rc-integration-20261108)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `e2e/import-fixture/app/case-library/actions.ts` | 197–205 | `editElsewhere` uses `toWireContent(contentFromInput(...))` | Fixture RPC matched real wire; conflict save bumps revision so UI shows “changed somewhere else” |
+| `e2e/import-fixture/case-library.fixture.ts` | 39–48, 227–265 | `showSendBlock` / `showPrepare`; publish error text; review-stage navigation | Send blockers render under Review document; past-job ticks stay on Prepare proposal |
+| `e2e/import-fixture/case-study-save.fixture.ts` | 43 | Save button regex → “Save all past work” | Match current settings copy |
+| `e2e/import-fixture/import.fixture.ts` | 49 | H1 → “Your company, brought into focus.” | Match `CompanyImportFrame` heading |
+| `e2e/import-fixture/interview.fixture.ts` | 77, 145 | Failed-save alert → interview save error copy | Match `INTERVIEW_SAVE_ERROR` |
+| `src/lib/cohort-ai/case-study-enhance-enabled.ts` | 8–10 | `true` when import-fixture env (`NEXT_PUBLIC_*`) | Fixture browser can exercise enhance UI without shipping flag on |
+| `playwright.import-fixture.config.ts` | 54 | `NEXT_PUBLIC_CONSTRUCTA_IMPORT_FIXTURE=1` | Client bundle sees fixture enhance gate |
+| `case-studies-client.tsx` / `case-study-editor.tsx` / `case-study-photo-slots.tsx` | text colours | Higher-contrast slate/purple on dark editor | Pass axe serious `color-contrast` in fixture checkpoints |
+| `e2e/import-fixture/import.fixture.ts` | 108–109 | Save-failure alert copy | Match import client save-error wrapper |
+
 ## 2026-11-07 — A079 `gitRefName` string-only validation (Cursor agent)
 
 | Paths | Lines | Change | Intent |
@@ -87,6 +101,7 @@ Base branch: `origin/cq/cq-0105-a001-initialize-kit-primary` (includes `5d73ebc`
 | `src/lib/supabase/lazy-browser-client.ts` | (new) | `tryCreateBrowserClient()` when public env unset | Let `next build` prerender `/login` during import-fixture job (blank Supabase env) |
 | `src/app/login/page.tsx` | 4, 75–79 | Defer browser client to sign-in handler | Avoid `@supabase/ssr` throw at render time in CI |
 | `e2e/import-fixture/profile.fixture.ts` | 70 | Assert `#profile-save-status` not ambiguous toast text | Playwright strict-mode match after save-status UX |
+| `e2e/import-fixture/app/case-library/actions.ts` | 196–204 | `editElsewhere` uses `toWireContent` | In-app drafts carry `photos`; legacy RPC rejects extra keys so conflict simulation never landed |
 
 ## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
 

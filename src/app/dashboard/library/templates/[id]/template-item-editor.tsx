@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,41 @@ import {
 } from "@/components/ui/select";
 import { Plus, Search } from "lucide-react";
 import { addItemsToTemplateAction } from "../../templates-actions";
+import { corePrimaryButton } from "@/lib/core-editing-palette";
+
+const LIBRARY_KIT_FILTER_SELECT_KEYS = new Set([
+    "ArrowUp",
+    "ArrowDown",
+    "Home",
+    "End",
+    "Escape",
+    "Tab",
+    "Enter",
+    "PageUp",
+    "PageDown",
+]);
+
+function handleLibraryKitFilterKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.nativeEvent.isComposing || e.key === "Process") {
+        e.stopPropagation();
+        return;
+    }
+    if (e.ctrlKey || e.metaKey || e.altKey) {
+        e.stopPropagation();
+        return;
+    }
+    if (LIBRARY_KIT_FILTER_SELECT_KEYS.has(e.key)) {
+        return;
+    }
+    if (
+        e.key === " "
+        || e.key === "Backspace"
+        || e.key === "Delete"
+        || e.key.length === 1
+    ) {
+        e.stopPropagation();
+    }
+}
 
 interface Props {
     templateId: string;
@@ -29,6 +64,11 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
     const [filterQuery, setFilterQuery] = useState("");
     const [addError, setAddError] = useState<string | null>(null);
 
+    const selectedItemIdRef = useRef(selectedItemId);
+    const quantityRef = useRef(quantity);
+    selectedItemIdRef.current = selectedItemId;
+    quantityRef.current = quantity;
+
     const normalizedFilter = filterQuery.trim().toLowerCase();
     const visibleLibraryItems = normalizedFilter === ""
         ? libraryItems
@@ -36,9 +76,15 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
             String(item.description ?? "").toLowerCase().includes(normalizedFilter)
             || String(item.category ?? "").toLowerCase().includes(normalizedFilter));
 
+    const selectedLibraryItem = selectedItemId
+        ? libraryItems.find(item => item.id === selectedItemId)
+        : undefined;
+
     const handleAdd = async () => {
         if (!selectedItemId) return;
 
+        const submittedItemId = selectedItemId;
+        const submittedQuantity = quantity;
         setAddError(null);
         setIsPending(true);
         try {
@@ -54,8 +100,12 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
                 unit_cost: item.unit_cost,
                 quantity: quantity
             }]);
-            setSelectedItemId("");
-            setQuantity(1);
+            if (selectedItemIdRef.current === submittedItemId) {
+                setSelectedItemId("");
+            }
+            if (quantityRef.current === submittedQuantity) {
+                setQuantity(1);
+            }
         } catch (error) {
             const detail = error instanceof Error ? error.message : "Unknown error";
             setAddError(
@@ -77,7 +127,14 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
                     <Label className="text-xs font-bold uppercase text-slate-400">Library Item</Label>
                     <Select value={selectedItemId} onValueChange={setSelectedItemId}>
                         <SelectTrigger className="bg-white">
-                            <SelectValue placeholder="Search library..." />
+                            <SelectValue placeholder="Search library...">
+                                {selectedLibraryItem ? (
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">{selectedLibraryItem.description}</span>
+                                        <span className="text-[10px] text-slate-400 uppercase tracking-tighter">{selectedLibraryItem.category} • £{selectedLibraryItem.unit_cost}/{selectedLibraryItem.unit}</span>
+                                    </div>
+                                ) : null}
+                            </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                             <div className="flex items-center px-3 pb-2 border-b mb-1">
@@ -87,7 +144,7 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
                                     placeholder="Filter..."
                                     value={filterQuery}
                                     onChange={(e) => setFilterQuery(e.target.value)}
-                                    onKeyDown={(e) => e.stopPropagation()}
+                                    onKeyDown={handleLibraryKitFilterKeyDown}
                                     className="text-xs bg-transparent outline-none w-full"
                                 />
                             </div>
@@ -124,7 +181,7 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
                 <Button
                     onClick={handleAdd}
                     disabled={!selectedItemId || isPending}
-                    className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold h-11"
+                    className={`w-full mt-4 ${corePrimaryButton} font-bold h-11`}
                 >
                     {isPending ? "Adding..." : <><Plus className="w-4 h-4 mr-2" /> Add to Kit</>}
                 </Button>

@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-11-09 — RC PR hosted-write gate + apex routing (cursor/rc-routing-20261109)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `.github/workflows/e2e.yml` | 33, 52 | Add `cursor/rc-integration-20261108` to hosted-write NOT_RUN list and `phase1` exclusion | PR #108 must not auto-run disposable Supabase hosted journey on the integration head |
+| `src/lib/deployment/review-branch-ci.test.ts` | 18–24 | Extend `it.each` heads for RC branch + suffix control | Keeps workflow boolean expressions pinned in Vitest |
+| `vercel.json` | — | No edit (already `source: "/"` at base f690204) | Apex-only rewrite preserved vs main `/:path*`; login/auth/app paths on constructa.co stay reachable |
+
 ## 2026-11-08 — RC integration import-fixture e2e (cursor/rc-integration-20261108)
 
 | File | Lines (approx.) | Change | Intent |

@@ -30,7 +30,7 @@ permissions:
 
 jobs:
   hosted-write-status:
-    if: ${{ github.event_name == 'pull_request' && (github.head_ref == 'backup/welcome-first-slice-20261018' || github.head_ref == 'codex/phase1-integration-review-20261023' || github.head_ref == 'codex/remove-public-mcp-20261023') }}
+    if: ${{ github.event_name == 'pull_request' && (github.head_ref == 'backup/welcome-first-slice-20261018' || github.head_ref == 'codex/phase1-integration-review-20261023' || github.head_ref == 'codex/remove-public-mcp-20261023' || github.head_ref == 'cursor/rc-integration-20261108') }}
     runs-on: ubuntu-latest
     steps:
       - name: Record hosted journey NOT_RUN
@@ -49,7 +49,7 @@ jobs:
     # Rob-approved source-only gate: these explicit review heads cannot start
     # hosted account/data writes automatically. Draft pull requests are blocked
     # until ready for review. Other branches and CI are unchanged.
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && github.head_ref != 'backup/welcome-first-slice-20261018' && github.head_ref != 'codex/phase1-integration-review-20261023' && github.head_ref != 'codex/remove-public-mcp-20261023') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && github.head_ref != 'backup/welcome-first-slice-20261018' && github.head_ref != 'codex/phase1-integration-review-20261023' && github.head_ref != 'codex/remove-public-mcp-20261023' && github.head_ref != 'cursor/rc-integration-20261108') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:

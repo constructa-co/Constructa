@@ -15,11 +15,11 @@ function enabled(job: string, event: string, head: string, draft = false) {
 }
 
 describe("explicit review-head hosted-write gate", () => {
-    it.each(["backup/welcome-first-slice-20261018", "codex/phase1-integration-review-20261023", "codex/remove-public-mcp-20261023"])("records NOT_RUN rather than automatic hosted writes for %s", head => {
+    it.each(["backup/welcome-first-slice-20261018", "codex/phase1-integration-review-20261023", "codex/remove-public-mcp-20261023", "cursor/rc-integration-20261108"])("records NOT_RUN rather than automatic hosted writes for %s", head => {
         expect(enabled("hosted-write-status", "pull_request", head)).toBe(true);
         expect(enabled("phase1", "pull_request", head)).toBe(false);
     });
-    it.each(["main", "feature/unrelated", "codex/phase1-integration-review-20261023-other"])("retains the original other-branch path for %s", head => {
+    it.each(["main", "feature/unrelated", "codex/phase1-integration-review-20261023-other", "cursor/rc-integration-20261108-other"])("retains the original other-branch path for %s", head => {
         expect(enabled("hosted-write-status", "pull_request", head)).toBe(false);
         expect(enabled("phase1", "pull_request", head)).toBe(true);
     });

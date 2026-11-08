@@ -62,6 +62,31 @@ Base branch: `origin/cq/cq-0105-a001-initialize-kit-primary` (includes `5d73ebc`
 | `src/lib/public-measurement.ts` | Add `/apply` to public routes | Fail-closed measurement contract |
 | `*.test.ts(x)` under `founding-cohort/`, `apply/`, `phase-one.test.tsx`, `public-measurement.test.ts` | Vitest coverage for schema, adapter, action, route, header CTA | Regression guard |
 
+## 2026-11-07 — A023 platform terms checkbox (cursor/a023-terms-checkbox-20261107)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/terms-of-service/page.tsx` | 1–95 | PLACEHOLDER sections + Rob sign-off banner; revision label | Legal page for checkbox link until counsel-approved copy lands |
+| `src/app/terms-of-service/page.test.tsx` | 1–14 | Vitest static render | Pins placeholder + revision surfacing |
+| `src/lib/platform-terms.ts` | 28–33 | Auth metadata key constants | Stable sign-up payload field names |
+| `src/lib/platform-terms-signup-evidence.ts` | 1–24 | Server-built revision + timestamp object | Record consent in `signUp` user metadata before DB table exists |
+| `src/lib/platform-terms-signup-evidence.test.ts` | 1–17 | Vitest | Payload shape |
+| `src/lib/platform-terms-consent-storage.ts` | 1–18 | Missing-table code adapter | Tolerate drafted migration not applied (`PGRST205` / `42P01`) |
+| `src/lib/platform-terms-consent-storage.test.ts` | 1–16 | Vitest | Adapter codes |
+| `src/lib/platform-terms-acceptance.ts` | 6, 42, 120–127 | `storage-not-installed` on missing table | Honest pre-migration behaviour |
+| `src/lib/platform-terms.test.ts` | 183–195 | Case for `storage-not-installed` | Regression |
+| `src/lib/platform-signup-action.ts` | 9, 119–132, 169–174 | Metadata on `signUp`; tolerate not-installed | Version + server timestamp in sign-up payload; account still succeeds |
+| `src/lib/platform-signup-action.test.ts` | 36–40, 67–74, 156–160, 190–202 | Timer + metadata + not-installed test | Sequencing and payload |
+| `src/lib/platform-terms-completion-action.ts` | 32–35 | Map not-installed → `not-stored` | Completion page stays honest when table absent |
+| `supabase/migrations/20261024122500_platform_terms_acceptance.sql` | 2 | DRAFT ONLY header comment | Reminder: not applied until Rob approves |
+
+## 2026-11-08 — RC integration CI (cursor/rc-integration-20261108)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/supabase/client.ts` | 9–15 | `tryCreateClient()` when public env unset | Let `next build` prerender `/login` during import-fixture job (blank Supabase env) |
+| `src/app/login/page.tsx` | 4, 75–79 | Defer browser client to sign-in handler | Avoid `@supabase/ssr` throw at render time in CI |
+
 ## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
 
 | Paths | Change | Intent |

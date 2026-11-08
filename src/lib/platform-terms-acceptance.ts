@@ -3,6 +3,7 @@ import {
     PLATFORM_TERMS_DOCUMENT_ID,
     isRecognizedPlatformTermsRevision,
 } from "@/lib/platform-terms";
+import { isPlatformTermsConsentTableMissing } from "@/lib/platform-terms-consent-storage";
 
 // A023 — durable, server-side record of platform terms acceptance.
 //
@@ -39,7 +40,7 @@ export type RecordPlatformTermsAcceptanceResult =
     | { ok: true; outcome: "recorded" | "already-recorded"; userId: string; revision: string }
     | {
           ok: false;
-          code: "refused" | "unauthenticated" | "unrecognized-revision" | "storage-error";
+          code: "refused" | "unauthenticated" | "unrecognized-revision" | "storage-not-installed" | "storage-error";
       };
 
 export interface RecordPlatformTermsAcceptanceInput {
@@ -120,6 +121,9 @@ export async function recordPlatformTermsAcceptance(
     if (error) {
         if ((error as { code?: string }).code === UNIQUE_VIOLATION) {
             return { ok: true, outcome: "already-recorded", userId: user.id, revision };
+        }
+        if (isPlatformTermsConsentTableMissing(error)) {
+            return { ok: false, code: "storage-not-installed" };
         }
         console.error("recordPlatformTermsAcceptance failed", {
             code: (error as { code?: string }).code,

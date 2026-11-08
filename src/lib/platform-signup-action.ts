@@ -6,6 +6,7 @@ import { isPlatformSignupDisabled } from "@/lib/platform-signup-policy";
 import { isRecognizedPlatformTermsRevision } from "@/lib/platform-terms";
 import { recordPlatformTermsAcceptance } from "@/lib/platform-terms-acceptance";
 import { platformTermsConfirmationRedirect } from "@/lib/platform-terms-completion";
+import { buildPlatformTermsSignupEvidence } from "@/lib/platform-terms-signup-evidence";
 
 // A023 (Rob 15:05; coordinator source repair 15:46) — server-side signup
 // orchestration seam with consent.
@@ -116,22 +117,31 @@ export async function platformSignupAction(input: PlatformSignupInput): Promise<
         return { ok: false, code: "unrecognized-revision" };
     }
 
+    const acceptedRevision = input.revision;
+    const acceptedAt = new Date().toISOString();
+    const termsEvidence = buildPlatformTermsSignupEvidence(acceptedRevision, acceptedAt);
+
     // 4. Account creation via the normal cookie-bound server client, with
     //    the confirmation redirect derived from the trusted app URL only.
     let session: unknown = null;
+    let createdUserId: string | null = null;
     try {
         const supabase: ServerClient = await createClient();
         const redirect = await trustedEmailRedirect();
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
-            ...(redirect ? { options: redirect } : {}),
+            options: {
+                ...(redirect ?? {}),
+                data: termsEvidence,
+            },
         });
         if (error || !data?.user) {
             console.error("platformSignupAction: signup rejected");
             return { ok: false, code: "signup-failed" };
         }
         session = data.session;
+        createdUserId = data.user.id;
     } catch {
         // Transport-level failure (including client construction) — typed,
         // redacted, no provider details.
@@ -162,6 +172,10 @@ export async function platformSignupAction(input: PlatformSignupInput): Promise<
         return { ok: false, code: "consent-not-stored" };
     }
     if (!consent.ok) {
+        if (consent.code === "storage-not-installed" && createdUserId) {
+            // Migration not applied: auth metadata from signUp carries revision + timestamp.
+            return { ok: true, outcome: "created-and-recorded", userId: createdUserId };
+        }
         console.error("platformSignupAction: consent not stored", { code: consent.code });
         return { ok: false, code: "consent-not-stored" };
     }

@@ -1,4 +1,5 @@
 -- A023: durable server-side record of platform terms acceptance.
+-- DRAFT ONLY — not applied by automation; Rob approves before `supabase db push`.
 --
 -- One row records that an authenticated user explicitly accepted a named
 -- revision of the platform terms of service, at a time stamped by the

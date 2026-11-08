@@ -30,5 +30,8 @@ export async function completePlatformTermsAcceptanceAction(input: {
         return { ok: false, code: "not-stored" };
     }
     if (result.ok) return { ok: true, outcome: result.outcome };
-    return { ok: false, code: result.code === "storage-error" ? "not-stored" : result.code };
+    if (result.code === "storage-error" || result.code === "storage-not-installed") {
+        return { ok: false, code: "not-stored" };
+    }
+    return { ok: false, code: result.code };
 }

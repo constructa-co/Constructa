@@ -82,3 +82,41 @@ describe("public measurement contract", () => {
     expect(plausible).not.toHaveBeenCalled();
   });
 });
+
+
+describe("adversarial public measurement inputs", () => {
+  it("strips confidential extras and refuses unknown runtime events", () => {
+    const sink = vi.fn();
+    __setPublicMeasurementTestSink(sink);
+    vi.stubGlobal("window", { location: { pathname: "/guides/synthetic?email=private#project" } });
+    // Exercise runtime input beyond the compile-time contract without any provider.
+    const dispatch = dispatchPublicMeasurementEvent as unknown as
+      (event: string, options?: { props: Record<string, string> }) => void;
+    dispatch("TryConstructaClick", { props: { location: "solution", email: "synthetic@example.invalid", project: "private synthetic brief" } });
+    dispatch("ContactFormSubmit", { props: { email: "synthetic@example.invalid" } });
+    dispatch("SubscriberConfirmed", { props: {} });
+    expect(sink.mock.calls).toEqual([
+      ["TryConstructaClick", { location: "solution" }],
+      ["ContactFormSubmit", {}],
+    ]);
+  });
+
+  it.each(["/guides-private", "/dashboard/guides", "/auth/callback", "/api/contact", "/proposal/synthetic", "/admin/guides"])(
+    "rejects private and lookalike route %s", (pathname) => {
+      const sink = vi.fn();
+      __setPublicMeasurementTestSink(sink);
+      vi.stubGlobal("window", { location: { pathname } });
+      trackContactFormSubmitAccepted("/guides");
+      expect(sink).not.toHaveBeenCalled();
+    },
+  );
+
+  it("counts repeated attempts separately; it does not claim unique conversions", () => {
+    const sink = vi.fn();
+    __setPublicMeasurementTestSink(sink);
+    vi.stubGlobal("window", { location: { pathname: "/landing" } });
+    trackWaitlistSubmitAttempt();
+    trackWaitlistSubmitAttempt();
+    expect(sink.mock.calls).toEqual([["WaitlistSubmitAttempt", {}], ["WaitlistSubmitAttempt", {}]]);
+  });
+});

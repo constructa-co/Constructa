@@ -266,3 +266,22 @@ test("non-object manifests and wrong versions are invalid", () => {
     for (const value of [null, [], "x"]) assert.equal(checkManifest(value).verdict, "INVALID");
     assert.equal(checkManifest(manifest({ version: 2 })).verdict, "INVALID");
 });
+
+
+test("Unicode-normalised export paths collide even when their bytes differ", () => {
+    const value = manifest();
+    value.entries.push({ ...value.entries[0], path: "db-schema/caf\u00e9.bin" });
+    value.entries.push({ ...value.entries[0], path: "db-schema/cafe\u0301.bin" });
+    const report = checkManifest(value);
+    assert.equal(report.verdict, "INVALID");
+    assert.ok(report.errors.some(error => error.includes("duplicate path")));
+});
+
+test("byte verification refuses a directory in place of an exported file", () => {
+    const value = manifest();
+    const root = exportRoot(value);
+    const target = path.join(root, value.entries[0].path);
+    rmSync(target);
+    mkdirSync(target);
+    assert.ok(checkManifest(value, { root }).errors.includes(`${value.entries[0].path}: not a regular file (symlinks are refused)`));
+});

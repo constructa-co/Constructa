@@ -103,6 +103,18 @@ describe("website-import fixture harness", () => {
         }
     });
 
+    it("distinguishes a synthetic command failure from a deadline", async () => {
+        const dir = mkdtempSync(path.join(tmpdir(), "import-fixture-diagnostic-"));
+        try {
+            const failed = path.join(dir, "failed-git");
+            writeFileSync(failed, "#!/bin/sh\nprintf 'synthetic-index-failure' >&2\nexit 23\n", { mode: 0o755 });
+            await expect(trackedAmong(dir, failed)).rejects.toThrow(/"code":23.*"signal":null.*synthetic-index-failure/);
+            await expect(trackedAmong(dir, path.join(dir, "missing-git"))).rejects.toThrow(/ENOENT/);
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+    });
+
     it("refuses to work unless explicitly switched on, at every entry point", () => {
         for (const file of ["page.tsx", "actions.ts", "state/route.ts", "interview/page.tsx", "interview/actions.ts", "interview/state/route.ts", "case-study/page.tsx", "case-study/actions.ts", "case-study/state/route.ts", "profile/page.tsx", "profile/actions.ts", "profile/state/route.ts", "case-library/actions.ts", "case-library/[run]/page.tsx", "case-library/[run]/study/[id]/page.tsx", "case-library/[run]/study/[id]/guided/page.tsx", "case-library/[run]/review/page.tsx", "case-library/[run]/state/route.ts"]) {
             expect(read(`e2e/import-fixture/app/${file}`), file).toContain('process.env.CONSTRUCTA_IMPORT_FIXTURE !== "1"');

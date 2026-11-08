@@ -89,10 +89,13 @@ describe("actual dashboard period metrics", () => {
         const input = nodes(tree(projects)).find(node => node.props.placeholder === "Search by client or project name...")!;
         input.props.onChange!({ target: { value: "cLIent BETA" } });
         let view = tree(projects); renderToStaticMarkup(view);
-        expect(hooks.boardIds).toEqual(["beta"]);
+        expect(hooks.listIds).toEqual(["beta"]);
         expect(metric(view, "Pipeline Value")).toBe("\u00a332");
         // Board/List captions include icons, so use their existing click order.
         const toggles = nodes(view).filter(node => node.type === "button" && Array.isArray(node.props.children));
+        const board = toggles.find(node => (node.props.children as ReactNode[]).includes("Board"))!;
+        board.props.onClick!(); view = tree(projects); renderToStaticMarkup(view);
+        expect(hooks.boardIds).toEqual(["beta"]);
         const list = toggles.find(node => (node.props.children as ReactNode[]).includes("List"))!;
         list.props.onClick!(); view = tree(projects); renderToStaticMarkup(view);
         expect(hooks.listIds).toEqual(["beta"]);

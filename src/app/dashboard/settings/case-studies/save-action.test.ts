@@ -5,6 +5,7 @@ vi.mock("@/lib/supabase/auth-utils", () => ({ requireAuth: mocks.requireAuth }))
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: mocks.createAdminClient }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
+import { LEGACY_CASE_STUDY_PHOTOS_MESSAGE } from "@/lib/case-library/legacy-photos";
 import { saveCaseStudiesAction } from "./actions";
 import { SAVE_MESSAGES } from "./save-state";
 
@@ -92,26 +93,43 @@ describe("a confirmed save", () => {
         expect({ ...after, case_studies: null }).toEqual({ ...before, case_studies: null });
     });
 
-    it("sends every entry and every key exactly as given: nothing inspected, capped, tidied or dropped", async () => {
+    it("sends every entry and every key exactly as given when pictures are valid", async () => {
         const long = "x".repeat(60_000);
         const legacy: unknown[] = [
-            { id: "old-1", projectName: "  Spaces kept  ", whatWeDelivered: long, valueAdded: "line one\r\nline two\n\n", photos: ["https://images.example.test/a.jpg", "", "http://not-https.example.test/b.png", "a fourth slot"], unknownKey: { nested: [1, 2, { deep: true }] }, another: null, count: 42, flag: false },
-            { projectName: "No id at all", photos: "not a list" },
+            { id: "old-1", projectName: "  Spaces kept  ", whatWeDelivered: long, valueAdded: "line one\r\nline two\n\n", photos: ["https://images.example.test/a.jpg", "", ""], unknownKey: { nested: [1, 2, { deep: true }] }, another: null, count: 42, flag: false },
             { id: "", projectName: "", extra_legacy_field: "kept" },
             {},
             "a bare string entry",
             null,
             17,
             ["a nested list"],
-            ...Array.from({ length: 300 }, (_, index) => ({ id: `many-${index}`, projectName: `Job ${index}` })),
+            ...Array.from({ length: 300 }, (_, index) => ({ id: `many-${index}`, projectName: `Job ${index}`, photos: ["", "", ""] })),
         ];
         const given = structuredClone(legacy);
         expect((await saveCaseStudiesAction(legacy)).status).toBe("saved");
         expect(calls[0].payload.case_studies).toEqual(given);
-        expect(JSON.stringify(calls[0].payload.case_studies)).toBe(JSON.stringify(given));
+        expect(JSON.stringify(calls[0].payload.case_studies)).toEqual(JSON.stringify(given));
         expect(stored()).toEqual(given);
-        // And what the caller handed over was not altered either.
         expect(legacy).toEqual(given);
+    });
+
+    it("refuses a fourth photograph, an unsafe link, or pictures that are not a list", async () => {
+        await expect(saveCaseStudiesAction([study("s1", "Kitchen", { photos: ["a", "b", "c", "d"] })])).resolves.toEqual({
+            status: "refused",
+            message: LEGACY_CASE_STUDY_PHOTOS_MESSAGE,
+        });
+        expect(calls).toHaveLength(0);
+        await expect(saveCaseStudiesAction([study("s1", "Kitchen", { photos: ["https://images.example.test/a.jpg", "", "http://not-https.example.test/b.png"] })])).resolves.toEqual({
+            status: "refused",
+            message: LEGACY_CASE_STUDY_PHOTOS_MESSAGE,
+        });
+        expect(calls).toHaveLength(0);
+        await expect(saveCaseStudiesAction([study("s1", "Kitchen", { photos: "not a list" })])).resolves.toEqual({
+            status: "refused",
+            message: LEGACY_CASE_STUDY_PHOTOS_MESSAGE,
+        });
+        expect(calls).toHaveLength(0);
+        expect(stored()).toEqual([study("s1", "Kitchen refit")]);
     });
 
     it("an empty list is a deliberate clear, and is saved", async () => {

@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { representativeInput } from "@/lib/__fixtures__/proposal";
 import { contentFromInput, newDraft, toLegacyWireContent } from "@/lib/case-library/content";
 import { draftFromLegacy } from "@/lib/case-library/legacy";
 import { normalisePhotoSlots, proposalPhotoUrls } from "@/lib/case-library/photos";
 import { resolveSelectedCaseStudies } from "@/lib/case-library/resolve";
 import { approvedValue } from "@/lib/case-library/content";
-import { selectCaseStudies } from "@/lib/proposal-publication";
+import { buildProposalDocument } from "@/lib/proposal-document";
+import { buildProposalPublicationSnapshot, selectCaseStudies } from "@/lib/proposal-publication";
 
 /**
  * A038 seams: upload/selection/reuse/refusal across older and library journeys.
@@ -40,6 +42,39 @@ describe("case study photo journey seams", () => {
         });
         expect(resolved.sendable).toBe(true);
         if (resolved.sendable) expect(resolved.studies[0]?.photos).toEqual([]);
+    });
+
+    it("legacy past work keeps at most three safe photographs in tick order", () => {
+        const row = {
+            id: "legacy-1",
+            projectName: "Extension",
+            whatWeDelivered: "Built an extension.",
+            photos: [
+                "https://images.example.test/one.jpg",
+                "https://images.example.test/two.jpg",
+                "https://images.example.test/three.jpg",
+                "https://images.example.test/fourth.jpg",
+                "javascript:alert(1)",
+            ],
+        };
+        expect(selectCaseStudies([row], ["legacy-1"])[0]?.photos).toEqual([
+            "https://images.example.test/one.jpg",
+            "https://images.example.test/two.jpg",
+            "https://images.example.test/three.jpg",
+        ]);
+    });
+
+    it("ticked case-study photographs reach the generated proposal document", () => {
+        const snapshot = buildProposalPublicationSnapshot(representativeInput());
+        const experience = buildProposalDocument(snapshot).sections.find((section) => section.id === "experience");
+        const block = experience?.blocks.find((entry) => entry.type === "caseStudy");
+        expect(block).toMatchObject({
+            type: "caseStudy",
+            photos: [
+                "https://images.example.test/sample-street-1.jpg",
+                "https://images.example.test/sample-street-2.jpg",
+            ],
+        });
     });
 
     it("when an approved row carries photo slots, the resolver publishes safe urls only", () => {

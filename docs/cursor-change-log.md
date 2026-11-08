@@ -84,8 +84,9 @@ Base branch: `origin/cq/cq-0105-a001-initialize-kit-primary` (includes `5d73ebc`
 
 | File | Lines (approx.) | Change | Intent |
 |------|-----------------|--------|--------|
-| `src/lib/supabase/client.ts` | 9–15 | `tryCreateClient()` when public env unset | Let `next build` prerender `/login` during import-fixture job (blank Supabase env) |
+| `src/lib/supabase/lazy-browser-client.ts` | (new) | `tryCreateBrowserClient()` when public env unset | Let `next build` prerender `/login` during import-fixture job (blank Supabase env) |
 | `src/app/login/page.tsx` | 4, 75–79 | Defer browser client to sign-in handler | Avoid `@supabase/ssr` throw at render time in CI |
+| `e2e/import-fixture/profile.fixture.ts` | 70 | Assert `#profile-save-status` not ambiguous toast text | Playwright strict-mode match after save-status UX |
 
 ## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
 

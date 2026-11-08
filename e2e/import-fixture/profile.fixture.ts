@@ -67,7 +67,7 @@ test("Company Profile: no case-study editor, a link to the real one, and saving 
         await use.activate(page.getByRole("button", { name: "Your people", exact: true }));
         await use.fill(phone, "0113 496 0101");
         await use.activate(save);
-        await expect(page.getByText("Profile saved")).toBeVisible();
+        await expect(page.locator("#profile-save-status")).toContainText("Profile saved");
         let state = await control();
         expect(state.phone, "the profile itself saved").toBe("0113 496 0101");
         expect(state.caseStudies, "the case study added elsewhere is still there").toEqual([...STORED, "Bathroom at Test Lane"]);

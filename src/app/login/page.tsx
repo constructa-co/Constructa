@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { tryCreateClient } from '@/lib/supabase/client';
+import { tryCreateBrowserClient } from '@/lib/supabase/lazy-browser-client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getLaunchLandingPath } from '@/lib/launch-profile';
@@ -72,7 +72,7 @@ export default function LoginPage() {
         setSuccessOutcome(null);
 
         try {
-            const supabase = tryCreateClient();
+            const supabase = tryCreateBrowserClient();
             if (!supabase) {
                 setErrorMessage("We couldn't confirm sign-in. Check your details and try again.");
                 return;

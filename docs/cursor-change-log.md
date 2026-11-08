@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-11-07 — A079 `gitRefName` string-only validation (Cursor agent)
+
+| Paths | Lines | Change | Intent |
+|-------|-------|--------|--------|
+| `scripts/recovery-manifest-check.mjs` | 60–65 | Export `gitRefName`; reject non-strings, empty and whitespace-only; remove single-element array coercion | A079 checker: ref identities must be real strings, not coerced |
+| `scripts/recovery-manifest-check.test.mjs` | 280–305 | Replace coercion test with array/blank-string refusal cases | Keep offline manifest tests aligned with validator |
+| `src/lib/recovery/git-ref-name.test.ts` | (new) | Vitest table: 4 accepted + 11 rejected `gitRefName` inputs | Focused coverage for runner A079 fix |
+
 ## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
 
 | Paths | Change | Intent |

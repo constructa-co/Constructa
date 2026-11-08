@@ -177,6 +177,49 @@ test("storage identity is the exact bucket and name pair", () => {
     }
 });
 
+test("a malformed bucket declaration cannot satisfy an object with no bucket", () => {
+    // Counterexample: required buckets and matching bytes remain, but undefined used to match undefined.
+    const value = manifest();
+    value.storage.buckets.push({});
+    delete value.storage.objects[0].bucket;
+    const report = checkManifest(value);
+    assert.equal(report.verdict, "INVALID");
+    assert.ok(report.errors.includes(`storage.buckets[${REQUIRED_BUCKETS.length}]: bucket id must be a non-empty string`));
+    assert.ok(report.errors.includes("storage.objects[0]: bucket must be a non-empty string"));
+});
+
+test("malformed bucket declarations are refused, not silently dropped", () => {
+    for (const bucket of [{}, { id: undefined }, { id: null }, { id: "" }, { id: 0 }, { id: ["logos"] }, { id: { id: "logos" } }, null, "logos"]) {
+        const value = manifest();
+        value.storage.buckets.push(bucket);
+        const report = checkManifest(value);
+        assert.equal(report.verdict, "INVALID", JSON.stringify(bucket));
+        assert.ok(report.errors.includes(`storage.buckets[${REQUIRED_BUCKETS.length}]: bucket id must be a non-empty string`), JSON.stringify(bucket));
+    }
+});
+
+test("malformed object bucket identities are refused even when every declared bucket is valid", () => {
+    for (const bucket of [undefined, null, "", 0, false, ["logos"], { id: "logos" }]) {
+        const value = manifest();
+        value.storage.objects[0].bucket = bucket;
+        const report = checkManifest(value);
+        assert.equal(report.verdict, "INVALID", JSON.stringify(bucket));
+        assert.ok(report.errors.includes("storage.objects[0]: bucket must be a non-empty string"), JSON.stringify(bucket));
+    }
+});
+
+test("valid bucket strings, including Unicode and whitespace, are matched byte-exact", () => {
+    for (const bucket of ["fotos-é", " logos "]) {
+        const value = manifest();
+        value.storage.buckets.push({ id: bucket });
+        value.storage.objects[0].bucket = bucket;
+        assert.deepEqual(checkManifest(value).errors, [], JSON.stringify(bucket));
+    }
+    const value = manifest();
+    value.storage.objects[0].bucket = "logos ";
+    assert.ok(checkManifest(value).errors.includes("storage.objects[0]: bucket logos  is not declared"));
+});
+
 test("conflicting duplicate git ref keys are refused before requiredRefs can match the last sha only", () => {
     const value = manifest();
     const firstSha = "1".repeat(40);
@@ -215,6 +258,51 @@ test("required Git refs must be recorded at the expected commit with safe names"
     assert.ok(errors.some(error => error.includes(`expected ${"7".repeat(40)}`)));
     assert.ok(errors.some(error => error.includes("unsafe ref name")));
     assert.ok(errors.some(error => error.includes("sha must be 40")));
+});
+
+test("git ref rows reject non-primitive ref identities before validation or map lookup", () => {
+    for (const [field, ref, label] of [
+        ["refs", ["refs/heads/../main"], "git.refs[0]"],
+        ["refs", ["refs/heads/backup", "refs/heads/other"], "git.refs[0]"],
+        ["refs", [42], "git.refs[0]"],
+        ["refs", { ref: "refs/heads/backup" }, "git.refs[0]"],
+        ["requiredRefs", ["refs/heads/../main"], "git.requiredRefs[0]"],
+        ["requiredRefs", [{ nested: "refs/heads/backup" }], "git.requiredRefs[0]"],
+    ]) {
+        const value = manifest();
+        value.git[field] = [{ repository: "app", ref, sha: appSha }];
+        const report = checkManifest(value);
+        assert.equal(report.verdict, "INVALID", JSON.stringify({ field, ref }));
+        assert.ok(report.errors.some(error => error.startsWith(`${label}:`) && error.includes("unsafe ref name")), JSON.stringify(report.errors));
+    }
+});
+
+test("single-element git ref arrays are refused rather than coerced", () => {
+    for (const [field, label] of [
+        ["refs", "git.refs[0]"],
+        ["requiredRefs", "git.requiredRefs[0]"],
+    ]) {
+        const value = manifest();
+        value.git[field] = [{ repository: "app", ref: ["refs/heads/backup"], sha: appSha }];
+        const report = checkManifest(value);
+        assert.equal(report.verdict, "INVALID", field);
+        assert.ok(report.errors.some(error => error.startsWith(`${label}:`) && error.includes("unsafe ref name")));
+    }
+});
+
+test("empty and whitespace-only git ref strings are unsafe ref names", () => {
+    for (const ref of ["", "   ", "\t", "\n", " \t\n "]) {
+        for (const [field, label] of [
+            ["refs", "git.refs[0]"],
+            ["requiredRefs", "git.requiredRefs[0]"],
+        ]) {
+            const value = manifest();
+            value.git[field] = [{ repository: "app", ref, sha: appSha }];
+            const report = checkManifest(value);
+            assert.equal(report.verdict, "INVALID", JSON.stringify({ field, ref }));
+            assert.ok(report.errors.some(error => error.startsWith(`${label}:`) && error.includes("unsafe ref name")));
+        }
+    }
 });
 
 test("byte verification catches missing, altered, resized and symlinked files", () => {

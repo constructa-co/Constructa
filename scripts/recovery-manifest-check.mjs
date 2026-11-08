@@ -52,6 +52,22 @@ function text(value) {
     return typeof value === "string" && !PLACEHOLDER.test(value.trim());
 }
 
+// A bucket identity is any non-empty string, kept byte-exact; anything else is malformed.
+function bucketId(value) {
+    return typeof value === "string" && value !== "";
+}
+
+// Git ref names must be primitive strings before REF/traversal checks and map keys (no coercion).
+export function gitRefName(value) {
+    if (typeof value !== "string") return null;
+    if (value.length === 0 || value.trim().length === 0) return null;
+    return value;
+}
+
+function gitRefKey(repository, refName) {
+    return `${typeof repository === "string" ? repository : ""} ${refName}`;
+}
+
 function sha256File(file) {
     const hash = createHash("sha256");
     const buffer = Buffer.allocUnsafe(1 << 20);
@@ -118,7 +134,12 @@ export function checkManifest(manifest, { root, rawText } = {}) {
 
     // Storage: bucket configuration is separate from object bytes; each object must be backed by a hashed file.
     const storage = manifest.storage ?? {};
-    const buckets = new Set((Array.isArray(storage.buckets) ? storage.buckets : []).map(bucket => bucket?.id));
+    // Malformed ids are refused rather than dropped or stored, so undefined can never match undefined.
+    const buckets = new Set();
+    for (const [index, bucket] of (Array.isArray(storage.buckets) ? storage.buckets : []).entries()) {
+        if (bucketId(bucket?.id)) buckets.add(bucket.id);
+        else fail(`storage.buckets[${index}]: bucket id must be a non-empty string`);
+    }
     const storageWaived = waived.includes("storage-bucket-config");
     if (!storageWaived) {
         for (const bucket of REQUIRED_BUCKETS) if (!buckets.has(bucket)) fail(`storage.buckets is missing ${bucket}`);
@@ -137,9 +158,11 @@ export function checkManifest(manifest, { root, rawText } = {}) {
     const destinations = new Map();
     for (const [index, object] of objects.entries()) {
         const label = `storage.objects[${index}]`;
-        if (!buckets.has(object?.bucket)) fail(`${label}: bucket ${String(object?.bucket)} is not declared`);
+        const validBucket = bucketId(object?.bucket);
+        if (!validBucket) fail(`${label}: bucket must be a non-empty string`);
+        else if (!buckets.has(object.bucket)) fail(`${label}: bucket ${object.bucket} is not declared`);
         if (typeof object?.name !== "string" || object.name === "" || object.name.split("/").includes("..")) fail(`${label}: object name is unsafe`);
-        else if (typeof object.bucket === "string") {
+        else if (validBucket) {
             if (!destinations.has(object.bucket)) destinations.set(object.bucket, new Map());
             const names = destinations.get(object.bucket);
             const first = names.get(object.name);
@@ -156,20 +179,25 @@ export function checkManifest(manifest, { root, rawText } = {}) {
     // Git: every required ref must be recorded at its expected commit.
     const refs = new Map();
     for (const [index, ref] of (Array.isArray(manifest.git?.refs) ? manifest.git.refs : []).entries()) {
-        if (!REF.test(ref?.ref ?? "") || ref.ref.includes("..")) { fail(`git.refs[${index}]: unsafe ref name`); continue; }
+        const refName = gitRefName(ref?.ref);
+        if (refName === null) { fail(`git.refs[${index}]: unsafe ref name`); continue; }
+        if (!REF.test(refName) || refName.includes("..")) { fail(`git.refs[${index}]: unsafe ref name`); continue; }
         if (!GIT_SHA.test(ref.sha ?? "")) { fail(`git.refs[${index}]: sha must be 40 lowercase hex`); continue; }
-        const refKey = `${ref.repository ?? ""} ${ref.ref}`;
+        const refKey = gitRefKey(ref?.repository, refName);
         const recorded = refs.get(refKey);
         if (recorded !== undefined && recorded !== ref.sha) {
-            fail(`git.refs[${index}]: conflicting sha for ${ref.repository}:${ref.ref} (already recorded as ${recorded})`);
+            fail(`git.refs[${index}]: conflicting sha for ${ref.repository}:${refName} (already recorded as ${recorded})`);
             continue;
         }
         refs.set(refKey, ref.sha);
     }
     for (const [index, required] of (Array.isArray(manifest.git?.requiredRefs) ? manifest.git.requiredRefs : []).entries()) {
-        const found = refs.get(`${required?.repository ?? ""} ${required?.ref}`);
-        if (!found) fail(`git.requiredRefs[${index}]: ${required?.repository}:${required?.ref} is not recorded`);
-        else if (required.sha && found !== required.sha) fail(`git.requiredRefs[${index}]: ${required.ref} is ${found}, expected ${required.sha}`);
+        const refName = gitRefName(required?.ref);
+        if (refName === null) { fail(`git.requiredRefs[${index}]: unsafe ref name`); continue; }
+        if (!REF.test(refName) || refName.includes("..")) { fail(`git.requiredRefs[${index}]: unsafe ref name`); continue; }
+        const found = refs.get(gitRefKey(required?.repository, refName));
+        if (!found) fail(`git.requiredRefs[${index}]: ${required?.repository}:${refName} is not recorded`);
+        else if (required.sha && found !== required.sha) fail(`git.requiredRefs[${index}]: ${refName} is ${found}, expected ${required.sha}`);
     }
 
     // Bytes: only when the operator points at the export root. Symlinks are refused rather than followed.

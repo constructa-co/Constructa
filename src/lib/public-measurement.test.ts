@@ -120,3 +120,51 @@ describe("adversarial public measurement inputs", () => {
     expect(sink.mock.calls).toEqual([["WaitlistSubmitAttempt", {}], ["WaitlistSubmitAttempt", {}]]);
   });
 });
+
+
+describe("A097 offline evidence boundaries", () => {
+  it("has no outbound or persistence effect without a test sink", () => {
+    const fetch = vi.fn();
+    const sendBeacon = vi.fn();
+    const setItem = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    vi.stubGlobal("navigator", { sendBeacon });
+    vi.stubGlobal("localStorage", { setItem });
+    vi.stubGlobal("sessionStorage", { setItem });
+    vi.stubGlobal("window", { location: { pathname: "/" } });
+    trackTryConstructaClick("solution");
+    trackContactFormSubmitAccepted();
+    trackWaitlistSubmitAttempt();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(sendBeacon).not.toHaveBeenCalled();
+    expect(setItem).not.toHaveBeenCalled();
+  });
+
+  it("does not leak attribution parameters or turn attempts into confirmed outcomes", () => {
+    const sink = vi.fn();
+    __setPublicMeasurementTestSink(sink);
+    vi.stubGlobal("window", { location: {
+      pathname: "/guides/example/",
+      search: "?utm_source=synthetic&email=synthetic@example.invalid",
+      hash: "#private-fragment",
+    } });
+    trackTryConstructaClick("about");
+    trackWaitlistSubmitAttempt();
+    expect(sink.mock.calls).toEqual([
+      ["TryConstructaClick", { location: "about" }],
+      ["WaitlistSubmitAttempt", {}],
+    ]);
+  });
+
+  it("rechecks the current route after public-to-private navigation", () => {
+    const sink = vi.fn();
+    __setPublicMeasurementTestSink(sink);
+    const location = { pathname: "/" };
+    vi.stubGlobal("window", { location });
+    trackTryConstructaClick("solution");
+    location.pathname = "/dashboard/projects/costs";
+    trackTryConstructaClick("solution", "/");
+    trackContactFormSubmitAccepted("/");
+    expect(sink.mock.calls).toEqual([["TryConstructaClick", { location: "solution" }]]);
+  });
+});

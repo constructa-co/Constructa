@@ -204,7 +204,8 @@ describe("signup orchestration behind the gate (offline mocks)", () => {
         expect(result).toEqual({ ok: true, outcome: "created-and-recorded", userId: "server-user-1" });
     });
 
-    it("succeeds when the consent table is not installed yet because sign-up metadata carries revision and timestamp", async () => {
+    it("does not claim a stored consent record when the consent table is not installed", async () => {
+        const log = vi.spyOn(console, "error").mockImplementation(() => {});
         mocks.signUp.mockResolvedValue({
             data: { user: { id: "server-user-1" }, session: { access_token: "server-session" } },
             error: null,
@@ -213,9 +214,40 @@ describe("signup orchestration behind the gate (offline mocks)", () => {
 
         const result = await platformSignupAction(VALID_INPUT);
 
-        expect(result).toEqual({ ok: true, outcome: "created-and-recorded", userId: "server-user-1" });
+        // user_metadata is user-editable and carries the app server's clock, so
+        // it is never reported as a stored consent record.
+        expect(result).toEqual({ ok: false, code: "consent-not-stored" });
+        expect(result).not.toHaveProperty("outcome");
+        expect(result).not.toHaveProperty("userId");
+        // One signup, one consent attempt, no internal retry.
         expect(mocks.signUp).toHaveBeenCalledTimes(1);
         expect(mocks.recordConsent).toHaveBeenCalledTimes(1);
+        // The supplementary metadata is still written at signUp (unchanged by this fix).
+        expect(mocks.signUp.mock.calls[0][0].options?.data).toEqual({
+            [PLATFORM_TERMS_AUTH_METADATA_REVISION]: PLATFORM_TERMS_CURRENT_REVISION,
+            [PLATFORM_TERMS_AUTH_METADATA_ACCEPTED_AT]: "2026-11-07T08:00:00.000Z",
+        });
+        // Typed code only in the log; no email, password or user id.
+        expect(log).toHaveBeenCalledWith("platformSignupAction: consent not stored", {
+            code: "storage-not-installed",
+        });
+        const logged = JSON.stringify(log.mock.calls);
+        expect(logged).not.toContain("builder@example.com");
+        expect(logged).not.toContain("correct horse 1");
+        expect(logged).not.toContain("server-user-1");
+        log.mockRestore();
+    });
+
+    it("keeps the confirmation-required outcome when the consent table is not installed and no session exists", async () => {
+        mocks.signUp.mockResolvedValue({
+            data: { user: { id: "server-user-1" }, session: null },
+            error: null,
+        });
+
+        const result = await platformSignupAction(VALID_INPUT);
+
+        expect(result).toEqual({ ok: true, outcome: "confirmation-required" });
+        expect(mocks.recordConsent).not.toHaveBeenCalled();
     });
 
     it("reports consent-not-stored honestly and never retries signup internally", async () => {

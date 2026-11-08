@@ -21,11 +21,12 @@
 --     timestamp column, so the recorded instant is the server's.
 --
 -- What this is NOT: it is not the twelve STANDARD_PROPOSAL_TERMS contract
--- clauses, it does not change any proposal/terms wording, it does not
--- re-enable or gate signup, and it adds no screen. Nothing in the
--- application calls the insert yet; the server action
--- (src/lib/platform-terms-actions.ts) is the recording boundary, wired to a
--- UI by the coordinator later. The table is immutable to clients: no
+-- clauses, and it does not change any proposal/terms wording. This file
+-- itself neither enables nor gates signup and adds no screen; the
+-- application code that uses the table (src/lib/platform-signup-action.ts
+-- and the /auth/platform-terms completion page) calls the insert through
+-- src/lib/platform-terms-acceptance.ts, which reports storage-not-installed
+-- while this table is missing. The table is immutable to clients: no
 -- UPDATE or DELETE is granted to authenticated.
 --
 -- Column-narrow INSERT (A023 coordinator repair): authenticated receives

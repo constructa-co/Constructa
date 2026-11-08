@@ -10,9 +10,11 @@ import {
 //
 // Runs exclusively on the server: the user id comes from the session, the
 // timestamp from the database, and the revision from the trusted descriptor
-// in platform-terms.ts. Nothing in the login page or signup payload changed;
-// this action is the consent bridge for whatever surface the coordinator
-// wires it to (no screen calls it yet — see A023-1210-BUILD-REPORT.md).
+// in platform-terms.ts. As of the RC, nothing imports this action: the signup
+// action (platform-signup-action.ts) and the completion action
+// (platform-terms-completion-action.ts) both call recordPlatformTermsAcceptance
+// directly. It is kept as a standalone server-action wrapper of the same
+// recorder; wire it to a screen or remove it.
 
 export async function recordPlatformTermsAcceptanceAction(
     input: RecordPlatformTermsAcceptanceInput,

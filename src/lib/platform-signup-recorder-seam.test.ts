@@ -64,6 +64,18 @@ describe("actual signup action to actual consent recorder with offline transport
         expect(transport.insert).toHaveBeenCalledTimes(1);
     });
 
+    it.each(["PGRST205", "42P01"])(
+        "does not claim stored consent when the real recorder sees a missing consent table (%s)",
+        async code => {
+            const log = vi.spyOn(console, "error").mockImplementation(() => {});
+            transport.insert.mockResolvedValue({ error: { code, message: "synthetic relation missing" } });
+            expect(await platformSignupAction(input)).toEqual({ ok: false, code: "consent-not-stored" });
+            expect(transport.signUp).toHaveBeenCalledTimes(1);
+            expect(transport.insert).toHaveBeenCalledTimes(1);
+            expect(JSON.stringify(log.mock.calls)).not.toContain("synthetic relation missing");
+        },
+    );
+
     it("does not claim stored consent or retry signup when the real insert transport throws", async () => {
         const log = vi.spyOn(console, "error").mockImplementation(() => {});
         transport.insert.mockRejectedValue(new Error("synthetic transport detail"));

@@ -32,6 +32,11 @@ import { buildPlatformTermsSignupEvidence } from "@/lib/platform-terms-signup-ev
 //     (email confirmation required), the result acknowledges only the
 //     account-creation request. It does NOT claim a stored consent record
 //     and the recorder is never called without a session.
+//   - Missing consent table: when the recorder reports storage-not-installed
+//     the result is consent-not-stored, the same as any other failed write.
+//     The revision and timestamp placed in user_metadata at signUp are
+//     supplementary only (user-editable, app-server clock) and are never
+//     presented as a stored consent record.
 //   - No silent recreation: one signUp attempt per invocation; a failed or
 //     thrown consent write never triggers an internal retry of signUp. The
 //     typed consent-not-stored result tells the caller to sign in to
@@ -124,7 +129,6 @@ export async function platformSignupAction(input: PlatformSignupInput): Promise<
     // 4. Account creation via the normal cookie-bound server client, with
     //    the confirmation redirect derived from the trusted app URL only.
     let session: unknown = null;
-    let createdUserId: string | null = null;
     try {
         const supabase: ServerClient = await createClient();
         const redirect = await trustedEmailRedirect();
@@ -141,7 +145,6 @@ export async function platformSignupAction(input: PlatformSignupInput): Promise<
             return { ok: false, code: "signup-failed" };
         }
         session = data.session;
-        createdUserId = data.user.id;
     } catch {
         // Transport-level failure (including client construction) — typed,
         // redacted, no provider details.
@@ -172,10 +175,11 @@ export async function platformSignupAction(input: PlatformSignupInput): Promise<
         return { ok: false, code: "consent-not-stored" };
     }
     if (!consent.ok) {
-        if (consent.code === "storage-not-installed" && createdUserId) {
-            // Migration not applied: auth metadata from signUp carries revision + timestamp.
-            return { ok: true, outcome: "created-and-recorded", userId: createdUserId };
-        }
+        // Includes "storage-not-installed" (consent table missing). The
+        // user_metadata written at signUp is supplementary only: the signed-in
+        // user can edit it and its timestamp is the app server's clock, so it
+        // is never reported as a stored consent record. The honest answer is
+        // consent-not-stored until the table exists.
         console.error("platformSignupAction: consent not stored", { code: consent.code });
         return { ok: false, code: "consent-not-stored" };
     }

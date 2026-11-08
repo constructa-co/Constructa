@@ -29,3 +29,32 @@ describe("A037 existing flat tag boundaries", () => {
         expect(JSON.stringify(frozen)).toBe(before);
     });
 });
+
+
+describe("A037 stale and ambiguous tag identities", () => {
+    it("a missing chip does not fall back to job matching; clearing it restores job matching", () => {
+        const untagged: TaggedStudy = { id: "untagged", labels: [], disciplineIds: [] };
+        const input = { studies: [...studies, untagged], jobSignals: ["Roofing"] };
+        const stale = groupByTag({ ...input, chosenDisciplineIds: ["removed-id"] });
+        expect(stale.basis).toBe("chips");
+        expect(stale.tagged).toEqual([]);
+        expect(stale.other.map(study => study.id)).toEqual(["roof-house", "roof-shop", "tile-house"]);
+        expect(stale.notTagged).toEqual([untagged]);
+        const cleared = groupByTag({ ...input, chosenDisciplineIds: [] });
+        expect(cleared.basis).toBe("job");
+        expect(cleared.tagged.map(study => study.id)).toEqual(["roof-house", "roof-shop"]);
+        expect(cleared.notTagged).toEqual([untagged]);
+    });
+
+    it("identical labels do not merge distinct chip IDs, while job signals cannot distinguish them", () => {
+        const sameLabel: TaggedStudy[] = [
+            { id: "first", labels: ["Residential"], disciplineIds: ["first-id"] },
+            { id: "second", labels: ["Residential"], disciplineIds: ["second-id"] },
+        ];
+        const chips = groupByTag({ studies: sameLabel, jobSignals: ["Residential"], chosenDisciplineIds: ["second-id", "second-id"] });
+        expect(chips.tagged.map(study => study.id)).toEqual(["second"]);
+        expect(chips.other.map(study => study.id)).toEqual(["first"]);
+        const signals = groupByTag({ studies: sameLabel, jobSignals: ["Residential"] });
+        expect(signals.tagged.map(study => study.id)).toEqual(["first", "second"]);
+    });
+});

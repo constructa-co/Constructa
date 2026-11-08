@@ -1,5 +1,17 @@
 # Cursor change log
 
+## 2026-10-30 — ROB2305 A069 delivery changelog prose (Cursor, rob2300)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| `docs/delivery/2026-10-28/changelog.md` (ROB2233 entry) | Fix actions import path; real `saveDraft` vs mocked `requireAuth`/`replay.save`; parent QA ref `evening2300-ready-qa-and-overnight-20261030.json` | Close rob2300 log findings; test `d3b6f9a7…` unchanged |
+
+## 2026-10-30 — ROB2250 A069 public packaging (Cursor prose-only)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| `docs/delivery/2026-10-28/changelog.md` (ROB2233 entry) | Correct simulated-vs-DB claims; drop PRIVATE vitest ref; QA-once erratum | F1/F2 from rob2242 review; test file bytes unchanged |
+
 ## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
 
 | Paths | Change | Intent |

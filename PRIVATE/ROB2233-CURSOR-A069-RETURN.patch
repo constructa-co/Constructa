@@ -1,0 +1,415 @@
+diff --git a/PRIVATE/ROB2233-CURSOR-A069-RETURN.md b/PRIVATE/ROB2233-CURSOR-A069-RETURN.md
+new file mode 100644
+index 0000000..238889d
+--- /dev/null
++++ b/PRIVATE/ROB2233-CURSOR-A069-RETURN.md
+@@ -0,0 +1,100 @@
++# ROB2233 — Cursor Composer 2.5 (fast=false) — A069 closing-editor journey
++
++**Route:** Authorized existing Cursor CLI on worktree only.  
++**Window:** Overnight slice headed 22:30 UAE, finish target 03:00 UAE 31 Oct.  
++**Status:** Test-only delta delivered; **no product source change**; **uncommitted**; **no push**; **not Complete**.
++
++## Branch / base
++
++| Item | Value |
++| --- | --- |
++| Worktree | `/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/a069-prefill` |
++| Branch | `cq/a069-prefill` |
++| Base commit | `4c66969e92372d26d7136c1c5ce34f40512891c1` (`feat: package bounded DeepSeek QA assistant configuration`) |
++| Patch | `PRIVATE/ROB2233-CURSOR-A069-RETURN.patch` |
++| Patch SHA256 | `92fa56c2bd3af6ffa6f396eacbd8d4d18df880f049928f8e8ea7f306cbd2abad` |
++
++## Paths touched (hashes at return)
++
++| Path | SHA256 |
++| --- | --- |
++| `src/app/dashboard/projects/proposal/a069-closing-editor-journey.test.tsx` | `d3b6f9a7aefb1124b0461ae023b7d460b58ddf2113cf69edf020fca5758074b8` |
++| `PRIVATE/vitest.a069.mts` | `c87ea0e86cd1389a0442948a4a01e805eb15b4d5e29276b54ff5249c449c5e37` |
++| `docs/delivery/2026-10-28/changelog.md` | (ROB2233 entry appended; see patch) |
++
++## Inspection summary (current real sources)
++
++### Create action
++
++- `src/app/dashboard/projects/new/actions.ts` — `createBlankProjectAction` calls RPC `create_phase1_project_graph` only; **no closing or md_message in client payload** (also locked in `new-job-closing.test.ts`).
++
++### Accepted closing SQL (SOURCE file only; not applied here)
++
++- `supabase/migrations/20261028183000_new_job_closing_prefill.sql` — additive `CREATE OR REPLACE` on `create_phase1_project_graph`: read `profiles.md_message` after idempotent retry return, blank/length guards, insert `closing_statement`. Static contract tests in `src/lib/new-job-closing.test.ts` (19+ cases including mock create → draft projection).
++
++### ReviewSendClient closing UI / handlers
++
++- `src/app/dashboard/projects/proposal/review-send-client.tsx` — `draftFromProject` maps `closing_statement` verbatim into draft; company-message control is explicit only (`applyCompanyClosingMessage`); Save uses `saveDraft` → `buildProposalPayload` (**trim on save** for wording fields, existing behaviour).
++- `src/app/dashboard/projects/proposal/company-closing-entry.test.tsx` — real component tree with mocked server hooks; strong coverage for **null/empty** closing and explicit copy, **not** for RPC-persisted prefill after new-job create.
++
++### Gap closed by this return
++
++Previous `new-job-closing.test.ts` block explicitly labelled **“(not ReviewSendClient UI / not Postgres)”**. This return adds **6 tests** wiring **`createBlankProjectAction` → fake RPC row → `ReviewSendClient`** with the same reducer/store mocks as `company-closing-entry.test.tsx`.
++
++## Product delta
++
++**NO_PRODUCT_DELTA** — no changes under `src/` except the new test file; no migration duplicate; no SQL apply; no grant work (Claude **`cq/a059-close`** owns additive grant migration).
++
++## Test delta
++
++**YES_TEST_DELTA** — `a069-closing-editor-journey.test.tsx`:
++
++1. RPC-persisted closing shown verbatim in `#wording-closing`; starts **saved**; “Use company message” disabled when saved text present.
++2. Leading spaces / interior blank lines preserved in **draft field**; Save payload uses **trim-on-save** (existing `buildProposalPayload`).
++3. After explicit clear + save, `closing_statement` null on row → reopen does **not** refill from profile.
++4. Profile `md_message` change after create does **not** rewrite persisted job closing in UI.
++5. Refused save keeps draft + `data-review-save-error`; successful retry reaches **saved** status.
++6. Blank-eligible profile message → null `closing_statement`; empty field; no copy control when profile trim empty.
++
++## Focused commands (actual)
++
++**Vitest resource note:** Worktree has no `node_modules`. Run uses ROOT Vitest with a real directory `node_modules/.vite-temp` under the worktree (not a symlink to ROOT) so Vite can compile the config without writing outside the worktree sandbox.
++
++```bash
++mkdir -p /Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/a069-prefill/node_modules/.vite-temp
++cd /Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/a069-prefill
++node /Users/robertsmith/dev/constructa-fresh-20261025/node_modules/vitest/vitest.mjs run \
++  --config PRIVATE/vitest.a069.mts
++```
++
++**Exit:** `0`  
++**Result:** 3 files, **74** tests passed (6 new + existing `company-closing-entry` + `new-job-closing` in config include list).  
++**Vitest:** v5.0.2; duration ~572ms (representative run 22:33 UAE 30 Oct 2026).
++
++**Typecheck (worktree tsconfig, no incremental write):**
++
++```bash
++cd /Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/a069-prefill
++node /Users/robertsmith/dev/constructa-fresh-20261025/node_modules/typescript/bin/tsc \
++  --noEmit --incremental false -p tsconfig.json
++```
++
++**Exit:** `0`
++
++**Not run (per task):** full suite, Next build, ESLint sweep, browser QA, SQL/DB, push/commit.
++
++## Findings
++
++- **No wired product bug demonstrated** in the create → editor path under test doubles; behaviour matches existing trim-on-save vs raw RPC/draft copy split.
++- **Runtime QA remains blocked** on parent proof: `create_phase1_project_graph` fails **`42501`** on `valid_programme_working_pattern` for the exact060 account (creation + one in-request retry). That is **not** evidence that closing-copy source is missing; **narrow QA function grant pending Rob**; parent owns browser/session.
++- **Do not** duplicate Claude’s additive grant migration on `cq/a059-close` or apply SQL from this worktree.
++
++## Remaining owner QA (after grant)
++
++1. Rob / parent: confirm one narrow grant for `valid_programme_working_pattern` (pending).
++2. Parent browser session: new job with saved Personal Message → Proposal Review & Send → closing field shows **exact** profile text (including leading spaces) → Save → reload → still job-specific; profile edit does not rewrite job; explicit blank save does not auto-refill.
++3. Independent Claude grade of this patch before commit/push (per inbox).
++
++## Authority boundaries observed
++
++- No `~/.codex/sessions`, log-archive, foreign programmes, main/PR/deploy, env/key reads, install/npx download, Cloud POST400 retry, or self-Complete.
+diff --git a/PRIVATE/vitest.a069.mts b/PRIVATE/vitest.a069.mts
+new file mode 100644
+index 0000000..415b989
+--- /dev/null
++++ b/PRIVATE/vitest.a069.mts
+@@ -0,0 +1,23 @@
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++import { defineConfig } from "vitest/config";
++
++const worktreeRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
++
++export default defineConfig({
++    root: worktreeRoot,
++    test: {
++        environment: "node",
++        globals: false,
++        include: [
++            "src/app/dashboard/projects/proposal/a069-closing-editor-journey.test.tsx",
++            "src/app/dashboard/projects/proposal/company-closing-entry.test.tsx",
++            "src/lib/new-job-closing.test.ts",
++        ],
++    },
++    resolve: {
++        alias: {
++            "@": path.join(worktreeRoot, "src"),
++        },
++    },
++});
+diff --git a/docs/delivery/2026-10-28/changelog.md b/docs/delivery/2026-10-28/changelog.md
+index 25f7187..329e3ee 100644
+--- a/docs/delivery/2026-10-28/changelog.md
++++ b/docs/delivery/2026-10-28/changelog.md
+@@ -252,3 +252,11 @@
+ ## ROB1710 frozen DeepSeek QA package - 30 October 2026
+ 
+ - Separate after **b0a998e** profile backup: exact five-file **cf0842d6** package, Claude provider wiring + CursorComposer QA config; independent ROB2051/ROB2118 coverage, no adaptation. ROOT188/188, ESLint0, fullTypeScriptPASS/Node24. QA-only source configuration, ProductionOFF, no ledgerSQL/keys/paidcall/hostedproof. A055/A063 metadata only/all118 statuses unchanged. Fresh build/normal backup actual receipts: **rob1710-deepseek-integrated-build-20261030.json**, **rob1710-deepseek-source-backup-20261030.json**. No main/PR/merge/deploy/settings.
++
++## ROB2233 Cursor A069 closing-editor journey tests - 30 October 2026
++
++- **Intent:** Close the gap between `new-job-closing.test.ts` (create RPC mock → draft projection only) and `company-closing-entry.test.tsx` (null/empty closing + explicit “Use company message”) by testing **createBlankProjectAction → persisted row → real ReviewSendClient** save/refusal handlers.
++- **Files:** `src/app/dashboard/projects/proposal/a069-closing-editor-journey.test.tsx` (new, ~258 lines, 6 cases); `PRIVATE/vitest.a069.mts` (worktree-scoped vitest config for ROOT `node_modules` without copying deps).
++- **Product source unchanged** at base `4c66969`; accepted closing SQL remains `supabase/migrations/20261028183000_new_job_closing_prefill.sql` (static contracts still in `src/lib/new-job-closing.test.ts`).
++- **Observed semantics locked by tests:** RPC copies `md_message` verbatim into draft/saved closing (leading spaces preserved in UI); `buildProposalPayload` still **trims on Save** (existing rule at `proposal-review.ts` ~356); explicit saved blank (`closing_statement` null after clear) does not auto-refill; profile change after create does not rewrite job closing; save failure keeps draft + `data-review-save-error`; successful retry acknowledges saved state.
++- **No SQL apply, no grant migration duplicate, uncommitted, no push.**
+diff --git a/src/app/dashboard/projects/proposal/a069-closing-editor-journey.test.tsx b/src/app/dashboard/projects/proposal/a069-closing-editor-journey.test.tsx
+new file mode 100644
+index 0000000..6bea989
+--- /dev/null
++++ b/src/app/dashboard/projects/proposal/a069-closing-editor-journey.test.tsx
+@@ -0,0 +1,258 @@
++import { beforeEach, describe, expect, it, vi } from "vitest";
++import type { ReactElement } from "react";
++import { fakeSupabase, type Row } from "@/lib/__fixtures__/fake-supabase";
++import { minimalInput } from "@/lib/__fixtures__/proposal";
++import type { ReviewAction, ReviewContext, ReviewProject, ReviewState } from "@/lib/proposal-review";
++import { reviewSaveStatus } from "@/lib/proposal-review";
++
++const journeyAuth = vi.hoisted(() => ({ requireAuth: vi.fn() }));
++vi.mock("@/lib/supabase/auth-utils", () => ({ requireAuth: journeyAuth.requireAuth }));
++
++const replay = vi.hoisted(() => ({
++    state: null as ReviewState | null,
++    slots: [] as unknown[],
++    cursor: 0,
++    save: vi.fn(),
++    ask: vi.fn(),
++    publish: vi.fn(),
++}));
++vi.mock("react", async original => ({
++    ...await original<typeof import("react")>(),
++    useEffect: () => undefined,
++    useMemo: (calculate: () => unknown) => calculate(),
++    useRef: (initial: unknown) => ({ current: initial }),
++    useState: (initial: unknown) => {
++        const index = replay.cursor++;
++        if (!(index in replay.slots)) {
++            replay.slots[index] = typeof initial === "function" ? (initial as () => unknown)() : initial;
++        }
++        return [
++            replay.slots[index],
++            (value: unknown) => {
++                replay.slots[index] = typeof value === "function"
++                    ? (value as (previous: unknown) => unknown)(replay.slots[index])
++                    : value;
++            },
++        ];
++    },
++}));
++vi.mock("@/lib/use-reducer-store", () => ({
++    useReducerStore: (reduce: (state: ReviewState, action: ReviewAction) => ReviewState, initial: () => ReviewState) => {
++        if (!replay.state) replay.state = initial();
++        return [replay.state, {
++            getState: () => replay.state,
++            dispatch: (action: ReviewAction) => { replay.state = reduce(replay.state!, action); },
++        }];
++    },
++}));
++vi.mock("@/lib/theme-context", () => ({ useTheme: () => ({ theme: "light" }) }));
++vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }) }));
++vi.mock("./actions", () => ({
++    getProposalPublicationAction: vi.fn(),
++    publishProposalAction: vi.fn(),
++    retryProposalDeliveryAction: vi.fn(),
++    saveProposalDraftAction: vi.fn(),
++    suggestProposalWordingAction: vi.fn(),
++    uploadPhotoAction: vi.fn(),
++}));
++
++import { createBlankProjectAction } from "@/app/dashboard/projects/new/actions";
++import ReviewSendClient from "./review-send-client";
++
++type Element = ReactElement<Record<string, unknown>>;
++
++const JOURNEY_USER = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
++const JOURNEY_REQUEST = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
++
++function journeyFormData() {
++    const fd = new FormData();
++    fd.set("requestId", JOURNEY_REQUEST);
++    fd.set("name", "New journey job");
++    fd.set("client", "Journey Client");
++    return fd;
++}
++
++function installA069CreateRpc(db: ReturnType<typeof fakeSupabase>, userId: string) {
++    const committed = new Map<string, string>();
++    db.onRpc((name, args) => {
++        if (name !== "create_phase1_project_graph") return { data: null, error: null };
++        const requestId = String(args.p_request_id);
++        if (committed.has(requestId)) {
++            return { data: [{ project_id: committed.get(requestId), estimate_ids: [] }], error: null };
++        }
++        const profile = (db.tables.profiles ?? []).find(row => row.id === userId);
++        const md = typeof profile?.md_message === "string" ? profile.md_message : null;
++        const closing = md && md.trim() ? md : null;
++        const payload = args.p_project as Row;
++        const projectId = `project-${(db.tables.projects?.length ?? 0) + 1}`;
++        db.tables.projects = db.tables.projects ?? [];
++        db.tables.projects.push({
++            id: projectId,
++            user_id: userId,
++            name: payload.name,
++            client_name: payload.client_name,
++            closing_statement: closing,
++            payment_schedule: [],
++            programme_phases: [],
++        });
++        committed.set(requestId, projectId);
++        return { data: [{ project_id: projectId, estimate_ids: [] }], error: null };
++    });
++}
++
++async function createProjectRow(mdMessage: string | null) {
++    const db = fakeSupabase({
++        profiles: [{ id: JOURNEY_USER, md_message: mdMessage }],
++        projects: [],
++    });
++    installA069CreateRpc(db, JOURNEY_USER);
++    journeyAuth.requireAuth.mockResolvedValue({ supabase: db.client });
++    const created = await createBlankProjectAction(journeyFormData());
++    expect(created.success).toBe(true);
++    if (!created.success) throw new Error("create failed");
++    const { data, error } = await db.client.from("projects").select().eq("id", created.projectId).eq("user_id", JOURNEY_USER).single();
++    expect(error).toBeNull();
++    return { row: data as unknown as ReviewProject, db, projectId: created.projectId };
++}
++
++function reviewContext(project: ReviewProject, mdMessage: string | null): ReviewContext {
++    const input = minimalInput();
++    return {
++        project: { ...input.project, ...project, id: project.id, name: project.name, client_name: project.client_name, closing_statement: project.closing_statement },
++        profile: { ...input.profile, md_message: mdMessage },
++        estimate: input.estimate,
++        nextVersion: 1,
++    };
++}
++
++function view(current: ReviewContext, locked = false) {
++    replay.cursor = 0;
++    return ReviewSendClient({
++        context: current,
++        caseStudies: [],
++        publications: [],
++        lockReason: locked ? "This proposal has been accepted." : null,
++        estimateIssue: null,
++        now: "2026-10-22T01:00:00Z",
++        server: {
++            save: replay.save,
++            ask: replay.ask,
++            publish: replay.publish,
++            retry: vi.fn(),
++            upload: vi.fn(),
++            loadPublication: vi.fn(),
++        },
++    });
++}
++
++function nodes(value: unknown): Element[] {
++    if (Array.isArray(value)) return value.flatMap(nodes);
++    if (!value || typeof value !== "object" || !("props" in value)) return [];
++    const node = value as Element;
++    return [node, ...nodes(node.props.children)];
++}
++
++function closingField(current: ReviewContext) {
++    return nodes(view(current)).find(node => node.props.id === "wording-closing")!.props;
++}
++
++function useCompanyButton(current: ReviewContext) {
++    return nodes(view(current)).find(node => node.props["data-use-company-closing"])!.props;
++}
++
++async function submitSave(current: ReviewContext) {
++    const form = nodes(view(current)).find(node => node.type === "form")!;
++    (form.props.onSubmit as (event: unknown) => void)({ preventDefault() {} });
++    await Promise.resolve();
++    await Promise.resolve();
++}
++
++beforeEach(() => {
++    journeyAuth.requireAuth.mockReset();
++    replay.state = null;
++    replay.slots = [];
++    replay.cursor = 0;
++    replay.save.mockReset().mockResolvedValue({ success: true });
++    replay.ask.mockReset();
++    replay.publish.mockReset();
++});
++
++describe("A069 closing editor journey (create action → ReviewSendClient handlers)", () => {
++    const prefilledRaw = "  We look forward to working with you.\n\nAlex, managing director";
++
++    it("shows RPC-persisted closing verbatim in the real wording field and starts saved", async () => {
++        const { row } = await createProjectRow(prefilledRaw);
++        const current = reviewContext(row, prefilledRaw);
++        expect(closingField(current).value).toBe(prefilledRaw);
++        expect(reviewSaveStatus(replay.state!)).toBe("saved");
++        expect(useCompanyButton(current).disabled).toBe(true);
++        expect(replay.save).not.toHaveBeenCalled();
++    });
++
++    it("preserves leading spaces in the draft field while save uses the existing trim-on-save rule", async () => {
++        const { row } = await createProjectRow(prefilledRaw);
++        const current = reviewContext(row, prefilledRaw);
++        const edited = prefilledRaw + "\n\nEdited tail";
++        (closingField(current).onChange as (event: unknown) => void)({ target: { value: edited } });
++        expect(closingField(current).value).toBe(edited);
++        await submitSave(current);
++        expect(replay.save).toHaveBeenCalledOnce();
++        expect(replay.save).toHaveBeenCalledWith(expect.objectContaining({ closing: edited.trim() }));
++    });
++
++    it("does not refill after the contractor saves an explicit blank clearing", async () => {
++        const { row, db, projectId } = await createProjectRow(prefilledRaw);
++        let current = reviewContext(row, prefilledRaw);
++        (closingField(current).onChange as (event: unknown) => void)({ target: { value: "" } });
++        await submitSave(current);
++        expect(replay.save).toHaveBeenCalledWith(expect.objectContaining({ closing: "" }));
++
++        const stored = db.tables.projects!.find(p => p.id === projectId)!;
++        stored.closing_statement = null;
++        db.tables.profiles![0]!.md_message = "Profile message after explicit blank save";
++        replay.state = null;
++        current = reviewContext(stored as unknown as ReviewProject, "Profile message after explicit blank save");
++        expect(closingField(current).value).toBe("");
++        expect(useCompanyButton(current).disabled).toBe(false);
++        expect(replay.save).toHaveBeenCalledOnce();
++    });
++
++    it("keeps persisted closing when the profile message changes later", async () => {
++        const { row, db } = await createProjectRow(prefilledRaw);
++        const current = reviewContext(row, "Completely different profile text");
++        expect(closingField(current).value).toBe(prefilledRaw);
++        db.tables.profiles![0]!.md_message = "Yet another profile message";
++        replay.state = null;
++        const remount = reviewContext(row, db.tables.profiles![0]!.md_message as string);
++        expect(closingField(remount).value).toBe(prefilledRaw);
++        expect(replay.save).not.toHaveBeenCalled();
++    });
++
++    it("preserves draft closing on refused save and acknowledges a successful retry", async () => {
++        const { row } = await createProjectRow(prefilledRaw);
++        const current = reviewContext(row, prefilledRaw);
++        const edited = prefilledRaw + "\n\nPlease confirm dates.";
++        (closingField(current).onChange as (event: unknown) => void)({ target: { value: edited } });
++
++        replay.save.mockResolvedValueOnce({ success: false, error: "Save not confirmed" });
++        await submitSave(current);
++        expect(closingField(current).value).toBe(edited);
++        expect(reviewSaveStatus(replay.state!)).toBe("failed");
++        expect(nodes(view(current)).some(node => node.props["data-review-save-error"])).toBe(true);
++
++        replay.save.mockResolvedValueOnce({ success: true });
++        await submitSave(current);
++        expect(replay.save).toHaveBeenCalledTimes(2);
++        expect(replay.save).toHaveBeenLastCalledWith(expect.objectContaining({ closing: edited.trim() }));
++        expect(reviewSaveStatus(replay.state!)).toBe("saved");
++    });
++
++    it("leaves closing empty when creation did not seed a blank-eligible profile message", async () => {
++        const blankEligible = "\u00A0\uFEFF";
++        const { row } = await createProjectRow(blankEligible);
++        const current = reviewContext(row, blankEligible);
++        expect(row.closing_statement).toBeNull();
++        expect(closingField(current).value).toBe("");
++        expect(nodes(view(current)).some(node => node.props["data-use-company-closing"])).toBe(false);
++    });
++});

@@ -22,7 +22,10 @@ export function MarketingHeader() {
           <Link href="/features">The product</Link>
           <Link href="/pricing">Preview access</Link>
         </nav>
-        <Link className={ui.signIn} href="/login">Sign in <ArrowRight size={16} aria-hidden="true" /></Link>
+        <div className={ui.headerActions}>
+          <Link className={ui.applyCta} href="/apply">Apply to the founding cohort <ArrowRight size={16} aria-hidden="true" /></Link>
+          <Link className={ui.signIn} href="/login">Sign in <ArrowRight size={16} aria-hidden="true" /></Link>
+        </div>
       </div>
     </header>
   );
@@ -35,7 +38,8 @@ export function MarketingFooter() {
         <Link className={ui.brand} href="/" aria-label="Constructa home"><span aria-hidden="true">C</span>constructa</Link>
         <p>Built around your business.<br />Not the other way around.</p>
         <nav aria-label="Footer navigation">
-          <Link href="/features">The product</Link><Link href="/guides">Guides</Link><Link href="/login">Sign in</Link>
+          <Link href="/features">The product</Link><Link href="/guides">Guides</Link>
+          <Link href="/apply">Apply to the founding cohort</Link><Link href="/login">Sign in</Link>
           <Link href="/terms-of-service">Terms</Link><Link href="/privacy-policy">Privacy</Link>
           <Link href="/contact">Get in touch</Link>
         </nav>
@@ -45,8 +49,12 @@ export function MarketingFooter() {
   );
 }
 
-function AccountLink({ children = 'Open Constructa' }: { children?: React.ReactNode }) {
-  return <Link className={ui.primary} href="/login">{children}<ArrowRight size={18} aria-hidden="true" /></Link>;
+function FoundingCohortApplyLink({ children = 'Apply to the founding cohort' }: { children?: React.ReactNode }) {
+  return <Link className={ui.primary} href="/apply">{children}<ArrowRight size={18} aria-hidden="true" /></Link>;
+}
+
+function SignInLink({ children = 'Sign in' }: { children?: React.ReactNode }) {
+  return <Link className={ui.signIn} href="/login">{children}<ArrowRight size={16} aria-hidden="true" /></Link>;
 }
 
 function ProposalIllustration() {
@@ -111,7 +119,18 @@ function Questions() {
 }
 
 function Invitation() {
-  return <section className={ui.invitation}><p className={ui.eyebrow}>Your next chapter</p><h2>Good work deserves<br />a good introduction.</h2><p>Start with your business. Bring the next job into focus.</p><AccountLink /><small>Account entry opens here. This preview does not take a payment.</small></section>;
+  return (
+    <section className={ui.invitation}>
+      <p className={ui.eyebrow}>Your next chapter</p>
+      <h2>Good work deserves<br />a good introduction.</h2>
+      <p>Start with your business. Bring the next job into focus.</p>
+      <div className={ui.actions} style={{ justifyContent: 'center' }}>
+        <FoundingCohortApplyLink />
+        <SignInLink>Existing account? Sign in</SignInLink>
+      </div>
+      <small>Apply is separate from sign-in. This preview does not take a payment.</small>
+    </section>
+  );
 }
 
 export function PhaseOneHome() {
@@ -121,7 +140,11 @@ export function PhaseOneHome() {
         <div className={ui.heroCopy}><p className={ui.eyebrow}><span className={ui.dot} /> Made for the way you win work</p>
           <h1>Good work.<br />Clearly priced.<br /><em>Better presented.</em></h1>
           <p className={ui.lede}>Give your business the introduction it deserves. Bring your company, your price and your programme into a proposal worth putting your name to.</p>
-          <div className={ui.actions}><AccountLink /><Link className={ui.textLink} href="#how-it-works">See how it connects <ArrowDown size={17} aria-hidden="true" /></Link></div>
+          <div className={ui.actions}>
+            <FoundingCohortApplyLink />
+            <SignInLink />
+            <Link className={ui.textLink} href="#how-it-works">See how it connects <ArrowDown size={17} aria-hidden="true" /></Link>
+          </div>
           <p className={ui.reviewNote}>Phase one review · Built for domestic and commercial contractors</p>
         </div>
         <ProposalIllustration />
@@ -130,7 +153,7 @@ export function PhaseOneHome() {
       <Journey />
       <section className={`${ui.section} ${ui.story}`}>
         <div className={ui.photo}><HomeBusinessVisual /><span>Construction is a people business.</span></div>
-        <div><p className={ui.eyebrow}>The experience behind the estimate</p><h2>Your business.<br />Not another<br />blank template.</h2><p>Your experience, the challenges you have solved and the quality of your work belong alongside the numbers. Put them in a company profile and reuse the right examples when you prepare a proposal.</p><p>Whether you fit kitchens, refurbish workplaces or run a multi-trade team, the story should be yours.</p><AccountLink>Start with your business</AccountLink></div>
+        <div><p className={ui.eyebrow}>The experience behind the estimate</p><h2>Your business.<br />Not another<br />blank template.</h2><p>Your experience, the challenges you have solved and the quality of your work belong alongside the numbers. Put them in a company profile and reuse the right examples when you prepare a proposal.</p><p>Whether you fit kitchens, refurbish workplaces or run a multi-trade team, the story should be yours.</p><FoundingCohortApplyLink>Apply for the founding cohort</FoundingCohortApplyLink></div>
       </section>
       <Scope /><Questions /><Invitation />
     </div>
@@ -138,7 +161,20 @@ export function PhaseOneHome() {
 }
 
 export function PhaseOneFeatures() {
-  return <div className={`${ui.theme} ${ui.root}`}><section className={ui.pageIntro}><p className={ui.eyebrow}>The phase-one product</p><h1>From first hello.<br /><em>To a considered proposal.</em></h1><p>One connected work-winning journey. Company profile, brief, price, programme and proposal, with room for your own experience and judgement.</p><AccountLink /></section><Journey /><ProductReviewGuide /><ProductScreenshots /><Scope /><Questions /><Invitation /></div>;
+  return (
+    <div className={`${ui.theme} ${ui.root}`}>
+      <section className={ui.pageIntro}>
+        <p className={ui.eyebrow}>The phase-one product</p>
+        <h1>From first hello.<br /><em>To a considered proposal.</em></h1>
+        <p>One connected work-winning journey. Company profile, brief, price, programme and proposal, with room for your own experience and judgement.</p>
+        <div className={ui.actions}>
+          <FoundingCohortApplyLink />
+          <SignInLink />
+        </div>
+      </section>
+      <Journey /><ProductReviewGuide /><ProductScreenshots /><Scope /><Questions /><Invitation />
+    </div>
+  );
 }
 
 export function PhaseOnePricing() {
@@ -150,10 +186,15 @@ export function PhaseOnePricing() {
         <p>We are reviewing the complete work-winning journey before release. This page does not sell a subscription, promise a free trial or take payment for later-phase features.</p>
         <p>This preview is for people using an existing review account. Sign in with the details you were given, then start with your company profile.</p>
         <div className={ui.actions}>
-          <AccountLink>Sign in with your review account</AccountLink>
+          <FoundingCohortApplyLink />
+          <SignInLink>Sign in with your review account</SignInLink>
           <Link href="/features" className={ui.textLink}>Explore the phase-one scope <ArrowRight size={16} aria-hidden="true" /></Link>
         </div>
-        <p>No account yet? <Link href="/contact" className={ui.textLink}>Neutral preview-access questions <ArrowRight size={16} aria-hidden="true" /></Link></p>
+        <p>
+          Want access but not signed in yet? <Link href="/apply" className={ui.textLink}>Apply to the founding cohort <ArrowRight size={16} aria-hidden="true" /></Link>
+          {' · '}
+          <Link href="/contact" className={ui.textLink}>Neutral preview-access questions <ArrowRight size={16} aria-hidden="true" /></Link>
+        </p>
       </section>
       <Scope showAccessLink={false} />
       <Questions />

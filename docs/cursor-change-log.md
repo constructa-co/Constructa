@@ -51,6 +51,17 @@ Base branch: `origin/cq/cq-0105-a001-initialize-kit-primary` (includes `5d73ebc`
 | `e2e/local-phase1/a111-readability.spec.ts` | 53 | `const fg` | ESLint prefer-const |
 | `dashboard-route-shell.test.tsx`, `dashboard-route-shell-page.test.tsx` | tests | JSX composition (`.test.ts` → `.tsx`) | ESLint react/no-children-prop + tsc |
 
+## 2026-11-07 — A109 founding cohort Apply CTA (Cursor agent)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| `src/components/marketing/phase-one.tsx` (L15–27 header, L48–56 links, L117–125 hero, L139+, pricing/features/footer) | Green **Apply to the founding cohort** CTA beside **Sign in**; hero/pricing/features/invitation point to `/apply` | A109: one clear apply entry separate from sign-in |
+| `src/components/marketing/phase-one.module.css` (L22–26, L106 mobile) | `.headerActions`, `.applyCta` charcoal/sage tokens | Match phase-one marketing palette |
+| `src/lib/founding-cohort/application-schema.ts`, `submission-adapter.ts` | Shared Zod validation + TODO no-op adapter (log only outside tests) | Validate without DB/email/third-party until Rob chooses destination |
+| `src/app/apply/page.tsx`, `actions.ts`, `src/components/marketing/founding-cohort-apply-*` | `/apply` form: name, company, email, trade, team size, note; client + server validation | First application slice |
+| `src/lib/public-measurement.ts` | Add `/apply` to public routes | Fail-closed measurement contract |
+| `*.test.ts(x)` under `founding-cohort/`, `apply/`, `phase-one.test.tsx`, `public-measurement.test.ts` | Vitest coverage for schema, adapter, action, route, header CTA | Regression guard |
+
 ## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
 
 | Paths | Change | Intent |

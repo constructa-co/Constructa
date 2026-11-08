@@ -7,9 +7,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
     signUp: vi.fn(),
     recordConsent: vi.fn(),
+    gate: { disabled: false },
 }));
 
-vi.mock("@/lib/platform-signup-policy", () => ({ isPlatformSignupDisabled: () => false }));
+vi.mock("@/lib/platform-signup-policy", () => ({ isPlatformSignupDisabled: () => mocks.gate.disabled }));
 vi.mock("@/lib/supabase/server", () => ({
     createClient: async () => ({ auth: { signUp: mocks.signUp } }),
 }));
@@ -27,6 +28,7 @@ const VALID = {
 const CONFIRMATION = { data: { user: { id: "pending-user" }, session: null }, error: null };
 
 beforeEach(() => {
+    mocks.gate.disabled = false;
     mocks.signUp.mockResolvedValue(CONFIRMATION);
     vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -58,6 +60,27 @@ describe("signup input boundaries", () => {
 
     it.each(["a@b", "a b@c.d", "a@@b.c", "@b.c", "a@.", 42, null, undefined])("refuses the email %j without an account call", async (email) => {
         expect(await platformSignupAction({ ...VALID, email })).toEqual({ ok: false, code: "invalid-input" });
+        expect(mocks.signUp).not.toHaveBeenCalled();
+    });
+});
+
+describe("signup check order", () => {
+    it("checks the source gate before input validation", async () => {
+        mocks.gate.disabled = true;
+        const malformed = { email: "x", password: "y", acceptance: false, revision: "nope" };
+        expect(await platformSignupAction(malformed)).toEqual({ ok: false, code: "signup-disabled" });
+        expect(mocks.signUp).not.toHaveBeenCalled();
+    });
+
+    it("reports malformed input before a missing acceptance", async () => {
+        expect(await platformSignupAction({ ...VALID, email: "x", acceptance: false })).toEqual({ ok: false, code: "invalid-input" });
+        expect(mocks.signUp).not.toHaveBeenCalled();
+    });
+
+    it("needs acceptance to be exactly true, not merely truthy", async () => {
+        for (const acceptance of ["true", 1, "yes", {}, null, undefined]) {
+            expect(await platformSignupAction({ ...VALID, acceptance })).toEqual({ ok: false, code: "terms-refused" });
+        }
         expect(mocks.signUp).not.toHaveBeenCalled();
     });
 });

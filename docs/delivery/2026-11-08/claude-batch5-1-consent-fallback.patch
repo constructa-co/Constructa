@@ -1,0 +1,123 @@
+--- a/src/lib/platform-signup-action.ts
++++ b/src/lib/platform-signup-action.ts
+@@ -32,6 +32,11 @@
+ //     (email confirmation required), the result acknowledges only the
+ //     account-creation request. It does NOT claim a stored consent record
+ //     and the recorder is never called without a session.
++//   - Missing consent table: when the recorder reports storage-not-installed
++//     the result is consent-not-stored, the same as any other failed write.
++//     The revision and timestamp placed in user_metadata at signUp are
++//     supplementary only (user-editable, app-server clock) and are never
++//     presented as a stored consent record.
+ //   - No silent recreation: one signUp attempt per invocation; a failed or
+ //     thrown consent write never triggers an internal retry of signUp. The
+ //     typed consent-not-stored result tells the caller to sign in to
+@@ -124,7 +129,6 @@
+     // 4. Account creation via the normal cookie-bound server client, with
+     //    the confirmation redirect derived from the trusted app URL only.
+     let session: unknown = null;
+-    let createdUserId: string | null = null;
+     try {
+         const supabase: ServerClient = await createClient();
+         const redirect = await trustedEmailRedirect();
+@@ -141,7 +145,6 @@
+             return { ok: false, code: "signup-failed" };
+         }
+         session = data.session;
+-        createdUserId = data.user.id;
+     } catch {
+         // Transport-level failure (including client construction) — typed,
+         // redacted, no provider details.
+@@ -172,10 +175,11 @@
+         return { ok: false, code: "consent-not-stored" };
+     }
+     if (!consent.ok) {
+-        if (consent.code === "storage-not-installed" && createdUserId) {
+-            // Migration not applied: auth metadata from signUp carries revision + timestamp.
+-            return { ok: true, outcome: "created-and-recorded", userId: createdUserId };
+-        }
++        // Includes "storage-not-installed" (consent table missing). The
++        // user_metadata written at signUp is supplementary only: the signed-in
++        // user can edit it and its timestamp is the app server's clock, so it
++        // is never reported as a stored consent record. The honest answer is
++        // consent-not-stored until the table exists.
+         console.error("platformSignupAction: consent not stored", { code: consent.code });
+         return { ok: false, code: "consent-not-stored" };
+     }
+--- a/src/lib/platform-signup-action.test.ts
++++ b/src/lib/platform-signup-action.test.ts
+@@ -204,7 +204,8 @@
+         expect(result).toEqual({ ok: true, outcome: "created-and-recorded", userId: "server-user-1" });
+     });
+ 
+-    it("succeeds when the consent table is not installed yet because sign-up metadata carries revision and timestamp", async () => {
++    it("does not claim a stored consent record when the consent table is not installed", async () => {
++        const log = vi.spyOn(console, "error").mockImplementation(() => {});
+         mocks.signUp.mockResolvedValue({
+             data: { user: { id: "server-user-1" }, session: { access_token: "server-session" } },
+             error: null,
+@@ -213,11 +214,42 @@
+ 
+         const result = await platformSignupAction(VALID_INPUT);
+ 
+-        expect(result).toEqual({ ok: true, outcome: "created-and-recorded", userId: "server-user-1" });
++        // user_metadata is user-editable and carries the app server's clock, so
++        // it is never reported as a stored consent record.
++        expect(result).toEqual({ ok: false, code: "consent-not-stored" });
++        expect(result).not.toHaveProperty("outcome");
++        expect(result).not.toHaveProperty("userId");
++        // One signup, one consent attempt, no internal retry.
+         expect(mocks.signUp).toHaveBeenCalledTimes(1);
+         expect(mocks.recordConsent).toHaveBeenCalledTimes(1);
++        // The supplementary metadata is still written at signUp (unchanged by this fix).
++        expect(mocks.signUp.mock.calls[0][0].options?.data).toEqual({
++            [PLATFORM_TERMS_AUTH_METADATA_REVISION]: PLATFORM_TERMS_CURRENT_REVISION,
++            [PLATFORM_TERMS_AUTH_METADATA_ACCEPTED_AT]: "2026-11-07T08:00:00.000Z",
++        });
++        // Typed code only in the log; no email, password or user id.
++        expect(log).toHaveBeenCalledWith("platformSignupAction: consent not stored", {
++            code: "storage-not-installed",
++        });
++        const logged = JSON.stringify(log.mock.calls);
++        expect(logged).not.toContain("builder@example.com");
++        expect(logged).not.toContain("correct horse 1");
++        expect(logged).not.toContain("server-user-1");
++        log.mockRestore();
+     });
+ 
++    it("keeps the confirmation-required outcome when the consent table is not installed and no session exists", async () => {
++        mocks.signUp.mockResolvedValue({
++            data: { user: { id: "server-user-1" }, session: null },
++            error: null,
++        });
++
++        const result = await platformSignupAction(VALID_INPUT);
++
++        expect(result).toEqual({ ok: true, outcome: "confirmation-required" });
++        expect(mocks.recordConsent).not.toHaveBeenCalled();
++    });
++
+     it("reports consent-not-stored honestly and never retries signup internally", async () => {
+         mocks.signUp.mockResolvedValue({
+             data: { user: { id: "server-user-1" }, session: { access_token: "server-session" } },
+--- a/src/lib/platform-signup-recorder-seam.test.ts
++++ b/src/lib/platform-signup-recorder-seam.test.ts
+@@ -64,6 +64,18 @@
+         expect(transport.insert).toHaveBeenCalledTimes(1);
+     });
+ 
++    it.each(["PGRST205", "42P01"])(
++        "does not claim stored consent when the real recorder sees a missing consent table (%s)",
++        async code => {
++            const log = vi.spyOn(console, "error").mockImplementation(() => {});
++            transport.insert.mockResolvedValue({ error: { code, message: "synthetic relation missing" } });
++            expect(await platformSignupAction(input)).toEqual({ ok: false, code: "consent-not-stored" });
++            expect(transport.signUp).toHaveBeenCalledTimes(1);
++            expect(transport.insert).toHaveBeenCalledTimes(1);
++            expect(JSON.stringify(log.mock.calls)).not.toContain("synthetic relation missing");
++        },
++    );
++
+     it("does not claim stored consent or retry signup when the real insert transport throws", async () => {
+         const log = vi.spyOn(console, "error").mockImplementation(() => {});
+         transport.insert.mockRejectedValue(new Error("synthetic transport detail"));

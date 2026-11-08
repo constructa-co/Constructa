@@ -1,0 +1,123 @@
+--- a/src/lib/platform-signup-error-paths.test.ts
++++ b/src/lib/platform-signup-error-paths.test.ts
+@@ -29,6 +29,12 @@
+ const VALID = { email: EMAIL, password: PASSWORD, acceptance: true, revision: PLATFORM_TERMS_CURRENT_REVISION };
+ const WITH_SESSION = { data: { user: { id: "provider-user" }, session: { access_token: "s" } }, error: null };
+ const NO_SESSION = { data: { user: { id: "pending-user" }, session: null }, error: null };
++// RC-aligned: the RC signup action always sends the terms evidence as options.data (revision plus an
++// app-server timestamp). Key names are pinned as literals on purpose so a rename is noticed.
++const TERMS_EVIDENCE = {
++    platform_terms_revision: PLATFORM_TERMS_CURRENT_REVISION,
++    platform_terms_accepted_at: expect.any(String),
++};
+ 
+ const ENV_KEYS = ["NEXT_PUBLIC_SITE_URL", "NEXT_PUBLIC_APP_URL"] as const;
+ let savedEnv: Record<string, string | undefined>;
+@@ -171,19 +177,30 @@
+     it("sends a configured local http site URL as the redirect base", async () => {
+         process.env.NEXT_PUBLIC_SITE_URL = "http://localhost:3000";
+         await platformSignupAction(VALID);
+-        expect(mocks.signUp.mock.calls[0][0].options).toEqual({ emailRedirectTo: `http://localhost:3000${REDIRECT_PATH}` });
++        expect(mocks.signUp.mock.calls[0][0].options).toEqual({
++            emailRedirectTo: `http://localhost:3000${REDIRECT_PATH}`,
++            data: TERMS_EVIDENCE,
++        });
+     });
+ 
+     it("omits the redirect when the configured site URL carries credentials", async () => {
+         process.env.NEXT_PUBLIC_SITE_URL = "https://user:pw@constructa-nu.vercel.app";
+         expect(await platformSignupAction(VALID)).toEqual({ ok: true, outcome: "confirmation-required" });
+-        expect(mocks.signUp.mock.calls[0][0]).toStrictEqual({ email: EMAIL, password: PASSWORD });
++        expect(mocks.signUp.mock.calls[0][0]).toStrictEqual({
++            email: EMAIL,
++            password: PASSWORD,
++            options: { data: TERMS_EVIDENCE },
++        });
+     });
+ 
+     it("omits the redirect for a non-http scheme", async () => {
+         process.env.NEXT_PUBLIC_SITE_URL = "ftp://constructa-nu.vercel.app";
+         await platformSignupAction(VALID);
+-        expect(mocks.signUp.mock.calls[0][0]).toStrictEqual({ email: EMAIL, password: PASSWORD });
++        expect(mocks.signUp.mock.calls[0][0]).toStrictEqual({
++            email: EMAIL,
++            password: PASSWORD,
++            options: { data: TERMS_EVIDENCE },
++        });
+     });
+ 
+     it("RECORDED OBSERVATION: an unusable NEXT_PUBLIC_APP_URL also removes the redirect even when the site URL is fine", async () => {
+@@ -194,13 +211,18 @@
+         process.env.NEXT_PUBLIC_SITE_URL = "https://constructa-nu.vercel.app";
+         process.env.NEXT_PUBLIC_APP_URL = "not a url";
+         await platformSignupAction(VALID);
+-        expect(mocks.signUp.mock.calls[0][0]).toStrictEqual({ email: EMAIL, password: PASSWORD });
++        expect(mocks.signUp.mock.calls[0][0]).toStrictEqual({
++            email: EMAIL,
++            password: PASSWORD,
++            options: { data: TERMS_EVIDENCE },
++        });
+     });
+ 
+     it("uses the deployed default origin when no site URL is configured", async () => {
+         await platformSignupAction(VALID);
+         expect(mocks.signUp.mock.calls[0][0].options).toEqual({
+             emailRedirectTo: `https://constructa-nu.vercel.app${REDIRECT_PATH}`,
++            data: TERMS_EVIDENCE,
+         });
+     });
+ });
+--- a/src/lib/platform-signup-action-boundaries.test.ts
++++ b/src/lib/platform-signup-action-boundaries.test.ts
+@@ -26,6 +26,12 @@
+     revision: PLATFORM_TERMS_CURRENT_REVISION,
+ };
+ const CONFIRMATION = { data: { user: { id: "pending-user" }, session: null }, error: null };
++// RC-aligned: the RC signup action always sends the terms evidence as options.data. Key names are
++// pinned as literals on purpose so a rename is noticed.
++const TERMS_EVIDENCE = {
++    platform_terms_revision: PLATFORM_TERMS_CURRENT_REVISION,
++    platform_terms_accepted_at: expect.any(String),
++};
+ 
+ beforeEach(() => {
+     mocks.gate.disabled = false;
+@@ -97,12 +103,17 @@
+         await platformSignupAction(VALID);
+         expect(mocks.signUp.mock.calls[0][0].options).toEqual({
+             emailRedirectTo: "https://constructa-nu.vercel.app/auth/callback?next=%2Fauth%2Fplatform-terms",
++            data: TERMS_EVIDENCE,
+         });
+     });
+ 
+     it("omits the redirect, and still signs up, when the configured site url is unusable", async () => {
+         vi.stubEnv("NEXT_PUBLIC_SITE_URL", "not a url");
+         expect(await platformSignupAction(VALID)).toEqual({ ok: true, outcome: "confirmation-required" });
+-        expect(mocks.signUp.mock.calls[0][0]).toEqual({ email: VALID.email, password: VALID.password });
++        expect(mocks.signUp.mock.calls[0][0]).toEqual({
++            email: VALID.email,
++            password: VALID.password,
++            options: { data: TERMS_EVIDENCE },
++        });
+     });
+ });
+--- a/src/lib/platform-signup-input-shapes.test.ts
++++ b/src/lib/platform-signup-input-shapes.test.ts
+@@ -117,6 +117,17 @@
+         expect(JSON.stringify(arg)).not.toContain("admin");
+     });
+ 
++    it("RC-aligned: options.data carries only the trusted revision and a server timestamp, never forged values", async () => {
++        const forged = { ...VALID, userId: "someone-else", accepted_at: "1999-01-01T00:00:00Z", data: { x: 1 } };
++        await platformSignupAction(forged as never);
++        const data = mocks.signUp.mock.calls[0][0].options?.data;
++        expect(Object.keys(data).sort()).toEqual(["platform_terms_accepted_at", "platform_terms_revision"]);
++        expect(data.platform_terms_revision).toBe(PLATFORM_TERMS_CURRENT_REVISION);
++        // A valid ISO instant from the server clock, not the browser-supplied 1999 value.
++        expect(new Date(data.platform_terms_accepted_at).toISOString()).toBe(data.platform_terms_accepted_at);
++        expect(data.platform_terms_accepted_at.startsWith("1999")).toBe(false);
++    });
++
+     it("passes only acceptance and the trusted revision to the recorder", async () => {
+         mocks.signUp.mockResolvedValue(WITH_SESSION);
+         mocks.recordConsent.mockResolvedValue({ ok: true, userId: "server-user", outcome: "recorded" });

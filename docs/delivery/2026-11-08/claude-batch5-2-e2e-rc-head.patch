@@ -1,0 +1,36 @@
+--- a/.github/workflows/e2e.yml
++++ b/.github/workflows/e2e.yml
+@@ -30,7 +30,7 @@
+ 
+ jobs:
+   hosted-write-status:
+-    if: ${{ github.event_name == 'pull_request' && (github.head_ref == 'backup/welcome-first-slice-20261018' || github.head_ref == 'codex/phase1-integration-review-20261023' || github.head_ref == 'codex/remove-public-mcp-20261023') }}
++    if: ${{ github.event_name == 'pull_request' && (github.head_ref == 'backup/welcome-first-slice-20261018' || github.head_ref == 'codex/phase1-integration-review-20261023' || github.head_ref == 'codex/remove-public-mcp-20261023' || github.head_ref == 'cursor/rc-integration-20261108') }}
+     runs-on: ubuntu-latest
+     steps:
+       - name: Record hosted journey NOT_RUN
+@@ -49,7 +49,7 @@
+     # Rob-approved source-only gate: these explicit review heads cannot start
+     # hosted account/data writes automatically. Draft pull requests are blocked
+     # until ready for review. Other branches and CI are unchanged.
+-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && github.head_ref != 'backup/welcome-first-slice-20261018' && github.head_ref != 'codex/phase1-integration-review-20261023' && github.head_ref != 'codex/remove-public-mcp-20261023') }}
++    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && github.head_ref != 'backup/welcome-first-slice-20261018' && github.head_ref != 'codex/phase1-integration-review-20261023' && github.head_ref != 'codex/remove-public-mcp-20261023' && github.head_ref != 'cursor/rc-integration-20261108') }}
+     runs-on: ubuntu-latest
+     timeout-minutes: 45
+     env:
+--- a/src/lib/deployment/review-branch-ci.test.ts
++++ b/src/lib/deployment/review-branch-ci.test.ts
+@@ -15,11 +15,11 @@
+ }
+ 
+ describe("explicit review-head hosted-write gate", () => {
+-    it.each(["backup/welcome-first-slice-20261018", "codex/phase1-integration-review-20261023", "codex/remove-public-mcp-20261023"])("records NOT_RUN rather than automatic hosted writes for %s", head => {
++    it.each(["backup/welcome-first-slice-20261018", "codex/phase1-integration-review-20261023", "codex/remove-public-mcp-20261023", "cursor/rc-integration-20261108"])("records NOT_RUN rather than automatic hosted writes for %s", head => {
+         expect(enabled("hosted-write-status", "pull_request", head)).toBe(true);
+         expect(enabled("phase1", "pull_request", head)).toBe(false);
+     });
+-    it.each(["main", "feature/unrelated", "codex/phase1-integration-review-20261023-other"])("retains the original other-branch path for %s", head => {
++    it.each(["main", "feature/unrelated", "codex/phase1-integration-review-20261023-other", "cursor/rc-integration-20261108-other"])("retains the original other-branch path for %s", head => {
+         expect(enabled("hosted-write-status", "pull_request", head)).toBe(false);
+         expect(enabled("phase1", "pull_request", head)).toBe(true);
+     });

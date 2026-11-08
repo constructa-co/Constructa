@@ -1,0 +1,139 @@
+diff --git a/scripts/recovery-manifest-check.test.mjs b/scripts/recovery-manifest-check.test.mjs
+--- a/scripts/recovery-manifest-check.test.mjs
++++ b/scripts/recovery-manifest-check.test.mjs
+@@ -354,3 +354,21 @@
+     for (const value of [null, [], "x"]) assert.equal(checkManifest(value).verdict, "INVALID");
+     assert.equal(checkManifest(manifest({ version: 2 })).verdict, "INVALID");
+ });
++
++test("Unicode-normalised export paths collide even when their bytes differ", () => {
++    const value = manifest();
++    value.entries.push({ ...value.entries[0], path: "db-schema/caf\u00e9.bin" });
++    value.entries.push({ ...value.entries[0], path: "db-schema/cafe\u0301.bin" });
++    const report = checkManifest(value);
++    assert.equal(report.verdict, "INVALID");
++    assert.ok(report.errors.some(error => error.includes("duplicate path")));
++});
++
++test("byte verification refuses a directory in place of an exported file", () => {
++    const value = manifest();
++    const root = exportRoot(value);
++    const target = path.join(root, value.entries[0].path);
++    rmSync(target);
++    mkdirSync(target);
++    assert.ok(checkManifest(value, { root }).errors.includes(`${value.entries[0].path}: not a regular file (symlinks are refused)`));
++});
+diff --git a/e2e/import-fixture/guard.test.ts b/e2e/import-fixture/guard.test.ts
+--- a/e2e/import-fixture/guard.test.ts
++++ b/e2e/import-fixture/guard.test.ts
+@@ -128,6 +128,18 @@
+         }
+     });
+ 
++    it("distinguishes a synthetic command failure from a deadline", async () => {
++        const dir = mkdtempSync(path.join(tmpdir(), "import-fixture-diagnostic-"));
++        try {
++            const failed = path.join(dir, "failed-git");
++            writeFileSync(failed, "#!/bin/sh\nprintf 'synthetic-index-failure' >&2\nexit 23\n", { mode: 0o755 });
++            await expect(trackedAmong(dir, failed)).rejects.toThrow(/"code":23.*"signal":null.*synthetic-index-failure/);
++            await expect(trackedAmong(dir, path.join(dir, "missing-git"))).rejects.toThrow(/ENOENT/);
++        } finally {
++            rmSync(dir, { recursive: true, force: true });
++        }
++    });
++
+     it("refuses to work unless explicitly switched on, at every entry point", () => {
+         for (const file of ["page.tsx", "actions.ts", "state/route.ts", "interview/page.tsx", "interview/actions.ts", "interview/state/route.ts", "case-study/page.tsx", "case-study/actions.ts", "case-study/state/route.ts", "profile/page.tsx", "profile/actions.ts", "profile/state/route.ts", "case-library/actions.ts", "case-library/[run]/page.tsx", "case-library/[run]/study/[id]/page.tsx", "case-library/[run]/study/[id]/guided/page.tsx", "case-library/[run]/review/page.tsx", "case-library/[run]/state/route.ts"]) {
+             expect(read(`e2e/import-fixture/app/${file}`), file).toContain('process.env.CONSTRUCTA_IMPORT_FIXTURE !== "1"');
+diff --git a/src/lib/public-measurement.test.ts b/src/lib/public-measurement.test.ts
+--- a/src/lib/public-measurement.test.ts
++++ b/src/lib/public-measurement.test.ts
+@@ -83,3 +83,88 @@
+     expect(plausible).not.toHaveBeenCalled();
+   });
+ });
++
++describe("adversarial public measurement inputs", () => {
++  it("strips confidential extras and refuses unknown runtime events", () => {
++    const sink = vi.fn();
++    __setPublicMeasurementTestSink(sink);
++    vi.stubGlobal("window", { location: { pathname: "/guides/synthetic?email=private#project" } });
++    // Exercise runtime input beyond the compile-time contract without any provider.
++    const dispatch = dispatchPublicMeasurementEvent as unknown as
++      (event: string, options?: { props: Record<string, string> }) => void;
++    dispatch("TryConstructaClick", { props: { location: "solution", email: "synthetic@example.invalid", project: "private synthetic brief" } });
++    dispatch("ContactFormSubmit", { props: { email: "synthetic@example.invalid" } });
++    dispatch("SubscriberConfirmed", { props: {} });
++    expect(sink.mock.calls).toEqual([
++      ["TryConstructaClick", { location: "solution" }],
++      ["ContactFormSubmit", {}],
++    ]);
++  });
++
++  it.each(["/guides-private", "/dashboard/guides", "/auth/callback", "/api/contact", "/proposal/synthetic", "/admin/guides"])(
++    "rejects private and lookalike route %s", (pathname) => {
++      const sink = vi.fn();
++      __setPublicMeasurementTestSink(sink);
++      vi.stubGlobal("window", { location: { pathname } });
++      trackContactFormSubmitAccepted("/guides");
++      expect(sink).not.toHaveBeenCalled();
++    },
++  );
++
++  it("counts repeated attempts separately; it does not claim unique conversions", () => {
++    const sink = vi.fn();
++    __setPublicMeasurementTestSink(sink);
++    vi.stubGlobal("window", { location: { pathname: "/landing" } });
++    trackWaitlistSubmitAttempt();
++    trackWaitlistSubmitAttempt();
++    expect(sink.mock.calls).toEqual([["WaitlistSubmitAttempt", {}], ["WaitlistSubmitAttempt", {}]]);
++  });
++});
++
++
++describe("A097 offline evidence boundaries", () => {
++  it("has no outbound or persistence effect without a test sink", () => {
++    const fetch = vi.fn();
++    const sendBeacon = vi.fn();
++    const setItem = vi.fn();
++    vi.stubGlobal("fetch", fetch);
++    vi.stubGlobal("navigator", { sendBeacon });
++    vi.stubGlobal("localStorage", { setItem });
++    vi.stubGlobal("sessionStorage", { setItem });
++    vi.stubGlobal("window", { location: { pathname: "/" } });
++    trackTryConstructaClick("solution");
++    trackContactFormSubmitAccepted();
++    trackWaitlistSubmitAttempt();
++    expect(fetch).not.toHaveBeenCalled();
++    expect(sendBeacon).not.toHaveBeenCalled();
++    expect(setItem).not.toHaveBeenCalled();
++  });
++
++  it("does not leak attribution parameters or turn attempts into confirmed outcomes", () => {
++    const sink = vi.fn();
++    __setPublicMeasurementTestSink(sink);
++    vi.stubGlobal("window", { location: {
++      pathname: "/apply",
++      search: "?utm_source=synthetic&email=synthetic@example.invalid",
++      hash: "#private-fragment",
++    } });
++    trackTryConstructaClick("about");
++    trackWaitlistSubmitAttempt();
++    expect(sink.mock.calls).toEqual([
++      ["TryConstructaClick", { location: "about" }],
++      ["WaitlistSubmitAttempt", {}],
++    ]);
++  });
++
++  it("rechecks the current route after public-to-private navigation", () => {
++    const sink = vi.fn();
++    __setPublicMeasurementTestSink(sink);
++    const location = { pathname: "/apply" };
++    vi.stubGlobal("window", { location });
++    trackTryConstructaClick("solution");
++    location.pathname = "/dashboard/projects/costs";
++    trackTryConstructaClick("solution", "/");
++    trackContactFormSubmitAccepted("/");
++    expect(sink.mock.calls).toEqual([["TryConstructaClick", { location: "solution" }]]);
++  });
++});

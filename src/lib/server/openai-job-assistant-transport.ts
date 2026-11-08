@@ -1,7 +1,7 @@
 import "server-only";
 
 import type OpenAI from "openai";
-import { getAIClient } from "@/lib/ai";
+import { getAIClient, getDeepSeekClient } from "@/lib/ai";
 import { costPence, type JobAssistantProvider, type JobAssistantTransport, type TransportRequest, type TransportResult } from "./job-assistant-generation";
 
 /** The part of the installed OpenAI SDK this transport uses. Tests pass a fake. */
@@ -26,8 +26,13 @@ const MESSAGE_OVERHEAD_TOKENS = 16;
 export function createOpenAIJobAssistantTransport(options: {
     systemPrompt: string;
     client?: () => ChatClient;
+    /** The provider this transport sends to over the same SDK. Default `openai`. */
+    provider?: string;
+    /** Checked at send time, before any client: false means nothing is sent. */
+    ready?: () => boolean;
 }): JobAssistantTransport {
     const client = options.client ?? getAIClient;
+    const provider = options.provider ?? "openai";
     const dataMessage = (context: unknown) => `Saved job data (JSON):\n${JSON.stringify(context ?? null)}`;
 
     return {
@@ -39,7 +44,7 @@ export function createOpenAIJobAssistantTransport(options: {
 
         async send(request: TransportRequest): Promise<TransportResult> {
             // Refused here, before any client exists: nothing was sent or charged.
-            if (request.provider !== "openai" || request.signal.aborted) return { kind: "not_sent" };
+            if (request.provider !== provider || request.signal.aborted || (options.ready && !options.ready())) return { kind: "not_sent" };
             const response = await client().chat.completions.create(
                 {
                     model: request.model,
@@ -48,14 +53,17 @@ export function createOpenAIJobAssistantTransport(options: {
                         { role: "user", content: dataMessage(request.context) },
                         ...request.messages.map(item => ({ role: item.role, content: item.content })),
                     ],
-                    max_completion_tokens: request.maxOutputTokens,
+                    // DeepSeek's chat API takes the older `max_tokens` output limit.
+                    ...(provider === "openai" ? { max_completion_tokens: request.maxOutputTokens } : { max_tokens: request.maxOutputTokens }),
+                    ...(provider === "deepseek" ? { thinking: { type: "disabled" as const } } : {}),
                     response_format: { type: "json_object" },
                 },
                 { signal: request.signal, maxRetries: 0 },
             );
             const usage = response.usage;
+            // OpenAI may answer with a dated snapshot of the requested model; any other provider must name it exactly.
             const sameModel = typeof response.model === "string"
-                && (response.model === request.model || response.model.startsWith(`${request.model}-`));
+                && (response.model === request.model || (provider === "openai" && response.model.startsWith(`${request.model}-`)));
             const cost = sameModel && Number.isInteger(usage?.prompt_tokens) && Number.isInteger(usage?.completion_tokens)
                 ? costPence(request.prices, usage!.prompt_tokens, usage!.completion_tokens)
                 : Number.NaN;
@@ -82,4 +90,21 @@ export function createOpenAIJobAssistantTransport(options: {
 export const openAIJobAssistantProvider: JobAssistantProvider = {
     configured: () => Boolean(process.env.OPENAI_API_KEY?.trim()),
     transport: systemPrompt => createOpenAIJobAssistantTransport({ systemPrompt }),
+};
+
+// The verified QA Supabase project. DeepSeek is approved for QA only, on its Vercel Preview deployments.
+const QA_SUPABASE_URL = "https://umqtzfsnyoofmgfbnrgv.supabase.co";
+export const onQaPreview = () => process.env.VERCEL_ENV === "preview"
+    && process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/\/+$/, "") === QA_SUPABASE_URL;
+
+/**
+ * DeepSeek over the same SDK at its fixed endpoint, for QA Preview only. It is
+ * configured only on a Preview deployment of the QA project with
+ * `DEEPSEEK_API_KEY` on the server; Production, development, another project
+ * or a missing key leave it unconfigured, and a send re-checks the target
+ * before any client. There is no automatic OpenAI call after a DeepSeek send.
+ */
+export const deepSeekJobAssistantProvider: JobAssistantProvider = {
+    configured: () => onQaPreview() && Boolean(process.env.DEEPSEEK_API_KEY?.trim()),
+    transport: systemPrompt => createOpenAIJobAssistantTransport({ systemPrompt, provider: "deepseek", client: getDeepSeekClient, ready: onQaPreview }),
 };

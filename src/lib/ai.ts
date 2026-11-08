@@ -12,6 +12,15 @@ export function getAIClient(): OpenAI {
     return new OpenAI({ apiKey });
 }
 
+/** DeepSeek's OpenAI-compatible API. The endpoint is fixed here; only the key comes from the server. */
+const DEEPSEEK_BASE_URL = "https://api.deepseek.com";
+
+export function getDeepSeekClient(): OpenAI {
+    const apiKey = process.env.DEEPSEEK_API_KEY?.trim();
+    if (!apiKey) throw new Error("DEEPSEEK_API_KEY is not configured");
+    return new OpenAI({ apiKey, baseURL: DEEPSEEK_BASE_URL, maxRetries: 0 });
+}
+
 export async function generateText(prompt: string): Promise<string> {
     const client = getAIClient();
     const response = await client.chat.completions.create({

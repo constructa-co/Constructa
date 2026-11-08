@@ -8,7 +8,7 @@ import {
 } from "./job-assistant-generation";
 import { createRpcUsageLedger, type ActivationLedger } from "./job-assistant-ledger";
 import { BRIEF_SYSTEM_PROMPT, PLANNING_SYSTEM_PROMPT, PRICING_SYSTEM_PROMPT } from "./job-assistant-prompts";
-import { openAIJobAssistantProvider } from "./openai-job-assistant-transport";
+import { deepSeekJobAssistantProvider, openAIJobAssistantProvider } from "./openai-job-assistant-transport";
 
 /**
  * A055 server-side activation point for the job assistant.
@@ -19,8 +19,8 @@ import { openAIJobAssistantProvider } from "./openai-job-assistant-transport";
  * through the generation seam in `job-assistant-generation.ts`: bounds,
  * reservation, one provider call, settle/release/retain, recorded outcome.
  *
- * NOTHING IS APPROVED YET, so every activation point returns null and the
- * request handlers answer "off" after their checks. Each feature already has
+ * On non-QA targets every activation point still returns null until the
+ * ledger and Preview prerequisites are met. Each feature already has its
  * its OpenAI transport adapter and prompt here; reply JSON is mapped in
  * `openai-job-assistant-transport` and reviewed on the request path. The usage
  * ledger migration is source only (NOT applied, disabled).
@@ -37,8 +37,40 @@ import { openAIJobAssistantProvider } from "./openai-job-assistant-transport";
  * The existing `AiFeature` budgets (`brief.suggest`, the weekly client update
  * `schedule.programme-update` and the rest) are other features and must not be
  * borrowed. This module holds no secret or provider today.
+ *
+ * DeepSeek QA (Rob, 2026-10-29T16:02:32.065Z QA approval reread): `deepseek-flash`
+ * on the verified QA Preview target only, with peak uncached budget prices
+ * (25p / 100p per million input/output tokens), attempt/per-job/monthly caps
+ * 10 / 10 / 2000 pence, and original technical ceilings. Production and other
+ * targets stay OFF (`null` approvals). Ledger migration apply + enabled row
+ * remain prerequisites before `covers()` passes.
  */
-const APPROVED_GENERATION: Record<JobAssistantFeature, unknown> = { pricing: null, planning: null, brief: null };
+const QA_DEEPSEEK_APPROVAL_AT = "2026-10-29T16:02:32.065Z";
+const QA_DEEPSEEK_APPROVAL_REF = "rob-qa-deepseek-flash-20261029T160232065Z";
+
+function deepSeekQaApproval(feature: JobAssistantFeature) {
+    if (!deepSeekJobAssistantProvider.configured()) return null;
+    return {
+        feature,
+        approval: { ref: QA_DEEPSEEK_APPROVAL_REF, approvedBy: "Rob", approvedAt: QA_DEEPSEEK_APPROVAL_AT },
+        provider: "deepseek",
+        model: "deepseek-flash",
+        maxOutputTokens: 4_000,
+        timeoutMs: 60_000,
+        maxMessages: 24,
+        maxInputChars: 60_000,
+        prices: { inputPencePerMillionTokens: 25, outputPencePerMillionTokens: 100 },
+        attemptPence: 10,
+        perJobPence: 10,
+        monthlyPence: 2_000,
+    };
+}
+
+export const APPROVED_GENERATION = {
+    get pricing() { return deepSeekQaApproval("pricing"); },
+    get planning() { return deepSeekQaApproval("planning"); },
+    get brief() { return deepSeekQaApproval("brief"); },
+} satisfies Record<JobAssistantFeature, unknown>;
 
 // No client or key is made here: the transport makes its client only inside a send.
 const FEATURE_PROMPTS: Record<JobAssistantFeature, string> = {
@@ -55,10 +87,15 @@ export type JobAssistantActivation = {
     // The service-role client is made only inside a ledger step or the settings read.
     ledger: () => ActivationLedger;
 };
+/** The providers the server can call. An approval names one; none is chosen automatically after another. */
+export const JOB_ASSISTANT_PROVIDERS: Record<string, JobAssistantProvider> = {
+    openai: openAIJobAssistantProvider,
+    deepseek: deepSeekJobAssistantProvider,
+};
 const SERVER_ACTIVATION: JobAssistantActivation = {
     approvals: APPROVED_GENERATION,
     stopped: aiEmergencyStop,
-    providers: { openai: openAIJobAssistantProvider },
+    providers: JOB_ASSISTANT_PROVIDERS,
     ledger: () => createRpcUsageLedger(),
 };
 

@@ -1,0 +1,68 @@
+diff --git a/docs/cursor-change-log.md b/docs/cursor-change-log.md
+index 6a6a556..9041541 100644
+--- a/docs/cursor-change-log.md
++++ b/docs/cursor-change-log.md
+@@ -1,5 +1,12 @@
+ # Cursor change log
+ 
++## 2026-10-30 — ROB2245 A024 draft privacy label (Cursor integration)
++
++| Paths | Change | Intent |
++|-------|--------|--------|
++| `src/app/privacy-policy/page.tsx` (after `h1`, ~L6–L20) | Added accessible `role="note"` block with `h2` **Draft, not yet legally approved** and clarifying copy (not legal approval; not marketing publication; not compliance certification) | Rob 22:18 approved visible draft status without inventing controller/legal-basis/processor facts |
++| `src/app/privacy-policy/privacy-information.test.tsx` (~L43–L57) | New draft-status test; paragraph count 5→6 | RED/GREEN guard for A024 bounded change |
++
+ ## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
+ 
+ | Paths | Change | Intent |
+diff --git a/src/app/privacy-policy/page.tsx b/src/app/privacy-policy/page.tsx
+index bc8ae00..7e4ef67 100644
+--- a/src/app/privacy-policy/page.tsx
++++ b/src/app/privacy-policy/page.tsx
+@@ -3,6 +3,20 @@ export default function PrivacyPolicyPage() {
+     <main className="min-h-screen pt-16 bg-black">
+       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+         <h1 className="text-4xl font-bold text-white mb-8">Privacy Policy</h1>
++
++        <div
++          role="note"
++          aria-labelledby="privacy-draft-status"
++          className="mb-8 rounded-lg border border-amber-500/40 bg-amber-950/30 px-4 py-5"
++          data-privacy-draft-notice
++        >
++          <h2 id="privacy-draft-status" className="text-xl font-semibold text-amber-200 mb-3">
++            Draft, not yet legally approved
++          </h2>
++          <p className="text-sm text-amber-100/90">
++            This label is not legal approval of this notice. This page is not a marketing publication and is not presented as compliance certification.
++          </p>
++        </div>
+         
+         <div className="prose prose-invert max-w-none">
+           <p className="text-gray-400 mb-6">
+diff --git a/src/app/privacy-policy/privacy-information.test.tsx b/src/app/privacy-policy/privacy-information.test.tsx
+index 7bcd703..a59c0f6 100644
+--- a/src/app/privacy-policy/privacy-information.test.tsx
++++ b/src/app/privacy-policy/privacy-information.test.tsx
+@@ -40,9 +40,20 @@ describe("privacy information", () => {
+         expect(text).not.toContain("Last updated: March 2026");
+     });
+ 
++    it("shows the approved draft status label and clarifies what it is not", () => {
++        expect(text).toContain("Draft, not yet legally approved");
++        expect(html).toMatch(
++            /<h2[^>]*id="privacy-draft-status"[^>]*>Draft, not yet legally approved<\/h2>/,
++        );
++        expect(html).toMatch(/<div [^>]*data-privacy-draft-notice[^>]*>/);
++        expect(text).toContain("This label is not legal approval of this notice.");
++        expect(text).toContain("This page is not a marketing publication");
++        expect(text).toContain("not presented as compliance certification.");
++    });
++
+     it("keeps the page structure and the facts it already stated", () => {
+         expect(html).toMatch(/^<main[^>]*><div[^>]*><h1[^>]*>Privacy Policy<\/h1>/);
+         expect(text).toContain("When you sign up for updates or use our platform, we hold the details you give us, such as your name, email address and company details.");
+-        expect(html.match(/<p /g)).toHaveLength(5);
++        expect(html.match(/<p /g)).toHaveLength(6);
+     });
+ });

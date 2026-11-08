@@ -3,6 +3,20 @@ export default function PrivacyPolicyPage() {
     <main className="min-h-screen pt-16 bg-black">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <h1 className="text-4xl font-bold text-white mb-8">Privacy Policy</h1>
+
+        <div
+          role="note"
+          aria-labelledby="privacy-draft-status"
+          className="mb-8 rounded-lg border border-amber-500/40 bg-amber-950/30 px-4 py-5"
+          data-privacy-draft-notice
+        >
+          <h2 id="privacy-draft-status" className="text-xl font-semibold text-amber-200 mb-3">
+            Draft, not yet legally approved
+          </h2>
+          <p className="text-sm text-amber-100/90">
+            This label is not legal approval of this notice. This page is not a marketing publication and is not presented as compliance certification.
+          </p>
+        </div>
         
         <div className="prose prose-invert max-w-none">
           <p className="text-gray-400 mb-6">

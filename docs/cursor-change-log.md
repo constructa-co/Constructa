@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-10-30 — ROB2245 A024 draft privacy label (Cursor integration)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| `src/app/privacy-policy/page.tsx` (after `h1`, ~L6–L20) | Added accessible `role="note"` block with `h2` **Draft, not yet legally approved** and clarifying copy (not legal approval; not marketing publication; not compliance certification) | Rob 22:18 approved visible draft status without inventing controller/legal-basis/processor facts |
+| `src/app/privacy-policy/privacy-information.test.tsx` (~L43–L57) | New draft-status test; paragraph count 5→6 | RED/GREEN guard for A024 bounded change |
+
 ## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
 
 | Paths | Change | Intent |

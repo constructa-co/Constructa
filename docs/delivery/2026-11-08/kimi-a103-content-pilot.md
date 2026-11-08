@@ -3,7 +3,7 @@
 **Status: DRAFT - ROB REVIEW REQUIRED. Later-release expert-review and measurement plan only — no ranking promises, no publishing, no CMS/route change, no analytics change.**
 Author: Kimi, 2026-11-08 (batch 4), branch `kimi/marketing-drafts-20261108-1020`.
 
-Companion to the batch-2 design draft `kimi-a103-content-pilot.md`, which holds the four article briefs, SEO/accessibility rules, and human-review gates. This outline focuses on the two things the register wording emphasises for later release: **expert review** and **measurement**. No content has been written to production, nothing published, no traffic outcome promised.
+Companion to the earlier design draft `kimi-a103-article-briefs.md` (preserved from commit 0dc435d under this new name — the original path `kimi-a103-content-pilot.md` now carries this batch-4 outline), which holds the four article briefs, SEO/accessibility rules, and human-review gates. This outline focuses on the two things the register wording emphasises for later release: **expert review** and **measurement**. No content has been written to production, nothing published, no traffic outcome promised.
 
 ## 1. Expert-review plan (per article)
 

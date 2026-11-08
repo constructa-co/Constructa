@@ -102,6 +102,26 @@ describe("reset password page", () => {
         expect(markup).toContain("Request a new reset link");
         expect(markup).not.toContain('id="password"');
         expect(state.setSession).not.toHaveBeenCalled();
+        expect(state.getSession).not.toHaveBeenCalled();
+        expect(history.replaceState).toHaveBeenCalledWith(null, "", "/auth/reset-password");
+    });
+
+    it("refuses the password form for hash failures even when a session already exists", async () => {
+        address.hash = "#error=access_denied&error_code=otp_expired";
+        state.getSession.mockResolvedValue({
+            data: { session: { user: { id: "existing-user" } } },
+        });
+        hydrate();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        const markup = html();
+        expect(markup).toContain(RECOVERY_LINK_EXPIRED_MESSAGE);
+        expect(markup).toContain(`href="${FORGOT_PASSWORD_PATH}"`);
+        expect(markup).not.toContain('id="password"');
+        expect(markup).not.toContain("Update password");
+        expect(state.setSession).not.toHaveBeenCalled();
+        expect(state.getSession).not.toHaveBeenCalled();
         expect(history.replaceState).toHaveBeenCalledWith(null, "", "/auth/reset-password");
     });
 

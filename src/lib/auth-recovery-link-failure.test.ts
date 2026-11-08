@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
     forgotPasswordExpiredUrl,
     isRecoveryLinkExpiredNotice,
+    isRecoveryLinkFailureHash,
     isRecoveryLinkFailureSearch,
     shouldRedirectRecoveryLinkFailure,
 } from "./auth-recovery-link-failure";
@@ -22,6 +23,17 @@ describe("recognising Supabase recovery link failures in the query string", () =
 
     it.each([undefined, null, 42])("rejects non-string %j", value => {
         expect(isRecoveryLinkFailureSearch(value)).toBe(false);
+    });
+});
+
+describe("recognising Supabase recovery link failures in the hash fragment", () => {
+    it.each([
+        ["#error=access_denied&error_code=otp_expired", true],
+        ["error=access_denied&error_code=otp_expired", true],
+        ["#access_token=synthetic&refresh_token=synthetic", false],
+        ["", false],
+    ])("%j → %s", (hash, expected) => {
+        expect(isRecoveryLinkFailureHash(hash)).toBe(expected);
     });
 });
 

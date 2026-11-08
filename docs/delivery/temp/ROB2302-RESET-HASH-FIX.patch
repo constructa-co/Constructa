@@ -1,0 +1,140 @@
+diff --git a/docs/cursor-change-log.md b/docs/cursor-change-log.md
+index ad131b8..8c0a2a3 100644
+--- a/docs/cursor-change-log.md
++++ b/docs/cursor-change-log.md
+@@ -169,3 +169,12 @@
+ | `src/proxy.ts` (+ `proxy.test.ts`) | GET redirect from public routes with expired OTP query to `/auth/forgot-password?notice=link-expired` | Stop silent homepage landings on QA |
+ | `src/app/auth/reset-password/page.tsx` (+ `page.test.tsx`) | Query/hash failure UX; form when session valid; link to forgot-password | Valid link shows form; invalid shows clear recovery path |
+ | `src/app/auth/forgot-password/page.tsx` (+ `page.test.tsx`) | Hydrated alert for `notice=link-expired` | Message after proxy normalisation |
++
++## 2026-10-30 — Reset-password hash OTP expiry (ROB2302, Cursor)
++
++| File | Lines (approx.) | Change | Intent |
++|------|-----------------|--------|--------|
++| `src/lib/auth-recovery-link-failure.ts` | shared `isRecoveryLinkFailureParams`; new `isRecoveryLinkFailureHash` | Treat `#error=…&error_code=otp_expired` like query failures | Codex cq-qa-reset-route-tests: hash errors must not fall through to `getSession()` |
++| `src/lib/auth-recovery-link-failure.test.ts` | hash fragment `it.each` | Lock hash detection | Same rules as query string |
++| `src/app/auth/reset-password/page.tsx` | early return after query check | Hash failure → expired message, strip hash, no session probe | Refuse password form when link failed even if browser still has a session |
++| `src/app/auth/reset-password/page.test.tsx` | new case + `getSession` assertion on query test | Mock existing session; assert no password form and no auth calls | Prove hash failure beats stale session |
+diff --git a/src/app/auth/reset-password/page.test.tsx b/src/app/auth/reset-password/page.test.tsx
+index b3baaa7..6523287 100644
+--- a/src/app/auth/reset-password/page.test.tsx
++++ b/src/app/auth/reset-password/page.test.tsx
+@@ -102,6 +102,26 @@ describe("reset password page", () => {
+         expect(markup).toContain("Request a new reset link");
+         expect(markup).not.toContain('id="password"');
+         expect(state.setSession).not.toHaveBeenCalled();
++        expect(state.getSession).not.toHaveBeenCalled();
++        expect(history.replaceState).toHaveBeenCalledWith(null, "", "/auth/reset-password");
++    });
++
++    it("refuses the password form for hash failures even when a session already exists", async () => {
++        address.hash = "#error=access_denied&error_code=otp_expired";
++        state.getSession.mockResolvedValue({
++            data: { session: { user: { id: "existing-user" } } },
++        });
++        hydrate();
++        await Promise.resolve();
++        await Promise.resolve();
++
++        const markup = html();
++        expect(markup).toContain(RECOVERY_LINK_EXPIRED_MESSAGE);
++        expect(markup).toContain(`href="${FORGOT_PASSWORD_PATH}"`);
++        expect(markup).not.toContain('id="password"');
++        expect(markup).not.toContain("Update password");
++        expect(state.setSession).not.toHaveBeenCalled();
++        expect(state.getSession).not.toHaveBeenCalled();
+         expect(history.replaceState).toHaveBeenCalledWith(null, "", "/auth/reset-password");
+     });
+ 
+diff --git a/src/app/auth/reset-password/page.tsx b/src/app/auth/reset-password/page.tsx
+index eb6e35f..c15e48a 100644
+--- a/src/app/auth/reset-password/page.tsx
++++ b/src/app/auth/reset-password/page.tsx
+@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
+ import { getLaunchLandingPath } from '@/lib/launch-profile'
+ import {
+     FORGOT_PASSWORD_PATH,
++    isRecoveryLinkFailureHash,
+     isRecoveryLinkFailureSearch,
+     RECOVERY_LINK_EXPIRED_MESSAGE,
+ } from '@/lib/auth-recovery-link-failure'
+@@ -30,6 +31,12 @@ export default function ResetPasswordPage() {
+             return
+         }
+ 
++        if (isRecoveryLinkFailureHash(window.location.hash)) {
++            setError(RECOVERY_LINK_EXPIRED_MESSAGE)
++            window.history.replaceState(null, '', '/auth/reset-password')
++            return
++        }
++
+         const supabase = createClient()
+ 
+         // Handle the case where we land here with a hash fragment from the
+diff --git a/src/lib/auth-recovery-link-failure.test.ts b/src/lib/auth-recovery-link-failure.test.ts
+index b3782c0..9234257 100644
+--- a/src/lib/auth-recovery-link-failure.test.ts
++++ b/src/lib/auth-recovery-link-failure.test.ts
+@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
+ import {
+     forgotPasswordExpiredUrl,
+     isRecoveryLinkExpiredNotice,
++    isRecoveryLinkFailureHash,
+     isRecoveryLinkFailureSearch,
+     shouldRedirectRecoveryLinkFailure,
+ } from "./auth-recovery-link-failure";
+@@ -25,6 +26,17 @@ describe("recognising Supabase recovery link failures in the query string", () =
+     });
+ });
+ 
++describe("recognising Supabase recovery link failures in the hash fragment", () => {
++    it.each([
++        ["#error=access_denied&error_code=otp_expired", true],
++        ["error=access_denied&error_code=otp_expired", true],
++        ["#access_token=synthetic&refresh_token=synthetic", false],
++        ["", false],
++    ])("%j → %s", (hash, expected) => {
++        expect(isRecoveryLinkFailureHash(hash)).toBe(expected);
++    });
++});
++
+ describe("proxy redirect policy for recovery failures", () => {
+     it("redirects the homepage and other public routes, not reset or forgot-password", () => {
+         const search = "?error=access_denied&error_code=otp_expired";
+diff --git a/src/lib/auth-recovery-link-failure.ts b/src/lib/auth-recovery-link-failure.ts
+index 5204f09..5744f65 100644
+--- a/src/lib/auth-recovery-link-failure.ts
++++ b/src/lib/auth-recovery-link-failure.ts
+@@ -20,10 +20,7 @@ function searchParams(search: string): URLSearchParams | null {
+     }
+ }
+ 
+-/** Supabase recovery failures arrive as ?error=…&error_code=… on the configured site URL. */
+-export function isRecoveryLinkFailureSearch(search: unknown): boolean {
+-    if (typeof search !== "string" || !search) return false;
+-    const params = searchParams(search);
++function isRecoveryLinkFailureParams(params: URLSearchParams | null): boolean {
+     if (!params) return false;
+ 
+     const errors = params.getAll("error");
+@@ -38,6 +35,20 @@ export function isRecoveryLinkFailureSearch(search: unknown): boolean {
+     return false;
+ }
+ 
++/** Supabase recovery failures arrive as ?error=…&error_code=… on the configured site URL. */
++export function isRecoveryLinkFailureSearch(search: unknown): boolean {
++    if (typeof search !== "string" || !search) return false;
++    return isRecoveryLinkFailureParams(searchParams(search));
++}
++
++/** Same failure shape when Supabase puts error params in the hash on reset-password. */
++export function isRecoveryLinkFailureHash(hash: unknown): boolean {
++    if (typeof hash !== "string" || !hash) return false;
++    const fragment = hash.startsWith("#") ? hash.slice(1) : hash;
++    if (!fragment) return false;
++    return isRecoveryLinkFailureParams(searchParams(fragment));
++}
++
+ export function shouldRedirectRecoveryLinkFailure(pathname: string, search: string): boolean {
+     if (!isRecoveryLinkFailureSearch(search)) return false;
+     if (pathname.startsWith("/api/")) return false;

@@ -20,10 +20,7 @@ function searchParams(search: string): URLSearchParams | null {
     }
 }
 
-/** Supabase recovery failures arrive as ?error=…&error_code=… on the configured site URL. */
-export function isRecoveryLinkFailureSearch(search: unknown): boolean {
-    if (typeof search !== "string" || !search) return false;
-    const params = searchParams(search);
+function isRecoveryLinkFailureParams(params: URLSearchParams | null): boolean {
     if (!params) return false;
 
     const errors = params.getAll("error");
@@ -36,6 +33,20 @@ export function isRecoveryLinkFailureSearch(search: unknown): boolean {
     if (errors[0] === "access_denied" && errorCode) return true;
 
     return false;
+}
+
+/** Supabase recovery failures arrive as ?error=…&error_code=… on the configured site URL. */
+export function isRecoveryLinkFailureSearch(search: unknown): boolean {
+    if (typeof search !== "string" || !search) return false;
+    return isRecoveryLinkFailureParams(searchParams(search));
+}
+
+/** Same failure shape when Supabase puts error params in the hash on reset-password. */
+export function isRecoveryLinkFailureHash(hash: unknown): boolean {
+    if (typeof hash !== "string" || !hash) return false;
+    const fragment = hash.startsWith("#") ? hash.slice(1) : hash;
+    if (!fragment) return false;
+    return isRecoveryLinkFailureParams(searchParams(fragment));
 }
 
 export function shouldRedirectRecoveryLinkFailure(pathname: string, search: string): boolean {

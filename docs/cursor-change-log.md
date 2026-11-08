@@ -169,3 +169,12 @@
 | `src/proxy.ts` (+ `proxy.test.ts`) | GET redirect from public routes with expired OTP query to `/auth/forgot-password?notice=link-expired` | Stop silent homepage landings on QA |
 | `src/app/auth/reset-password/page.tsx` (+ `page.test.tsx`) | Query/hash failure UX; form when session valid; link to forgot-password | Valid link shows form; invalid shows clear recovery path |
 | `src/app/auth/forgot-password/page.tsx` (+ `page.test.tsx`) | Hydrated alert for `notice=link-expired` | Message after proxy normalisation |
+
+## 2026-10-30 — Reset-password hash OTP expiry (ROB2302, Cursor)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/auth-recovery-link-failure.ts` | shared `isRecoveryLinkFailureParams`; new `isRecoveryLinkFailureHash` | Treat `#error=…&error_code=otp_expired` like query failures | Codex cq-qa-reset-route-tests: hash errors must not fall through to `getSession()` |
+| `src/lib/auth-recovery-link-failure.test.ts` | hash fragment `it.each` | Lock hash detection | Same rules as query string |
+| `src/app/auth/reset-password/page.tsx` | early return after query check | Hash failure → expired message, strip hash, no session probe | Refuse password form when link failed even if browser still has a session |
+| `src/app/auth/reset-password/page.test.tsx` | new case + `getSession` assertion on query test | Mock existing session; assert no password form and no auth calls | Prove hash failure beats stale session |

@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { getLaunchLandingPath } from '@/lib/launch-profile'
 import {
     FORGOT_PASSWORD_PATH,
+    isRecoveryLinkFailureHash,
     isRecoveryLinkFailureSearch,
     RECOVERY_LINK_EXPIRED_MESSAGE,
 } from '@/lib/auth-recovery-link-failure'
@@ -25,6 +26,12 @@ export default function ResetPasswordPage() {
 
     useEffect(() => {
         if (isRecoveryLinkFailureSearch(window.location.search)) {
+            setError(RECOVERY_LINK_EXPIRED_MESSAGE)
+            window.history.replaceState(null, '', '/auth/reset-password')
+            return
+        }
+
+        if (isRecoveryLinkFailureHash(window.location.hash)) {
             setError(RECOVERY_LINK_EXPIRED_MESSAGE)
             window.history.replaceState(null, '', '/auth/reset-password')
             return

@@ -1,5 +1,20 @@
 # Cursor change log
 
+## 2026-10-30 — ROB2245 A038 case-study text enhance OFF (Cursor)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| `src/lib/cohort-ai/case-study-enhance-enabled.ts` | `CASE_STUDY_TEXT_ENHANCE_ENABLED=false` + helper | Explicit app OFF separate from DB budget seed |
+| `src/app/dashboard/settings/case-studies/actions.ts` (~L109–112) | Return `COHORT_AI_OFF` before `createAdminClient` | Zero admin/provider when OFF |
+| `case-studies-client.tsx`, `library/case-study-editor.tsx` | Guard + disabled AI Enhance | UI never calls action when OFF |
+| `actions.test.ts`, `case-study-enhance-off.test.ts` | OFF proofs | Auth-only path; preserved text; injection semantics |
+
+## 2026-10-30 — ROB2233 A038 three-photo overnight (Cursor Composer 2.5)
+
+| Paths | Change | Intent |
+|-------|--------|--------|
+| `PRIVATE/ROB2233-CURSOR-A038-RETURN.md`, `.patch` | Return receipt only | NO_PRODUCT_DELTA on `4c66969`; migration/storage seam documented; vitest EPERM blocker |
+
 ## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
 
 | Paths | Change | Intent |

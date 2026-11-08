@@ -4,7 +4,8 @@ import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { enhanceCaseStudy, type CaseStudyResult } from "@/lib/cohort-ai/case-study-enhance";
-import { COHORT_AI_UNAVAILABLE } from "@/lib/cohort-ai/shared";
+import { caseStudyTextEnhanceEnabled } from "@/lib/cohort-ai/case-study-enhance-enabled";
+import { COHORT_AI_OFF, COHORT_AI_UNAVAILABLE } from "@/lib/cohort-ai/shared";
 import { SAVE_MESSAGES, type SaveCaseStudiesResult } from "./save-state";
 
 /**
@@ -104,6 +105,10 @@ export async function enhanceCaseStudyAction(
         userId = (await requireAuth()).user.id;
     } catch {
         return own(COHORT_AI_UNAVAILABLE);
+    }
+
+    if (!caseStudyTextEnhanceEnabled()) {
+        return own(COHORT_AI_OFF);
     }
 
     try {

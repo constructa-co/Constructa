@@ -1,0 +1,141 @@
+diff --git a/PRIVATE/ROB2233-CURSOR-A038-RETURN.md b/PRIVATE/ROB2233-CURSOR-A038-RETURN.md
+new file mode 100644
+index 0000000..ad15218
+--- /dev/null
++++ b/PRIVATE/ROB2233-CURSOR-A038-RETURN.md
+@@ -0,0 +1,119 @@
++# ROB2233 — Cursor A038 three-photo path (Composer 2.5, fast=false)
++
++**When:** 2026-10-30 ~22:33 UAE (overnight slot, finish target 04:00 UAE 31 Oct)  
++**Worktree:** `/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/a038-photos`  
++**Branch:** `cq/a038-photos`  
++**Base pin (session start):** `4c66969e92372d26d7136c1c5ce34f40512891c1` — feat: package bounded DeepSeek QA assistant configuration  
++**Merge-base vs `main` (local ref):** `9405c2fca87174d51b7d1fb480aec73d2ba3c839`  
++**Model:** `composer-2.5` (fast=false)  
++**Product delta:** **NO_PRODUCT_DELTA** — no source/test edits; blocker is applied DB/storage contract + hosted proof scope, not a caller bug on `4c66969`.
++
++---
++
++## 1. First unproven seam (graded before any code change)
++
++| Layer | Proven in repo (fixtures/mocks) | Unproven / held |
++|-------|----------------------------------|-----------------|
++| **Pure rules** | `CASE_STUDY_PHOTO_COUNT=3`, URL/caption limits, legacy string → slot normalisation, proposal URL filtering | — |
++| **Legacy 12-key RPC wire** | `toLegacyWireContent` drops `photos`; `contentProblemLegacy` rejects any `photos` key; text-only saves ack without `photos` on wire | — |
++| **Fail-closed persist guard** | `CASE_LIBRARY_DRAFT_PHOTOS_ON_WIRE=false`; `createStudy` / `saveStudy` refuse when `hasCaseStudyPhoto`; UI hides file inputs + shows `fieldMessage("photos")` | — |
++| **Older profile journey** | Three file inputs, save to `profiles.case_studies`, proposal `selectCaseStudies` reuse (synthetic URLs) | Signed-in upload + storage write (parent QA session) |
++| **Library journey** | Editor slots, refusal copy in `library-screens.test.ts`, resolver publishes URLs when approved JSON carries slots | **`20261028120000_case_library_photos.sql` not applied**; constant not flipped; no real `uploadProfileImageAction` / bucket proof for `purpose=case-study` |
++| **Optional AI enhancement** | `enhanceCaseStudyAction` unit tests; UI button on legacy + library editors | **Enhancement OFF for closure** — Rob 22:18 accepts OFF if unproven; no paid/provider/hosted proof fabricated |
++
++**Primary blocker for “library photos persisted + proposal reuse”:** release must include (1) SQL apply approval for `supabase/migrations/20261028120000_case_library_photos.sql`, (2) source flip `CASE_LIBRARY_DRAFT_PHOTOS_ON_WIRE` to `true` with wire sending normalised `photos` on `p_content`, (3) hosted storage contract for case-study uploads. Until then, deliberate OFF + honest refusal is correct behaviour.
++
++---
++
++## 2. Wired path inspection (current `4c66969`)
++
++### Legacy (profiles `case_studies`)
++
++- UI: `case-studies-client.tsx` — “Photos (up to 3)”, three `type="file"` slots, upload via `uploadProfileImageAction`.
++- Persistence: `saveCaseStudiesAction` → `profiles.case_studies` (no 12-key RPC).
++- Proposal: `selectCaseStudies` / `sanitisePhotos` on project site photos separate from case-study `photos[]`.
++
++### Library (case-library RPC)
++
++- Constants: `src/lib/case-library/content.ts` — `LEGACY_WIRE_CONTENT_KEYS` (12 keys), `CASE_LIBRARY_DRAFT_PHOTOS_ON_WIRE = false`.
++- Wire: `toLegacyWireContent` strips photos; service guards before RPC.
++- UI: `case-study-photo-slots.tsx` + `case-study-editor.tsx` (`handlePhotoUpload` toasts `fieldMessage("photos")` when wire off).
++- Migration (source only): `supabase/migrations/20261028120000_case_library_photos.sql` extends DB content to 13 keys including `photos` array length 3.
++
++### Proposal reuse
++
++- Older stored strings: `case-study-photo-journey.test.ts` (selectCaseStudies).
++- Library approved rows: resolver test when `approved.photos` present; default approved copy omits photos until migration + wire on.
++
++---
++
++## 3. Caller bug search
++
++Reviewed service → library-actions → editor → slots component chain. Refusal and acknowledgement align: no silent drop of photo intent on save (invalid + message + no `case_study_save_draft` when URLs present while wire off). **No minimal product fix indicated.**
++
++---
++
++## 4. Focused commands (this session)
++
++| Command | Exit | Output (bounded) |
++|---------|------|-------------------|
++| `git rev-parse HEAD && git branch --show-current` | 0 | `4c66969…` / `cq/a038-photos` |
++| `git merge-base HEAD main` | 0 | `9405c2fca87174d51b7d1fb480aec73d2ba3c839` |
++| `/Users/robertsmith/dev/constructa-fresh-20261025/node_modules/.bin/tsc --noEmit` (cwd worktree) | 0 | (no errors) |
++| `/Users/robertsmith/dev/constructa-fresh-20261025/node_modules/.bin/vitest run …` (A038 file list) | 1 | **RESOURCE BLOCKER:** `EPERM` writing `/Users/robertsmith/dev/constructa-fresh-20261025/node_modules/.vite-temp/…` — worktree has **no** `node_modules`; sandbox blocks parent `.vite-temp` |
++
++**Kimi / parent grade — suggested focused vitest (same pin, local deps):**
++
++```bash
++cd /Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/a038-photos
++npm test -- --run \
++  src/lib/case-library/photos.test.ts \
++  src/lib/case-library/content-wire.test.ts \
++  src/lib/case-library/contract.test.ts \
++  src/lib/case-library/service.test.ts \
++  src/app/dashboard/settings/case-studies/case-study-photo-journey.test.ts \
++  src/app/dashboard/settings/case-studies/library/library-photo-persistence.test.ts \
++  src/app/dashboard/settings/case-studies/photo-accessibility.test.tsx \
++  src/app/dashboard/settings/case-studies/library-screens.test.ts
++```
++
++(Do not treat this session’s vitest exit 1 as a test failure — config cache write blocked.)
++
++---
++
++## 5. Photo-contract state (explicit)
++
++| Flag / artefact | Value |
++|-----------------|--------|
++| `CASE_LIBRARY_DRAFT_PHOTOS_ON_WIRE` | `false` |
++| `caseLibraryDraftPhotosOnWire()` | `false` |
++| SQL `20261028120000_case_library_photos.sql` | **SOURCE ONLY — not applied** (per AI-ledger / tonight scope) |
++| Legacy wire keys on RPC | 12 keys, no `photos` |
++| Acknowledgement copy | `fieldMessage("photos")` → “Pictures can't be saved to the library yet…” |
++| Enhancement | **OFF for evidence** — UI remains; no hosted AI proof claimed |
++
++---
++
++## 6. Remaining hosted proof (parent / Rob session)
++
++- Legacy: upload three photos → save profile → tick in proposal → PDF/public snapshot shows URLs.
++- Library (after migration + constant flip): upload three → save draft on wire → approve → `lib:` selection → proposal snapshot photos.
++- Optional: AI enhance button end-to-end (explicitly out of scope for Complete tonight).
++
++---
++
++## 7. Files touched this session
++
++| Path | SHA (before) | Change |
++|------|--------------|--------|
++| `PRIVATE/ROB2233-CURSOR-A038-RETURN.md` | — | **Added** (this receipt) |
++| `PRIVATE/ROB2233-CURSOR-A038-RETURN.patch` | — | **Added** (git diff vs `4c66969`) |
++| `docs/cursor-change-log.md` | — | **Append** receipt row only |
++
++**Not committed** — awaiting independent grade.
++
++---
++
++## 8. Scope respected
++
++No commit/push, no env/SQL apply, no storage/network auth, no installs, no Next build, no full suite rerun of unrelated accepted checks, no A069/A059 duplication.
+diff --git a/docs/cursor-change-log.md b/docs/cursor-change-log.md
+index 6a6a556..6faae8c 100644
+--- a/docs/cursor-change-log.md
++++ b/docs/cursor-change-log.md
+@@ -1,5 +1,11 @@
+ # Cursor change log
+ 
++## 2026-10-30 — ROB2233 A038 three-photo overnight (Cursor Composer 2.5)
++
++| Paths | Change | Intent |
++|-------|--------|--------|
++| `PRIVATE/ROB2233-CURSOR-A038-RETURN.md`, `.patch` | Return receipt only | NO_PRODUCT_DELTA on `4c66969`; migration/storage seam documented; vitest EPERM blocker |
++
+ ## 2026-10-29 — ROB1548 kit Remove + QA metadata (Cursor integration)
+ 
+ | Paths | Change | Intent |

@@ -14,6 +14,8 @@ import type { ApprovalCheck, LibraryResult, StudyView } from "@/lib/case-library
 import { asProposalCaseStudy, changesSinceApproval } from "@/lib/case-library/status";
 import type { StoredDiscipline } from "@/lib/case-library/store";
 import type { CaseStudyResult } from "@/lib/cohort-ai/case-study-enhance";
+import { caseStudyTextEnhanceEnabled } from "@/lib/cohort-ai/case-study-enhance-enabled";
+import { COHORT_AI_OFF } from "@/lib/cohort-ai/shared";
 import { pendingFrom, sectionState, settle, type PendingCaseStudySuggestion } from "@/lib/cohort-ai/case-study-suggestion";
 import { uploadProfileImageAction } from "@/app/storage/actions";
 import { approveCaseStudyAction, checkCaseStudyAction, createCaseStudyAction, saveCaseStudyAction, saveDisciplineAction } from "../library-actions";
@@ -131,6 +133,10 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
     const handleEnhance = async () => {
         if (enhancing) return;
         if (!content.delivered && !content.value_added) return;
+        if (!caseStudyTextEnhanceEnabled()) {
+            setEnhanceNotice(COHORT_AI_OFF);
+            return;
+        }
         const askedFrom = { whatWeDelivered: content.delivered, valueAdded: content.value_added };
         setEnhancing(true);
         setEnhanceNotice(null);
@@ -290,9 +296,9 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
                 )}
                 <p role="status" aria-live="polite" data-save-line className={`text-base font-semibold ${noticeTone}`}>{saveLine(state)}</p>
                 {(content.delivered || content.value_added) && (
-                    <button type="button" onClick={handleEnhance} disabled={enhancing || busy} className="inline-flex items-center gap-1.5 min-h-11 px-3 rounded-lg border border-purple-700 bg-purple-900/30 text-purple-200 text-sm font-bold disabled:opacity-60">
+                    <button type="button" onClick={handleEnhance} disabled={enhancing || busy || !caseStudyTextEnhanceEnabled()} className="inline-flex items-center gap-1.5 min-h-11 px-3 rounded-lg border border-purple-700 bg-purple-900/30 text-purple-200 text-sm font-bold disabled:opacity-60">
                         {enhancing ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : <Sparkles className="w-4 h-4" aria-hidden />}
-                        {enhancing ? "Enhancing…" : "AI Enhance"}
+                        {enhancing ? "Enhancing…" : caseStudyTextEnhanceEnabled() ? "AI Enhance" : "AI Enhance (not available yet)"}
                     </button>
                 )}
                 <p role="status" aria-live="polite" data-case-study-notice className={enhanceNotice ? "text-sm font-semibold text-slate-100" : "sr-only"}>{enhanceNotice ?? ""}</p>

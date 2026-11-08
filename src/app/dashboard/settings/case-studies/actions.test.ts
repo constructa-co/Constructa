@@ -8,6 +8,10 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/supabase/auth-utils", () => ({ requireAuth: mocks.requireAuth }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: mocks.createAdminClient }));
+vi.mock("@/lib/cohort-ai/case-study-enhance-enabled", () => ({
+    caseStudyTextEnhanceEnabled: vi.fn(() => true),
+    CASE_STUDY_TEXT_ENHANCE_ENABLED: false,
+}));
 // The real budget wrapper runs. Only the provider call itself is replaced, with canned replies; no real API is ever reached.
 vi.mock("@/lib/ai", async (original) => ({ ...(await original<typeof import("@/lib/ai")>()), generateStructured: mocks.generateStructured }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -15,6 +19,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 import { fakeAiBudget } from "@/lib/__fixtures__/fake-ai-budget";
 import { CASE_STUDY_ADDED, CASE_STUDY_TOO_LONG, CASE_STUDY_TOO_SHORT } from "@/lib/cohort-ai/case-study-enhance";
 import { COHORT_AI_OFF, COHORT_AI_UNAVAILABLE } from "@/lib/cohort-ai/shared";
+import { caseStudyTextEnhanceEnabled } from "@/lib/cohort-ai/case-study-enhance-enabled";
 import { enhanceCaseStudyAction } from "./actions";
 
 const DELIVERED = "We refitted the kitchen, moved the wall and replastered throughout.";
@@ -38,6 +43,7 @@ describe("enhanceCaseStudyAction", () => {
         mocks.requireAuth.mockReset();
         mocks.createAdminClient.mockReset();
         mocks.generateStructured.mockReset();
+        vi.mocked(caseStudyTextEnhanceEnabled).mockReturnValue(true);
         mocks.requireAuth.mockImplementation(async () => { mocks.order.push("auth"); return { user: { id: "user-1" } }; });
         arrange();
         canned({ whatWeDelivered: BETTER_DELIVERED, valueAdded: BETTER_VALUE });
@@ -106,7 +112,17 @@ describe("enhanceCaseStudyAction", () => {
         expect(budget.attempts[0]).toMatchObject({ outcome: "rejected:tripwire", completion_tokens: 35 });
     });
 
-    it("as seeded, the feature is off: both originals back, no call, and it says so", async () => {
+    it("with the application flag off: both originals back, no admin or provider, and it says so", async () => {
+        vi.mocked(caseStudyTextEnhanceEnabled).mockReturnValue(false);
+        const result = await enhanceCaseStudyAction(DELIVERED, VALUE, "Project", "Extension");
+        expect(result).toEqual({ whatWeDelivered: DELIVERED, valueAdded: VALUE, suggested: false, message: COHORT_AI_OFF });
+        expect(mocks.generateStructured).not.toHaveBeenCalled();
+        expect(mocks.createAdminClient).not.toHaveBeenCalled();
+        expect(budget.rpcCalls).toEqual([]);
+        expect(mocks.order).toEqual(["auth"]);
+    });
+
+    it("when enabled in app but the budget feature is off: both originals back, no provider call, and it says so", async () => {
         arrange({});
         const result = await enhanceCaseStudyAction(DELIVERED, VALUE, "Project", "Extension");
         expect(result).toEqual({ whatWeDelivered: DELIVERED, valueAdded: VALUE, suggested: false, message: COHORT_AI_OFF });

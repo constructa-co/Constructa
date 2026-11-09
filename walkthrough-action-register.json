@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-11-07T07:58:41.000Z",
+  "updatedAt": "2026-11-08T09:14:13.964221+04:00",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {
@@ -763,5 +763,12 @@
       "requested": "Hide future resource/financial placeholder panels from cohort view without removing later-phase modules.",
       "status": "Complete"
     }
-  ]
+  ],
+  "releaseCandidate": {
+    "date": "2026-11-10",
+    "previousDate": "2026-11-06",
+    "approvedBy": "Rob",
+    "approvedAt": "2026-11-08T09:11:00+04:00",
+    "note": "Preparation authorised; final main merge still requires Rob approval. No status changes from scheduling."
+  }
 }

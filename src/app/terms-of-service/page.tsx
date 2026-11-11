@@ -1,12 +1,5 @@
 import Link from "next/link";
 
-// A023 — public platform terms page linked from the sign-up checkbox.
-// PLACEHOLDER copy only until Rob approves final legal wording.
-
-const PLACEHOLDER_NOTICE =
-    "PLACEHOLDER — Platform terms wording below is draft scaffolding for engineering and UX only. " +
-    "Rob must review and approve the legal text before this page is treated as authoritative or published to customers.";
-
 export default function TermsOfServicePage() {
   return (
     <main className="min-h-screen pt-16 bg-black">
@@ -15,58 +8,53 @@ export default function TermsOfServicePage() {
           role="note"
           className="mb-8 rounded-lg border border-amber-500/60 bg-amber-950/40 px-4 py-3 text-sm text-amber-100"
         >
-          <strong className="font-semibold">PLACEHOLDER:</strong> {PLACEHOLDER_NOTICE}
+          <strong>Draft for review.</strong> These terms are pending legal review and final approval.
         </p>
 
-        <h1 className="text-4xl font-bold text-white mb-2">Constructa platform terms of service</h1>
-        <p className="text-sm text-amber-200/90 mb-8">
-          Technical revision: platform-tos-2026-03 (PLACEHOLDER — for engineering consent records only; not a legal approval stamp).
-        </p>
+        <h1 className="text-4xl font-bold text-white mb-8">Constructa platform terms of service</h1>
 
         <div className="prose prose-invert max-w-none space-y-6 text-gray-400">
-          <section aria-labelledby="placeholder-scope">
-            <h2 id="placeholder-scope" className="text-xl font-semibold text-white">
-              [PLACEHOLDER] Scope of the service
-            </h2>
+          <section aria-labelledby="terms-scope">
+            <h2 id="terms-scope" className="text-xl font-semibold text-white">Using Constructa</h2>
             <p>
-              Constructa provides software to help UK construction contractors plan work, build estimates and proposals, and manage project information.
-              [PLACEHOLDER — Rob to replace with counsel-approved scope and eligibility language.]
+              Constructa helps UK construction contractors plan work, build estimates and proposals,
+              and manage project information. You decide what goes into the documents you share with
+              clients. The terms you agree with a client govern that work.
             </p>
           </section>
 
-          <section aria-labelledby="placeholder-accounts">
-            <h2 id="placeholder-accounts" className="text-xl font-semibold text-white">
-              [PLACEHOLDER] Accounts and acceptable use
-            </h2>
+          <section aria-labelledby="terms-accounts">
+            <h2 id="terms-accounts" className="text-xl font-semibold text-white">Your account and acceptable use</h2>
             <p>
-              You are responsible for activity on your account and for keeping credentials secure.
-              [PLACEHOLDER — Rob to add acceptable-use, suspension, and data-handling terms.]
+              Keep your sign-in details secure. Use the service lawfully, respect other people&apos;s
+              rights, and do not attempt to bypass its security or upload unlawful content.
             </p>
           </section>
 
-          <section aria-labelledby="placeholder-updates">
-            <h2 id="placeholder-updates" className="text-xl font-semibold text-white">
-              [PLACEHOLDER] Changes to these terms
-            </h2>
+          <section aria-labelledby="terms-data">
+            <h2 id="terms-data" className="text-xl font-semibold text-white">Your project information</h2>
             <p>
-              We may update these terms from time to time. When we do, we will describe how acceptance of a new revision is collected.
-              [PLACEHOLDER — Rob to define notice and re-acceptance mechanics.]
+              Only enter information you have the right to use. Check estimates, programmes and
+              proposals before relying on them or sharing them. Where an AI-assisted feature is
+              available, check its suggestions before using them.
             </p>
           </section>
 
-          <section aria-labelledby="placeholder-contact">
-            <h2 id="placeholder-contact" className="text-xl font-semibold text-white">
-              [PLACEHOLDER] Contact
-            </h2>
+          <section aria-labelledby="terms-updates">
+            <h2 id="terms-updates" className="text-xl font-semibold text-white">Changes to these terms</h2>
             <p>
-              Questions about these terms:{" "}
-              <a
-                href="mailto:hello@constructa.co"
-                className="text-gray-300 hover:text-white transition-colors duration-200"
-              >
+              We will show the effective date with the final terms. When the terms change, we will
+              explain what changed and whether you need to accept the new version.
+            </p>
+          </section>
+
+          <section aria-labelledby="terms-contact">
+            <h2 id="terms-contact" className="text-xl font-semibold text-white">Contact</h2>
+            <p>
+              Send questions about the terms to{" "}
+              <a href="mailto:hello@constructa.co" className="text-gray-300 hover:text-white transition-colors duration-200">
                 hello@constructa.co
-              </a>
-              . Prose last visible update: March 2026 (PLACEHOLDER date label).
+              </a>.
             </p>
           </section>
         </div>

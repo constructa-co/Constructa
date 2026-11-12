@@ -1,6 +1,9 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import LandingPage from "@/app/landing/page";
 
 const auth = vi.hoisted(() => ({ exchange: vi.fn(), createClient: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: auth.createClient }));
@@ -10,6 +13,7 @@ import { PROPOSAL_READINESS_PATH, resolvePostSetupPath } from "@/lib/first-sessi
 import { getLaunchLandingPath, isDashboardPathAllowed } from "@/lib/launch-profile";
 import {
     PLATFORM_TERMS_COMPLETION_PATH,
+    PLATFORM_TERMS_COMPLETION_SIGN_IN,
     platformTermsCompletionReturn,
     platformTermsConfirmationRedirect,
 } from "@/lib/platform-terms-completion";
@@ -18,9 +22,12 @@ const ORIGIN = "https://constructa.example.invalid";
 
 beforeEach(() => {
     vi.resetAllMocks();
+    vi.stubEnv("NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE", "cohort");
     auth.createClient.mockResolvedValue({ auth: { exchangeCodeForSession: auth.exchange } });
     auth.exchange.mockResolvedValue({ error: null });
 });
+
+afterEach(() => vi.unstubAllEnvs());
 
 /**
  * A091 — meaningful integration boundaries for website → sign-up → proposal.
@@ -57,5 +64,13 @@ describe("A091 marketing-to-proposal boundary", () => {
         expect(isDashboardPathAllowed(proposalPath, "cohort")).toBe(true);
         expect(isDashboardPathAllowed(`${proposalPath}/`, "cohort")).toBe(true);
         expect(existsSync(path.join(process.cwd(), "src/app/dashboard/projects/proposal", "page.tsx"))).toBe(true);
+    });
+
+    it("exposes the cohort marketing landing and account entry the Edge loopback journey uses", () => {
+        const landing = renderToStaticMarkup(createElement(LandingPage));
+        expect(landing).toMatch(/<h1[\s>]/);
+        expect(landing).toContain('href="/login"');
+        expect(platformTermsCompletionReturn("")).toBeNull();
+        expect(PLATFORM_TERMS_COMPLETION_SIGN_IN).toBe("/login?next=%2Fauth%2Fplatform-terms");
     });
 });

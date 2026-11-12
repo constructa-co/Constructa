@@ -204,3 +204,31 @@ test("the command line exits 64 on bad usage and never reaches git", () => {
         assert.match(result.stderr, /^Usage:/);
     }
 });
+
+test("an inherited GIT_CEILING_DIRECTORIES cannot hide that the destination is inside a repository", () => {
+    const fixture = makeRepo();
+    const other = makeRepo();
+    const inside = path.join(other.repo, "export");
+    mkdirSync(inside, { mode: 0o700 });
+    const saved = process.env.GIT_CEILING_DIRECTORIES;
+    process.env.GIT_CEILING_DIRECTORIES = other.repo;
+    try {
+        const report = run(fixture, inside);
+        assert.equal(report.verdict, "FAIL");
+        assert.ok(failed(report).includes("destination is not inside any Git repository"), failed(report).join("; "));
+        assert.equal(existsSync(path.join(inside, "git")), false);
+    } finally {
+        if (saved === undefined) delete process.env.GIT_CEILING_DIRECTORIES; else process.env.GIT_CEILING_DIRECTORIES = saved;
+    }
+});
+
+test("a clone with remote-tracking refs, including the origin/HEAD symref, bundles and reads back", () => {
+    const origin = makeRepo();
+    const clone = path.join(temp("parent"), "clone");
+    const cloned = spawnSync("git", ["clone", "-q", `file://${origin.repo}`, clone], { encoding: "utf8", env: fixtureEnv });
+    assert.equal(cloned.status, 0, cloned.stderr);
+    assert.ok(g(clone, "for-each-ref", "--format=%(refname)").split("\n").includes("refs/remotes/origin/HEAD"));
+    const report = run({ repo: clone }, temp("dest"), { required: [{ ref: "refs/heads/main", sha: origin.mainSha }] });
+    assert.deepEqual(failed(report), []);
+    assert.equal(report.verdict, "BUNDLED_AND_READ_BACK");
+});

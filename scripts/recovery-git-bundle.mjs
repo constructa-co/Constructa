@@ -16,8 +16,10 @@ const SYNCED = /(^|\/)(Mobile Documents|CloudStorage|iCloud Drive|Dropbox|OneDri
 
 function git(cwd, args) {
     const env = { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_OPTIONAL_LOCKS: "0", LC_ALL: "C" };
-    // An inherited GIT_DIR would silently point every check at a different repository.
-    for (const key of ["GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR"]) delete env[key];
+    // An inherited GIT_DIR would silently point every check at a different repository. An inherited
+    // GIT_CEILING_DIRECTORIES would stop the "destination is not inside any Git repository" search early
+    // and report a destination inside a repository as outside every repository.
+    for (const key of ["GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_CEILING_DIRECTORIES"]) delete env[key];
     const result = spawnSync("git", ["-C", cwd, ...args], { encoding: "utf8", maxBuffer: 1 << 28, env });
     return { ok: result.status === 0, out: result.stdout ?? "", err: (result.stderr || result.error?.message || "").trim() };
 }

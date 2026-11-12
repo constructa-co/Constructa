@@ -31,6 +31,20 @@ export const coreProfileSecondaryLink =
 export const coreSuggestionPrimary =
     `min-h-11 px-3 rounded-lg text-sm font-semibold ${corePrimaryButton} hover:bg-[#e0f9e3]`;
 
+/** Theme-aware pipeline link colour + hover + focus (typography at call site). */
+export function corePipelineLinkColor(isDark: boolean): string {
+    return `${isDark ? "text-emerald-400 hover:text-emerald-300" : "text-emerald-700 hover:text-emerald-800"} hover:underline ${coreFocusVisibleRing}`;
+}
+
+export function corePipelineTextLinkSmThemed(isDark: boolean): string {
+    return `text-xs font-semibold ${corePipelineLinkColor(isDark)}`;
+}
+
+/** 9px / font-black board micro-links: colour only — do not merge with text-xs/font-semibold. */
+export function corePipelineMicroLinkColor(isDark: boolean): string {
+    return corePipelineLinkColor(isDark);
+}
+
 /** Radio/checkbox tile border when the option is selected. */
 export const coreProfileSaveSubmit =
     "w-full h-14 rounded-xl font-bold text-lg transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed";

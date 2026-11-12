@@ -4,13 +4,6 @@ export default function TermsOfServicePage() {
   return (
     <main className="min-h-screen pt-16 bg-black">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <p
-          role="note"
-          className="mb-8 rounded-lg border border-amber-500/60 bg-amber-950/40 px-4 py-3 text-sm text-amber-100"
-        >
-          <strong>Draft for review.</strong> These terms are pending legal review and final approval.
-        </p>
-
         <h1 className="text-4xl font-bold text-white mb-8">Constructa platform terms of service</h1>
 
         <div className="prose prose-invert max-w-none space-y-6 text-gray-400">
@@ -43,8 +36,8 @@ export default function TermsOfServicePage() {
           <section aria-labelledby="terms-updates">
             <h2 id="terms-updates" className="text-xl font-semibold text-white">Changes to these terms</h2>
             <p>
-              We will show the effective date with the final terms. When the terms change, we will
-              explain what changed and whether you need to accept the new version.
+              When the terms change, we will explain what changed and whether you need to
+              accept the new version.
             </p>
           </section>
 

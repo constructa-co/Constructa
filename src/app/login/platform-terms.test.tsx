@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getLaunchLandingPath } from "@/lib/launch-profile";
 import { PLATFORM_TERMS_CURRENT_REVISION } from "@/lib/platform-terms";
+import { PLATFORM_TERMS_COMPLETION_PATH } from "@/lib/platform-terms-completion";
 import type { PlatformSignupResult } from "@/lib/platform-signup-action";
 
 const state = vi.hoisted(() => ({
@@ -195,6 +196,11 @@ describe("platform terms contract in the actual login layout", () => {
         expect(html()).toContain("Your account was created, but we couldn&#x27;t record your terms acceptance.");
         expect(html()).not.toContain("your acceptance of the platform terms is recorded");
         expect(html()).toContain('role="alert"');
+        const handoff = nodes(render()).find(
+            e => e.props.href === PLATFORM_TERMS_COMPLETION_PATH
+                && e.props.children === "Complete platform terms acceptance",
+        );
+        expect(handoff).toBeDefined();
         expect(state.push).not.toHaveBeenCalled();
     });
 

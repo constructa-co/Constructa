@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-11-12 — A023 unrecorded-consent login handoff (cursor/constructa-critical-path-20261112)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/login/platform-terms.test.tsx` | 6, 191–203 | Import `PLATFORM_TERMS_COMPLETION_PATH`; assert completion link on `consent-not-stored` | Login Vitest suite mirrors unrecorded-consent handoff already covered in `completion-routing.test.tsx` |
+| `docs/delivery/2026-11-12/changelog.md` | delivery table | Row for this test extension | Delivery trace for Codex PR packaging |
+
 ## 2026-11-09 — RC PR hosted-write gate + apex routing (cursor/rc-routing-20261109)
 
 | File | Lines (approx.) | Change | Intent |

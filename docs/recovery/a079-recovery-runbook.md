@@ -164,6 +164,8 @@ git bundle verify "$EXPORT_DEST/git/<repo>.bundle"
 git lfs ls-files --all --long > "$EXPORT_DEST/git/<repo>-lfs.txt"   # empty when LFS is unused
 ```
 
+- For one repository, `scripts/recovery-git-bundle.mjs` runs these commands with the
+  destination checks and the head-list read-back; see `a079-next-action-20261112.md`.
 - The bundle and refs list are categories `git-bundle` and `git-refs`; LFS objects and
   untracked binary assets (for example `public/`, `docs/evidence/**/*.pdf`) are
   `git-lfs-assets`. The app repository has no LFS filters at base 679, so record the empty

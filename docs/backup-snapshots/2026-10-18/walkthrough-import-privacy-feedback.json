@@ -1,0 +1,27 @@
+{
+  "source": "Robert's direct website-import walkthrough feedback, 18 October 2026",
+  "status": "Record-only until Robert explicitly releases the agent after the tour.",
+  "presentation": {
+    "heading": "Replace Your website. Your choices. with a better heading; wording not selected.",
+    "layout": "Make the page symmetrical, clean and balanced. Align sidebar palette/typefaces with approved charcoal/green brand.",
+    "retain": "Website address to suggested profile details is a useful concept. Retain the right-hand explanatory commentary."
+  },
+  "platformTerms": {
+    "request": "Add Constructa's own platform terms acceptance during signup/setup, with an explicit checkbox and accessible terms, possibly a pop-up.",
+    "distinction": "Platform-to-customer terms, separate from contractor-to-client proposal terms.",
+    "data": "Explain handling of personal and company information, tax details, commercial pricing and salaries, with clear protections and data-use purposes.",
+    "review": "Legal/privacy/security workstream required before implementation and activation. A checkbox is not proof all processing or future secondary uses are lawful, anonymised or secure. No compliance or protection guarantee made."
+  },
+  "futureBenchmarking": {
+    "purpose": "Use cross-company data to inform local/regional and discipline benchmarks and customer insights.",
+    "examples": [
+      "Driveway cost per square metre in London and other regional unit prices",
+      "Typical programme durations and sequences",
+      "Reconcile estimates with actual costs over time",
+      "Indicate possible underpricing/overpricing, market position, unrealistic durations or missed programme steps"
+    ],
+    "limits": "Desired future product direction, not current functionality or permission to activate collection/sharing/providers. Exact purposes, aggregation/reidentification safeguards, transparency, rights, retention and appropriate lawful basis/permissions need assessment; do not bundle unspecified uses into blanket consent."
+  },
+  "observedNextPage": "Existing manual profile contains an Industry Benchmarking checkbox and explanatory claims about anonymisation, aggregation and withdrawal. Checkbox remains unchecked; claims and implementation were not verified. Reconcile existing text/control with the new workstream rather than assume it is adequate or toggle/save it.",
+  "execution": "Navigated only Enter details by hand to existing manual profile. Existing demo values displayed with No unsaved changes. No import, terms acceptance, consent selection, typing, save, AI, upload, provider call, tests or implementation."
+}

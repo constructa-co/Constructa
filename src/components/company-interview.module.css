@@ -1,0 +1,70 @@
+.root {
+    --interview-ink: #192b20;
+    --interview-muted: #4b6253;
+    --interview-panel: #fff;
+    --interview-input: #f8faf6;
+    --interview-line: #bac8bb;
+    --interview-accent: #286239;
+    --interview-accent-ink: #fff;
+    color: var(--interview-ink);
+    color-scheme: light;
+    font-family: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
+    background: radial-gradient(ellipse at 100% 0, #e1eede, transparent 50%), #f5f7f2;
+    max-width: 1160px;
+    padding: 44px clamp(18px, 4vw, 48px);
+    margin: 24px auto;
+    border-radius: 20px;
+}
+.root[data-theme="dark"] {
+    --interview-ink: #f4f2ed;
+    --interview-muted: #adb6af;
+    --interview-panel: #191f1b;
+    --interview-input: #101612;
+    --interview-line: #455148;
+    --interview-accent: #c9efcf;
+    --interview-accent-ink: #182c1b;
+    color-scheme: dark;
+    background: radial-gradient(ellipse at 100% 0, #29392b, transparent 50%), #101512;
+}
+.header { max-width: 740px; margin-bottom: 30px; }
+.eyebrow { color: var(--interview-accent); font-size: 11px; font-weight: 650; letter-spacing: 1.7px; text-transform: uppercase; margin-bottom: 14px; }
+.title { font-size: clamp(32px, 4vw, 48px); line-height: 1.1; font-weight: 550; letter-spacing: -1.4px; margin: 0 0 18px; }
+.header > p:last-child { color: var(--interview-muted); font-size: 15px; line-height: 1.65; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 30px; align-items: start; }
+.editor { min-width: 0; }
+.editor > div { max-width: none; padding: 0; }
+.editor section { min-width: 0; background: var(--interview-panel); border: 1px solid var(--interview-line); padding: 28px; border-radius: 14px; }
+.editor section + section, .editor section + p, .editor > div > div, .editor > div > p { margin-top: 20px; }
+.editor :is(p, dt, label) { color: var(--interview-muted); line-height: 1.6; }
+.editor :is(h1, h2, h3, dd, #interview-question) { color: var(--interview-ink); }
+.editor #interview-question { font-size: clamp(23px, 3vw, 30px); line-height: 1.25; font-weight: 550; letter-spacing: -.5px; }
+.editor :is(input, textarea) { min-width: 0; width: 100%; min-height: 50px; font-size: 16px; padding: 13px 15px; color: var(--interview-ink); background: var(--interview-input); border: 1px solid var(--interview-line); border-radius: 8px; }
+.editor :is(input, textarea)::placeholder { color: var(--interview-muted); opacity: .8; }
+.editor button { min-height: 44px; padding: 12px 18px; border: 1px solid var(--interview-line); background: var(--interview-input); color: var(--interview-ink); border-radius: 8px; font-size: 14px; font-weight: 600; }
+.editor button:disabled, .editor :is(input, textarea):disabled { opacity: .6; cursor: not-allowed; }
+.editor a { color: var(--interview-accent); min-height: 44px; }
+.editor .primary { background: var(--interview-accent); color: var(--interview-accent-ink); border-color: var(--interview-accent); }
+.editor [role="alert"] { background: var(--interview-input); color: var(--interview-ink); border: 1px solid #a76455; }
+.editor [role="status"] { background: var(--interview-input); color: var(--interview-ink); border-color: var(--interview-line); }
+.progress { display: flex; gap: 6px; margin-top: 12px; }
+.progress > div { flex: 1; height: 6px; background: var(--interview-line); border-radius: 6px; }
+.progress > div[data-current="true"] { background: var(--interview-accent); }
+.progress > div[data-answered="true"] { border: 1px solid var(--interview-accent); }
+.progress > div[data-skipped="true"] { border: 1px dashed var(--interview-accent); }
+.progress > div[data-current="true"] { outline: 2px solid var(--interview-accent); outline-offset: 2px; }
+.aside { padding-top: 22px; border-top: 2px solid var(--interview-accent); }
+.aside ol { list-style: decimal-leading-zero; margin: 0; padding-left: 26px; }
+.aside li { margin-bottom: 24px; padding-left: 8px; }
+.aside li::marker { color: var(--interview-accent); font-size: 13px; }
+.aside strong { font-size: 14px; }
+.aside p:not(.eyebrow) { color: var(--interview-muted); font-size: 13px; line-height: 1.65; margin-top: 8px; }
+.aside .note { border-top: 1px solid var(--interview-line); padding-top: 18px; }
+.root :is(button, input, textarea, a, [tabindex="-1"]):focus-visible { outline: 3px solid var(--interview-accent); outline-offset: 4px; }
+.editor :is(p, dd), .root a { overflow-wrap: anywhere; }
+@media (max-width: 880px) { .layout { grid-template-columns: minmax(0, 1fr); } .aside ol { display: none; } }
+@media (max-width: 650px) { .root { margin: 0; border-radius: 0; padding: 28px 16px; } .editor section { padding: 22px 18px; } .header { margin-bottom: 22px; } .title { letter-spacing: -.8px; } }
+.root { container: company-interview / inline-size; }
+@container company-interview (max-width: 880px) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    .aside ol { display: none; }
+}

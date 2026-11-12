@@ -5,7 +5,9 @@ on:
   pull_request:
     paths:
       - ".github/workflows/migration-replay.yml"
+      - "scripts/ci-replay-in-container.sh"
       - "scripts/fixtures/supabase-storage.sql"
+      - "scripts/test-replay-bootstrap.sh"
       - "scripts/verify-phase1-smoke.sql"
       - "scripts/verify-migration-replay.sh"
       - "supabase/migrations/**"
@@ -33,18 +35,25 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v7
-      - name: Install PostgreSQL 17 client
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes postgresql-common
-          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
-          sudo apt-get install --yes postgresql-client-17
-          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+      # The pinned Postgres image already holds a psql of the server's own
+      # version, so the client is not installed from a package mirror. The
+      # replay and smoke scripts are unchanged and run in that container
+      # against the same localhost database. See scripts/ci-replay-in-container.sh.
+      - name: Check the replay bootstrap
+        run: bash scripts/test-replay-bootstrap.sh
+      - name: Prepare the replay workspace in the Postgres container
+        env:
+          REPLAY_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+          REPLAY_EXPECTED_PG_MAJOR: "17"
+          MIGRATION_DATABASE_URL: postgresql://supabase_admin:postgres@localhost:5432/constructa_replay
+        run: bash scripts/ci-replay-in-container.sh prepare
       - name: Replay all committed migrations in order
         env:
+          REPLAY_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
           MIGRATION_DATABASE_URL: postgresql://supabase_admin:postgres@localhost:5432/constructa_replay
-        run: bash scripts/verify-migration-replay.sh
+        run: bash scripts/ci-replay-in-container.sh replay
       - name: Verify Phase 1 database smoke journey
         env:
+          REPLAY_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
           MIGRATION_DATABASE_URL: postgresql://supabase_admin:postgres@localhost:5432/constructa_replay
-        run: psql "$MIGRATION_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f scripts/verify-phase1-smoke.sql
+        run: bash scripts/ci-replay-in-container.sh smoke

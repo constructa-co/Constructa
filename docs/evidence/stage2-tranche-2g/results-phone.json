@@ -1,0 +1,144 @@
+{
+  "project": "phone",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "input": "touch",
+  "startedAt": "2026-10-07T10:50:56.929Z",
+  "finishedAt": "2026-10-07T10:51:23.167Z",
+  "outcome": "passed",
+  "steps": [
+    "sign up, then sign in",
+    "step 1: free text, optional suggestions, failed save and retry",
+    "Back returns to step 1 with the answer kept",
+    "step 2: business name required, user name optional, retry sends one welcome email",
+    "readiness: saved answers, honest status, nothing blocking a project",
+    "secondary action opens Profile; readiness can be resumed from Profile and Case Studies",
+    "returning: /onboarding leaves setup; the edit route changes an answer with no second welcome",
+    "primary action opens the blank first project"
+  ],
+  "checkpoints": [
+    {
+      "name": "setup-work-blank",
+      "path": "/onboarding",
+      "layout": {
+        "viewportWidth": 390,
+        "documentWidth": 390,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 15,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": "01-setup-work-blank-390x844.jpg"
+    },
+    {
+      "name": "setup-work-answered",
+      "path": "/onboarding",
+      "layout": {
+        "viewportWidth": 390,
+        "documentWidth": 390,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 15,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": "02-setup-work-answered-390x844.jpg"
+    },
+    {
+      "name": "setup-work-save-failed",
+      "path": "/onboarding",
+      "layout": {
+        "viewportWidth": 390,
+        "documentWidth": 390,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 15,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": "03-setup-work-save-failed-390x844.jpg"
+    },
+    {
+      "name": "setup-business",
+      "path": "/onboarding",
+      "layout": {
+        "viewportWidth": 390,
+        "documentWidth": 390,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 5,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": "04-setup-business-390x844.jpg"
+    },
+    {
+      "name": "readiness-after-setup",
+      "path": "/dashboard/settings/profile/readiness",
+      "layout": {
+        "viewportWidth": 390,
+        "documentWidth": 390,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 8,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": "05-readiness-after-setup-390x844.jpg"
+    },
+    {
+      "name": "setup-edit-business",
+      "path": "/onboarding",
+      "layout": {
+        "viewportWidth": 390,
+        "documentWidth": 390,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 6,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    }
+  ],
+  "parity": {},
+  "keyboard": null,
+  "blockedThirdPartyHosts": [
+    "plausible.io",
+    "www.clarity.ms"
+  ],
+  "provider": {
+    "aiRequests": 0,
+    "welcomeEmails": 1,
+    "violations": []
+  },
+  "database": {
+    "accountCreatedIn": "constructa-e2e-pr79",
+    "savedSetup": {
+      "companyName": "Example Kitchens & Bathrooms",
+      "businessType": "Kitchen and bathroom fitting, tiling, small extensions and loft conversions",
+      "fullName": "Sam Example"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "source": "Robert's direct proposal-page walkthrough feedback,18October2026",
+  "status": "Record-only until explicit release. Major workflow/presentation redesign, not content/legal/send acceptance.",
+  "workflow": {
+    "destination": "Final proposal stage should present finished product, not first introduce substantial drafting and commercial choices.",
+    "earlier": [
+      "Opening wording and company/profile carry-through",
+      "Relevant experience and scope",
+      "Exclusions and clarifications while defining/pricing work",
+      "Payment stages on pricing page",
+      "Contracts/terms selection and review during proposal preparation",
+      "Client-response intent within workflow, not buried beneath preview"
+    ],
+    "payments": "Missing payment stages warning is a surprise because flow never asked before final page. Fix placement/progression, not merely suppress requirement/default a commercial choice.",
+    "closing": "Prefill closing message from existing managing director message, allow per-proposal editing. Preserve source and current edits; don't overwrite saved content implicitly.",
+    "preview": "Separate finished document from editing and send controls, potentially separate tile/side pane/pop-out. Exact layout unselected."
+  },
+  "branding": "Replace Review and send with more engaging proposal-focused heading (Your proposal suggested); remove inconsistent blues/duplicate navigation, improve width use, symmetry, spacing and polished visual hierarchy.",
+  "optionalLanguage": "Rewrite Would improve it. You can send without these. to explain clearly useful optional additions such as photos/case studies, without confusing inclusion/omission or inventing mandatory fields.",
+  "terms": "Robert reports a substantive set of terms previously supplied and in system; current experience does not reflect what he expects. After tour locate exact authoritative supplied version and trace mapping through defaults/editor/snapshot/document/PDF. Do not assume current12clause set is authoritative, replace with generated legal text or claim legal validity. Distinguish summary display from actual full terms and platform terms.",
+  "document": {
+    "positive": "Robert likes downloaded PDF layout: tidy and professional baseline, can improve. Outcome generally acceptable as a starting point, not final sign-off.",
+    "requested": "Page-aware structured presentation rather than one long web preview. Stronger visual storytelling, equal metric alignment, more engaging company credentials.",
+    "cover": "Option for real prior-work/site/company image or clearly identified before/after design render; AI renders desired future capability, not activation/payment/upload or factual claim of completed work.",
+    "metrics": "Web screenshot Price including VAT wraps and drops value relative to other metrics; correct symmetry. Type of work Other also visible and requires relevant type design, not silent remapping."
+  },
+  "pdfReview": {
+    "path": "/Users/robertsmith/Downloads/Integrated_preview_job_Proposal_Draft.pdf",
+    "method": "Read supplied localPDF only, pdfinfo/pdftotext/render all4pages, viewed all4PNG. No regeneration through app, PDF edit/provider or download triggered.",
+    "facts": "4A4pages:1cover+company,2scope+price+programme,3two-column12terms,4receipt. Consistent headers/footers and section hierarchy. Page4 largely empty, cover has no image. Actual PDF metrics fit on single-line labels unlike web screenshot; preserve this distinction.",
+    "followUp": "Draft page4 prints Client: receipt confirmed despite no client action in this tour. Flag wording/state for source verification; not proof receipt occurred or diagnosis.",
+    "toolLimit": "pdftoppm emitted Fontconfig default-config warning but completedexit0/all4pages rendered. Read-only inspection, not current generated-PDF pipeline/visual parity acceptance."
+  },
+  "execution": "Proposal DOM currentlySaved/paymentMissing/senddisabled; human PDF download status observed. Agent no input/payment/terms/response/save/send/publication/PDFdownload actions, no app implementation/tests. Current flow ends at Send; no next transactional screen opened. Preserve tab for comments."
+}

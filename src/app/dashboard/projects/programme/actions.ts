@@ -5,6 +5,7 @@
 // the UPDATE by (id, user_id) as defence-in-depth alongside RLS.
 import { requireProjectAccess } from "@/lib/supabase/extended-module-auth-utils";
 import { revalidatePath } from "next/cache";
+import { writeProgrammeStorage } from "@/lib/server/programme-storage";
 
 function revalidate(projectId: string) {
     revalidatePath(`/dashboard/projects/programme?projectId=${projectId}`);
@@ -14,11 +15,6 @@ function revalidate(projectId: string) {
 
 export async function saveAsBuiltPhasesAction(projectId: string, phases: any[]) {
     const { user, supabase } = await requireProjectAccess(projectId);
-    const { error } = await supabase
-        .from("projects")
-        .update({ programme_phases: phases })
-        .eq("id", projectId)
-        .eq("user_id", user.id);
-    if (error) throw new Error(error.message);
+    await writeProgrammeStorage(supabase, user.id, projectId, { phases });
     revalidate(projectId);
 }

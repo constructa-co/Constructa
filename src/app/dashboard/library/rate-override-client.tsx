@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Pencil, RotateCcw, Check, X } from "lucide-react";
 import { upsertRateOverrideAction, deleteRateOverrideAction } from "./actions";
 import { toast } from "sonner";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 interface RateOverrideItemProps {
     item: {
@@ -37,25 +38,35 @@ export default function RateOverrideItem({ item }: RateOverrideItemProps) {
         const fd = new FormData();
         fd.append("mom_item_id", item.id);
         fd.append("custom_rate", rateInput);
-        const result = await upsertRateOverrideAction(fd);
-        setSaving(false);
-        if (result?.error) {
-            toast.error(result.error);
-        } else {
-            toast.success("Rate updated");
-            setEditing(false);
+        try {
+            const result = await upsertRateOverrideAction(fd);
+            if (result?.error) {
+                toast.error(result.error);
+            } else {
+                toast.success("Rate updated");
+                setEditing(false);
+            }
+        } catch {
+            // The save may have reached the database before the failure, so don't claim either way.
+            toast.error("Couldn't confirm your rate was saved. Your entry is kept; reload to check before trying again.");
+        } finally {
+            setSaving(false);
         }
     };
 
     const handleReset = async () => {
         const fd = new FormData();
         fd.append("mom_item_id", item.id);
-        const result = await deleteRateOverrideAction(fd);
-        if ("error" in result) {
-            toast.error("Failed to reset rate");
-        } else {
-            toast.success("Rate reset to benchmark");
-            setRateInput(String(item.base_rate));
+        try {
+            const result = await deleteRateOverrideAction(fd);
+            if ("error" in result) {
+                toast.error("Failed to reset rate");
+            } else {
+                toast.success("Rate reset to benchmark");
+                setRateInput(String(item.base_rate));
+            }
+        } catch {
+            toast.error("Couldn't confirm the rate was reset. Reload to check the current rate.");
         }
     };
 
@@ -99,7 +110,7 @@ export default function RateOverrideItem({ item }: RateOverrideItemProps) {
                             size="sm"
                             onClick={handleSave}
                             disabled={saving}
-                            className="h-7 px-2 bg-blue-600 hover:bg-blue-700 text-white"
+                            className={`h-7 px-2 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                         >
                             <Check className="w-3.5 h-3.5" />
                         </Button>

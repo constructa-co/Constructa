@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-18",
+  "request": "Robert requested broader UK construction SME discipline research, covering domestic and commercial contractors, while reviewing optional setup suggestions.",
+  "sources": [
+    {
+      "url": "https://www.ons.gov.uk/businessindustryandtrade/constructionindustry/articles/constructionstatistics/2024",
+      "basis": "ONS industry structure and business-register coverage. Great Britain, VAT/PAYE registered firms; not all UK businesses or all unregistered sole traders."
+    },
+    {
+      "url": "https://www.ons.gov.uk/businessindustryandtrade/constructionindustry/datasets/constructionstatisticsannualtables",
+      "basis": "Located published firm-size/trade data as the appropriate starting point for frequency ranking. Latest listed edition2024, released19February2026. Workbook was not analysed: web parser unsupported XLSX and direct public download returned403; no bypass attempted."
+    },
+    {
+      "url": "https://www.ons.gov.uk/businessindustryandtrade/constructionindustry/methodologies/constructionoutputqualityandmethodologyinformation",
+      "basis": "Construction SIC activities include commercial/domestic building, civil engineering, demolition, installation and completion trades. Classifications are not a ranked user-facing menu."
+    },
+    {
+      "url": "https://www.thefis.org/knowledge-hub/technical/sub-sectors-within-the-finishes-and-interiors-sector/",
+      "basis": "Industry terminology includes drylining, suspended ceilings, partitioning, plastering, steel framing and site carpentry/joinery."
+    },
+    {
+      "url": "https://www.thefis.org/about-us/",
+      "basis": "Fit-out/refurbishment work spans homes, offices, hospitals, schools, hotels and retail. Supports sector-neutral wording rather than domestic-only suggestions."
+    }
+  ],
+  "rankVerified": false,
+  "limits": "Initial primary-source research, not a representative survey of SME websites or statistically verified UK top15. No company data collected, no app/hosted/provider operations, no trade mapping or new field adopted.",
+  "proposedShortlistNotRanked": [
+    "General building",
+    "Refurbishment and fit-out",
+    "Groundworks and civil engineering",
+    "Demolition and site preparation",
+    "Brickwork and blockwork",
+    "Carpentry and joinery",
+    "Electrical installation",
+    "Plumbing and heating",
+    "Ventilation and air conditioning",
+    "Roofing",
+    "Cladding and facades",
+    "Plastering and drylining",
+    "Flooring and tiling",
+    "Painting and decorating",
+    "Glazing and window installation"
+  ],
+  "designRecommendation": "Keep free text primary. Present optional suggestions as equal-width aligned rectangular tiles with restrained corners, even gaps, green selected states and keyboard focus. Do not mix discipline with domestic/commercial customer sector. Final count/labels/order remain proposals pending frequency validation and owner review; preserve landscaping/fencing/kitchen specialisms via free text or later reviewed suggestions, not silent removal of feedback.",
+  "rightPanelProposal": {
+    "heading": "Built around the work you do.",
+    "statement": "Start with the essentials. Add your story and examples when you are ready.",
+    "items": [
+      "Describe your business: your words, not a rigid category.",
+      "Make it yours: your trading name on your proposals.",
+      "Start with the essentials: add your company story and examples later.",
+      "Move into your first job: build a brief and a clear price."
+    ],
+    "status": "Proposed copy only. Same right-hand layout/typography/four-row structure, context changes by stage. No unsupported automatic tailoring or AI claim."
+  }
+}

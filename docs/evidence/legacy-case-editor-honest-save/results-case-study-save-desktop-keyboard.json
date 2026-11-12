@@ -1,0 +1,21 @@
+{
+  "project": "desktop-keyboard",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "input": "keyboard",
+  "outcome": "passed",
+  "steps": [
+    "nothing-to-save",
+    "typed-while-saving",
+    "not-confirmed",
+    "not-known-after-typing-it-back",
+    "still-open-stale-overwrite"
+  ],
+  "blockedThirdPartyHosts": [
+    "plausible.io",
+    "www.clarity.ms"
+  ],
+  "stillOpen": "A stale editor overwrote a newer list and was told 'saved'. Not fixed by this change."
+}

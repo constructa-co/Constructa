@@ -1,0 +1,75 @@
+{
+  "project": "desktop-keyboard",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "input": "keyboard",
+  "outcome": "passed",
+  "checkpoints": [
+    {
+      "name": "depth-question",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "leave-with-note",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "next-held-by-note",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "leave-held-by-note",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "note-beside-existing-paragraph",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "ready-to-add",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "replace-warning",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "no-room",
+      "sidewaysOverflowPx": 0,
+      "undersized": [],
+      "blockingAccessibility": [],
+      "screenshot": null
+    }
+  ],
+  "keyboard": {
+    "controlsReached": 77,
+    "withoutVisibleFocus": []
+  },
+  "blockedThirdPartyHosts": [
+    "plausible.io",
+    "www.clarity.ms"
+  ]
+}

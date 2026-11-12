@@ -60,9 +60,11 @@ export default function WebsiteTab({ data }: Props) {
             </li>
           </ol>
           <div className="rounded-lg bg-zinc-800 border border-zinc-600 px-4 py-3 text-sm text-zinc-400">
-            Plausible is already installed on{" "}
+            Plausible may be configured on{" "}
             <span className="text-zinc-200 font-medium">constructa.co</span>{" "}
-            (tracking active). The API key just enables this admin view.
+            separately from this admin view. The API key only enables read access
+            here when set — it does not prove live page tracking from this app
+            build.
           </div>
         </div>
       </div>
@@ -106,12 +108,16 @@ export default function WebsiteTab({ data }: Props) {
       {/* ── Conversion Funnel ── */}
       <div className="rounded-xl bg-zinc-900 border border-zinc-700 p-5">
         <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-widest mb-4">
-          Conversion Funnel
+          Signups vs visitors (mixed periods)
         </h3>
+        <p className="text-xs text-zinc-500 mb-4">
+          Calendar-month Constructa signups divided by rolling 30-day Plausible
+          visitors. Not session-attributed conversion.
+        </p>
         <div className="flex items-center gap-3">
           <div className="flex flex-col items-center gap-1">
             <div className="rounded-lg bg-zinc-800 border border-zinc-700 px-4 py-3 text-center min-w-[100px]">
-              <p className="text-xs text-zinc-400">Visitors</p>
+              <p className="text-xs text-zinc-400">Visitors (30d)</p>
               <p className="text-xl font-bold text-zinc-100">
                 {website.visitors30d.toLocaleString("en-GB")}
               </p>
@@ -120,13 +126,13 @@ export default function WebsiteTab({ data }: Props) {
           <div className="flex flex-col items-center gap-0.5 flex-1">
             <div className="h-px w-full bg-zinc-600" />
             <span className="text-xs text-sky-400 font-semibold whitespace-nowrap">
-              {website.signupConversionRate.toFixed(2)}% conversion
+              {website.signupConversionRate.toFixed(2)}% ratio
             </span>
             <div className="h-px w-full bg-zinc-600" />
           </div>
           <div className="flex flex-col items-center gap-1">
             <div className="rounded-lg bg-zinc-800 border border-sky-700 px-4 py-3 text-center min-w-[100px]">
-              <p className="text-xs text-sky-400">Signups</p>
+              <p className="text-xs text-sky-400">Signups (calendar month)</p>
               <p className="text-xl font-bold text-zinc-100">
                 {Math.round(
                   website.visitors30d * (website.signupConversionRate / 100)

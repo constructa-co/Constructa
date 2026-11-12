@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Key, Plus, Trash2, Copy, CheckCircle, Eye, EyeOff } from "lucide-react";
 import { createApiKeyAction, revokeApiKeyAction } from "./actions";
+import { corePrimaryButton } from "@/lib/core-editing-palette";
 
 interface ApiKey {
   id: string;
@@ -82,7 +83,7 @@ export default function ApiKeysClient({ keys: initialKeys }: { keys: ApiKey[] })
         {!showCreate && !newKeyValue && (
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-md shrink-0"
+            className={`flex items-center gap-2 text-sm px-4 py-2 rounded-md shrink-0 ${corePrimaryButton} hover:bg-[#e0f9e3]`}
           >
             <Plus className="w-4 h-4" /> New Key
           </button>
@@ -136,7 +137,7 @@ export default function ApiKeysClient({ keys: initialKeys }: { keys: ApiKey[] })
             <button
               onClick={handleCreate}
               disabled={creating}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-md"
+              className={`disabled:opacity-50 text-sm px-4 py-2 rounded-md ${corePrimaryButton} hover:bg-[#e0f9e3]`}
             >
               {creating ? "Creating…" : "Create Key"}
             </button>

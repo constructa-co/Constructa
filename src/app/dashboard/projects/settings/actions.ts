@@ -2,11 +2,20 @@
 
 import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
+import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-access";
+import { precontractLockMessage } from "@/lib/project-editability";
 
 export async function updateProjectAction(formData: FormData) {
-    const { user, supabase } = await requireAuth();
-
     const projectId = formData.get("projectId") as string;
+    if (formData.has("status")) return { success: false, error: "Save the project status separately." };
+    let access;
+    try {
+        access = await requireEditableProjectAccess(projectId);
+    } catch (error) {
+        const lockReason = precontractLockMessage(error);
+        if (lockReason) return { success: false, lockReason };
+        throw error;
+    }
 
     const potentialValueRaw = formData.get("potential_value") as string;
     const potentialValue = potentialValueRaw ? parseFloat(potentialValueRaw) : null;
@@ -16,7 +25,6 @@ export async function updateProjectAction(formData: FormData) {
 
     const updates: Record<string, any> = {
         name: formData.get("name") as string,
-        status: formData.get("status") as string,
         project_type: formData.get("project_type") as string,
         start_date: startDate,
         potential_value: potentialValue,
@@ -42,14 +50,30 @@ export async function updateProjectAction(formData: FormData) {
         if (updates[key] === "") updates[key] = null;
     });
 
-    const { error } = await supabase
+    return saveSettingsUpdate(access, projectId, updates);
+}
+
+export async function updateProjectStatusAction(formData: FormData) {
+    const access = await requireAuth();
+    const projectId = formData.get("projectId");
+    const status = formData.get("status");
+    if (typeof projectId !== "string" || !projectId || typeof status !== "string") return { success: false };
+    return saveSettingsUpdate(access, projectId, { status: status === "" ? null : status });
+}
+
+async function saveSettingsUpdate(access: Awaited<ReturnType<typeof requireAuth>>, projectId: string, updates: Record<string, unknown>) {
+    const { user, supabase } = access;
+    const { data, error } = await supabase
         .from("projects")
         .update(updates)
         .eq("id", projectId)
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .select("id")
+        .single();
 
     if (error) console.error("Settings update error:", error);
+    if (error || !data || data.id !== projectId) return { success: false };
 
     revalidatePath(`/dashboard/projects/settings?projectId=${projectId}`);
-    return { success: !error };
+    return { success: true };
 }

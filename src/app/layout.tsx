@@ -2,9 +2,7 @@ import './globals.css';
 import { Inter } from "next/font/google";
 import type { Metadata } from "next";
 import Script from 'next/script';
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import { headers } from 'next/headers';
+import PublicChrome from '@/components/public-chrome';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,54 +27,19 @@ export default async function RootLayout(
     children: React.ReactNode;
   }>
 ) {
-  const headersList = await headers();
-  const pathname = headersList.get('x-pathname') || '';
-  const isLandingPage = pathname === '/landing';
-  const isPublicProposal = pathname.startsWith('/proposal/');
-  // Hide marketing header/footer on all app routes (dashboard, onboarding, auth flows, admin, login)
-  const isDashboardRoute =
-    pathname.startsWith('/dashboard') ||
-    pathname.startsWith('/onboarding') ||
-    pathname.startsWith('/auth/') ||
-    pathname.startsWith('/admin') ||
-    pathname === '/login';
-
+  const review = process.env.CONSTRUCTA_REVIEW_ONLY === '1';
   return (
     <html lang="en">
       <head>
         <meta name="theme-color" content="#2563eb" />
         <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
-        <Script id="sw-register" strategy="afterInteractive">
+        {!review && <Script id="sw-register" strategy="afterInteractive">
           {`if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js'); }`}
-        </Script>
-        <Script
-          defer
-          data-domain="constructa.co"
-          src="https://plausible.io/js/script.js"
-          strategy="afterInteractive"
-        />
-        <Script id="plausible-events" strategy="afterInteractive">
-          {`window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }`}
-        </Script>
-        <Script id="clarity-script" strategy="afterInteractive">
-          {`
-            (function() {
-              const hostname = window.location.hostname;
-              const projectId = hostname === 'constructa.co' ? 'r4mocnetxs' : 'r4msf8pw3w';
-              
-              (function(c,l,a,r,i,t,y){
-                  c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-                  t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-                  y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-              })(window, document, "clarity", "script", projectId);
-            })();
-          `}
-        </Script>
+        </Script>}
       </head>
       <body className={`${inter.className} bg-black text-white antialiased`}>
-        {!isPublicProposal && !isDashboardRoute && <Header />}
-        <main>{children}</main>
-        {!isLandingPage && !isPublicProposal && !isDashboardRoute && <Footer />}
+        {review && <aside className="bg-emerald-950 px-4 py-3 text-center text-sm text-emerald-100">{process.env.CONSTRUCTA_REVIEW_EDITABLE === '1' ? 'Protected backend test. Only the two existing QA jobs are editable. AI, uploads, deletion, publishing and sending are disabled. Do not enter real client data.' : 'Protected work-in-progress review. Test data only. Saving, AI, uploads and sending are disabled.'}</aside>}
+        <PublicChrome>{children}</PublicChrome>
       </body>
     </html>
   );

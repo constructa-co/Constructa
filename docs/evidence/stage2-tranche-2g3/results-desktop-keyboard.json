@@ -1,0 +1,175 @@
+{
+  "project": "desktop-keyboard",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "input": "keyboard",
+  "startedAt": "2026-10-07T20:03:00.384Z",
+  "finishedAt": "2026-10-07T20:03:04.285Z",
+  "outcome": "passed",
+  "steps": [],
+  "checkpoints": [
+    {
+      "name": "interview-first-question",
+      "path": "/admin-e2e-import-fixture/interview",
+      "layout": {
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 4,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "interview-business-started",
+      "path": "/admin-e2e-import-fixture/interview",
+      "layout": {
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 5,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "interview-save-failed",
+      "path": "/admin-e2e-import-fixture/interview",
+      "layout": {
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 5,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "interview-review",
+      "path": "/admin-e2e-import-fixture/interview",
+      "layout": {
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 8,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "interview-review-facts",
+      "path": "/admin-e2e-import-fixture/interview",
+      "layout": {
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 8,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "interview-answers-changed",
+      "path": "/admin-e2e-import-fixture/interview",
+      "layout": {
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 8,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "interview-business-name-changed",
+      "path": "/admin-e2e-import-fixture/interview",
+      "layout": {
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 8,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "interview-profile-changed",
+      "path": "/admin-e2e-import-fixture/interview",
+      "layout": {
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 8,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    },
+    {
+      "name": "interview-approved",
+      "path": "/admin-e2e-import-fixture/interview",
+      "layout": {
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sidewaysPageScrollers": [],
+        "elementsPastViewport": [],
+        "controlsMeasured": 5,
+        "undersized": [],
+        "undersizedAdvanced": [],
+        "undersizedSideNavigation": []
+      },
+      "obscured": [],
+      "accessibility": [],
+      "screenshot": null
+    }
+  ],
+  "parity": {},
+  "keyboard": {
+    "controlsReached": 30,
+    "withoutVisibleFocus": []
+  },
+  "blockedThirdPartyHosts": [],
+  "provider": {},
+  "database": {}
+}

@@ -11,6 +11,7 @@ import {
   markStatementSentAction,
   saveCisSettingsAction,
 } from "./actions";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -183,7 +184,7 @@ function SubcontractorForm({
       </div>
       {error && <p className="text-red-400 text-sm">{error}</p>}
       <div className="flex gap-3 pt-2">
-        <button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-md">
+        <button onClick={handleSave} disabled={saving} className={`text-sm px-4 py-2 rounded-md disabled:opacity-50 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
           {saving ? "Saving…" : (initial ? "Save Changes" : "Add Subcontractor")}
         </button>
         <button onClick={onCancel} className="text-slate-400 hover:text-slate-200 text-sm px-4 py-2 rounded-md border border-slate-700">
@@ -313,7 +314,7 @@ function PaymentForm({
 
       {error && <p className="text-red-400 text-sm">{error}</p>}
       <div className="flex gap-3 pt-2">
-        <button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-md">
+        <button onClick={handleSave} disabled={saving} className={`text-sm px-4 py-2 rounded-md disabled:opacity-50 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
           {saving ? "Saving…" : "Record Payment"}
         </button>
         <button onClick={onCancel} className="text-slate-400 hover:text-slate-200 text-sm px-4 py-2 rounded-md border border-slate-700">
@@ -474,7 +475,7 @@ export default function CisClient({ profile, subcontractors, payments, projects 
               </div>
             </div>
             {settingsError && <p className="text-red-400 text-sm">{settingsError}</p>}
-            <button onClick={handleSaveSettings} disabled={savingSettings} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-md">
+            <button onClick={handleSaveSettings} disabled={savingSettings} className={`text-sm px-4 py-2 rounded-md disabled:opacity-50 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
               {savingSettings ? "Saving…" : "Save Settings"}
             </button>
           </div>
@@ -609,7 +610,7 @@ export default function CisClient({ profile, subcontractors, payments, projects 
               <h2 className="text-sm font-semibold text-slate-300">Subcontractor Register</h2>
               <button
                 onClick={() => { setShowAddSub(true); setEditSub(null); }}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-2 rounded-md"
+                className={`flex items-center gap-2 text-sm px-3 py-2 rounded-md ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
               >
                 <Plus className="w-4 h-4" /> Add Subcontractor
               </button>
@@ -681,7 +682,7 @@ export default function CisClient({ profile, subcontractors, payments, projects 
               <h2 className="text-sm font-semibold text-slate-300">Payment Records</h2>
               <button
                 onClick={() => setShowAddPayment(true)}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-2 rounded-md"
+                className={`flex items-center gap-2 text-sm px-3 py-2 rounded-md ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                 disabled={subcontractors.filter(s => s.is_active).length === 0}
               >
                 <Plus className="w-4 h-4" /> Record Payment

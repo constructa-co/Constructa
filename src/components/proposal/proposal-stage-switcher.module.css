@@ -1,0 +1,55 @@
+.stages {
+    padding: 1rem;
+    border: 1px solid var(--review-border);
+    border-radius: 1rem;
+    background: var(--review-surface);
+    color: var(--review-ink);
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.step {
+    min-height: 44px;
+    padding: .65rem 1rem;
+    border: 1px solid var(--review-border);
+    border-radius: .65rem;
+    background: transparent;
+    color: var(--review-ink);
+    font: inherit;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+}
+
+.step[aria-pressed="true"] {
+    border-color: var(--review-focus);
+    background: var(--review-inset);
+    color: var(--review-focus);
+}
+
+.step:focus-visible {
+    outline: 3px solid var(--review-focus);
+    outline-offset: 3px;
+}
+
+.step:disabled {
+    cursor: wait;
+    opacity: .55;
+}
+
+.guide {
+    margin: .75rem 0 0;
+    color: var(--review-muted);
+    font-size: .875rem;
+    line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+    .step {
+        width: 100%;
+    }
+}

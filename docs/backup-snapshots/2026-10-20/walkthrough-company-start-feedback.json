@@ -1,0 +1,24 @@
+{
+  "source": "Robert's direct company-start walkthrough feedback, 18 October 2026",
+  "status": "Record-only, to implement after Robert releases the agent from the walkthrough.",
+  "landing": "This existing company-start page is the intended destination after the initial setup steps, rather than the operational dashboard. Improve and wire this page rather than create a duplicate welcome page. The tour used an existing account; do not claim its returning-account redirect proves the fresh-user route is broken.",
+  "brand": "Main-panel charcoal/green palette approved. Left sidebar blue logo/selection treatment, typeface and overall styling do not match; align navigation and wordmark with the approved main/account visual language.",
+  "hierarchy": {
+    "request": "Reduce dead space and oversized introduction at the top. Present four clear landscape rectangular top-level tiles/panels.",
+    "paths": [
+      "Build the detailed company profile",
+      "Case studies and contractor benchmarks",
+      "Proposal defaults: appearance, programme/schedule preferences and suitable standard terms",
+      "Build the first proposal, including pricing"
+    ],
+    "companySubPaths": "Move Answer a few questions / Fill it in yourself / Bring in details inside the company-profile path, rather than displaying the full nested choice set on the welcome page.",
+    "existingContent": "Reuse existing company/profile, past-work and job/pricing/proposal routes. Do not confuse existing past-work capability with proof that importing/managing pricing benchmarks is implemented.",
+    "duplication": "Price your next job and Build your next proposal feel like duplicate entry points. Present a clear single user outcome while preserving the distinct estimate-building and proposal-composition steps behind it."
+  },
+  "readinessChecklist": "What your proposals can use / basics / logo / story / case studies / terms is useful information but feels misplaced at the bottom of this landing page. Reconsider its contextual placement within relevant setup paths; do not silently remove the content or invent a mandatory completion gate.",
+  "imports": {
+    "desiredSources": ["Own business website", "Own business LinkedIn presence", "Own business Facebook presence"],
+    "limits": "Website entry UI already exists. Social import is requested product direction only: no provider activation, scraping, platform login, consent bypass, credentials, paid calls, new hosted reads or claims of existing LinkedIn/Facebook support. Determine a compliant supported approach separately after the walkthrough."
+  },
+  "executionBounds": "No implementation, tests or diagnostics during the tour. Current next stop is the existing website-import entry UI only; no URL submitted, permission checkbox selected, fetch, AI, import or profile save."
+}

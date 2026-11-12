@@ -1,0 +1,18 @@
+{
+  "source": "Robert's direct setup-navigation/new-project walkthrough feedback, 18 October 2026",
+  "status": "Record-only until explicit release after tour.",
+  "journey": {
+    "navigation": "Show sequential company-setup steps in left navigation, with meaningful page/step names and current position visible as the tour advances.",
+    "reviewOpen": "Agent moved past Example Local Builders welcome/readiness page too quickly, before Robert finished reviewing it. Return for remaining review when requested; do not mark that page accepted.",
+    "boundary": "Make transition from Company Profile setup to Work Winning/new project explicit. Preserve consistent header/navigation rather than losing context."
+  },
+  "branding": "Welcome/readiness black background with green lower down feels inconsistent. New project header/frame, left logo/blue/typeface and palette do not align. Preserve the approved visual language across all screens.",
+  "newProject": {
+    "positive": "Core content and Create project and start the brief are generally acceptable; likely start date useful.",
+    "layout": "Reduce excess top whitespace; clearer flow and more polished presentation.",
+    "addresses": "Offer postcode entry followed by address selection for site and separate client address, with manual fallback. Provider/geography/cost/privacy/credentials still unselected; no activation authorised by this comment.",
+    "jobTypes": "Different dropdown versus earlier discipline lists is incoherent. Show options relevant to known business (e.g. kitchen contractor) rather than unrelated drainage, industrial/new-build categories. Retain custom wording direction, don't conflate job type and discipline or silently select/map.",
+    "value": "Dislikes Rough value. Indicative cost/value or forecast cost suggested, no final label selected. Questions whether the pre-pricing amount belongs here at all; assess purpose and distinction from estimate before moving/removing/defaulting."
+  },
+  "execution": "Current new-project optional section had been opened by human; agent observed blank fields/default Not sure yet. No agent typing/submit/create. Advanced via existing Briefs link to existing demo job, not actual new-project creation/handoff proof. No component edits/tests/diagnostics/provider actions."
+}

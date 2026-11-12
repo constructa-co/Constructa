@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Plus, Trash2, Loader2, CheckCircle2, AlertTriangle, FileSignature, PenLine } from "lucide-react";
 import { upsertFinalAccountAction, createAdjustmentAction, deleteAdjustmentAction } from "./actions";
 import FinalAccountPdfButton from "./final-account-pdf-button";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 // Sprint 58 P3.1 — normalise `-0` to `0` before formatting so the
 // Final Account display never shows "£–0.00" / "£-0.00" for a row
@@ -202,7 +203,7 @@ export default function FinalAccountClient({
                     </button>
                     <button
                         onClick={() => setShowStatus(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-500 transition-colors"
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                     >
                         <FileSignature className="w-4 h-4" />
                         Update Status
@@ -446,7 +447,7 @@ export default function FinalAccountClient({
                             <Input value={adjNotes} onChange={e => setAdjNotes(e.target.value)} placeholder="Reason for adjustment..." className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500" />
                         </div>
                         <DialogFooter>
-                            <button type="submit" disabled={isPending} className="w-full h-11 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors">
+                            <button type="submit" disabled={isPending} className={`w-full h-11 font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-70 disabled:cursor-not-allowed ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
                                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add Adjustment"}
                             </button>
                         </DialogFooter>
@@ -506,7 +507,7 @@ export default function FinalAccountClient({
                         </>)}
 
                         <DialogFooter>
-                            <button type="submit" disabled={isPending} className="w-full h-11 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors">
+                            <button type="submit" disabled={isPending} className={`w-full h-11 font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-70 disabled:cursor-not-allowed ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
                                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
                             </button>
                         </DialogFooter>

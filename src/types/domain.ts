@@ -265,7 +265,8 @@ export type ComponentType =
     | "material"
     | "consumable"
     | "temp_works"
-    | "subcontract";
+    | "subcontract"
+    | "consultancy";
 
 export interface EstimateLineComponent {
     id: Uuid;

@@ -40,9 +40,8 @@ export const BRIEF_TRADES: readonly string[] = [
 
 export const BRIEF_STAGES = [
     { key: "client", short: "The job", title: "What does the client want?" },
-    { key: "work", short: "Work included", title: "What work is included?" },
+    { key: "work", short: "Activities", title: "What will you do on this job?" },
     { key: "site", short: "Site and assumptions", title: "Anything about the site we should know?" },
-    { key: "review", short: "Review", title: "Review and confirm" },
 ] as const;
 
 export type BriefStageKey = (typeof BRIEF_STAGES)[number]["key"];
@@ -159,7 +158,7 @@ export interface BriefSavePayload {
     lng?: number;
     region?: string;
     brief_completed: boolean;
-    potential_value: number | null;
+    potential_value?: number | null;
     start_date: string | null;
 }
 
@@ -182,12 +181,12 @@ export type BriefPayloadResult =
     | { ok: true; payload: BriefSavePayload }
     | { ok: false; error: string; stage: BriefStageKey };
 
-export function buildBriefPayload(draft: BriefDraft, completed: boolean): BriefPayloadResult {
+export function buildBriefPayload(draft: BriefDraft, completed: boolean, options: { preservePotentialValue?: boolean } = {}): BriefPayloadResult {
     const scope = composeScope(draft.work, draft.siteNotes);
     if (scope.length > MAX_SCOPE_LENGTH) {
         return { ok: false, stage: "client", error: "The description is too long to save. Shorten it and try again." };
     }
-    const value = parseRoughValue(draft.roughValue);
+    const value = options.preservePotentialValue ? { ok: true as const, value: null } : parseRoughValue(draft.roughValue);
     if (!value.ok) return { ok: false, stage: "site", error: value.error };
     if (draft.startDate && !/^\d{4}-\d{2}-\d{2}$/.test(draft.startDate)) {
         return { ok: false, stage: "site", error: "Choose the start date from the calendar." };
@@ -198,9 +197,11 @@ export function buildBriefPayload(draft: BriefDraft, completed: boolean): BriefP
         brief_trade_sections: draft.trades,
         client_type: draft.clientType,
         brief_completed: completed,
-        potential_value: value.value,
         start_date: draft.startDate || null,
     };
+    // The capture flow no longer edits this field. RPC key omission preserves
+    // the stored value instead of clearing or rounding historical money.
+    if (!options.preservePotentialValue) payload.potential_value = value.value;
     if (draft.lat !== null && draft.lng !== null) {
         payload.lat = draft.lat;
         payload.lng = draft.lng;
@@ -324,6 +325,9 @@ export const DESCRIPTION_NEEDED_ERROR = "Describe the work before you confirm th
 export interface BriefState {
     stage: BriefStageKey;
     draft: BriefDraft;
+    /** Local text not yet added to the saved activity array. */
+    activityEntry: string;
+    activityEntryVersion: number;
     /** The last draft the server confirmed. */
     saved: BriefDraft;
     savedCompleted: boolean;
@@ -340,6 +344,8 @@ export function initialBriefState(project: BriefProjectFields): BriefState {
     return {
         stage: "client",
         draft,
+        activityEntry: "",
+        activityEntryVersion: 0,
         saved: draft,
         savedCompleted: project.brief_completed,
         hasSavedBrief: project.brief_completed || (project.brief_scope || "").trim() !== "",
@@ -354,6 +360,9 @@ export type BriefAction =
     | { type: "stage/set"; stage: BriefStageKey }
     | { type: "draft/edit"; patch: Partial<BriefDraft> }
     | { type: "draft/toggleTrade"; trade: string }
+    | { type: "activity/edit"; text: string }
+    | { type: "activity/add"; text: string; version: number }
+    | { type: "activity/clear"; text: string; version: number }
     | { type: "ai/started"; requestId: string }
     | { type: "ai/succeeded"; requestId: string; suggestion: BriefSuggestion }
     | { type: "ai/failed"; requestId: string; error: string }
@@ -389,6 +398,23 @@ export function briefReducer(state: BriefState, action: BriefAction): BriefState
 
         case "draft/edit":
             return { ...state, draft: { ...state.draft, ...action.patch } };
+
+        case "activity/edit":
+            return { ...state, activityEntry: action.text, activityEntryVersion: state.activityEntryVersion + 1 };
+
+        case "activity/add":
+            if (action.version !== state.activityEntryVersion || action.text !== state.activityEntry || !action.text || activityEntryError(state)) return state;
+            return {
+                ...state,
+                activityEntry: "",
+                activityEntryVersion: state.activityEntryVersion + 1,
+                draft: { ...state.draft, trades: [...state.draft.trades, action.text] },
+            };
+
+        case "activity/clear":
+            return action.version === state.activityEntryVersion && action.text === state.activityEntry
+                ? { ...state, activityEntry: "", activityEntryVersion: state.activityEntryVersion + 1 }
+                : state;
 
         case "draft/toggleTrade": {
             const selected = state.draft.trades.includes(action.trade);
@@ -460,8 +486,16 @@ export function briefReducer(state: BriefState, action: BriefAction): BriefState
 
 export type BriefSaveStatus = "empty" | "unsaved" | "saving" | "saved" | "failed";
 
+/** The existing save_phase1_brief RPC allows 100 names of 1–200 characters. */
+export function activityEntryError(state: BriefState): string | null {
+    if (!state.activityEntry) return null;
+    if (Array.from(state.activityEntry).length > 200) return "An activity can contain up to 200 characters. Your text is still here.";
+    if (state.draft.trades.length >= 100) return "The brief can contain up to 100 activities. Remove one before adding another.";
+    return null;
+}
+
 export function isDirty(state: BriefState): boolean {
-    return !draftsEqual(state.draft, state.saved);
+    return state.activityEntry.length > 0 || !draftsEqual(state.draft, state.saved);
 }
 
 export function briefSaveStatus(state: BriefState): BriefSaveStatus {
@@ -529,9 +563,15 @@ export type SaveOutcome = "saved" | "failed" | "invalid" | "busy";
  * plain save keeps whatever the project already says. The draft is never
  * cleared or replaced by a failed save.
  */
-export async function saveBrief(store: BriefStore, save: SaveBrief, options: { confirm: boolean }): Promise<SaveOutcome> {
+export async function saveBrief(store: BriefStore, save: SaveBrief, options: { confirm: boolean; preservePotentialValue?: boolean }): Promise<SaveOutcome> {
     const state = store.getState();
     if (state.save.status === "saving") return "busy";
+
+    if (state.activityEntry.length > 0) {
+        store.dispatch({ type: "stage/set", stage: "work" });
+        store.dispatch({ type: "save/failed", error: "Add the activity to your brief or clear the entry before saving. Your text is still here." });
+        return "invalid";
+    }
 
     if (options.confirm && !state.draft.work.trim()) {
         store.dispatch({ type: "stage/set", stage: "client" });
@@ -540,14 +580,16 @@ export async function saveBrief(store: BriefStore, save: SaveBrief, options: { c
     }
 
     const completed = options.confirm || state.savedCompleted;
-    const built = buildBriefPayload(state.draft, completed);
+    const built = buildBriefPayload(state.draft, completed, options);
     if (!built.ok) {
         store.dispatch({ type: "stage/set", stage: built.stage });
         store.dispatch({ type: "save/failed", error: built.error });
         return "invalid";
     }
 
-    const snapshot = state.draft;
+    const snapshot = options.preservePotentialValue
+        ? { ...state.draft, roughValue: state.saved.roughValue }
+        : state.draft;
     store.dispatch({ type: "save/started" });
     try {
         const result = await save(built.payload);
@@ -572,9 +614,10 @@ export async function continueToPricing(
     store: BriefStore,
     save: SaveBrief,
     navigate: () => void,
+    options: { preservePotentialValue?: boolean } = {},
 ): Promise<"navigated" | SaveOutcome> {
     if (!isBriefConfirmed(store.getState())) {
-        const outcome = await saveBrief(store, save, { confirm: true });
+        const outcome = await saveBrief(store, save, { ...options, confirm: true });
         if (outcome !== "saved") return outcome;
         // Typing during the save leaves newer text unsaved: stay and say so.
         if (!isBriefConfirmed(store.getState())) return "busy";

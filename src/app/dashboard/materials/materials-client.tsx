@@ -14,6 +14,7 @@ import {
   X,
   Package,
 } from "lucide-react";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 interface MaterialPrice {
   id: string;
@@ -137,7 +138,7 @@ export default function MaterialsClient({ materials, categories, regions }: Prop
         </div>
         <button
           onClick={() => setBasketOpen(true)}
-          className="relative flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg shrink-0 transition-colors"
+          className={`relative flex items-center gap-2 text-sm px-4 py-2 rounded-lg shrink-0 transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
         >
           <ShoppingCart className="w-4 h-4" />
           <span>Basket</span>
@@ -352,7 +353,7 @@ export default function MaterialsClient({ materials, categories, regions }: Prop
                 </p>
                 <button
                   onClick={logAllCosts}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-3 rounded-xl transition-colors"
+                  className={`w-full text-sm font-medium px-4 py-3 rounded-xl transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                 >
                   Log all to Job P&L →
                 </button>

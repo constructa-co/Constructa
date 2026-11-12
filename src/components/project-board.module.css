@@ -1,0 +1,35 @@
+.board {
+    --board-link: #2f6330;
+}
+
+.board[data-dark="true"] {
+    --board-link: #b9f6a5;
+}
+
+.board :is(button, a) {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+.board button {
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.board a:not([aria-label]) {
+    flex-shrink: 0;
+    color: var(--board-link);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.board :is([data-board-links], [data-board-secondary]) {
+    flex-wrap: wrap;
+    row-gap: 4px;
+}
+
+.board :is(button, a):focus-visible {
+    outline: 3px solid #77c66e;
+    outline-offset: 3px;
+}

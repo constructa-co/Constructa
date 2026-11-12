@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition, useState } from "react";
+import { useEffect, useTransition, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { updateStatusAction, markAsWonAction } from "./board-actions";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,14 +28,17 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
+import ui from "@/components/project-board.module.css";
+import { PIPELINE_CHANGE_UNCONFIRMED, PIPELINE_REFRESH_UNCONFIRMED } from "@/lib/pipeline-feedback";
+import { pipelineStageDisplayLabel } from "./pipeline-stage-display";
 
 const COLUMNS = [
-    { id: "Lead",          label: "Leads",         icon: Users,        color: "bg-slate-50",      darkColor: "bg-white/5",        text: "text-slate-600",  darkText: "text-slate-300",  border: "border-slate-200",  darkBorder: "border-[#2a2a2a]" },
-    { id: "Estimating",    label: "Estimating",    icon: Clock,        color: "bg-blue-50/50",    darkColor: "bg-blue-500/10",    text: "text-blue-600",   darkText: "text-blue-400",   border: "border-blue-200",   darkBorder: "border-blue-500/20" },
-    { id: "Proposal Sent", label: "Proposal Sent", icon: FileText,     color: "bg-purple-50/50",  darkColor: "bg-purple-500/10",  text: "text-purple-600", darkText: "text-purple-400", border: "border-purple-200", darkBorder: "border-purple-500/20" },
-    { id: "Active",        label: "Active",        icon: Hammer,       color: "bg-emerald-50/50", darkColor: "bg-emerald-500/10", text: "text-emerald-600",darkText: "text-emerald-400",border: "border-emerald-200",darkBorder: "border-emerald-500/20" },
-    { id: "Completed",     label: "Completed",     icon: CheckCircle2, color: "bg-zinc-50",       darkColor: "bg-white/5",        text: "text-zinc-600",   darkText: "text-zinc-300",   border: "border-zinc-200",   darkBorder: "border-[#2a2a2a]" },
-    { id: "Lost",          label: "Lost",          icon: XCircle,      color: "bg-red-50/50",     darkColor: "bg-red-500/10",     text: "text-red-500",    darkText: "text-red-400",    border: "border-red-200",    darkBorder: "border-red-500/20" },
+    { id: "Lead",          label: pipelineStageDisplayLabel("Lead"),          icon: Users,        color: "bg-slate-50",      darkColor: "bg-white/5",        text: "text-slate-600",  darkText: "text-slate-300",  border: "border-slate-200",  darkBorder: "border-[#2a2a2a]" },
+    { id: "Estimating",    label: pipelineStageDisplayLabel("Estimating"),    icon: Clock,        color: "bg-blue-50/50",    darkColor: "bg-blue-500/10",    text: "text-blue-600",   darkText: "text-blue-400",   border: "border-blue-200",   darkBorder: "border-blue-500/20" },
+    { id: "Proposal Sent", label: pipelineStageDisplayLabel("Proposal Sent"), icon: FileText,     color: "bg-purple-50/50",  darkColor: "bg-purple-500/10",  text: "text-purple-600", darkText: "text-purple-400", border: "border-purple-200", darkBorder: "border-purple-500/20" },
+    { id: "Active",        label: pipelineStageDisplayLabel("Active"),        icon: Hammer,       color: "bg-emerald-50/50", darkColor: "bg-emerald-500/10", text: "text-emerald-600",darkText: "text-emerald-400",border: "border-emerald-200",darkBorder: "border-emerald-500/20" },
+    { id: "Completed",     label: pipelineStageDisplayLabel("Completed"),     icon: CheckCircle2, color: "bg-zinc-50",       darkColor: "bg-white/5",        text: "text-zinc-600",   darkText: "text-zinc-300",   border: "border-zinc-200",   darkBorder: "border-[#2a2a2a]" },
+    { id: "Lost",          label: pipelineStageDisplayLabel("Lost"),          icon: XCircle,      color: "bg-red-50/50",     darkColor: "bg-red-500/10",     text: "text-red-500",    darkText: "text-red-400",    border: "border-red-200",    darkBorder: "border-red-500/20" },
 ];
 
 const PROJECT_TYPE_COLORS: Record<string, { light: string; dark: string }> = {
@@ -52,7 +55,7 @@ const PROJECT_TYPE_COLORS: Record<string, { light: string; dark: string }> = {
 const NEXT_STAGE: Record<string, string> = {
     "Lead":          "Estimating",
     "Estimating":    "Proposal Sent",
-    "Proposal Sent": "Active",   // handled by markAsWonAction
+    "Proposal Sent": "Active",   // operational Active via move(); explicit Mark as Won uses recordWin (see move())
     "Active":        "Completed",
     "Lost":          "Proposal Sent", // reopen
     "Completed":     "Active",        // reopen
@@ -83,6 +86,15 @@ function getDaysInStage(createdAt: string | null): number {
     return Math.floor((Date.now() - new Date(createdAt).getTime()) / 86400000);
 }
 
+function formatPlatformSendAt(iso: string): string {
+    return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function hasRecordedWin(project: { proposal_accepted_at?: string | null; proposal_status?: string | null }): boolean {
+    if (project.proposal_accepted_at) return true;
+    return project.proposal_status?.toLowerCase() === "accepted";
+}
+
 export default function ProjectBoard({ projects, financials }: { projects: any[], financials: any }) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
@@ -91,24 +103,71 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
     const showExtendedModules = isCapabilityEnabled("extended-modules");
 
     // Optimistic status: cards move instantly without waiting for server
-    const [optimisticStatus, setOptimisticStatus] = useState<Record<string, string>>({});
+    const [optimisticStatus, setOptimisticStatus] = useState<{ source: typeof projects; stages: Record<string, string> }>({ source: projects, stages: {} });
+    /** Ephemeral: confirmed Mark as Won ACK for this projects snapshot until server props catch up. */
+    const [confirmedWins, setConfirmedWins] = useState<Record<string, true>>({});
+    const [moveNotice, setMoveNotice] = useState<{ kind: "error" | "warning"; text: string } | null>(null);
+    const moveInFlight = useRef(false);
 
-    const getStatus = (p: any): string => optimisticStatus[p.id] ?? p.status ?? "Lead";
-
-    const move = (projectId: string, newStatus: string) => {
-        setOptimisticStatus(prev => ({ ...prev, [projectId]: newStatus }));
-        startTransition(async () => {
-            if (newStatus === "Active") {
-                await markAsWonAction(projectId); // sets proposal_status + accepted_at too
-            } else {
-                await updateStatusAction(projectId, newStatus);
+    useEffect(() => {
+        setConfirmedWins(prev => {
+            let next: Record<string, true> | null = null;
+            for (const row of projects) {
+                if (hasRecordedWin(row) && prev[row.id]) {
+                    if (!next) next = { ...prev };
+                    delete next[row.id];
+                }
             }
-            router.refresh();
+            return next ?? prev;
+        });
+    }, [projects]);
+
+    const getStatus = (p: any): string => (optimisticStatus.source === projects ? optimisticStatus.stages[p.id] : undefined) ?? p.status ?? "Lead";
+
+    const showsRecordedWin = (p: { id: string; proposal_accepted_at?: string | null; proposal_status?: string | null }) =>
+        hasRecordedWin(p) || confirmedWins[p.id] === true;
+
+    const move = (projectId: string, newStatus: string, intent: "default" | "recordWin" = "default") => {
+        if (moveInFlight.current) return;
+        moveInFlight.current = true;
+        setMoveNotice(null);
+        // A115: only the explicit Mark as Won control records acceptance; Active
+        // via stage picker or reopen is operational status only.
+        const useWonMutation = intent === "recordWin";
+        setOptimisticStatus(prev => ({ source: projects, stages: { ...(prev.source === projects ? prev.stages : {}), [projectId]: newStatus } }));
+        const restore = () => setOptimisticStatus(prev => {
+            const stages = { ...prev.stages };
+            delete stages[projectId];
+            return { ...prev, stages };
+        });
+        startTransition(async () => {
+            let confirmed = false;
+            try {
+                const result = useWonMutation
+                    ? await markAsWonAction(projectId)
+                    : await updateStatusAction(projectId, newStatus);
+                if (!result?.success) {
+                    restore();
+                    setMoveNotice({ kind: "error", text: result?.error || PIPELINE_CHANGE_UNCONFIRMED });
+                    return;
+                }
+                confirmed = true;
+                if (useWonMutation) setConfirmedWins(prev => ({ ...prev, [projectId]: true }));
+                if (result.warning) setMoveNotice({ kind: "warning", text: result.warning });
+                router.refresh();
+            } catch {
+                if (!confirmed) restore();
+                setMoveNotice({ kind: confirmed ? "warning" : "error", text: confirmed ? PIPELINE_REFRESH_UNCONFIRMED : PIPELINE_CHANGE_UNCONFIRMED });
+            } finally {
+                moveInFlight.current = false;
+            }
         });
     };
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 h-full items-start md:min-w-[900px]">
+        <>
+        {moveNotice && <p role={moveNotice.kind === "error" ? "alert" : "status"} className="mb-3 max-w-3xl rounded-lg border border-amber-500/40 bg-amber-950 px-4 py-3 text-sm leading-relaxed text-amber-100">{moveNotice.text}</p>}
+        <div className={`${ui.board} grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 h-full items-start md:min-w-[900px]`} data-dark={isDark}>
             {COLUMNS.map(col => {
                 const items = projects.filter(p => getStatus(p) === col.id);
                 // P1-4 — prefer the canonical contract sum from the active
@@ -202,20 +261,43 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                             </div>
 
                                             {/* MANUAL STATUS OVERRIDE DROPDOWN */}
-                                            <Select value={status} onValueChange={(val) => move(p.id, val)} disabled={isPending}>
-                                                <SelectTrigger aria-label={`Stage of ${p.name}`} className={`h-11 lg:h-7 text-[10px] font-bold transition-colors ${
-                                                    isDark
-                                                        ? "border-[#2a2a2a] bg-[#0d0d0d] text-white hover:bg-[#1a1a1a]"
-                                                        : "border-gray-100 bg-gray-50/50 hover:bg-gray-50"
-                                                }`}>
-                                                    <SelectValue />
-                                                </SelectTrigger>
+                                            <div data-board-stage-control className="space-y-1">
+                                                <label
+                                                    htmlFor={`stage-change-${p.id}`}
+                                                    className={`block text-[9px] font-bold uppercase tracking-wide ${isDark ? "text-[#a0a0a0]" : "text-gray-600"}`}
+                                                >
+                                                    Operational stage
+                                                </label>
+                                                <p className={`text-[9px] leading-snug ${isDark ? "text-[#707070]" : "text-gray-500"}`}>
+                                                    Changes save immediately.
+                                                </p>
+                                                <p className={`text-[9px] leading-snug ${isDark ? "text-[#707070]" : "text-gray-500"}`}>
+                                                    Tracks where you put this job on the board. It does not send, publish, or accept the proposal document.
+                                                </p>
+                                                {p.proposal_sent_at ? (
+                                                    <p className={`text-[9px] leading-snug ${isDark ? "text-emerald-400/90" : "text-emerald-700"}`} data-board-proposal-sent-at>
+                                                        Platform send recorded {formatPlatformSendAt(p.proposal_sent_at)}.
+                                                    </p>
+                                                ) : status === "Proposal Sent" ? (
+                                                    <p className={`text-[9px] leading-snug ${isDark ? "text-amber-400/90" : "text-amber-700"}`}>
+                                                        No platform send recorded yet — use Send in the proposal editor when ready.
+                                                    </p>
+                                                ) : null}
+                                                <Select value={status} onValueChange={(val) => move(p.id, val)} disabled={isPending}>
+                                                    <SelectTrigger id={`stage-change-${p.id}`} aria-label={`Stage of ${p.name}`} className={`h-11 lg:h-7 text-[10px] font-bold transition-colors ${
+                                                        isDark
+                                                            ? "border-[#2a2a2a] bg-[#0d0d0d] text-white hover:bg-[#1a1a1a]"
+                                                            : "border-gray-100 bg-gray-50/50 hover:bg-gray-50"
+                                                    }`}>
+                                                        <SelectValue />
+                                                    </SelectTrigger>
                                                 <SelectContent>
                                                     {COLUMNS.map(c => (
                                                         <SelectItem key={c.id} value={c.id} className="text-xs font-medium">{c.label}</SelectItem>
                                                     ))}
                                                 </SelectContent>
-                                            </Select>
+                                                </Select>
+                                            </div>
 
                                             {/* ── STAGE ACTION BUTTONS ──────────────── */}
 
@@ -223,7 +305,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                             {status === "Proposal Sent" ? (
                                                 // Mark as Won — special emerald treatment
                                                 <button
-                                                    onClick={() => move(p.id, "Active")}
+                                                    onClick={() => move(p.id, "Active", "recordWin")}
                                                     disabled={isPending}
                                                     className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
                                                         isDark
@@ -255,20 +337,37 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                             : "bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"
                                                     }`}
                                                 >
-                                                    Proposal Sent <ArrowRight className="w-3 h-3" />
+                                                    Proposal sent stage <ArrowRight className="w-3 h-3" />
                                                 </button>
                                             ) : status === "Active" ? (
-                                                <button
-                                                    onClick={() => move(p.id, "Completed")}
-                                                    disabled={isPending}
-                                                    className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
-                                                        isDark
-                                                            ? "bg-white/8 text-slate-300 hover:bg-white/12 border-white/10"
-                                                            : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border-zinc-200"
-                                                    }`}
-                                                >
-                                                    <CheckCircle2 className="w-3 h-3" /> Mark Complete
-                                                </button>
+                                                <div className="space-y-1.5">
+                                                    {!showsRecordedWin(p) && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => move(p.id, "Active", "recordWin")}
+                                                            disabled={isPending}
+                                                            className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
+                                                                isDark
+                                                                    ? "bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border-emerald-500/20"
+                                                                    : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200"
+                                                            }`}
+                                                        >
+                                                            <Trophy className="w-3 h-3" /> Mark as Won
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => move(p.id, "Completed")}
+                                                        disabled={isPending}
+                                                        className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
+                                                            isDark
+                                                                ? "bg-white/8 text-slate-300 hover:bg-white/12 border-white/10"
+                                                                : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border-zinc-200"
+                                                        }`}
+                                                    >
+                                                        <CheckCircle2 className="w-3 h-3" /> Mark Complete
+                                                    </button>
+                                                </div>
                                             ) : (status === "Completed" || status === "Lost") ? (
                                                 <button
                                                     onClick={() => move(p.id, status === "Lost" ? "Proposal Sent" : "Active")}
@@ -285,7 +384,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
 
                                             {/* SECONDARY: Pull Back + Mark as Lost */}
                                             {(prevStage || showLost) && (
-                                                <div className="flex items-center justify-between pt-0.5">
+                                                <div data-board-secondary className="flex items-center justify-between pt-0.5">
                                                     {prevStage ? (
                                                         <button
                                                             onClick={() => move(p.id, prevStage)}
@@ -312,7 +411,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                             )}
 
                                             {/* QUICK LINKS */}
-                                            <div className={`flex items-center gap-3 pt-1 border-t ${isDark ? "border-[#2a2a2a]" : "border-gray-50"}`}>
+                                            <div data-board-links className={`flex items-center gap-3 pt-1 border-t ${isDark ? "border-[#2a2a2a]" : "border-gray-50"}`}>
                                                 <Link href={`/dashboard/projects/proposal?projectId=${p.id}`} className="inline-flex items-center justify-center min-w-11 min-h-11 lg:min-w-0 lg:min-h-0 text-[9px] font-black uppercase text-purple-600 hover:underline tracking-widest">
                                                     Proposal
                                                 </Link>
@@ -343,5 +442,6 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                 );
             })}
         </div>
+        </>
     );
 }

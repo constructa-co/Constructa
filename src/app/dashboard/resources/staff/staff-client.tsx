@@ -28,6 +28,7 @@ import {
   type StaffResourceInput,
 } from "./actions";
 import { Pencil, Trash2, Users } from "lucide-react";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -830,7 +831,7 @@ function StaffFormDialog({
             <Button
               type="submit"
               disabled={isPending}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className={`${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
             >
               {isPending ? "Saving…" : isEdit ? "Save Changes" : "Add Staff Member"}
             </Button>
@@ -881,7 +882,7 @@ export default function StaffResourcesClient({ staff }: { staff: StaffRow[] }) {
           <h2 className="text-lg font-semibold text-foreground">Staff &amp; Contractors</h2>
           <p className="text-sm text-muted-foreground">Build accurate labour cost profiles for your team</p>
         </div>
-        <Button onClick={openAdd} className="bg-blue-600 hover:bg-blue-700 text-white">
+        <Button onClick={openAdd} className={`${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
           + Add Staff Member
         </Button>
       </div>
@@ -894,7 +895,7 @@ export default function StaffResourcesClient({ staff }: { staff: StaffRow[] }) {
           <p className="text-muted-foreground text-sm mb-6 max-w-xs">
             Create cost profiles for employees and contractors to use in project estimates
           </p>
-          <Button onClick={openAdd} className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button onClick={openAdd} className={`${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
             + Add Staff Member
           </Button>
         </div>

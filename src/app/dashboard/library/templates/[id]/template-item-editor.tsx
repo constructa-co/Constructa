@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,41 @@ import {
 } from "@/components/ui/select";
 import { Plus, Search } from "lucide-react";
 import { addItemsToTemplateAction } from "../../templates-actions";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
+
+const LIBRARY_KIT_FILTER_SELECT_KEYS = new Set([
+    "ArrowUp",
+    "ArrowDown",
+    "Home",
+    "End",
+    "Escape",
+    "Tab",
+    "Enter",
+    "PageUp",
+    "PageDown",
+]);
+
+function handleLibraryKitFilterKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.nativeEvent.isComposing || e.key === "Process") {
+        e.stopPropagation();
+        return;
+    }
+    if (e.ctrlKey || e.metaKey || e.altKey) {
+        e.stopPropagation();
+        return;
+    }
+    if (LIBRARY_KIT_FILTER_SELECT_KEYS.has(e.key)) {
+        return;
+    }
+    if (
+        e.key === " "
+        || e.key === "Backspace"
+        || e.key === "Delete"
+        || e.key.length === 1
+    ) {
+        e.stopPropagation();
+    }
+}
 
 interface Props {
     templateId: string;
@@ -26,28 +61,59 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
     const [selectedItemId, setSelectedItemId] = useState<string>("");
     const [quantity, setQuantity] = useState<number>(1);
     const [isPending, setIsPending] = useState(false);
+    const [filterQuery, setFilterQuery] = useState("");
+    const [addError, setAddError] = useState<string | null>(null);
+
+    const selectedItemIdRef = useRef(selectedItemId);
+    const quantityRef = useRef(quantity);
+    selectedItemIdRef.current = selectedItemId;
+    quantityRef.current = quantity;
+
+    const normalizedFilter = filterQuery.trim().toLowerCase();
+    const visibleLibraryItems = normalizedFilter === ""
+        ? libraryItems
+        : libraryItems.filter(item =>
+            String(item.description ?? "").toLowerCase().includes(normalizedFilter)
+            || String(item.category ?? "").toLowerCase().includes(normalizedFilter));
+
+    const selectedLibraryItem = selectedItemId
+        ? libraryItems.find(item => item.id === selectedItemId)
+        : undefined;
 
     const handleAdd = async () => {
         if (!selectedItemId) return;
 
+        const submittedItemId = selectedItemId;
+        const submittedQuantity = quantity;
+        setAddError(null);
         setIsPending(true);
-        const item = libraryItems.find(i => i.id === selectedItemId);
-        if (item) {
-            try {
-                await addItemsToTemplateAction(templateId, [{
-                    category: item.category,
-                    description: item.description,
-                    unit: item.unit,
-                    unit_cost: item.unit_cost,
-                    quantity: quantity
-                }]);
-                setSelectedItemId("");
-                setQuantity(1);
-            } catch (error) {
-                console.error("Add error:", error);
+        try {
+            const item = libraryItems.find(i => i.id === selectedItemId);
+            if (!item) {
+                setAddError("Selected library item is no longer available. Choose another item and try again.");
+                return;
             }
+            await addItemsToTemplateAction(templateId, [{
+                category: item.category,
+                description: item.description,
+                unit: item.unit,
+                unit_cost: item.unit_cost,
+                quantity: quantity
+            }]);
+            if (selectedItemIdRef.current === submittedItemId) {
+                setSelectedItemId("");
+            }
+            if (quantityRef.current === submittedQuantity) {
+                setQuantity(1);
+            }
+        } catch (error) {
+            const detail = error instanceof Error ? error.message : "Unknown error";
+            setAddError(
+                `Could not confirm the add completed. The item may already be on this kit — check the kit list below before adding again. (${detail})`
+            );
+        } finally {
+            setIsPending(false);
         }
-        setIsPending(false);
     };
 
     return (
@@ -61,14 +127,31 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
                     <Label className="text-xs font-bold uppercase text-slate-400">Library Item</Label>
                     <Select value={selectedItemId} onValueChange={setSelectedItemId}>
                         <SelectTrigger className="bg-white">
-                            <SelectValue placeholder="Search library..." />
+                            <SelectValue placeholder="Search library...">
+                                {selectedLibraryItem ? (
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">{selectedLibraryItem.description}</span>
+                                        <span className="text-[10px] text-slate-400 uppercase tracking-tighter">{selectedLibraryItem.category} • £{selectedLibraryItem.unit_cost}/{selectedLibraryItem.unit}</span>
+                                    </div>
+                                ) : null}
+                            </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                             <div className="flex items-center px-3 pb-2 border-b mb-1">
                                 <Search className="w-3 h-3 mr-2 text-slate-400" />
-                                <input placeholder="Filter..." className="text-xs bg-transparent outline-none w-full" />
+                                <input
+                                    name="library-kit-filter"
+                                    placeholder="Filter..."
+                                    value={filterQuery}
+                                    onChange={(e) => setFilterQuery(e.target.value)}
+                                    onKeyDown={handleLibraryKitFilterKeyDown}
+                                    className="text-xs bg-transparent outline-none w-full"
+                                />
                             </div>
-                            {libraryItems.map(item => (
+                            {visibleLibraryItems.length === 0 && normalizedFilter !== "" ? (
+                                <div className="px-3 py-2 text-xs text-slate-500">No matching library items.</div>
+                            ) : null}
+                            {visibleLibraryItems.map(item => (
                                 <SelectItem key={item.id} value={item.id}>
                                     <div className="flex flex-col">
                                         <span className="font-medium">{item.description}</span>
@@ -92,10 +175,13 @@ export default function TemplateItemEditor({ templateId, libraryItems }: Props) 
                     <p className="text-[10px] text-slate-400 mt-1 italic">This acts as a base multiplier when the kit is applied.</p>
                 </div>
 
+                {addError ? (
+                    <p role="alert" className="text-xs text-red-600 leading-snug">{addError}</p>
+                ) : null}
                 <Button
                     onClick={handleAdd}
                     disabled={!selectedItemId || isPending}
-                    className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold h-11"
+                    className={`w-full mt-4 font-bold h-11 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                 >
                     {isPending ? "Adding..." : <><Plus className="w-4 h-4 mr-2" /> Add to Kit</>}
                 </Button>

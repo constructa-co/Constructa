@@ -1,5 +1,7 @@
 "use client";
 
+import { corePrimaryButton } from "@/lib/core-editing-palette";
+
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle, AlertCircle, RefreshCw, Unplug, Plug, Clock } from "lucide-react";
@@ -249,7 +251,7 @@ export default function IntegrationsClient({ xeroConnection, syncLog }: Props) {
                 <button
                   onClick={() => handleSync("full")}
                   disabled={!!syncing}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-md"
+                  className={`flex items-center gap-2 disabled:opacity-50 text-sm px-4 py-2 rounded-md ${corePrimaryButton} hover:bg-[#e0f9e3]`}
                 >
                   <RefreshCw className={`w-4 h-4 ${syncing === "full" ? "animate-spin" : ""}`} />
                   {syncing === "full" ? "Syncing…" : "Sync Now (Full)"}

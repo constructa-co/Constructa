@@ -1,14 +1,18 @@
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { expect, test, type BrowserContext, type Locator, type Page } from "@playwright/test";
-import { publicationRecords, syntheticUserExists } from "./support/backend";
+import { expect, test, type Locator, type Page } from "@playwright/test";
+import { briefAiAttempts, publicationRecords, syntheticUserExists } from "./support/backend";
+import { briefAiExpectation, readBriefAiMode } from "./support/brief-ai-mode";
 import { luminance } from "./support/checks";
 import { keyboardDriver, pointerDriver, type Driver, type FocusRecord } from "./support/driver";
 import { APPROVED_DISPOSABLE_PROJECT, SYNTHETIC_EMAIL_DOMAIN, readE2EEnv } from "./support/env";
 import { AI_MARKER, COMPANY, JOB, PAYMENT_STAGES, PRICE, STAGES, expectedPrice, expectedProgramme } from "./support/journey-data";
+import { failNextServerAction, guardNetwork, stubControl, stubLog } from "./support/harness";
 import { EVIDENCE_DIR, Recorder } from "./support/recorder";
 
 const env = readE2EEnv();
+// Explicit, and checked against the disposable project before any account is created (support/global-setup.ts).
+const briefAi = briefAiExpectation(readBriefAiMode());
 const money = expectedPrice();
 const programme = expectedProgramme();
 
@@ -23,7 +27,7 @@ const RESPONSE = {
         recorded: "Receipt confirmed",
         history: "Receipt confirmed",
         askedFor: "confirmation of receipt",
-        pdfLine: "Client: receipt confirmed",
+        pdfLine: "Client: confirm receipt",
     },
     nonBindingIntent: {
         option: "Ask the client whether they intend to go ahead",
@@ -40,49 +44,11 @@ const RESPONSE = {
 /** Nothing on the Phase 1 path may offer the client a binding acceptance. */
 const BINDING_ACCEPTANCE_CONTROL = /^(accept|accept (the |this )?proposal|i accept|sign and accept|agree and sign)/i;
 
-/**
- * Lets the page reach only the application under test and the approved
- * disposable project. Anything else is stopped and recorded, so a run can
- * never talk to production from the browser.
- */
-async function guardNetwork(context: BrowserContext, blocked: Set<string>) {
-    const allowed = new Set([new URL(env.baseUrl).host, new URL(env.supabaseUrl).host]);
-    await context.route(
-        (url) => /^https?:$/.test(url.protocol) && !allowed.has(url.host),
-        async (route) => {
-            blocked.add(new URL(route.request().url()).host);
-            await route.abort();
-        },
-    );
-}
-
-/** Drops the connection for the next server action only, as a lost network would. */
-async function failNextServerAction(page: Page) {
-    let failed = false;
-    await page.route("**/*", async (route) => {
-        const request = route.request();
-        if (!failed && request.method() === "POST" && request.headers()["next-action"]) {
-            failed = true;
-            await route.abort("connectionfailed");
-            return;
-        }
-        await route.fallback();
-    });
-}
-
 async function pdfText(file: string): Promise<{ pages: number; text: string }> {
     const { extractText, getDocumentProxy } = await import("unpdf");
     const pdf = await getDocumentProxy(new Uint8Array(readFileSync(file)));
     const { totalPages, text } = await extractText(pdf, { mergePages: true });
     return { pages: totalPages, text: text.replace(/\s+/g, " ") };
-}
-
-async function stubControl(body: Record<string, unknown>) {
-    await fetch(`${env.stubUrl}/__control`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-}
-
-async function stubLog(): Promise<{ ai: unknown[]; emails: Array<{ to: string[]; subject: string; delivered: boolean }>; violations: unknown[] }> {
-    return (await fetch(`${env.stubUrl}/__log`)).json();
 }
 
 test("Phase 1 journey: sign up to a recorded client response", async ({ page, context, browser, viewport, hasTouch, isMobile, deviceScaleFactor, locale, timezoneId }, testInfo) => {
@@ -101,6 +67,7 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
     const main = page.locator("main main");
     const button = (name: string | RegExp, scope: Page | Locator = page) => scope.getByRole("button", { name, exact: typeof name === "string" });
     let projectId = "";
+    let accountId = "";
 
     /** Opens a fresh browser with no session: the client's view. */
     const asClient = async (url: string) => {
@@ -154,6 +121,7 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
             const created = await signupResponse.json();
             const userId = String(created.user?.id ?? created.id ?? "");
             expect(await syntheticUserExists(userId, email), "the new account exists in the disposable project").toBe(true);
+            accountId = userId;
             recorder.results.database.accountCreatedIn = APPROVED_DISPOSABLE_PROJECT.name;
             await expect(page.getByText("Account created.")).toBeVisible();
             await recorder.checkpoint("account-created", { scope: "form" });
@@ -169,19 +137,25 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
 
         // ── 2. Company setup ─────────────────────────────────────────────────
         await test.step("short company setup", async () => {
-            recorder.step("company setup: trade, then business name");
+            recorder.step("company setup: the work in the contractor's words, then business name");
             await expect(page.getByText("Step 1 of 2")).toBeVisible();
             await use.activate(button("Save and continue"));
             await expect(page.getByRole("alert").filter({ hasText: /\S/ })).toBeVisible();
             await recorder.checkpoint("setup-trade-needed", { scope: "form", capture: false });
 
-            await use.activate(button(COMPANY.trade));
+            await use.fill(page.getByRole("textbox", { name: "What kind of work does your business do?" }), COMPANY.trade);
             await use.activate(button(/Save and continue|Try again/));
             await expect(page.getByText("Step 2 of 2")).toBeVisible();
             await use.fill(page.getByLabel("Business or trading name"), COMPANY.name);
             await use.fill(page.getByLabel(/Your name/), COMPANY.owner);
             await recorder.checkpoint("setup-business", { scope: "form" });
-            await use.activate(button("Save and add your first job"));
+            await use.activate(button("Save and continue"));
+
+            // Setup lands on proposal readiness; the first project is one step on.
+            await expect(page).toHaveURL(/\/dashboard\/settings\/profile\/readiness$/);
+            await expect(main.getByRole("heading", { level: 1, name: COMPANY.name })).toBeVisible();
+            await recorder.checkpoint("setup-readiness", { scope: "main main", capture: false });
+            await use.activate(main.getByRole("link", { name: "Create first project" }));
             await expect(page).toHaveURL(/\/dashboard\/projects\/new$/);
         });
 
@@ -204,30 +178,62 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
         });
 
         // ── 4. Guided brief ──────────────────────────────────────────────────
-        await test.step("guided brief: a suggestion stays pending until applied", async () => {
-            recorder.step("brief: suggestion pending until Apply, then confirmed");
+        await test.step(briefAi.suggestionTested ? "guided brief: a suggestion stays pending until applied" : "guided brief: the assistant is switched off, so the brief is written by hand", async () => {
             const description = page.getByLabel("Describe the job in your own words");
+            const suggestion = page.getByRole("region", { name: "From the assistant" });
+            const aiRequestsBefore = (await stubLog()).ai.length;
             await use.fill(description, JOB.description);
             await use.activate(button("Tidy this up for me"));
 
-            const suggestion = page.getByRole("region", { name: "From the assistant" });
-            await expect(suggestion.getByText("Suggestion · not applied")).toBeVisible();
-            await expect(suggestion).toContainText(AI_MARKER);
-            // The contractor's own words are untouched until they choose Apply.
-            await expect(description).toHaveValue(JOB.description);
-            await recorder.checkpoint("brief-suggestion-pending", { scope: "main main" });
+            if (briefAi.suggestionTested) {
+                recorder.step("brief: suggestion pending until Apply, then confirmed");
+                await expect(suggestion.getByText("Suggestion · not applied")).toBeVisible();
+                await expect(suggestion).toContainText(AI_MARKER);
+                // The contractor's own words are untouched until they choose Apply.
+                await expect(description).toHaveValue(JOB.description);
+                await recorder.checkpoint("brief-suggestion-pending", { scope: "main main" });
 
-            await use.activate(button("Apply", suggestion));
-            await expect(description).toHaveValue(`${JOB.description} ${AI_MARKER}`);
-            await expect(main.getByRole("status").filter({ hasText: "Unsaved" })).toBeVisible();
+                await use.activate(button("Apply", suggestion));
+                await expect(description).toHaveValue(`${JOB.description} ${AI_MARKER}`);
+                await expect(main.getByRole("status").filter({ hasText: "Unsaved" })).toBeVisible();
+                expect((await stubLog()).ai.length - aiRequestsBefore, "one press is one request to the provider").toBe(briefAi.providerRequests);
+                expect(await briefAiAttempts(accountId, email), "and one budgeted attempt").toBe(briefAi.budgetAttempts);
 
-            await use.activate(button("Next"));
+                await use.activate(button("Next"));
+                await use.activate(page.getByText("Choose from existing trade names (optional)", { exact: true }));
+            } else {
+                recorder.step("brief: assistant switched off; AI suggestion NOT tested; description and trades entered by hand");
+                // Exactly the deliberate message. "Not available", or any other error, fails here.
+                const refusal = main.getByRole("alert").filter({ hasText: /\S/ });
+                await expect(refusal).toHaveCount(1);
+                await expect(refusal).toHaveText(briefAi.message!);
+                await expect(suggestion).toHaveCount(0);
+                await expect(page.getByText("Suggestion · not applied")).toHaveCount(0);
+                await expect(description, "the contractor's own words are unchanged").toHaveValue(JOB.description);
+                await expect(page.getByText(AI_MARKER)).toHaveCount(0);
+                expect((await stubLog()).ai.length - aiRequestsBefore, "nothing was asked of the provider").toBe(briefAi.providerRequests);
+                expect(await briefAiAttempts(accountId, email), "and nothing was reserved against the allowance").toBe(briefAi.budgetAttempts);
+                await recorder.checkpoint("brief-assistant-switched-off", { scope: "main main" });
+
+                // The brief is completed by hand, with the same trades the suggestion would have offered.
+                await use.activate(button("Next"));
+                await use.activate(page.getByText("Choose from existing trade names (optional)", { exact: true }));
+                const search = page.getByLabel("Find a trade");
+                for (const trade of JOB.trades) {
+                    await use.fill(search, trade);
+                    await use.activate(button(trade));
+                }
+                await use.fill(search, "");
+                for (const trade of JOB.trades) await expect(button(`Remove ${trade}`)).toBeVisible();
+            }
+            recorder.results.parity.briefAi = { mode: briefAi.mode, suggestionTested: briefAi.suggestionTested, tradesChosen: briefAi.tradesChosen, trades: JOB.trades };
+
             await expect(button("Bathroom Installation")).toHaveAttribute("aria-pressed", "true");
             await use.activate(button("Next"));
             await use.fill(page.getByLabel("Access, restrictions and assumptions"), JOB.siteNotes);
-            await use.activate(button("Next"));
-            await expect(page.getByRole("heading", { level: 2, name: "Review and confirm" })).toBeVisible();
-            await recorder.checkpoint("brief-review", { scope: "main main" });
+            await expect(page.getByRole("heading", { level: 2, name: "Anything about the site we should know?" })).toBeVisible();
+            await expect(button("Next")).toHaveCount(0);
+            await recorder.checkpoint("brief-ready-to-price", { scope: "main main" });
             await use.activate(button("Save and build the price"));
             await expect(page).toHaveURL(/\/dashboard\/projects\/costs\?projectId=/);
         });
@@ -288,7 +294,7 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
         await test.step("an incomplete proposal cannot be sent", async () => {
             recorder.step("review: sending blocked until programme and payment stages exist");
             await openProjectTab("Proposal");
-            await expect(page.getByRole("heading", { level: 1, name: "Review and send" })).toBeVisible();
+            await expect(page.getByRole("heading", { level: 1, name: "Your proposal" })).toBeVisible();
             const needed = page.getByRole("region", { name: /needed before you can send/ });
             await expect(needed).toContainText("Programme Missing");
             await expect(needed).toContainText("Payment stages Missing");
@@ -421,6 +427,7 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
 
         // ── 8. Review and send ───────────────────────────────────────────────
         const send = page.getByRole("region", { name: "Send to your client" });
+        const responseChoice = page.getByRole("group", { name: "What do you want your client to do?" });
         const preview = page.getByRole("region", { name: "What your client will see" }).getByRole("article");
         let firstLink = "";
         let checkCode = "";
@@ -446,7 +453,7 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
 
         await test.step("review, then publish in acknowledgement mode", async () => {
             recorder.step("review: payment preset, parity, pre-send PDF, light document, acknowledgement default, publish v1");
-            await expect(page.getByRole("heading", { level: 1, name: "Review and send" })).toBeVisible();
+            await expect(page.getByRole("heading", { level: 1, name: "Your proposal" })).toBeVisible();
             const price = page.getByRole("region", { name: "Price", exact: true }).first();
             const payments = page.locator("[data-review-payments]");
             const blocker = send.locator('[data-send-block="not-ready"]');
@@ -547,12 +554,12 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
             await switchTheme();
 
             // Acknowledgement is what a new send asks for unless the contractor changes it.
-            const options = send.getByRole("radio");
+            const options = responseChoice.getByRole("radio");
             await expect(options).toHaveCount(2);
-            await expect(send.getByRole("radio", { name: new RegExp(RESPONSE.acknowledgement.option) })).toBeChecked();
-            await expect(send).toContainText("Neither option is acceptance.");
+            await expect(responseChoice.getByRole("radio", { name: new RegExp(RESPONSE.acknowledgement.option) })).toBeChecked();
+            await expect(responseChoice).toContainText("Neither option is acceptance.");
             await expect(page.getByRole("button", { name: BINDING_ACCEPTANCE_CONTROL })).toHaveCount(0);
-            await recorder.checkpoint("send-acknowledgement-default", { scope: "main main", focusOn: send });
+            await recorder.checkpoint("send-acknowledgement-default", { scope: "main main", focusOn: responseChoice });
 
             // The email fails once. The publication stands and only the email is retried.
             if (!keyboardRun) await stubControl({ failEmails: 1 });
@@ -663,9 +670,9 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
         if (!keyboardRun) {
             await test.step("a second version asks for a non-binding intention to proceed", async () => {
                 recorder.step("non-binding intent: publish v2, public wording and response, no acceptance path");
-                await use.check(send.getByRole("radio", { name: new RegExp(RESPONSE.nonBindingIntent.option) }));
+                await use.check(responseChoice.getByRole("radio", { name: new RegExp(RESPONSE.nonBindingIntent.option) }));
                 await expect(preview.getByRole("heading", { name: RESPONSE.nonBindingIntent.heading })).toBeVisible();
-                await recorder.checkpoint("send-non-binding-intent", { scope: "main main", focusOn: send, capture: false });
+                await recorder.checkpoint("send-non-binding-intent", { scope: "main main", focusOn: responseChoice, capture: false });
                 const secondLink = await publish(2);
                 await expect(send.locator('[data-delivery="sent"]')).toContainText(JOB.clientEmail);
                 expect(secondLink).not.toBe(firstLink);
@@ -710,6 +717,9 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
         // ── Isolation and provider record ────────────────────────────────────
         const log = await stubLog();
         recorder.results.provider = {
+            briefAiMode: briefAi.mode,
+            // In 'disabled' mode no AI suggestion was produced or checked by this run.
+            aiSuggestionTested: briefAi.suggestionTested,
             aiRequests: log.ai.length,
             emailsAccepted: log.emails.filter((entry) => entry.delivered).length,
             emailsFailedOnPurpose: log.emails.filter((entry) => !entry.delivered).length,
@@ -717,6 +727,7 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
             violations: log.violations,
         };
         expect(recorder.results.provider.everyRecipientSynthetic).toBe(true);
+        expect(log.ai.length, "the provider was asked exactly as often as this mode expects").toBe(briefAi.providerRequests);
         expect(log.violations, "nothing was sent to a real recipient or an unknown provider route").toEqual([]);
         recorder.results.blockedThirdPartyHosts = [...blockedHosts].sort();
         expect([...blockedHosts].filter((host) => !EXPECTED_THIRD_PARTIES.includes(host)), "no unexpected host was requested").toEqual([]);

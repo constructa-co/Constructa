@@ -1,10 +1,11 @@
 import { defineConfig } from "@playwright/test";
-import { readE2EEnv, serverEnv } from "./e2e/support/env";
+import { serverEnv } from "./e2e/support/env";
+import { readLegacyHostedPhase1Env } from "./e2e/support/legacy-hosted-phase1-guard";
 import { AI_MARKER } from "./e2e/support/journey-data";
 
 // Fails closed here, before any browser or server starts, when the
 // environment is missing or does not name the disposable project.
-const env = readE2EEnv();
+const env = readLegacyHostedPhase1Env();
 const appUrl = new URL(env.baseUrl);
 const appEnv = serverEnv(env);
 

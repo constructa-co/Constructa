@@ -6,6 +6,8 @@ vi.mock("@/lib/supabase/project-resource-access", () => mocks);
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { computeProgrammePlan } from "@/lib/programme-plan";
+import { computeDisplayProgramme } from "@/lib/relative-programme";
+import { viewForProject } from "@/lib/simple-programme";
 import { PROGRAMME_SAVE_ERROR } from "@/lib/simple-programme";
 import { saveSimpleProgrammeAction } from "./simple-actions";
 
@@ -31,6 +33,152 @@ const whole = { startDate: MONDAY, stages: [{ name: "Works on site", workingDays
 beforeEach(() => vi.clearAllMocks());
 
 describe("saveSimpleProgrammeAction", () => {
+    it("atomically saves and reads back the job pattern and phases, then reopens weekends", async () => {
+        const pattern = { version: 1 as const, weekdays: [1, 2, 3, 4, 5, 6] };
+        const db = setup({ programme_working_pattern: null });
+        const input = { startDate: "2026-10-16", workingPattern: pattern, expectedWorkingPattern: null,
+            stages: [{ name: "Works", workingDays: 2, unit: "days" as const, source: null }] };
+        const result = await saveSimpleProgrammeAction(PROJECT_ID, input);
+        expect(result).toMatchObject({ success: true, confirmedProject: { programme_working_pattern: pattern, start_date: input.startDate } });
+        expect(db.updates).toHaveLength(1);
+        expect(db.updates[0].values).toMatchObject({ programme_working_pattern: pattern, start_date: input.startDate });
+        expect(db.updates[0].filters).toMatchObject({ id: PROJECT_ID, user_id: USER_ID, programme_phases: "[]", programme_working_pattern: null });
+        const saved = db.tables.projects[0];
+        expect(computeDisplayProgramme(input.startDate, saved.programme_phases as unknown[], saved.programme_working_pattern)?.end_date).toBe("2026-10-17");
+        expect(viewForProject(saved, () => "key")).toMatchObject({ kind: "simple", draft: { workingPattern: pattern, duration: "2", unit: "days" } });
+        expect(await saveSimpleProgrammeAction(PROJECT_ID, { ...input, expectedWorkingPattern: pattern })).toMatchObject({ success: true });
+    });
+
+    it("saves and readbacks an explicit v2 local-hours pattern when the column exists", async () => {
+        const pattern = {
+            version: 2 as const,
+            timezone: "Europe/London",
+            weekdays: [1, 2, 3, 4, 5],
+            intervals: [{ weekday: 1, startMinute: 8 * 60, endMinute: 16 * 60 }],
+            standardMinutesPerDay: 480,
+            productivityPct: 100,
+        };
+        const db = setup({ programme_working_pattern: null });
+        const input = { startDate: "2026-10-19", workingPattern: pattern, expectedWorkingPattern: null,
+            stages: [{ name: "Works", workingDays: 1, unit: "days" as const, source: null }] };
+        expect(await saveSimpleProgrammeAction(PROJECT_ID, input)).toMatchObject({
+            success: true,
+            confirmedProject: { programme_working_pattern: pattern },
+        });
+        expect(db.tables.projects[0].programme_working_pattern).toEqual(pattern);
+    });
+
+    it("preserves legacy saves before migration but refuses calendar writes when its column is absent", async () => {
+        const db = setup();
+        const pattern = { version: 1 as const, weekdays: [1, 2, 3, 4, 5, 6] };
+        expect(await saveSimpleProgrammeAction(PROJECT_ID, { ...whole, workingPattern: pattern, expectedWorkingPattern: null })).toEqual({ success: false, error: "Calendar storage is not set up for this job yet. Nothing was saved." });
+        expect(db.updates).toHaveLength(0);
+        expect(await saveSimpleProgrammeAction(PROJECT_ID, whole)).toEqual({ success: true });
+        expect(db.updates[0].values).not.toHaveProperty("programme_working_pattern");
+    });
+
+    it("refuses malformed or unbound calendar requests before access, and stale legacy clients after opt-in", async () => {
+        const pattern = { version: 1 as const, weekdays: [1, 2, 3, 4, 5, 6] };
+        const db = setup({ programme_working_pattern: pattern });
+        for (const input of [
+            { ...whole, workingPattern: pattern },
+            { ...whole, workingPattern: { version: 1, weekdays: [1, 1] }, expectedWorkingPattern: null },
+        ]) expect((await saveSimpleProgrammeAction(PROJECT_ID, input as never)).success).toBe(false);
+        expect(mocks.requireEditableProjectAccess).not.toHaveBeenCalled();
+        expect((await saveSimpleProgrammeAction(PROJECT_ID, whole)).success).toBe(false);
+        expect((await saveSimpleProgrammeAction(PROJECT_ID, { ...whole, workingPattern: pattern, expectedWorkingPattern: null })).success).toBe(false);
+        expect(db.updates).toHaveLength(0);
+    });
+
+    it("keeps refused calendar saves unchanged and fences concurrent pattern changes", async () => {
+        const pattern = { version: 1 as const, weekdays: [1, 2, 3, 4, 5, 6] };
+        const input = { ...whole, workingPattern: pattern, expectedWorkingPattern: null };
+        const db = setup({ programme_working_pattern: null });
+        db.fail("projects", "update");
+        expect((await saveSimpleProgrammeAction(PROJECT_ID, input)).success).toBe(false);
+        expect(db.tables.projects[0].programme_working_pattern).toBeNull();
+        expect(db.tables.projects[0].programme_phases).toEqual([]);
+        const from = db.client.from;
+        vi.spyOn(db.client, "from").mockImplementation(table => {
+            const query = from(table), update = query.update;
+            query.update = values => { db.tables.projects[0].programme_working_pattern = pattern; return update(values); };
+            return query;
+        });
+        expect((await saveSimpleProgrammeAction(PROJECT_ID, input)).success).toBe(false);
+        expect(db.tables.projects[0].programme_working_pattern).toEqual(pattern);
+        expect(db.tables.projects[0].programme_phases).toEqual([]);
+    });
+
+    it("never confirms a calendar save whose returned row does not confirm the stored pattern", async () => {
+        const pattern = { version: 1 as const, weekdays: [1, 2, 3, 4, 5, 6] };
+        const db = setup({ programme_working_pattern: null }), from = db.client.from;
+        vi.spyOn(db.client, "from").mockImplementation(table => {
+            const query = from(table), update = query.update, single = query.single;
+            let updating = false;
+            query.update = values => { updating = true; return update(values); };
+            query.single = async () => { const result = await single(); return updating && result.data
+                ? { ...result, data: { ...result.data, programme_working_pattern: null } } : result; };
+            return query;
+        });
+        const result = await saveSimpleProgrammeAction(PROJECT_ID, { ...whole, workingPattern: pattern, expectedWorkingPattern: null });
+        expect(result).toEqual({ success: false, error: "The programme save wasn't confirmed and may already have saved. Reload Programme before retrying." });
+        expect(db.tables.projects[0].programme_working_pattern).toEqual(pattern);
+    });
+
+    it("saves and reads relative stages without overwriting a project's separate start date", async () => {
+        const db = setup({ start_date: MONDAY, programme_phases: established });
+        const input = { timeBasis: "relative" as const, startDate: "", stages: [
+            { name: "Prepare", workingDays: 3, unit: "days" as const, source: 0 },
+            { name: "Install", workingDays: 5, unit: "weeks" as const, source: 1 },
+        ] };
+        expect(await saveSimpleProgrammeAction(PROJECT_ID, input)).toEqual({ success: true });
+        expect(db.updates).toHaveLength(1);
+        expect(db.updates[0].filters).toEqual({ id: PROJECT_ID, user_id: USER_ID, programme_phases: JSON.stringify(established) });
+        expect(db.tables.projects[0].start_date).toBe(MONDAY);
+        const saved = db.tables.projects[0].programme_phases as unknown[];
+        expect(saved[1]).toMatchObject({ timeBasis: "relative_working_days", workingDayOffset: 3, color: "emerald", manhours: 80 });
+        expect(computeDisplayProgramme(MONDAY, saved)).toMatchObject({ working_days: 8, stages: [{ start_day: 1, end_day: 3 }, { start_day: 4, end_day: 8 }] });
+        expect(viewForProject({ start_date: MONDAY, programme_phases: saved }, () => "key")).toMatchObject({ kind: "simple", hasSaved: true, draft: { timeBasis: "relative" } });
+        expect(await saveSimpleProgrammeAction(PROJECT_ID, { startDate: MONDAY, stages: input.stages })).toEqual({ success: true });
+        const dated = db.tables.projects[0].programme_phases as Array<Record<string, unknown>>;
+        expect(dated.every(p => !("timeBasis" in p) && !("workingDayOffset" in p))).toBe(true);
+        expect(computeProgrammePlan(MONDAY, dated)).not.toBeNull();
+    });
+
+    it("retains existing phases on failed relative save and permits retry", async () => {
+        const db = setup({ programme_phases: established });
+        const input = { ...whole, timeBasis: "relative" as const, startDate: "" };
+        db.fail("projects", "update", "57014");
+        expect(await saveSimpleProgrammeAction(PROJECT_ID, input)).toEqual({ success: false, error: PROGRAMME_SAVE_ERROR });
+        expect(db.tables.projects[0].programme_phases).toEqual(established);
+        expect(await saveSimpleProgrammeAction(PROJECT_ID, input)).toEqual({ success: true });
+    });
+
+    it("keeps auth/lock checks and rejects ambiguous relative requests before access", async () => {
+        const db = setup();
+        expect((await saveSimpleProgrammeAction(PROJECT_ID, { ...whole, timeBasis: "relative" })).success).toBe(false);
+        expect(mocks.requireEditableProjectAccess).not.toHaveBeenCalled();
+        mocks.requireEditableProjectAccess.mockRejectedValue(new Error("Unauthorized project access."));
+        expect((await saveSimpleProgrammeAction(PROJECT_ID, { ...whole, timeBasis: "relative", startDate: "" })).success).toBe(false);
+        expect(db.updates).toEqual([]);
+    });
+
+    it("saves two contractor-named activities using existing owner-scoped phases and canonical dates", async () => {
+        const db = setup({ start_date: MONDAY, programme_phases: established });
+        const result = await saveSimpleProgrammeAction(PROJECT_ID, { startDate: MONDAY, stages: [
+            { name: "Prepare", workingDays: 3, unit: "days", source: 0 },
+            { name: "Install", workingDays: 5, unit: "weeks", source: 1 },
+        ] });
+        expect(result).toEqual({ success: true });
+        expect(db.updates).toHaveLength(1);
+        expect(db.updates[0].filters).toEqual({ id: PROJECT_ID, user_id: USER_ID, programme_phases: JSON.stringify(established) });
+        expect(db.tables.projects[0].programme_phases).toEqual([
+            { name: "Prepare", calculatedDays: 3, manualDays: 3, manhours: 24, startOffset: 0, color: "blue", duration_unit: "Days" },
+            { name: "Install", calculatedDays: 10, manualDays: 5, manhours: 80, startOffset: 3, color: "emerald", duration_unit: "Weeks" },
+        ]);
+        expect(computeProgrammePlan(MONDAY, db.tables.projects[0].programme_phases as unknown[])).toMatchObject({ end_date: "2026-10-21", working_days: 8 });
+    });
+
     it("saves a start date and one duration as a programme with one canonical end date", async () => {
         const db = setup();
         await expect(saveSimpleProgrammeAction(PROJECT_ID, whole)).resolves.toEqual({ success: true });
@@ -42,7 +190,7 @@ describe("saveSimpleProgrammeAction", () => {
         ]);
         expect(computeProgrammePlan(MONDAY, saved.programme_phases as unknown[])).toMatchObject({ end_date: "2026-10-30", duration_label: "3 weeks" });
         // Scoped to the owner as well as the project.
-        expect(db.updates[0].filters).toEqual({ id: PROJECT_ID, user_id: USER_ID });
+        expect(db.updates[0].filters).toEqual({ id: PROJECT_ID, user_id: USER_ID, programme_phases: JSON.stringify([]) });
     });
 
     it("works out stage positions on the server, not from the request", async () => {
@@ -111,7 +259,7 @@ describe("saveSimpleProgrammeAction", () => {
     it.each([
         ["a weekend start", { ...whole, startDate: "2026-10-17" }],
         ["a malformed date", { ...whole, startDate: "12/10/2026" }],
-        ["two stages", { startDate: MONDAY, stages: [whole.stages[0], whole.stages[0]] }],
+        ["an unnamed second stage", { startDate: MONDAY, stages: [whole.stages[0], { ...whole.stages[0], name: " " }] }],
         ["seven stages", { startDate: MONDAY, stages: Array.from({ length: 7 }, () => whole.stages[0]) }],
         ["no stages", { startDate: MONDAY, stages: [] }],
         ["a zero duration", { startDate: MONDAY, stages: [{ ...whole.stages[0], workingDays: 0 }] }],

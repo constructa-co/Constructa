@@ -5,6 +5,10 @@
  * programme or proposal wording is seeded from any template: the payload for
  * the atomic `create_phase1_project_graph` RPC is built here so that promise
  * can be tested without a database.
+ *
+ * One exception is made by the database, not this payload (A069): the
+ * redefined function copies the owner's own saved managing director's message
+ * as a NEW job's closing. The browser never sends closing wording.
  */
 
 import { z } from "zod";
@@ -16,13 +20,7 @@ import { z } from "zod";
  */
 export const UNSPECIFIED_PROJECT_TYPE = "Other";
 
-export const PROJECT_TYPE_OPTIONS: readonly string[] = [
-    "Residential Extension", "Loft Conversion", "New Build Residential",
-    "Domestic Renovation", "Driveway & External Works", "Groundworks & Civils",
-    "Drainage & Utilities", "Commercial Fit-Out", "Commercial New Build",
-    "Industrial Works", "Landscaping", "Roofing",
-    "Electrical Installation", "Plumbing & Heating", "General Building Works", "Other",
-];
+export { JOB_TYPE_EXAMPLES as PROJECT_TYPE_OPTIONS } from "./job-type-options";
 
 export interface BlankProjectForm {
     name: string;

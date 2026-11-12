@@ -1,0 +1,138 @@
+{
+  "at": "2026-10-18T12:20:01.342Z",
+  "purpose": "Immutable backup export, not the active register or a release candidate",
+  "source": "/Users/robertsmith/.codex/worktrees/welcome-first-slice/verification",
+  "exactCopies": [
+    {
+      "file": "walkthrough-action-register.json",
+      "bytes": 105588,
+      "sha256": "eaad6911d4717a1ab53377567a2971351fa2026022e129bf0b40cb1a79845885"
+    },
+    {
+      "file": "walkthrough-action-register.md",
+      "bytes": 80646,
+      "sha256": "c77f72c4d76cc36b3050116d2abcd724e602d9a46f364ca076cf5b2ada8a3630"
+    },
+    {
+      "file": "walkthrough-action-evidence-history-20261018.json",
+      "bytes": 15656,
+      "sha256": "3c29bf86b51e867649650097bf3e069d98525f8436135e55b404d9b5c4e3707c"
+    },
+    {
+      "file": "render-action-register.mjs",
+      "bytes": 7038,
+      "sha256": "3432b87bf448dcc94665b13b47e7a34401b59e37ae577509a0fe4d274abda75a"
+    },
+    {
+      "file": "phase-register-validation-20261018.json",
+      "bytes": 668,
+      "sha256": "312f87a5f27a0ac65834296c0df0c96794898b25a7f4bbace5c6d9034a26ab0a"
+    },
+    {
+      "file": "off-machine-backup-summary-20261018.json",
+      "bytes": 2700,
+      "sha256": "4a86410770b2b0f64b2b1602fcb8fe7f7a0556405c2f8461ef1a394d39b5bccb"
+    },
+    {
+      "file": "automation-daily-20261018.json",
+      "bytes": 505,
+      "sha256": "543209c11cee538976504c88d380b5e099a82791e11781963596e7bc000f1cad"
+    },
+    {
+      "file": "walkthrough-discipline-research.json",
+      "bytes": 3697,
+      "sha256": "1d3a0f3b0cf76f68e7bca8f4d19c6e15e17dcc906fe0c7004b31dc6684cc43bc"
+    },
+    {
+      "file": "walkthrough-dashboard-feedback.json",
+      "bytes": 3597,
+      "sha256": "4ca860a7bc01be591103e911fa7567fda31754c49b7c2cbfb495f7d1a7bd8973"
+    },
+    {
+      "file": "walkthrough-company-start-feedback.json",
+      "bytes": 2828,
+      "sha256": "53a2b55f3dbdc75e2795aa6e1798417a865344341aeae36b1ae637fb61f2c0d3"
+    },
+    {
+      "file": "walkthrough-import-privacy-feedback.json",
+      "bytes": 2645,
+      "sha256": "bc8ab1a027b42b91b265336bce4463d54254938037a5e3ec81a82443d7d24616"
+    },
+    {
+      "file": "walkthrough-profile-feedback.json",
+      "bytes": 3433,
+      "sha256": "c8c8f8d087b31aa7a883488ad39d9e2050e5226d225db5d6b3852036d7825f3e"
+    },
+    {
+      "file": "walkthrough-case-studies-feedback.json",
+      "bytes": 1408,
+      "sha256": "53f1c052c7dcff3b726af88bebb7ec7ec53a9c3ac35b4a617e43a3301c46a458"
+    },
+    {
+      "file": "walkthrough-new-project-feedback.json",
+      "bytes": 2305,
+      "sha256": "af6731c710e38ca2ab47879f0f6a838530524f5b217501efbc4354650cb1d0cb"
+    },
+    {
+      "file": "walkthrough-brief-step1-feedback.json",
+      "bytes": 1653,
+      "sha256": "9b87e216a37d34fe40f308fc08a65464e3839e9cdace62510cb35e41eaca6035"
+    },
+    {
+      "file": "walkthrough-brief-steps2-4-feedback.json",
+      "bytes": 2162,
+      "sha256": "a25e541cd2656ff301135fcfa93b55730b79dc126807662e25c5359a8f458cc8"
+    },
+    {
+      "file": "walkthrough-estimating-feedback.json",
+      "bytes": 3113,
+      "sha256": "64c768e5f86f0d34472620aa7c62f8f593ac6d0b5b434b19039dd7d7580e44b8"
+    },
+    {
+      "file": "walkthrough-programme-feedback.json",
+      "bytes": 3714,
+      "sha256": "46695a4ef06462e6a8c2126a85504f3f2247006e5dff9c35aa625628dcb217e4"
+    },
+    {
+      "file": "walkthrough-proposal-feedback.json",
+      "bytes": 4211,
+      "sha256": "e2791399d2506472a6b311f3f9510302ce263da5f466a123ac077b71e77823ac"
+    },
+    {
+      "file": "product-decisions-20261018.json",
+      "bytes": 6591,
+      "sha256": "2a3ed87219aed975f39bb5dbed784f87141afd1c7abc4e5d405e92a7d1156a3e"
+    },
+    {
+      "file": "marketing-integration-scope.json",
+      "bytes": 5206,
+      "sha256": "5739d3af7e7722965cd3f54f65c3143d999878c29e46ba90229fe37c74ee9fca"
+    },
+    {
+      "file": "estimating-programme-benchmarks-20261018.md",
+      "bytes": 11112,
+      "sha256": "240ddebc04013dd5a2b5ac650cf4a1e55d0c5abbb94ccb260d0b9dd728694f40"
+    },
+    {
+      "file": "marketing-analytics-content-plan-20261018.md",
+      "bytes": 9492,
+      "sha256": "3811f4342d3bb4a43310099f904d0ad1f787e6ff532cc68a35ef487d1175f4c7"
+    },
+    {
+      "file": "estimating-benchmark-direction-20261018.json",
+      "bytes": 1609,
+      "sha256": "f624f3512ebf03b4fd707e7ac378c0d0eba97575fc6d61f1a1e618678984233a"
+    },
+    {
+      "file": "programme-benchmark-direction-20261018.json",
+      "bytes": 3318,
+      "sha256": "b240d154e1e70103b7b8bfe827e7fdb660cedcdabb61401fa3fef1f5e9c2c693"
+    }
+  ],
+  "feedbackExtract": "local-app-progress.json#walkthrough.feedback",
+  "excluded": [
+    "private verification receipts and tar archives",
+    "detailed credential incident receipt",
+    "local credentials and full operational progress"
+  ]
+}

@@ -878,7 +878,7 @@ export default async function AdminPage() {
     const ruleOf40Score: number | null =
         mrr > 0 && momGrowthPct !== null ? momGrowthPct + grossMarginPct : null;
 
-    // ── 17. Website — compute conversion rate ────────────────────────────────
+    // ── 17. Website — calendar-month signups vs rolling 30d visitors (not attributed) ─
 
     const website: PlausibleMetrics = {
         ...plausibleResult,

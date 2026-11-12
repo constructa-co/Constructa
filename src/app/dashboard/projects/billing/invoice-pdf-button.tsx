@@ -1,11 +1,14 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { formatGbp } from "@/lib/pdf/pdf-money";
 import { BRAND } from "@/lib/pdf/pdf-utils";
+import { SidebarBrand } from "@/components/sidebar-brand";
+import { captureSharedWordmark } from "@/lib/pdf/shared-wordmark";
 
 // Sprint 58 P3.3 — the PDF button only needs a small subset of the
 // canonical Invoice/Project/Variation shapes, and the parent component
@@ -38,7 +41,17 @@ interface Props {
 }
 
 export default function InvoicePdfButton({ invoice, project, originalContractSum, variations }: Props) {
+    const wordmark = useRef<HTMLSpanElement>(null);
+    const [brandError, setBrandError] = useState<string | null>(null);
     const generatePdf = () => {
+        setBrandError(null);
+        let brand;
+        try {
+            brand = captureSharedWordmark(wordmark.current, BRAND.navy);
+        } catch {
+            setBrandError("The PDF wordmark could not be prepared. Please try again.");
+            return;
+        }
         // Sprint 58 P3.3 — migrated to the canonical `formatGbp` helper
         // in @/lib/pdf/pdf-money so this PDF can never print "£-0.00"
         // and always uses proper UK formatting. Typed props come from
@@ -53,9 +66,7 @@ export default function InvoicePdfButton({ invoice, project, originalContractSum
         let currentY = 20;
 
         // --- COMPANY HEADER ---
-        doc.setFontSize(22);
-        doc.setFont("helvetica", "bold");
-        doc.text("CONSTRUCTA", margin, currentY);
+        doc.addImage(brand.dataUrl, "PNG", margin, currentY - 8, 8 * brand.aspectRatio, 8);
 
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
@@ -165,9 +176,15 @@ export default function InvoicePdfButton({ invoice, project, originalContractSum
     };
 
     return (
+        <>
+        <span aria-hidden="true" style={{ position: "absolute", width: 0, height: 0, overflow: "hidden" }}>
+            <SidebarBrand wordmarkRef={wordmark} />
+        </span>
         <Button variant="ghost" size="sm" onClick={generatePdf} className="h-7 text-blue-600 hover:bg-blue-50 gap-2 font-black uppercase text-[10px]">
             <Download className="w-3.5 h-3.5" />
             PDF
         </Button>
+        {brandError && <span role="status" className="text-xs text-red-600">{brandError}</span>}
+        </>
     );
 }

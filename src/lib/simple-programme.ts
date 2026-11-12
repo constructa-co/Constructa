@@ -2,7 +2,7 @@
  * Simple programme.
  *
  * The default programme screen: a start date and how long the job takes,
- * with the option of three to six named stages that run one after another.
+ * with the option of up to six named stages that run one after another.
  * This module holds the rules and state for that screen as plain functions:
  *
  *  - every date comes from `computeProgrammePlan` in `programme-plan.ts`;
@@ -13,18 +13,19 @@
  */
 
 import {
-    WORKING_DAYS_PER_WEEK,
-    addWorkingDays,
-    computeProgrammePlan,
-    isWorkingDay,
-    nextWorkingDayAfter,
     parseIsoDate,
     phaseWorkingDays,
     resolveProgrammeSource,
-    type ProgrammePlan,
 } from "./programme-plan";
+import {
+    addJobWorkingDays, isJobWorkingDay, nextJobWorkingDayAfter, programmeWeekUnitCount,
+    resolveJobWorkingPattern, isDefaultJobWorkingPattern, explainWorkingPatternDraft, validateWorkingPatternForProgramme,
+    isJobWorkingPatternV2, type JobWorkingPattern,
+} from "./job-working-pattern";
+import { canonicalWorkingPatternComparable, workingPatternsEquivalent } from "./working-pattern-canonical";
+import { computeDisplayProgramme, computeRelativeProgramme, hasRelativeProgramme, RELATIVE_PROGRAMME_BASIS, type DisplayProgrammePlan } from "./relative-programme";
 
-export const MIN_STAGES = 3;
+export const MIN_STAGES = 1;
 export const MAX_STAGES = 6;
 export const MAX_WORKING_DAYS = 2600; // ten years of working weeks
 export const MAX_STAGE_NAME_LENGTH = 80;
@@ -46,6 +47,9 @@ export interface StageDraft {
 }
 
 export interface ProgrammeDraft {
+    workingPattern?: JobWorkingPattern;
+    /** Absent on existing dated drafts. Relative is always an explicit choice. */
+    timeBasis?: "relative";
     startDate: string;
     /** Length of the whole job. Used only while there are no stages. */
     duration: string;
@@ -56,15 +60,16 @@ export interface ProgrammeDraft {
     wholeName: string | null;
 }
 
-export function emptyProgrammeDraft(startDate = ""): ProgrammeDraft {
-    return { startDate, duration: "", unit: "weeks", stages: [], wholeSource: null, wholeName: null };
+export function emptyProgrammeDraft(startDate = "", workingPattern?: JobWorkingPattern): ProgrammeDraft {
+    return { startDate, duration: "", unit: "weeks", stages: [], wholeSource: null, wholeName: null, ...(workingPattern ? { workingPattern } : {}) };
 }
 
-function durationFields(workingDays: number, savedUnit: unknown): { duration: string; unit: DurationUnit } {
-    const wholeWeeks = workingDays % WORKING_DAYS_PER_WEEK === 0;
+function durationFields(workingDays: number, savedUnit: unknown, pattern: JobWorkingPattern): { duration: string; unit: DurationUnit } {
+    const weekUnits = programmeWeekUnitCount(pattern);
+    const wholeWeeks = workingDays % weekUnits === 0;
     const wantsDays = typeof savedUnit === "string" && savedUnit.toLowerCase() === "days";
     return wholeWeeks && !wantsDays
-        ? { duration: String(workingDays / WORKING_DAYS_PER_WEEK), unit: "weeks" }
+        ? { duration: String(workingDays / weekUnits), unit: "weeks" }
         : { duration: String(workingDays), unit: "days" };
 }
 
@@ -79,6 +84,7 @@ function calendarOffset(fromIso: string, toIso: string): number {
 // ── Mapping saved phases into the simple view ────────────────────────────────
 
 export interface ProgrammeProjectFields {
+    programme_working_pattern?: unknown;
     start_date?: string | null;
     programme_phases?: unknown[] | null;
     gantt_phases?: unknown[] | null;
@@ -89,7 +95,7 @@ export type SimpleProgrammeView =
     | {
         kind: "detailed";
         /** The saved programme as the proposal would show it. */
-        plan: ProgrammePlan | null;
+        plan: DisplayProgrammePlan | null;
         origin: "programme" | "legacy_timeline";
         reason: string;
         /** A simple programme can be started without touching the saved phases. */
@@ -110,19 +116,36 @@ function hasLiveOrLinkedData(phase: Record<string, unknown>): boolean {
         || (typeof phase.start_date === "string" && phase.start_date !== "");
 }
 
-/** True when saved phases are a start date and stages that run back to back. */
-function fitsSimpleShape(startDate: string, phases: unknown[]): boolean {
-    if (!isWorkingDay(startDate)) return false;
+/** Where the plan draws a saved phase: its calendar offset, rolled on to a working day. */
+function placedStart(startDate: string, offset: number, pattern: JobWorkingPattern): string | null {
+    const start = parseIsoDate(startDate);
+    if (start === null || !Number.isInteger(offset) || offset < 0) return null;
+    const placed = new Date(start + offset * 86_400_000);
+    return Number.isFinite(placed.getTime()) ? addJobWorkingDays(placed.toISOString().slice(0, 10), 1, pattern) : null;
+}
+
+/**
+ * True when saved phases are a start date and stages that run back to back.
+ * A weekend start, such as one the Brief has since moved to, is read as the
+ * plan reads it, from the next working day. The date itself is not changed;
+ * it still has to be corrected to a weekday before the programme is saved.
+ */
+function fitsSimpleShape(startDate: string, phases: unknown[], pattern: JobWorkingPattern): boolean {
+    const firstDay = addJobWorkingDays(startDate, 1, pattern);
+    if (!firstDay) return false;
+    const weekendStart = firstDay !== startDate;
     if (phases.length !== 1 && (phases.length < MIN_STAGES || phases.length > MAX_STAGES)) return false;
 
-    let cursor: string | null = startDate;
+    let cursor: string | null = firstDay;
     for (const entry of phases) {
         const phase = asRecord(entry);
         const workingDays = phaseWorkingDays(phase);
         if (typeof phase.name !== "string" || !phase.name.trim() || workingDays < 1 || hasLiveOrLinkedData(phase)) return false;
-        if (cursor === null || Number(phase.startOffset ?? 0) !== calendarOffset(startDate, cursor)) return false;
-        const end = addWorkingDays(cursor, workingDays);
-        cursor = end ? nextWorkingDayAfter(end) : null;
+        if (cursor === null) return false;
+        const offset = Number(phase.startOffset ?? 0);
+        if (weekendStart ? placedStart(startDate, offset, pattern) !== cursor : offset !== calendarOffset(startDate, cursor)) return false;
+        const end = addJobWorkingDays(cursor, workingDays, pattern);
+        cursor = end ? nextJobWorkingDayAfter(end, pattern) : null;
     }
     return true;
 }
@@ -134,24 +157,31 @@ function fitsSimpleShape(startDate: string, phases: unknown[]): boolean {
 export function viewForProject(project: ProgrammeProjectFields, makeKey: () => string): SimpleProgrammeView {
     const startDate = parseIsoDate(project.start_date) !== null ? String(project.start_date).slice(0, 10) : "";
     const source = resolveProgrammeSource(project);
+    const pattern = resolveJobWorkingPattern(project.programme_working_pattern);
+    if (!pattern) return { kind: "detailed", plan: null, origin: "programme", reason: "Check this job's saved working days before editing its programme.", canStartSimple: false, startDate };
+    const blank = emptyProgrammeDraft(startDate, project.programme_working_pattern == null ? undefined : pattern);
 
     if (source.origin === "none") {
-        return { kind: "simple", draft: emptyProgrammeDraft(startDate), hasSaved: false };
+        return { kind: "simple", draft: blank, hasSaved: false };
     }
     if (source.origin === "legacy_timeline") {
         return {
             kind: "detailed",
-            plan: computeProgrammePlan(project.start_date, source.phases),
+            plan: computeDisplayProgramme(project.start_date, source.phases, pattern),
             origin: "legacy_timeline",
             reason: LEGACY_TIMELINE_REASON,
             canStartSimple: true,
             startDate,
         };
     }
-    if (!fitsSimpleShape(startDate, source.phases)) {
+    const relative = hasRelativeProgramme(source.phases);
+    const fits = relative
+        ? source.phases.length <= MAX_STAGES && computeRelativeProgramme(source.phases, pattern) !== null
+        : fitsSimpleShape(startDate, source.phases, pattern);
+    if (!fits) {
         return {
             kind: "detailed",
-            plan: computeProgrammePlan(project.start_date, source.phases),
+            plan: computeDisplayProgramme(project.start_date, source.phases, pattern),
             origin: "programme",
             reason: DETAILED_REASON,
             canStartSimple: false,
@@ -165,8 +195,9 @@ export function viewForProject(project: ProgrammeProjectFields, makeKey: () => s
             kind: "simple",
             hasSaved: true,
             draft: {
-                ...emptyProgrammeDraft(startDate),
-                ...durationFields(phaseWorkingDays(phases[0]), phases[0].duration_unit),
+                ...blank,
+                ...(relative ? { timeBasis: "relative" as const } : {}),
+                ...durationFields(phaseWorkingDays(phases[0]), phases[0].duration_unit, pattern),
                 wholeSource: 0,
                 wholeName: String(phases[0].name).trim(),
             },
@@ -176,11 +207,12 @@ export function viewForProject(project: ProgrammeProjectFields, makeKey: () => s
         kind: "simple",
         hasSaved: true,
         draft: {
-            ...emptyProgrammeDraft(startDate),
+            ...blank,
+            ...(relative ? { timeBasis: "relative" as const } : {}),
             stages: phases.map((phase, index) => ({
                 key: makeKey(),
                 name: String(phase.name).trim(),
-                ...durationFields(phaseWorkingDays(phase), phase.duration_unit),
+                ...durationFields(phaseWorkingDays(phase), phase.duration_unit, pattern),
                 source: index,
             })),
         },
@@ -198,6 +230,10 @@ export interface SimpleProgrammeStageInput {
 
 /** What is sent to the server. One stage means one bar for the whole job. */
 export interface SimpleProgrammeInput {
+    workingPattern?: JobWorkingPattern;
+    /** Bound to the last confirmed job pattern, not an inferred current browser setting. */
+    expectedWorkingPattern?: JobWorkingPattern | null;
+    timeBasis?: "relative";
     startDate: string;
     stages: SimpleProgrammeStageInput[];
 }
@@ -207,12 +243,12 @@ export type ProgrammeFieldErrors = Record<string, string>;
 export const stageNameField = (key: string) => `stage:${key}:name`;
 export const stageDurationField = (key: string) => `stage:${key}:duration`;
 
-function parseDuration(raw: string, unit: DurationUnit): { days: number } | { error: string } {
+function parseDuration(raw: string, unit: DurationUnit, pattern: JobWorkingPattern): { days: number } | { error: string } {
     const cleaned = raw.trim();
     if (!/^\d{1,4}$/.test(cleaned)) return { error: "Enter a whole number, for example 3." };
     const value = Number(cleaned);
     if (value < 1) return { error: "Enter 1 or more." };
-    const days = unit === "weeks" ? value * WORKING_DAYS_PER_WEEK : value;
+    const days = unit === "weeks" ? value * programmeWeekUnitCount(pattern) : value;
     if (days > MAX_WORKING_DAYS) return { error: "That is too long. Keep it under 10 years." };
     return { days };
 }
@@ -221,21 +257,54 @@ export type BuildProgrammeResult =
     | { ok: true; input: SimpleProgrammeInput }
     | { ok: false; fieldErrors: ProgrammeFieldErrors };
 
-export function validateStartDate(startDate: string): string | null {
+export function validateStartDate(startDate: string, workingPattern?: unknown): string | null {
+    const pattern = resolveJobWorkingPattern(workingPattern);
+    if (!pattern) return "Choose valid working days for this job.";
     if (!startDate.trim()) return "Choose the date you start on site.";
     if (parseIsoDate(startDate) === null) return "Enter a real date.";
-    if (!isWorkingDay(startDate)) return "Choose a weekday. The programme counts Monday to Friday.";
+    if (!isJobWorkingDay(startDate, pattern)) return isDefaultJobWorkingPattern(pattern)
+        ? "Choose a weekday. The programme counts Monday to Friday." : "Choose one of this job's working days.";
     return null;
+}
+
+function programmeDaysUpperBound(draft: ProgrammeDraft): number {
+    if (draft.stages.length === 0) {
+        const parsed = /^\d{1,4}$/.test(draft.duration.trim()) ? Number(draft.duration.trim()) : 60;
+        return draft.unit === "weeks" ? parsed * 7 : parsed;
+    }
+    let total = 0;
+    for (const stage of draft.stages) {
+        const cleaned = stage.duration.trim();
+        if (/^\d{1,4}$/.test(cleaned)) total += stage.unit === "weeks" ? Number(cleaned) * 7 : Number(cleaned);
+    }
+    return total || 60;
 }
 
 export function buildSimpleProgramme(draft: ProgrammeDraft): BuildProgrammeResult {
     const fieldErrors: ProgrammeFieldErrors = {};
-    const startError = validateStartDate(draft.startDate);
+    const pattern = resolveJobWorkingPattern(draft.workingPattern);
+    if (!pattern) {
+        const message = explainWorkingPatternDraft(
+            draft.workingPattern,
+            draft.timeBasis === "relative" ? null : draft.startDate.trim(),
+        ) ?? "Choose valid working days for this job.";
+        return { ok: false, fieldErrors: { workingPattern: message } };
+    }
+    if (isJobWorkingPatternV2(pattern) && draft.timeBasis !== "relative" && draft.startDate.trim()) {
+        Object.assign(fieldErrors, validateWorkingPatternForProgramme(
+            pattern, draft.startDate.trim(), programmeDaysUpperBound(draft),
+        ));
+    }
+    const startError = draft.timeBasis === "relative" ? null : validateStartDate(draft.startDate, pattern);
     if (startError) fieldErrors.startDate = startError;
 
     const stages: SimpleProgrammeStageInput[] = [];
     if (draft.stages.length === 0) {
-        const parsed = parseDuration(draft.duration, draft.unit);
+        // A preserved dated name can exceed the relative renderer's limit.
+        if (draft.timeBasis === "relative" && (draft.wholeName || WHOLE_JOB_NAME).trim().length > MAX_STAGE_NAME_LENGTH) {
+            fieldErrors.stages = `To use an undated programme, break the job into stages and shorten this name to ${MAX_STAGE_NAME_LENGTH} characters.`;
+        }
+        const parsed = parseDuration(draft.duration, draft.unit, pattern);
         if ("error" in parsed) fieldErrors.duration = draft.duration.trim() ? parsed.error : "Say how long the job takes.";
         else stages.push({ name: draft.wholeName || WHOLE_JOB_NAME, workingDays: parsed.days, unit: draft.unit, source: draft.wholeSource });
     } else {
@@ -247,7 +316,7 @@ export function buildSimpleProgramme(draft: ProgrammeDraft): BuildProgrammeResul
             const name = stage.name.trim();
             if (!name) fieldErrors[stageNameField(stage.key)] = "Give this stage a name.";
             else if (name.length > MAX_STAGE_NAME_LENGTH) fieldErrors[stageNameField(stage.key)] = `Keep the name under ${MAX_STAGE_NAME_LENGTH} characters.`;
-            const parsed = parseDuration(stage.duration, stage.unit);
+            const parsed = parseDuration(stage.duration, stage.unit, pattern);
             if ("error" in parsed) {
                 fieldErrors[stageDurationField(stage.key)] = stage.duration.trim() ? parsed.error : "Say how long this stage takes.";
                 continue;
@@ -259,7 +328,9 @@ export function buildSimpleProgramme(draft: ProgrammeDraft): BuildProgrammeResul
     }
 
     if (Object.keys(fieldErrors).length > 0) return { ok: false, fieldErrors };
-    return { ok: true, input: { startDate: draft.startDate.trim(), stages } };
+    return { ok: true, input: draft.timeBasis === "relative"
+        ? { timeBasis: "relative", startDate: "", stages, ...(draft.workingPattern ? { workingPattern: pattern } : {}) }
+        : { startDate: draft.startDate.trim(), stages, ...(draft.workingPattern ? { workingPattern: pattern } : {}) } };
 }
 
 /**
@@ -269,8 +340,11 @@ export function buildSimpleProgramme(draft: ProgrammeDraft): BuildProgrammeResul
  * stage came from; everything else about that phase is replaced.
  */
 export function buildProgrammePhases(input: SimpleProgrammeInput, existingPhases: unknown[] | null | undefined): Record<string, unknown>[] {
+    const pattern = resolveJobWorkingPattern(input.workingPattern);
+    if (!pattern) throw new Error("Choose valid working days for this job.");
     const existing = Array.isArray(existingPhases) ? existingPhases : [];
     let cursor: string | null = input.startDate;
+    let workingOffset = 0;
 
     return input.stages.map((stage) => {
         const base = { ...(stage.source !== null ? asRecord(existing[stage.source]) : {}) };
@@ -278,6 +352,9 @@ export function buildProgrammePhases(input: SimpleProgrammeInput, existingPhases
         delete base.start_date;
         delete base.duration_days;
         delete base.dependsOn;
+        delete base.timeBasis;
+        delete base.workingDayOffset;
+        delete base.startOffset;
 
         const start = cursor ?? input.startDate;
         const calculated = Number(base.calculatedDays);
@@ -287,11 +364,14 @@ export function buildProgrammePhases(input: SimpleProgrammeInput, existingPhases
             calculatedDays: Number.isInteger(calculated) && calculated > 0 ? calculated : stage.workingDays,
             manualDays: stage.workingDays,
             manhours: Number.isFinite(Number(base.manhours)) && Number(base.manhours) > 0 ? Number(base.manhours) : 0,
-            startOffset: calendarOffset(input.startDate, start),
+            ...(input.timeBasis === "relative"
+                ? { timeBasis: RELATIVE_PROGRAMME_BASIS, workingDayOffset: workingOffset }
+                : { startOffset: calendarOffset(input.startDate, start) }),
             duration_unit: stage.unit === "weeks" ? "Weeks" : "Days",
         };
-        const end = addWorkingDays(start, stage.workingDays);
-        cursor = end ? nextWorkingDayAfter(end) : null;
+        const end = addJobWorkingDays(start, stage.workingDays, pattern);
+        cursor = end ? nextJobWorkingDayAfter(end, pattern) : null;
+        workingOffset += stage.workingDays;
         return phase;
     });
 }
@@ -301,26 +381,30 @@ export function buildProgrammePhases(input: SimpleProgrammeInput, existingPhases
  * is a weekday start and at least one usable duration. Unnamed stages are
  * shown by position so the bars appear while names are still being typed.
  */
-export function draftPlan(draft: ProgrammeDraft): ProgrammePlan | null {
-    if (validateStartDate(draft.startDate)) return null;
+export function draftPlan(draft: ProgrammeDraft): DisplayProgrammePlan | null {
+    const pattern = resolveJobWorkingPattern(draft.workingPattern);
+    if (!pattern || (draft.timeBasis !== "relative" && validateStartDate(draft.startDate, pattern))) return null;
     const rows = draft.stages.length === 0
         ? [{ name: draft.wholeName || WHOLE_JOB_NAME, duration: draft.duration, unit: draft.unit }]
         : draft.stages.map((stage, index) => ({ name: stage.name.trim() || `Stage ${index + 1}`, duration: stage.duration, unit: stage.unit }));
 
     const stages: SimpleProgrammeStageInput[] = [];
     for (const row of rows) {
-        const parsed = parseDuration(row.duration, row.unit);
+        const parsed = parseDuration(row.duration, row.unit, pattern);
         if ("error" in parsed) return null;
         stages.push({ name: row.name, workingDays: parsed.days, unit: row.unit, source: null });
     }
     if (stages.reduce((sum, stage) => sum + stage.workingDays, 0) > MAX_WORKING_DAYS) return null;
-    return computeProgrammePlan(draft.startDate, buildProgrammePhases({ startDate: draft.startDate, stages }, []));
+    return computeDisplayProgramme(draft.startDate, buildProgrammePhases({ timeBasis: draft.timeBasis, startDate: draft.startDate, stages, workingPattern: pattern }, []), pattern);
 }
 
 // ── State ────────────────────────────────────────────────────────────────────
 
 export const PROGRAMME_SAVE_ERROR =
     "The programme couldn't be saved. Nothing you typed has been lost. Check your connection and try again.";
+
+export const PROGRAMME_NAVIGATION_ERROR =
+    "The proposal couldn't be opened. Your last save is still on record. If you have made newer edits, they are not saved yet. Try Next: Proposal again.";
 
 export interface ProgrammeState {
     draft: ProgrammeDraft;
@@ -336,7 +420,7 @@ export function initialProgrammeState(draft: ProgrammeDraft, hasSaved: boolean):
 }
 
 export type ProgrammeAction =
-    | { type: "field/change"; patch: Partial<Pick<ProgrammeDraft, "startDate" | "duration" | "unit">> }
+    | { type: "field/change"; patch: Partial<Pick<ProgrammeDraft, "workingPattern" | "timeBasis" | "startDate" | "duration" | "unit">> }
     | { type: "stages/enable"; keys: string[] }
     | { type: "stages/disable" }
     | { type: "stage/add"; key: string }
@@ -360,9 +444,14 @@ export function programmeReducer(state: ProgrammeState, action: ProgrammeAction)
         case "field/change":
             return edited(state, { ...draft, ...action.patch });
 
-        case "stages/enable":
+        case "stages/enable": {
             if (draft.stages.length > 0) return state;
-            return edited(state, { ...draft, stages: action.keys.slice(0, MIN_STAGES).map(blankStage) });
+            const stages = action.keys.slice(0, MIN_STAGES).map(blankStage);
+            if (draft.wholeSource !== null && stages[0]) {
+                stages[0] = { ...stages[0], name: draft.wholeName || WHOLE_JOB_NAME, duration: draft.duration, unit: draft.unit, source: draft.wholeSource };
+            }
+            return edited(state, { ...draft, stages });
+        }
 
         case "stages/disable":
             return edited(state, { ...draft, stages: [] });
@@ -419,9 +508,9 @@ export function programmeReducer(state: ProgrammeState, action: ProgrammeAction)
 
 // ── Derived save status ──────────────────────────────────────────────────────
 
-const comparable = (draft: ProgrammeDraft) => JSON.stringify(draft.stages.length === 0
-    ? [draft.startDate.trim(), draft.duration.trim(), draft.unit]
-    : [draft.startDate.trim(), draft.stages.map((stage) => [stage.name.trim(), stage.duration.trim(), stage.unit])]);
+const comparable = (draft: ProgrammeDraft) => JSON.stringify([canonicalWorkingPatternComparable(draft.workingPattern ?? null), draft.stages.length === 0
+    ? [draft.timeBasis ?? "dated", draft.timeBasis === "relative" ? "" : draft.startDate.trim(), draft.duration.trim(), draft.unit]
+    : [draft.timeBasis ?? "dated", draft.timeBasis === "relative" ? "" : draft.startDate.trim(), draft.stages.map((stage) => [stage.name.trim(), stage.duration.trim(), stage.unit])]]);
 
 export function isProgrammeDirty(state: ProgrammeState): boolean {
     return comparable(state.draft) !== comparable(state.saved);
@@ -456,7 +545,8 @@ export interface ProgrammeStore {
     dispatch: (action: ProgrammeAction) => void;
 }
 
-export type SaveProgramme = (input: SimpleProgrammeInput) => Promise<{ success: true } | { success: false; error: string }>;
+export type ProgrammeSaveResult = { success: true; confirmedProject?: ProgrammeProjectFields } | { success: false; error: string };
+export type SaveProgramme = (input: SimpleProgrammeInput) => Promise<ProgrammeSaveResult>;
 export type ProgrammeSaveOutcome = "saved" | "failed" | "invalid" | "busy";
 
 /** Saves the programme as it stands. A failed save never clears the draft. */
@@ -473,8 +563,15 @@ export async function saveProgramme(store: ProgrammeStore, save: SaveProgramme):
     const snapshot = state.draft;
     store.dispatch({ type: "save/started" });
     try {
-        const result = await save(built.input);
+        const result = await save(built.input.workingPattern ? {
+            ...built.input, expectedWorkingPattern: state.saved.workingPattern ?? null,
+        } : built.input);
         if (result.success) {
+            if (built.input.workingPattern && (result.confirmedProject?.programme_working_pattern == null
+                || !workingPatternsEquivalent(result.confirmedProject.programme_working_pattern, built.input.workingPattern))) {
+                store.dispatch({ type: "save/failed", error: "The working-day save wasn't confirmed. Reload Programme before retrying." });
+                return "failed";
+            }
             store.dispatch({ type: "save/succeeded", snapshot });
             return "saved";
         }
@@ -494,14 +591,18 @@ export async function saveProgramme(store: ProgrammeStore, save: SaveProgramme):
 export async function continueToProposal(
     store: ProgrammeStore,
     save: SaveProgramme,
-    navigate: () => void,
-): Promise<"navigated" | ProgrammeSaveOutcome> {
+    navigate: () => void | Promise<void>,
+): Promise<"navigated" | "navigation-failed" | ProgrammeSaveOutcome> {
     if (!isProgrammeSaved(store.getState())) {
         const outcome = await saveProgramme(store, save);
         if (outcome !== "saved") return outcome;
         if (!isProgrammeSaved(store.getState())) return "busy";
     }
-    navigate();
+    try {
+        await navigate();
+    } catch {
+        return "navigation-failed";
+    }
     return "navigated";
 }
 

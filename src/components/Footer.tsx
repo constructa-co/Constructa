@@ -1,6 +1,10 @@
 'use client';
 
+import { getLaunchProfile } from '@/lib/launch-profile';
+import { MarketingFooter } from './marketing/phase-one';
+
 const Footer = () => {
+  if (getLaunchProfile() !== 'full') return <MarketingFooter />;
   return (
     <footer className="border-t border-gray-800/40 bg-black">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-16 md:py-24">

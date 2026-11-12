@@ -1,7 +1,7 @@
 export interface EstimateLineComponent {
     id: string;
     estimate_line_id: string;
-    component_type: "labour" | "plant" | "material" | "consumable" | "temp_works" | "subcontract";
+    component_type: "labour" | "plant" | "material" | "consumable" | "temp_works" | "subcontract" | "consultancy";
     description: string;
     quantity: number;
     unit: string;

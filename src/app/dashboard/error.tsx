@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import { reportError } from "@/lib/observability";
 import { getLaunchLandingPath } from "@/lib/launch-profile";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 /**
  * Dashboard route-group error boundary.
@@ -47,8 +48,10 @@ export default function DashboardError({
                 </div>
 
                 <p className="text-sm text-slate-400 leading-relaxed">
-                    Try reloading the page. If the problem persists, head back to the dashboard home and
-                    come at it again — no data has been lost.
+                    We could not finish loading this page. Anything you had not saved may be missing after
+                    you continue, and a save might have completed even if this screen failed. Check what is
+                    already saved before you repeat the same action. Use Try again to reload this view, or
+                    open Dashboard to recover elsewhere.
                 </p>
 
                 {error.digest && (
@@ -61,7 +64,7 @@ export default function DashboardError({
                     <button
                         type="button"
                         onClick={() => reset()}
-                        className="flex-1 inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
+                        className={`flex-1 inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg ${corePrimaryButton} ${coreFocusVisibleRing} text-sm font-semibold transition-colors`}
                     >
                         <RefreshCw className="w-4 h-4" />
                         Try again

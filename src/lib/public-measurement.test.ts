@@ -3,6 +3,8 @@ import {
   PUBLIC_MEASUREMENT_COLLECTION_ENABLED,
   __setPublicMeasurementTestSink,
   dispatchPublicMeasurementEvent,
+  filterPageviewEvent,
+  hasSignedInSessionCookie,
   isPublicMeasurementRoute,
   trackContactFormSubmitAccepted,
   trackTryConstructaClick,
@@ -166,5 +168,54 @@ describe("A097 offline evidence boundaries", () => {
     trackTryConstructaClick("solution", "/");
     trackContactFormSubmitAccepted("/");
     expect(sink.mock.calls).toEqual([["TryConstructaClick", { location: "solution" }]]);
+  });
+});
+
+describe("A097 Vercel Web Analytics page-view filter", () => {
+  const view = (url: string) => ({ type: "pageview" as const, url });
+
+  it("keeps only origin and path on public routes", () => {
+    expect(
+      filterPageviewEvent(
+        view("https://www.constructa.co/guides/site-surveys?utm_source=x&email=a@b.invalid#frag"),
+        "",
+      ),
+    ).toEqual(view("https://www.constructa.co/guides/site-surveys"));
+    expect(filterPageviewEvent(view("https://www.constructa.co/"), "")).toEqual(
+      view("https://www.constructa.co/"),
+    );
+  });
+
+  it.each([
+    "https://www.constructa.co/dashboard/projects/costs?project=abc",
+    "https://www.constructa.co/admin",
+    "https://www.constructa.co/proposal/0b6f7c1e-token",
+    "https://www.constructa.co/onboarding",
+    "https://www.constructa.co/login",
+    "https://www.constructa.co/auth/reset-password?code=secret",
+    "https://www.constructa.co/api/contact",
+    "https://www.constructa.co/supervisor",
+    "https://www.constructa.co/guides-private",
+    "https://www.constructa.co/offline",
+    "not a url",
+    "javascript:alert(1)",
+  ])("cancels %s", (url) => {
+    expect(filterPageviewEvent(view(url), "")).toBeNull();
+  });
+
+  it("cancels every page view while a Supabase session cookie is present", () => {
+    for (const cookies of [
+      "sb-abcdefghij-auth-token=base64-xyz",
+      "theme=dark; sb-abcdefghij-auth-token.0=part; sb-abcdefghij-auth-token.1=part",
+    ]) {
+      expect(hasSignedInSessionCookie(cookies)).toBe(true);
+      expect(filterPageviewEvent(view("https://www.constructa.co/pricing"), cookies)).toBeNull();
+    }
+  });
+
+  it("does not mistake unrelated cookies for a session", () => {
+    for (const cookies of ["", "theme=dark", "sb-abcdefghij-auth-token-verifier=1", "x-sb-a-auth-token=1"]) {
+      expect(hasSignedInSessionCookie(cookies)).toBe(false);
+    }
   });
 });

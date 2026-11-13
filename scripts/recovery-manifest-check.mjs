@@ -28,7 +28,7 @@ const REF = /^refs\/(heads|tags|remotes|notes)\/[A-Za-z0-9._/-]+$/;
 // Whole-value sentinels only: a real label such as "example-building-export" is allowed.
 const PLACEHOLDER = /^(|tbd|todo|<.*>|\$\{.*\}|changeme|example)$/i;
 // Credential shapes that must never appear in a manifest that may be copied into evidence.
-const SECRET_PATTERNS = [
+export const SECRET_PATTERNS = [
     /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\./,
     /\bsb_secret_[A-Za-z0-9_-]+/,
     /\bpostgres(ql)?:\/\/[^\s:/@]+:[^\s@]+@/i,

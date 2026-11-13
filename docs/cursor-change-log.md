@@ -1,5 +1,16 @@
 # Cursor change log
 
+## 2026-11-13 — Marketing guides and cohort apply keyboard focus (cursor/marketing-focus-visible-1e4b)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/components/public-chrome.tsx` | 23–27 | `theme` + `marketingMain` on skip target `<main>` | Visible focus when bypassing chrome to page content |
+| `src/components/marketing/phase-one.module.css` | after `.skip` | `.marketingMain:focus-visible` accent outline | Reuses `--accent`; no navigation behaviour change |
+| `src/components/marketing/guides.module.css` | after `.card:hover` | `.card:focus-visible` border + outline | Hub article links match hover border for keyboard users |
+| `src/components/marketing/founding-cohort-apply.module.css` | after theme focus rule | Field border + submit background on `:focus-visible` | Clearer tab focus on `/apply` without changing validation or gates |
+| `src/components/marketing/marketing-pages-focus.test.ts` | 1–48 | Declared CSS regression checks | Evidence without full browser matrix |
+| `src/components/marketing/phase-one.test.tsx` | 179 | Add `/guides` and `/apply` to skip-link route list | Guides and apply stay on the cohort public chrome contract |
+
 ## 2026-11-13 — A001 home pipeline navigation + A023 consent-not-stored a11y (codex/r1-20261113-a001-brand-next)
 
 | File | Lines (approx.) | Change | Intent |

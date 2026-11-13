@@ -98,6 +98,7 @@
 .footerTop { display: flex; justify-content: space-between; align-items: flex-start; gap: 40px; padding-bottom: 45px; }.footerTop p { color: var(--muted); font-size: 13px; line-height: 1.8; }.footerTop nav { display: flex; flex-wrap: wrap; max-width: 430px; gap: 20px; font-size: 14px; color: var(--muted); }.footerTop nav a { min-height: 44px; display: inline-flex; align-items: center; }
 .footerBottom { display: flex; justify-content: space-between; gap: 20px; border-top: 1px solid var(--line); padding-top: 22px; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .skip { position: fixed; left: 16px; top: -100px; z-index: 50; padding: 14px 20px; background: var(--accent); color: var(--accent-ink); border-radius: 5px; }.skip:focus { top: 10px; }
+.marketingMain:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
 @keyframes arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @media (min-width: 1601px) { .chapterLine, .invitation { max-width: 1456px; } }
 @media (max-width: 1600px) { .chapterLine, .invitation { margin-left: 4.5%; margin-right: 4.5%; } }

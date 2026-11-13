@@ -176,7 +176,7 @@ describe('phase-one marketing integration', () => {
     expect(renderToStaticMarkup(<PublicChrome><p>Landing</p></PublicChrome>)).toContain('Footer navigation');
   });
 
-  it.each(['/', '/features', '/pricing', '/product', '/contact'])('renders one bypass before the header targeting the single focusable main on %s', pathname => {
+  it.each(['/', '/features', '/pricing', '/product', '/contact', '/guides', '/apply'])('renders one bypass before the header targeting the single focusable main on %s', pathname => {
     vi.stubEnv('NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE', 'cohort');
     route.pathname = pathname;
     const html = renderToStaticMarkup(<PublicChrome><p>Route body</p></PublicChrome>);

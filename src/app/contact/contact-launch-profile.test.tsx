@@ -110,10 +110,9 @@ describe("contact route under the default cohort profile", () => {
     });
 
     it("exports neutral metadata that promises nothing", () => {
-        expect(metadata).toEqual({
-            title: "Contact | Constructa",
-            description: "Contact the Constructa team.",
-        });
+        expect(metadata.title).toBe("Contact | Constructa");
+        expect(metadata.description).toBe("Contact the Constructa team.");
+        expect(metadata.openGraph?.description).toBe("Contact the Constructa team.");
         const description = (metadata.description ?? "").toLowerCase();
         expect(description).not.toContain("early access");
     });

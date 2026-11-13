@@ -22,9 +22,10 @@ vi.mock("@/lib/launch-profile", () => ({
 
 describe("actual pricing route metadata", () => {
     it("exports named Pricing | Constructa title metadata from the page module", () => {
-        expect(metadata).toEqual({
-            title: "Pricing | Constructa",
-        });
+        expect(metadata.title).toBe("Pricing | Constructa");
+        expect(metadata.description).toContain("No subscription sale");
+        expect(metadata.openGraph?.title).toBe("Pricing | Constructa");
+        expect(metadata.alternates?.canonical).toMatch(/\/pricing$/);
     });
 
     it("keeps the existing launch-profile choice for both full and cohort", () => {

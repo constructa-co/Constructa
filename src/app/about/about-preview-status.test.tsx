@@ -48,4 +48,16 @@ describe("about preview status in What's next", () => {
     expect(whatsNext).toMatch(/href="\/pricing"[^>]*>Preview access →<\/a>/);
     expect(html).not.toMatch(/now live|try today|first release is now live/i);
   });
+
+  it("makes only supported claims in the stats and pointers sections", () => {
+    expect(html).not.toContain("1M+");
+    expect(html).not.toContain("60% lose time to admin weekly");
+    expect(html).not.toContain("80% still use spreadsheets");
+    expect(html).not.toContain("Placeholder");
+    expect(html).not.toContain("https://medium.com/");
+    expect(html).not.toContain('href="https://linkedin.com/"');
+    expect(html).toContain("https://www.linkedin.com/company/constructa-co");
+    expect(html).toMatch(/href="\/guides"[^>]*>constructa.co\/guides<\/a>/);
+    expect(html).toMatch(/href="\/guides"[^>]*>Read the guides/);
+  });
 });

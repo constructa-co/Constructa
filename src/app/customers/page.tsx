@@ -1,4 +1,12 @@
 import { getLaunchProfile } from "@/lib/launch-profile";
+import { marketingPageMetadata } from "@/lib/marketing-seo";
+
+export const metadata = marketingPageMetadata({
+  title: "Customers | Constructa",
+  description:
+    "Built for small and micro construction businesses who quote, plan and deliver work themselves.",
+  pathname: "/customers",
+});
 
 function CtaArrow() {
   return (

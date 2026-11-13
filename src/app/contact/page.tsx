@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import { PhaseOneContact } from "@/components/marketing/cohort-contact";
 import { getLaunchProfile } from "@/lib/launch-profile";
 
-export const metadata: Metadata = {
+import { marketingPageMetadata } from "@/lib/marketing-seo";
+
+export const metadata: Metadata = marketingPageMetadata({
   title: "Contact | Constructa",
   description: "Contact the Constructa team.",
-};
+  pathname: "/contact",
+});
 
 export default function ContactPage() {
   if (getLaunchProfile() !== "full") return <PhaseOneContact />;

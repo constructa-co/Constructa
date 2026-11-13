@@ -87,9 +87,8 @@ describe("actual contact form labels", () => {
 
 describe("actual contact route metadata", () => {
     it("exports named Contact | Constructa metadata from the page module", () => {
-        expect(metadata).toEqual({
-            title: "Contact | Constructa",
-            description: "Contact the Constructa team.",
-        });
+        expect(metadata.title).toBe("Contact | Constructa");
+        expect(metadata.description).toBe("Contact the Constructa team.");
+        expect(metadata.alternates?.canonical).toMatch(/\/contact$/);
     });
 });

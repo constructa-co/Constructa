@@ -48,7 +48,7 @@ export function checkRelativePath(value) {
     return null;
 }
 
-function text(value) {
+export function text(value) {
     return typeof value === "string" && !PLACEHOLDER.test(value.trim());
 }
 
@@ -68,7 +68,7 @@ function gitRefKey(repository, refName) {
     return `${typeof repository === "string" ? repository : ""} ${refName}`;
 }
 
-function sha256File(file) {
+export function sha256File(file) {
     const hash = createHash("sha256");
     const buffer = Buffer.allocUnsafe(1 << 20);
     const fd = openSync(file, "r");

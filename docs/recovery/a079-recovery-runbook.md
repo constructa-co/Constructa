@@ -71,7 +71,9 @@ Notes:
   679 those include:
   - trigger `on_auth_user_created` on `auth.users`
     (`supabase/migrations/20260117000000_foundations_estimator.sql`);
-  - 13 `CREATE POLICY … ON storage.objects` statements across 6 migration files.
+  - 16 `CREATE POLICY … ON storage.objects` statements across 6 migration files (3 of them in
+    `20260930210000_harden_phase1_storage.sql` put `ON storage.objects` on the next line, so
+    a one-line grep reports 13 and would raise a false G1 finding).
 - **Managed-schema coverage guard.** Before any restore (section 8, gate G1) the operator
   produces `db/managed-schema-customisations.sql`. It is an operator-reviewed inventory of
   custom policies, triggers and functions in `auth` and `storage`, captured the way the
@@ -87,7 +89,7 @@ Notes:
   `storage.buckets` and `storage.objects`. If any is absent, dump it explicitly with
   `--data-only --schema auth,storage` into a separate file and add it to the manifest.
 - Record `supabase_migrations.schema_migrations` versions into
-  `db/migration-history.txt`. Compare with `supabase/migrations/` (112 files at base 679);
+  `db/migration-history.txt`. Compare with `supabase/migrations/` of the exact ref being backed up (112 files at base 679, 117 at 9295d21);
   any version in the database but not in the repository, or the reverse, is a finding.
 - Category mapping: `db-roles-privileges`, `db-schema`, `db-data`, `db-migration-history`.
 
@@ -162,6 +164,8 @@ git bundle verify "$EXPORT_DEST/git/<repo>.bundle"
 git lfs ls-files --all --long > "$EXPORT_DEST/git/<repo>-lfs.txt"   # empty when LFS is unused
 ```
 
+- For one repository, `scripts/recovery-git-bundle.mjs` runs these commands with the
+  destination checks and the head-list read-back; see `a079-next-action-20261112.md`.
 - The bundle and refs list are categories `git-bundle` and `git-refs`; LFS objects and
   untracked binary assets (for example `public/`, `docs/evidence/**/*.pdf`) are
   `git-lfs-assets`. The app repository has no LFS filters at base 679, so record the empty

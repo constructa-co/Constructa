@@ -24,6 +24,7 @@ vi.mock("@/lib/platform-signup-action", () => ({ platformSignupAction: state.act
 vi.mock("next/navigation", () => ({
     useRouter: () => ({ push: state.push, refresh: state.refresh }),
 }));
+import { PLATFORM_TERMS_COMPLETION_PATH } from "@/lib/platform-terms-completion";
 import LoginPage from "./page";
 
 const REFUSAL = "Please accept the platform terms of service before creating an account.";
@@ -145,6 +146,23 @@ describe("platform terms checkbox relationships in the actual login component", 
         choose("signup");
         expect(relationships()).toEqual({ describedBy: "platform-terms-link", invalid: undefined, required: true, checked: false });
         expect(alertBox()).toBeUndefined();
+    });
+
+    it("does not mark the checkbox invalid when consent storage fails; completion handoff stays separate from the alert", async () => {
+        state.action.mockResolvedValue({ ok: false, code: "consent-not-stored" });
+        signup();
+        accept(true);
+        await submit();
+        expect(state.action).toHaveBeenCalledTimes(1);
+        state.action.mockClear();
+        expect(relationships()).toEqual({ describedBy: "platform-terms-link", invalid: undefined, required: true, checked: true });
+        expect(html()).not.toContain("aria-invalid");
+        const handoff = nodes(render()).find(
+            e => e.props.href === PLATFORM_TERMS_COMPLETION_PATH
+                && e.props.children === "Complete platform terms acceptance",
+        );
+        expect(handoff).toBeDefined();
+        expect(alertBox()!.props.children).toContain("couldn't record your terms acceptance");
     });
 });
 

@@ -135,7 +135,8 @@ would miss them. Export their configuration explicitly.
 2. **Policies**: the `storage.objects` policies live in the managed `storage` schema, so the
    default `schema.sql` does not contain them. Take them from the reviewed
    `db/managed-schema-customisations.sql` (section 3 coverage guard), copy them to
-   `storage/policies.sql` and check them against the 13 repository policy statements.
+   `storage/policies.sql` and check them against the 16 repository policy statements (see section 3 for why a one-line
+   grep reports 13).
    Category `storage-policies`.
 3. **Object metadata**: `storage.objects` (bucket, name, size, mimetype, owner) to
    `storage/objects.json`. Category `storage-object-metadata`.
@@ -258,6 +259,26 @@ Read-only assertions, each recorded as source value, restored value and pass or 
   value, and every storage path referenced from database rows resolves.
 - A count of Auth users only. No user records are opened, printed or used to sign in.
 
+The comparison itself can be run offline with `scripts/recovery-reconcile.mjs`. The operator
+writes two JSON inventories from the read-only queries above: `source.json` at export time and
+`restored.json` from the disposable target. Both use `version: 1` and carry the same sections:
+`tableRowCounts`, `storageObjectsPerBucket`, `rlsEnabledTables`, `policies`, `triggers`,
+`roles`, `grants`, `extensions` and `migrationVersions` (counts and names only, never rows or
+secrets). A missing section is INVALID, not a pass, and an empty one must be recorded as empty.
+
+```bash
+node scripts/recovery-reconcile.mjs --source source.json --restored restored.json \
+  --migrations-dir supabase/migrations --manifest "$EXPORT_DEST/manifest.json"
+```
+
+`--migrations-dir` must be the `supabase/migrations` of the exact ref being backed up; it
+compares the source migration history with the repository in both directions (section 3).
+`--manifest` compares the source `storage.objects` count per bucket with the distinct
+`(bucket, name)` rows in `storage.objects` of the manifest, which `recovery-manifest-check`
+cannot do (section 5). Exit `0` is RECONCILED, `1` is MISMATCH or INVALID, `64` is bad usage.
+The output lists each check as source value, restored value and pass or fail. It compares two
+inventories the operator wrote; it does not query any database and is not a restore.
+
 ## 9. Acceptance evidence
 
 A079 can be proposed as Complete only with all of these:
@@ -266,7 +287,8 @@ A079 can be proposed as Complete only with all of these:
    exits `0` with verdict `COMPLETE_SET` (exit `2` is PARTIAL because of a waiver; exit `1` is
    INVALID). The output is paths, counts and messages only. **Exit `0` without `--root`
    (`bytesVerified: false`) checks manifest metadata only and is not acceptance evidence.**
-2. The section 8 reconciliation table, with every row passing, and the G1 to G3 gate records.
+2. The section 8 reconciliation table, with every row passing (`recovery-reconcile.mjs`
+   exit `0`), and the G1 to G3 gate records.
 3. `git bundle verify` output for each repository, plus the `git bundle list-heads`
    comparison showing every requiredRefs entry at its expected SHA.
 4. The private-work reconciliation list from section 6, signed off by its owner.

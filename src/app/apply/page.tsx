@@ -5,11 +5,14 @@ import applyStyles from "@/components/marketing/founding-cohort-apply.module.css
 import { PhaseOneFoundingCohortApply } from "@/components/marketing/founding-cohort-apply-page";
 import { getLaunchProfile } from "@/lib/launch-profile";
 
-export const metadata: Metadata = {
+import { marketingPageMetadata } from "@/lib/marketing-seo";
+
+export const metadata: Metadata = marketingPageMetadata({
   title: "Apply to the founding cohort | Constructa",
   description:
     "Express interest in the Constructa founding cohort. Separate from signing in with an existing review account.",
-};
+  pathname: "/apply",
+});
 
 export default function ApplyPage() {
   if (getLaunchProfile() !== "full") {

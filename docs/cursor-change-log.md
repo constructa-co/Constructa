@@ -1,5 +1,20 @@
 # Cursor change log
 
+## 2026-11-13 — M.1 marketing SEO basics (codex/r1-20261113-m1-seo)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/marketing-seo.ts` | 1–150 | Marketing origin, sitemap paths, robots disallows, `marketingPageMetadata`, sitemap/robots builders | Single source for public-route SEO; review mode blocks indexing |
+| `src/lib/marketing-seo.test.ts` | 1–90 | Unit tests for origin, sitemap, robots, OG metadata | Evidence without full build |
+| `src/app/sitemap.ts` | 1–6 | App Router sitemap handler | Indexable marketing URLs only |
+| `src/app/robots.ts` | 1–6 | App Router robots handler | Preserve private/preview disallows; fail closed in review |
+| `src/app/layout.tsx` | 6–14 | `marketingRootMetadata()` + clearer default description | `metadataBase` and shared OG defaults |
+| `src/app/page.tsx`, `landing`, `features`, `product`, `customers` | metadata exports | Route-specific titles, descriptions, canonical, Open Graph | Distinct marketing page SEO |
+| `src/app/pricing`, `contact`, `apply`, `privacy-policy`, `terms-of-service`, `about` | metadata | Same helper; about drops legacy `next/head` meta/canonical | App Router metadata consistency |
+| `src/app/guides/page.tsx`, `guides/[slug]/page.tsx` | `index: false` | Preview guides excluded from sitemap and noindex | Do not index preview-only content |
+| `src/app/pricing/pricing-metadata.test.tsx`, `contact/*metadata*.test.tsx` | assertions | Partial metadata expectations + OG/canonical | Keep contact/pricing contract tests green |
+| `src/app/marketing-seo-routes.test.ts` | 1–16 | Handler wiring smoke test | Confirms `sitemap.ts` / `robots.ts` export |
+
 ## 2026-11-13 — A001 pipeline Lead icon affordance (codex/r1-20261113-a001-palette, after 51e2ac9)
 
 | File | Lines (approx.) | Change | Intent |

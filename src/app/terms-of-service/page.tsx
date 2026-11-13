@@ -1,4 +1,12 @@
 import Link from "next/link";
+import { marketingPageMetadata } from "@/lib/marketing-seo";
+
+export const metadata = marketingPageMetadata({
+  title: "Terms of Service | Constructa",
+  description:
+    "Platform terms for using Constructa to plan work, build estimates and proposals, and manage project information.",
+  pathname: "/terms-of-service",
+});
 
 export default function TermsOfServicePage() {
   return (

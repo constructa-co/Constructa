@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { GuideArticleView } from '@/components/marketing/guide-article-view';
 import { getAllGuideSlugs, getGuideArticle } from '@/lib/marketing-guides';
+import { marketingPageMetadata } from '@/lib/marketing-seo';
 
 export function generateStaticParams() {
   return getAllGuideSlugs().map(slug => ({ slug }));
@@ -13,10 +14,12 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   if (!article) {
     return { title: 'Guide | Constructa' };
   }
-  return {
+  return marketingPageMetadata({
     title: `${article.title} | Constructa`,
     description: article.summary,
-  };
+    pathname: `/guides/${slug}`,
+    index: false,
+  });
 }
 
 export default async function GuideArticlePage(props: { params: Promise<{ slug: string }> }) {

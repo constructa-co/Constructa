@@ -59,8 +59,8 @@ export function FoundingCohortApplyForm() {
   if (state.status === "success") {
     return (
       <p className={styles.success} role="status">
-        Thank you — we have recorded your interest for the founding cohort review. We will
-        be in touch once the next step is confirmed. Already have access?{" "}
+        Thank you for your interest in the founding cohort. Applications are not being
+        collected yet. Already have access?{" "}
         <Link href="/login">Sign in here</Link>.
       </p>
     );

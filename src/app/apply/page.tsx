@@ -23,6 +23,7 @@ export default function ApplyPage() {
     <main className={`${applyStyles.theme} min-h-screen pt-16 ${applyStyles.root}`}>
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <h1 className="text-4xl font-semibold mb-4">Apply to the founding cohort</h1>
+        <p className={`${applyStyles.openingNote} mb-4`}>Founding cohort opens 7 December 2026.</p>
         <p className={`${applyStyles.lede} mb-4`}>
           New to Constructa? Share a few details below. This is not the same as signing in.
         </p>

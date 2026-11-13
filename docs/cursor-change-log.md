@@ -1,5 +1,11 @@
 # Cursor change log
 
+## 2026-11-13 — A038 legacy photo save refusal UI seam (codex/r1-20261113-a038-offline)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/settings/case-studies/legacy-photo-save-outcomes.test.tsx` | (new) | Two Vitest cases: refused save surfaces `LEGACY_CASE_STUDY_PHOTOS_MESSAGE` on `data-case-studies-save-status`, Try again, no success toast; draft photos kept and `saved` baseline unchanged | Close offline A038 gap between `saveCaseStudiesAction` photo refusal and older `CaseStudiesClient` honest save UX (no SQL, storage, or wire enablement) |
+
 ## 2026-11-13 — A001 pipeline Lead icon affordance (codex/r1-20261113-a001-palette, after 51e2ac9)
 
 | File | Lines (approx.) | Change | Intent |

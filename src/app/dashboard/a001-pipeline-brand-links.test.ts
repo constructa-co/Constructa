@@ -16,6 +16,9 @@ describe("A001 pipeline list/board brand links and stage actions", () => {
 
     it("project-board Start Estimating CTA and P&L micro-link use sage/emerald colour tokens; 9px/900 typography preserved", () => {
         const source = read("src/app/dashboard/project-board.tsx");
+        expect(source).toContain("corePipelineMutedIconButton(isDark)");
+        expect(source).not.toMatch(/hover:text-blue-400/);
+        expect(source).not.toMatch(/hover:text-blue-600/);
         expect(source).toContain("corePipelineMicroLinkColor(isDark)");
         expect(source).toMatch(/P&amp;L →[\s\S]*text-\[9px\] font-black uppercase tracking-widest/);
         expect(source).not.toMatch(/corePipelineTextLinkSm/);

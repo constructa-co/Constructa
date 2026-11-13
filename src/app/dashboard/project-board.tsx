@@ -29,7 +29,7 @@ import {
 import { useTheme } from "@/lib/theme-context";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
 import ui from "@/components/project-board.module.css";
-import { corePipelineMicroLinkColor } from "@/lib/core-editing-palette";
+import { corePipelineMicroLinkColor, corePipelineMutedIconButton } from "@/lib/core-editing-palette";
 import { PIPELINE_CHANGE_UNCONFIRMED, PIPELINE_REFRESH_UNCONFIRMED } from "@/lib/pipeline-feedback";
 import { pipelineStageDisplayLabel } from "./pipeline-stage-display";
 
@@ -192,7 +192,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     {col.id === "Lead" && (
-                                        <Link href="/dashboard/projects/new" title="New lead" aria-label="New lead" className={`inline-flex items-center justify-center min-w-11 min-h-11 lg:min-w-0 lg:min-h-0 p-1 rounded-md transition-colors ${isDark ? "hover:bg-white/10 text-slate-500 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-600"}`}>
+                                        <Link href="/dashboard/projects/new" title="New lead" aria-label="New lead" className={`min-w-11 min-h-11 lg:min-w-0 lg:min-h-0 p-1 rounded-md ${corePipelineMutedIconButton(isDark)}`}>
                                             <FilePlus className="w-3.5 h-3.5" />
                                         </Link>
                                     )}

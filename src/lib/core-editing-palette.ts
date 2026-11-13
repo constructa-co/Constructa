@@ -45,6 +45,13 @@ export function corePipelineMicroLinkColor(isDark: boolean): string {
     return corePipelineLinkColor(isDark);
 }
 
+/** Muted pipeline chrome icon buttons (e.g. Lead column “New lead”) — hover matches link emerald pair. */
+export function corePipelineMutedIconButton(isDark: boolean): string {
+    const hover = isDark ? "hover:text-emerald-400" : "hover:text-emerald-700";
+    const surface = isDark ? "hover:bg-white/10 text-slate-500" : "hover:bg-gray-100 text-gray-400";
+    return `inline-flex items-center justify-center transition-colors ${surface} ${hover} ${coreFocusVisibleRing}`;
+}
+
 /** Radio/checkbox tile border when the option is selected. */
 export const coreProfileSaveSubmit =
     "w-full h-14 rounded-xl font-bold text-lg transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed";

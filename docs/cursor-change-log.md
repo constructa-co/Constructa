@@ -1,5 +1,14 @@
 # Cursor change log
 
+## 2026-11-13 — A001 pipeline Lead icon affordance (codex/r1-20261113-a001-palette, after 51e2ac9)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/core-editing-palette.ts` | after `corePipelineMicroLinkColor` | `corePipelineMutedIconButton` | Lead-column “New lead” icon hover uses emerald pair, not brand-blue |
+| `src/lib/core-editing-palette.test.ts` | imports + `it.each` | Muted icon button regression | Locks emerald hover + focus ring; no blue |
+| `src/app/dashboard/project-board.tsx` | New lead `Link` className | `corePipelineMutedIconButton(isDark)` | Same pipeline surface as 51e2ac9; geometry/href unchanged |
+| `src/app/dashboard/a001-pipeline-brand-links.test.ts` | board `it` | Assert icon token; forbid `hover:text-blue-*` on board | Guards remaining pipeline chrome gap |
+
 ## 2026-11-13 — A001 pipeline link contrast port (codex/r1-20261113-a001-palette)
 
 | File | Lines (approx.) | Change | Intent |

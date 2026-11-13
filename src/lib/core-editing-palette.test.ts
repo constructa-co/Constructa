@@ -4,6 +4,7 @@ import {
     coreFocusVisibleRing,
     coreFormAccent,
     corePipelineLinkColor,
+    corePipelineMutedIconButton,
     corePipelineTextLinkSmThemed,
     corePrimaryButton,
     coreProfileField,
@@ -28,6 +29,16 @@ describe("core editing palette tokens", () => {
         expect(coreProfileField).toContain("emerald-600");
         expect(coreProfileField).not.toMatch(/blue/);
         expect(coreFormAccent).toBe("accent-emerald-600");
+    });
+
+    it.each([
+        [true, "hover:text-emerald-400"],
+        [false, "hover:text-emerald-700"],
+    ])("pipeline muted icon button dark=%s uses emerald hover, not blue", (isDark, hover) => {
+        const btn = corePipelineMutedIconButton(isDark);
+        expect(btn).toContain(hover);
+        expect(btn).toContain("focus-visible:ring-emerald-600");
+        expect(btn).not.toMatch(/blue/);
     });
 
     it.each([

@@ -72,7 +72,7 @@ describe("marketing SEO module", () => {
       url: "https://www.constructa.co/pricing",
       siteName: "Constructa",
     });
-    expect(meta.twitter?.card).toBe("summary_large_image");
+    expect(meta.twitter).toMatchObject({ card: "summary_large_image" });
     expect(meta.robots).toEqual({ index: true, follow: true });
   });
 

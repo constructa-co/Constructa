@@ -19,7 +19,7 @@ const projects = [
     { id: "newest-job", name: "Newest job", user_id: "owner", brief_scope: "Newest saved scope" },
     { id: "remembered-job", name: "Remembered job", user_id: "owner", brief_scope: "Remembered saved scope" },
 ];
-type Element = ReactElement<{ children?: Element[]; projectId?: string; project?: { id: string }; projects?: typeof projects; path?: string }>;
+type Element = ReactElement<{ children?: Element[]; projectId?: string; project?: { id: string }; projects?: typeof projects; path?: string; kind?: string }>;
 
 beforeEach(() => {
     mock.reads = []; mock.signedIn = true; mock.empty = false;
@@ -63,8 +63,9 @@ describe.each([
 
     it.each(["unknown-job", ""])("does not substitute another job for explicit ID %j", async projectId => {
         const page = await render(projectId);
-        expect(page.props.projects).toBeUndefined();
-        expect(page.props.path).toBeUndefined();
+        expect(page.props.kind).toBe(projectId ? "job-not-found" : "missing-id");
+        expect(page.props.projects).toEqual(projects);
+        expect(page.props.path).toBe(`/dashboard/projects/${route}`);
         expect(mock.reads.some(r => r.filters.id === "newest-job")).toBe(false);
         expect(mock.reads.some(r => r.table === "estimates")).toBe(false);
     });
@@ -72,6 +73,7 @@ describe.each([
     it("does not invent a project for an empty owner list", async () => {
         mock.empty = true;
         const page = await render();
+        expect(page.props.kind).toBe("no-jobs");
         expect(page.props.projects).toBeUndefined();
         expect(mock.reads).toEqual([{ table: "projects", filters: { user_id: "owner" } }]);
     });

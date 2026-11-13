@@ -1,6 +1,13 @@
 import React from 'react';
-import Head from 'next/head';
 import Link from 'next/link';
+import { marketingPageMetadata } from '@/lib/marketing-seo';
+
+export const metadata = marketingPageMetadata({
+  title: 'About | Constructa',
+  description:
+    'Learn how Constructa was built for small construction teams to quote faster, plan better, and deliver jobs with confidence.',
+  pathname: '/about',
+});
 
 function MetricIcon({ type }: { type: 'building' | 'stopwatch' | 'spreadsheet' }) {
   if (type === 'building') {
@@ -24,10 +31,7 @@ function MetricIcon({ type }: { type: 'building' | 'stopwatch' | 'spreadsheet' }
 export default function About() {
   return (
     <>
-      <Head>
-        <meta name="description" content="Learn how Constructa was built for builders. Discover our mission to simplify quoting, planning, and project delivery for small construction teams." />
-        <link rel="canonical" href="https://constructa.co/about" />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: `{
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: `{
   "@context": "https://schema.org",
   "@type": "AboutPage",
   "name": "About Constructa",
@@ -39,7 +43,6 @@ export default function About() {
     "url": "https://constructa.co"
   }
 }` }} />
-      </Head>
       <div className="bg-black text-white">
         <section className="max-w-6xl mx-auto px-4 pt-32 pb-8 text-center">
           <h1 className="text-4xl md:text-5xl font-semibold mb-5">Why we built Constructa, and what comes next.</h1>

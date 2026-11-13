@@ -1,3 +1,12 @@
+import { marketingPageMetadata } from "@/lib/marketing-seo";
+
+export const metadata = marketingPageMetadata({
+  title: "Privacy Policy | Constructa",
+  description:
+    "How Constructa handles personal and company information. Draft notice — not presented as compliance certification.",
+  pathname: "/privacy-policy",
+});
+
 export default function PrivacyPolicyPage() {
   return (
     <main className="min-h-screen pt-16 bg-black">

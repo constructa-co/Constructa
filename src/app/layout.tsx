@@ -3,12 +3,15 @@ import { Inter } from "next/font/google";
 import type { Metadata } from "next";
 import Script from 'next/script';
 import PublicChrome from '@/components/public-chrome';
+import { marketingRootMetadata } from '@/lib/marketing-seo';
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  ...marketingRootMetadata(),
   title: "Constructa",
-  description: "AI-powered construction management platform",
+  description:
+    "Construction proposals, estimates and programmes for UK contractors — from company profile to client-ready proposal.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

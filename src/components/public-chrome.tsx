@@ -20,8 +20,11 @@ export default function PublicChrome({ children }: { children: ReactNode }) {
   return <>
     {marketingBypass && <a href="#public-marketing-content" className={`${ui.theme} ${ui.skip}`}>Skip to content</a>}
     {showMarketing && <Header />}
-    <main id={marketingBypass ? 'public-marketing-content' : undefined}
-      tabIndex={marketingBypass ? -1 : undefined}>{children}</main>
+    <main
+      id={marketingBypass ? 'public-marketing-content' : undefined}
+      className={marketingBypass ? `${ui.theme} ${ui.marketingMain}` : undefined}
+      tabIndex={marketingBypass ? -1 : undefined}
+    >{children}</main>
     {showMarketing && !landingHasOwnFooter && <Footer />}
   </>;
 }

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import DashboardRouteShell from "@/components/dashboard-route-shell";
 import ProjectNavBar from "@/components/project-navbar";
 import ProjectEntry from "@/components/project-entry";
+import ProjectEmptyState from "@/components/project-empty-state";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import BriefClient from "./brief-client";
 import { jobAssistantReadiness } from "@/lib/server/job-assistant-transport";
@@ -32,11 +33,15 @@ export default async function BriefPage(props: { searchParams: Promise<{ project
         .order("created_at", { ascending: false });
 
     // Canonicalise the project identity before mounting any editable job state.
+    const jobs = allProjects ?? [];
     if (searchParams.projectId === undefined) {
-        if (!allProjects?.length) return <div className="p-8 text-slate-400">No projects found. Create one in the dashboard first.</div>;
-        return <ProjectEntry projects={allProjects} path="/dashboard/projects/brief" />;
+        if (!jobs.length) return <ProjectEmptyState kind="no-jobs" stepLabel="Brief" />;
+        return <ProjectEntry projects={jobs} path="/dashboard/projects/brief" />;
     }
-    const activeProjectId = searchParams.projectId;
+    const activeProjectId = searchParams.projectId.trim();
+    if (!activeProjectId) {
+        return <ProjectEmptyState kind={jobs.length ? "missing-id" : "no-jobs"} stepLabel="Brief" projects={jobs} path="/dashboard/projects/brief" />;
+    }
 
     // Fetch active project
     const { data: project } = await supabase
@@ -46,7 +51,7 @@ export default async function BriefPage(props: { searchParams: Promise<{ project
         .single();
 
     if (!project) {
-        return <div className="p-8 text-slate-400">No projects found. Create one in the dashboard first.</div>;
+        return <ProjectEmptyState kind={jobs.length ? "job-not-found" : "no-jobs"} stepLabel="Brief" projects={jobs} path="/dashboard/projects/brief" />;
     }
 
     const siteAddress = project.site_address || project.address || "";

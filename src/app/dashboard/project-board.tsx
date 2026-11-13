@@ -29,6 +29,7 @@ import {
 import { useTheme } from "@/lib/theme-context";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
 import ui from "@/components/project-board.module.css";
+import { corePipelineMicroLinkColor, corePipelineMutedIconButton } from "@/lib/core-editing-palette";
 import { PIPELINE_CHANGE_UNCONFIRMED, PIPELINE_REFRESH_UNCONFIRMED } from "@/lib/pipeline-feedback";
 import { pipelineStageDisplayLabel } from "./pipeline-stage-display";
 
@@ -191,7 +192,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     {col.id === "Lead" && (
-                                        <Link href="/dashboard/projects/new" title="New lead" aria-label="New lead" className={`inline-flex items-center justify-center min-w-11 min-h-11 lg:min-w-0 lg:min-h-0 p-1 rounded-md transition-colors ${isDark ? "hover:bg-white/10 text-slate-500 hover:text-blue-400" : "hover:bg-gray-100 text-gray-400 hover:text-blue-600"}`}>
+                                        <Link href="/dashboard/projects/new" title="New lead" aria-label="New lead" className={`min-w-11 min-h-11 lg:min-w-0 lg:min-h-0 p-1 rounded-md ${corePipelineMutedIconButton(isDark)}`}>
                                             <FilePlus className="w-3.5 h-3.5" />
                                         </Link>
                                     )}
@@ -321,8 +322,8 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                     disabled={isPending}
                                                     className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
                                                         isDark
-                                                            ? "bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border-blue-500/20"
-                                                            : "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                                                            ? "bg-[#c9efcf]/15 text-[#c9efcf] hover:bg-[#e0f9e3]/25 border-[#c9efcf]/30"
+                                                            : "bg-[#e0f9e3] text-[#182c1b] hover:bg-[#c9efcf] border-emerald-200"
                                                     }`}
                                                 >
                                                     Start Estimating <ArrowRight className="w-3 h-3" />
@@ -419,7 +420,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                     Costs
                                                 </Link>
                                                 {status === "Active" && showExtendedModules && (
-                                                    <Link href={`/dashboard/projects/p-and-l?projectId=${p.id}`} className="text-[9px] font-black uppercase text-blue-500 hover:underline tracking-widest ml-auto">
+                                                    <Link href={`/dashboard/projects/p-and-l?projectId=${p.id}`} className={`inline-flex items-center justify-center min-w-11 min-h-11 lg:min-w-0 lg:min-h-0 text-[9px] font-black uppercase tracking-widest ml-auto hover:underline ${corePipelineMicroLinkColor(isDark)}`}>
                                                         P&amp;L →
                                                     </Link>
                                                 )}

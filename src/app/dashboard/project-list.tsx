@@ -6,6 +6,7 @@ import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 import ui from "@/components/project-chooser.module.css";
 import { pipelineStageDisplayLabel } from "./pipeline-stage-display";
+import { corePipelineTextLinkSmThemed } from "@/lib/core-editing-palette";
 
 type SortKey = "name" | "client_name" | "project_type" | "status" | "value" | "proposal_sent_at" | "days_open";
 type SortDir = "asc" | "desc";
@@ -221,7 +222,7 @@ export default function ProjectList({ projects, financials }: { projects: any[],
                                 <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
                                     <Link
                                         href={`/dashboard/projects/proposal?projectId=${p.id}`}
-                                        className="text-xs font-semibold text-blue-600 hover:underline"
+                                        className={corePipelineTextLinkSmThemed(isDark)}
                                     >
                                         Proposal →
                                     </Link>

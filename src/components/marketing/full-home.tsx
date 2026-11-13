@@ -9,6 +9,7 @@ import {
   trackContactFormSubmitAccepted,
   trackTryConstructaClick,
 } from '@/lib/public-measurement';
+import { ProjectCoverRender } from '@/components/marketing/project-cover-render';
 
 // Add these price calculations at the top of the file, after imports
 const PLANS = {
@@ -19,7 +20,7 @@ const PLANS = {
     features: [
       'Up to 2 projects/quarter',
       'Basic proposal templates',
-      '1 team members',
+      '1 team member',
       'Standard support'
     ]
   },
@@ -305,13 +306,10 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
         <div className="relative max-w-[1400px] mx-auto px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
-            <div className="relative w-full h-[500px] flex items-center justify-center order-last lg:order-first">
-              <Image
-                src="/Setting us apart.png"
-                alt="What sets Constructa apart"
-                fill
-                className="object-contain mix-blend-screen brightness-95 [mask-image:radial-gradient(ellipse_at_center,black_0%,black_30%,transparent_75%)] transition-transform duration-700 group-hover:scale-[1.05]"
+            <div className="relative w-full h-[500px] order-last lg:order-first">
+              <ProjectCoverRender
                 priority
+                imageClassName="object-contain mix-blend-screen brightness-95 [mask-image:radial-gradient(ellipse_at_center,black_0%,black_30%,transparent_75%)] transition-transform duration-700 group-hover:scale-[1.05]"
               />
             </div>
             <div className="max-w-[500px]">

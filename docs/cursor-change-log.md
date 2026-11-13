@@ -1,5 +1,11 @@
 # Cursor change log
 
+## 2026-11-13 — A038 up-to-three photo normalisation regression (cursor/a038-photo-limit-regression-14ce)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/case-library/photos.test.ts` | ~13–25 | One Vitest case: `photoInputWouldBeCut` true for a fourth synthetic url and `normalisePhotoSlots` keeps only the first three slots | Close A038 unit gap between silent trim detection and the three-slot normaliser; synthetic fixtures only |
+
 ## 2026-11-13 — Marketing guides and cohort apply keyboard focus (cursor/marketing-focus-visible-1e4b)
 
 | File | Lines (approx.) | Change | Intent |

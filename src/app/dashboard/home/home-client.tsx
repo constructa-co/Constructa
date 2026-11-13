@@ -16,6 +16,7 @@ import { calendarDayDiff } from "@/lib/dates";
 import { getHomePresentation } from "@/lib/first-session";
 import FirstProjectStart from "@/components/first-project-start";
 import ui from "@/components/home-workspace.module.css";
+import { corePipelineTextLinkSmThemed } from "@/lib/core-editing-palette";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmt = (n: number) => {
@@ -497,7 +498,7 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
 
                 {/* ── KPI strip row 1: financial ── */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-home-kpis>
-                    <KpiCard label="Pipeline Value"    value={fmt(pipelineValue)}   sub={`${pipelineProjects.length} active proposals`} colour="text-blue-400"    icon={TrendingUp}  href="/dashboard" />
+                    <KpiCard label="Pipeline Value"    value={fmt(pipelineValue)}   sub={`${pipelineProjects.length} active proposals`} colour="text-emerald-400" icon={TrendingUp}  href="/dashboard" />
                     <KpiCard label="Active Projects"   value={String(activeProjects.length)} sub={activeProjects.length === 0 ? "none on site" : "on site"} colour="text-emerald-400" icon={HardHat} />
                     <KpiCard label="Certified Outstanding" value={totalOutstanding > 0 ? fmt(totalOutstanding) : "—"} sub={totalOutstanding > 0 ? `${sentInvoices.length} sent invoice${sentInvoices.length !== 1 ? "s" : ""}` : "all invoices paid"} colour={totalOutstanding > 0 ? "text-amber-400" : "text-slate-500"} icon={CreditCard} />
                     <KpiCard label="Retention Held"   value={retOutstanding > 0 ? fmt(retOutstanding) : "—"} sub={retOutstanding > 0 ? "across all projects" : "none outstanding"} colour={retOutstanding > 0 ? "text-orange-400" : "text-slate-500"} icon={Banknote} />
@@ -530,7 +531,7 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
                             {activeProjectsWithData.length === 0 ? (
                                 <div className="px-5 py-10 text-center">
                                     <p className="text-slate-500 text-sm">No active projects yet.</p>
-                                    <Link href="/dashboard" className="text-xs text-blue-400 hover:underline mt-1 inline-block">View pipeline →</Link>
+                                    <Link href="/dashboard" className={`mt-1 inline-block ${corePipelineTextLinkSmThemed(true)}`}>View pipeline →</Link>
                                 </div>
                             ) : (
                                 <div className="divide-y divide-slate-700/30">
@@ -541,7 +542,7 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <Link href={`/dashboard/projects/overview?projectId=${p.id}`}
                                                             data-home-project-name
-                                                            className="text-sm font-semibold text-white hover:text-blue-300 transition-colors truncate">
+                                                            className="text-sm font-semibold text-white hover:text-emerald-300 transition-colors truncate">
                                                             {p.name}
                                                         </Link>
                                                         <StatusBadge status={p.status} />
@@ -616,10 +617,10 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
                             <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
                                 <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/50">
                                     <div className="flex items-center gap-2">
-                                        <TrendingUp className="w-4 h-4 text-blue-400" />
+                                        <TrendingUp className="w-4 h-4 text-emerald-400" />
                                         <h2 className="text-sm font-semibold text-white">Pipeline</h2>
                                     </div>
-                                    <Link href="/dashboard" className="text-xs text-blue-400 hover:underline">View all →</Link>
+                                    <Link href="/dashboard" className={corePipelineTextLinkSmThemed(true)}>View all →</Link>
                                 </div>
                                 <div className="divide-y divide-slate-700/30">
                                     {pipelineProjects.slice(0, 5).map(p => (
@@ -670,8 +671,8 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
                             <h3 className="text-sm font-semibold text-white mb-3">Quick Actions</h3>
                             <div className="space-y-1.5">
                                 {[
-                                    { label: "New Project",        href: "/dashboard/projects/new",      icon: Plus,         colour: "text-blue-400" },
-                                    { label: "View Pipeline",      href: "/dashboard",                    icon: TrendingUp,   colour: "text-blue-400" },
+                                    { label: "New Project",        href: "/dashboard/projects/new",      icon: Plus,         colour: "text-emerald-400" },
+                                    { label: "View Pipeline",      href: "/dashboard",                    icon: TrendingUp,   colour: "text-emerald-400" },
                                     { label: "Billing & Invoices", href: "/dashboard/projects/billing",  icon: CreditCard,   colour: "text-amber-400" },
                                     { label: "Variations",         href: "/dashboard/projects/variations",icon: GitBranch,   colour: "text-violet-400" },
                                     { label: "Change Management",  href: "/dashboard/projects/change-management", icon: RefreshCw, colour: "text-red-400" },

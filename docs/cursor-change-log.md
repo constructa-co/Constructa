@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-11-13 — A001 home pipeline navigation + A023 consent-not-stored a11y (codex/r1-20261113-a001-brand-next)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/home/home-client.tsx` | imports, KPI/quick actions/view links, project name hover | `corePipelineTextLinkSmThemed(true)` and emerald hovers for pipeline entry chrome | Command-centre pipeline links off brand-blue; status badges and value highlights keep semantic blues |
+| `src/app/dashboard/a001-home-pipeline-brand-links.test.ts` | (new) | Source assertions for home pipeline navigation tokens | Bounded A001 guard on `/dashboard/home` |
+| `src/app/login/platform-terms-accessibility.test.tsx` | consent-not-stored `it` | Checkbox stays valid with handoff link when storage fails | Distinct offline A023 gap: storage failure is not a terms-refusal invalid state |
+
 ## 2026-11-13 — M.1 marketing SEO basics (codex/r1-20261113-m1-seo)
 
 | File | Lines (approx.) | Change | Intent |

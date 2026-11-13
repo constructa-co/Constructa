@@ -129,18 +129,18 @@ export default function About() {
           <div className="grid md:grid-cols-3 gap-12 text-gray-300">
             <div className="text-left">
               <img src="/images/about-1m-construction-firms.png" alt="Small firms" className="w-40 h-40 mx-auto mb-4" />
-              <h3 className="text-2xl font-semibold mb-2">1M+ small construction firms</h3>
-              <p>Micro businesses dominate the sector—but have no tailored tools.</p>
+              <h3 className="text-2xl font-semibold mb-2">Small firms are the backbone of the sector</h3>
+              <p>Micro businesses dominate construction—but have few tools built for the way they actually work.</p>
             </div>
             <div className="text-left">
               <img src="/images/about-weekly-admin.png" alt="Stopwatch and paperwork" className="w-40 h-40 mx-auto mb-4" />
-              <h3 className="text-2xl font-semibold mb-2">60% lose time to admin weekly</h3>
-              <p>Time spent chasing info kills productivity.</p>
+              <h3 className="text-2xl font-semibold mb-2">Admin eats into every working week</h3>
+              <p>Time spent chasing info and retyping quotes is time away from the job.</p>
             </div>
             <div className="text-left">
               <img src="/images/about-spreadsheets.png" alt="Spreadsheet errors" className="w-40 h-40 mx-auto mb-4" />
-              <h3 className="text-2xl font-semibold mb-2">80% still use spreadsheets</h3>
-              <p>Most platforms are too complex or too generic.</p>
+              <h3 className="text-2xl font-semibold mb-2">Spreadsheets are still the default</h3>
+              <p>Most general platforms are too complex, and manual systems are high risk.</p>
             </div>
           </div>
         </section>
@@ -160,7 +160,7 @@ export default function About() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-2">
               <Link href="/pricing" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Preview access →</Link>
-              <a href="https://medium.com/" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Follow us on Medium →</a>
+              <Link href="/guides" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Read the guides →</Link>
               <a href="https://www.linkedin.com/company/constructa-co" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Follow us on LinkedIn →</a>
             </div>
           </div>
@@ -168,26 +168,22 @@ export default function About() {
             <img src="/images/about-whats-next.png" alt="What's next illustration" className="w-full h-auto rounded-xl shadow-md" />
           </div>
         </section>
-        {/* News section */}
+        {/* Where to look next */}
         <section className="bg-black text-white py-16 border-t border-gray-700">
           <div className="max-w-6xl mx-auto px-4">
-            <h2 className="text-xl font-bold mb-6 text-left">News</h2>
+            <h2 className="text-xl font-bold mb-6 text-left">Where to look next</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-y-4 gap-x-6 text-sm text-gray-300 mt-2">
-              <div className="text-left font-medium">How Constructa helps you win more work</div>
-              <div className="text-left">How to stand out and win jobs in a crowded market</div>
-              <div className="text-left text-blue-400 underline"><a href="https://medium.com/">medium.com</a></div>
+              <div className="text-left font-medium">Review your company profile, brief and price</div>
+              <div className="text-left">Phase-one checklists from the review guide</div>
+              <div className="text-left text-blue-400 underline"><Link href="/guides">constructa.co/guides</Link></div>
 
-              <div className="text-left font-medium">Behind the build: Constructa's approach</div>
-              <div className="text-left">From spreadsheets to smart tools</div>
-              <div className="text-left text-blue-400 underline"><a href="https://linkedin.com/">linkedin.com</a></div>
+              <div className="text-left font-medium">Behind the build: Constructa&apos;s approach</div>
+              <div className="text-left">Updates from the team as the review progresses</div>
+              <div className="text-left text-blue-400 underline"><a href="https://www.linkedin.com/company/constructa-co">linkedin.com/company/constructa-co</a></div>
 
-              <div className="text-left font-medium">Why quoting shouldn't take all day</div>
-              <div className="text-left">The hidden cost of poor planning</div>
-              <div className="text-left text-blue-400 underline"><a href="https://constructa.co/">constructa.co</a></div>
-
-              <div className="text-left font-medium">Placeholder</div>
-              <div className="text-left">More updates coming soon</div>
-              <div className="text-left">—</div>
+              <div className="text-left font-medium">Preview access and phase-one scope</div>
+              <div className="text-left">What is in the review and what still needs release verification</div>
+              <div className="text-left text-blue-400 underline"><Link href="/pricing">constructa.co/pricing</Link></div>
             </div>
           </div>
         </section>

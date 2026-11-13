@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 
 interface FAQItem {
@@ -8,42 +7,26 @@ interface FAQItem {
   answer: string;
 }
 
-const faqs: FAQItem[] = [
+export const faqs: FAQItem[] = [
   {
-    question: "Who is Constructa for?",
-    answer: "Constructa is built for small construction teams, tradespeople, and contractors who need simple, reliable tools to quote, plan, and stay on top of jobs—without the admin overload."
+    question: "What is Constructa?",
+    answer: "Constructa is a set of work-winning tools for small construction businesses. The current phase-one review covers your company profile, brief and estimating, programme, and proposal preparation."
   },
   {
-    question: "Is Constructa just for builders?",
-    answer: "Not at all. Whether you're a joiner, electrician, general contractor, or multi-trade business, Constructa helps you quote accurately and plan clearly. If you work in construction—we've got you."
+    question: "What features are included?",
+    answer: "In the phase-one review: a reusable company profile with your past work, job briefs and estimating with your own price lines, a visual programme, and proposal preparation with a draft PDF. Later-phase tools are not part of this preview."
   },
   {
-    question: "What can I actually do with Constructa?",
-    answer: "You can build professional proposals, create clear project timelines, manage your job schedule, and track costs—all in one place. No more juggling spreadsheets, message threads, and documents."
-  },
-  {
-    question: "Do I need training to use Constructa?",
-    answer: "No. Constructa is designed to be simple and intuitive from day one. If you can use email and spreadsheets, you'll be up and running in minutes."
+    question: "How does pricing work?",
+    answer: "The phase-one preview does not sell a subscription or take payment. Commercial plans will be set out before release; the preview-access page explains what is in scope now."
   },
   {
     question: "Is there a free trial?",
-    answer: "Yes—when we launch, you'll be able to try Constructa for free. Early users will also get access to special launch pricing."
+    answer: "There is no trial or payment in the phase-one preview. Access is by applying to the founding cohort or by signing in with an existing review account."
   },
   {
-    question: "Will this work on site or on my phone?",
-    answer: "Absolutely. Constructa is fully cloud-based and mobile-friendly, so you can use it in the office, on site, or on the go."
-  },
-  {
-    question: "Can I customise proposals and timelines to suit my jobs?",
-    answer: "Yes. Constructa is flexible—you can set your own line items, phases, and terms, so your proposals and programmes reflect how you actually work."
-  },
-  {
-    question: "Do you support UK construction standards and terminology?",
-    answer: "We do. Constructa is built in the UK, for UK-based teams—so everything from project phases to proposal formats is made to fit your world."
-  },
-  {
-    question: "What if I need help?",
-    answer: "We've got you. Our support team is small, friendly, and actually understands construction. If you need help, you'll talk to someone who gets it."
+    question: "Can I cancel my subscription?",
+    answer: "There is no subscription in the phase-one preview, so there is nothing to cancel. If paid plans launch later, their terms will be published before you commit to anything."
   }
 ];
 
@@ -60,44 +43,18 @@ export default function FAQ() {
           {/* Right column with accordion */}
           <div className="space-y-4">
             <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="item-1" className="border-b border-gray-800">
-                <AccordionTrigger className="text-left">What is Constructa?</AccordionTrigger>
-                <AccordionContent className="text-left text-gray-400">
-                  Constructa is an AI-powered construction management platform that streamlines project planning, execution, and monitoring.
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-2" className="border-b border-gray-800">
-                <AccordionTrigger className="text-left">What features are included?</AccordionTrigger>
-                <AccordionContent className="text-left text-gray-400">
-                  Our platform includes project management tools, AI-assisted scheduling, resource allocation, real-time progress tracking, and automated reporting features.
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-3" className="border-b border-gray-800">
-                <AccordionTrigger className="text-left">How does pricing work?</AccordionTrigger>
-                <AccordionContent className="text-left text-gray-400">
-                  We offer flexible pricing plans based on project size and feature requirements. Contact us for a customized quote.
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-4" className="border-b border-gray-800">
-                <AccordionTrigger className="text-left">Is there a free trial?</AccordionTrigger>
-                <AccordionContent className="text-left text-gray-400">
-                  Yes, we offer a 14-day free trial with full access to all features to help you evaluate our platform.
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-5" className="border-b border-gray-800">
-                <AccordionTrigger className="text-left">Can I cancel my subscription?</AccordionTrigger>
-                <AccordionContent className="text-left text-gray-400">
-                  Yes, you can cancel your subscription at any time. No long-term commitments required.
-                </AccordionContent>
-              </AccordionItem>
+              {faqs.map((faq, index) => (
+                <AccordionItem key={faq.question} value={`item-${index + 1}`} className="border-b border-gray-800">
+                  <AccordionTrigger className="text-left">{faq.question}</AccordionTrigger>
+                  <AccordionContent className="text-left text-gray-400">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
             </Accordion>
           </div>
         </div>
       </div>
     </section>
   );
-} 
+}

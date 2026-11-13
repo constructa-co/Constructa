@@ -89,7 +89,7 @@ type ServerClient = Awaited<ReturnType<typeof createClient>>;
 async function trustedEmailRedirect(): Promise<{ emailRedirectTo: string } | undefined> {
     try {
         const baseUrl = requireTrustedAppUrl(
-            process.env.NEXT_PUBLIC_SITE_URL ?? DEFAULT_TRUSTED_APP_URL,
+            process.env.NEXT_PUBLIC_SITE_URL?.trim() || DEFAULT_TRUSTED_APP_URL,
         ).replace(/\/+$/, "");
         // The confirmed user lands on the explicit platform terms completion page.
         return { emailRedirectTo: platformTermsConfirmationRedirect(baseUrl) };

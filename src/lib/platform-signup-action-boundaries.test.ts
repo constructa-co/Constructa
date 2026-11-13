@@ -107,6 +107,14 @@ describe("signup result boundaries", () => {
         });
     });
 
+    it.each(["", "   "])("uses the trusted default when the configured site URL is blank", async (siteUrl) => {
+        vi.stubEnv("NEXT_PUBLIC_SITE_URL", siteUrl);
+        await platformSignupAction(VALID);
+        expect(mocks.signUp.mock.calls[0][0].options.emailRedirectTo).toBe(
+            "https://constructa-nu.vercel.app/auth/callback?next=%2Fauth%2Fplatform-terms",
+        );
+    });
+
     it("omits the redirect, and still signs up, when the configured site url is unusable", async () => {
         vi.stubEnv("NEXT_PUBLIC_SITE_URL", "not a url");
         expect(await platformSignupAction(VALID)).toEqual({ ok: true, outcome: "confirmation-required" });

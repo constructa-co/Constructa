@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { emptyPhotoSlots, normalisePhotoSlots, photoSlotsProblem, proposalPhotoUrls, safeCaseStudyPhotoUrl } from "./photos";
+import { emptyPhotoSlots, normalisePhotoSlots, photoInputWouldBeCut, photoSlotsProblem, proposalPhotoUrls, safeCaseStudyPhotoUrl } from "./photos";
 
 describe("case study photo slots", () => {
     it("always keeps three ordered slots", () => {
@@ -8,6 +8,21 @@ describe("case study photo slots", () => {
             { url: "https://images.example.test/a.jpg", caption: "" },
             { url: "", caption: "" },
             { url: "", caption: "" },
+        ]);
+    });
+
+    it("flags and trims a fourth photograph instead of keeping four slots", () => {
+        const urls = [
+            "https://images.example.test/one.jpg",
+            "https://images.example.test/two.jpg",
+            "https://images.example.test/three.jpg",
+            "https://images.example.test/fourth.jpg",
+        ];
+        expect(photoInputWouldBeCut(urls)).toBe(true);
+        expect(normalisePhotoSlots(urls)).toEqual([
+            { url: urls[0], caption: "" },
+            { url: urls[1], caption: "" },
+            { url: urls[2], caption: "" },
         ]);
     });
 

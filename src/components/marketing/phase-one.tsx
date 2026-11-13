@@ -128,7 +128,7 @@ function Invitation() {
         <FoundingCohortApplyLink />
         <SignInLink>Existing account? Sign in</SignInLink>
       </div>
-      <small>Apply is separate from sign-in. This preview does not take a payment.</small>
+      <small>Founding cohort opens 7 December 2026. Apply is separate from sign-in. This preview does not take a payment.</small>
     </section>
   );
 }
@@ -145,6 +145,7 @@ export function PhaseOneHome() {
             <SignInLink />
             <Link className={ui.textLink} href="#how-it-works">See how it connects <ArrowDown size={17} aria-hidden="true" /></Link>
           </div>
+          <p className={ui.reviewNote}>Founding cohort opens 7 December 2026.</p>
           <p className={ui.reviewNote}>Phase one review · Built for domestic and commercial contractors</p>
         </div>
         <ProposalIllustration />

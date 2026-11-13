@@ -1,3 +1,4 @@
+import { NewsletterSignup } from './newsletter-signup';
 import Link from 'next/link';
 import { ArrowDown, ArrowRight, Check, Plus } from 'lucide-react';
 import { HomeBusinessVisual } from './home-business-visual';
@@ -156,7 +157,7 @@ export function PhaseOneHome() {
         <div className={ui.photo}><HomeBusinessVisual /><span>Construction is a people business.</span></div>
         <div><p className={ui.eyebrow}>The experience behind the estimate</p><h2>Your business.<br />Not another<br />blank template.</h2><p>Your experience, the challenges you have solved and the quality of your work belong alongside the numbers. Put them in a company profile and reuse the right examples when you prepare a proposal.</p><p>Whether you fit kitchens, refurbish workplaces or run a multi-trade team, the story should be yours.</p><FoundingCohortApplyLink>Apply for the founding cohort</FoundingCohortApplyLink></div>
       </section>
-      <Scope /><Questions /><Invitation />
+      <Scope /><Questions /><Invitation /><NewsletterSignup />
     </div>
   );
 }

@@ -14,7 +14,7 @@ const PLANS = {
     features: [
       'Up to 2 projects/quarter',
       'Basic proposal templates',
-      '1 team members',
+      '1 team member',
       'Standard support'
     ]
   },

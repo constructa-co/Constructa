@@ -1,17 +1,23 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import ApplyPage from "./page";
 import { MarketingHeader } from "@/components/marketing/phase-one";
 
+const launch = vi.hoisted(() => ({ profile: "cohort" }));
 vi.mock("@/lib/launch-profile", () => ({
-  getLaunchProfile: () => "cohort",
+  getLaunchProfile: () => launch.profile,
 }));
+
+afterEach(() => {
+  launch.profile = "cohort";
+});
 
 describe("/apply founding cohort route", () => {
   it("renders the application form with expected fields and TODO notice", () => {
     const html = renderToStaticMarkup(<ApplyPage />);
     expect(html).toContain("Apply for the");
+    expect(html).toContain("Founding cohort opens 7 December 2026.");
     expect(html).toContain('id="apply-name"');
     expect(html).toContain('id="apply-company"');
     expect(html).toContain('id="apply-email"');
@@ -34,5 +40,15 @@ describe("/apply founding cohort route", () => {
     expect(applyIndex).toBeGreaterThan(-1);
     expect(signInIndex).toBeGreaterThan(-1);
     expect(applyIndex).toBeLessThan(signInIndex);
+  });
+
+  it("keeps the launch date and sign-in separation under the full profile", () => {
+    launch.profile = "full";
+    const html = renderToStaticMarkup(<ApplyPage />);
+    expect(html).toContain("Apply to the founding cohort");
+    expect(html).toContain("Founding cohort opens 7 December 2026.");
+    expect(html).toContain("not the same as signing in");
+    expect(html).toContain('href="/login"');
+    expect(html).toContain("TODO(A109)");
   });
 });

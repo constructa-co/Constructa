@@ -13,6 +13,7 @@ export function PhaseOneFoundingCohortApply() {
         <h1>
           Apply for the <em>founding cohort.</em>
         </h1>
+        <p className={styles.openingNote}>Founding cohort opens 7 December 2026.</p>
         <p className={styles.lede}>
           Tell us who you are and the trade you run. This is separate from signing in with
           an existing review account — use this form if you want to express interest in

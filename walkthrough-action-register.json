@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-11-07T07:58:41.000Z",
+  "updatedAt": "2026-11-13T14:15:00.000Z",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
   "actions": [
     {
@@ -9,7 +9,8 @@
       "phase": "P1-Jan2027",
       "requested": "Use the approved charcoal and green palette consistently across the whole application and marketing site.",
       "status": "Partial",
-      "evidence20261107": "cursor/a001-verify-20261107 (e647677, a8835ed): app dashboard primaries on palette + audit test; Vitest 6278 pass/0 fail; eslint 0 errors (Cursor cloud). Marketing and semantic blues intentionally kept, so 'whole application and marketing site' not met. Stays Partial."
+      "evidence20261107": "cursor/a001-verify-20261107 (e647677, a8835ed): app dashboard primaries on palette + audit test; Vitest 6278 pass/0 fail; eslint 0 errors (Cursor cloud). Marketing and semantic blues intentionally kept, so 'whole application and marketing site' not met. Stays Partial.",
+      "evidence20261113": "#113 shipped pipeline palette controls. Whole-site coverage awaits walkthrough."
     },
     {
       "id": "A002",
@@ -149,7 +150,8 @@
       ],
       "previousDeliveryBeforeA079Evening20261027": "QA access and exact constructa-e2e-pr79 name-ref binding now VERIFIED in authenticated UI; public schema search finds no platform_terms_acceptances table. SQL/signup/Preview holds remain. Unsafe runner rejected, no real consent or canonical source landed; Partial.",
       "historyBeforeSafeRunner20261027": "Reviewed consent-table migration APPLIED to verified QA only on Rob21:50 authority; exact columns/constraints/RLS/policies/narrow grants metadata verified. No consent rows accessed in that operation. Current A023 signup/email/firstlogin not run. Later unintended legacy PR106 QA journey is a separate incident, not current-consent acceptance.",
-      "evidence20261107": "cursor/a023-terms-checkbox-20261107 (7e0dcef): checkbox + server gate + metadata fallback + placeholder terms page + draft migration (NOT applied); 77 tests pass (Cursor cloud). Needs Rob: legal wording and migration approval; real consent acceptance NOT_RUN. Stays Partial."
+      "evidence20261107": "cursor/a023-terms-checkbox-20261107 (7e0dcef): checkbox + server gate + metadata fallback + placeholder terms page + draft migration (NOT applied); 77 tests pass (Cursor cloud). Needs Rob: legal wording and migration approval; real consent acceptance NOT_RUN. Stays Partial.",
+      "evidence20261113": "#110 defined stored consent evidence, #112 added offline checks, and #127 repaired the blank site URL redirect. Hosted consent is open."
     },
     {
       "id": "A024",
@@ -240,7 +242,8 @@
       "phase": "P1-Jan2027",
       "requested": "Retain up to three photos and optional AI enhancement within the improved case-study journey.",
       "status": "Partial",
-      "evidence20261107": "cursor/a038-photo-checks-20261107 (e41e09c, d833dea, c1c45e0): all material checks pass; legacy save refuses >3 photos (Cursor cloud). Library wire photos/AI enhance still off; photos migration unapplied. Stays Partial."
+      "evidence20261107": "cursor/a038-photo-checks-20261107 (e41e09c, d833dea, c1c45e0): all material checks pass; legacy save refuses >3 photos (Cursor cloud). Library wire photos/AI enhance still off; photos migration unapplied. Stays Partial.",
+      "evidence20261113": "#116 added offline photo save refusal coverage. Hosted photo evidence is open."
     },
     {
       "id": "A039",
@@ -479,7 +482,8 @@
       "id": "A074",
       "phase": "Later",
       "requested": "Offer an appropriate real cover photo or clearly labelled design/before-after render.",
-      "status": "Not started"
+      "status": "Partial",
+      "evidence20261113": "#109 approved the cover and #114 shipped it with a fallback and disclosure. Walkthrough pending."
     },
     {
       "id": "A075",
@@ -517,7 +521,8 @@
         "docs/recovery/a079-recovery-runbook.md"
       ],
       "previousDeliveryBeforeA079Evening20261027": "Partial. Actual QA overview says LAST BACKUP No backups, not a Production/private-export verdict. Independent DB/Auth/Storage restore, refs/history/assets/private-unsaved reconciliation and constructa-ops export remain unproved; no export/restore executed.",
-      "previousDeliveryBeforeNavigationBackup20261027": "Claude A079 repaired three-file recovery runbook/manifest checker d1acd99 integrated exactly; 24 offline tests and lint PASS, independent Composer findings recheck cleared. Exact-input build/secret scans/backup pending. No actual export/restore; original full recoverability remains Partial."
+      "previousDeliveryBeforeNavigationBackup20261027": "Claude A079 repaired three-file recovery runbook/manifest checker d1acd99 integrated exactly; 24 offline tests and lint PASS, independent Composer findings recheck cleared. Exact-input build/secret scans/backup pending. No actual export/restore; original full recoverability remains Partial.",
+      "evidence20261113": "#111 added Git bundle tooling and #118 added offline inventory reconciliation. Independent recovery is unverified."
     },
     {
       "id": "A080",
@@ -547,13 +552,15 @@
       "id": "A084",
       "phase": "Later",
       "requested": "Refresh marketing imagery and explanation to match the product and brand.",
-      "status": "Partial"
+      "status": "Partial",
+      "evidence20261113": "#120 refreshed About and FAQ and #121 added marketing metadata and crawl controls. Visual review remains open."
     },
     {
       "id": "A085",
       "phase": "P1-Jan2027",
       "requested": "Deliver a complete improved marketing-to-finished-proposal workflow for the next review.",
-      "status": "Partial"
+      "status": "Partial",
+      "evidence20261113": "#108 integrated the release candidate and #127 repaired the signup redirect. Full hosted journey evidence remains open."
     },
     {
       "id": "A086",
@@ -598,7 +605,8 @@
       ],
       "previousDeliveryBeforeA079Evening20261027": "Existing288c096..7b60157 scoped MOCK integration diff reviewed/accepted. Separate new one-assertion About-facts fix aligns exact five existing credentials; actual priorRED -> ONLYfailedcasePASS1/lint0/32oldNOT_SELECTED, no product change. Packaging exact build/scans next; full real marketing/AuthDB/hosted still NOT_RUN.",
       "historyBeforeSafeRunner20261027": "Existing assertion repair679 remains backed; Kimi current About/proposal62PASS and actualbase7b planner91PASS. Friday draftPR106 automatically ran legacy hosted Phase1: 2PASS on real synthetic QA but unintended under holds, NOT accepted release evidence. PR106 closed/unmerged; Composer cloud source-only draft gate103f489 returned, independent check pending.",
-      "evidence20261107": "cursor/a091-verify-20261107 (f64cd1c+09c446a): website-to-proposal boundary proven by tests; full Vitest 6283 pass/0 fail (Cursor cloud). Hosted real-email run NOT_RUN (sign-up disabled on preview). Stays Partial."
+      "evidence20261107": "cursor/a091-verify-20261107 (f64cd1c+09c446a): website-to-proposal boundary proven by tests; full Vitest 6283 pass/0 fail (Cursor cloud). Hosted real-email run NOT_RUN (sign-up disabled on preview). Stays Partial.",
+      "evidence20261113": "#119 recorded offline integration evidence. Hosted acceptance is open."
     },
     {
       "id": "A092",
@@ -610,7 +618,8 @@
       "id": "A093",
       "phase": "P1-Jan2027",
       "requested": "Complete independent exact-candidate review and release readiness before promoting a replacement.",
-      "status": "Blocked"
+      "status": "Blocked",
+      "evidence20261113": "#115 recorded the independent release checklist. Release readiness remains blocked."
     },
     {
       "id": "A094",
@@ -634,7 +643,8 @@
       "id": "A097",
       "phase": "Later",
       "requested": "Define and implement useful acquisition/conversion measurement with a justified primary analytics choice.",
-      "status": "Partial"
+      "status": "Partial",
+      "evidence20261113": "#124 added marketing analytics code. Hosted activation and measurement are open."
     },
     {
       "id": "A098",
@@ -658,13 +668,15 @@
       "id": "A101",
       "phase": "Later",
       "requested": "Integrate optional newsletter signup with a reviewed Kit or equivalent provider setup.",
-      "status": "Not started"
+      "status": "Partial",
+      "evidence20261113": "#125 added the optional Kit form with its flag off by default. Live verification is open."
     },
     {
       "id": "A102",
       "phase": "Later",
       "requested": "Repurpose approved site content for LinkedIn, Facebook and optional Medium with links back to Constructa.",
-      "status": "Partial"
+      "status": "Partial",
+      "evidence20261113": "#122 merged approved social copy into the repository. Publication remains with Rob."
     },
     {
       "id": "A103",
@@ -707,7 +719,8 @@
       "phase": "P1-Jan2027",
       "requested": "Provide one clear Apply to the founding cohort entry separate from existing-user sign-in.",
       "status": "Partial",
-      "evidence20261107": "cursor/a109-apply-cta-20261107 (73cfa64): /apply page + header/hero/footer CTAs, no-op submission adapter; 60 tests pass (Cursor cloud). Needs Rob: where applications go; nothing activated. Not started -> Partial."
+      "evidence20261107": "cursor/a109-apply-cta-20261107 (73cfa64): /apply page + header/hero/footer CTAs, no-op submission adapter; 60 tests pass (Cursor cloud). Needs Rob: where applications go; nothing activated. Not started -> Partial.",
+      "evidence20261113": "#117 shipped cohort wording and #123 removed applicant logging and clarified that applications are not collected. Live destination is open."
     },
     {
       "id": "A110",

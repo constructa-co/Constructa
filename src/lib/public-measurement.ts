@@ -1,7 +1,8 @@
 /**
- * Typed public marketing measurement contract. Collection is disabled by default;
- * production callsites invoke dispatch only — no loader, beacon, collector, or persistence.
- * Enabling a collector requires a separately reviewed increment; this module does not forward events.
+ * Typed public marketing measurement contract. Custom-event collection is disabled;
+ * callsites invoke dispatch only and this module does not forward events.
+ * Page views are the one exception: `<PublicAnalytics>` mounts Vercel Web Analytics
+ * on explicit public routes only, filtered by `filterPageviewEvent` below.
  */
 
 /** When false, production dispatch is a no-op unless a test sink is injected. */
@@ -130,6 +131,55 @@ export function dispatchPublicMeasurementEvent<E extends PublicMeasurementEventN
   if (testSink) {
     testSink(event, props);
   }
+}
+
+/**
+ * Vercel Web Analytics page views (A097). Separate from the custom-event flag
+ * above: this only lets `<Analytics>` count page views on explicit public
+ * routes. Custom events stay inert. Set to false to remove all page-view
+ * collection without touching any other code.
+ */
+export const PUBLIC_PAGEVIEW_MEASUREMENT_ENABLED = true;
+
+/**
+ * True when a browser cookie header carries a Supabase session cookie
+ * (`sb-<ref>-auth-token`, optionally chunked as `.0`, `.1`...). Only the cookie
+ * name is inspected; the value is never read, kept or sent anywhere.
+ */
+export function hasSignedInSessionCookie(cookieHeader: string): boolean {
+  return /(?:^|;\s*)sb-[^=;\s]+-auth-token(?:\.\d+)?=/.test(cookieHeader);
+}
+
+/**
+ * Reduce a page-view URL to origin + pathname, or null if it must not be sent.
+ * Drops query string, fragment and credentials, and fails closed for any path
+ * outside the explicit public marketing routes.
+ */
+export function sanitizePageviewUrl(rawUrl: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+  if (!isPublicMeasurementRoute(url.pathname)) return null;
+  return `${url.origin}${url.pathname}`;
+}
+
+/**
+ * `beforeSend` for `<Analytics>`: last line of defence at send time. Returning
+ * null cancels the event. Pass `document.cookie` so a sign-in that happened
+ * after mount is still honoured.
+ */
+export function filterPageviewEvent<T extends { url: string }>(
+  event: T,
+  cookieHeader: string,
+): T | null {
+  if (!PUBLIC_PAGEVIEW_MEASUREMENT_ENABLED) return null;
+  if (hasSignedInSessionCookie(cookieHeader)) return null;
+  const url = sanitizePageviewUrl(event.url);
+  return url ? { ...event, url } : null;
 }
 
 export function trackTryConstructaClick(

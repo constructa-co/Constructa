@@ -2,7 +2,7 @@
 
 ## Primary analytics choice
 
-Reuse **Plausible** as the first collector when collection is explicitly enabled later. It already fits Constructa's privacy posture and admin API wiring. **GA4** is not justified by current requirements (no cross-product ad stack, no existing GA property). **Google Search Console** remains unconfigured: no ownership verification, API calls, or indexing claims in this increment.
+**Vercel Web Analytics** is the page-view collector (CTO 09:25 direction). Plausible remains only in the admin website tab; no Plausible loader is added to the public site. **GA4** is not justified by current requirements (no cross-product ad stack, no existing GA property). **Google Search Console** remains unconfigured: no ownership verification, API calls, or indexing claims in this increment.
 
 ## Scope and status
 
@@ -10,7 +10,8 @@ Reuse **Plausible** as the first collector when collection is explicitly enabled
 |------|---------|
 | `src/lib/public-measurement.ts` | Shared typed event contract and route guard; dispatch is inert in production (test sink only in unit tests) |
 | Marketing handlers | Wired to real UX boundaries on `/` and `/landing` only in this increment |
-| Collection | **Globally disabled** (`PUBLIC_MEASUREMENT_COLLECTION_ENABLED = false`). Handlers may call dispatch, but production emits nothing to a collector — no script loader, SDK, beacon, forwarder, env activation, cookies, or storage. **Partial** until a separately reviewed release enables collection and proves deployed events. |
+| Custom events | **Disabled** (`PUBLIC_MEASUREMENT_COLLECTION_ENABLED = false`). Handlers may call dispatch, but nothing is forwarded to a collector: no `track()`, forwarder, cookies or storage. Unchanged by the page-view work below. |
+| Page views | Vercel Web Analytics via the official `@vercel/analytics` package, mounted by `src/components/public-analytics.tsx` from the root layout. Gated by `PUBLIC_PAGEVIEW_MEASUREMENT_ENABLED` (one-line kill switch). **Partial** until the hosted setting is enabled and a deployed page view is observed. |
 
 ## Event definitions (truthful outcomes)
 
@@ -29,9 +30,22 @@ Unsupported unless an existing authorized path is wired later: account creation,
 
 ## Route guard
 
-Dispatch runs only on explicit public marketing paths (`/`, `/landing`, `/about`, `/contact`, `/pricing`, `/features`, `/product`, `/customers`, `/privacy-policy`, `/terms-of-service`, `/guides/*`). Application, auth, admin, onboarding, proposal, supervisor, and unknown routes fail closed. In the browser, the guard uses the **current** `window.location.pathname` (call sites must not pin a stale marketing path after navigation).
+Dispatch and page views run only on explicit public marketing paths (`/`, `/landing`, `/about`, `/apply`, `/contact`, `/pricing`, `/features`, `/product`, `/customers`, `/privacy-policy`, `/terms-of-service`, `/guides/*`). Application, auth, admin, onboarding, proposal, supervisor, and unknown routes fail closed. In the browser, the guard uses the **current** `window.location.pathname` (call sites must not pin a stale marketing path after navigation).
 
-`CONSTRUCTA_REVIEW_ONLY` is a **server** layout guard only; it is not a browser measurement gate. This increment does not claim review-safe collection from client dispatch.
+`CONSTRUCTA_REVIEW_ONLY` is checked in the root layout: in protected review the analytics component is not rendered at all, so no loader or beacon exists there. Custom-event dispatch still has no browser review gate, but it forwards nothing.
+
+## Vercel Web Analytics page views
+
+Four independent layers; any one of them stops a page view:
+
+1. **Server:** root layout omits `<PublicAnalytics />` when `CONSTRUCTA_REVIEW_ONLY === '1'`.
+2. **Mount:** the client component renders nothing until after hydration, nothing off `isPublicMeasurementRoute(usePathname())`, and nothing while a Supabase session cookie (`sb-*-auth-token`) is present. It re-evaluates on every route change, so client navigation into the app unmounts it. Only the cookie *name* is inspected.
+3. **Send time:** `beforeSend` (`filterPageviewEvent`) re-checks the cookie and route, then rewrites the URL to origin + path. Query string, fragment and credentials are dropped, so campaign parameters, emails and tokens never leave the browser.
+4. **Hosted:** Vercel Web Analytics must be enabled for the project in the Vercel dashboard; until then the script URL does not exist and nothing is collected.
+
+Not collected by Constructa code: custom events, cookies, local/session storage, user or account identifiers. Vercel records referrer, country, device and browser itself; that cannot be stripped client-side.
+
+Consequence: visitors with a session cookie are not counted on public pages, and UTM parameters are not recorded (the query string is removed). Adding a fixed allow-list of `utm_*` keys is a separate decision.
 
 ## Admin metrics honesty
 

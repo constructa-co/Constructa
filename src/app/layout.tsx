@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import type { Metadata } from "next";
 import Script from 'next/script';
 import PublicChrome from '@/components/public-chrome';
+import PublicAnalytics from '@/components/public-analytics';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -40,6 +41,7 @@ export default async function RootLayout(
       <body className={`${inter.className} bg-black text-white antialiased`}>
         {review && <aside className="bg-emerald-950 px-4 py-3 text-center text-sm text-emerald-100">{process.env.CONSTRUCTA_REVIEW_EDITABLE === '1' ? 'Protected backend test. Only the two existing QA jobs are editable. AI, uploads, deletion, publishing and sending are disabled. Do not enter real client data.' : 'Protected work-in-progress review. Test data only. Saving, AI, uploads and sending are disabled.'}</aside>}
         <PublicChrome>{children}</PublicChrome>
+        {!review && <PublicAnalytics />}
       </body>
     </html>
   );

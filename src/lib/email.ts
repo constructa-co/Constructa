@@ -57,7 +57,7 @@ export function requireTrustedAppUrl(value: string) {
     const url = new URL(value);
     const configuredOrigins = new Set(
         [process.env.NEXT_PUBLIC_SITE_URL, process.env.NEXT_PUBLIC_APP_URL, "https://constructa-nu.vercel.app"]
-            .filter((candidate): candidate is string => Boolean(candidate))
+            .filter((candidate): candidate is string => Boolean(candidate?.trim()))
             .map((candidate) => new URL(candidate).origin),
     );
     if (!['http:', 'https:'].includes(url.protocol) || !configuredOrigins.has(url.origin) || url.username || url.password) {

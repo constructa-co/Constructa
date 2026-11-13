@@ -1,5 +1,24 @@
 # Cursor change log
 
+## 2026-11-13 — A001 pipeline Lead icon affordance (codex/r1-20261113-a001-palette, after 51e2ac9)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/core-editing-palette.ts` | after `corePipelineMicroLinkColor` | `corePipelineMutedIconButton` | Lead-column “New lead” icon hover uses emerald pair, not brand-blue |
+| `src/lib/core-editing-palette.test.ts` | imports + `it.each` | Muted icon button regression | Locks emerald hover + focus ring; no blue |
+| `src/app/dashboard/project-board.tsx` | New lead `Link` className | `corePipelineMutedIconButton(isDark)` | Same pipeline surface as 51e2ac9; geometry/href unchanged |
+| `src/app/dashboard/a001-pipeline-brand-links.test.ts` | board `it` | Assert icon token; forbid `hover:text-blue-*` on board | Guards remaining pipeline chrome gap |
+
+## 2026-11-13 — A001 pipeline link contrast port (codex/r1-20261113-a001-palette)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/core-editing-palette.ts` | 34–46 | `corePipelineLinkColor`, `corePipelineTextLinkSmThemed`, `corePipelineMicroLinkColor` | Theme-aware emerald links (light 700/800, dark 400/300); separate micro-link colour from typography |
+| `src/lib/core-editing-palette.test.ts` | imports + pipeline `it.each` | Pipeline token regression tests | Locks contrast pair from local commit `3f659a1` |
+| `src/app/dashboard/project-list.tsx` | import, Proposal `Link` className | `corePipelineTextLinkSmThemed(isDark)` | List Proposal link off legacy `text-blue-600` |
+| `src/app/dashboard/project-board.tsx` | Start Estimating CTA, P&L `Link` | Sage primary CTA + `corePipelineMicroLinkColor` | Brand stage action + P&L micro-link; Estimating column blues unchanged |
+| `src/app/dashboard/a001-pipeline-brand-links.test.ts` | (new) | Source assertions for list/board pipeline brand | Focused A001 guard on main |
+
 ## 2026-11-12 — A023 unrecorded-consent login handoff (cursor/constructa-critical-path-20261112)
 
 | File | Lines (approx.) | Change | Intent |

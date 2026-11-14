@@ -27,6 +27,7 @@ import {
   pct,
   programmeRows,
   summariseArchive,
+  toMeasured,
   variationRows,
   type ArchiveSnapshotFigures,
   type RowTone,
@@ -271,8 +272,8 @@ export default function ArchiveClient({ projects }: Props) {
                     {isMeasured(snap?.gross_margin_pct) && (
                       <div className="text-right">
                         <p className="text-xs text-slate-500">Margin</p>
-                        <p className={`font-medium flex items-center gap-1 justify-end ${marginColour(snap?.gross_margin_pct ?? null)}`}>
-                          <MarginIcon pct={snap?.gross_margin_pct ?? null} />
+                        <p className={`font-medium flex items-center gap-1 justify-end ${marginColour(toMeasured(snap?.gross_margin_pct))}`}>
+                          <MarginIcon pct={toMeasured(snap?.gross_margin_pct)} />
                           {pct(snap?.gross_margin_pct)}
                         </p>
                       </div>
@@ -305,8 +306,8 @@ export default function ArchiveClient({ projects }: Props) {
                           {financialTiles(snap).map((tile) => {
                             const colour =
                               tile.key === "margin"
-                                ? marginColour(snap.gross_margin_pct)
-                                : tile.key === "retention" && (snap.retention_outstanding ?? 0) > 0
+                                ? marginColour(toMeasured(snap.gross_margin_pct))
+                                : tile.key === "retention" && (toMeasured(snap.retention_outstanding) ?? 0) > 0
                                   ? "text-amber-400"
                                   : undefined;
                             return (

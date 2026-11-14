@@ -7,6 +7,7 @@ import {
   pct,
   programmeRows,
   summariseArchive,
+  toMeasured,
   variationRows,
   type ArchiveSnapshotFigures,
 } from "./archive-format";
@@ -112,15 +113,23 @@ describe("programmeRows", () => {
     expect(programmeRows(snap({ planned_duration_days: 30 })).map((r) => r.label)).toEqual(["Planned duration"]);
   });
 
-  it("reports a measured zero delay as On time", () => {
+  it("presents a persisted zero as 0 days late, not 'On time' (the write clamps early finishes to 0)", () => {
     expect(programmeRows(snap({ programme_delay_days: 0 }))).toEqual([
-      { label: "Programme delay", value: "On time", tone: "ok" },
+      { label: "Days late", value: "0d", tone: "ok" },
     ]);
   });
 
-  it("formats late and early delays without a '+-' artefact", () => {
-    expect(programmeRows(snap({ programme_delay_days: 4 }))[0]).toMatchObject({ value: "+4d", tone: "late" });
-    expect(programmeRows(snap({ programme_delay_days: -3 }))[0]).toMatchObject({ value: "3d early", tone: "ok" });
+  it("shows persisted late days as late and only a negative value as early", () => {
+    expect(programmeRows(snap({ programme_delay_days: 4 }))[0]).toEqual({
+      label: "Days late",
+      value: "4d",
+      tone: "late",
+    });
+    expect(programmeRows(snap({ programme_delay_days: -3 }))[0]).toEqual({
+      label: "Days early",
+      value: "3d",
+      tone: "ok",
+    });
   });
 
   it("keeps a measured zero-day duration", () => {
@@ -139,6 +148,56 @@ describe("variationRows", () => {
     expect(variationRows(snap({ variation_count: 0, approved_variation_total: 0 }))).toEqual([
       { label: "Total raised", value: "0", tone: "neutral" },
       { label: "Approved value", value: "£0", tone: "neutral" },
+    ]);
+  });
+});
+
+describe("decimal strings from Supabase NUMERIC columns", () => {
+  it("toMeasured accepts valid decimal strings and rejects everything else", () => {
+    expect(toMeasured("1250.50")).toBe(1250.5);
+    expect(toMeasured(" 12 ")).toBe(12);
+    expect(toMeasured("-3.5")).toBe(-3.5);
+    expect(toMeasured("0.00")).toBe(0);
+    expect(toMeasured(0)).toBe(0);
+    for (const bad of ["", "  ", "abc", "12px", "1,200", "Infinity", "NaN", null, undefined, Number.NaN, {}, []]) {
+      expect(toMeasured(bad)).toBeNull();
+    }
+  });
+
+  it("formats decimal strings and keeps a zero string as a measured zero", () => {
+    expect(gbp("12345.00")).toBe("£12,345");
+    expect(gbp("0.00")).toBe("£0");
+    expect(pct("12.34")).toBe("12.3%");
+    expect(pct("0.00")).toBe("0.0%");
+    expect(gbp("not a number")).toBe("—");
+  });
+
+  it("roll-ups include decimal strings", () => {
+    const kpis = summariseArchive([
+      snap({ contract_value: "1000.50", gross_margin_pct: "20.0", retention_outstanding: "0.00" }),
+      snap({ contract_value: 500, gross_margin_pct: 10, retention_outstanding: "250.25" }),
+    ]);
+    expect(kpis).toEqual({ totalContractValue: 1500.5, avgMargin: 15, totalRetention: 250.25 });
+  });
+
+  it("tiles and rows keep decimal strings and valid zero strings", () => {
+    expect(
+      financialTiles(snap({ contract_value: "50000.00", total_paid: "0.00", gross_margin_pct: "0.00" })).map((t) => [
+        t.key,
+        t.value,
+      ]),
+    ).toEqual([
+      ["contract_value", "£50,000"],
+      ["margin", "0.0%"],
+      ["paid", "£0"],
+    ]);
+    expect(programmeRows(snap({ planned_duration_days: "30", programme_delay_days: "4" })).map((r) => r.value)).toEqual([
+      "30d",
+      "4d",
+    ]);
+    expect(variationRows(snap({ variation_count: "0", approved_variation_total: "1200.50" }))).toEqual([
+      { label: "Total raised", value: "0", tone: "neutral" },
+      { label: "Approved value", value: "£1,201", tone: "neutral" },
     ]);
   });
 });

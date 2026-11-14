@@ -1,37 +1,63 @@
 // Archive snapshot formatting + KPI roll-ups.
 //
-// A null / undefined / non-finite figure means "not loaded" and is never shown
+// A null / undefined / unparseable figure means "not loaded" and is never shown
 // as £0, 0% or "On time" — the tile is dropped instead. A real 0 is a measured
 // value and is always kept (e.g. £0 retention outstanding, 0 days delay).
+//
+// Supabase can hand NUMERIC columns back as decimal strings ("1250.50"), so a
+// valid decimal string is a measured figure, not a missing one.
+
+export type NumericLike = number | string | null;
 
 export interface ArchiveSnapshotFigures {
-  contract_value: number | null;
-  total_costs_posted: number | null;
-  gross_margin_pct: number | null;
-  total_invoiced: number | null;
-  total_paid: number | null;
-  retention_outstanding: number | null;
-  final_account_amount: number | null;
+  contract_value: NumericLike;
+  total_costs_posted: NumericLike;
+  gross_margin_pct: NumericLike;
+  total_invoiced: NumericLike;
+  total_paid: NumericLike;
+  retention_outstanding: NumericLike;
+  final_account_amount: NumericLike;
   final_account_status: string | null;
-  planned_duration_days: number | null;
-  actual_duration_days: number | null;
-  programme_delay_days: number | null;
-  variation_count: number | null;
-  approved_variation_total: number | null;
+  planned_duration_days: NumericLike;
+  actual_duration_days: NumericLike;
+  /**
+   * Persisted as days LATE: the archive write clamps at 0, so 0 means "not
+   * late" (on time or early) and cannot say which. Negative values are only
+   * ever an unambiguous early finish.
+   */
+  programme_delay_days: NumericLike;
+  variation_count: NumericLike;
+  approved_variation_total: NumericLike;
 }
 
-export function isMeasured(n: number | null | undefined): n is number {
-  return typeof n === "number" && Number.isFinite(n);
+const DECIMAL = /^[+-]?(\d+\.?\d*|\.\d+)$/;
+
+/** The finite number behind a number / decimal string, or null when there is none. */
+export function toMeasured(n: unknown): number | null {
+  if (typeof n === "number") return Number.isFinite(n) ? n : null;
+  if (typeof n === "string") {
+    const trimmed = n.trim();
+    if (!DECIMAL.test(trimmed)) return null;
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
 }
 
-export function gbp(n: number | null | undefined): string {
-  if (!isMeasured(n)) return "—";
-  return "£" + n.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+export function isMeasured(n: unknown): boolean {
+  return toMeasured(n) !== null;
 }
 
-export function pct(n: number | null | undefined): string {
-  if (!isMeasured(n)) return "—";
-  return n.toFixed(1) + "%";
+export function gbp(n: unknown): string {
+  const value = toMeasured(n);
+  if (value === null) return "—";
+  return "£" + value.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+export function pct(n: unknown): string {
+  const value = toMeasured(n);
+  if (value === null) return "—";
+  return value.toFixed(1) + "%";
 }
 
 // ── KPI strip ──────────────────────────────────────────────────────────────────
@@ -48,7 +74,7 @@ function measuredValues(
   snaps: ReadonlyArray<KpiSource | null | undefined>,
   key: keyof KpiSource,
 ): number[] {
-  return snaps.map((s) => s?.[key]).filter(isMeasured);
+  return snaps.map((s) => toMeasured(s?.[key])).filter((v): v is number => v !== null);
 }
 
 const sum = (values: number[]): number | null =>
@@ -92,7 +118,7 @@ export interface FinancialTile {
 /** Financial Outcome tiles that have real data behind them, in display order. */
 export function financialTiles(snap: ArchiveSnapshotFigures): FinancialTile[] {
   const tiles: FinancialTile[] = [];
-  const money = (key: FinancialTileKey, label: string, n: number | null) => {
+  const money = (key: FinancialTileKey, label: string, n: NumericLike) => {
     if (isMeasured(n)) tiles.push({ key, label, value: gbp(n) });
   };
   money("contract_value", "Contract Value", snap.contract_value);
@@ -118,22 +144,29 @@ export interface DetailRow {
   tone: RowTone;
 }
 
-/** Programme rows that were actually recorded. Delay 0 is a measured "On time". */
+/**
+ * Programme rows that were actually recorded. The persisted delay is days late
+ * (clamped at 0 on write), so it is shown as "Days late": a stored 0 is a real
+ * "0d" late, not a claim of "On time" — it may equally be an early finish.
+ */
 export function programmeRows(snap: ArchiveSnapshotFigures): DetailRow[] {
   const rows: DetailRow[] = [];
-  if (isMeasured(snap.planned_duration_days)) {
-    rows.push({ label: "Planned duration", value: `${snap.planned_duration_days}d`, tone: "neutral" });
+  const planned = toMeasured(snap.planned_duration_days);
+  if (planned !== null) {
+    rows.push({ label: "Planned duration", value: `${planned}d`, tone: "neutral" });
   }
-  if (isMeasured(snap.actual_duration_days)) {
-    rows.push({ label: "Actual duration", value: `${snap.actual_duration_days}d`, tone: "neutral" });
+  const actual = toMeasured(snap.actual_duration_days);
+  if (actual !== null) {
+    rows.push({ label: "Actual duration", value: `${actual}d`, tone: "neutral" });
   }
-  const delay = snap.programme_delay_days;
-  if (isMeasured(delay)) {
-    rows.push({
-      label: "Programme delay",
-      value: delay > 0 ? `+${delay}d` : delay < 0 ? `${Math.abs(delay)}d early` : "On time",
-      tone: delay > 0 ? "late" : "ok",
-    });
+  const delay = toMeasured(snap.programme_delay_days);
+  if (delay !== null) {
+    if (delay < 0) {
+      // Only a signed value can say this unambiguously.
+      rows.push({ label: "Days early", value: `${Math.abs(delay)}d`, tone: "ok" });
+    } else {
+      rows.push({ label: "Days late", value: `${delay}d`, tone: delay > 0 ? "late" : "ok" });
+    }
   }
   return rows;
 }
@@ -141,8 +174,9 @@ export function programmeRows(snap: ArchiveSnapshotFigures): DetailRow[] {
 /** Variation rows that were actually recorded. A count of 0 is a measured zero. */
 export function variationRows(snap: ArchiveSnapshotFigures): DetailRow[] {
   const rows: DetailRow[] = [];
-  if (isMeasured(snap.variation_count)) {
-    rows.push({ label: "Total raised", value: String(snap.variation_count), tone: "neutral" });
+  const count = toMeasured(snap.variation_count);
+  if (count !== null) {
+    rows.push({ label: "Total raised", value: String(count), tone: "neutral" });
   }
   if (isMeasured(snap.approved_variation_total)) {
     rows.push({ label: "Approved value", value: gbp(snap.approved_variation_total), tone: "neutral" });

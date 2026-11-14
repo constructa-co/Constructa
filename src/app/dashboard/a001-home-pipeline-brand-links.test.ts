@@ -14,6 +14,8 @@ describe("A001 home command-centre pipeline navigation brand links", () => {
         expect(source).toMatch(/View Pipeline[\s\S]*text-emerald-400/);
         // Semantic stage / module colours are not navigation-brand fixes.
         expect(source).toMatch(/estimating:\s*"bg-blue-500\/15 text-blue-400"/);
-        expect(source).toMatch(/potential_value > 0 && <p className="text-sm font-semibold text-blue-400"/);
+        expect(source).toMatch(/potential_value > 0 && <p className="text-sm font-semibold text-emerald-400"/);
+        expect(source).toMatch(/proposal_sent:\s*"bg-purple-500\/15 text-purple-400"/);
+        expect(source).not.toMatch(/Win Rate \(90d\)[\s\S]*text-purple-400/);
     });
 });

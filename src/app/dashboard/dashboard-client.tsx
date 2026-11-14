@@ -241,8 +241,8 @@ export default function DashboardClient({ projects, financials, metrics: serverM
     const launchNoticeBanner = launchNotice ? (
         <div role="status" className={`rounded-xl border px-4 py-3 text-sm ${
             isDark
-                ? "border-blue-500/30 bg-blue-500/10 text-blue-200"
-                : "border-blue-200 bg-blue-50 text-blue-900"
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                : "border-emerald-200 bg-emerald-50 text-emerald-950"
         }`}>
             That module is retained for a later Constructa release. This launch is focused on creating projects, estimates, programmes and proposals.
         </div>

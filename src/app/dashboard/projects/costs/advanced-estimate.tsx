@@ -1686,7 +1686,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
 
                     {/* Vision Takeoff prompt — shown when estimate is empty */}
                     {showDrawingTakeoff && displayLines.length === 0 && (
-                        <div className="mb-4 p-4 border-2 border-dashed border-purple-500/30 rounded-xl bg-purple-500/5 flex items-center justify-between">
+                        <div className="mb-4 p-4 border-2 border-dashed border-emerald-500/30 rounded-xl bg-emerald-500/5 flex items-center justify-between">
                             <div>
                                 <p className="font-medium text-slate-200">Got a drawing?</p>
                                 <p className="text-sm text-slate-400">Upload a floor plan or sketch and AI extracts quantities automatically.</p>

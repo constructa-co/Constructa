@@ -585,7 +585,8 @@
       "phase": "P1-Jan2027",
       "requested": "Diagnose the Git-check fixture timeout without Git repair or raised thresholds.",
       "status": "Partial",
-      "evidence20261107": "cursor/a089-gitcheck-timeout-20261107 (6938141): runGit() with -c core.fsmonitor=false, core.untrackedCache=false, SIGKILL 4000ms; 9/9 Linux (Cursor cloud). Mac check 7 Nov 11:58 UAE: 9/9 pass in 0.49s on fix, and 9/9 in 0.54s on unfixed b09dd69; core.fsmonitor/untrackedCache not set in any Mac git config. Hang not reproduced, historical cause unproved. Stays Partial."
+      "evidence20261107": "cursor/a089-gitcheck-timeout-20261107 (6938141): runGit() with -c core.fsmonitor=false, core.untrackedCache=false, SIGKILL 4000ms; 9/9 Linux (Cursor cloud). Mac check 7 Nov 11:58 UAE: 9/9 pass in 0.49s on fix, and 9/9 in 0.54s on unfixed b09dd69; core.fsmonitor/untrackedCache not set in any Mac git config. Hang not reproduced, historical cause unproved. Stays Partial.",
+      "evidence20261114": "cursor/a089-diagnose-9e93: evidence-first review + one bounded repro at main 012b708. Linux global core.fsmonitor=true: current guard 10/10 ~600ms; ephemeral b09dd69 9/9 ~567ms. Fixture subprocess gap already fixed on main (6938141). Blocker: ~177675ms historical hang unexplained, no discriminating fail trace. Stays Partial; no new code repair."
     },
     {
       "id": "A090",

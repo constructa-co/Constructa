@@ -112,6 +112,13 @@
 
 No production change: `template-item-editor.tsx` A085 refs (b216bad) already correct.
 
+## 2026-11-14 — A089 Git-check diagnosis (cursor/a089-diagnose-9e93)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `docs/delivery/2026-11-14/a089-gitcheck-diagnosis.md` | (new) | Evidence table, bounded repro results, blocker statement | Codex preflight: A089 diagnosis without new fixture repair |
+| `walkthrough-action-register.json` | A089 entry | `evidence20261114` | Record 14 Nov Cursor cloud repro; status stays Partial |
+
 ## 2026-11-07 — A089 Git-check fixture timeout (Cursor)
 
 | File | Lines (approx.) | Change | Intent |

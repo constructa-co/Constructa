@@ -50,9 +50,10 @@ export default function About() {
 
 {/* Hero Section */}
 <section className="max-w-6xl mx-auto px-4 pt-32 pb-24 grid md:grid-cols-2 gap-12 items-center">
-  <div>
-    <img src="/images/about-hero.png" alt="About hero visual" className="w-full h-auto rounded-xl shadow-md" />
-  </div>
+  <figure>
+    <img src="/images/about-hero.png" alt="Three people in hard hats gathered around a laptop" className="w-full h-auto rounded-xl shadow-md" />
+    <figcaption className="mt-2 text-sm">AI-generated illustration. The people shown are not Constructa staff or clients.</figcaption>
+  </figure>
   <div className="text-left">
     <h2 className="text-2xl md:text-3xl font-semibold mb-4">Built by people who know the job</h2>
     <p className="text-gray-300 text-lg mb-4">

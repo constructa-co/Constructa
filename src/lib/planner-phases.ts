@@ -145,7 +145,7 @@ export function estimateSuggestedPhases(estimate: PlannerEstimate | null | undef
         entry.total += hours * quantity;
         sections.set(section, entry);
     }
-    const phases: PlannerPhase[] = [...sections.entries()]
+    const phases: Omit<PlannerPhase, "startOffset">[] = [...sections.entries()]
         .filter(([, { perUnit, total }]) => perUnit > 0 || total > 0)
         .map(([name, { total }]) => ({
             name,

@@ -173,7 +173,7 @@ describe("writes", () => {
         expect(body).not.toMatch(/createAdminClient|\.rpc\(|\.insert\(|\.upsert\(|\.delete\(|\.single\(|\.maybeSingle\(/);
         // The editor sends only the copy its rules recorded, through the injected save (the real action by default).
         expect(client).toContain("save = saveCaseStudiesAction");
-        expect(client.match(/await save\(request\.sent\)/g)).toHaveLength(1);
+        expect(client.match(/await save\(request\.sent\.map\(/g)).toHaveLength(1);
         expect(client.match(/saveCaseStudiesAction/g)).toHaveLength(2);
         // Its rules are pure: no database, network, storage or framework.
         expect(code(path.join(SRC, folder, "save-state.ts"))).not.toMatch(/supabase|fetch\(|process\.env|"use server"|"use client"|localStorage|sessionStorage|from "react"|from "next/);

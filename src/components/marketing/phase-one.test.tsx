@@ -108,6 +108,7 @@ describe('phase-one marketing integration', () => {
   it('keeps public navigation within the phase-one scope', () => {
     const html = renderToStaticMarkup(<><MarketingHeader /><MarketingFooter /></>);
     expect(html).toContain('aria-label="Main navigation"');
+    expect(html).toContain('href="/about"');
     expect(html).toContain('href="/login"');
     expect(html).toContain('href="/apply"');
     expect(html).toContain('Apply to the founding cohort');
@@ -176,7 +177,7 @@ describe('phase-one marketing integration', () => {
     expect(renderToStaticMarkup(<PublicChrome><p>Landing</p></PublicChrome>)).toContain('Footer navigation');
   });
 
-  it.each(['/', '/features', '/pricing', '/product', '/contact', '/guides', '/apply'])('renders one bypass before the header targeting the single focusable main on %s', pathname => {
+  it.each(['/', '/features', '/pricing', '/product', '/contact', '/about', '/guides', '/apply'])('renders one bypass before the header targeting the single focusable main on %s', pathname => {
     vi.stubEnv('NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE', 'cohort');
     route.pathname = pathname;
     const html = renderToStaticMarkup(<PublicChrome><p>Route body</p></PublicChrome>);

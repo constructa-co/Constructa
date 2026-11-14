@@ -4,6 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PublicChrome from "@/components/public-chrome";
 import AboutPage from "./page";
 
+vi.mock("next/image", () => ({
+  default: (props: { src: string; alt: string }) => (
+    <img src={props.src} alt={props.alt} data-next-image="true" />
+  ),
+}));
+
 const route = vi.hoisted(() => ({ pathname: "/about" }));
 vi.mock("next/navigation", () => ({
   usePathname: () => route.pathname,
@@ -52,6 +58,12 @@ describe("about preview status in What's next", () => {
     expect(applyIndex).toBeGreaterThan(-1);
     expect(pricingIndex).toBeGreaterThan(applyIndex);
     expect(html).not.toMatch(/now live|try today|first release is now live/i);
+  });
+
+  it("uses next/image for illustrations and keeps the hero AI disclosure", () => {
+    expect(html).toContain("AI-generated illustration. The people shown are not Constructa staff or clients.");
+    expect(html).toMatch(/data-next-image="true"/);
+    expect((html.match(/data-next-image="true"/g) ?? []).length).toBeGreaterThanOrEqual(6);
   });
 
   it("makes only supported claims in the stats and pointers sections", () => {

@@ -21,6 +21,7 @@ export function MarketingHeader() {
         <nav aria-label="Main navigation" className={ui.nav}>
           <Link href="/#how-it-works">How it works</Link>
           <Link href="/features">The product</Link>
+          <Link href="/about">About</Link>
           <Link href="/pricing">Preview access</Link>
         </nav>
         <div className={ui.headerActions}>
@@ -40,6 +41,7 @@ export function MarketingFooter() {
         <p>Built around your business.<br />Not the other way around.</p>
         <nav aria-label="Footer navigation">
           <Link href="/features">The product</Link><Link href="/guides">Guides</Link>
+          <Link href="/about">About</Link>
           <Link href="/apply">Apply to the founding cohort</Link><Link href="/login">Sign in</Link>
           <Link href="/terms-of-service">Terms</Link><Link href="/privacy-policy">Privacy</Link>
           <Link href="/contact">Get in touch</Link>

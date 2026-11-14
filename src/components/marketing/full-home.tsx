@@ -146,7 +146,7 @@ const FeatureSection = () => {
                   </p>
                   <div className="text-left">
                     <a
-                      href="#"
+                      href="/apply"
                       id={`try-constructa-${feat.id}`}
                       data-section={feat.id}
                       className="inline-flex items-center px-8 py-3 rounded-full bg-white text-black text-sm font-black uppercase tracking-widest hover:bg-gray-100 transition-all duration-300 hover:scale-105 active:scale-95 shadow-xl hover:shadow-white/10"
@@ -243,7 +243,7 @@ export default function Home() {
                 </p>
                 <div className="mt-10 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
                   <a
-                    href="#contact-form"
+                    href="/apply"
                     className="inline-flex items-center px-10 py-4 rounded-full bg-white text-black text-sm font-black uppercase tracking-widest hover:bg-gray-100 transition-all duration-300 hover:scale-105 active:scale-95 shadow-2xl hover:shadow-white/20"
                   >
                     Get Started Free
@@ -280,7 +280,7 @@ export default function Home() {
                 </p>
                 <div className="pt-8">
                   <a
-                    href="#"
+                    href="/apply"
                     id="try-constructa-solution"
                     data-section="solution"
                     onClick={() => trackTryConstructaClick('solution')}
@@ -323,7 +323,7 @@ export default function Home() {
                 </p>
                 <div className="pt-8 text-left">
                   <a
-                    href="#"
+                    href="/apply"
                     id="try-constructa-apart"
                     data-section="apart"
                     onClick={() => trackTryConstructaClick('apart')}
@@ -419,7 +419,7 @@ export default function Home() {
                 </div>
                 <div className="pt-4">
                   <a
-                    href="#"
+                    href="/apply"
                     id="try-constructa-how-it-works"
                     data-section="how-it-works"
                     onClick={() => trackTryConstructaClick('how-it-works')}
@@ -628,7 +628,7 @@ export default function Home() {
 
                 <div className="pt-8">
                   <a
-                    href="#"
+                    href="/apply"
                     id="try-constructa-about"
                     data-section="about"
                     onClick={() => trackTryConstructaClick('about')}

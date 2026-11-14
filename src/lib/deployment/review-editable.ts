@@ -8,7 +8,7 @@ type Row = Record<string, unknown>;
 export type ReviewLookup = (table: "projects" | "estimates" | "estimate_lines" | "estimate_line_components", id: string) => Promise<Row | null>;
 const projectFields = new Set([
   "programme_phases", "start_date", "proposal_introduction", "scope_text", "exclusions_text", "clarifications_text",
-  "closing_statement", "validity_days", "site_photos", "selected_case_study_ids", "tc_overrides", "payment_schedule", "status",
+  "closing_statement", "validity_days", "site_photos", "proposal_cover_photo", "selected_case_study_ids", "tc_overrides", "payment_schedule", "status",
 ]);
 const estimateFields = new Set(["project_id", "version_name", "overhead_pct", "profit_pct", "risk_pct", "prelims_pct", "is_active", "total_cost", "manual_duration_days"]);
 const lineFields = new Set(["estimate_id", "trade_section", "description", "quantity", "unit", "unit_rate", "line_total", "line_type", "cost_library_item_id", "mom_item_code", "notes"]);

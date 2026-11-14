@@ -2,29 +2,39 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
+import {
+  COVER_ARTWORK_CAPTION,
+  COVER_FALLBACK_SRC,
+  COVER_PRIMARY_SRC,
+  COVER_RENDER_ALT,
+  COVER_RENDER_CAPTION,
+  COVER_ARTWORK_ALT,
+  coverForIllustrativeRender,
+} from '@/lib/proposal-cover-photo';
 import ui from './project-cover-render.module.css';
 
-export const COVER_PRIMARY_SRC = '/Setting us apart.png';
-export const COVER_FALLBACK_SRC = '/minimalist infographic cluster of small construction buildings.png';
-export const COVER_RENDER_CAPTION = 'Illustrative design render — not a photograph of completed work.';
-export const COVER_ARTWORK_CAPTION = 'Illustrative artwork — not a photograph of completed work.';
-export const COVER_RENDER_ALT = 'Illustrative render of a project programme board for an office renovation.';
+export {
+  COVER_PRIMARY_SRC,
+  COVER_FALLBACK_SRC,
+  COVER_RENDER_CAPTION,
+  COVER_ARTWORK_CAPTION,
+  COVER_RENDER_ALT,
+} from '@/lib/proposal-cover-photo';
 
 export function coverFor(useFallback: boolean) {
-  return useFallback
-    ? { src: COVER_FALLBACK_SRC, caption: COVER_ARTWORK_CAPTION }
-    : { src: COVER_PRIMARY_SRC, caption: COVER_RENDER_CAPTION };
+  const cover = coverForIllustrativeRender(useFallback);
+  return { src: cover.url, caption: cover.caption };
 }
 
 export function ProjectCoverRender({ imageClassName, priority = false }: { imageClassName?: string; priority?: boolean }) {
   const [useFallback, setUseFallback] = useState(false);
-  const cover = coverFor(useFallback);
+  const cover = coverForIllustrativeRender(useFallback);
   return (
     <figure className={ui.figure}>
       <div className={ui.frame}>
         <Image
-          src={cover.src}
-          alt={useFallback ? 'Line-art illustration of construction buildings.' : COVER_RENDER_ALT}
+          src={cover.url}
+          alt={useFallback ? COVER_ARTWORK_ALT : COVER_RENDER_ALT}
           fill
           priority={priority}
           onError={() => setUseFallback(true)}

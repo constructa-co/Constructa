@@ -20,6 +20,7 @@ import { buildPastJobs, type ProposalLibrary } from "@/lib/case-library/past-job
 import { computeContractSum, roundMoney } from "./financial";
 import { splitScope } from "./guided-brief";
 import { resolveProgrammeSource } from "./programme-plan";
+import { parseProposalCoverPhotoChoice, type ProposalCoverPhotoChoice } from "@/lib/proposal-cover-photo";
 import {
     buildProposalPublicationSnapshot,
     sanitisePhotos,
@@ -83,6 +84,8 @@ export interface ProposalDraft {
     clarifications: string;
     closing: string;
     validityDays: string;
+    /** Null keeps proposals without a cover image until the contractor chooses one. */
+    coverPhoto: ProposalCoverPhotoChoice | null;
     payments: PaymentStageDraft[];
     /**
      * Payment stages with fixed amounts, set in the earlier editor. They are
@@ -96,6 +99,7 @@ export interface ProposalDraft {
 }
 
 export interface ReviewProject extends ProposalPublicationProjectInput {
+    proposal_cover_photo?: string | null;
     brief_scope?: string | null;
     contract_exclusions?: string | null;
     contract_clarifications?: string | null;
@@ -140,6 +144,7 @@ export function draftFromProject(project: ReviewProject, makeKey: () => string):
         clarifications: project.clarifications_text?.trim() ? project.clarifications_text : project.contract_clarifications ?? "",
         closing: project.closing_statement ?? "",
         validityDays: String(project.validity_days ?? DEFAULT_VALIDITY_DAYS),
+        coverPhoto: parseProposalCoverPhotoChoice(project.proposal_cover_photo),
         payments: fixed ? [] : schedule.map((row) => {
             const r = asRecord(row);
             return {
@@ -187,6 +192,7 @@ export function standardTermDrafts(): TermDraft[] {
 const comparable = (draft: ProposalDraft) => JSON.stringify([
     draft.introduction, draft.scope, draft.exclusions, draft.clarifications, draft.closing,
     draft.validityDays.trim(),
+    draft.coverPhoto,
     draft.payments.map((row) => [row.stage, row.when, row.percentage.trim()]),
     draft.fixedPayments === null,
     draft.photos,
@@ -275,6 +281,7 @@ export interface ProposalDraftPayload {
     clarifications: string;
     closing: string;
     validityDays: number;
+    coverPhoto: ProposalCoverPhotoChoice | null;
     /** Null leaves the saved payment stages as they are. */
     paymentSchedule: Array<{ id: string; stage: string; description: string; percentage: number }> | null;
     photos: PhotoDraft[];
@@ -345,6 +352,10 @@ export function buildProposalPayload(draft: ProposalDraft): BuildPayloadResult {
         });
     }
 
+    if (draft.coverPhoto === "site" && draft.photos.filter((photo) => photo.url.trim()).length === 0) {
+        fieldErrors.coverPhoto = "Add a site photo below, or choose a different cover image.";
+    }
+
     if (Object.keys(fieldErrors).length > 0) return { ok: false, fieldErrors };
     return {
         ok: true,
@@ -355,6 +366,7 @@ export function buildProposalPayload(draft: ProposalDraft): BuildPayloadResult {
             clarifications: draft.clarifications.trim(),
             closing: draft.closing.trim(),
             validityDays,
+            coverPhoto: draft.coverPhoto,
             paymentSchedule,
             photos: draft.photos
                 .filter((photo) => photo.url)
@@ -394,6 +406,7 @@ export function projectWithDraft(project: ReviewProject, draft: ProposalDraft): 
         payment_schedule: draftPaymentSchedule(draft),
         site_photos: draft.photos,
         selected_case_study_ids: draft.caseStudyIds,
+        proposal_cover_photo: draft.coverPhoto,
     };
 }
 

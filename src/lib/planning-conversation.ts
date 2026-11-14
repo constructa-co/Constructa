@@ -20,7 +20,7 @@
  */
 import { z } from "zod";
 import { createReviewedConversation, suggestionKey, type ReviewedConversationSpec, type ReviewedDecision, type ReviewedOutcome, type ReviewedSnapshot } from "./reviewed-conversation";
-import { resolveJobWorkingPattern } from "./job-working-pattern";
+import { describeJobWorkingPattern, resolveJobWorkingPattern } from "./job-working-pattern";
 import { formatPlanDate, formatWorkingDuration } from "./programme-plan";
 import { readProgrammeInclusion } from "./programme-inclusion";
 import { computeDisplayProgramme } from "./relative-programme";
@@ -54,6 +54,8 @@ export interface PlanningContext {
     job: { id: string; name: string; client: string | null };
     /** "none" when no programme is saved yet. Relative stages count working days, not dates. */
     basis: "dated" | "relative" | "none";
+    /** The job's saved working week in words, so "a week" or "Day 6" is read the way this job counts it. */
+    working_week: string;
     start: string | null;
     finish: string | null;
     duration: string | null;
@@ -67,20 +69,21 @@ export function buildPlanningContext(project: PlanningProjectFields): PlanningCo
     const inclusion = readProgrammeInclusion(project.programme_phases);
     if (!pattern || inclusion.intent === "invalid") return null;
     const job = { id: project.id, name: String(project.name ?? "").trim(), client: project.client_name?.trim() || null };
+    const working_week = describeJobWorkingPattern(pattern);
     if (inclusion.phases.length === 0) {
         const start = /^\d{4}-\d{2}-\d{2}$/.test(project.start_date?.slice(0, 10) ?? "") ? formatPlanDate(project.start_date) : null;
-        return { job, basis: "none", start: start || null, finish: null, duration: null, stages: [] };
+        return { job, basis: "none", working_week, start: start || null, finish: null, duration: null, stages: [] };
     }
     const plan = computeDisplayProgramme(project.start_date, inclusion.phases, project.programme_working_pattern);
     if (!plan) return null;
     if (plan.basis === "relative_working_days") {
         return {
-            job, basis: "relative", start: null, finish: null, duration: plan.duration_label,
+            job, basis: "relative", working_week, start: null, finish: null, duration: plan.duration_label,
             stages: plan.stages.map(stage => ({ name: stage.name, from: `Day ${stage.start_day}`, to: `Day ${stage.end_day}`, duration: formatWorkingDuration(stage.working_days, pattern) })),
         };
     }
     return {
-        job, basis: "dated", start: formatPlanDate(plan.start_date), finish: formatPlanDate(plan.end_date), duration: plan.duration_label,
+        job, basis: "dated", working_week, start: formatPlanDate(plan.start_date), finish: formatPlanDate(plan.end_date), duration: plan.duration_label,
         stages: plan.stages.map(stage => ({ name: stage.name, from: formatPlanDate(stage.start_date), to: formatPlanDate(stage.end_date), duration: formatWorkingDuration(stage.working_days, pattern) })),
     };
 }

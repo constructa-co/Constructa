@@ -496,5 +496,12 @@ export function describeJobWorkingPattern(pattern: JobWorkingPattern): string {
         const selected = weekdays.filter((_, day) => pattern.weekdays.includes(day)).join(", ");
         return `Working days are ${selected}. A week means ${pattern.weekdays.length} working ${pattern.weekdays.length === 1 ? "day" : "days"}. Bank holidays are not allowed for.`;
     }
-    return `Working days follow ${pattern.timezone} local time with explicit intervals and ${pattern.productivityPct}% productivity. Each programme working day is ${pattern.standardMinutesPerDay} productive minutes. Bank holidays are not allowed for.`;
+    const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const clock = (minute: number) => `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
+    const days = names.filter((_, day) => pattern.weekdays.includes(day)).join(", ");
+    const intervals = [...pattern.intervals]
+        .sort((a, b) => a.weekday - b.weekday || a.startMinute - b.startMinute || a.endMinute - b.endMinute)
+        .map(interval => `${names[interval.weekday]} ${clock(interval.startMinute)}-${clock(interval.endMinute)}`)
+        .join("; ");
+    return `Working days follow ${pattern.timezone} local time. Working weekdays are ${days}. Working intervals are ${intervals}. Productivity is ${pattern.productivityPct}%. Each programme working day is ${pattern.standardMinutesPerDay} productive minutes. Bank holidays are not allowed for.`;
 }

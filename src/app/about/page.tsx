@@ -163,6 +163,7 @@ export default function About() {
               Preview access explains what is in scope for this review and what still needs release verification before live use.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-2">
+              <Link href="/apply" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Apply to the founding cohort →</Link>
               <Link href="/pricing" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Preview access →</Link>
               <Link href="/guides" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Read the guides →</Link>
               <a href="https://www.linkedin.com/company/constructa-co" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Follow us on LinkedIn →</a>

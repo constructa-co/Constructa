@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-11-14 — A109 about page founding cohort apply entry (cursor/a109-about-apply-cta-e8a5)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/about/page.tsx` | ~164–168 | Add **Apply to the founding cohort →** link to `/apply` ahead of Preview access in What's next | Close remaining dead entry on `/about`; one clear apply destination separate from sign-in and preview-access copy |
+| `src/app/about/about-preview-status.test.tsx` | ~44–50 | Assert `/apply` precedes `/pricing` in What's next CTAs | Regression guard for A109 cohort navigation on about |
+
 ## 2026-11-13 — A038 up-to-three photo normalisation regression (cursor/a038-photo-limit-regression-14ce)
 
 | File | Lines (approx.) | Change | Intent |

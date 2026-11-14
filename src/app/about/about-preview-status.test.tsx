@@ -41,11 +41,16 @@ describe("about preview status in What's next", () => {
     expect(mainContent).toMatch(/href="\/pricing"[^>]*>Preview access →<\/a>/);
   });
 
-  it("states phase-one review truthfully and routes preview access to pricing", () => {
+  it("states phase-one review truthfully and routes new visitors to apply separate from pricing", () => {
     expect(whatsNext).toContain("phase-one review");
     expect(whatsNext).toContain("not currently offered for live customer work");
     expect(whatsNext).toContain("From here, we&#x27;re expanding into contracts, resource tracking, client comms, and more.");
+    expect(whatsNext).toMatch(/href="\/apply"[^>]*>Apply to the founding cohort →<\/a>/);
     expect(whatsNext).toMatch(/href="\/pricing"[^>]*>Preview access →<\/a>/);
+    const applyIndex = whatsNext.indexOf('href="/apply"');
+    const pricingIndex = whatsNext.indexOf('href="/pricing"');
+    expect(applyIndex).toBeGreaterThan(-1);
+    expect(pricingIndex).toBeGreaterThan(applyIndex);
     expect(html).not.toMatch(/now live|try today|first release is now live/i);
   });
 

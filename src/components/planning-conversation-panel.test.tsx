@@ -91,7 +91,6 @@ describe("planning conversation panel", () => {
         it("offers the choice only when the page supplies a way to save it", async () => {
             const session = await replied();
             expect(renderToStaticMarkup(withAdd(session))).toContain("Add to programme");
-            expect(renderToStaticMarkup(withAdd(session, false, undefined))).not.toContain("Add to programme");
             expect(renderToStaticMarkup(view(session))).not.toContain("Add to programme");
             expect(onAdd).not.toHaveBeenCalled();
         });

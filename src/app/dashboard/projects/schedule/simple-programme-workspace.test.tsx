@@ -279,7 +279,7 @@ describe("timeline-first simple programme workspace", () => {
         (next!.props.onClick as () => void)();
         await vi.waitFor(() => expect(renderToStaticMarkup(editor())).toContain("data-programme-leave-error"));
         await vi.waitFor(() => expect(hooks.save).not.toHaveBeenCalled());
-        expect(hooks.slots[7]).toBe(false);
+        expect(hooks.slots[8]).toBe(false);
         const beforeEdit = renderToStaticMarkup(editor());
         expect(beforeEdit).toMatch(/If you have made newer edits/i);
         expect(beforeEdit).not.toMatch(/edits made since then/i);
@@ -319,7 +319,7 @@ describe("timeline-first simple programme workspace", () => {
         expect(hooks.router.refresh).toHaveBeenCalledTimes(1);
         expect(hooks.router.push.mock.invocationCallOrder[0]).toBeLessThan(hooks.router.refresh.mock.invocationCallOrder[0]);
         await vi.waitFor(() => expect(hooks.save).not.toHaveBeenCalled());
-        expect(hooks.slots[7]).toBe(false);
+        expect(hooks.slots[8]).toBe(false);
         // The failure copy stays honest once a newer unsaved copy exists.
         const stageDuration = nodes(editor()).find(n => n.props.id === "stage-saved-0-duration");
         expect(stageDuration).toBeDefined();
@@ -344,7 +344,7 @@ describe("timeline-first simple programme workspace", () => {
         expect(hooks.save.mock.invocationCallOrder[0]).toBeLessThan(hooks.router.push.mock.invocationCallOrder[1]);
         expect(hooks.router.push.mock.invocationCallOrder[1]).toBeLessThan(hooks.router.refresh.mock.invocationCallOrder[1]);
         await vi.waitFor(() => expect(renderToStaticMarkup(editor())).not.toContain("data-programme-leave-error"));
-        expect(hooks.slots[7]).toBe(true);
+        expect(hooks.slots[8]).toBe(true);
         expect(hooks.save).toHaveBeenCalledTimes(1);
     });
 });

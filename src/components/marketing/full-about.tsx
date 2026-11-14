@@ -60,13 +60,13 @@ export function FullAboutPage() {
           </p>
         </div>
         <div>
-          <AboutImage src="/images/about-problem1.png" alt="Problem illustration" width={720} height={480} />
+          <AboutImage src="/images/about-problem1.png" alt="Illustration of three colleagues discussing drawings on a building site" width={720} height={480} />
         </div>
       </section>
 
       <section className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div>
-          <AboutImage src="/images/about-solution.png" alt="Solution illustration" width={720} height={480} />
+          <AboutImage src="/images/about-solution.png" alt="Illustration of a project team around a table with a glowing programme timeline overlaid" width={720} height={480} />
         </div>
         <div className="text-left">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">The solution we&apos;re building</h2>
@@ -74,10 +74,10 @@ export function FullAboutPage() {
             Constructa brings quoting, planning, and delivery into one clean, easy-to-use platform.
           </p>
           <ul className="list-disc list-inside text-gray-400 text-sm space-y-2">
-            <li>Create a client-ready proposal in minutes</li>
+            <li>Create a clear, client-ready proposal</li>
             <li>Build a job plan that keeps everyone aligned</li>
             <li>Track progress and changes without the spreadsheet stress</li>
-            <li>Win more work by looking more professional from day one</li>
+            <li>Present a more professional front from day one</li>
           </ul>
           <p className="text-gray-300 text-lg mt-4">We&apos;re starting simple. And growing with our users—brick by brick.</p>
         </div>
@@ -94,26 +94,27 @@ export function FullAboutPage() {
           </p>
           <div className="not-italic font-semibold">— Robert Smith</div>
         </div>
-        <div>
-          <AboutImage src="/images/founder-message.png" alt="Founder message illustration" width={720} height={480} />
-        </div>
+        <figure>
+          <AboutImage src="/images/founder-message.png" alt="AI-generated illustration of a man standing behind a desk at sunset" width={720} height={480} />
+          <figcaption className="mt-2 text-sm">AI-generated illustration. The person shown is not Robert Smith.</figcaption>
+        </figure>
       </section>
 
       <section className="max-w-6xl mx-auto px-4 py-24">
         <h2 className="text-3xl font-semibold mb-10">Why now?</h2>
         <div className="grid md:grid-cols-3 gap-12 text-gray-300">
           <div className="text-left">
-            <AboutImage src="/images/about-1m-construction-firms.png" alt="Small firms" width={160} height={160} className="w-40 h-40 mx-auto mb-4" />
+            <AboutImage src="/images/about-1m-construction-firms.png" alt="Illustration of tower cranes and city buildings linked by a glowing network" width={160} height={160} className="w-40 h-40 mx-auto mb-4" />
             <h3 className="text-2xl font-semibold mb-2">Small firms are the backbone of the sector</h3>
             <p>Micro businesses dominate construction—but have few tools built for the way they actually work.</p>
           </div>
           <div className="text-left">
-            <AboutImage src="/images/about-weekly-admin.png" alt="Stopwatch and paperwork" width={160} height={160} className="w-40 h-40 mx-auto mb-4" />
+            <AboutImage src="/images/about-weekly-admin.png" alt="Illustration of a stopwatch with paperwork streaming past" width={160} height={160} className="w-40 h-40 mx-auto mb-4" />
             <h3 className="text-2xl font-semibold mb-2">Admin eats into every working week</h3>
             <p>Time spent chasing info and retyping quotes is time away from the job.</p>
           </div>
           <div className="text-left">
-            <AboutImage src="/images/about-spreadsheets.png" alt="Spreadsheet errors" width={160} height={160} className="w-40 h-40 mx-auto mb-4" />
+            <AboutImage src="/images/about-spreadsheets.png" alt="Illustration of a spreadsheet marked with errors beside a hard hat and level" width={160} height={160} className="w-40 h-40 mx-auto mb-4" />
             <h3 className="text-2xl font-semibold mb-2">Spreadsheets are still the default</h3>
             <p>Most general platforms are too complex, and manual systems are high risk.</p>
           </div>
@@ -140,7 +141,7 @@ export function FullAboutPage() {
           </div>
         </div>
         <div>
-          <AboutImage src="/images/about-whats-next.png" alt="What's next illustration" width={720} height={480} />
+          <AboutImage src="/images/about-whats-next.png" alt="Illustration of colleagues reviewing drawings around a studio table" width={720} height={480} />
         </div>
       </section>
 

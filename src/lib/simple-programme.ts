@@ -88,6 +88,8 @@ export interface ProgrammeProjectFields {
     start_date?: string | null;
     programme_phases?: unknown[] | null;
     gantt_phases?: unknown[] | null;
+    /** When the job row last changed, if the database keeps it. */
+    updated_at?: string | null;
 }
 
 export type SimpleProgrammeView =
@@ -228,8 +230,22 @@ export interface SimpleProgrammeStageInput {
     source: number | null;
 }
 
+/**
+ * The saved programme a change was worked out from. The server re-reads the
+ * job and refuses the change if what is stored no longer matches this, so a
+ * page that has gone stale cannot overwrite someone else's edit. `updated_at`
+ * is compared only when it is given.
+ */
+export interface ExpectedProgramme {
+    programme_phases: unknown[] | null;
+    start_date: string | null;
+    updated_at?: string | null;
+}
+
 /** What is sent to the server. One stage means one bar for the whole job. */
 export interface SimpleProgrammeInput {
+    /** Set when adding to the saved programme; see {@link ExpectedProgramme}. */
+    expectedProgramme?: ExpectedProgramme;
     workingPattern?: JobWorkingPattern;
     /** Bound to the last confirmed job pattern, not an inferred current browser setting. */
     expectedWorkingPattern?: JobWorkingPattern | null;
@@ -403,6 +419,9 @@ export function draftPlan(draft: ProgrammeDraft): DisplayProgrammePlan | null {
 export const PROGRAMME_SAVE_ERROR =
     "The programme couldn't be saved. Nothing you typed has been lost. Check your connection and try again.";
 
+export const PROGRAMME_STALE_ERROR =
+    "Your programme was changed after this page loaded, so nothing was added. Reload the programme, then add the stage again.";
+
 export const PROGRAMME_NAVIGATION_ERROR =
     "The proposal couldn't be opened. Your last save is still on record. If you have made newer edits, they are not saved yet. Try Next: Proposal again.";
 
@@ -545,7 +564,8 @@ export interface ProgrammeStore {
     dispatch: (action: ProgrammeAction) => void;
 }
 
-export type ProgrammeSaveResult = { success: true; confirmedProject?: ProgrammeProjectFields } | { success: false; error: string };
+/** `stale` means the stored programme moved on since the page loaded: nothing was written, and reloading is the way forward. */
+export type ProgrammeSaveResult = { success: true; confirmedProject?: ProgrammeProjectFields } | { success: false; error: string; stale?: true };
 export type SaveProgramme = (input: SimpleProgrammeInput) => Promise<ProgrammeSaveResult>;
 export type ProgrammeSaveOutcome = "saved" | "failed" | "invalid" | "busy";
 

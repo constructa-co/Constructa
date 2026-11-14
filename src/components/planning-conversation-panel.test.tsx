@@ -73,6 +73,44 @@ describe("planning conversation panel", () => {
         expect(renderToStaticMarkup(view(session))).toContain("Add it to your programme yourself");
     });
 
+    describe("adding a suggestion to the programme", () => {
+        const reply = {
+            message: "Order early.", questions: [],
+            suggestions: [{ topic: "procurement", title: "Order windows", stage: "Groundworks", timing: "6 weeks" }],
+        };
+        const onAdd = vi.fn(async () => ({ ok: true as const, name: "Order windows" }));
+        const withAdd = (session: PlanningConversation, blocked = false, add: typeof onAdd | undefined = onAdd) =>
+            PlanningConversationPanel({ session, blocked, onAdd: add, s: workspaceStyles(true) });
+        async function replied() {
+            const session = setup(vi.fn<PlanningGenerator>().mockResolvedValue({ ...reply, message: "Order early (window lead time: 6 weeks)." }));
+            session.setMessage("Windows take 6 weeks to arrive. What should I order first?");
+            await session.send();
+            return session;
+        }
+
+        it("offers the choice only when the page supplies a way to save it", async () => {
+            const session = await replied();
+            expect(renderToStaticMarkup(withAdd(session))).toContain("Add to programme");
+            expect(renderToStaticMarkup(withAdd(session, false, undefined))).not.toContain("Add to programme");
+            expect(renderToStaticMarkup(view(session))).not.toContain("Add to programme");
+            expect(onAdd).not.toHaveBeenCalled();
+        });
+
+        it("withholds it while programme work is open or once the suggestion has been decided", async () => {
+            const session = await replied();
+            expect(renderToStaticMarkup(withAdd(session, true))).not.toContain("Add to programme");
+            session.decide(1, 0, "dismissed");
+            expect(renderToStaticMarkup(withAdd(session))).not.toContain("Add to programme");
+            expect(onAdd).not.toHaveBeenCalled();
+        });
+
+        it("says plainly that the programme only changes when the contractor chooses", async () => {
+            const html = renderToStaticMarkup(withAdd(await replied()));
+            expect(html).toContain("Your programme changes only if you choose to add a suggestion to it");
+            expect(html).toContain("Timing you gave: 6 weeks.");
+        });
+    });
+
     it("offers retry after a failed reply", async () => {
         const session = setup(vi.fn<PlanningGenerator>().mockRejectedValue(new Error("down")));
         session.setMessage("Plan it");

@@ -266,4 +266,17 @@ describe("no hidden writes or reused authority", () => {
         expect(client).toMatch(/planningAssistantEnabled = false/);
         expect(client).not.toMatch(/planningGenerator\s*=/);
     });
+    it("writes confirmed items only through the programme's own save, and only when it can take one", () => {
+        const client = readFileSync(new URL("../app/dashboard/projects/schedule/simple-programme-client.tsx", import.meta.url), "utf8");
+        // The page's save: the injected test save, else the real validated server action.
+        expect(client).toContain("save: input => save ? save(input) : saveSimpleProgrammeAction(project.id, input)");
+        // Offered only for an editable, included, saved simple programme; blocked while the add itself is running.
+        expect(client).toContain('const planningAddBlocked = lockReason !== null || inclusion.intent !== "include" || planningAddBlockReason(project) !== null;');
+        expect(client).toContain("onAdd={planningAddBlocked ? undefined : addPlanningItem}");
+        expect(client).toContain("detailedOpen || refreshing || planningAdding;");
+        // The assistant's server action and request path never receive or perform the write.
+        const action = readFileSync(new URL("../app/dashboard/projects/schedule/assistant-actions.ts", import.meta.url), "utf8");
+        expect(action).not.toContain("planning-programme-item");
+        expect(action).not.toContain("saveSimpleProgrammeAction");
+    });
 });

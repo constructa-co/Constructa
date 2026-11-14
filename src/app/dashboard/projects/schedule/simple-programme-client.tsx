@@ -17,6 +17,7 @@ import ui from "@/components/programme.module.css";
 import { newClientId } from "@/lib/client-id";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
 import { createPlanningConversation, type PlanningGenerator } from "@/lib/planning-conversation";
+import { addPlanningItemToProgramme, planningAddBlockReason, type AddPlanningItemResult, type PlanningProgrammeItem } from "@/lib/planning-programme-item";
 import { createPlanningRequestGenerator } from "@/lib/job-assistant-client";
 import type { JobAssistantOffReason } from "@/lib/job-assistant-readiness";
 import { planningAssistantTurnAction } from "./assistant-actions";
@@ -72,6 +73,7 @@ interface ProgrammeProject {
     start_date?: string | null;
     programme_phases?: unknown[] | null;
     gantt_phases?: unknown[] | null;
+    updated_at?: string | null;
 }
 
 interface Props {
@@ -125,7 +127,8 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
 
     // Discussion only, in this page's memory: it reads the saved project and
     // never writes. Unsaved or in-progress programme work blocks a new turn.
-    const planningOpenWork = unsavedSimple || inclusionBusy || detailedOpen || refreshing;
+    const [planningAdding, setPlanningAdding] = useState(false);
+    const planningOpenWork = unsavedSimple || inclusionBusy || detailedOpen || refreshing || planningAdding;
     // A055: the real request path. The server rebuilds the saved programme,
     // compares the fingerprint and chooses the generator.
     const planningTransport = useMemo(() => planningGenerator ?? (planningAssistantEnabled
@@ -141,6 +144,23 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
         planning.session.refresh();
     }, [planning, project, planningOpenWork]);
     useEffect(() => () => planning.session.detach(), [planning]);
+
+    // A confirmed planning item is saved through the programme's own save, so
+    // the server's checks apply. Offered only for a saved simple programme.
+    const planningAddBlocked = lockReason !== null || inclusion.intent !== "include" || planningAddBlockReason(project) !== null;
+    const addPlanningItem = async (item: PlanningProgrammeItem): Promise<AddPlanningItemResult> => {
+        if (planningAdding || planningAddBlocked) return { ok: false, error: "The programme can't take a new stage right now. Nothing has been changed." };
+        setPlanningAdding(true);
+        try {
+            const result = await addPlanningItemToProgramme({
+                project, item, makeKey: newClientId,
+                save: input => save ? save(input) : saveSimpleProgrammeAction(project.id, input),
+            });
+            // The saved programme changed: reload it so the editor and the conversation start from what is stored.
+            if (result.ok) startRefresh(() => router.refresh());
+            return result;
+        } finally { setPlanningAdding(false); }
+    };
 
     // The detailed planner saves as it goes. Closing it reloads the project so
     // the simple view shows what the planner left behind.
@@ -297,6 +317,8 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
                     />}
                     {!lockReason && inclusion.intent === "include" && detailedSection}
                     {inclusion.intent !== "invalid" && <PlanningConversationPanel session={planning.session} blocked={planningOpenWork || !!lockReason} offReason={planningAssistantOffReason}
+                        onAdd={planningAddBlocked ? undefined : addPlanningItem}
+                        onReload={() => startRefresh(() => router.refresh())}
                         blockedNote={lockReason ? `${lockReason} The planning conversation is not available for this job.` : undefined} s={s} />}
                 </>
             )}

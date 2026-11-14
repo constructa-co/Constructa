@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FoundingCohortApplyForm } from "./founding-cohort-apply-form";
+import { FoundingCohortApplyStorageNotice } from "./founding-cohort-apply-storage-notice";
 import styles from "./founding-cohort-apply.module.css";
 
 export function PhaseOneFoundingCohortApply() {
@@ -37,10 +38,7 @@ export function PhaseOneFoundingCohortApply() {
           >
             Application
           </h2>
-          <p className={styles.todoNotice}>
-            TODO(A109): submissions are validated here but not yet stored or emailed —
-            Rob will choose the destination (database, CRM, or inbox) before go-live.
-          </p>
+          <FoundingCohortApplyStorageNotice />
           <FoundingCohortApplyForm />
         </div>
       </section>

@@ -24,7 +24,11 @@ describe("/apply founding cohort route", () => {
     expect(html).toContain('id="apply-trade"');
     expect(html).toContain('id="apply-team-size"');
     expect(html).toContain('id="apply-note"');
-    expect(html).toContain("TODO(A109)");
+    expect(html).toContain("Applications are not saved yet.");
+    expect(html).toContain('href="/contact"');
+    expect(html).toContain('id="founding-cohort-apply-storage-notice"');
+    expect(html).toContain("Submission unavailable");
+    expect(html).not.toContain("TODO(A109)");
     expect(html).toContain('href="/login"');
     expect(html).not.toMatch(/formspree|resend|supabase/i);
   });
@@ -49,6 +53,17 @@ describe("/apply founding cohort route", () => {
     expect(html).toContain("Founding cohort opens 7 December 2026.");
     expect(html).toContain("not the same as signing in");
     expect(html).toContain('href="/login"');
-    expect(html).toContain("TODO(A109)");
+    expect(html).toContain("Applications are not saved yet.");
+    expect(html).toContain('href="/contact"');
+    expect(html).toContain("Submission unavailable");
+    expect(html).not.toContain("TODO(A109)");
+  });
+
+  it("places the storage notice before the form fields", () => {
+    const html = renderToStaticMarkup(<ApplyPage />);
+    const noticeIndex = html.indexOf('id="founding-cohort-apply-storage-notice"');
+    const nameIndex = html.indexOf('id="apply-name"');
+    expect(noticeIndex).toBeGreaterThan(-1);
+    expect(nameIndex).toBeGreaterThan(noticeIndex);
   });
 });

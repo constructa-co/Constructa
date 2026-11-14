@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useReducer, useRef, useState, type Reducer } from "react";
+import { useEffect, useId, useReducer, useRef, useState, type Reducer } from "react";
 import ui from "@/components/past-work.module.css";
 import { toast } from "sonner";
 import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Loader2, MapPin, Briefcase, Calendar, PoundSterling, Sparkles } from "lucide-react";
@@ -296,10 +296,7 @@ function CaseStudyCard({
     // A challenge and how it was resolved, as typed. Held by the card so closing it keeps them; never saved until added.
     const [story, setStory] = useState<StoryNotes>(NO_STORY);
     const changeStory = (next: StoryNotes) => { setStory(next); onStoryTyped(storyTyped(next)); };
-    const tagSuggestions = useMemo(
-        () => exampleTagSuggestions({ projectType: cs.projectType, client: cs.client }),
-        [cs.projectType, cs.client],
-    );
+    const tagSuggestions = exampleTagSuggestions({ projectType: cs.projectType, client: cs.client });
 
     const handleEnhance = async () => {
         // One request at a time: the button is disabled while this runs, and this guards a double press.

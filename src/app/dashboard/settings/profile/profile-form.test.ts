@@ -131,7 +131,7 @@ describe("the Company Profile form no longer edits case studies", () => {
         const editor = readFileSync(path.join(SRC, "app/dashboard/settings/case-studies/case-studies-client.tsx"), "utf8");
         const actions = readFileSync(path.join(SRC, "app/dashboard/settings/case-studies/actions.ts"), "utf8");
         expect(editor).toContain("save = saveCaseStudiesAction");
-        expect(editor).toContain("await save(request.sent)");
+        expect(editor).toContain("await save(request.sent.map(");
         expect(actions).toContain(".update({ case_studies: caseStudies })");
         expect(actions.match(/case_studies:/g)).toHaveLength(1);
     });

@@ -2,6 +2,9 @@
  * A037 — discipline and customer-sector tags on legacy profile case studies.
  * Disciplines: walkthrough discipline research → SETUP_WORK_SUGGESTIONS (first-session).
  * Sectors: brief client types only (domestic / commercial / public) — not discipline.
+ *
+ * Inferred tags are suggestions in the UI only. They are persisted only after an
+ * explicit chip choice (`disciplineTagsExplicit` / `sectorTagsExplicit`).
  */
 
 import { JOB_TYPE_EXAMPLES } from "./job-type-options";
@@ -120,19 +123,14 @@ export function sectorHintsFromClientText(client: string): CaseStudySectorId[] {
     return normaliseSectorTags(matched);
 }
 
-export function mergeExampleTagHints(
-    current: { disciplineTags: string[]; sectorTags: CaseStudySectorId[] },
-    hints: { disciplines: readonly string[]; sectors: readonly CaseStudySectorId[] },
-): { disciplineTags: string[]; sectorTags: CaseStudySectorId[] } {
-    return {
-        disciplineTags: normaliseDisciplineTags([...current.disciplineTags, ...hints.disciplines]),
-        sectorTags: normaliseSectorTags([...current.sectorTags, ...hints.sectors]),
-    };
-}
-
 export interface LegacyCaseStudyTagFields {
     disciplineTags: string[];
     sectorTags: CaseStudySectorId[];
+}
+
+export interface LegacyCaseStudyTagState extends LegacyCaseStudyTagFields {
+    disciplineTagsExplicit: boolean;
+    sectorTagsExplicit: boolean;
 }
 
 type TagCarrier = {
@@ -140,38 +138,68 @@ type TagCarrier = {
     client?: string;
     disciplineTags?: unknown;
     sectorTags?: unknown;
+    disciplineTagsExplicit?: unknown;
+    sectorTagsExplicit?: unknown;
 };
 
-/** Normalise stored tags; when none are saved, apply job-type and client hints. */
-export function legacyCaseStudyTagsFromFields(fields: TagCarrier): LegacyCaseStudyTagFields {
-    let disciplineTags = normaliseDisciplineTags(fields.disciplineTags);
-    let sectorTags = normaliseSectorTags(fields.sectorTags);
-
-    if (disciplineTags.length === 0 && sectorTags.length === 0) {
-        const projectType = typeof fields.projectType === "string" ? fields.projectType : "";
-        const client = typeof fields.client === "string" ? fields.client : "";
-        const merged = mergeExampleTagHints(
-            { disciplineTags, sectorTags },
-            {
-                disciplines: disciplineHintsForExample(projectType),
-                sectors: normaliseSectorTags([...sectorHintsForExample(projectType), ...sectorHintsFromClientText(client)]),
-            },
-        );
-        disciplineTags = merged.disciplineTags;
-        sectorTags = merged.sectorTags;
-    }
-
-    return { disciplineTags, sectorTags };
+function disciplineSelectionExplicit(fields: TagCarrier): boolean {
+    if (fields.disciplineTagsExplicit === true) return true;
+    return Array.isArray(fields.disciplineTags) && fields.disciplineTags.length > 0;
 }
 
-export function hintsWhenExampleFieldsChange(
-    previous: LegacyCaseStudyTagFields,
-    next: { projectType: string; client: string },
-): LegacyCaseStudyTagFields {
-    const hadTags = previous.disciplineTags.length > 0 || previous.sectorTags.length > 0;
-    if (hadTags) return previous;
-    return mergeExampleTagHints(previous, {
-        disciplines: disciplineHintsForExample(next.projectType),
-        sectors: normaliseSectorTags([...sectorHintsForExample(next.projectType), ...sectorHintsFromClientText(next.client)]),
-    });
+function sectorSelectionExplicit(fields: TagCarrier): boolean {
+    if (fields.sectorTagsExplicit === true) return true;
+    return Array.isArray(fields.sectorTags) && fields.sectorTags.length > 0;
+}
+
+/** Stored selections only — never merges inferred hints. */
+export function readStoredExampleTags(fields: TagCarrier): LegacyCaseStudyTagState {
+    const disciplineTagsExplicit = disciplineSelectionExplicit(fields);
+    const sectorTagsExplicit = sectorSelectionExplicit(fields);
+    return {
+        disciplineTags: disciplineTagsExplicit ? normaliseDisciplineTags(fields.disciplineTags) : [],
+        sectorTags: sectorTagsExplicit ? normaliseSectorTags(fields.sectorTags) : [],
+        disciplineTagsExplicit,
+        sectorTagsExplicit,
+    };
+}
+
+/** UI suggestions from job type and client text — not written to storage by themselves. */
+export function exampleTagSuggestions(fields: { projectType?: string; client?: string }): LegacyCaseStudyTagFields {
+    const projectType = typeof fields.projectType === "string" ? fields.projectType : "";
+    const client = typeof fields.client === "string" ? fields.client : "";
+    return {
+        disciplineTags: disciplineHintsForExample(projectType),
+        sectorTags: normaliseSectorTags([...sectorHintsForExample(projectType), ...sectorHintsFromClientText(client)]),
+    };
+}
+
+/** Suggested discipline ids that are not already selected. */
+export function suggestedDisciplineChips(selected: readonly string[], suggestions: readonly string[]): string[] {
+    const chosen = new Set(selected);
+    return suggestions.filter((tag) => !chosen.has(tag));
+}
+
+/** Suggested sector ids that are not already selected. */
+export function suggestedSectorChips(selected: readonly CaseStudySectorId[], suggestions: readonly CaseStudySectorId[]): CaseStudySectorId[] {
+    const chosen = new Set(selected);
+    return suggestions.filter((id) => !chosen.has(id));
+}
+
+/** Drop tag arrays that were never explicitly chosen — suggestions must not reach storage. */
+export function legacyCaseStudyForSave<T extends TagCarrier>(entry: T): T {
+    const copy = { ...(entry as TagCarrier & T) };
+    if (copy.disciplineTagsExplicit === true) {
+        copy.disciplineTags = normaliseDisciplineTags(copy.disciplineTags);
+    } else {
+        delete copy.disciplineTags;
+        delete copy.disciplineTagsExplicit;
+    }
+    if (copy.sectorTagsExplicit === true) {
+        copy.sectorTags = normaliseSectorTags(copy.sectorTags);
+    } else {
+        delete copy.sectorTags;
+        delete copy.sectorTagsExplicit;
+    }
+    return copy as T;
 }

@@ -5,11 +5,15 @@ import {
     CASE_STUDY_TAG_LIMITS,
     JOB_TYPE_EXAMPLE_TAG_HINTS,
     disciplineHintsForExample,
-    legacyCaseStudyTagsFromFields,
+    exampleTagSuggestions,
+    legacyCaseStudyForSave,
+    readStoredExampleTags,
     normaliseDisciplineTags,
     normaliseSectorTags,
     sectorHintsForExample,
     sectorHintsFromClientText,
+    suggestedDisciplineChips,
+    suggestedSectorChips,
     toggleDisciplineTag,
     toggleSectorTag,
 } from "./case-study-example-tags";
@@ -47,23 +51,77 @@ describe("A037 case study example tags", () => {
         expect(sectorHintsForExample("Loft Conversion")).toEqual(["domestic"]);
         expect(sectorHintsFromClientText("Private homeowner")).toEqual(["domestic"]);
     });
+});
 
-    it("infers tags for legacy rows with no saved tags", () => {
-        const inferred = legacyCaseStudyTagsFromFields({
+describe("A037 D17 — suggestions vs stored selections", () => {
+    it("shows inferred tags as suggestions only, not as stored selections", () => {
+        const stored = readStoredExampleTags({
             projectType: "Bathroom/Kitchen",
             client: "Private homeowner",
         });
-        expect(inferred.disciplineTags).toEqual(["Refurbishment & fit-out", "Plumbing & heating"]);
-        expect(inferred.sectorTags).toEqual(["domestic"]);
+        const suggestions = exampleTagSuggestions({ projectType: "Bathroom/Kitchen", client: "Private homeowner" });
+
+        expect(stored.disciplineTags).toEqual([]);
+        expect(stored.sectorTags).toEqual([]);
+        expect(stored.disciplineTagsExplicit).toBe(false);
+        expect(stored.sectorTagsExplicit).toBe(false);
+
+        expect(suggestions.disciplineTags).toEqual(["Refurbishment & fit-out", "Plumbing & heating"]);
+        expect(suggestions.sectorTags).toEqual(["domestic"]);
+        expect(suggestedDisciplineChips(stored.disciplineTags, suggestions.disciplineTags)).toEqual(suggestions.disciplineTags);
+
+        const wire = legacyCaseStudyForSave({
+            id: "s1",
+            projectType: "Bathroom/Kitchen",
+            client: "Private homeowner",
+            ...stored,
+        });
+        expect(wire).not.toHaveProperty("disciplineTags");
+        expect(wire).not.toHaveProperty("sectorTags");
     });
 
-    it("keeps contractor-selected tags when present", () => {
-        const kept = legacyCaseStudyTagsFromFields({
-            projectType: "Extension",
-            client: "",
-            disciplineTags: ["Roofing"],
-            sectorTags: ["commercial"],
+    it("persists deliberate empty selections with explicit flags", () => {
+        const stored = readStoredExampleTags({
+            disciplineTags: [],
+            disciplineTagsExplicit: true,
+            sectorTags: [],
+            sectorTagsExplicit: true,
         });
-        expect(kept).toEqual({ disciplineTags: ["Roofing"], sectorTags: ["commercial"] });
+        expect(stored.disciplineTags).toEqual([]);
+        expect(stored.sectorTags).toEqual([]);
+        expect(stored.disciplineTagsExplicit).toBe(true);
+        expect(stored.sectorTagsExplicit).toBe(true);
+
+        const wire = legacyCaseStudyForSave({
+            id: "s1",
+            projectName: "Empty tags",
+            ...stored,
+        });
+        expect(wire.disciplineTags).toEqual([]);
+        expect(wire.sectorTags).toEqual([]);
+        expect(wire.disciplineTagsExplicit).toBe(true);
+        expect(wire.sectorTagsExplicit).toBe(true);
+    });
+
+    it("selected chip state follows stored data, not suggestions alone", () => {
+        const stored = readStoredExampleTags({
+            projectType: "Extension",
+            client: "Private homeowner",
+            disciplineTags: ["Roofing"],
+            disciplineTagsExplicit: true,
+            sectorTags: ["commercial"],
+            sectorTagsExplicit: true,
+        });
+        const suggestions = exampleTagSuggestions({ projectType: "Extension", client: "Private homeowner" });
+
+        expect(stored.disciplineTags).toEqual(["Roofing"]);
+        expect(stored.sectorTags).toEqual(["commercial"]);
+        expect(suggestions.disciplineTags).toContain("General building");
+        expect(suggestedDisciplineChips(stored.disciplineTags, suggestions.disciplineTags)).not.toContain("Roofing");
+        expect(suggestedSectorChips(stored.sectorTags, suggestions.sectorTags)).not.toContain("commercial");
+
+        const wire = legacyCaseStudyForSave({ id: "s1", ...stored });
+        expect(wire.disciplineTags).toEqual(["Roofing"]);
+        expect(wire.sectorTags).toEqual(["commercial"]);
     });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useReducer, useRef, useState, type Reducer } from "react";
+import { useEffect, useId, useMemo, useReducer, useRef, useState, type Reducer } from "react";
 import ui from "@/components/past-work.module.css";
 import { toast } from "sonner";
 import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Loader2, MapPin, Briefcase, Calendar, PoundSterling, Sparkles } from "lucide-react";
@@ -14,7 +14,7 @@ import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { SAVE_MESSAGES, initialSaveState, needsLeaveWarning, requestOf, saveReducer, statusLine, type SaveAction, type SaveCaseStudiesResult, type SaveState } from "./save-state";
 import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
 import type { CaseStudySectorId } from "@/lib/case-study-example-tags";
-import { hintsWhenExampleFieldsChange } from "@/lib/case-study-example-tags";
+import { exampleTagSuggestions, legacyCaseStudyForSave } from "@/lib/case-study-example-tags";
 import ExampleTagsSection from "./example-tags-section";
 import {
     coreFocusRing,
@@ -41,6 +41,8 @@ interface CaseStudy {
     photos: string[];
     disciplineTags?: string[];
     sectorTags?: CaseStudySectorId[];
+    disciplineTagsExplicit?: boolean;
+    sectorTagsExplicit?: boolean;
 }
 
 /**
@@ -86,7 +88,7 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
         void (async () => {
             let result: SaveCaseStudiesResult;
             try {
-                result = await save(request.sent);
+                result = await save(request.sent.map((entry) => legacyCaseStudyForSave(entry)));
             } catch {
                 // The request itself failed. Whether it reached the server is not known.
                 result = { status: "unknown", message: SAVE_MESSAGES.unknown };
@@ -110,25 +112,15 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
             whatWeDelivered: "",
             valueAdded: "",
             photos: ["", "", ""],
-            disciplineTags: [],
-            sectorTags: [],
         }]);
     };
 
-    const updateCaseStudy = (index: number, field: keyof CaseStudy, value: string | string[] | CaseStudySectorId[]) => {
+    const updateCaseStudy = (index: number, field: keyof CaseStudy, value: string | string[] | CaseStudySectorId[] | boolean) => {
         setCaseStudies(prev => prev.map((cs, i) => {
             if (i !== index) return cs;
             const next = { ...cs, [field]: value } as CaseStudy;
-            if (field === "projectType" || field === "client") {
-                const tags = hintsWhenExampleFieldsChange(
-                    { disciplineTags: cs.disciplineTags ?? [], sectorTags: cs.sectorTags ?? [] },
-                    {
-                        projectType: field === "projectType" ? String(value) : cs.projectType,
-                        client: field === "client" ? String(value) : cs.client,
-                    },
-                );
-                return { ...next, disciplineTags: tags.disciplineTags, sectorTags: tags.sectorTags };
-            }
+            if (field === "disciplineTags") return { ...next, disciplineTagsExplicit: true };
+            if (field === "sectorTags") return { ...next, sectorTagsExplicit: true };
             return next;
         }));
     };
@@ -287,7 +279,7 @@ function CaseStudyCard({
     enhance: Enhance;
     cs: CaseStudy;
     index: number;
-    onChange: (field: keyof CaseStudy, value: string | string[] | CaseStudySectorId[]) => void;
+    onChange: (field: keyof CaseStudy, value: string | string[] | CaseStudySectorId[] | boolean) => void;
     onRemove: () => void;
     onPhotoUpload: (slot: number, file: File) => void;
     onPhotoRemove: (slot: number) => void;
@@ -304,6 +296,10 @@ function CaseStudyCard({
     // A challenge and how it was resolved, as typed. Held by the card so closing it keeps them; never saved until added.
     const [story, setStory] = useState<StoryNotes>(NO_STORY);
     const changeStory = (next: StoryNotes) => { setStory(next); onStoryTyped(storyTyped(next)); };
+    const tagSuggestions = useMemo(
+        () => exampleTagSuggestions({ projectType: cs.projectType, client: cs.client }),
+        [cs.projectType, cs.client],
+    );
 
     const handleEnhance = async () => {
         // One request at a time: the button is disabled while this runs, and this guards a double press.
@@ -429,6 +425,8 @@ function CaseStudyCard({
                         labelCls={labelCls}
                         disciplineTags={cs.disciplineTags ?? []}
                         sectorTags={cs.sectorTags ?? []}
+                        suggestedDisciplines={tagSuggestions.disciplineTags}
+                        suggestedSectors={tagSuggestions.sectorTags}
                         onDisciplines={(next) => onChange("disciplineTags", next)}
                         onSectors={(next) => onChange("sectorTags", next)}
                     />

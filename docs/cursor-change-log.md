@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-14 — A037 D17 suggestion-only tags (cursor/a037-example-discipline-sector-tags-6591)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/case-study-example-tags.ts` | explicit flags, `readStoredExampleTags`, `legacyCaseStudyForSave` | Inferred tags are UI suggestions; `disciplineTagsExplicit` / `sectorTagsExplicit` gate persistence | D17: never auto-save hints; keep deliberate empty arrays |
+| `src/app/dashboard/settings/case-studies/example-tags-section.tsx` | chip states | `data-tag-state` selected vs suggested; `aria-pressed` from stored only | Labels and pressed state match saved data |
+| `src/app/dashboard/settings/case-studies/case-studies-client.tsx` | save map, tag edits | Strip implicit tags on save; set explicit on chip toggle | Suggestions do not reach `profiles.case_studies` |
+| `src/lib/case-study-example-tags.test.ts` | D17 `describe` | Three focused cases: suggestions-only, empty explicit, stored selection | Regression guard |
+| `src/app/dashboard/settings/case-studies/a037-example-tags.test.ts` | render + save | Markup and wire tests for suggestion vs selected | Focused UI/save checks |
+
 ## 2026-11-14 — A037 example discipline and sector tags (cursor/a037-example-discipline-sector-tags-6591)
 
 | File | Lines (approx.) | Change | Intent |

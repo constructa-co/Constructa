@@ -8,7 +8,7 @@ import { sessionReader } from "@/lib/case-library/store";
 import CaseStudiesClient from "./case-studies-client";
 import type { ComponentProps } from "react";
 import LibraryPanel from "./library-panel";
-import { legacyCaseStudyTagsFromFields } from "@/lib/case-study-example-tags";
+import { readStoredExampleTags } from "@/lib/case-study-example-tags";
 
 export const dynamic = "force-dynamic";
 
@@ -81,12 +81,7 @@ export default async function CaseStudiesPage() {
                     <CaseStudiesClient
                         initialCaseStudies={(Array.isArray(profile?.case_studies) ? profile.case_studies : []).map((entry) => {
                             const row = typeof entry === "object" && entry !== null ? (entry as Record<string, unknown>) : {};
-                            const tags = legacyCaseStudyTagsFromFields({
-                                projectType: typeof row.projectType === "string" ? row.projectType : undefined,
-                                client: typeof row.client === "string" ? row.client : undefined,
-                                disciplineTags: row.disciplineTags,
-                                sectorTags: row.sectorTags,
-                            });
+                            const tags = readStoredExampleTags(row);
                             return { ...row, ...tags };
                         }) as ComponentProps<typeof CaseStudiesClient>["initialCaseStudies"]}
                         userId={user.id}

@@ -57,7 +57,7 @@ Exact approved phrases used, with their source:
 
 Good work. Clearly priced. Better presented.
 
-Most quoting tools treat your company details, your price and your programme as separate jobs. Constructa's phase-one preview is built as one connected work-winning journey: company profile, brief, price, programme and proposal — with room for your own experience and judgement.
+Constructa's phase-one preview is built as one connected work-winning journey: company profile, brief, price, programme and proposal — with room for your own experience and judgement.
 
 The journey in four steps:
 
@@ -77,7 +77,7 @@ How preview access works: https://www.constructa.co/pricing
 
 **Status: DRAFT · NOT APPROVED · NOT PUBLISHED**
 
-One connected journey, not four separate jobs:
+Four steps in Constructa’s phase-one preview
 
 1. Make it your business — company profile, your experience, the work you're proud of.
 2. Put a price to the work — describe the job, build your price lines, see the total.
@@ -103,9 +103,11 @@ Two things worth knowing from the preview-access page itself:
 - Apply is separate from sign-in. This preview does not take a payment.
 - The preview does not sell a subscription, promise a free trial or take payment for later-phase features.
 
+The application form is a preview. It cannot accept submissions yet.
+
 Phase one review, built for domestic and commercial contractors.
 
-Apply to the founding cohort: https://www.constructa.co/apply
+See the founding cohort application preview: https://www.constructa.co/apply
 How preview access works: https://www.constructa.co/pricing
 
 ---
@@ -118,9 +120,9 @@ Constructa's founding cohort opens 7 December 2026.
 
 Phase one brings company profiles, estimating, programmes and proposals into one work-winning journey for domestic and commercial contractors.
 
-Applying is separate from sign-in, and the preview takes no payment.
+The application form is separate from sign-in. It is a preview and cannot accept submissions yet. The preview takes no payment.
 
-Apply here: https://www.constructa.co/apply
+See the application preview: https://www.constructa.co/apply
 
 ---
 

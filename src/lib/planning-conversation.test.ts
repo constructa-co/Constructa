@@ -39,6 +39,14 @@ describe("planning context comes from the selected job's saved programme only", 
         expect(context).toMatchObject({ basis: "relative", start: null, finish: null });
         expect(context.stages[1]).toMatchObject({ name: "Dormer", from: "Day 6", to: "Day 20" });
     });
+    it("carries the job's saved working week, and a changed saved pattern changes the context the server compares", () => {
+        const none = { id: "job-c", name: "New", programme_phases: null };
+        const fourDay = { ...none, programme_working_pattern: { version: 1, weekdays: [1, 2, 3, 4] } };
+        expect(buildPlanningContext(none)!.working_week).toBe("Working days are Monday, Tuesday, Wednesday, Thursday, Friday. A week means 5 working days. Bank holidays are not allowed for.");
+        expect(buildPlanningContext(DATED)!.working_week).toContain("A week means 5 working days");
+        expect(buildPlanningContext(fourDay)!.working_week).toBe("Working days are Monday, Tuesday, Wednesday, Thursday. A week means 4 working days. Bank holidays are not allowed for.");
+        expect(JSON.stringify(buildPlanningContext(fourDay))).not.toBe(JSON.stringify(buildPlanningContext(none)));
+    });
     it("handles a job with no programme yet and refuses an unreadable one", () => {
         expect(buildPlanningContext({ id: "job-c", name: "New", programme_phases: null })).toMatchObject({ basis: "none", stages: [] });
         expect(buildPlanningContext({ ...DATED, programme_phases: "broken" as unknown as unknown[] })).toBeNull();
@@ -116,6 +124,10 @@ describe("unknown dates and lead times stay questions", () => {
         expect(reviewPlanningReply(context, said, reply({ suggestions: [{ topic: "milestone", title: "Steel in", stage: "Roofing", timing: null }] })).ok).toBe(false);
         expect(reviewPlanningReply(context, said, { message: "ok", extra: true }).ok).toBe(false);
         expect(reviewPlanningReply(context, said, "free text").ok).toBe(false);
+    });
+    it("accepts the job's own working-week wording but drops a week length it does not state", () => {
+        expect(reviewPlanningReply(context, [], reply({ message: "A week on this job means 5 working days, so order before Kitchen fit." })).ok).toBe(true);
+        expect(reviewPlanningReply(context, [], reply({ message: "A week on this job means 6 working days." })).ok).toBe(false);
     });
     it("accepts dates already in the saved programme", () => {
         expect(reviewPlanningReply(context, [], reply({ message: `Kitchen fit starts ${context.stages[1].from}.` })).ok).toBe(true);

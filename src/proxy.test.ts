@@ -156,7 +156,7 @@ describe("proxy authentication boundary", () => {
           signedIn();
           termsLookup.mockResolvedValue({ data: [], error: null });
           const response = await proxy(new NextRequest(`https://constructa.example${path}`));
-          expect(response.status).toBe(307);
+          expect(response.status).toBe(303);
           expect(response.headers.get("location")).toBe(TERMS);
         },
       );

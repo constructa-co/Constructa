@@ -67,11 +67,17 @@ export function PhaseOneAbout() {
           </ul>
           <p>Big software platforms are overkill. Manual systems are high risk. And most tools weren&apos;t built for builders.</p>
         </div>
-        <AboutFigure src="/images/about-problem1.png" alt="Problem illustration" />
+        <AboutFigure
+          src="/images/about-problem1.png"
+          alt="Illustration of three colleagues discussing drawings on a building site"
+        />
       </section>
 
       <section className={styles.split}>
-        <AboutFigure src="/images/about-solution.png" alt="Solution illustration" />
+        <AboutFigure
+          src="/images/about-solution.png"
+          alt="Illustration of a project team around a table with a glowing programme timeline overlaid"
+        />
         <div className={styles.copy}>
           <h2>The solution we&apos;re building</h2>
           <p>Constructa brings quoting, planning, and delivery into one clean, easy-to-use platform.</p>
@@ -105,10 +111,11 @@ export function PhaseOneAbout() {
         <figure className={styles.figure}>
           <Image
             src="/images/founder-message.png"
-            alt="Founder message illustration"
+            alt="AI-generated illustration of a man standing behind a desk at sunset"
             width={720}
             height={480}
           />
+          <figcaption>AI-generated illustration. The person shown is not Robert Smith.</figcaption>
         </figure>
       </section>
 
@@ -118,19 +125,19 @@ export function PhaseOneAbout() {
           {[
             {
               src: '/images/about-1m-construction-firms.png',
-              alt: 'Small firms',
+              alt: 'Illustration of tower cranes and city buildings linked by a glowing network',
               title: 'Small firms are the backbone of the sector',
               body: 'Micro businesses dominate construction—but have few tools built for the way they actually work.',
             },
             {
               src: '/images/about-weekly-admin.png',
-              alt: 'Stopwatch and paperwork',
+              alt: 'Illustration of a stopwatch with paperwork streaming past',
               title: 'Admin eats into every working week',
               body: 'Time spent chasing info and retyping quotes is time away from the job.',
             },
             {
               src: '/images/about-spreadsheets.png',
-              alt: 'Spreadsheet errors',
+              alt: 'Illustration of a spreadsheet marked with errors beside a hard hat and level',
               title: 'Spreadsheets are still the default',
               body: 'Most general platforms are too complex, and manual systems are high risk.',
             },
@@ -173,7 +180,10 @@ export function PhaseOneAbout() {
             </a>
           </div>
         </div>
-        <AboutFigure src="/images/about-whats-next.png" alt="What's next illustration" />
+        <AboutFigure
+          src="/images/about-whats-next.png"
+          alt="Illustration of colleagues reviewing drawings around a studio table"
+        />
       </section>
 
       <section className={styles.pointers}>

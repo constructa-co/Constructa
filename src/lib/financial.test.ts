@@ -142,6 +142,90 @@ describe("computeContractSum — explicit prelims lines", () => {
     });
 });
 
+describe("computeContractSum — zero and negative lines", () => {
+    const flat = {
+        prelims_pct: 10,
+        overhead_pct: 0,
+        risk_pct: 0,
+        profit_pct: 0,
+        discount_pct: 0,
+    };
+
+    it("zero-total Preliminaries line does not suppress percentage prelims", () => {
+        const result = computeContractSum(flat, [
+            { trade_section: "Groundworks", line_total: 1000 },
+            { trade_section: "Preliminaries", line_total: 0 },
+        ]);
+        expect(result.prelimsTotal).toBe(100);
+        expect(result.contractSum).toBe(1100);
+    });
+
+    it("null/blank Preliminaries totals also fall back to percentage", () => {
+        const result = computeContractSum(flat, [
+            { trade_section: "Groundworks", line_total: 1000 },
+            { trade_section: "Preliminaries", line_total: null },
+            { trade_section: "Preliminaries", line_total: "" },
+        ]);
+        expect(result.prelimsTotal).toBe(100);
+    });
+
+    it("zero Preliminaries line alongside a priced one still uses explicit total", () => {
+        const result = computeContractSum(flat, [
+            { trade_section: "Groundworks", line_total: 1000 },
+            { trade_section: "Preliminaries", line_total: 0 },
+            { trade_section: "Preliminaries", line_total: 250 },
+        ]);
+        expect(result.prelimsTotal).toBe(250);
+    });
+
+    it("negative direct lines reduce direct cost symmetrically", () => {
+        const result = computeContractSum(flat, [
+            { trade_section: "Groundworks", line_total: 1000 },
+            { trade_section: "Groundworks", line_total: -200 },
+        ]);
+        expect(result.directCost).toBe(800);
+        expect(result.prelimsTotal).toBe(80);
+        expect(result.contractSum).toBe(880);
+    });
+
+    it("negative Preliminaries line is treated as an explicit credit", () => {
+        const result = computeContractSum(flat, [
+            { trade_section: "Groundworks", line_total: 1000 },
+            { trade_section: "Preliminaries", line_total: 300 },
+            { trade_section: "Preliminaries", line_total: -50 },
+        ]);
+        expect(result.prelimsTotal).toBe(250);
+        expect(result.contractSum).toBe(1250);
+    });
+
+    it("a lone negative Preliminaries line overrides the percentage", () => {
+        const result = computeContractSum(flat, [
+            { trade_section: "Groundworks", line_total: 1000 },
+            { trade_section: "Preliminaries", line_total: -50 },
+        ]);
+        expect(result.prelimsTotal).toBe(-50);
+        expect(result.contractSum).toBe(950);
+    });
+
+    it("all-negative direct lines are not replaced by legacy total_cost", () => {
+        const result = computeContractSum(
+            { ...flat, prelims_pct: 0, total_cost: 5000 },
+            [{ trade_section: "Groundworks", line_total: -200 }],
+        );
+        expect(result.directCost).toBe(-200);
+        expect(result.contractSum).toBe(-200);
+    });
+
+    it("only-zero direct lines still fall back to legacy total_cost", () => {
+        const result = computeContractSum(
+            { ...flat, total_cost: 1200 },
+            [{ trade_section: "Groundworks", line_total: 0 }],
+        );
+        expect(result.prelimsTotal).toBe(120);
+        expect(result.contractSum).toBe(1320);
+    });
+});
+
 describe("computeContractSum — legacy total_cost fallback", () => {
     it("falls back to total_cost when no line rows present", () => {
         const result = computeContractSum(
@@ -409,5 +493,17 @@ describe("pctProgress", () => {
     it("computes normal case", () => {
         expect(pctProgress(250, 1000)).toBe(25);
         expect(pctProgress(699, 1320)).toBeCloseTo(52.95, 2);
+    });
+});
+
+describe("preliminaries-only estimates", () => {
+    it.each([400, -50])("counts the signed preliminaries once when stored total is %s", lineTotal => {
+        const result = computeContractSum(
+            { total_cost: lineTotal, prelims_pct: 10 },
+            [{ trade_section: "Preliminaries", line_total: lineTotal }],
+        );
+        expect(result.directCost).toBe(0);
+        expect(result.prelimsTotal).toBe(lineTotal);
+        expect(result.contractSum).toBe(lineTotal);
     });
 });

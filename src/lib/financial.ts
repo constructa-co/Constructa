@@ -20,7 +20,7 @@
  * The QS cost hierarchy (locked by Robert's domain spec):
  *
  *   1. Direct Cost            — sum of all non-Preliminaries line totals
- *   2. + Preliminaries        — explicit lines if present, else directCost × prelims_pct
+ *   2. + Preliminaries        — non-zero explicit lines if present, else directCost × prelims_pct
  *   3. = Total Construction Cost
  *   4. + Overhead             — totalConstruction × overhead_pct
  *   5. = Cost + Overhead
@@ -100,34 +100,46 @@ export function computeContractSum(
     estimate: EstimateInput,
     lines: EstimateLineInput[]
 ): ContractSumBreakdown {
-    // 1. Direct cost — everything that isn't a Preliminaries line.
-    const directCost = lines
-        .filter(
-            (l) =>
-                (l.trade_section ?? "General") !== "Preliminaries" &&
-                toNumber(l.line_total) > 0
-        )
-        .reduce((sum, l) => sum + toNumber(l.line_total), 0);
+    // 1. Direct cost — everything that isn't a Preliminaries line. Credit
+    // (negative) lines reduce the total just as positive lines increase it;
+    // zero-value lines are ignored.
+    const directLines = lines.filter(
+        (l) =>
+            (l.trade_section ?? "General") !== "Preliminaries" &&
+            toNumber(l.line_total) !== 0
+    );
+    const directCost = directLines.reduce(
+        (sum, l) => sum + toNumber(l.line_total),
+        0
+    );
 
-    // 2. Preliminaries — explicit lines take precedence over the percentage.
+    // 2. Preliminaries — explicit lines take precedence over the percentage,
+    // but only when at least one carries a non-zero value. A zero-total
+    // Preliminaries placeholder (e.g. an auto-scaffolded row) must not
+    // suppress the percentage allowance. Negative prelims lines count as
+    // explicit values, symmetric with positive ones.
     const explicitPrelimsLines = lines.filter(
-        (l) => (l.trade_section ?? "") === "Preliminaries"
+        (l) =>
+            (l.trade_section ?? "") === "Preliminaries" &&
+            toNumber(l.line_total) !== 0
     );
     const explicitPrelimsTotal = explicitPrelimsLines.reduce(
         (sum, l) => sum + toNumber(l.line_total),
         0
     );
 
-    // Fallback base for prelims when there are no lines at all
+    // Fallback base for prelims when there are no priced direct lines
     // (legacy estimates with only a total_cost value).
-    const fallbackBase =
-        directCost > 0 ? directCost : toNumber(estimate.total_cost);
-    const prelimsFromPct = fallbackBase * (toNumber(estimate.prelims_pct) / 100);
+    const constructionBase =
+        directLines.length > 0 || explicitPrelimsLines.length > 0
+            ? directCost
+            : toNumber(estimate.total_cost);
+    const prelimsFromPct = constructionBase * (toNumber(estimate.prelims_pct) / 100);
     const prelimsTotal =
         explicitPrelimsLines.length > 0 ? explicitPrelimsTotal : prelimsFromPct;
 
     // 3. Total construction cost.
-    const totalConstructionCost = fallbackBase + prelimsTotal;
+    const totalConstructionCost = constructionBase + prelimsTotal;
 
     // 4-7. Overhead → Risk → Profit, compounded in that order.
     const overheadPct = toNumber(estimate.overhead_pct);

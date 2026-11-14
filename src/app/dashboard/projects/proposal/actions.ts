@@ -25,6 +25,7 @@ import {
 } from "@/lib/proposal-publication";
 import { evaluateProposalReadiness } from "@/lib/proposal-readiness";
 import { isProposalResponseKind, responseKindOfSnapshot, type ProposalResponseKind } from "@/lib/proposal-response";
+import { parseProposalCoverPhotoChoice } from "@/lib/proposal-cover-photo";
 import {
     AI_UNAVAILABLE_ERROR,
     DELIVERY_ERROR,
@@ -85,6 +86,7 @@ const DraftSchema = z.object({
         percentage: z.number().gt(0).max(100),
     })).max(MAX_PAYMENT_STAGES).nullable(),
     photos: z.array(z.object({ url: z.string().max(2000), caption: z.string().max(300) })).max(MAX_PHOTOS),
+    coverPhoto: z.enum(["site", "illustrative_render"]).nullable(),
     caseStudyIds: z.array(z.string().min(1).max(100)).max(50),
     terms: z.array(z.object({
         clause_number: z.number().int().min(1).max(1000),
@@ -116,6 +118,10 @@ export async function saveProposalDraftAction(projectId: string, payload: Propos
     }
     const paymentTotal = (input.paymentSchedule ?? []).reduce((sum, row) => sum + row.percentage, 0);
     if (paymentTotal > 100.001) return { success: false, error: "The payment stages add up to more than 100%." };
+    if (input.coverPhoto === "site" && photos.length === 0) {
+        return { success: false, error: "Add a site photo before using it on the cover, or choose a different cover image." };
+    }
+    const coverPhoto = parseProposalCoverPhotoChoice(input.coverPhoto);
 
     const { access, error: accessError } = await editableAccess(input.projectId, "You can't change this proposal.");
     if (!access) return { success: false, error: accessError };
@@ -140,6 +146,7 @@ export async function saveProposalDraftAction(projectId: string, payload: Propos
         closing_statement: input.closing.trim() || null,
         validity_days: input.validityDays,
         site_photos: photos,
+        proposal_cover_photo: coverPhoto,
         selected_case_study_ids: input.caseStudyIds,
         tc_overrides: input.terms,
     };

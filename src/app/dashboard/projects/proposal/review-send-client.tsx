@@ -19,6 +19,12 @@ import { copyTextWithFallback } from "@/lib/clipboard-copy";
 import { programmePlanForProject } from "@/lib/programme-plan";
 import { proposalPaymentSave } from "@/lib/proposal-payment-save";
 import { buildProposalDocument, paymentRows, vatLines, vatNote } from "@/lib/proposal-document";
+import {
+    COVER_PHOTO_CHOICE_LABELS,
+    COVER_RENDER_CAPTION,
+    coverForIllustrativeRender,
+    type ProposalCoverPhotoChoice,
+} from "@/lib/proposal-cover-photo";
 import { contentCheckCode, hashProposalContent, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
 import type { ReadinessKey, RecommendedKey } from "@/lib/proposal-readiness";
 import { RESPONSE_KINDS, responseWording } from "@/lib/proposal-response";
@@ -639,6 +645,53 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                             ))}
                         </dl>
                         {elsewhere("Job, client and site come from the project. Your company name comes from your profile.", href("settings"), "Change project details")}
+                        <fieldset className="space-y-3" data-review-cover-photo>
+                            <legend className={`text-sm font-semibold ${s.heading}`}>Cover image</legend>
+                            <p className={`text-sm ${s.muted}`}>Optional. Leave unset for no cover image, as in earlier proposals.</p>
+                            {([
+                                [null, "No cover image"] as const,
+                                ["site", COVER_PHOTO_CHOICE_LABELS.site] as const,
+                                ["illustrative_render", COVER_PHOTO_CHOICE_LABELS.illustrative_render] as const,
+                            ]).map(([value, label]) => {
+                                const choice = value as ProposalCoverPhotoChoice | null;
+                                const disabled = choice === "site" && draft.photos.length === 0;
+                                const id = value === null ? "review-cover-photo-none" : `review-cover-photo-${value}`;
+                                return (
+                                    <label key={id} htmlFor={id} className={`flex items-start gap-3 min-h-11 py-1 text-base ${disabled ? s.muted : s.body}`}>
+                                        <input
+                                            id={id}
+                                            type="radio"
+                                            name="review-cover-photo"
+                                            className="mt-1 w-5 h-5 flex-shrink-0"
+                                            checked={draft.coverPhoto === choice}
+                                            disabled={busy || disabled}
+                                            onChange={() => edit({ coverPhoto: choice })}
+                                        />
+                                        <span className="min-w-0">
+                                            <span className="font-semibold">{label}</span>
+                                            {choice === "site" && (
+                                                <span className={`block text-sm ${s.muted}`}>Uses your first site photo from the scope section.</span>
+                                            )}
+                                            {choice === "illustrative_render" && (
+                                                <span className={`block text-sm ${s.muted}`}>{COVER_RENDER_CAPTION}</span>
+                                            )}
+                                        </span>
+                                    </label>
+                                );
+                            })}
+                            {draft.coverPhoto === "illustrative_render" && (
+                                <figure className={`${s.inset} p-3 space-y-2`}>
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src={coverForIllustrativeRender().url}
+                                        alt={coverForIllustrativeRender().alt}
+                                        className="w-full max-w-md aspect-[4/3] object-cover rounded-lg"
+                                    />
+                                    <figcaption className={`text-xs ${s.muted}`}>{coverForIllustrativeRender().caption}</figcaption>
+                                </figure>
+                            )}
+                            {fieldErrors.coverPhoto && <p role="alert" className={`text-sm ${s.errorText}`}>{fieldErrors.coverPhoto}</p>}
+                        </fieldset>
                         {wordingField("introduction", {
                             rows: 4,
                             help: "A few lines in your own words: why you want the job and what matters about it.",
@@ -731,7 +784,13 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                             <button
                                                 type="button"
                                                 disabled={busy}
-                                                onClick={() => edit({ photos: draft.photos.filter((_, i) => i !== index) })}
+                                                onClick={() => {
+                                                    const next = draft.photos.filter((_, i) => i !== index);
+                                                    edit({
+                                                        photos: next,
+                                                        coverPhoto: next.length === 0 && draft.coverPhoto === "site" ? null : draft.coverPhoto,
+                                                    });
+                                                }}
                                                 className={`${s.quietButton} -ml-3`}
                                             >
                                                 <Trash2 className="w-4 h-4" aria-hidden="true" /> Remove photo {index + 1}

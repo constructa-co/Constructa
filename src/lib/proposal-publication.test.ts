@@ -300,6 +300,26 @@ describe("proposal publication snapshot", () => {
             expect(selectCaseStudies(caseStudies, null)).toEqual([]);
         });
 
+        it("includes a labelled illustrative cover only when that choice is saved", () => {
+            const none = buildProposalPublicationSnapshot(input);
+            expect(none.cover_photo).toBeUndefined();
+            const render = buildProposalPublicationSnapshot({
+                ...input,
+                project: { ...input.project, proposal_cover_photo: "illustrative_render" },
+            });
+            expect(render.cover_photo?.kind).toBe("illustrative_render");
+            expect(render.cover_photo?.caption).toMatch(/not a photograph of completed work\.$/);
+            const site = buildProposalPublicationSnapshot({
+                ...input,
+                project: {
+                    ...input.project,
+                    proposal_cover_photo: "site",
+                    site_photos: [{ url: "https://cdn.example.test/site.jpg", caption: "Front" }],
+                },
+            });
+            expect(site.cover_photo).toMatchObject({ kind: "site", url: "https://cdn.example.test/site.jpg", caption: "Front" });
+        });
+
         it("keeps photographs with the contractor's captions and drops unsafe links", () => {
             const snapshot = buildProposalPublicationSnapshot({
                 ...input,

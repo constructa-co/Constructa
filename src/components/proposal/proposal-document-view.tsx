@@ -49,6 +49,18 @@ export default function ProposalDocumentView({ doc, children, readingPage }: { d
                 )}
                 {doc.siteAddress && <p className="mt-1 text-base text-stone-600">{doc.siteAddress}</p>}
 
+                {doc.coverImage && (
+                    <figure className="mt-8 space-y-2" data-proposal-cover-image>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={doc.coverImage.url}
+                            alt={doc.coverImage.alt}
+                            className="aspect-[4/3] w-full bg-stone-100 object-cover"
+                        />
+                        <figcaption className="text-xs text-stone-500">{doc.coverImage.caption}</figcaption>
+                    </figure>
+                )}
+
                 <dl className="mt-6 flex flex-wrap gap-x-8 gap-y-2 text-sm text-stone-600">
                     {[
                         doc.projectType && { label: "Type of work", value: doc.projectType },

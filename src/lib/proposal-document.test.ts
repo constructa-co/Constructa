@@ -71,6 +71,23 @@ describe("independent site address in the document", () => {
     });
 });
 
+describe("A074 cover image on the document", () => {
+    it("omits a cover image on legacy snapshots and shows it when explicitly chosen", () => {
+        expect(buildProposalDocument(snapshot).coverImage).toBeNull();
+        const withCover = buildProposalPublicationSnapshot({
+            ...representativeInput(),
+            project: {
+                ...representativeInput().project,
+                proposal_cover_photo: "illustrative_render",
+            },
+        });
+        const doc = buildProposalDocument(withCover);
+        expect(doc.coverImage?.caption).toMatch(/not a photograph of completed work\.$/);
+        expect(htmlText(doc)).toContain("not a photograph of completed work.");
+        expect(pdfStrings(doc)).toContain("not a photograph of completed work.");
+    });
+});
+
 describe("document order and content", () => {
     it("reads in the order the client receives it", () => {
         expect(document.sections.map((section) => section.id)).toEqual([

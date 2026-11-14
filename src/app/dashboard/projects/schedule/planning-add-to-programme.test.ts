@@ -6,7 +6,7 @@ vi.mock("@/lib/supabase/project-resource-access", () => mocks);
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { addPlanningItemToProgramme } from "@/lib/planning-programme-item";
-import { PROGRAMME_STALE_ERROR, viewForProject } from "@/lib/simple-programme";
+import { PROGRAMME_STALE_ERROR, expectedProgrammeFor, initialProgrammeState, programmeReducer, saveProgramme, viewForProject } from "@/lib/simple-programme";
 import { saveSimpleProgrammeAction } from "./simple-actions";
 
 const USER_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -138,6 +138,25 @@ describe("adding a confirmed planning item through the real programme save", () 
                 programme_phases: pageCopy.programme_phases, start_date: pageCopy.start_date, updated_at: pageCopy.updated_at,
             } });
             expect(result).toEqual({ success: false, error: PROGRAMME_STALE_ERROR, stale: true });
+            expect(db.updates).toHaveLength(1);
+            expect(db.tables.projects[0].programme_phases).toEqual(afterAdd);
+        });
+
+        it("is refused through the editor's own save path when its draft was opened before the add, and keeps its typing", async () => {
+            const db = setup({ updated_at: "2026-11-14T09:00:00+00:00" });
+            const pageCopy = structuredClone(db.tables.projects[0]);
+            let n = 0;
+            const view = viewForProject(pageCopy, () => `saved-${n++}`);
+            if (view.kind !== "simple") throw Error("Expected a simple saved programme");
+            let state = initialProgrammeState(view.draft, true, expectedProgrammeFor(pageCopy));
+            const store = { getState: () => state, dispatch: (action: Parameters<typeof programmeReducer>[1]) => { state = programmeReducer(state, action); } };
+            store.dispatch({ type: "stage/change", key: "saved-1", patch: { duration: "12" } });
+
+            expect(await add(db)).toEqual({ ok: true, name: "Order windows" });
+            const afterAdd = structuredClone(db.tables.projects[0].programme_phases);
+            expect(await saveProgramme(store, input => saveSimpleProgrammeAction(PROJECT_ID, input))).toBe("failed");
+            expect(state.save.error).toBe(PROGRAMME_STALE_ERROR);
+            expect(state.draft.stages[1].duration).toBe("12");
             expect(db.updates).toHaveLength(1);
             expect(db.tables.projects[0].programme_phases).toEqual(afterAdd);
         });

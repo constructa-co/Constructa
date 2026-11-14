@@ -37,6 +37,7 @@ import {
     continueToProposal,
     draftPlan,
     emptyProgrammeDraft,
+    expectedProgrammeFor,
     initialProgrammeState,
     programmeReducer,
     programmeSaveStatus,
@@ -46,6 +47,7 @@ import {
     stageNameField,
     viewForProject,
     type DurationUnit,
+    type ExpectedProgramme,
     type ProgrammeDraft,
     type ProgrammeProjectFields,
     type SaveProgramme,
@@ -160,6 +162,11 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
     latestProjectRef.current = project;
     // The stored programme moved on under an ordinary Save; nothing was written.
     const [staleSaveFor, setStaleSaveFor] = useState<ProgrammeProject | null>(null);
+    // Bumped when the editor must be rebuilt from the stored programme (after an add).
+    // Until then the open editor keeps the snapshot it was opened from, so a Save
+    // worked out before the add is refused by the server instead of replacing it.
+    const [editorRevision, setEditorRevision] = useState(0);
+    const sendSave: SaveProgramme = input => save ? save(input) : saveSimpleProgrammeAction(project.id, input);
     const adoptConfirmed = (confirmed: ProgrammeProjectFields) => {
         const next = { ...latestProjectRef.current, ...confirmed };
         latestProjectRef.current = next;
@@ -175,9 +182,13 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
             const result = await addPlanningItemToProgramme({
                 project: latestProjectRef.current, item, makeKey: newClientId,
                 save: async input => {
-                    const saved = await (save ? save(input) : saveSimpleProgrammeAction(project.id, input));
-                    // Bind whatever is saved next to the programme that is stored now.
-                    if (saved.success && saved.confirmedProject) adoptConfirmed(saved.confirmedProject);
+                    const saved = await sendSave(input);
+                    if (saved.success && saved.confirmedProject) {
+                        // Bind whatever is saved next to the programme that is stored now, and
+                        // rebuild the editor's draft and saved baseline from the stored phases.
+                        adoptConfirmed(saved.confirmedProject);
+                        setEditorRevision(revision => revision + 1);
+                    }
                     return saved;
                 },
             });
@@ -187,11 +198,11 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
         } finally { addingRef.current = false; setPlanningAdding(false); }
     };
 
-    // The editor's own Save is bound to the programme this page last confirmed,
-    // so a stage list worked out before an add can never replace the add.
+    // The editor's own Save carries the snapshot its draft was opened from (see
+    // `saveProgramme`), so a stage list worked out before an add is refused by the
+    // server and can never replace the add. This only guards the in-flight window.
     const saveOrdinary = bindProgrammeSave({
-        current: () => latestProjectRef.current,
-        send: input => save ? save(input) : saveSimpleProgrammeAction(project.id, input),
+        send: sendSave,
         adopt: adoptConfirmed,
         isBusy: () => addingRef.current || savingRef.current,
         setSaving: saving => { savingRef.current = saving; },
@@ -319,8 +330,9 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
                         )}
                         <fieldset disabled={inclusionBusy || planningAdding} className="min-w-0 space-y-5 border-0 m-0 p-0">
                         <ProgrammeEditor
-                            key={project.id}
+                            key={`${project.id}:${editorRevision}`}
                             project={project}
+                            opened={expectedProgrammeFor(project)}
                             estimate={estimate}
                             initial={view.kind === "simple" ? view : { kind: "simple", draft: emptyProgrammeDraft(view.startDate, project.programme_working_pattern == null ? undefined : jobPattern ?? undefined), hasSaved: false }}
                             save={saveOrdinary}
@@ -431,9 +443,11 @@ function ReadOnlyProgramme({
 // ─── The simple editor ───────────────────────────────────────────────────────
 
 function ProgrammeEditor({
-    project, estimate, initial, save, onUnsavedChange, onRelativeChange, unsavedCheckRef, s, isDark,
+    project, opened, estimate, initial, save, onUnsavedChange, onRelativeChange, unsavedCheckRef, s, isDark,
 }: {
     project: ProgrammeProject;
+    /** The stored programme `initial` was built from; every save from this editor is bound to it. */
+    opened: ExpectedProgramme;
     estimate: unknown;
     initial: { kind: "simple"; draft: ProgrammeDraft; hasSaved: boolean };
     save: SaveProgramme;
@@ -445,7 +459,7 @@ function ProgrammeEditor({
     isDark: boolean;
 }) {
     const router = useRouter();
-    const [state, store] = useReducerStore(programmeReducer, () => initialProgrammeState(initial.draft, initial.hasSaved));
+    const [state, store] = useReducerStore(programmeReducer, () => initialProgrammeState(initial.draft, initial.hasSaved, opened));
     const [leaving, setLeaving] = useState(false);
     const [leaveError, setLeaveError] = useState<string | null>(null);
     const { draft, fieldErrors } = state;

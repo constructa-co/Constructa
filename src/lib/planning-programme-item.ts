@@ -21,6 +21,7 @@ import { readProgrammeInclusion } from "./programme-inclusion";
 import {
     MAX_STAGES,
     PROGRAMME_STALE_ERROR,
+    expectedProgrammeFor,
     initialProgrammeState,
     programmeReducer,
     saveProgramme,
@@ -28,7 +29,6 @@ import {
     stageNameField,
     viewForProject,
     type DurationUnit,
-    type ExpectedProgramme,
     type ProgrammeProjectFields,
     type ProgrammeState,
     type ProgrammeStore,
@@ -66,7 +66,8 @@ function openSavedProgramme(project: ProgrammeProjectFields, makeKey: () => stri
     const view = viewForProject({ ...project, programme_phases: inclusion.phases }, makeKey);
     if (view.kind !== "simple") return { ok: false, error: PLANNING_ADD_DETAILED };
     if (!view.hasSaved) return { ok: false, error: PLANNING_ADD_NO_PROGRAMME };
-    return { ok: true, state: initialProgrammeState(view.draft, true) };
+    // The draft is bound to the stored programme it was built from.
+    return { ok: true, state: initialProgrammeState(view.draft, true, expectedProgrammeFor(project)) };
 }
 
 /** Null when an item can be added to this job's saved programme; otherwise the reason, in the contractor's terms. */
@@ -105,17 +106,13 @@ export async function addPlanningItemToProgramme(input: {
     reduce({ type: "stage/add", key });
     reduce({ type: "stage/change", key, patch: { name, duration: item.duration, unit: item.unit === "days" ? "days" : "weeks" } });
 
-    // The new stage list was worked out from this copy of the saved programme.
-    // The server re-reads the job and refuses it if the stored programme (or its
-    // updated_at) is no longer the same, rather than replacing someone's edit.
-    const expectedProgramme: ExpectedProgramme = {
-        programme_phases: project.programme_phases ?? null,
-        start_date: project.start_date ?? null,
-        ...(project.updated_at !== undefined ? { updated_at: project.updated_at } : {}),
-    };
+    // The new stage list was worked out from this copy of the saved programme;
+    // `saveProgramme` sends it as the draft's opened snapshot. The server re-reads
+    // the job and refuses it if the stored programme (or its updated_at) is no
+    // longer the same, rather than replacing someone's edit.
     let stale = false;
     const guardedSave: SaveProgramme = async input => {
-        const result = await save({ ...input, expectedProgramme });
+        const result = await save(input);
         if (!result.success && result.stale) stale = true;
         return result;
     };

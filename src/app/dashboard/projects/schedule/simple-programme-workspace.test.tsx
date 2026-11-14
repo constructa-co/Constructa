@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { ReactElement } from "react";
-import { emptyProgrammeDraft, initialProgrammeState, programmeReducer, viewForProject, type ProgrammeState } from "@/lib/simple-programme";
+import { PROGRAMME_SAVE_STALE_ERROR, emptyProgrammeDraft, initialProgrammeState, programmeReducer, viewForProject, type ProgrammeDraft, type ProgrammeState } from "@/lib/simple-programme";
 
 const hooks = vi.hoisted(() => ({
-    state: null as ProgrammeState | null, slots: [] as unknown[], cursor: 0, save: vi.fn(), dispatch: vi.fn(), theme: "dark",
+    state: null as ProgrammeState | null, slots: [] as unknown[], cursor: 0, leavingSlot: -1, save: vi.fn(), dispatch: vi.fn(), theme: "dark",
     router: { push: vi.fn(), refresh: vi.fn() },
 }));
 vi.mock("react", async original => ({ ...await original<typeof import("react")>(),
@@ -31,14 +31,19 @@ function parent(overrides: Partial<Parameters<typeof SimpleProgrammeClient>[0]> 
     hooks.cursor = 0;
     return SimpleProgrammeClient({ project, lockReason: null, estimate: null, save: hooks.save, ...overrides });
 }
-function editor() {
-    const entry = nodes(parent()).find(n => typeof n.type === "function" && n.props.initial);
-    expect(entry).toBeDefined(); return (entry!.type as (props: unknown) => Element)(entry!.props);
+function editor(overrides: Partial<Parameters<typeof SimpleProgrammeClient>[0]> = {}) {
+    const entry = nodes(parent(overrides)).find(n => typeof n.type === "function" && n.props.initial);
+    expect(entry).toBeDefined();
+    // The editor's own state follows the parent's in the mocked slot list; its first is `leaving`.
+    hooks.leavingSlot = hooks.cursor;
+    return (entry!.type as (props: unknown) => Element)(entry!.props);
 }
+const twoPhases = [{ name: "Remove old kitchen", manualDays: 3, startOffset: 0 }, { name: "Fit new kitchen", manualDays: 5, startOffset: 3 }];
+// The stored programme the two-stage draft below was opened from; a real editor carries it in its state.
+const twoOpened = { programme_phases: twoPhases, start_date: project.start_date };
 function two() {
-    const phases = [{ name: "Remove old kitchen", manualDays: 3, startOffset: 0 }, { name: "Fit new kitchen", manualDays: 5, startOffset: 3 }];
-    let key = 0; const view = viewForProject({ ...project, programme_phases: phases }, () => `saved-${key++}`);
-    expect(view.kind).toBe("simple"); if (view.kind === "simple") hooks.state = initialProgrammeState(view.draft, true);
+    let key = 0; const view = viewForProject({ ...project, programme_phases: twoPhases }, () => `saved-${key++}`);
+    expect(view.kind).toBe("simple"); if (view.kind === "simple") hooks.state = initialProgrammeState(view.draft, true, twoOpened);
 }
 beforeEach(() => {
     hooks.state = initialProgrammeState(emptyProgrammeDraft(project.start_date), false);
@@ -139,7 +144,7 @@ describe("timeline-first simple programme workspace", () => {
         expect(hooks.save).toHaveBeenCalledExactlyOnceWith({ timeBasis: "relative", startDate: "", stages: [
             { name: "Remove old kitchen", workingDays: 3, unit: "days", source: 0 },
             { name: "Fit new kitchen", workingDays: 5, unit: "weeks", source: 1 },
-        ] });
+        ], expectedProgramme: twoOpened });
         (nodes(editor()).find(n => n.type === "select" && n.props.id === "programme-time-basis")!.props.onChange as (event: unknown) => void)({ target: { value: "dated" } });
         expect(hooks.state!.draft.startDate).toBe(project.start_date);
         expect(renderToStaticMarkup(editor())).toContain('id="programme-start"');
@@ -188,7 +193,7 @@ describe("timeline-first simple programme workspace", () => {
         expect(hooks.save).toHaveBeenCalledExactlyOnceWith({ startDate: "2026-10-19", stages: [
             { name: "Remove old kitchen", workingDays: 3, unit: "days", source: 0 },
             { name: "Fit new kitchen", workingDays: 2, unit: "days", source: 1 },
-        ] });
+        ], expectedProgramme: twoOpened });
     });
 
     it("retains two activities and shows a retry after an unconfirmed save", async () => {
@@ -279,7 +284,7 @@ describe("timeline-first simple programme workspace", () => {
         (next!.props.onClick as () => void)();
         await vi.waitFor(() => expect(renderToStaticMarkup(editor())).toContain("data-programme-leave-error"));
         await vi.waitFor(() => expect(hooks.save).not.toHaveBeenCalled());
-        expect(hooks.slots[8]).toBe(false);
+        expect(hooks.slots[hooks.leavingSlot]).toBe(false);
         const beforeEdit = renderToStaticMarkup(editor());
         expect(beforeEdit).toMatch(/If you have made newer edits/i);
         expect(beforeEdit).not.toMatch(/edits made since then/i);
@@ -319,7 +324,7 @@ describe("timeline-first simple programme workspace", () => {
         expect(hooks.router.refresh).toHaveBeenCalledTimes(1);
         expect(hooks.router.push.mock.invocationCallOrder[0]).toBeLessThan(hooks.router.refresh.mock.invocationCallOrder[0]);
         await vi.waitFor(() => expect(hooks.save).not.toHaveBeenCalled());
-        expect(hooks.slots[8]).toBe(false);
+        expect(hooks.slots[hooks.leavingSlot]).toBe(false);
         // The failure copy stays honest once a newer unsaved copy exists.
         const stageDuration = nodes(editor()).find(n => n.props.id === "stage-saved-0-duration");
         expect(stageDuration).toBeDefined();
@@ -338,13 +343,65 @@ describe("timeline-first simple programme workspace", () => {
         expect(hooks.save).toHaveBeenCalledExactlyOnceWith({ startDate: "2026-10-19", stages: [
             { name: "Remove old kitchen", workingDays: 4, unit: "days", source: 0 },
             { name: "Fit new kitchen", workingDays: 5, unit: "weeks", source: 1 },
-        ] });
+        ], expectedProgramme: twoOpened });
         await vi.waitFor(() => expect(hooks.router.push).toHaveBeenCalledTimes(2));
         expect(hooks.router.refresh).toHaveBeenCalledTimes(2);
         expect(hooks.save.mock.invocationCallOrder[0]).toBeLessThan(hooks.router.push.mock.invocationCallOrder[1]);
         expect(hooks.router.push.mock.invocationCallOrder[1]).toBeLessThan(hooks.router.refresh.mock.invocationCallOrder[1]);
         await vi.waitFor(() => expect(renderToStaticMarkup(editor())).not.toContain("data-programme-leave-error"));
-        expect(hooks.slots[8]).toBe(true);
+        expect(hooks.slots[hooks.leavingSlot]).toBe(true);
         expect(hooks.save).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe("a confirmed planning item added while the editor is open", () => {
+    const selected = { ...project, programme_phases: twoPhases };
+    const confirmed = { programme_phases: [...twoPhases, { name: "Order windows", manualDays: 10, startOffset: 10 }], start_date: project.start_date, updated_at: "t2" };
+    const item = { name: "Order windows", duration: "2", unit: "weeks" as const };
+    const onAdd = () => nodes(parent({ project: selected })).find(n => typeof n.props.onAdd === "function")!.props.onAdd as (item: unknown) => Promise<{ ok: boolean }>;
+
+    it("rebuilds the editor's draft and baseline from the stored phases, and is sent bound to the programme it was added to", async () => {
+        two();
+        hooks.save.mockResolvedValueOnce({ success: true, confirmedProject: confirmed });
+        const before = nodes(parent({ project: selected })).find(n => typeof n.type === "function" && n.props.initial)!;
+        expect(before.key).toBe(`${project.id}:0`);
+        expect(await onAdd()(item)).toMatchObject({ ok: true });
+        expect(hooks.save.mock.calls[0][0].expectedProgramme).toEqual(twoOpened);
+
+        const rebuilt = nodes(parent({ project: selected })).find(n => typeof n.type === "function" && n.props.initial)!;
+        expect(rebuilt.key).toBe(`${project.id}:1`);
+        expect(rebuilt.props.opened).toEqual({ programme_phases: confirmed.programme_phases, start_date: project.start_date, updated_at: "t2" });
+        expect((rebuilt.props.initial as { draft: ProgrammeDraft }).draft.stages.map(stage => stage.name))
+            .toEqual(["Remove old kitchen", "Fit new kitchen", "Order windows"]);
+        expect(hooks.router.refresh).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps the old editor bound to the pre-add snapshot until it is rebuilt, so its stale Save is refused", async () => {
+        two();
+        const form = nodes(editor({ project: selected })).find(n => n.type === "form")!;
+        hooks.save.mockResolvedValueOnce({ success: true, confirmedProject: confirmed });
+        expect(await onAdd()(item)).toMatchObject({ ok: true });
+
+        hooks.save.mockResolvedValueOnce({ success: false, error: "Reload the programme, then add the stage again.", stale: true });
+        (form.props.onSubmit as (event: unknown) => void)({ preventDefault: vi.fn() });
+        await vi.waitFor(() => expect(hooks.state!.save.status).toBe("failed"));
+        // Worked out before the add, so bound to what it was opened from, not to the added stage.
+        expect(hooks.save.mock.calls[1][0].expectedProgramme).toEqual(twoOpened);
+        expect(hooks.state!.save.error).toBe(PROGRAMME_SAVE_STALE_ERROR);
+        expect(hooks.state!.draft.stages).toHaveLength(2);
+    });
+
+    it("disables the editor while the add is being sent, and refuses a second add", async () => {
+        two();
+        let release!: (value: unknown) => void;
+        hooks.save.mockImplementationOnce(() => new Promise(resolve => { release = resolve; }));
+        const first = onAdd()(item);
+        const fieldset = () => nodes(parent({ project: selected })).find(n => n.type === "fieldset")!;
+        expect(fieldset().props.disabled).toBe(true);
+        expect(await onAdd()({ ...item, name: "Order doors" })).toMatchObject({ ok: false });
+        expect(hooks.save).toHaveBeenCalledTimes(1);
+        release({ success: false, error: "Not saved" });
+        expect(await first).toMatchObject({ ok: false });
+        expect(fieldset().props.disabled).toBe(false);
     });
 });

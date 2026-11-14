@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, useSyncExternalStore } from "react";
+import { useId, useRef, useState, useSyncExternalStore } from "react";
 import { assistantOffLabel, explainAssistantOff, type JobAssistantOffReason } from "@/lib/job-assistant-readiness";
 import { PLANNING_MESSAGE_LIMIT, suggestionKey, type PlanningConversation, type PlanningSuggestion, type PlanningTopic } from "@/lib/planning-conversation";
 import type { AddPlanningItemResult, PlanningProgrammeItem } from "@/lib/planning-programme-item";
@@ -18,7 +18,7 @@ const TOPIC_LABEL: Record<PlanningTopic, string> = {
  * and length; nothing is taken from the reply. Saving goes through the page's
  * programme save, which is why it is offered only when that is available.
  */
-function AddToProgramme({ suggestion, onAdd, onReload, s, id }: { suggestion: PlanningSuggestion; onAdd: (item: PlanningProgrammeItem) => Promise<AddPlanningItemResult>; onReload?: () => void; s: WorkspaceStyles; id: string }) {
+function AddToProgramme({ suggestion, onAdd, onReload, s, id, sending }: { suggestion: PlanningSuggestion; onAdd: (item: PlanningProgrammeItem) => Promise<AddPlanningItemResult>; onReload?: () => void; s: WorkspaceStyles; id: string; /** Shared by every suggestion in the panel, so only one add is ever being sent. */ sending: { current: boolean } }) {
     const [open, setOpen] = useState(false);
     const [name, setName] = useState(suggestion.title.slice(0, MAX_STAGE_NAME_LENGTH));
     const [duration, setDuration] = useState("");
@@ -33,13 +33,17 @@ function AddToProgramme({ suggestion, onAdd, onReload, s, id }: { suggestion: Pl
     if (!open) return <button type="button" className={s.quietButton} onClick={() => setOpen(true)}>Add to programme</button>;
 
     const confirm = async () => {
+        // Taken synchronously: `busy` only lands on the next render, so a second press
+        // in the same tick (or on another suggestion) would otherwise get through.
+        if (sending.current) return;
+        sending.current = true;
         setBusy(true); setError(null); setStale(false);
         try {
             const result = await onAdd({ name, duration, unit });
             if (result.ok) setAdded(result.name); else { setError(result.error); setStale(result.stale === true); }
         } catch {
             setError("The programme couldn't be saved. Nothing has been changed.");
-        } finally { setBusy(false); }
+        } finally { sending.current = false; setBusy(false); }
     };
 
     return (
@@ -73,6 +77,7 @@ function AddToProgramme({ suggestion, onAdd, onReload, s, id }: { suggestion: Pl
 export default function PlanningConversationPanel({ session, blocked, blockedNote, offReason, onAdd, onReload, s }: { session: PlanningConversation; blocked: boolean; blockedNote?: string; offReason?: JobAssistantOffReason | null; /** Present only when this job's saved programme can take a new stage. */ onAdd?: (item: PlanningProgrammeItem) => Promise<AddPlanningItemResult>; /** Reloads the saved programme when an add is refused as stale. */ onReload?: () => void; s: WorkspaceStyles }) {
     const state = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
     const id = useId();
+    const addSending = useRef(false);
     const pending = state.status === "pending";
     const offLabel = assistantOffLabel(offReason);
 
@@ -118,7 +123,7 @@ export default function PlanningConversationPanel({ session, blocked, blockedNot
                                                                     <button type="button" className={s.quietButton} onClick={() => session.decide(turn, index, "dismissed")}>Dismiss</button>
                                                                 </div>
                                                             )}
-                                                            {!decision && onAdd && !blocked && <AddToProgramme suggestion={suggestion} onAdd={onAdd} onReload={onReload} s={s} id={`${id}-add-${turn}-${index}`} />}
+                                                            {!decision && onAdd && !blocked && <AddToProgramme suggestion={suggestion} onAdd={onAdd} onReload={onReload} s={s} id={`${id}-add-${turn}-${index}`} sending={addSending} />}
                                                         </li>
                                                     );
                                                 })}

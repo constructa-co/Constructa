@@ -242,6 +242,15 @@ export interface ExpectedProgramme {
     updated_at?: string | null;
 }
 
+/** The phases, start date and updated_at of a project, in the shape the server compares against. */
+export function expectedProgrammeFor(project: ProgrammeProjectFields): ExpectedProgramme {
+    return {
+        programme_phases: project.programme_phases ?? null,
+        start_date: project.start_date ?? null,
+        ...(project.updated_at !== undefined ? { updated_at: project.updated_at } : {}),
+    };
+}
+
 /** What is sent to the server. One stage means one bar for the whole job. */
 export interface SimpleProgrammeInput {
     /** Set when adding to the saved programme; see {@link ExpectedProgramme}. */
@@ -440,10 +449,18 @@ export interface ProgrammeState {
     hasSaved: boolean;
     save: { status: "idle" | "saving" | "failed"; error: string | null };
     fieldErrors: ProgrammeFieldErrors;
+    /**
+     * The stored programme this draft was opened from, or last saved over. Every
+     * save is bound to it, so a draft worked out before the stored programme
+     * moved on (another save, a confirmed planning item) is refused rather than
+     * replacing that change. Absent only for a draft that was not opened from a
+     * stored project.
+     */
+    opened?: ExpectedProgramme;
 }
 
-export function initialProgrammeState(draft: ProgrammeDraft, hasSaved: boolean): ProgrammeState {
-    return { draft, saved: draft, hasSaved, save: { status: "idle", error: null }, fieldErrors: {} };
+export function initialProgrammeState(draft: ProgrammeDraft, hasSaved: boolean, opened?: ExpectedProgramme): ProgrammeState {
+    return { draft, saved: draft, hasSaved, save: { status: "idle", error: null }, fieldErrors: {}, ...(opened ? { opened } : {}) };
 }
 
 export type ProgrammeAction =
@@ -455,7 +472,7 @@ export type ProgrammeAction =
     | { type: "stage/change"; key: string; patch: Partial<Pick<StageDraft, "name" | "duration" | "unit">> }
     | { type: "stage/move"; key: string; direction: 1 | -1 }
     | { type: "save/started" }
-    | { type: "save/succeeded"; snapshot: ProgrammeDraft }
+    | { type: "save/succeeded"; snapshot: ProgrammeDraft; /** The stored programme the server confirmed; the next save is bound to it. */ confirmed?: ExpectedProgramme }
     | { type: "save/failed"; error: string; fieldErrors?: ProgrammeFieldErrors };
 
 const blankStage = (key: string): StageDraft => ({ key, name: "", duration: "", unit: "weeks", source: null });
@@ -519,13 +536,17 @@ export function programmeReducer(state: ProgrammeState, action: ProgrammeAction)
                 wholeName: action.snapshot.stages.length === 0 ? d.wholeName : null,
                 stages: d.stages.map((stage) => ({ ...stage, source: savedIndex.get(stage.key) ?? null })),
             });
-            return {
+            const next: ProgrammeState = {
                 ...state,
                 draft: relink(draft),
                 saved: relink(action.snapshot),
                 hasSaved: true,
                 save: { status: "idle", error: null },
             };
+            // Without a confirmed snapshot the stored programme is no longer known, so
+            // the old one must not be sent again as if it still were.
+            if (action.confirmed) next.opened = action.confirmed; else delete next.opened;
+            return next;
         }
 
         case "save/failed":
@@ -591,16 +612,19 @@ export async function saveProgramme(store: ProgrammeStore, save: SaveProgramme):
     const snapshot = state.draft;
     store.dispatch({ type: "save/started" });
     try {
-        const result = await save(built.input.workingPattern ? {
-            ...built.input, expectedWorkingPattern: state.saved.workingPattern ?? null,
-        } : built.input);
+        // Bound to the stored programme this draft was opened from, never to a newer one.
+        const bound = state.opened && !built.input.expectedProgramme
+            ? { ...built.input, expectedProgramme: state.opened } : built.input;
+        const result = await save(bound.workingPattern ? {
+            ...bound, expectedWorkingPattern: state.saved.workingPattern ?? null,
+        } : bound);
         if (result.success) {
             if (built.input.workingPattern && (result.confirmedProject?.programme_working_pattern == null
                 || !workingPatternsEquivalent(result.confirmedProject.programme_working_pattern, built.input.workingPattern))) {
                 store.dispatch({ type: "save/failed", error: "The working-day save wasn't confirmed. Reload Programme before retrying." });
                 return "failed";
             }
-            store.dispatch({ type: "save/succeeded", snapshot });
+            store.dispatch({ type: "save/succeeded", snapshot, ...(result.confirmedProject ? { confirmed: expectedProgrammeFor(result.confirmedProject) } : {}) });
             return "saved";
         }
         store.dispatch({ type: "save/failed", error: result.error || PROGRAMME_SAVE_ERROR });

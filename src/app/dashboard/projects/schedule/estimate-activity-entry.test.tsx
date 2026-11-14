@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { emptyProgrammeDraft, initialProgrammeState, programmeReducer, type ProgrammeState } from "@/lib/simple-programme";
+import { emptyProgrammeDraft, expectedProgrammeFor, initialProgrammeState, programmeReducer, type ProgrammeState } from "@/lib/simple-programme";
 import { OMIT_PROGRAMME } from "@/lib/programme-inclusion";
 
 const hooks = vi.hoisted(() => ({ state: null as ProgrammeState | null, slots: [] as unknown[], cursor: 0, save: vi.fn(), dispatch: vi.fn() }));
@@ -33,7 +33,8 @@ function editor(source = estimate) {
 }
 const choice = (tree = editor()) => nodes(tree).find(n => typeof n.type === "function" && n.props.copy)!;
 beforeEach(() => {
-    hooks.state = programmeReducer(initialProgrammeState(emptyProgrammeDraft(project.start_date), false), { type: "stages/enable", keys: ["one"] });
+    // Opened from the stored project, as the real editor is, so its saves are bound to that programme.
+    hooks.state = programmeReducer(initialProgrammeState(emptyProgrammeDraft(project.start_date), false, expectedProgrammeFor(project)), { type: "stages/enable", keys: ["one"] });
     hooks.slots = []; hooks.cursor = 0; hooks.save.mockReset(); hooks.dispatch.mockReset();
     hooks.save.mockResolvedValue({ success: true }); hooks.dispatch.mockImplementation(action => { hooks.state = programmeReducer(hooks.state!, action); });
 });
@@ -67,7 +68,8 @@ describe("actual simple programme estimate-to-stage entry", () => {
         const original = choice(), before = hooks.state;
         const other = choice(editor({ ...estimate, id: "second", estimate_lines: [{ id: "new", estimate_id: "second", trade_section: "My actual work" }] }));
         expect(other.key).not.toBe(original.key); expect(other.props.names).toEqual(["My actual work"]); expect(hooks.state).toBe(before);
-        expect(nodes(parent()).find(n => typeof n.type === "function" && n.props.initial)!.key).toBe(project.id);
+        // Keyed by job and editor revision: a confirmed add bumps the revision to rebuild the draft from the stored programme.
+        expect(nodes(parent()).find(n => typeof n.type === "function" && n.props.initial)!.key).toBe(`${project.id}:0`);
     });
     it("requires contractor duration and normal Save, and retains copied wording after a failed save", async () => {
         (choice().props.copy as (name: string) => boolean)("Fit kitchen");
@@ -75,7 +77,8 @@ describe("actual simple programme estimate-to-stage entry", () => {
         hooks.save.mockResolvedValueOnce({ success: false, error: "Not confirmed" });
         (nodes(editor()).find(n => n.type === "form")!.props.onSubmit as (event: unknown) => void)({ preventDefault: vi.fn() });
         await vi.waitFor(() => expect(hooks.state!.save.status).toBe("failed"));
-        expect(hooks.save).toHaveBeenCalledExactlyOnceWith({ startDate: "2026-10-19", stages: [{ name: "Fit kitchen", workingDays: 2, unit: "days", source: null }] });
+        expect(hooks.save).toHaveBeenCalledExactlyOnceWith({ startDate: "2026-10-19", stages: [{ name: "Fit kitchen", workingDays: 2, unit: "days", source: null }],
+            expectedProgramme: { programme_phases: [], start_date: "2026-10-19" } });
         expect(hooks.state!.draft.stages[0].name).toBe("Fit kitchen"); expect(hooks.state!.hasSaved).toBe(false);
     });
 });

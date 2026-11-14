@@ -246,7 +246,7 @@ export default function Home() {
                     href="/apply"
                     className="inline-flex items-center px-10 py-4 rounded-full bg-white text-black text-sm font-black uppercase tracking-widest hover:bg-gray-100 transition-all duration-300 hover:scale-105 active:scale-95 shadow-2xl hover:shadow-white/20"
                   >
-                    Get Started Free
+                    Apply to the founding cohort
                   </a>
                 </div>
               </div>
@@ -517,11 +517,14 @@ export default function Home() {
                       <span className="text-3xl font-bold">{getBillingText(price)}</span>
                       <div className={`text-[10px] mt-1 ${isPro ? 'text-black/40' : 'text-white/20'}`}>{getBillingSubtext()}</div>
                     </div>
-                    <button className={`w-full py-3 px-4 rounded-xl text-sm font-medium transition-colors mb-8 ${
-                      isPro ? 'bg-black text-white hover:bg-black/90' : 'bg-white/10 text-white hover:bg-white/20'
-                    }`}>
-                      Get Started
-                    </button>
+                    <a
+                      href="/apply"
+                      className={`block w-full py-3 px-4 rounded-xl text-sm font-medium text-center transition-colors mb-8 ${
+                        isPro ? 'bg-black text-white hover:bg-black/90' : 'bg-white/10 text-white hover:bg-white/20'
+                      }`}
+                    >
+                      Apply
+                    </a>
                     <div className="space-y-4">
                       <div className={`text-xs font-bold uppercase tracking-wider mb-2 ${isPro ? 'text-black/40' : 'text-white/20'}`}>What&apos;s included</div>
                       {plan.features.map((feature, fIdx) => (

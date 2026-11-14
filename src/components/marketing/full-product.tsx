@@ -13,7 +13,7 @@ export default function FullProductPage() {
             <div className="not-prose">
               <h2 className="text-2xl font-semibold text-white mb-4">Quote it</h2>
               <p className="text-gray-400">
-                Create professional proposals in minutes with pricing, terms, and job details built in.
+                Create professional proposals with your own pricing, terms, and job details built in.
               </p>
             </div>
             

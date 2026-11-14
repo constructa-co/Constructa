@@ -98,7 +98,7 @@ const FeatureSection = () => {
                 <div className={`absolute inset-0 transition-opacity duration-700 ${activeFeature === 0 ? 'opacity-100' : 'opacity-0'}`}>
                   <Image
                     src="/proposal.png"
-                    alt="Proposals"
+                    alt="Concept illustration of a proposal document with price lines on dark glass panels, beside a clipboard checklist and pen; not a product screenshot"
                     fill
                     className="object-contain mix-blend-screen [mask-image:radial-gradient(ellipse_at_center,black_85%,transparent_100%)]"
                     priority
@@ -107,7 +107,7 @@ const FeatureSection = () => {
                 <div className={`absolute inset-0 transition-opacity duration-700 ${activeFeature === 1 ? 'opacity-100' : 'opacity-0'}`}>
                   <Image
                     src="/Planning.png"
-                    alt="Planning"
+                    alt="Concept illustration of programme bars on a dark grid, with a hard hat, a clipboard task list and rolled drawings; not a product screenshot"
                     fill
                     className="object-contain mix-blend-screen [mask-image:radial-gradient(ellipse_at_center,black_85%,transparent_100%)]"
                   />
@@ -115,7 +115,7 @@ const FeatureSection = () => {
                 <div className={`absolute inset-0 transition-opacity duration-700 ${activeFeature === 2 ? 'opacity-100' : 'opacity-0'}`}>
                   <Image
                     src="/One Tap Update.png"
-                    alt="Updates"
+                    alt="Concept illustration of a glowing finger tapping a glass button, surrounded by checklist and message panels; not a product screenshot"
                     fill
                     className="object-contain mix-blend-screen [mask-image:radial-gradient(ellipse_at_center,black_85%,transparent_100%)]"
                   />
@@ -123,7 +123,7 @@ const FeatureSection = () => {
                 <div className={`absolute inset-0 transition-opacity duration-700 ${activeFeature === 3 ? 'opacity-100' : 'opacity-0'}`}>
                   <Image
                     src="/Cost Control.png"
-                    alt="Cost Control"
+                    alt="Concept illustration of dark budget panels with pound-sign coins, charts and dials; not a product screenshot"
                     fill
                     className="object-contain mix-blend-screen [mask-image:radial-gradient(ellipse_at_center,black_85%,transparent_100%)]"
                   />
@@ -134,10 +134,10 @@ const FeatureSection = () => {
             {/* Right side - Animated text */}
             <div className="max-w-[500px] relative">
               {[
-                { title: "Fast, accurate proposals", desc: "Create professional quotes in minutes—not hours. Set clear pricing, scope, and terms so clients know exactly what they're getting.", id: "proposals" },
+                { title: "Fast, accurate proposals", desc: "Create professional quotes from your own price lines. Set clear pricing, scope, and terms so clients know exactly what they're getting.", id: "proposals" },
                 { title: "Simple project planning", desc: "Build job programmes without the complexity. Set dates, phases, and dependencies so your team stays aligned from day one.", id: "planning" },
-                { title: "One-tap updates", desc: "Keep everyone in the loop with instant updates. Share progress, changes, and important information with your team and clients.", id: "updates" },
-                { title: "Built-in cost control", desc: "Track budgets and changes as you go. Stay on top of cash flow and keep every job profitable.", id: "cost-control" }
+                { title: "One-tap updates", desc: "Keep everyone in the loop with clear updates. Record progress, changes, and important information for your team.", id: "updates" },
+                { title: "Built-in cost control", desc: "Track budgets and changes as you go. Stay on top of cash flow and see where every job stands.", id: "cost-control" }
               ].map((feat, idx) => (
                 <div key={idx} className={`transition-all duration-500 absolute inset-0 ${activeFeature === idx ? 'opacity-100 translate-y-0 relative' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                   <h3 className="text-3xl md:text-5xl font-bold mb-6 text-white leading-tight tracking-tighter text-left uppercase">{feat.title}</h3>
@@ -263,7 +263,7 @@ export default function Home() {
             <div className="relative w-full h-[500px] flex items-center justify-center">
               <Image
                 src="/Plan Cost & Manage.png"
-                alt="Plan, cost and manage projects with ease"
+                alt="Concept illustration of connected steps labelled Estimate, Proposal, Planning and Track Costs on a dark background"
                 fill
                 className="object-contain mix-blend-screen brightness-95 [mask-image:radial-gradient(ellipse_at_center,black_0%,black_30%,transparent_75%)] transition-transform duration-700 group-hover:scale-[1.02]"
                 priority
@@ -366,7 +366,7 @@ export default function Home() {
                     <div>
                       <h3 className="text-sm md:text-base font-medium text-white mb-1">Build your quote</h3>
                       <p className="text-sm md:text-base text-gray-400">
-                        Set your price, add your capability statement, and drop in your terms. Done in minutes, not hours.
+                        Set your price, add your capability statement, and drop in your terms. Nothing is retyped between steps.
                       </p>
                     </div>
                   </div>
@@ -410,9 +410,9 @@ export default function Home() {
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-sm md:text-base font-medium text-white mb-1">Win the work</h3>
+                      <h3 className="text-sm md:text-base font-medium text-white mb-1">Share the proposal</h3>
                       <p className="text-sm md:text-base text-gray-400">
-                        Show clients you&apos;re ready to deliver&mdash;professional, prepared, and in control from day one.
+                        Share one link. Clients can confirm receipt or a non-binding intention to proceed&mdash;neither is acceptance.
                       </p>
                     </div>
                   </div>
@@ -436,7 +436,7 @@ export default function Home() {
             <div className="relative w-full h-[500px] flex items-center justify-center">
               <Image
                 src="/Quote Plan Deliver 1.png"
-                alt="How it works"
+                alt="Diagram graphic reading Quote it, Plan it, Deliver it, with document, calendar and tick icons"
                 fill
                 className="object-contain mix-blend-screen brightness-95 [mask-image:radial-gradient(ellipse_at_center,black_0%,black_30%,transparent_75%)] transition-transform duration-700 group-hover:scale-[1.05]"
                 priority
@@ -582,7 +582,7 @@ export default function Home() {
             <div className="relative w-full h-[500px] flex items-center justify-center group">
               <Image
                 src="/Build Proposal.png"
-                alt="Born from Experience"
+                alt="Concept illustration of proposal, cost and schedule panels in a dark interface style; not a product screenshot"
                 fill
                 className="object-contain mix-blend-screen brightness-95 [mask-image:radial-gradient(ellipse_at_center,black_0%,black_30%,transparent_75%)] transition-transform duration-700 group-hover:scale-[1.05]"
                 priority

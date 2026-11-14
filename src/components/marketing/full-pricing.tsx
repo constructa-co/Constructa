@@ -360,7 +360,7 @@ export default function FullPricingPage() {
               <div className="relative w-full h-[500px] rounded-xl overflow-hidden backdrop-blur-sm bg-black/20">
                 <Image
                   src="/images/whyconstructa.png"
-                  alt="Built with experience"
+                  alt="Two construction workers in hard hats and hi-vis vests reviewing a tablet against a sunset"
                   fill
                   className="object-contain"
                   priority

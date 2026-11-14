@@ -33,7 +33,7 @@ describe('full marketing home CTAs', () => {
       const tag = html.match(new RegExp(`<a\\b[^>]*id="${id}"[^>]*>`))?.[0] ?? '';
       expect(tag).toContain('href="/apply"');
     }
-    expect(html).toMatch(/href="\/apply"[^>]*>\s*Get Started Free/);
+    expect(html).toMatch(/href="\/apply"[^>]*>\s*Apply to the founding cohort/);
     expect(html).not.toMatch(/id="try-constructa-[^"]+"[^>]*href="#"/);
   });
 });

@@ -251,8 +251,8 @@ export default function FullFeaturesPage() {
             Constructa isn't just software—it's the structure that helps you price better, plan tighter, and deliver with confidence.
           </p>
           <div className="mt-12">
-            <a href="/login" className="inline-flex h-12 items-center justify-center px-8 bg-white text-black text-sm font-black uppercase tracking-widest rounded-xl hover:bg-gray-100 transition-colors shadow-lg shadow-white/10">
-              Get Started for free
+            <a href="/apply" className="inline-flex h-12 items-center justify-center px-8 bg-white text-black text-sm font-black uppercase tracking-widest rounded-xl hover:bg-gray-100 transition-colors shadow-lg shadow-white/10">
+              Apply to the founding cohort
             </a>
           </div>
         </div>

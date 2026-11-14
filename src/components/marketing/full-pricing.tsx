@@ -132,9 +132,12 @@ export default function FullPricingPage() {
                 <span className="text-3xl font-bold">{getBillingText(calculatePrice(PLANS.basic.monthly, billingPeriod))}</span>
                 <div className="text-xs text-gray-400 mt-1">{getBillingSubtext()}</div>
               </div>
-              <button className="w-full py-3 px-4 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors mb-8">
-                Get Started
-              </button>
+              <a
+                href="/apply"
+                className="block w-full py-3 px-4 rounded-xl bg-white/10 text-white text-sm font-medium text-center hover:bg-white/20 transition-colors mb-8"
+              >
+                Apply
+              </a>
               <div className="space-y-4">
                 <div className="text-sm text-gray-400 font-medium">What&apos;s included</div>
                 {PLANS.basic.features.map((feature, index) => (
@@ -159,9 +162,12 @@ export default function FullPricingPage() {
                 <span className="text-3xl font-bold">{getBillingText(calculatePrice(PLANS.standard.monthly, billingPeriod))}</span>
                 <div className="text-xs text-gray-400 mt-1">{getBillingSubtext()}</div>
               </div>
-              <button className="w-full py-3 px-4 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors mb-8">
-                Get Started
-              </button>
+              <a
+                href="/apply"
+                className="block w-full py-3 px-4 rounded-xl bg-white/10 text-white text-sm font-medium text-center hover:bg-white/20 transition-colors mb-8"
+              >
+                Apply
+              </a>
               <div className="space-y-4">
                 <div className="text-sm text-gray-400 font-medium">What&apos;s included</div>
                 {PLANS.standard.features.map((feature, index) => (
@@ -189,9 +195,12 @@ export default function FullPricingPage() {
                 <span className="text-3xl font-bold">{getBillingText(calculatePrice(PLANS.professional.monthly, billingPeriod))}</span>
                 <div className="text-xs text-gray-600 mt-1">{getBillingSubtext()}</div>
               </div>
-              <button className="w-full py-3 px-4 rounded-xl bg-black text-white text-sm font-medium hover:bg-gray-900 transition-colors mb-8">
-                Get Started
-              </button>
+              <a
+                href="/apply"
+                className="block w-full py-3 px-4 rounded-xl bg-black text-white text-sm font-medium text-center hover:bg-gray-900 transition-colors mb-8"
+              >
+                Apply
+              </a>
               <div className="space-y-4">
                 <div className="text-sm text-gray-600 font-medium">What&apos;s included</div>
                 {PLANS.professional.features.map((feature, index) => (

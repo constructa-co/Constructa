@@ -79,7 +79,7 @@ export default function ClientResources({ labour, plant }: { labour: any[]; plan
 
                     <div className="grid gap-4">
                         {labour.map((item) => (
-                            <Card key={item.id} className="flex flex-row items-center justify-between p-4 hover:border-blue-200 transition-colors">
+                            <Card key={item.id} className="flex flex-row items-center justify-between p-4 hover:border-emerald-200 transition-colors">
                                 <div className="flex flex-col">
                                     <span className="font-semibold text-lg text-slate-800">{item.description}</span>
                                     <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-500 w-fit mt-1 border border-slate-200">{item.code}</span>
@@ -129,7 +129,7 @@ export default function ClientResources({ labour, plant }: { labour: any[]; plan
 
                     <div className="grid gap-4">
                         {plant.map((item) => (
-                            <Card key={item.id} className="flex flex-row items-center justify-between p-4 hover:border-blue-200 transition-colors">
+                            <Card key={item.id} className="flex flex-row items-center justify-between p-4 hover:border-emerald-200 transition-colors">
                                 <div className="flex flex-col">
                                     <span className="font-semibold text-lg text-slate-800">{item.description}</span>
                                     <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 w-fit mt-1 border border-emerald-100 font-medium">{item.ownership_status}</span>

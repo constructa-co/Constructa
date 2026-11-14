@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-11-14 — A001 resources hub card hover chrome (cursor/a001-resources-hub-card-hover-e757)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/resources/client-page.tsx` | 82, 132 | `hover:border-blue-200` → `hover:border-emerald-200` on labour/plant list cards | Nonsemantic brand chrome on legacy Company Resources hub matches charcoal/sage palette |
+| `src/app/dashboard/resources/a001-resources-primary-palette.test.ts` | new `it` | Assert emerald hover; forbid `hover:border-blue-` on hub | Focused A001 regression guard |
+
 ## 2026-11-14 — D6/D7 cohort About nav, design system, images, home CTAs (cursor/d6-d7-about-nav-images-093b)
 
 | File | Lines (approx.) | Change | Intent |

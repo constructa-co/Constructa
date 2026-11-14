@@ -65,6 +65,12 @@ describe("A001 resources primary palette", () => {
         expect(source).toContain("focus:ring-blue-600");
     });
 
+    it("legacy hub list cards use emerald hover border, not brand-blue chrome", () => {
+        const source = read("client-page.tsx");
+        expect(source).toContain("hover:border-emerald-200");
+        expect(source).not.toMatch(/hover:border-blue-/);
+    });
+
     it("portfolio: allocation/save copies retained; info banner and legend blues stay", () => {
         const source = read("portfolio/portfolio-client.tsx");
         expect(source).toContain("Add Allocation");

@@ -11,12 +11,13 @@ import {
     plannerDisplayPlan,
     plannerPhaseSpan,
     plannerPhasesOnOpen,
+    plannerReviewStageIndexes,
     savedPlannerPhases,
     sequenceSuggestedPhases,
     sequencePlannerPhases,
     type PlannerPhase,
 } from "@/lib/planner-phases";
-import { addJobWorkingDays, jobCalendarOffset, nextJobWorkingDayAfter, resolveJobWorkingPattern } from "@/lib/job-working-pattern";
+import { addJobWorkingDays, jobCalendarOffset, jobProductiveMinutesPerDay, nextJobWorkingDayAfter, resolveJobWorkingPattern } from "@/lib/job-working-pattern";
 import { programmeBasisNote } from "@/lib/relative-programme";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -368,6 +369,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
     const totalManhours = phases.reduce((s, p) => s + p.manhours, 0);
     const displayPlan = plannerDisplayPlan(toInputDate(programmeStart), phases, daysPerWeek, workingPattern);
+    const reviewStages = plannerReviewStageIndexes(phases);
     // Stage offsets are relative to the plan's first activity, not the weekly axis.
     const planAxisOffset = displayPlan
         ? jobCalendarOffset(toInputDate(gridStart), displayPlan.start_date) ?? 0
@@ -727,7 +729,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         {
                             label: "Manhours",
                             value: totalManhours > 0 ? `${Math.round(totalManhours)}h` : "—",
-                            sub: totalManhours > 0 ? `${Math.round(totalManhours / 8)} working days` : "No manhours",
+                            sub: totalManhours > 0 ? `${Math.round(totalManhours / (jobProductiveMinutesPerDay(workingPattern) / 60))} working days` : "No manhours",
                         },
                     ].map(({ label, value, sub }) => (
                         <div key={label} className="bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-3">
@@ -758,6 +760,16 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 <p role="note" data-planner-suggestion className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
                     These stages are a starting point taken from your estimate. They are not saved, and your proposal does not
                     use them, until you change one or press Save to Proposal.
+                </p>
+            )}
+
+            {/* ── Stages with no length: the dated plan leaves them out until they are checked ── */}
+            {reviewStages.length > 0 && (
+                <p role="alert" data-planner-review-notice className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                    {reviewStages.length === 1 ? "1 stage has" : `${reviewStages.length} stages have`} no working days
+                    ({reviewStages.map(index => phases[index].name || `Stage ${index + 1}`).join(", ")}). The estimate
+                    gave no labour quantity to work from. Set the days, or remove the stage, before the dated programme
+                    can include {reviewStages.length === 1 ? "it" : "them"}.
                 </p>
             )}
 
@@ -856,6 +868,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                                 <span>{fmtDate(phaseStart)} – {fmtDate(phaseEnd)}</span>
                                                 {phase.manhours > 0 && <span>· {Math.round(phase.manhours)}h</span>}
                                                 {isCritical && <span className="text-yellow-500">★</span>}
+                                                {reviewStages.includes(idx) && <span data-planner-review-flag className="text-amber-400 font-semibold">Check days</span>}
                                             </div>
                                         </div>
 

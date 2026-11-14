@@ -305,6 +305,52 @@ export function effectiveLocalDayMinutesOnDate(iso: string, pattern: JobWorkingP
     return rounded;
 }
 
+/** Version 1 patterns carry no capacity, so a programme day is the conventional eight hours. */
+const DEFAULT_PRODUCTIVE_MINUTES_PER_DAY = 480;
+
+/** Productive minutes in one programme working day: the explicit capacity for version 2, eight hours otherwise. */
+export function jobProductiveMinutesPerDay(value?: unknown): number {
+    const pattern = resolveJobWorkingPattern(value);
+    return pattern && isJobWorkingPatternV2(pattern) ? pattern.standardMinutesPerDay : DEFAULT_PRODUCTIVE_MINUTES_PER_DAY;
+}
+
+/**
+ * The first civil date on or after `iso` with working capacity: where a run of
+ * working days actually begins. Version 2 only; null for anything else.
+ */
+export function jobCapacityStartDay(iso: string, value?: unknown): string | null {
+    const pattern = resolveJobWorkingPattern(value);
+    return pattern && isJobWorkingPatternV2(pattern) ? rollForwardLocal(iso, pattern, maxLocalWalkDays(60)) : null;
+}
+
+/**
+ * Productive minutes on the civil dates from `startIso` to `endIso`, both
+ * included. An overnight shift contributes to the date each part falls on, so
+ * this measures work rather than how many dates it touches. Version 2 only;
+ * null when the pattern is not version 2 or a date cannot be resolved.
+ */
+export function jobCapacityMinutes(startIso: string, endIso: string, value?: unknown): number | null {
+    const pattern = resolveJobWorkingPattern(value);
+    if (!pattern || !isJobWorkingPatternV2(pattern)) return null;
+    const startUtc = localStartOfDayUtc(startIso, pattern.timezone);
+    const endUtc = localStartOfDayUtc(endIso, pattern.timezone);
+    if (startUtc === null || endUtc === null) return null;
+    if (endUtc < startUtc) return 0;
+    let current = startIso;
+    let total = 0;
+    const maxDays = maxLocalWalkDays(Math.ceil((endUtc - startUtc) / DAY_MS) + 1);
+    for (let guard = 0; guard < maxDays; guard += 1) {
+        const minutes = effectiveLocalDayMinutesOnDate(current, pattern);
+        if (minutes === null) return null;
+        total += minutes;
+        if (current === endIso) return total;
+        const next = nextLocalIsoDate(current, pattern.timezone);
+        if (!next) return null;
+        current = next;
+    }
+    return null;
+}
+
 export function clearJobWorkingPatternCachesForTests() {
     dayMinutesCache.clear();
 }

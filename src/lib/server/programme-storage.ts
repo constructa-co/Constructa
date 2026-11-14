@@ -3,7 +3,7 @@ import { isDeepStrictEqual } from "node:util";
 import { isDefaultJobWorkingPattern, resolveJobWorkingPattern } from "@/lib/job-working-pattern";
 import { workingPatternsEquivalent } from "@/lib/working-pattern-canonical";
 import { readProgrammeInclusion, withProgrammeInclusion } from "@/lib/programme-inclusion";
-import { planCoversEveryPhase } from "@/lib/programme-plan";
+import { draftPlanCoversEveryPhase } from "@/lib/programme-plan";
 import { computeDisplayProgramme } from "@/lib/relative-programme";
 
 export const PROGRAMME_CHOICE_UNCONFIRMED = "The programme choice wasn't confirmed and may already have saved. Reload Programme before retrying.";
@@ -43,7 +43,8 @@ export async function writeProgrammeStorage(
         if (change.expectedWorkingPattern !== undefined) {
             if (!workingPatternsEquivalent(change.expectedWorkingPattern, storedPattern)) throw new Error(CALENDAR_CHANGED);
             // Validate the incoming activities, not their omission metadata or the old plan.
-            if (change.phases.length > 200 || !planCoversEveryPhase(
+            // A stage flagged for review with no length is kept as a draft; publication and readiness still refuse it.
+            if (change.phases.length > 200 || !draftPlanCoversEveryPhase(
                 computeDisplayProgramme(change.startDate ?? project.start_date, change.phases, storedPattern), change.phases,
             )) throw new Error("Check every programme phase's start and duration before saving.");
         } else if (!isDefaultJobWorkingPattern(storedPattern)) {

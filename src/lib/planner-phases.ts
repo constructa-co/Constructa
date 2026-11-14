@@ -15,7 +15,7 @@
 import { SIMPLE_LINE_SECTION } from "./simple-estimate";
 import { WHOLE_JOB_NAME } from "./simple-programme";
 import { computeProgrammePlan, phaseWorkingDays, WORKING_DAYS_PER_WEEK, type ProgrammePlan } from "./programme-plan";
-import { addJobWorkingDays, jobCalendarOffset, nextJobWorkingDayAfter } from "./job-working-pattern";
+import { addJobWorkingDays, jobCalendarOffset, jobProductiveMinutesPerDay, nextJobWorkingDayAfter } from "./job-working-pattern";
 
 export interface PlannerPhase {
     name: string;
@@ -29,6 +29,8 @@ export interface PlannerPhase {
     color?: string;
     dependsOn?: number[];
     pct_complete?: number;
+    /** Set when the length could not be worked out (e.g. a quantity of 0) and the contractor should check it. */
+    needsReview?: boolean;
     actual_start_date?: string;
     actual_finish_date?: string;
 }
@@ -54,6 +56,15 @@ export function plannerDisplayPlan(startDate: string, phases: PlannerPhase[], da
     return plan && plan.stages.length === phases.length ? plan : null;
 }
 
+/**
+ * Indexes of stages flagged for review that still have no working days. The
+ * dated plan drops such a stage, so the planner shows the flag until the
+ * contractor gives it a length.
+ */
+export function plannerReviewStageIndexes(phases: readonly PlannerPhase[]): number[] {
+    return phases.flatMap((phase, index) => (phase.needsReview && phaseWorkingDays(phase) === 0 ? [index] : []));
+}
+
 /** Exact geometry from the same inclusive calendar used by proposals. */
 export function plannerPhaseSpan(startDate: string, phase: PlannerPhase, workingPattern: unknown): { startOffset: number; calendarDays: number } | null {
     const stage = computeProgrammePlan(startDate, [phase], workingPattern)?.stages[0];
@@ -68,10 +79,12 @@ export function sequencePlannerPhases<T extends Pick<PlannerPhase, "name" | "cal
     for (const phase of phases) {
         if (!cursor) return null;
         const startOffset = jobCalendarOffset(startDate, cursor);
-        const finish = addJobWorkingDays(cursor, phaseWorkingDays(phase), workingPattern);
+        const days = phaseWorkingDays(phase);
+        // A zero-length stage takes no time: it sits at the cursor and the next stage starts there too.
+        const finish = days > 0 ? addJobWorkingDays(cursor, days, workingPattern) : cursor;
         if (startOffset === null || !finish) return null;
         placed.push({ ...phase, startOffset, ...("start_date" in phase ? { start_date: cursor } : {}) });
-        cursor = nextJobWorkingDayAfter(finish, workingPattern);
+        if (days > 0) cursor = nextJobWorkingDayAfter(finish, workingPattern);
     }
     return placed;
 }
@@ -115,19 +128,26 @@ export function sequenceSuggestedPhases<T extends Pick<PlannerPhase, "name" | "c
 
 /** Stages worked out from the labour hours in an estimate, one per section that has any. */
 export function estimateSuggestedPhases(estimate: PlannerEstimate | null | undefined, daysPerWeek: number, startDate?: string, workingPattern?: unknown): PlannerPhase[] {
-    const sectionManhours = new Map<string, number>();
+    const hoursPerDay = jobProductiveMinutesPerDay(workingPattern) / 60;
+    const sections = new Map<string, { perUnit: number; total: number }>();
     for (const line of estimate?.estimate_lines ?? []) {
         const hours = (line.estimate_line_components ?? []).reduce((sum, component) => sum + (component.total_manhours || 0), 0);
         const section = line.trade_section || SIMPLE_LINE_SECTION;
-        sectionManhours.set(section, (sectionManhours.get(section) ?? 0) + hours * (line.quantity || 1));
+        // A missing quantity counts as one; an explicit quantity of 0 is no work.
+        const quantity = line.quantity ?? 1;
+        const entry = sections.get(section) ?? { perUnit: 0, total: 0 };
+        entry.perUnit += hours;
+        entry.total += hours * quantity;
+        sections.set(section, entry);
     }
-    const phases = [...sectionManhours.entries()]
-        .filter(([, manhours]) => manhours > 0)
-        .map(([name, manhours]) => ({
+    const phases: Omit<PlannerPhase, "startOffset">[] = [...sections.entries()]
+        .filter(([, { perUnit, total }]) => perUnit > 0 || total > 0)
+        .map(([name, { total }]) => ({
             name,
-            calculatedDays: Math.max(Math.ceil(manhours / 8), 1),
+            calculatedDays: total > 0 ? Math.max(Math.ceil(total / hoursPerDay), 1) : 0,
             manualDays: null,
-            manhours,
+            manhours: total,
+            ...(total > 0 ? {} : { needsReview: true }),
         }));
     return sequenceSuggestedPhases(phases, daysPerWeek, startDate, workingPattern);
 }

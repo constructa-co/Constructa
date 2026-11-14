@@ -19,9 +19,9 @@ describe("A001 dashboard home primary palette", () => {
         expect(source).toContain("+ Create Your First Project");
         // The brand tile behind the C letter is charcoal/green, not blue.
         expect(source).not.toMatch(/rounded-2xl bg-blue-/);
-        // Non-primary blues are untouched: the launch-notice banner and any
-        // informational styling are not part of this palette fix.
-        expect(source).toMatch(/bg-blue-500\/10/);
+        // Launch notice uses emerald/charcoal info chrome, not legacy brand blue.
+        expect(source).toMatch(/border-emerald-500\/30 bg-emerald-500\/10/);
+        expect(source).not.toMatch(/launchNotice[\s\S]*border-blue-500/);
     });
 
     it("first-project-start: sole primary action uses the core palette; geometry and journey kept", () => {

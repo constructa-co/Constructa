@@ -13,8 +13,10 @@ export function FoundingCohortApplyStorageNotice() {
     >
       <strong className={styles.storageNoticeTitle}>Applications are not saved yet.</strong>
       <p className={styles.storageNoticeBody}>
-        This preview form is not connected to storage. Nothing you enter here is kept or emailed.
-        To reach the team in the meantime, use the{" "}
+        This form is a preview and is not connected to storage, so applications cannot be
+        submitted yet — nothing you type here is sent, saved or emailed. Our{" "}
+        <Link href="/privacy-policy">privacy policy</Link> explains how we handle personal
+        details. To reach the team in the meantime, use the{" "}
         <Link href="/contact">contact page</Link>.
       </p>
     </div>

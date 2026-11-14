@@ -22,6 +22,17 @@
 | `src/lib/__fixtures__/proposal.ts` | case_studies rows | Pre-labelled synthetic examples | Fixture metadata matches A037 contract |
 | `src/app/dashboard/settings/case-studies/a037-example-tags.test.ts` | (new) | Source guard + save passthrough for tag arrays | Focused checks |
 
+## 2026-11-14 — A001 dashboard / estimate / programme palette sweep (cursor/a001-dashboard-estimate-programme-sweep-9d86)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/dashboard-client.tsx` | launch notice banner | Blue info chrome → emerald/charcoal tokens | Pipeline dashboard launch notice matches A001 |
+| `src/app/dashboard/home/home-client.tsx` | KPI win rate, pipeline value | Purple/blue metric chrome → emerald where not stage semantic | Command centre money/success highlights on sage palette |
+| `src/app/dashboard/projects/costs/advanced-estimate.tsx` | drawing takeoff callout | Purple dashed callout → emerald | Estimate AI entry chrome aligns with charcoal/green |
+| `src/app/dashboard/projects/schedule/programme-ai-update.tsx` | AI panel + Generate CTA | Purple → `corePrimaryButton` / emerald accents | Programme weekly-update actions on approved tokens |
+| `a001-dashboard-primary-palette.test.tsx`, `a001-home-pipeline-brand-links.test.ts` | expectations | Guard updated tokens; stage status blues preserved | Focused regression |
+| `a001-programme-ai-brand.test.ts`, `a001-estimate-drawing-callout.test.ts` | new | Source assertions for programme + estimate sweep | Bounded A001 guards |
+
 ## 2026-11-14 — A001 resources hub card hover chrome (cursor/a001-resources-hub-card-hover-e757)
 
 | File | Lines (approx.) | Change | Intent |

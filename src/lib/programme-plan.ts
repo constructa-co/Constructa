@@ -146,8 +146,13 @@ function positive(value: unknown): number {
  */
 export function phaseWorkingDays(phase: unknown): number {
     const p = asRecord(phase);
-    const manual = p.manualDays === null || p.manualDays === undefined ? 0 : positive(p.manualDays);
-    return Math.round(manual || positive(p.calculatedDays));
+    const raw = p.manualDays;
+    if (raw !== null && raw !== undefined && raw !== "") {
+        const manual = typeof raw === "number" ? raw : Number(raw);
+        // An explicit zero is the contractor's (or a review flag's) answer; it must not fall back to the calculated length.
+        if (Number.isFinite(manual) && manual >= 0) return Math.ceil(manual);
+    }
+    return Math.round(positive(p.calculatedDays));
 }
 
 interface ReadPhase {
@@ -193,6 +198,18 @@ function readPhase(entry: unknown, index: number, programmeStartMs: number | nul
     return toIso(endMs) === null ? null : { name, startMs, endMs, requestedWorkingDays: calendarDays };
 }
 
+/** Exact union: merge the stages' date ranges, then count the pattern's working days in each merged range once. */
+function countCoveredWorkingDays(stages: readonly ReadPhase[], pattern: JobWorkingPattern): number {
+    const ranges = stages.map(({ startMs, endMs }) => ({ startMs, endMs })).sort((a, b) => a.startMs - b.startMs);
+    const merged: Array<{ startMs: number; endMs: number }> = [];
+    for (const range of ranges) {
+        const last = merged[merged.length - 1];
+        if (last && range.startMs <= last.endMs + DAY_MS) last.endMs = Math.max(last.endMs, range.endMs);
+        else merged.push({ ...range });
+    }
+    return merged.reduce((sum, { startMs, endMs }) => sum + countJobWorkingDays(toIso(startMs)!, toIso(endMs)!, pattern), 0);
+}
+
 // ── The plan ─────────────────────────────────────────────────────────────────
 
 /**
@@ -222,9 +239,9 @@ export function computeProgrammePlan(
     const endMs = Math.max(...read.map((phase) => phase.endMs));
     const startIso = toIso(startMs)!;
     const endIso = toIso(endMs)!;
-    const explicitWorkingDays = read.reduce((sum, phase) => sum + phase.requestedWorkingDays, 0);
-    const workingDays = isJobWorkingPatternV2(pattern) && explicitWorkingDays > 0
-        ? explicitWorkingDays
+    // Version 2 counts each working day any stage covers once, so overlaps are not doubled and gaps between stages are not counted.
+    const workingDays = isJobWorkingPatternV2(pattern)
+        ? countCoveredWorkingDays(read, pattern)
         : countJobWorkingDays(startIso, endIso, pattern);
 
     return {

@@ -11,6 +11,7 @@ import {
     plannerDisplayPlan,
     plannerPhaseSpan,
     plannerPhasesOnOpen,
+    plannerReviewStageIndexes,
     savedPlannerPhases,
     sequenceSuggestedPhases,
     sequencePlannerPhases,
@@ -368,6 +369,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
     const totalManhours = phases.reduce((s, p) => s + p.manhours, 0);
     const displayPlan = plannerDisplayPlan(toInputDate(programmeStart), phases, daysPerWeek, workingPattern);
+    const reviewStages = plannerReviewStageIndexes(phases);
     // Stage offsets are relative to the plan's first activity, not the weekly axis.
     const planAxisOffset = displayPlan
         ? jobCalendarOffset(toInputDate(gridStart), displayPlan.start_date) ?? 0
@@ -761,6 +763,16 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 </p>
             )}
 
+            {/* ── Stages with no length: the dated plan leaves them out until they are checked ── */}
+            {reviewStages.length > 0 && (
+                <p role="alert" data-planner-review-notice className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                    {reviewStages.length === 1 ? "1 stage has" : `${reviewStages.length} stages have`} no working days
+                    ({reviewStages.map(index => phases[index].name || `Stage ${index + 1}`).join(", ")}). The estimate
+                    gave no labour quantity to work from. Set the days, or remove the stage, before the dated programme
+                    can include {reviewStages.length === 1 ? "it" : "them"}.
+                </p>
+            )}
+
             {/* ── Empty state ── */}
             {phases.length === 0 && (
                 <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl px-5 py-16 text-center">
@@ -856,6 +868,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                                 <span>{fmtDate(phaseStart)} – {fmtDate(phaseEnd)}</span>
                                                 {phase.manhours > 0 && <span>· {Math.round(phase.manhours)}h</span>}
                                                 {isCritical && <span className="text-yellow-500">★</span>}
+                                                {reviewStages.includes(idx) && <span data-planner-review-flag className="text-amber-400 font-semibold">Check days</span>}
                                             </div>
                                         </div>
 

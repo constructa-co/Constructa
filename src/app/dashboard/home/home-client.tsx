@@ -509,7 +509,7 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
                     <KpiCard label="Pending Variations" value={pendingVarValue > 0 ? fmt(pendingVarValue) : String(pendingVars.length)} sub={`${pendingVars.length} awaiting approval`} colour={pendingVars.length > 0 ? "text-violet-400" : "text-slate-500"} icon={GitBranch} />
                     <KpiCard label="CE Exposure"        value={ceExposure > 0 ? fmt(ceExposure) : "—"} sub={`${openCEs.length} open change event${openCEs.length !== 1 ? "s" : ""}`} colour={ceExposure > 0 ? "text-red-400" : "text-slate-500"} icon={ShieldAlert} />
                     <KpiCard label="Open RFIs"          value={String(openRfis.length)} sub={overdueRfis.length > 0 ? `${overdueRfis.length} overdue` : "none overdue"} colour={overdueRfis.length > 0 ? "text-red-400" : openRfis.length > 0 ? "text-amber-400" : "text-slate-500"} icon={MessageSquare} />
-                    <KpiCard label="Win Rate (90d)"     value={winRate !== null ? `${winRate}%` : "—"} sub={decided.length > 0 ? `${won} of ${decided.length} decided` : "no data yet"} colour={winRate !== null && winRate >= 50 ? "text-purple-400" : "text-slate-500"} icon={CheckCircle2} />
+                    <KpiCard label="Win Rate (90d)"     value={winRate !== null ? `${winRate}%` : "—"} sub={decided.length > 0 ? `${won} of ${decided.length} decided` : "no data yet"} colour={winRate !== null && winRate >= 50 ? "text-emerald-400" : "text-slate-500"} icon={CheckCircle2} />
                 </div>
 
                 {/* ── Main content: active projects + right panel ── */}
@@ -631,7 +631,7 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
                                                 <p className="text-xs text-slate-500">{p.client_name} · {timeAgo(p.proposal_sent_at ?? p.created_at)}</p>
                                             </div>
                                             <div className="text-right">
-                                                {p.potential_value > 0 && <p className="text-sm font-semibold text-blue-400">{fmt(p.potential_value)}</p>}
+                                                {p.potential_value > 0 && <p className="text-sm font-semibold text-emerald-400">{fmt(p.potential_value)}</p>}
                                                 <StatusBadge status={p.proposal_status ?? p.status} />
                                             </div>
                                         </Link>

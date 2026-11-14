@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { generateWeeklyUpdateAction, getProgrammeUpdatesAction } from "./actions";
 import { Loader2, Sparkles, ChevronDown, ChevronUp, Copy, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 interface Props {
     projectId: string;
@@ -48,7 +49,7 @@ export default function ProgrammeAiUpdate({ projectId, projectName }: Props) {
             <div className="flex items-center justify-between">
                 <div>
                     <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-purple-400" />
+                        <Sparkles className="w-4 h-4 text-emerald-400" />
                         AI Weekly Progress Update
                     </h3>
                     <p className="text-xs text-slate-500 mt-0.5">Generates a professional update email based on your phase progress above</p>
@@ -64,7 +65,7 @@ export default function ProgrammeAiUpdate({ projectId, projectName }: Props) {
                     <button
                         onClick={handleGenerate}
                         disabled={isPending}
-                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-60"
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                     >
                         {isPending
                             ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
@@ -76,9 +77,9 @@ export default function ProgrammeAiUpdate({ projectId, projectName }: Props) {
 
             {/* Generated narrative */}
             {narrative && (
-                <div className="bg-slate-900/60 border border-purple-500/20 rounded-xl p-5 space-y-3">
+                <div className="bg-slate-900/60 border border-emerald-500/20 rounded-xl p-5 space-y-3">
                     <div className="flex items-center justify-between">
-                        <p className="text-xs font-semibold text-purple-400 uppercase tracking-wider">Weekly Progress Update — {projectName}</p>
+                        <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Weekly Progress Update — {projectName}</p>
                         <button
                             onClick={handleCopy}
                             className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-slate-400 border border-slate-700 rounded-lg hover:text-slate-200 hover:border-slate-500 transition-colors"
@@ -106,7 +107,7 @@ export default function ProgrammeAiUpdate({ projectId, projectName }: Props) {
                             <p className="text-xs text-slate-400 leading-relaxed line-clamp-3">{h.narrative}</p>
                             <button
                                 onClick={() => { setNarrative(h.narrative); setShowHistory(false); }}
-                                className="mt-2 text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                                className="mt-2 text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
                             >
                                 View full →
                             </button>

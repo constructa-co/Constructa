@@ -14,7 +14,13 @@ import {
   submitFoundingCohortApplicationAction,
   type FoundingCohortApplyFormState,
 } from "@/app/apply/actions";
+import { hasFoundingCohortApplicationStorageAdapter } from "@/lib/founding-cohort/submission-adapter";
+import {
+  FOUNDING_COHORT_APPLY_STORAGE_NOTICE_ID,
+} from "./founding-cohort-apply-storage-notice";
 import styles from "./founding-cohort-apply.module.css";
+
+const storageReady = hasFoundingCohortApplicationStorageAdapter();
 
 function mergeFieldErrors(
   client: FoundingCohortApplicationFieldErrors,
@@ -44,6 +50,10 @@ export function FoundingCohortApplyForm() {
   const fieldErrors = mergeFieldErrors(clientErrors, serverErrors);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    if (!storageReady) {
+      event.preventDefault();
+      return;
+    }
     const form = event.currentTarget;
     const formData = new FormData(form);
     const raw = Object.fromEntries(formData.entries());
@@ -56,11 +66,11 @@ export function FoundingCohortApplyForm() {
     setClientErrors({});
   };
 
-  if (state.status === "success") {
+  if (storageReady && state.status === "success") {
     return (
       <p className={styles.success} role="status">
-        Thank you for your interest in the founding cohort. Applications are not being
-        collected yet. Already have access?{" "}
+        Thank you for your interest in the founding cohort. We have recorded your details and
+        will be in touch. Already have access?{" "}
         <Link href="/login">Sign in here</Link>.
       </p>
     );
@@ -75,9 +85,12 @@ export function FoundingCohortApplyForm() {
       ) : null}
       <form
         className={styles.form}
-        action={formAction}
+        action={storageReady ? formAction : undefined}
         onSubmit={handleSubmit}
         noValidate
+        aria-describedby={
+          storageReady ? undefined : FOUNDING_COHORT_APPLY_STORAGE_NOTICE_ID
+        }
       >
         <div className={styles.field}>
           <label className={styles.label} htmlFor="apply-name">
@@ -214,8 +227,17 @@ export function FoundingCohortApplyForm() {
         </div>
 
         <div className={styles.actions}>
-          <button type="submit" className={styles.submit} disabled={isPending}>
-            {isPending ? "Sending…" : "Submit application"}
+          <button
+            type="submit"
+            className={styles.submit}
+            disabled={!storageReady || isPending}
+            aria-disabled={!storageReady || isPending}
+          >
+            {storageReady
+              ? isPending
+                ? "Sending…"
+                : "Submit application"
+              : "Submission unavailable"}
             <ArrowRight size={18} aria-hidden="true" />
           </button>
         </div>

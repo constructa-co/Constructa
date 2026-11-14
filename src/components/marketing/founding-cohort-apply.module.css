@@ -36,6 +36,20 @@
 .formSection { max-width: 1600px; margin: auto; padding: 0 4.5% 100px; }
 .formPanel { max-width: 760px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); padding: 36px 40px 40px; }
 .todoNotice { margin: 0 0 28px; padding: 14px 16px; border: 1px dashed #526455; border-radius: 8px; background: #151a16; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.storageNotice {
+  margin: 0 0 28px;
+  padding: 14px 16px;
+  border: 1px solid #6b5550;
+  border-radius: 8px;
+  background: #231816;
+  color: #e8d8d4;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.storageNoticeTitle { display: block; margin: 0 0 6px; font-size: 14px; font-weight: 650; color: #f4e8e4; }
+.storageNoticeBody { margin: 0; color: #d9c9c5; font-size: 14px; line-height: 1.6; }
+.storageNoticeBody a { color: var(--ink); text-underline-offset: 3px; }
+.storageNoticeBody a:hover { color: var(--accent); }
 .form { display: grid; gap: 22px; margin: 0; }
 .field { display: grid; gap: 8px; }
 .label { font-size: 13px; font-weight: 650; letter-spacing: .02em; color: #d6ded7; }

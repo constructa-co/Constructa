@@ -4,7 +4,10 @@ import {
   parseFoundingCohortApplicationInput,
   type FoundingCohortApplicationFieldErrors,
 } from "@/lib/founding-cohort/application-schema";
-import { submitFoundingCohortApplication } from "@/lib/founding-cohort/submission-adapter";
+import {
+  hasFoundingCohortApplicationStorageAdapter,
+  submitFoundingCohortApplication,
+} from "@/lib/founding-cohort/submission-adapter";
 
 export type FoundingCohortApplyFormState =
   | { status: "idle" }
@@ -34,6 +37,14 @@ export async function submitFoundingCohortApplicationAction(
   const parsed = parseFoundingCohortApplicationInput(formDataToRecord(formData));
   if (!parsed.ok) {
     return { status: "validation_error", fieldErrors: parsed.fieldErrors };
+  }
+
+  if (!hasFoundingCohortApplicationStorageAdapter()) {
+    return {
+      status: "error",
+      message:
+        "Applications cannot be submitted yet because storage is not connected. Use the contact page to reach the team.",
+    };
   }
 
   try {

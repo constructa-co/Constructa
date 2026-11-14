@@ -14,6 +14,18 @@
 | `src/app/about/about-preview-status.test.tsx` | mock + assertion | `next/image` mock; hero disclosure + image count | Synthetic verification for D7 |
 | `src/components/marketing/full-home-cta.test.tsx` | (new) | Home CTA href regression | Preserve `feature-scroll.js`; assert `/apply` targets |
 
+## 2026-11-14 — D5 apply form storage honesty (cursor/d5-apply-storage-notice-3517)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/founding-cohort/submission-adapter.ts` | 3–22 | `hasFoundingCohortApplicationStorageAdapter()` gate; adapter throws when unwired | Single source for “no real storage” while A109 destination is open |
+| `src/components/marketing/founding-cohort-apply-storage-notice.tsx` | 1–22 | Accessible status notice + `/contact` link | Tell visitors before the form that applications are not saved |
+| `src/components/marketing/founding-cohort-apply-form.tsx` | imports, submit handler, button | Disable no-op submission; `aria-describedby` notice id | Prevent false success and block server action until storage exists |
+| `src/app/apply/page.tsx`, `founding-cohort-apply-page.tsx` | form panel | Replace internal TODO copy with shared notice | Cohort + full profile parity |
+| `src/app/apply/actions.ts` | pre-adapter guard | Return error when storage unwired | Defence in depth if POST is forged |
+| `src/components/marketing/founding-cohort-apply.module.css` | `.storageNotice*` | Visitor-facing alert styling | Readable contrast before the form |
+| `src/app/apply/apply-route.test.tsx`, `actions.test.ts`, `submission-adapter.test.ts`, `founding-cohort-apply-form.test.tsx` | expectations | Synthetic coverage for notice order, disabled submit, server guard | D5 evidence without storage wiring |
+
 ## 2026-11-14 — A109 about page founding cohort apply entry (cursor/a109-about-apply-cta-e8a5)
 
 | File | Lines (approx.) | Change | Intent |

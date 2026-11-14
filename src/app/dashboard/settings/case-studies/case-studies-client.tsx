@@ -11,6 +11,7 @@ import { COHORT_AI_OFF } from "@/lib/cohort-ai/shared";
 import { pendingFrom, sectionState, settle, type PendingCaseStudySuggestion } from "@/lib/cohort-ai/case-study-suggestion";
 import { uploadProfileImageAction } from "@/app/storage/actions";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
+import { keepFirstThreePhotos, legacyExtraPhotoCount } from "./legacy-save-photos";
 import { SAVE_MESSAGES, initialSaveState, needsLeaveWarning, requestOf, saveReducer, statusLine, type SaveAction, type SaveCaseStudiesResult, type SaveState } from "./save-state";
 import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
 import {
@@ -276,6 +277,7 @@ function CaseStudyCard({
 }) {
     const [expanded, setExpanded] = useState(true);
     const [enhancing, setEnhancing] = useState(false);
+    const extraPhotos = legacyExtraPhotoCount(cs.photos);
 
     // A reply is held here until the contractor decides. It never replaces what is in the form by arriving.
     const [pending, setPending] = useState<PendingCaseStudySuggestion | null>(null);
@@ -472,6 +474,22 @@ function CaseStudyCard({
                                 </div>
                             ))}
                         </div>
+                        {extraPhotos > 0 && (
+                            // Older data can hold more than three. They are not shown and cannot be removed slot by slot, and a save with them is refused, so the choice is offered here. Nothing is dropped until it is pressed.
+                            <div data-extra-photos role="status" className="mt-2 flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/50 bg-amber-950/40 p-3 text-xs text-amber-100">
+                                <p className="flex-1 min-w-[12rem]">
+                                    This example has {extraPhotos} more {extraPhotos === 1 ? "picture" : "pictures"} saved than the three allowed. Only the first three are shown, and saving is held until you keep just those three.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => onChange("photos", keepFirstThreePhotos(cs.photos))}
+                                    aria-label={`Keep the first three pictures for past work ${index + 1}`}
+                                    className={`min-h-11 px-3 rounded-lg border border-amber-400 text-sm font-semibold text-amber-50 hover:bg-white/5 ${coreFocusVisibleRing}`}
+                                >
+                                    Keep the first three
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

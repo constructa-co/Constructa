@@ -1,12 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { submitFoundingCohortApplication } from "./submission-adapter";
+import {
+  hasFoundingCohortApplicationStorageAdapter,
+  submitFoundingCohortApplication,
+} from "./submission-adapter";
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
 describe("founding cohort submission adapter", () => {
-  it("no-ops in test without logging", async () => {
+  it("reports that storage is not wired", () => {
+    expect(hasFoundingCohortApplicationStorageAdapter()).toBe(false);
+  });
+
+  it("refuses submit while storage is not wired", async () => {
     const spy = vi.spyOn(console, "info").mockImplementation(() => {});
     await expect(
       submitFoundingCohortApplication({
@@ -17,7 +24,7 @@ describe("founding cohort submission adapter", () => {
         teamSize: "2-5",
         note: undefined,
       }),
-    ).resolves.toBeUndefined();
+    ).rejects.toThrow(/not wired/i);
     expect(spy).not.toHaveBeenCalled();
   });
 });

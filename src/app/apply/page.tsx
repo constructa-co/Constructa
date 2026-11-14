@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FoundingCohortApplyForm } from "@/components/marketing/founding-cohort-apply-form";
+import { FoundingCohortApplyStorageNotice } from "@/components/marketing/founding-cohort-apply-storage-notice";
 import applyStyles from "@/components/marketing/founding-cohort-apply.module.css";
 import { PhaseOneFoundingCohortApply } from "@/components/marketing/founding-cohort-apply-page";
 import { getLaunchProfile } from "@/lib/launch-profile";
@@ -31,9 +32,7 @@ export default function ApplyPage() {
           Already have an account? <Link href="/login">Sign in here</Link>.
         </p>
         <div className={applyStyles.formPanel}>
-          <p className={applyStyles.todoNotice}>
-            TODO(A109): submissions are validated here but not yet stored or emailed.
-          </p>
+          <FoundingCohortApplyStorageNotice />
           <FoundingCohortApplyForm />
         </div>
       </div>

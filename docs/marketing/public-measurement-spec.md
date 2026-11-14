@@ -12,6 +12,7 @@
 | Marketing handlers | Wired to real UX boundaries on `/` and `/landing` only in this increment |
 | Custom events | **Disabled** (`PUBLIC_MEASUREMENT_COLLECTION_ENABLED = false`). Handlers may call dispatch, but nothing is forwarded to a collector: no `track()`, forwarder, cookies or storage. Unchanged by the page-view work below. |
 | Page views | Vercel Web Analytics via `@vercel/analytics`, mounted by `src/components/public-analytics.tsx` from the root layout. **Default-off (A097 D12):** nothing mounts unless `NEXT_PUBLIC_CONSTRUCTA_VERCEL_WEB_ANALYTICS=1` at build time. Vercel dashboard Web Analytics remains a separate, later step. |
+| Newsletter signup (A101) | `src/components/marketing/newsletter-signup.tsx` on the phase-one home. **Default-off:** renders only when `CONSTRUCTA_NEWSLETTER_SIGNUP_ENABLED=1`, never in protected review or preview. The form posts the email address directly to the email provider (Kit/ConvertKit form 7919715). A submit is a subscribe request, not a confirmed subscription, and dispatches no measurement event. |
 
 ## Event definitions (truthful outcomes)
 

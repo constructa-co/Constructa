@@ -54,6 +54,14 @@ describe("privacy information", () => {
     it("keeps the page structure and the facts it already stated", () => {
         expect(html).toMatch(/^<main[^>]*><div[^>]*><h1[^>]*>Privacy Policy<\/h1>/);
         expect(text).toContain("When you sign up for updates or use our platform, we hold the details you give us, such as your name, email address and company details.");
-        expect(html.match(/<p /g)).toHaveLength(6);
+        expect(html.match(/<p /g)).toHaveLength(7);
+    });
+
+    it("describes the current analytics state without claiming a final activation decision", () => {
+        const note = html.match(/<p [^>]*data-privacy-analytics-note[^>]*>([^<]*)<\/p>/);
+        expect(note).not.toBeNull();
+        expect(note![1].replace(/\s+/g, " ").trim()).toBe(
+            "Vercel Web Analytics is currently off. If enabled, it will count visits to public pages for signed-out visitors. Constructa removes query strings from page addresses before sending page views. This notice will be updated before activation.",
+        );
     });
 });

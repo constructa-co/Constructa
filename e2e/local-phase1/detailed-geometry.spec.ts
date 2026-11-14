@@ -24,8 +24,9 @@ const scope = {
     transport: "Planner actions recorded and REFUSED; 5-day localStorage stand-in (the saved7 case proves the SAVED pattern wins over it)",
     notClaimed: "Non-five-day weeks beyond the one saved seven-day case, legacy timelines, drag behaviour, phone layout, served page, hosted, Auth/DB, save",
 };
-// Tailwind v3 default palette for the first three PHASE_COLORS.
-const FILLS = ["rgb(59, 130, 246)", "rgb(16, 185, 129)", "rgb(249, 115, 22)"];
+// Every fixture stage is untouched and has working days, so each is the "planned"
+// tone (#83b89a, the programme sage --overview-bar token), whatever its row.
+const FILLS = ["rgb(131, 184, 154)", "rgb(131, 184, 154)", "rgb(131, 184, 154)"];
 const ROW_H = 52, BAR_H = 30, BAR_PAD = 11; // client-page.tsx constants
 const NEAR = 0.6; // px: percentage geometry resolves to sub-pixel layout units
 

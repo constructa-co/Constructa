@@ -101,10 +101,50 @@ describe("detailed planner ordinary controls use the programme sage/ink", () => 
         }
     });
 
-    it("keeps every phase colour on the chart", () => {
-        const phases = Array.from({ length: 10 }, (_, i) => phase(`Stage ${i + 1}`, i * 7));
-        const html = setup(phases).html();
-        for (const colour of ["blue", "emerald", "orange", "purple", "red", "teal", "indigo", "pink", "yellow", "cyan"]) expect(html).toContain(`bg-${colour}-500`);
+    it("colours bars by stage state, not by row: planned sage, complete dark sage, no per-row rainbow", () => {
+        const tree = setup().parent();
+        const fills = tree.filter(n => n.type === "div" && n.props["data-planner-duration"] !== undefined);
+        expect(fills).toHaveLength(3);
+        expect(fills.map(fill => classes(fill).filter(cls => cls.startsWith("bg-[#")))).toEqual([["bg-[#83b89a]"], ["bg-[#83b89a]"], ["bg-[#315c49]"]]);
+        expect(classes(fills[0])).toContain("text-[#10291b]");
+        expect(classes(fills[2])).toContain("text-white");
+        // Row position never picks the colour: ten untouched stages are all the same planned tone.
+        hooks.slots = []; hooks.cursor = 0;
+        const many = setup(Array.from({ length: 10 }, (_, i) => phase(`Stage ${i + 1}`, i * 7))).html();
+        // (emerald is left out: the header icon tile legitimately uses bg-emerald-500/10.)
+        for (const colour of ["blue", "orange", "purple", "red", "teal", "indigo", "pink", "yellow", "cyan"]) expect(many).not.toContain(`bg-${colour}-500`);
+        expect(many.match(/bg-\[#83b89a\] text-\[#10291b\]/g)).toHaveLength(10);
+    });
+
+    it("marks a stage with no working days as days to check, from the existing review flag", () => {
+        const unmeasured = { ...phase("Unmeasured", 7), calculatedDays: 0, manualDays: null, needsReview: true };
+        const tree = setup([phase("Strip out", 0), unmeasured]).parent();
+        const fills = tree.filter(n => n.type === "div" && n.props["data-planner-duration"] !== undefined);
+        expect(classes(fills[0])).toContain("bg-[#83b89a]");
+        expect(classes(fills[1])).toEqual(expect.arrayContaining(["border-dashed", "border-amber-400", "bg-amber-500/20"]));
+    });
+
+    it("shows the colour key only when more than one tone is in use, and only for tones in use", () => {
+        const one = setup(Array.from({ length: 3 }, (_, i) => phase(`Stage ${i + 1}`, i * 7))).parent();
+        expect(one.some(n => n.props["data-planner-legend"] !== undefined)).toBe(false);
+        hooks.slots = []; hooks.cursor = 0;
+        const legend = setup().parent().find(n => n.props["data-planner-legend"] !== undefined)!;
+        expect(text(legend.props.children)).toBe("PlannedComplete");
+    });
+
+    it("desktop layout is lg-only: sticky header and stage columns, bounded height; the 900px scroll below lg stays", () => {
+        const tree = setup().parent();
+        const card = tree.find(n => n.type === "div" && classes(n).includes("overflow-x-auto"))!;
+        expect(classes(card)).toEqual(expect.arrayContaining(["overflow-x-auto", "lg:max-h-[75vh]"]));
+        const [header, body] = tree.filter(n => n.type === "div" && classes(n).includes("min-w-[900px]"));
+        expect(classes(header)).toEqual(expect.arrayContaining(["min-w-[900px]", "lg:sticky", "lg:top-0", "lg:z-40", "lg:bg-slate-900"]));
+        expect(classes(body)).not.toContain("lg:sticky");
+        const panel = tree.find(n => n.type === "div" && classes(n).includes("lg:left-0") && classes(n).includes("lg:z-30"))!;
+        expect(classes(panel)).toEqual(expect.arrayContaining(["shrink-0", "lg:sticky", "lg:bg-slate-900"]));
+        // Every sticky/height class is behind lg:, so phone layout is the unchanged scroll card.
+        for (const cls of [...classes(card), ...classes(header), ...classes(panel)]) {
+            if (/sticky|max-h|top-0|left-0|z-30|z-40/.test(cls)) expect(cls.startsWith("lg:"), cls).toBe(true);
+        }
     });
 
     it("tracking: actual date fields get the neutral emerald focus; progress, status and stats colours are unchanged", () => {
@@ -131,10 +171,11 @@ describe("detailed planner ordinary controls use the programme sage/ink", () => 
         const source = readFileSync(path.join(process.cwd(), "src/app/dashboard/projects/schedule/client-page.tsx"), "utf8");
         expect(source.split("\n").length).toBeGreaterThan(1200);
         expect(source).not.toMatch(/bg-blue-600|focus:border-blue-500|hover:bg-blue-500|text-blue-400" fill/);
-        expect(source.match(/blue-/g)).toHaveLength(9);
-        expect(source).toContain('{ key: "blue",    bg: "bg-blue-500" },');
+        // The two row-cycled phase palettes are gone; the remaining blues are progress/status meanings.
+        expect(source.match(/blue-/g)).toHaveLength(7);
+        expect(source).not.toMatch(/PHASE_COLORS|colorDef/);
         expect(source).toContain('className="w-24 h-1.5 accent-blue-500"');
         expect(source).toContain('? "bg-blue-500/10 border-blue-500/20 text-blue-400"');
-        expect(source).toContain('const colorDef = ["bg-blue-500","bg-emerald-500"');
+        expect(source).toContain('planned:  { label: "Planned",       dot: "bg-[#83b89a]"');
     });
 });

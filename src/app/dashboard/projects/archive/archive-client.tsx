@@ -20,25 +20,29 @@ import { Input } from "@/components/ui/input";
 import { restoreProjectAction } from "./actions";
 import { toast } from "sonner";
 import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
+import {
+  financialTiles,
+  gbp,
+  isMeasured,
+  pct,
+  programmeRows,
+  summariseArchive,
+  variationRows,
+  type ArchiveSnapshotFigures,
+  type RowTone,
+} from "./archive-format";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-interface ArchiveSnapshot {
-  contract_value: number | null;
-  total_costs_posted: number | null;
-  gross_margin_pct: number | null;
-  total_invoiced: number | null;
-  total_paid: number | null;
-  retention_outstanding: number | null;
-  final_account_amount: number | null;
-  final_account_status: string | null;
-  planned_duration_days: number | null;
-  actual_duration_days: number | null;
-  programme_delay_days: number | null;
-  variation_count: number | null;
-  approved_variation_total: number | null;
+interface ArchiveSnapshot extends ArchiveSnapshotFigures {
   snapshot_date: string | null;
 }
+
+const ROW_TONE_CLASS: Record<RowTone, string> = {
+  neutral: "text-white",
+  late: "text-amber-400",
+  ok: "text-emerald-400",
+};
 
 interface ArchivedProject {
   id: string;
@@ -57,16 +61,6 @@ interface Props {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-function gbp(n: number | null | undefined): string {
-  if (!n) return "£0";
-  return "£" + n.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-}
-
-function pct(n: number | null | undefined): string {
-  if (n == null) return "—";
-  return n.toFixed(1) + "%";
-}
 
 function fmtDate(d: string | null | undefined): string {
   if (!d) return "—";
@@ -115,20 +109,9 @@ export default function ArchiveClient({ projects }: Props) {
   });
 
   // KPI summary
-  const totalContractValue = projects.reduce(
-    (s, p) => s + (p.archive_snapshots?.[0]?.contract_value ?? 0),
-    0
-  );
-  const avgMargin =
-    projects.length > 0
-      ? projects.reduce(
-          (s, p) => s + (p.archive_snapshots?.[0]?.gross_margin_pct ?? 0),
-          0
-        ) / projects.length
-      : 0;
-  const totalRetention = projects.reduce(
-    (s, p) => s + (p.archive_snapshots?.[0]?.retention_outstanding ?? 0),
-    0
+  // Only measured snapshot figures contribute; a null rollup drops its card.
+  const { totalContractValue, avgMargin, totalRetention } = summariseArchive(
+    projects.map((p) => p.archive_snapshots?.[0])
   );
 
   function handleRestore(projectId: string) {
@@ -163,26 +146,30 @@ export default function ArchiveClient({ projects }: Props) {
 
         {/* KPI Strip */}
         {projects.length > 0 && (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-flow-col auto-cols-fr gap-4">
             <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
               <p className="text-xs text-slate-400 mb-1">Archived Projects</p>
               <p className="text-2xl font-bold text-white">{projects.length}</p>
             </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-              <p className="text-xs text-slate-400 mb-1">Total Contract Value</p>
-              <p className="text-2xl font-bold text-white">{gbp(totalContractValue)}</p>
-            </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-              <p className="text-xs text-slate-400 mb-1">Avg Gross Margin</p>
-              <p className={`text-2xl font-bold ${marginColour(avgMargin)}`}>
-                {pct(avgMargin)}
-              </p>
-            </div>
+            {totalContractValue != null && (
+              <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
+                <p className="text-xs text-slate-400 mb-1">Total Contract Value</p>
+                <p className="text-2xl font-bold text-white">{gbp(totalContractValue)}</p>
+              </div>
+            )}
+            {avgMargin != null && (
+              <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
+                <p className="text-xs text-slate-400 mb-1">Avg Gross Margin</p>
+                <p className={`text-2xl font-bold ${marginColour(avgMargin)}`}>
+                  {pct(avgMargin)}
+                </p>
+              </div>
+            )}
           </div>
         )}
 
         {/* Retention alert */}
-        {totalRetention > 0 && (
+        {totalRetention != null && totalRetention > 0 && (
           <div className="flex items-center gap-3 bg-amber-950/40 border border-amber-800/50 rounded-lg px-4 py-3 text-sm text-amber-300">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>
@@ -275,23 +262,27 @@ export default function ArchiveClient({ projects }: Props) {
 
                   {/* Financial summary inline */}
                   <div className="hidden sm:flex items-center gap-6 text-sm">
-                    <div className="text-right">
-                      <p className="text-xs text-slate-500">Contract Value</p>
-                      <p className="text-white font-medium">{gbp(snap?.contract_value)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-slate-500">Margin</p>
-                      <p className={`font-medium flex items-center gap-1 justify-end ${marginColour(snap?.gross_margin_pct ?? null)}`}>
-                        <MarginIcon pct={snap?.gross_margin_pct ?? null} />
-                        {pct(snap?.gross_margin_pct)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-slate-500">Final Account</p>
-                      <p className="text-white font-medium">
-                        {snap?.final_account_amount ? gbp(snap.final_account_amount) : "—"}
-                      </p>
-                    </div>
+                    {isMeasured(snap?.contract_value) && (
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500">Contract Value</p>
+                        <p className="text-white font-medium">{gbp(snap?.contract_value)}</p>
+                      </div>
+                    )}
+                    {isMeasured(snap?.gross_margin_pct) && (
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500">Margin</p>
+                        <p className={`font-medium flex items-center gap-1 justify-end ${marginColour(snap?.gross_margin_pct ?? null)}`}>
+                          <MarginIcon pct={snap?.gross_margin_pct ?? null} />
+                          {pct(snap?.gross_margin_pct)}
+                        </p>
+                      </div>
+                    )}
+                    {isMeasured(snap?.final_account_amount) && (
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500">Final Account</p>
+                        <p className="text-white font-medium">{gbp(snap?.final_account_amount)}</p>
+                      </div>
+                    )}
                   </div>
 
                   {isExpanded ? (
@@ -304,75 +295,58 @@ export default function ArchiveClient({ projects }: Props) {
                 {/* Expanded detail */}
                 {isExpanded && snap && (
                   <div className="border-t border-slate-800 px-5 py-4 space-y-4">
-                    {/* Financial grid */}
-                    <div>
-                      <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
-                        Financial Outcome
-                      </h4>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {[
-                          { label: "Contract Value", value: gbp(snap.contract_value) },
-                          { label: "Costs Posted", value: gbp(snap.total_costs_posted) },
-                          { label: "Gross Margin", value: pct(snap.gross_margin_pct), colour: marginColour(snap.gross_margin_pct) },
-                          { label: "Total Invoiced", value: gbp(snap.total_invoiced) },
-                          { label: "Total Paid", value: gbp(snap.total_paid) },
-                          { label: "Retention O/S", value: gbp(snap.retention_outstanding), colour: (snap.retention_outstanding ?? 0) > 0 ? "text-amber-400" : undefined },
-                          { label: "Final Account", value: snap.final_account_amount ? gbp(snap.final_account_amount) : "—" },
-                          { label: "FA Status", value: snap.final_account_status ?? "—" },
-                        ].map((item) => (
-                          <div key={item.label} className="bg-slate-800/50 rounded-lg p-3">
-                            <p className="text-xs text-slate-500 mb-0.5">{item.label}</p>
-                            <p className={`text-sm font-semibold ${item.colour ?? "text-white"}`}>
-                              {item.value}
-                            </p>
-                          </div>
-                        ))}
+                    {/* Financial grid — only tiles backed by loaded data */}
+                    {financialTiles(snap).length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+                          Financial Outcome
+                        </h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          {financialTiles(snap).map((tile) => {
+                            const colour =
+                              tile.key === "margin"
+                                ? marginColour(snap.gross_margin_pct)
+                                : tile.key === "retention" && (snap.retention_outstanding ?? 0) > 0
+                                  ? "text-amber-400"
+                                  : undefined;
+                            return (
+                              <div key={tile.key} className="bg-slate-800/50 rounded-lg p-3">
+                                <p className="text-xs text-slate-500 mb-0.5">{tile.label}</p>
+                                <p className={`text-sm font-semibold ${colour ?? "text-white"}`}>
+                                  {tile.value}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
-                    {/* Programme + Variations */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
-                          Programme
-                        </h4>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-slate-400">Planned duration</span>
-                            <span className="text-white">
-                              {snap.planned_duration_days ? `${snap.planned_duration_days}d` : "—"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-400">Actual duration</span>
-                            <span className="text-white">
-                              {snap.actual_duration_days ? `${snap.actual_duration_days}d` : "—"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-400">Programme delay</span>
-                            <span className={snap.programme_delay_days && snap.programme_delay_days > 0 ? "text-amber-400" : "text-emerald-400"}>
-                              {snap.programme_delay_days ? `+${snap.programme_delay_days}d` : "On time"}
-                            </span>
-                          </div>
-                        </div>
+                    {/* Programme + Variations — sections without recorded data are omitted */}
+                    {(programmeRows(snap).length > 0 || variationRows(snap).length > 0) && (
+                      <div className="grid grid-cols-2 gap-4">
+                        {[
+                          { title: "Programme", rows: programmeRows(snap) },
+                          { title: "Variations", rows: variationRows(snap) },
+                        ]
+                          .filter((section) => section.rows.length > 0)
+                          .map((section) => (
+                            <div key={section.title}>
+                              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+                                {section.title}
+                              </h4>
+                              <div className="space-y-2 text-sm">
+                                {section.rows.map((row) => (
+                                  <div key={row.label} className="flex justify-between">
+                                    <span className="text-slate-400">{row.label}</span>
+                                    <span className={ROW_TONE_CLASS[row.tone]}>{row.value}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
                       </div>
-                      <div>
-                        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
-                          Variations
-                        </h4>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-slate-400">Total raised</span>
-                            <span className="text-white">{snap.variation_count ?? 0}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-400">Approved value</span>
-                            <span className="text-white">{gbp(snap.approved_variation_total)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    )}
 
                     {/* Archive reason */}
                     {project.archive_reason && (

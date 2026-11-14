@@ -87,7 +87,9 @@ export default function ClientResources({ labour, plant }: { labour: any[]; plan
                                 <div className="flex items-center gap-6">
                                     <div className="text-right">
                                         <div className="font-bold text-slate-900">£{item.base_rate.toFixed(2)} / hr</div>
-                                        <div className="text-xs text-slate-500">OT: £{item.overtime_rate?.toFixed(2)}</div>
+                                        {typeof item.overtime_rate === "number" && (
+                                            <div className="text-xs text-slate-500">OT: £{item.overtime_rate.toFixed(2)}</div>
+                                        )}
                                     </div>
                                     <form action={deleteResourceAction}>
                                         <input type="hidden" name="id" value={item.id} />

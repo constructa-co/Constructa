@@ -13,8 +13,12 @@
 //     server session, time from the database and checks the revision against
 //     the trusted allow-list. A pre-sign-up checkbox, query string or browser
 //     metadata is never treated as acceptance.
-//   - No existing user is required to accept retroactively; this is reached
-//     from the confirmation email, the consent-not-stored notice, or directly.
+//   - By default no existing user is required to accept retroactively; this is
+//     reached from the confirmation email, the consent-not-stored notice, or
+//     directly. Only when the operator turns on enforcement
+//     (CONSTRUCTA_PLATFORM_TERMS_ENFORCEMENT=on, default OFF; see
+//     platform-terms-gate.ts) is a signed-in user without a current-revision
+//     record routed here before the app.
 //
 // Kept free of "use server" so it can export constants and plain helpers.
 

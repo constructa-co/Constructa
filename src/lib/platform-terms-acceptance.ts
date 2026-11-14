@@ -30,8 +30,11 @@ import { isPlatformTermsConsentTableMissing } from "@/lib/platform-terms-consent
 //     Throws are caught and mapped to honest typed failures —
 //     unauthenticated when identity could not be established, storage-error
 //     when the write could not be confirmed — never a persistence claim.
-//   - Idempotence: one current record per (user, document). A repeat
-//     acceptance is reported as already-recorded, not an error.
+//   - Idempotence: one record per (user, document, revision) once the
+//     per-version migration (20261114032000) is applied; before it, one per
+//     (user, document). A repeat acceptance of the same revision is reported
+//     as already-recorded, not an error. A NEW revision is a new row, which is
+//     what makes re-acceptance possible.
 //
 // This module records platform terms of service acceptance only; the
 // twelve proposal contract clauses are unaffected.

@@ -47,12 +47,12 @@ const VALID_INPUT = {
 };
 
 describe("signup source policy and defensive gate", () => {
-    it("policy module enables signup in source", async () => {
+    it("policy module keeps signup disabled in source", async () => {
         const actual =
             await vi.importActual<typeof import("@/lib/platform-signup-policy")>(
                 "@/lib/platform-signup-policy",
             );
-        expect(actual.isPlatformSignupDisabled()).toBe(false);
+        expect(actual.isPlatformSignupDisabled()).toBe(true);
     });
 
     it("refuses before the server client or recorder are consulted", async () => {

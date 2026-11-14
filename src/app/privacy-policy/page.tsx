@@ -35,6 +35,10 @@ export default function PrivacyPolicyPage() {
           <p className="text-gray-400 mb-6">
             When you sign up for updates or use our platform, we hold the details you give us, such as your name, email address and company details.
           </p>
+
+          <p className="text-gray-400 mb-6" data-privacy-analytics-note>
+            Vercel Web Analytics is currently off. If enabled, it will count visits to public pages for signed-out visitors. Constructa removes query strings from page addresses before sending page views. This notice will be updated before activation.
+          </p>
           
           <p className="text-gray-400 mb-6" data-privacy-review-note>
             This notice is incomplete. It does not yet explain who is responsible for your information, the legal basis for using it, who it is shared with, where it is stored, how long it is kept or how it is protected. It needs to be completed and reviewed before it can be relied on as a full account of how information is handled. Until then, please ask us using the address below.

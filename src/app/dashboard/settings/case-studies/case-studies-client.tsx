@@ -13,6 +13,9 @@ import { uploadProfileImageAction } from "@/app/storage/actions";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { SAVE_MESSAGES, initialSaveState, needsLeaveWarning, requestOf, saveReducer, statusLine, type SaveAction, type SaveCaseStudiesResult, type SaveState } from "./save-state";
 import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
+import type { CaseStudySectorId } from "@/lib/case-study-example-tags";
+import { hintsWhenExampleFieldsChange } from "@/lib/case-study-example-tags";
+import ExampleTagsSection from "./example-tags-section";
 import {
     coreFocusRing,
     coreFocusVisibleRing,
@@ -36,6 +39,8 @@ interface CaseStudy {
     whatWeDelivered: string;
     valueAdded: string;
     photos: string[];
+    disciplineTags?: string[];
+    sectorTags?: CaseStudySectorId[];
 }
 
 /**
@@ -105,11 +110,27 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
             whatWeDelivered: "",
             valueAdded: "",
             photos: ["", "", ""],
+            disciplineTags: [],
+            sectorTags: [],
         }]);
     };
 
-    const updateCaseStudy = (index: number, field: keyof CaseStudy, value: string | string[]) => {
-        setCaseStudies(prev => prev.map((cs, i) => i === index ? { ...cs, [field]: value } : cs));
+    const updateCaseStudy = (index: number, field: keyof CaseStudy, value: string | string[] | CaseStudySectorId[]) => {
+        setCaseStudies(prev => prev.map((cs, i) => {
+            if (i !== index) return cs;
+            const next = { ...cs, [field]: value } as CaseStudy;
+            if (field === "projectType" || field === "client") {
+                const tags = hintsWhenExampleFieldsChange(
+                    { disciplineTags: cs.disciplineTags ?? [], sectorTags: cs.sectorTags ?? [] },
+                    {
+                        projectType: field === "projectType" ? String(value) : cs.projectType,
+                        client: field === "client" ? String(value) : cs.client,
+                    },
+                );
+                return { ...next, disciplineTags: tags.disciplineTags, sectorTags: tags.sectorTags };
+            }
+            return next;
+        }));
     };
 
     const removeCaseStudy = (index: number) => {
@@ -266,7 +287,7 @@ function CaseStudyCard({
     enhance: Enhance;
     cs: CaseStudy;
     index: number;
-    onChange: (field: keyof CaseStudy, value: string | string[]) => void;
+    onChange: (field: keyof CaseStudy, value: string | string[] | CaseStudySectorId[]) => void;
     onRemove: () => void;
     onPhotoUpload: (slot: number, file: File) => void;
     onPhotoRemove: (slot: number) => void;
@@ -402,6 +423,15 @@ function CaseStudyCard({
                             <input id={`${fieldId}-location`} className={inputCls} value={cs.location} onChange={e => onChange("location", e.target.value)} placeholder="e.g. Surrey" />
                         </div>
                     </div>
+
+                    <ExampleTagsSection
+                        idPrefix={fieldId}
+                        labelCls={labelCls}
+                        disciplineTags={cs.disciplineTags ?? []}
+                        sectorTags={cs.sectorTags ?? []}
+                        onDisciplines={(next) => onChange("disciplineTags", next)}
+                        onSectors={(next) => onChange("sectorTags", next)}
+                    />
 
                     <div>
                         <label htmlFor={`${fieldId}-delivered`} className={labelCls}>What We Delivered</label>

@@ -1,5 +1,17 @@
 # Cursor change log
 
+## 2026-11-14 — A037 example discipline and sector tags (cursor/a037-example-discipline-sector-tags-6591)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/case-study-example-tags.ts` | (new) | Discipline catalogue from `SETUP_WORK_SUGGESTIONS`; sector ids from brief client types; job-type hint map; normalise/toggle/infer helpers | Evidence-based tagging per walkthrough case-study feedback — work performed vs customer sector |
+| `src/lib/case-study-example-tags.test.ts` | (new) | Focused tag catalogue, hints, and inference tests | A037 regression guard |
+| `src/app/dashboard/settings/case-studies/example-tags-section.tsx` | (new) | Emerald chip pickers reusing core editing palette | Match library chip styling on legacy past-work editor |
+| `src/app/dashboard/settings/case-studies/case-studies-client.tsx` | CaseStudy fields, update/add, card UI | Discipline/sector chips; hint merge when tags empty | Tag each legacy example without new SQL |
+| `src/app/dashboard/settings/case-studies/page.tsx` | initialCaseStudies map | `legacyCaseStudyTagsFromFields` on load | Show inferred labels for stored examples missing tags |
+| `src/lib/__fixtures__/proposal.ts` | case_studies rows | Pre-labelled synthetic examples | Fixture metadata matches A037 contract |
+| `src/app/dashboard/settings/case-studies/a037-example-tags.test.ts` | (new) | Source guard + save passthrough for tag arrays | Focused checks |
+
 ## 2026-11-14 — A001 resources hub card hover chrome (cursor/a001-resources-hub-card-hover-e757)
 
 | File | Lines (approx.) | Change | Intent |

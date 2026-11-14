@@ -422,6 +422,14 @@ export const PROGRAMME_SAVE_ERROR =
 export const PROGRAMME_STALE_ERROR =
     "Your programme was changed after this page loaded, so nothing was added. Reload the programme, then add the stage again.";
 
+/** An ordinary Save (not an add) refused because the stored programme moved on. What was typed is still on screen. */
+export const PROGRAMME_SAVE_STALE_ERROR =
+    "Your programme was changed after this page loaded, so nothing was saved. What you typed is still here. Reload the programme to see the latest; reloading replaces what is on screen.";
+
+/** Another change to the programme is being saved right now, so this one was not sent. */
+export const PROGRAMME_SAVE_BUSY_ERROR =
+    "A stage is being added to the programme. Nothing was saved from this page. Try again in a moment.";
+
 export const PROGRAMME_NAVIGATION_ERROR =
     "The proposal couldn't be opened. Your last save is still on record. If you have made newer edits, they are not saved yet. Try Next: Proposal again.";
 

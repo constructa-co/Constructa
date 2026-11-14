@@ -119,6 +119,46 @@ describe("adding a confirmed planning item through the real programme save", () 
         });
     });
 
+    describe("an ordinary programme Save worked out before the add", () => {
+        // The stage list on screen before the add: the two established stages only.
+        const preAdd = {
+            startDate: MONDAY,
+            stages: [
+                { name: "Strip out", workingDays: 5, unit: "weeks" as const, source: 0 },
+                { name: "First fix", workingDays: 10, unit: "weeks" as const, source: 1 },
+            ],
+        };
+
+        it("is refused, and the appended stage survives, when it is bound to the pre-add snapshot", async () => {
+            const db = setup({ updated_at: "2026-11-14T09:00:00+00:00" });
+            const pageCopy = structuredClone(db.tables.projects[0]);
+            expect(await add(db)).toEqual({ ok: true, name: "Order windows" });
+            const afterAdd = structuredClone(db.tables.projects[0].programme_phases);
+            const result = await saveSimpleProgrammeAction(PROJECT_ID, { ...preAdd, expectedProgramme: {
+                programme_phases: pageCopy.programme_phases, start_date: pageCopy.start_date, updated_at: pageCopy.updated_at,
+            } });
+            expect(result).toEqual({ success: false, error: PROGRAMME_STALE_ERROR, stale: true });
+            expect(db.updates).toHaveLength(1);
+            expect(db.tables.projects[0].programme_phases).toEqual(afterAdd);
+        });
+
+        it("hands back the snapshot it stored, so the next Save is bound to what is stored now", async () => {
+            const db = setup({ updated_at: "2026-11-14T09:00:00+00:00" });
+            const first = await saveSimpleProgrammeAction(PROJECT_ID, { ...preAdd, expectedProgramme: {
+                programme_phases: established, start_date: MONDAY, updated_at: "2026-11-14T09:00:00+00:00",
+            } });
+            expect(first).toMatchObject({ success: true, confirmedProject: { start_date: MONDAY } });
+            const confirmed = first.success ? first.confirmedProject : undefined;
+            expect(confirmed?.programme_phases).toEqual(db.tables.projects[0].programme_phases);
+            expect(confirmed).not.toHaveProperty("programme_working_pattern");
+
+            // Binding the following Save to that snapshot is accepted.
+            expect(await saveSimpleProgrammeAction(PROJECT_ID, { ...preAdd, expectedProgramme: {
+                programme_phases: confirmed?.programme_phases ?? null, start_date: confirmed?.start_date ?? null, ...(confirmed?.updated_at !== undefined ? { updated_at: confirmed.updated_at } : {}),
+            } })).toMatchObject({ success: true });
+        });
+    });
+
     it("writes nothing when the job is locked", async () => {
         const db = setup();
         mocks.requireEditableProjectAccess.mockRejectedValue(new Error("Pre-contract information is locked because the proposal was accepted."));

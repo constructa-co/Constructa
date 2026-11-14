@@ -19,6 +19,7 @@ import { isCapabilityEnabled } from "@/lib/launch-profile";
 import { createPlanningConversation, type PlanningGenerator } from "@/lib/planning-conversation";
 import { addPlanningItemToProgramme, planningAddBlockReason, type AddPlanningItemResult, type PlanningProgrammeItem } from "@/lib/planning-programme-item";
 import { createPlanningRequestGenerator } from "@/lib/job-assistant-client";
+import { bindProgrammeSave } from "@/lib/programme-save-binding";
 import type { JobAssistantOffReason } from "@/lib/job-assistant-readiness";
 import { planningAssistantTurnAction } from "./assistant-actions";
 import { formatPlanDate, formatWorkingDuration, PROGRAMME_BASIS_NOTE } from "@/lib/programme-plan";
@@ -31,6 +32,7 @@ import {
     MAX_STAGES,
     MIN_STAGES,
     PROGRAMME_NAVIGATION_ERROR,
+    PROGRAMME_SAVE_STALE_ERROR,
     PROGRAMME_STATUS_LABEL,
     continueToProposal,
     draftPlan,
@@ -45,6 +47,7 @@ import {
     viewForProject,
     type DurationUnit,
     type ProgrammeDraft,
+    type ProgrammeProjectFields,
     type SaveProgramme,
     type SimpleProgrammeView,
 } from "@/lib/simple-programme";
@@ -148,24 +151,57 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
     // A confirmed planning item is saved through the programme's own save, so
     // the server's checks apply. Offered only for a saved simple programme.
     const planningAddBlocked = lockReason !== null || inclusion.intent !== "include" || planningAddBlockReason(project) !== null;
+    // Synchronous guards. State updates land on the next render, so two quick
+    // clicks, or a Save pressed while an add is being sent, could both pass a
+    // check made on state alone.
+    const addingRef = useRef(false);
+    const savingRef = useRef(false);
+    const latestProjectRef = useRef(project);
+    latestProjectRef.current = project;
+    // The stored programme moved on under an ordinary Save; nothing was written.
+    const [staleSaveFor, setStaleSaveFor] = useState<ProgrammeProject | null>(null);
+    const adoptConfirmed = (confirmed: ProgrammeProjectFields) => {
+        const next = { ...latestProjectRef.current, ...confirmed };
+        latestProjectRef.current = next;
+        setOverride({ base: incomingProject, value: next });
+    };
     const addPlanningItem = async (item: PlanningProgrammeItem): Promise<AddPlanningItemResult> => {
-        if (planningAdding || planningAddBlocked) return { ok: false, error: "The programme can't take a new stage right now. Nothing has been changed." };
+        if (addingRef.current || savingRef.current || planningAdding || planningAddBlocked || unsavedCheckRef.current?.()) {
+            return { ok: false, error: "The programme can't take a new stage right now. Nothing has been changed." };
+        }
+        addingRef.current = true;
         setPlanningAdding(true);
         try {
             const result = await addPlanningItemToProgramme({
-                project, item, makeKey: newClientId,
-                save: input => save ? save(input) : saveSimpleProgrammeAction(project.id, input),
+                project: latestProjectRef.current, item, makeKey: newClientId,
+                save: async input => {
+                    const saved = await (save ? save(input) : saveSimpleProgrammeAction(project.id, input));
+                    // Bind whatever is saved next to the programme that is stored now.
+                    if (saved.success && saved.confirmedProject) adoptConfirmed(saved.confirmedProject);
+                    return saved;
+                },
             });
             // The saved programme changed: reload it so the editor and the conversation start from what is stored.
             if (result.ok) startRefresh(() => router.refresh());
             return result;
-        } finally { setPlanningAdding(false); }
+        } finally { addingRef.current = false; setPlanningAdding(false); }
     };
+
+    // The editor's own Save is bound to the programme this page last confirmed,
+    // so a stage list worked out before an add can never replace the add.
+    const saveOrdinary = bindProgrammeSave({
+        current: () => latestProjectRef.current,
+        send: input => save ? save(input) : saveSimpleProgrammeAction(project.id, input),
+        adopt: adoptConfirmed,
+        isBusy: () => addingRef.current || savingRef.current,
+        setSaving: saving => { savingRef.current = saving; },
+        onStale: () => setStaleSaveFor(incomingProject),
+    });
 
     // The detailed planner saves as it goes. Closing it reloads the project so
     // the simple view shows what the planner left behind.
     const toggleDetailed = () => {
-        if (inclusionBusy) return;
+        if (inclusionBusy || planningAdding || addingRef.current) return;
         if (!detailedOpen && (relativePlannerBlocked || calendarPlannerBlocked)) return;
         if (!detailedOpen && unsavedSimple) {
             setPlannerRefused(true);
@@ -188,7 +224,7 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
         <section className={s.card} aria-labelledby="detailed-planner-title">
             <button
                 type="button"
-                disabled={inclusionBusy}
+                disabled={inclusionBusy || planningAdding}
                 onClick={toggleDetailed}
                 aria-expanded={detailedOpen}
                 aria-controls="detailed-planner"
@@ -273,19 +309,21 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
                     ) : lockReason ? (
                         <ReadOnlyProgramme project={project} view={view} note={lockReason} s={s} isDark={isDark} />
                     ) : view.kind === "simple" || startedSimple ? (
-                        <fieldset disabled={inclusionBusy} className="min-w-0 space-y-5 border-0 m-0 p-0">
+                        <>
+                        {staleSaveFor === incomingProject && (
+                            <div role="alert" className={`${s.errorBox} flex flex-wrap items-center gap-3 text-sm`} data-programme-stale>
+                                <AlertTriangle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                                <p className="flex-1 min-w-[12rem]">{PROGRAMME_SAVE_STALE_ERROR}</p>
+                                <button type="button" onClick={() => startRefresh(() => router.refresh())} className={`${s.secondaryButton} min-h-11 text-sm`}>Reload the programme</button>
+                            </div>
+                        )}
+                        <fieldset disabled={inclusionBusy || planningAdding} className="min-w-0 space-y-5 border-0 m-0 p-0">
                         <ProgrammeEditor
                             key={project.id}
                             project={project}
                             estimate={estimate}
                             initial={view.kind === "simple" ? view : { kind: "simple", draft: emptyProgrammeDraft(view.startDate, project.programme_working_pattern == null ? undefined : jobPattern ?? undefined), hasSaved: false }}
-                            save={async input => {
-                                const result = await (save ? save(input) : saveSimpleProgrammeAction(project.id, input));
-                                if (result.success && result.confirmedProject) {
-                                    setOverride({ base: incomingProject, value: { ...project, ...result.confirmedProject } });
-                                }
-                                return result;
-                            }}
+                            save={saveOrdinary}
                             onUnsavedChange={setUnsavedSimple}
                             onRelativeChange={setRelativeSimple}
                             unsavedCheckRef={unsavedCheckRef}
@@ -293,6 +331,7 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
                             isDark={isDark}
                         />
                         </fieldset>
+                        </>
                     ) : (
                         <ReadOnlyProgramme
                             project={project}
@@ -300,12 +339,12 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
                             note={view.reason}
                             s={s}
                             isDark={isDark}
-                            onStartSimple={view.canStartSimple ? () => { if (!inclusionBusy) setStartedSimple(true); } : undefined}
+                            onStartSimple={view.canStartSimple ? () => { if (!inclusionBusy && !addingRef.current) setStartedSimple(true); } : undefined}
                             onOpenDetailed={view.origin === "programme" ? toggleDetailed : undefined}
                         />
                     )}
                     {!lockReason && inclusion.intent !== "invalid" && <ProgrammeInclusionChoice
-                        included={inclusion.intent !== "omit"} disabled={inclusionBusy}
+                        included={inclusion.intent !== "omit"} disabled={inclusionBusy || planningAdding}
                         canChange={() => !unsavedCheckRef.current?.()}
                         save={saveInclusion ?? (include => saveProgrammeInclusionAction(project.id, include))}
                         onPending={setInclusionBusy}

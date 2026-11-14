@@ -150,7 +150,13 @@ export async function saveSimpleProgrammeAction(projectId: string, input: Simple
         update = project.start_date == null ? update.is("start_date", null) : update.eq("start_date", project.start_date);
         if (expectedUpdatedAt !== undefined) update = project.updated_at == null ? update.is("updated_at", null) : update.eq("updated_at", project.updated_at);
     }
-    const { data: returnedRow, error } = await update.select(changesPattern ? "id,programme_phases,programme_working_pattern,start_date" : "id").single();
+    // A save bound to a snapshot hands back the snapshot it produced, so the page
+    // binds its next save to what is stored now rather than to what it loaded.
+    const returnsSnapshot = changesPattern || expectedProgramme !== undefined;
+    const hasUpdatedAtColumn = Object.hasOwn(project, "updated_at");
+    const snapshotColumns = ["id", "programme_phases", "start_date",
+        ...(hasPatternColumn ? ["programme_working_pattern"] : []), ...(hasUpdatedAtColumn ? ["updated_at"] : [])].join(",");
+    const { data: returnedRow, error } = await update.select(returnsSnapshot ? snapshotColumns : "id").single();
     const row: unknown = returnedRow;
     const saved = row && typeof row === "object" && !Array.isArray(row) ? row as Record<string, unknown> : null;
     if (error || !saved) {
@@ -168,9 +174,11 @@ export async function saveSimpleProgrammeAction(projectId: string, input: Simple
 
     revalidatePath("/dashboard/projects/schedule");
     revalidatePath("/dashboard/projects/proposal");
-    return changesPattern ? { success: true, confirmedProject: {
+    if (!returnsSnapshot) return { success: true };
+    return { success: true, confirmedProject: {
         programme_phases: savedPhases,
-        programme_working_pattern: workingPattern,
+        ...(changesPattern ? { programme_working_pattern: workingPattern } : {}),
         start_date: typeof saved.start_date === "string" ? saved.start_date : null,
-    } } : { success: true };
+        ...(hasUpdatedAtColumn ? { updated_at: typeof saved.updated_at === "string" ? saved.updated_at : null } : {}),
+    } };
 }

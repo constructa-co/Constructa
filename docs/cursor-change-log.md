@@ -1,5 +1,19 @@
 # Cursor change log
 
+## 2026-11-14 — D6/D7 cohort About nav, design system, images, home CTAs (cursor/d6-d7-about-nav-images-093b)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/components/marketing/phase-one.tsx` | header nav, footer nav | Add `/about` links in cohort MarketingHeader and MarketingFooter | D6: About reachable from cohort chrome |
+| `src/components/marketing/cohort-about.tsx` | (new) | Phase-one styled About page with `next/image` | D7: align About with cohort design system; preserve AI disclosure and distinct `/apply` CTA |
+| `src/components/marketing/cohort-about.module.css` | (new) | Layout tokens for cohort About sections | Match phase-one spacing and colour without touching marketing route split |
+| `src/components/marketing/full-about.tsx` | (new) | Full-profile About body with `next/image` instead of raw `<img>` | Same content contract under `full` launch profile |
+| `src/app/about/page.tsx` | whole file | Profile switch + shared JSON-LD | Cohort vs full About without duplicating metadata |
+| `src/components/marketing/full-home.tsx` | hero + Try Constructa CTAs | `href="/apply"` replaces `#` / `#contact-form` on home entry CTAs | Dead Try Constructa / Get Started → founding cohort apply |
+| `src/components/marketing/phase-one.test.tsx` | nav + skip routes | Assert `/about`; include `/about` in bypass route table | Regression guard for D6 |
+| `src/app/about/about-preview-status.test.tsx` | mock + assertion | `next/image` mock; hero disclosure + image count | Synthetic verification for D7 |
+| `src/components/marketing/full-home-cta.test.tsx` | (new) | Home CTA href regression | Preserve `feature-scroll.js`; assert `/apply` targets |
+
 ## 2026-11-14 — A109 about page founding cohort apply entry (cursor/a109-about-apply-cta-e8a5)
 
 | File | Lines (approx.) | Change | Intent |

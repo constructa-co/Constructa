@@ -4,6 +4,13 @@ import { getLaunchProfile, getLaunchRedirectPath, isDashboardPathAllowed } from 
 import { reviewEnabled, reviewPageAllowed, REVIEW_CSP, REVIEW_USER } from '@/lib/deployment/review-policy'
 import { editableReview, editablePage } from '@/lib/deployment/review-editable'
 import { forgotPasswordExpiredUrl, shouldRedirectRecoveryLinkFailure } from '@/lib/auth-recovery-link-failure'
+import { PLATFORM_TERMS_CURRENT_REVISION, PLATFORM_TERMS_DOCUMENT_ID } from '@/lib/platform-terms'
+import {
+  isPlatformTermsEnforcementEnabled,
+  isPlatformTermsGatedPath,
+  platformTermsGateRedirect,
+  resolvePlatformTermsStatus,
+} from '@/lib/platform-terms-gate'
 
 export async function proxy(request: NextRequest) {
   const review = reviewEnabled();
@@ -89,6 +96,28 @@ export async function proxy(request: NextRequest) {
     // Protect /dashboard routes
     if (pathname.startsWith('/dashboard') && !user) {
       return NextResponse.redirect(new URL('/login', request.url))
+    }
+
+    // A023 F1: a signed-in user without a recorded acceptance of the CURRENT
+    // platform terms revision goes to the acceptance page before the app.
+    // Default OFF (CONSTRUCTA_PLATFORM_TERMS_ENFORCEMENT must be exactly "on");
+    // skipped in protected review, which cannot write. Only a confirmed absence
+    // redirects (see platform-terms-gate.ts); the target is outside the gated
+    // prefixes so it cannot loop. 303 so a blocked POST becomes a GET.
+    if (user && !review && isPlatformTermsEnforcementEnabled() && isPlatformTermsGatedPath(pathname)) {
+      const status = await resolvePlatformTermsStatus(() =>
+        supabase
+          .from('platform_terms_acceptances')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('terms_document', PLATFORM_TERMS_DOCUMENT_ID)
+          .eq('accepted_revision', PLATFORM_TERMS_CURRENT_REVISION)
+          .limit(1),
+      )
+      const termsPath = platformTermsGateRedirect(pathname, status)
+      if (termsPath) {
+        return NextResponse.redirect(new URL(termsPath, request.url), 303)
+      }
     }
 
     // Cohort launches expose only the work-winning journey. This server-side

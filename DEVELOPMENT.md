@@ -176,6 +176,29 @@ actions, and approved library case studies on Review and Send.
 Turning it on anywhere real is an owner decision. See
 `docs/evidence/stage2-tranche-2g4/CLIENT-BUILDER-REPORT.md`.
 
+## Platform Terms Enforcement Switch
+
+`CONSTRUCTA_PLATFORM_TERMS_ENFORCEMENT=on` (server only, default off; any other
+value is off) routes a signed-in user who has no recorded acceptance of the
+current platform terms revision to `/auth/platform-terms` before `/dashboard`
+and `/onboarding`. The check lives in `src/proxy.ts`; the decision logic is in
+`src/lib/platform-terms-gate.ts`.
+
+- Off, nothing changes and no extra query is made.
+- It needs `20261024122500_platform_terms_acceptance.sql` and, so a new revision
+  can be accepted again, `20261114032000_platform_terms_per_version_acceptance.sql`.
+  Both are drafts until the owner applies them. Apply them before turning the
+  switch on.
+- Only a confirmed absence redirects. If the table is missing or the lookup
+  fails, the user is let through (the acceptance page could not record for them
+  either), so a database fault never locks anyone out.
+- `/auth/*`, `/login`, `/admin` and public proposal routes are not gated, so the
+  acceptance page cannot loop.
+- Publishing a new revision is still a coordinated change: the descriptor in
+  `src/lib/platform-terms.ts` and a new migration extending the revision CHECK.
+
+Turning it on anywhere real is an owner decision.
+
 ## Proposal Document
 
 A proposal is published as an immutable snapshot (`proposal_publications`).

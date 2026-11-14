@@ -266,4 +266,26 @@ describe("no hidden writes or reused authority", () => {
         expect(client).toMatch(/planningAssistantEnabled = false/);
         expect(client).not.toMatch(/planningGenerator\s*=/);
     });
+    it("writes confirmed items only through the programme's own save, and only when it can take one", () => {
+        const client = readFileSync(new URL("../app/dashboard/projects/schedule/simple-programme-client.tsx", import.meta.url), "utf8");
+        // The page's save: the injected test save, else the real validated server action.
+        expect(client).toContain("const sendSave: SaveProgramme = input => save ? save(input) : saveSimpleProgrammeAction(project.id, input);");
+        // Both the add and the editor's own Save go out through it, so the same server checks apply to each.
+        expect(client).toContain("const saved = await sendSave(input);");
+        expect(client).toContain("send: sendSave,");
+        // An ordinary Save is bound to the snapshot its draft was opened from, never to the page's latest one,
+        // and a confirmed add rebuilds the editor from the stored phases instead of leaving the old draft in place.
+        expect(client).not.toContain("current: () => latestProjectRef.current");
+        expect(client).toContain("key={`${project.id}:${editorRevision}`}");
+        expect(client).toContain("opened={expectedProgrammeFor(project)}");
+        expect(client).toContain("setEditorRevision(revision => revision + 1);");
+        // Offered only for an editable, included, saved simple programme; blocked while the add itself is running.
+        expect(client).toContain('const planningAddBlocked = lockReason !== null || inclusion.intent !== "include" || planningAddBlockReason(project) !== null;');
+        expect(client).toContain("onAdd={planningAddBlocked ? undefined : addPlanningItem}");
+        expect(client).toContain("detailedOpen || refreshing || planningAdding;");
+        // The assistant's server action and request path never receive or perform the write.
+        const action = readFileSync(new URL("../app/dashboard/projects/schedule/assistant-actions.ts", import.meta.url), "utf8");
+        expect(action).not.toContain("planning-programme-item");
+        expect(action).not.toContain("saveSimpleProgrammeAction");
+    });
 });

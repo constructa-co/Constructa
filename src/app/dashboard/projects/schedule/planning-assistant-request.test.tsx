@@ -13,11 +13,12 @@ const hooks = vi.hoisted(() => ({
 }));
 vi.mock("react", async importOriginal => ({
     ...await importOriginal<typeof import("react")>(),
+    useTransition: () => [false, (work: () => void) => work()],
     useEffect: (effect: () => void | (() => void)) => { hooks.effects.push(effect); },
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }) }));
 vi.mock("next/dynamic", () => ({ default: () => () => { throw Error("Detailed planner must stay closed"); } }));
-vi.mock("@/lib/use-reducer-store", () => ({ useReducerStore: () => [hooks.state, {}] }));
+vi.mock("@/lib/use-reducer-store", () => ({ useReducerStore: () => [hooks.state, { getState: () => hooks.state, dispatch: vi.fn() }] }));
 vi.mock("@/lib/use-unsaved-guard", () => ({ useUnsavedGuard: vi.fn() }));
 vi.mock("@/components/programme-stage-focus", () => ({ default: () => null }));
 vi.mock("./simple-actions", () => ({ saveSimpleProgrammeAction: vi.fn() }));
@@ -90,6 +91,30 @@ describe("A055 Programme page request path (actual parent, adapter and action bo
         session.setMessage("How long?");
         expect(await session.send()).toBe("rejected");
         expect(session.getSnapshot()).toMatchObject({ messages: [], canRetry: true });
+    });
+
+    it("sends one add for two quick presses, bound to the saved snapshot, and refuses a second while it is sent", async () => {
+        const save = vi.fn();
+        let release: (value: unknown) => void = () => {};
+        save.mockImplementation(() => new Promise(resolve => { release = resolve; }));
+        const saved = { ...project, updated_at: "t1" };
+        hooks.state = initialProgrammeState(emptyProgrammeDraft("2026-11-02"), false);
+        hooks.effects = []; hooks.panel = null;
+        renderToStaticMarkup(<SimpleProgrammeClient project={saved} lockReason={null} estimate={null} save={save} />);
+        for (const effect of hooks.effects) { const cleanup = effect(); if (cleanup) cleanups.push(cleanup); }
+        const onAdd = (hooks.panel as unknown as { onAdd: (item: { name: string; duration: string; unit: "weeks" }) => Promise<{ ok: boolean; error?: string }> }).onAdd;
+        const item = { name: "Order windows", duration: "2", unit: "weeks" as const };
+
+        const first = onAdd(item);
+        // Both presses happen before any render could have recorded the first.
+        const second = await onAdd({ ...item, name: "Order doors" });
+        expect(second).toMatchObject({ ok: false, error: expect.stringContaining("Nothing has been changed") });
+        await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+        expect(save.mock.calls[0][0].expectedProgramme).toEqual({ programme_phases: saved.programme_phases, start_date: saved.start_date, updated_at: "t1" });
+
+        release({ success: true });
+        expect(await first).toMatchObject({ ok: true });
+        expect(save).toHaveBeenCalledTimes(1);
     });
 
     it("blocks a locked job with its reason, and unmounting ignores a late answer", async () => {

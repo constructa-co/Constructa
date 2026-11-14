@@ -13,6 +13,9 @@ import { uploadProfileImageAction } from "@/app/storage/actions";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { SAVE_MESSAGES, initialSaveState, needsLeaveWarning, requestOf, saveReducer, statusLine, type SaveAction, type SaveCaseStudiesResult, type SaveState } from "./save-state";
 import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
+import type { CaseStudySectorId } from "@/lib/case-study-example-tags";
+import { exampleTagSuggestions, legacyCaseStudyForSave } from "@/lib/case-study-example-tags";
+import ExampleTagsSection from "./example-tags-section";
 import {
     coreFocusRing,
     coreFocusVisibleRing,
@@ -36,6 +39,10 @@ interface CaseStudy {
     whatWeDelivered: string;
     valueAdded: string;
     photos: string[];
+    disciplineTags?: string[];
+    sectorTags?: CaseStudySectorId[];
+    disciplineTagsExplicit?: boolean;
+    sectorTagsExplicit?: boolean;
 }
 
 /**
@@ -81,7 +88,7 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
         void (async () => {
             let result: SaveCaseStudiesResult;
             try {
-                result = await save(request.sent);
+                result = await save(request.sent.map((entry) => legacyCaseStudyForSave(entry)));
             } catch {
                 // The request itself failed. Whether it reached the server is not known.
                 result = { status: "unknown", message: SAVE_MESSAGES.unknown };
@@ -108,8 +115,14 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
         }]);
     };
 
-    const updateCaseStudy = (index: number, field: keyof CaseStudy, value: string | string[]) => {
-        setCaseStudies(prev => prev.map((cs, i) => i === index ? { ...cs, [field]: value } : cs));
+    const updateCaseStudy = (index: number, field: keyof CaseStudy, value: string | string[] | CaseStudySectorId[] | boolean) => {
+        setCaseStudies(prev => prev.map((cs, i) => {
+            if (i !== index) return cs;
+            const next = { ...cs, [field]: value } as CaseStudy;
+            if (field === "disciplineTags") return { ...next, disciplineTagsExplicit: true };
+            if (field === "sectorTags") return { ...next, sectorTagsExplicit: true };
+            return next;
+        }));
     };
 
     const removeCaseStudy = (index: number) => {
@@ -266,7 +279,7 @@ function CaseStudyCard({
     enhance: Enhance;
     cs: CaseStudy;
     index: number;
-    onChange: (field: keyof CaseStudy, value: string | string[]) => void;
+    onChange: (field: keyof CaseStudy, value: string | string[] | CaseStudySectorId[] | boolean) => void;
     onRemove: () => void;
     onPhotoUpload: (slot: number, file: File) => void;
     onPhotoRemove: (slot: number) => void;
@@ -283,6 +296,7 @@ function CaseStudyCard({
     // A challenge and how it was resolved, as typed. Held by the card so closing it keeps them; never saved until added.
     const [story, setStory] = useState<StoryNotes>(NO_STORY);
     const changeStory = (next: StoryNotes) => { setStory(next); onStoryTyped(storyTyped(next)); };
+    const tagSuggestions = exampleTagSuggestions({ projectType: cs.projectType, client: cs.client });
 
     const handleEnhance = async () => {
         // One request at a time: the button is disabled while this runs, and this guards a double press.
@@ -402,6 +416,17 @@ function CaseStudyCard({
                             <input id={`${fieldId}-location`} className={inputCls} value={cs.location} onChange={e => onChange("location", e.target.value)} placeholder="e.g. Surrey" />
                         </div>
                     </div>
+
+                    <ExampleTagsSection
+                        idPrefix={fieldId}
+                        labelCls={labelCls}
+                        disciplineTags={cs.disciplineTags ?? []}
+                        sectorTags={cs.sectorTags ?? []}
+                        suggestedDisciplines={tagSuggestions.disciplineTags}
+                        suggestedSectors={tagSuggestions.sectorTags}
+                        onDisciplines={(next) => onChange("disciplineTags", next)}
+                        onSectors={(next) => onChange("sectorTags", next)}
+                    />
 
                     <div>
                         <label htmlFor={`${fieldId}-delivered`} className={labelCls}>What We Delivered</label>

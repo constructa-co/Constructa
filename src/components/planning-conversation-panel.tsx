@@ -1,8 +1,10 @@
 "use client";
 
-import { useId, useSyncExternalStore } from "react";
+import { useId, useRef, useState, useSyncExternalStore } from "react";
 import { assistantOffLabel, explainAssistantOff, type JobAssistantOffReason } from "@/lib/job-assistant-readiness";
-import { PLANNING_MESSAGE_LIMIT, suggestionKey, type PlanningConversation, type PlanningTopic } from "@/lib/planning-conversation";
+import { PLANNING_MESSAGE_LIMIT, suggestionKey, type PlanningConversation, type PlanningSuggestion, type PlanningTopic } from "@/lib/planning-conversation";
+import type { AddPlanningItemResult, PlanningProgrammeItem } from "@/lib/planning-programme-item";
+import { MAX_STAGE_NAME_LENGTH } from "@/lib/simple-programme";
 import type { WorkspaceStyles } from "@/lib/workspace-styles";
 
 const TOPIC_LABEL: Record<PlanningTopic, string> = {
@@ -11,9 +13,76 @@ const TOPIC_LABEL: Record<PlanningTopic, string> = {
     "client-decision": "Client decision",
 };
 
-export default function PlanningConversationPanel({ session, blocked, blockedNote, offReason, s }: { session: PlanningConversation; blocked: boolean; blockedNote?: string; offReason?: JobAssistantOffReason | null; s: WorkspaceStyles }) {
+/**
+ * The contractor's own confirmation for one suggestion. They type the stage name
+ * and length; nothing is taken from the reply. Saving goes through the page's
+ * programme save, which is why it is offered only when that is available.
+ */
+function AddToProgramme({ suggestion, onAdd, onReload, s, id, acquireAdd, releaseAdd }: { suggestion: PlanningSuggestion; onAdd: (item: PlanningProgrammeItem) => Promise<AddPlanningItemResult>; onReload?: () => void; s: WorkspaceStyles; id: string; /** Shared by every suggestion in the panel, so only one add is ever being sent. */ acquireAdd: () => boolean; releaseAdd: () => void }) {
+    const [open, setOpen] = useState(false);
+    const [name, setName] = useState(suggestion.title.slice(0, MAX_STAGE_NAME_LENGTH));
+    const [duration, setDuration] = useState("");
+    const [unit, setUnit] = useState<PlanningProgrammeItem["unit"]>("weeks");
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [added, setAdded] = useState<string | null>(null);
+    // The saved programme changed since this page loaded: adding again here would only be refused again.
+    const [stale, setStale] = useState(false);
+
+    if (added) return <p role="status" className={s.muted}>Added to your programme as &ldquo;{added}&rdquo;.</p>;
+    if (!open) return <button type="button" className={s.quietButton} onClick={() => setOpen(true)}>Add to programme</button>;
+
+    const confirm = async () => {
+        // Taken synchronously: `busy` only lands on the next render, so a second press
+        // in the same tick (or on another suggestion) would otherwise get through.
+        if (!acquireAdd()) return;
+        setBusy(true); setError(null); setStale(false);
+        try {
+            const result = await onAdd({ name, duration, unit });
+            if (result.ok) setAdded(result.name); else { setError(result.error); setStale(result.stale === true); }
+        } catch {
+            setError("The programme couldn't be saved. Nothing has been changed.");
+        } finally { releaseAdd(); setBusy(false); }
+    };
+
+    return (
+        <div role="group" aria-label={`Add ${suggestion.title} to the programme`} className="space-y-2" data-planning-add>
+            <p className={s.muted}>
+                This adds a stage at the end of your saved programme and saves it. Stages run one after another, so it lengthens the programme by the time you enter.
+                {suggestion.timing ? ` Timing you gave: ${suggestion.timing}.` : " No timing has been given, so enter the length yourself."}
+                {" "}The conversation restarts afterwards because your programme will have changed.
+            </p>
+            <label htmlFor={`${id}-name`} className={s.label}>Stage name</label>
+            <input id={`${id}-name`} className={s.input} value={name} maxLength={MAX_STAGE_NAME_LENGTH} disabled={busy} onChange={event => setName(event.target.value)} />
+            <label htmlFor={`${id}-duration`} className={s.label}>How long</label>
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-2">
+                <input id={`${id}-duration`} className={s.input} inputMode="numeric" autoComplete="off" value={duration} disabled={busy} onChange={event => setDuration(event.target.value)} />
+                <select aria-label="Days or weeks" className={s.input} value={unit} disabled={busy} onChange={event => setUnit(event.target.value === "days" ? "days" : "weeks")}>
+                    <option value="weeks">weeks</option>
+                    <option value="days">working days</option>
+                </select>
+            </div>
+            {error && <p role="alert" className={s.errorBox}>{error}</p>}
+            <div className="flex flex-wrap gap-2">
+                {stale && onReload
+                    ? <button type="button" className={s.primaryButton} onClick={onReload}>Reload programme</button>
+                    : <button type="button" className={s.primaryButton} disabled={busy || !name.trim() || !duration.trim() || stale} onClick={() => void confirm()}>{busy ? "Saving" : "Add and save"}</button>}
+                <button type="button" className={s.quietButton} disabled={busy} onClick={() => { setOpen(false); setError(null); setStale(false); }}>Cancel</button>
+            </div>
+        </div>
+    );
+}
+
+export default function PlanningConversationPanel({ session, blocked, blockedNote, offReason, onAdd, onReload, s }: { session: PlanningConversation; blocked: boolean; blockedNote?: string; offReason?: JobAssistantOffReason | null; /** Present only when this job's saved programme can take a new stage. */ onAdd?: (item: PlanningProgrammeItem) => Promise<AddPlanningItemResult>; /** Reloads the saved programme when an add is refused as stale. */ onReload?: () => void; s: WorkspaceStyles }) {
     const state = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
     const id = useId();
+    const addSending = useRef(false);
+    const acquireAdd = () => {
+        if (addSending.current) return false;
+        addSending.current = true;
+        return true;
+    };
+    const releaseAdd = () => { addSending.current = false; };
     const pending = state.status === "pending";
     const offLabel = assistantOffLabel(offReason);
 
@@ -27,7 +96,7 @@ export default function PlanningConversationPanel({ session, blocked, blockedNot
                     <p role="status" className={`text-sm ${s.muted}`}>{explainAssistantOff(state.error ?? "", offReason)} Opening this panel does not send your job details anywhere.</p>
                 ) : (
                     <>
-                        <p id={`${id}-help`} className={`text-sm ${s.muted}`}>Uses this job&apos;s saved programme and what you write here. Do not enter passwords or confidential client details. Replies are suggestions to review: they do not change dates, prices or your programme, and nothing is sent to your client.</p>
+                        <p id={`${id}-help`} className={`text-sm ${s.muted}`}>Uses this job&apos;s saved programme and what you write here. Do not enter passwords or confidential client details. Replies are suggestions to review: they do not change dates or prices, and nothing is sent to your client. Your programme changes only if you choose to add a suggestion to it and confirm the name and length yourself.</p>
                         {state.messages.length > 0 && (
                             <ol aria-label="Planning conversation" className="space-y-3">
                                 {state.messages.map((message, turn) => (
@@ -59,6 +128,7 @@ export default function PlanningConversationPanel({ session, blocked, blockedNot
                                                                     <button type="button" className={s.quietButton} onClick={() => session.decide(turn, index, "dismissed")}>Dismiss</button>
                                                                 </div>
                                                             )}
+                                                            {!decision && onAdd && !blocked && <AddToProgramme suggestion={suggestion} onAdd={onAdd} onReload={onReload} s={s} id={`${id}-add-${turn}-${index}`} acquireAdd={acquireAdd} releaseAdd={releaseAdd} />}
                                                         </li>
                                                     );
                                                 })}

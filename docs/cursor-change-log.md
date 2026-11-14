@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-14 — A097 D12 Vercel Web Analytics default-off (cursor/a097-d12-vercel-web-analytics-985d)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/public-measurement.ts` | 136–145, 179 | Replace `PUBLIC_PAGEVIEW_MEASUREMENT_ENABLED = true` with `isPublicPageviewMeasurementEnabled()` reading `NEXT_PUBLIC_CONSTRUCTA_VERCEL_WEB_ANALYTICS === '1'` | Existing deploys collect no page views until explicit code opt-in; custom-event inert path unchanged |
+| `src/components/public-analytics.tsx` | 7, 28 | Gate mount on `isPublicPageviewMeasurementEnabled()` | Vercel `<Analytics>` stays unmounted by default |
+| `src/lib/public-measurement.test.ts` | D12 describe + filter `beforeEach` | Default-off and filter-off cases; enable env stub for route filter tests | Focused A097 regression |
+| `src/components/public-analytics.test.tsx` | mount gating | Default-off null render; nested suite with `NEXT_PUBLIC_CONSTRUCTA_VERCEL_WEB_ANALYTICS=1` | Preserve prior gating checks when activated |
+| `docs/marketing/public-measurement-spec.md` | scope + layers | Document build-time env activation layer | Operator truth without dashboard changes |
+
 ## 2026-11-14 — A001 dashboard / estimate / programme palette sweep (cursor/a001-dashboard-estimate-programme-sweep-9d86)
 
 | File | Lines (approx.) | Change | Intent |

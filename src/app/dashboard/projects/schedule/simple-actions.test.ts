@@ -22,8 +22,8 @@ const established = [
     { name: "Finishes", calculatedDays: 5, manualDays: 5, manhours: 40, startOffset: 21, color: "orange" },
 ];
 
-function setup(project: Record<string, unknown> = {}) {
-    const db = fakeSupabase({ projects: [{ id: PROJECT_ID, user_id: USER_ID, start_date: null, programme_phases: [], ...project }] });
+function setup(project: Record<string, unknown> = {}, options: Parameters<typeof fakeSupabase>[1] = {}) {
+    const db = fakeSupabase({ projects: [{ id: PROJECT_ID, user_id: USER_ID, start_date: null, programme_phases: [], ...project }] }, options);
     mocks.requireEditableProjectAccess.mockResolvedValue({ user: { id: USER_ID }, supabase: db.client });
     return db;
 }
@@ -47,6 +47,46 @@ describe("saveSimpleProgrammeAction", () => {
         expect(computeDisplayProgramme(input.startDate, saved.programme_phases as unknown[], saved.programme_working_pattern)?.end_date).toBe("2026-10-17");
         expect(viewForProject(saved, () => "key")).toMatchObject({ kind: "simple", draft: { workingPattern: pattern, duration: "2", unit: "days" } });
         expect(await saveSimpleProgrammeAction(PROJECT_ID, { ...input, expectedWorkingPattern: pattern })).toMatchObject({ success: true });
+    });
+
+    describe("a save bound to the programme it was worked out from, with the working pattern unchanged", () => {
+        const T1 = "2026-11-14T09:00:00+00:00";
+        const T2 = "2026-11-14T10:00:00+00:00";
+        const bound = { programme_phases: established, start_date: MONDAY, updated_at: T1 };
+        const stages = [{ name: "Prepare", workingDays: 3, unit: "days" as const, source: 0 }];
+
+        it("selects, and returns, the phases, start date and updated_at it stored", async () => {
+            // Only the selected columns come back, so a column left out of the select shows up here.
+            const db = setup({ ...bound, programme_working_pattern: null }, { projectSelects: true });
+            // The database refreshes updated_at on every write.
+            const from = db.client.from;
+            vi.spyOn(db.client, "from").mockImplementation(table => {
+                const query = from(table), update = query.update;
+                query.update = values => update({ ...values, updated_at: T2 });
+                return query;
+            });
+            const result = await saveSimpleProgrammeAction(PROJECT_ID, { startDate: MONDAY, stages, expectedProgramme: bound });
+            const returned = db.selects.find(entry => entry.op === "update");
+            expect(returned?.columns.split(",")).toEqual(expect.arrayContaining(["programme_phases", "start_date", "updated_at"]));
+            expect(result).toEqual({ success: true, confirmedProject: {
+                programme_phases: db.tables.projects[0].programme_phases, start_date: MONDAY, updated_at: T2,
+            } });
+            // No pattern change was asked for, so none is reported back.
+            expect(result.success && result.confirmedProject).not.toHaveProperty("programme_working_pattern");
+        });
+
+        it("still selects only the id for an unbound save, and returns nothing to adopt", async () => {
+            const db = setup({ ...bound }, { projectSelects: true });
+            expect(await saveSimpleProgrammeAction(PROJECT_ID, { startDate: MONDAY, stages })).toEqual({ success: true });
+            expect(db.selects.find(entry => entry.op === "update")?.columns).toBe("id");
+        });
+
+        it("writes nothing when the stored updated_at has moved on since the snapshot", async () => {
+            const db = setup({ ...bound, updated_at: T2 }, { projectSelects: true });
+            expect(await saveSimpleProgrammeAction(PROJECT_ID, { startDate: MONDAY, stages, expectedProgramme: bound }))
+                .toMatchObject({ success: false, stale: true });
+            expect(db.updates).toHaveLength(0);
+        });
     });
 
     it("saves and readbacks an explicit v2 local-hours pattern when the column exists", async () => {

@@ -45,7 +45,7 @@ describe("features route under the default cohort profile", () => {
     expect(mainContent).toMatch(/<h1[\s>]/);
     expect(mainContent).toContain("From first hello.");
     expect(mainContent).toContain("not available as a live chatbot");
-    expect(mainContent).not.toContain("Real-time Cost Updates");
+    expect(mainContent).not.toContain("Centralised Cost Tracking");
   });
 });
 
@@ -65,7 +65,7 @@ describe("features route under the full profile", () => {
     const mainContent = markup.slice(mainOpen, mainClose);
     expect(mainContent).toMatch(/<h1[\s>]/);
     expect(mainContent).toContain("Designed for builders.");
-    expect(mainContent).toContain("Real-time Cost Updates");
+    expect(mainContent).toContain("Centralised Cost Tracking");
     expect(mainContent).toContain(FULL_INNER_WRAPPER);
     expect(mainContent).not.toContain("not available as a live chatbot");
   });

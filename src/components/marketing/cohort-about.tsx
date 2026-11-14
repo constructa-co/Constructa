@@ -76,10 +76,10 @@ export function PhaseOneAbout() {
           <h2>The solution we&apos;re building</h2>
           <p>Constructa brings quoting, planning, and delivery into one clean, easy-to-use platform.</p>
           <ul>
-            <li>Create a client-ready proposal in minutes</li>
+            <li>Create a clear, client-ready proposal</li>
             <li>Build a job plan that keeps everyone aligned</li>
             <li>Track progress and changes without the spreadsheet stress</li>
-            <li>Win more work by looking more professional from day one</li>
+            <li>Present a more professional front from day one</li>
           </ul>
           <p>We&apos;re starting simple. And growing with our users—brick by brick.</p>
         </div>

@@ -13,7 +13,7 @@
 import { parseIsoDate } from "./programme-date";
 import {
     addJobWorkingDays, countJobWorkingDays, isDefaultJobWorkingPattern, isJobWorkingDay, isJobWorkingPatternV2,
-    nextJobWorkingDayAfter, programmeWeekUnitCount, resolveJobWorkingPattern, type JobWorkingPattern,
+    jobCapacityMinutes, jobCapacityStartDay, nextJobWorkingDayAfter, programmeWeekUnitCount, resolveJobWorkingPattern, type JobWorkingPattern,
 } from "./job-working-pattern";
 
 export { parseIsoDate } from "./programme-date";
@@ -155,8 +155,22 @@ export function phaseWorkingDays(phase: unknown): number {
     return Math.round(positive(p.calculatedDays));
 }
 
+/**
+ * A stage the contractor has flagged for review that still has no length. The
+ * dated plan leaves it out; draft storage keeps it, and nothing that sends a
+ * proposal may.
+ */
+export function isFlaggedZeroDayStage(phase: unknown): boolean {
+    const p = asRecord(phase);
+    return p.needsReview === true && phaseWorkingDays(p) === 0 && Math.ceil(positive(p.duration_days)) <= 0;
+}
+
 interface ReadPhase {
     name: string;
+    /** The date the stage was placed at, before any roll to a working day. */
+    anchorIso: string;
+    /** Set when the stage came from calendar days rather than working days. */
+    calendarBased: boolean;
     startMs: number;
     endMs: number;
     requestedWorkingDays: number;
@@ -189,17 +203,58 @@ function readPhase(entry: unknown, index: number, programmeStartMs: number | nul
         const firstDay = addJobWorkingDays(startIso, 1, pattern);
         const lastDay = addJobWorkingDays(startIso, workingDays, pattern);
         return firstDay === null || lastDay === null ? null
-            : { name, startMs: parseIsoDate(firstDay)!, endMs: parseIsoDate(lastDay)!, requestedWorkingDays: workingDays };
+            : { name, anchorIso: startIso, calendarBased: false, startMs: parseIsoDate(firstDay)!, endMs: parseIsoDate(lastDay)!, requestedWorkingDays: workingDays };
     }
 
     const calendarDays = Math.ceil(positive(p.duration_days));
     if (calendarDays <= 0 || !Number.isSafeInteger(calendarDays)) return null;
     const endMs = startMs + (calendarDays - 1) * DAY_MS;
-    return toIso(endMs) === null ? null : { name, startMs, endMs, requestedWorkingDays: calendarDays };
+    return toIso(endMs) === null ? null : { name, anchorIso: startIso, calendarBased: true, startMs, endMs, requestedWorkingDays: calendarDays };
+}
+
+/**
+ * Version 2 union measured in productive minutes. Counting civil dates
+ * overcounts overnight shifts, which touch two dates for one day of work. Each
+ * stage occupies a span of the job's own capacity timeline; spans are merged
+ * and the merged length is expressed in standard working days. Null when a
+ * date cannot be resolved, so the caller can fall back to the date count.
+ */
+function countCoveredCapacityDays(stages: readonly ReadPhase[], pattern: JobWorkingPattern): number | null {
+    if (!isJobWorkingPatternV2(pattern) || stages.length === 0) return null;
+    const starts = stages.map(stage => jobCapacityStartDay(stage.anchorIso, pattern));
+    if (starts.some(start => start === null)) return null;
+    const base = [...starts as string[]].sort()[0];
+    const spans: Array<{ from: number; to: number }> = [];
+    for (let index = 0; index < stages.length; index += 1) {
+        const stage = stages[index];
+        const start = starts[index] as string;
+        const through = jobCapacityMinutes(base, start, pattern);
+        const own = jobCapacityMinutes(start, start, pattern);
+        if (through === null || own === null) return null;
+        const from = through - own;
+        if (stage.calendarBased) {
+            const length = jobCapacityMinutes(start, toIso(stage.endMs)!, pattern);
+            if (length === null) return null;
+            spans.push({ from, to: from + length });
+        } else {
+            spans.push({ from, to: from + stage.requestedWorkingDays * pattern.standardMinutesPerDay });
+        }
+    }
+    spans.sort((a, b) => a.from - b.from);
+    let total = 0;
+    let cursor = -Infinity;
+    for (const span of spans) {
+        const from = Math.max(span.from, cursor);
+        if (span.to > from) total += span.to - from;
+        cursor = Math.max(cursor, span.to);
+    }
+    return Math.ceil(total / pattern.standardMinutesPerDay);
 }
 
 /** Exact union: merge the stages' date ranges, then count the pattern's working days in each merged range once. */
 function countCoveredWorkingDays(stages: readonly ReadPhase[], pattern: JobWorkingPattern): number {
+    const byCapacity = countCoveredCapacityDays(stages, pattern);
+    if (byCapacity !== null) return byCapacity;
     const ranges = stages.map(({ startMs, endMs }) => ({ startMs, endMs })).sort((a, b) => a.startMs - b.startMs);
     const merged: Array<{ startMs: number; endMs: number }> = [];
     for (const range of ranges) {
@@ -272,6 +327,18 @@ export function computeProgrammePlan(
 export function planCoversEveryPhase(plan: { stages: readonly unknown[] } | null, phases: unknown[] | null | undefined): boolean {
     const saved = Array.isArray(phases) ? Math.min(phases.length, 200) : 0;
     return plan !== null && saved > 0 && plan.stages.length === saved;
+}
+
+/**
+ * The draft-storage version of the check above: stages flagged for review that
+ * still have no length may be kept while the contractor works, but every other
+ * saved phase must be shown. Proposal publication and readiness keep using
+ * planCoversEveryPhase, so a flagged stage still stops a proposal being sent.
+ */
+export function draftPlanCoversEveryPhase(plan: { stages: readonly unknown[] } | null, phases: unknown[] | null | undefined): boolean {
+    if (!Array.isArray(phases) || phases.length === 0) return false;
+    const counted = phases.slice(0, 200).filter(phase => !isFlaggedZeroDayStage(phase));
+    return counted.length === 0 ? true : planCoversEveryPhase(plan, counted);
 }
 
 /** Where a stage's bar sits on a timeline, as percentages of the whole. */

@@ -116,6 +116,8 @@ export const ProgrammePhaseSchema = z.object({
     startOffset:     z.number().int().min(0).max(3650),
     color:           z.string().max(50).optional(),
     dependsOn:       z.array(z.number().int().min(0).max(1000)).optional(),
+    // Set on a stage whose length could not be worked out; kept so the flag survives save and reload.
+    needsReview:     z.boolean().optional(),
     // Optional live-tracking fields added later in the sprint cycle
     pct_complete:       z.number().min(0).max(100).optional(),
     actual_start_date:  IsoDate.optional().nullable(),

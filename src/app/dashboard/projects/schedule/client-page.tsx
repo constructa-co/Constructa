@@ -17,7 +17,7 @@ import {
     sequencePlannerPhases,
     type PlannerPhase,
 } from "@/lib/planner-phases";
-import { addJobWorkingDays, jobCalendarOffset, nextJobWorkingDayAfter, resolveJobWorkingPattern } from "@/lib/job-working-pattern";
+import { addJobWorkingDays, jobCalendarOffset, jobProductiveMinutesPerDay, nextJobWorkingDayAfter, resolveJobWorkingPattern } from "@/lib/job-working-pattern";
 import { programmeBasisNote } from "@/lib/relative-programme";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -729,7 +729,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         {
                             label: "Manhours",
                             value: totalManhours > 0 ? `${Math.round(totalManhours)}h` : "—",
-                            sub: totalManhours > 0 ? `${Math.round(totalManhours / 8)} working days` : "No manhours",
+                            sub: totalManhours > 0 ? `${Math.round(totalManhours / (jobProductiveMinutesPerDay(workingPattern) / 60))} working days` : "No manhours",
                         },
                     ].map(({ label, value, sub }) => (
                         <div key={label} className="bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-3">

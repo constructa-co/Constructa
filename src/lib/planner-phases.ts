@@ -15,10 +15,7 @@
 import { SIMPLE_LINE_SECTION } from "./simple-estimate";
 import { WHOLE_JOB_NAME } from "./simple-programme";
 import { computeProgrammePlan, phaseWorkingDays, WORKING_DAYS_PER_WEEK, type ProgrammePlan } from "./programme-plan";
-import { addJobWorkingDays, isJobWorkingPatternV2, jobCalendarOffset, nextJobWorkingDayAfter, resolveJobWorkingPattern } from "./job-working-pattern";
-
-/** Productive minutes in a day when the job has no explicit capacity (version 1 patterns). */
-const DEFAULT_MINUTES_PER_DAY = 480;
+import { addJobWorkingDays, jobCalendarOffset, jobProductiveMinutesPerDay, nextJobWorkingDayAfter } from "./job-working-pattern";
 
 export interface PlannerPhase {
     name: string;
@@ -131,9 +128,7 @@ export function sequenceSuggestedPhases<T extends Pick<PlannerPhase, "name" | "c
 
 /** Stages worked out from the labour hours in an estimate, one per section that has any. */
 export function estimateSuggestedPhases(estimate: PlannerEstimate | null | undefined, daysPerWeek: number, startDate?: string, workingPattern?: unknown): PlannerPhase[] {
-    const pattern = resolveJobWorkingPattern(workingPattern);
-    const minutesPerDay = pattern && isJobWorkingPatternV2(pattern) ? pattern.standardMinutesPerDay : DEFAULT_MINUTES_PER_DAY;
-    const hoursPerDay = minutesPerDay / 60;
+    const hoursPerDay = jobProductiveMinutesPerDay(workingPattern) / 60;
     const sections = new Map<string, { perUnit: number; total: number }>();
     for (const line of estimate?.estimate_lines ?? []) {
         const hours = (line.estimate_line_components ?? []).reduce((sum, component) => sum + (component.total_manhours || 0), 0);

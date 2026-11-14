@@ -15,6 +15,8 @@ import { COHORT_AI_UNAVAILABLE } from "@/lib/cohort-ai/shared";
 import { IsoDate, UpdatePhasesSchema, parseInput } from "@/lib/validation/schemas";
 import { writeProgrammeStorage } from "@/lib/server/programme-storage";
 import { resolveJobWorkingPattern } from "@/lib/job-working-pattern";
+import { estimateSuggestedPhases, type PlannerPhase } from "@/lib/planner-phases";
+import { WORKING_DAYS_PER_WEEK } from "@/lib/programme-plan";
 
 // This separate argument is deliberately not parsed by UpdatePhasesSchema, which strips unknown keys.
 function parseExpectedWorkingPattern(value: unknown) {
@@ -95,6 +97,7 @@ export async function updatePhasesAction(
         startOffset: number;
         color?: string;
         dependsOn?: number[];
+        needsReview?: boolean;
     }[],
     startDate?: string,   // ISO YYYY-MM-DD — if provided, saves to projects.start_date
     expectedWorkingPattern?: unknown,
@@ -124,7 +127,7 @@ export async function updatePhasesAction(
 
 export async function getEstimatePhasesAction(
     projectId: string
-): Promise<{ name: string; calculatedDays: number; manualDays: number | null; manhours: number; startOffset: number }[]> {
+): Promise<PlannerPhase[]> {
     const { supabase } = await requireProjectAccess(projectId);
 
     const { data: estimates } = await supabase
@@ -140,18 +143,32 @@ export async function getEstimatePhasesAction(
         (estimates || [])[0];
     if (!estimate) return [];
 
+    // Selecting * also works before the optional calendar column is applied.
+    const { data: calendarProject } = await supabase
+        .from("projects").select("*").eq("id", projectId).single();
+    // A saved calendar that cannot be read must not quietly fall back to eight-hour days.
+    const pattern = resolveJobWorkingPattern(calendarProject?.programme_working_pattern);
+    if (!pattern) throw new Error("Check the job's working days before regenerating the programme.");
+
+    // The same suggestion the planner opens with: the job's productive day, an
+    // explicit zero quantity as a flagged zero-length stage, and working-day placement.
+    const suggested = estimateSuggestedPhases(
+        estimate, WORKING_DAYS_PER_WEEK, calendarProject?.start_date ?? undefined, pattern,
+    );
+    if (suggested.length > 0) return suggested;
+
+    // Labour hours exist but the stages could not be placed (for example an unusable start date):
+    // say so rather than substituting placeholder lengths.
+    const hasLabourHours = (estimate.estimate_lines || []).some((line: any) =>
+        (line.estimate_line_components || []).some((c: any) => (c.total_manhours || 0) > 0));
+    if (hasLabourHours) throw new Error("Could not place the estimate stages. Check the programme start date and working days.");
+
+    // From here no line carries labour hours, so every section is a placeholder.
     const sectionManhours: Record<string, number> = {};
     const sectionHasLines: Record<string, boolean> = {};
 
     (estimate.estimate_lines || []).forEach((line: any) => {
-        const section = line.trade_section || "General";
-        sectionHasLines[section] = true;
-
-        const lineManHours = (line.estimate_line_components || []).reduce(
-            (sum: number, c: any) => sum + (c.total_manhours || 0),
-            0
-        );
-        sectionManhours[section] = (sectionManhours[section] || 0) + lineManHours * (line.quantity || 1);
+        sectionHasLines[line.trade_section || "General"] = true;
     });
 
     // Include all sections that have lines — not just those with calculated manhours.
@@ -183,11 +200,10 @@ export async function getEstimatePhasesAction(
     // Return working days; client converts to calendar days using daysPerWeek
     let offset = 0;
     return sections.map(section => {
-        const manhours = sectionManhours[section] || 0;
-        // If no manhour data (e.g. simple lines from Drawing AI Takeoff),
+        // No manhour data (e.g. simple lines from Drawing AI Takeoff):
         // default to 5 working days so the phase still appears on the Gantt
-        const calculatedDays = manhours > 0 ? Math.max(Math.ceil(manhours / 8), 1) : 5;
-        const phase = { name: section, calculatedDays, manualDays: null, manhours, startOffset: offset };
+        const calculatedDays = 5;
+        const phase = { name: section, calculatedDays, manualDays: null, manhours: 0, startOffset: offset };
         offset += calculatedDays;
         return phase;
     });

@@ -47,12 +47,13 @@ function reducedMotionAnimation(selectorPart: string) {
 }
 
 describe("declared phase-one responsive rules, not computed layout or browser proof", () => {
-  it("keeps three real main-nav destinations in source without hiding or removing links", () => {
+  it("keeps four real main-nav destinations in source without hiding or removing links", () => {
     const navBlock = headerSource.match(/aria-label="Main navigation"[\s\S]*?<\/nav>/)?.[0] ?? "";
     expect(navBlock).toContain('href="/#how-it-works"');
     expect(navBlock).toContain('href="/features"');
     expect(navBlock).toContain('href="/pricing"');
-    expect((navBlock.match(/<Link\b/g) ?? []).length).toBe(3);
+    expect(navBlock).toContain('href="/about"');
+    expect((navBlock.match(/<Link\b/g) ?? []).length).toBe(4);
     expect(navBlock).not.toMatch(/display:\s*none|visibility:\s*hidden|aria-hidden="true"/i);
   });
 

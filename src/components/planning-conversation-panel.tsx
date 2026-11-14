@@ -18,7 +18,7 @@ const TOPIC_LABEL: Record<PlanningTopic, string> = {
  * and length; nothing is taken from the reply. Saving goes through the page's
  * programme save, which is why it is offered only when that is available.
  */
-function AddToProgramme({ suggestion, onAdd, onReload, s, id, sending }: { suggestion: PlanningSuggestion; onAdd: (item: PlanningProgrammeItem) => Promise<AddPlanningItemResult>; onReload?: () => void; s: WorkspaceStyles; id: string; /** Shared by every suggestion in the panel, so only one add is ever being sent. */ sending: { current: boolean } }) {
+function AddToProgramme({ suggestion, onAdd, onReload, s, id, acquireAdd, releaseAdd }: { suggestion: PlanningSuggestion; onAdd: (item: PlanningProgrammeItem) => Promise<AddPlanningItemResult>; onReload?: () => void; s: WorkspaceStyles; id: string; /** Shared by every suggestion in the panel, so only one add is ever being sent. */ acquireAdd: () => boolean; releaseAdd: () => void }) {
     const [open, setOpen] = useState(false);
     const [name, setName] = useState(suggestion.title.slice(0, MAX_STAGE_NAME_LENGTH));
     const [duration, setDuration] = useState("");
@@ -35,15 +35,14 @@ function AddToProgramme({ suggestion, onAdd, onReload, s, id, sending }: { sugge
     const confirm = async () => {
         // Taken synchronously: `busy` only lands on the next render, so a second press
         // in the same tick (or on another suggestion) would otherwise get through.
-        if (sending.current) return;
-        sending.current = true;
+        if (!acquireAdd()) return;
         setBusy(true); setError(null); setStale(false);
         try {
             const result = await onAdd({ name, duration, unit });
             if (result.ok) setAdded(result.name); else { setError(result.error); setStale(result.stale === true); }
         } catch {
             setError("The programme couldn't be saved. Nothing has been changed.");
-        } finally { sending.current = false; setBusy(false); }
+        } finally { releaseAdd(); setBusy(false); }
     };
 
     return (
@@ -78,6 +77,12 @@ export default function PlanningConversationPanel({ session, blocked, blockedNot
     const state = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
     const id = useId();
     const addSending = useRef(false);
+    const acquireAdd = () => {
+        if (addSending.current) return false;
+        addSending.current = true;
+        return true;
+    };
+    const releaseAdd = () => { addSending.current = false; };
     const pending = state.status === "pending";
     const offLabel = assistantOffLabel(offReason);
 
@@ -123,7 +128,7 @@ export default function PlanningConversationPanel({ session, blocked, blockedNot
                                                                     <button type="button" className={s.quietButton} onClick={() => session.decide(turn, index, "dismissed")}>Dismiss</button>
                                                                 </div>
                                                             )}
-                                                            {!decision && onAdd && !blocked && <AddToProgramme suggestion={suggestion} onAdd={onAdd} onReload={onReload} s={s} id={`${id}-add-${turn}-${index}`} sending={addSending} />}
+                                                            {!decision && onAdd && !blocked && <AddToProgramme suggestion={suggestion} onAdd={onAdd} onReload={onReload} s={s} id={`${id}-add-${turn}-${index}`} acquireAdd={acquireAdd} releaseAdd={releaseAdd} />}
                                                         </li>
                                                     );
                                                 })}

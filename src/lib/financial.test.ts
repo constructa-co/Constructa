@@ -495,3 +495,15 @@ describe("pctProgress", () => {
         expect(pctProgress(699, 1320)).toBeCloseTo(52.95, 2);
     });
 });
+
+describe("preliminaries-only estimates", () => {
+    it.each([400, -50])("counts the signed preliminaries once when stored total is %s", lineTotal => {
+        const result = computeContractSum(
+            { total_cost: lineTotal, prelims_pct: 10 },
+            [{ trade_section: "Preliminaries", line_total: lineTotal }],
+        );
+        expect(result.directCost).toBe(0);
+        expect(result.prelimsTotal).toBe(lineTotal);
+        expect(result.contractSum).toBe(lineTotal);
+    });
+});

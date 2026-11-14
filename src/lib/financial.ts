@@ -130,14 +130,16 @@ export function computeContractSum(
 
     // Fallback base for prelims when there are no priced direct lines
     // (legacy estimates with only a total_cost value).
-    const fallbackBase =
-        directLines.length > 0 ? directCost : toNumber(estimate.total_cost);
-    const prelimsFromPct = fallbackBase * (toNumber(estimate.prelims_pct) / 100);
+    const constructionBase =
+        directLines.length > 0 || explicitPrelimsLines.length > 0
+            ? directCost
+            : toNumber(estimate.total_cost);
+    const prelimsFromPct = constructionBase * (toNumber(estimate.prelims_pct) / 100);
     const prelimsTotal =
         explicitPrelimsLines.length > 0 ? explicitPrelimsTotal : prelimsFromPct;
 
     // 3. Total construction cost.
-    const totalConstructionCost = fallbackBase + prelimsTotal;
+    const totalConstructionCost = constructionBase + prelimsTotal;
 
     // 4-7. Overhead → Risk → Profit, compounded in that order.
     const overheadPct = toNumber(estimate.overhead_pct);

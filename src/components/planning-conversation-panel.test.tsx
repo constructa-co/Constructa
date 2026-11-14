@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { ReactElement } from "react";
-vi.mock("react", async original => ({ ...await original<typeof import("react")>(), useId: () => "planning-test", useSyncExternalStore: (_subscribe: unknown, read: () => unknown) => read() }));
+vi.mock("react", async original => ({ ...await original<typeof import("react")>(), useRef: (current: unknown) => ({ current }), useId: () => "planning-test", useSyncExternalStore: (_subscribe: unknown, read: () => unknown) => read() }));
 import PlanningConversationPanel from "./planning-conversation-panel";
 import { createPlanningConversation, type PlanningConversation, type PlanningGenerator } from "@/lib/planning-conversation";
 import { workspaceStyles } from "@/lib/workspace-styles";

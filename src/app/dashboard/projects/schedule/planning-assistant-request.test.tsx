@@ -13,6 +13,7 @@ const hooks = vi.hoisted(() => ({
 }));
 vi.mock("react", async importOriginal => ({
     ...await importOriginal<typeof import("react")>(),
+    useTransition: () => [false, (work: () => void) => work()],
     useEffect: (effect: () => void | (() => void)) => { hooks.effects.push(effect); },
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }) }));

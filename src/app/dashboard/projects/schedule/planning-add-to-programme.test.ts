@@ -130,8 +130,8 @@ describe("adding a confirmed planning item through the real programme save", () 
         };
 
         it("is refused, and the appended stage survives, when it is bound to the pre-add snapshot", async () => {
-            const db = setup({ updated_at: "2026-11-14T09:00:00+00:00" });
-            const pageCopy = structuredClone(db.tables.projects[0]);
+            const pageCopy = { programme_phases: structuredClone(established), start_date: MONDAY, updated_at: "2026-11-14T09:00:00+00:00" };
+            const db = setup(pageCopy);
             expect(await add(db)).toEqual({ ok: true, name: "Order windows" });
             const afterAdd = structuredClone(db.tables.projects[0].programme_phases);
             const result = await saveSimpleProgrammeAction(PROJECT_ID, { ...preAdd, expectedProgramme: {

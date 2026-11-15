@@ -19,7 +19,7 @@ const complete: ProposalReadinessInput = {
     contractSum: 12000,
     programmePhases: [{ name: "Groundworks", calculatedDays: 5, startOffset: 0 }],
     projectStartDate: "2026-11-02",
-    paymentSchedule: [{ stage: "Deposit", percentage: 20 }],
+    paymentSchedule: [{ stage: "Deposit", percentage: 20 }, { stage: "Completion", percentage: 80 }],
     terms: [{ clause_number: 1, title: "Payment", body: "Payment is due within 14 days." }],
 };
 
@@ -50,8 +50,9 @@ describe("evaluateProposalReadiness", () => {
         expect(result.recommended.map((item) => item.key)).toEqual([
             "introduction", "about", "photos", "caseStudies", "exclusions", "clarifications", "closingStatement", "paymentCoverage",
         ]);
-        // The one payment stage covers 20% of the price: allowed, and pointed out.
-        expect(result.recommended.every((item) => !item.ok)).toBe(true);
+        expect(result.recommended.filter((item) => !item.ok).map((item) => item.key)).toEqual([
+            "introduction", "about", "photos", "caseStudies", "exclusions", "clarifications", "closingStatement",
+        ]);
     });
 
     it("marks recommended items as done when supplied", () => {
@@ -90,10 +91,10 @@ describe("evaluateProposalReadiness", () => {
     });
 
     it("fails without a positive contract value", () => {
-        expect(missingKeys({ ...complete, contractSum: 0 })).toEqual(["contractValue"]);
-        expect(missingKeys({ ...complete, contractSum: -50 })).toEqual(["contractValue"]);
-        expect(missingKeys({ ...complete, contractSum: null })).toEqual(["contractValue"]);
-        expect(missingKeys({ ...complete, contractSum: Number.NaN })).toEqual(["contractValue"]);
+        expect(missingKeys({ ...complete, contractSum: 0 })).toEqual(["contractValue", "payment"]);
+        expect(missingKeys({ ...complete, contractSum: -50 })).toEqual(["contractValue", "payment"]);
+        expect(missingKeys({ ...complete, contractSum: null })).toEqual(["contractValue", "payment"]);
+        expect(missingKeys({ ...complete, contractSum: Number.NaN })).toEqual(["contractValue", "payment"]);
     });
 
     it("fails without a valid programme phase", () => {
@@ -160,6 +161,12 @@ describe("evaluateProposalReadiness", () => {
         expect(missingKeys({ ...complete, paymentSchedule: [] })).toEqual(["payment"]);
         expect(missingKeys({ ...complete, paymentSchedule: [{ stage: "", percentage: 20 }] })).toEqual(["payment"]);
         expect(missingKeys({ ...complete, paymentSchedule: [{ stage: "Deposit", percentage: 0 }] })).toEqual(["payment"]);
+    });
+
+    it("blocks payment stages that do not cover the full price before issue", () => {
+        expect(missingKeys({ ...complete, paymentSchedule: [{ stage: "Deposit", percentage: 20 }] })).toEqual(["payment"]);
+        const under = evaluateProposalReadiness({ ...complete, paymentSchedule: [{ stage: "Deposit", percentage: 20 }] });
+        expect(under.missing[0].fix).toBe("Your payment stages cover 20% of the price. Add stages until they reach 100%.");
     });
 
     it("blocks payment stages that add up to more than the price, and only those", () => {
@@ -266,7 +273,7 @@ describe("getPublishGate", () => {
     it("blocks when mandatory facts are unresolved and counts them", () => {
         const gate = getPublishGate({ saveState: "idle", readiness: notReady });
         expect(gate.reason).toBe("not-ready");
-        expect(gate.message).toBe("Finish 2 items above before you send.");
+        expect(gate.message).toBe("Finish 3 items above before you send.");
         const one = evaluateProposalReadiness({ ...complete, scope: "" });
         expect(getPublishGate({ saveState: "idle", readiness: one }).message).toBe("Finish 1 item above before you send.");
     });

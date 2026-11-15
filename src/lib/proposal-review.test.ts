@@ -167,6 +167,15 @@ describe("save payload", () => {
         expect(built.fieldErrors.payments).toBe("These stages add up to 120%. Bring them down to 100% or less.");
     });
 
+    it("rejects stages that total below 100% at the save boundary", () => {
+        const built = buildProposalPayload({
+            ...draft,
+            payments: [{ key: "a", stage: "Deposit", when: "", percentage: "40" }],
+        });
+        expect(built.ok).toBe(false);
+        if (!built.ok) expect(built.fieldErrors.payments).toBe("These stages add up to 40%. Bring them up to 100%.");
+    });
+
     it.each(["0", "366", "30.5", "", "abc"])("rejects a validity of %j days", (validityDays) => {
         const built = buildProposalPayload({ ...draft, validityDays });
         expect(built.ok).toBe(false);
@@ -316,7 +325,7 @@ describe("readiness", () => {
 
     it("blocks when there is no single estimate to price from", () => {
         const noEstimate = { ...context, estimate: null };
-        expect(reviewReadiness(noEstimate, draftFromProject(context.project, keys())).missing.map((item) => item.key)).toEqual(["contractValue"]);
+        expect(reviewReadiness(noEstimate, draftFromProject(context.project, keys())).missing.map((item) => item.key)).toEqual(["contractValue", "payment"]);
     });
 
     it("explains recommended gaps without blocking", () => {

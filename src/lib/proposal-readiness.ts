@@ -168,6 +168,7 @@ export function evaluateProposalReadiness(input: ProposalReadinessInput): Propos
     const hasStart = isValidDate(input.projectStartDate) || phases.some((phase) => isValidDate(asRecord(phase).start_date));
     const coverage = paymentCoverage(payments, input.contractSum);
     const paymentsExceedPrice = coverage !== null && coverage > 100.01;
+    const paymentsCoverFullPrice = coverage !== null && coverage >= 99.99 && !paymentsExceedPrice;
 
     const mandatory: ReadinessItem[] = [
         {
@@ -207,10 +208,12 @@ export function evaluateProposalReadiness(input: ProposalReadinessInput): Propos
         {
             key: "payment",
             label: "Payment stages",
-            ok: payments.some(isValidPaymentRow) && !paymentsExceedPrice,
+            ok: payments.some(isValidPaymentRow) && paymentsCoverFullPrice,
             fix: paymentsExceedPrice
                 ? `Your payment stages add up to ${coverage}% of the price. Bring them down to 100% or less.`
-                : "Choose how you are paid: on completion, a deposit and balance, or your own stages.",
+                : payments.some(isValidPaymentRow)
+                    ? `Your payment stages cover ${coverage ?? 0}% of the price. Add stages until they reach 100%.`
+                    : "Choose how you are paid: on completion, a deposit and balance, or your own stages.",
         },
         {
             key: "terms",

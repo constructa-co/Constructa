@@ -18,6 +18,7 @@
 
 import { buildPastJobs, type ProposalLibrary } from "@/lib/case-library/past-jobs";
 import { computeContractSum, roundMoney } from "./financial";
+import { paymentStagesExceedHundredPercent, paymentStagesUnderHundredPercent } from "./proposal-payment-percentages";
 import { splitScope } from "./guided-brief";
 import { resolveProgrammeSource } from "./programme-plan";
 import {
@@ -323,7 +324,11 @@ function builtPayments(draft: ProposalDraft, fieldErrors: ReviewFieldErrors) {
         rows.push({ id: row.key, stage, description: when.slice(0, 1000), percentage });
     }
     const total = roundMoney(rows.reduce((sum, row) => sum + row.percentage, 0));
-    if (total > 100) fieldErrors.payments = `These stages add up to ${total}%. Bring them down to 100% or less.`;
+    if (paymentStagesExceedHundredPercent(total)) {
+        fieldErrors.payments = `These stages add up to ${total}%. Bring them down to 100% or less.`;
+    } else if (rows.length > 0 && paymentStagesUnderHundredPercent(total)) {
+        fieldErrors.payments = `These stages add up to ${total}%. Bring them up to 100%.`;
+    }
     return rows;
 }
 

@@ -41,7 +41,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: 2.39.3
+          version: 2.75.0
 
       - name: Start ephemeral Supabase and run D38 browser test
         env:

@@ -15,6 +15,7 @@ import { roundMoney } from "@/lib/financial";
 import { formatGbp } from "@/lib/pdf/pdf-money";
 import { formatPlanDate } from "@/lib/programme-plan";
 import { programmeFacts, type DisplayProgrammePlan } from "@/lib/relative-programme";
+import type { ProposalCoverPhoto } from "@/lib/proposal-cover-photo";
 import { safeImageUrl, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
 import {
     responseKindOfSnapshot,
@@ -92,6 +93,8 @@ export interface ProposalDocument {
     validUntil: string;
     /** The headline facts: price, start, finish, duration. */
     keyFacts: DocFact[];
+    /** Optional cover image when explicitly chosen. Absent on legacy publications. */
+    coverImage: ProposalCoverPhoto | null;
     introduction: string[];
     sections: DocSection[];
     response: {
@@ -442,6 +445,7 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
         issued: formatLongDate(snapshot.publication.sent_at),
         validUntil: formatLongDate(snapshot.publication.expires_at),
         keyFacts,
+        coverImage: snapshot.cover_photo ?? null,
         introduction: lines(snapshot.content.introduction),
         sections,
         response: {
@@ -459,6 +463,7 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
 /** Every image the document shows, in order, for loading before a PDF is drawn. */
 export function documentImageUrls(doc: ProposalDocument): string[] {
     const urls: string[] = doc.company.logoUrl ? [doc.company.logoUrl] : [];
+    if (doc.coverImage?.url) urls.push(doc.coverImage.url);
     for (const section of doc.sections) {
         for (const block of section.blocks) {
             if (block.type === "photos") urls.push(...block.photos.map((photo) => photo.url));

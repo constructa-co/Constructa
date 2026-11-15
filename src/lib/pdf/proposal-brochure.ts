@@ -826,6 +826,23 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
             log("text", top, y);
         }
 
+        if (document.coverImage) {
+            const coverUrl = document.coverImage.url;
+            const bitmap = images.get(coverUrl);
+            if (!bitmap && coverUrl) skippedImages.push(coverUrl);
+            if (bitmap) {
+                y += 6;
+                const maxHeight = 48;
+                const width = Math.min(PAGE.contentWidth, maxHeight * (bitmap.width / bitmap.height));
+                const height = width * (bitmap.height / bitmap.width);
+                const top = y;
+                pdf.addImage(bitmap.data, bitmap.format, PAGE.left, y, width, height, undefined, "FAST");
+                y += height + 2;
+                y += drawBlockLines(wrap(pdfText(document.coverImage.caption), PAGE.contentWidth, STYLES.small), PAGE.left, y, STYLES.small);
+                log("row", top, y);
+            }
+        }
+
         y += 6;
         // Each fact stays whole: one that does not fit on the line starts the next.
         const meta = [

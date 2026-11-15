@@ -70,6 +70,16 @@ const Footer = () => {
             <h3 className="text-sm font-medium text-gray-200">Connect</h3>
             <ul className="space-y-4">
               <li>
+                <a href="/apply" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Apply to the founding cohort
+                </a>
+              </li>
+              <li>
+                <a href="/login" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Log in
+                </a>
+              </li>
+              <li>
                 <a href="/contact" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Contact us
                 </a>

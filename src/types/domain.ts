@@ -220,6 +220,8 @@ export interface Project {
 
     // Photos
     site_photos?: SitePhoto[] | null;
+    /** Explicit cover choice: site first photo or illustrative_render. Null keeps legacy proposals without a cover image. */
+    proposal_cover_photo?: string | null;
 
     // Commercials
     potential_value?: number | null;

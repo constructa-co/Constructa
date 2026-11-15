@@ -21,6 +21,24 @@ export function legacyEntryPhotosProblem(photos: unknown): string | null {
 }
 
 /**
+ * How many pictures an older entry holds beyond the third. Zero when `photos`
+ * is not a list. The same length rule `legacyEntryPhotosProblem` refuses on, so
+ * the editor can tell the contractor why a save is held and what it would drop.
+ */
+export function legacyExtraPhotoCount(photos: unknown): number {
+    return Array.isArray(photos) ? Math.max(0, photos.length - CASE_STUDY_PHOTO_COUNT) : 0;
+}
+
+/**
+ * The first three pictures, as they were stored. The only way pictures beyond
+ * the third leave an older entry, and only from the contractor's own choice:
+ * nothing in a save, load or upload calls this.
+ */
+export function keepFirstThreePhotos<T>(photos: readonly T[]): T[] {
+    return photos.slice(0, CASE_STUDY_PHOTO_COUNT);
+}
+
+/**
  * Index of the first older entry whose `photos` cannot be stored, or null when
  * every entry is acceptable (including entries with no `photos` key).
  */

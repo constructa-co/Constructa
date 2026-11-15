@@ -48,7 +48,7 @@ export default function FullFeaturesPage() {
               <h2 className="text-4xl md:text-6xl font-black tracking-normal text-white uppercase">Quote &nbsp;it</h2>
             </div>
             <p className="text-gray-300 text-lg md:text-xl max-w-3xl leading-relaxed font-medium">
-              Build professional proposals in minutes with your pricing, branding, and terms—pre-loaded and ready to reuse.
+              Build professional proposals from your own pricing, branding, and terms—drawn from your company profile and ready to reuse.
             </p>
           </div>
           
@@ -57,7 +57,7 @@ export default function FullFeaturesPage() {
               <div className="relative aspect-[4/3] w-full max-w-[600px] mx-auto">
                 <Image 
                   src="/proposal.png" 
-                  alt="Quote builder interface in Constructa" 
+                  alt="Concept illustration of a proposal document with price lines on dark glass panels, beside a clipboard checklist and pen; not a product screenshot"
                   fill
                   className="object-contain mix-blend-screen brightness-95 [mask-image:radial-gradient(ellipse_at_center,black_70%,transparent_100%)] transition-transform duration-700 group-hover:scale-[1.02]"
                 />
@@ -68,11 +68,11 @@ export default function FullFeaturesPage() {
             <div className="order-1 lg:order-2">
               <ul className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
                 {[
-                  { title: "Quick Quote Builder", desc: "Create detailed, itemized proposals fast" },
+                  { title: "Quick Quote Builder", desc: "Create detailed, itemised proposals from your own price lines" },
                   { title: "Custom Terms & Conditions", desc: "Reuse your legal templates across jobs" },
                   { title: "Capability Statement", desc: "Showcase your experience and credibility" },
-                  { title: "One-Click Branded PDFs", desc: "Send professional documents instantly" },
-                  { title: "Engagement Tracking", desc: "Get notified when clients open proposals" }
+                  { title: "Branded Draft PDFs", desc: "Review and download a draft PDF; downloading sends nothing" },
+                  { title: "Proposal View Notification", desc: "Be notified when a client views a shared proposal" }
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-4 p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/[0.08] transition-colors group/item shadow-sm">
                     <div className="mt-1 w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30 group-hover/item:bg-blue-500/40 transition-colors">
@@ -110,8 +110,8 @@ export default function FullFeaturesPage() {
                   { title: "Visual Programme Editor", desc: "Create clear project timelines without spreadsheets" },
                   { title: "Phase & Milestone Mapping", desc: "Break jobs into manageable chunks and key dates" },
                   { title: "Job Overview Dashboard", desc: "See all active and upcoming jobs at a glance" },
-                  { title: "Shared Schedules", desc: "Keep teams and clients aligned with clear timelines" },
-                  { title: "Real-time Updates", desc: "Adjust plans instantly to keep projects on track" }
+                  { title: "Shared Schedules", desc: "Clients see the programme alongside the price in the proposal" },
+                  { title: "Easy Adjustments", desc: "Update dates and stages as the job changes" }
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-4 p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/[0.08] transition-colors group/item shadow-sm">
                     <div className="mt-1 w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 group-hover/item:bg-emerald-500/40 transition-colors">
@@ -129,7 +129,7 @@ export default function FullFeaturesPage() {
               <div className="relative aspect-[4/3] w-full max-w-[600px] mx-auto">
                 <Image 
                   src="/Build Proposal.png" 
-                  alt="Job planner timeline view in Constructa" 
+                  alt="Concept illustration of proposal, cost and schedule panels in a dark interface style; not a product screenshot"
                   fill
                   className="object-contain mix-blend-screen brightness-95 [mask-image:radial-gradient(ellipse_at_center,black_70%,transparent_100%)] transition-transform duration-700 group-hover:scale-[1.02]"
                 />
@@ -158,7 +158,7 @@ export default function FullFeaturesPage() {
               <div className="relative aspect-[4/3] w-full max-w-[600px] mx-auto">
                 <Image 
                   src="/images/track-it.png" 
-                  alt="Progress tracker dashboard in Constructa" 
+                  alt="Illustration of generic dashboard mockups with charts and figures; not a product screenshot"
                   fill
                   className="object-contain mix-blend-screen brightness-95 [mask-image:radial-gradient(ellipse_at_center,black_70%,transparent_100%)] transition-transform duration-700 group-hover:scale-[1.02]"
                 />
@@ -169,11 +169,11 @@ export default function FullFeaturesPage() {
             <div className="order-1 lg:order-2">
               <ul className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
                 {[
-                  { title: "Budget Tracker", desc: "Monitor spend, changes, and updates in real-time" },
+                  { title: "Budget Tracker", desc: "Monitor spend, changes, and updates in one place" },
                   { title: "Change Log / Variations", desc: "Record client changes and protect your margin" },
                   { title: "Margin Protection", desc: "Gain clear insight into financial performance" },
                   { title: "Phase-by-Phase Insight", desc: "See where you are making or losing money" },
-                  { title: "Real-time Cost Updates", desc: "Avoid spreadsheet chaos with centralized tracking" }
+                  { title: "Centralised Cost Tracking", desc: "Avoid spreadsheet chaos with centralised tracking" }
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-4 p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/[0.08] transition-colors group/item shadow-sm">
                     <div className="mt-1 w-5 h-5 rounded-full bg-purple-500/20 flex items-center justify-center border border-purple-500/30 group-hover/item:bg-purple-500/40 transition-colors">
@@ -208,11 +208,11 @@ export default function FullFeaturesPage() {
             <div className="order-1">
               <ul className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
                 {[
-                  { title: "One-Tap Updates", desc: "Update job status or key info in seconds from anywhere" },
-                  { title: "Client-Ready Documentation", desc: "Provide instant access to professional docs" },
+                  { title: "Job Updates", desc: "Record job status and key information from site or office" },
+                  { title: "Client-Ready Documentation", desc: "Share professional documents with your clients" },
                   { title: "Mobile-First Workflow", desc: "Built to work wherever you are—on-site or on the move" },
-                  { title: "Shared Comms", desc: "Keep your site and office teams perfectly aligned" },
-                  { title: "Real-time Progress", desc: "Build trust by showing clients progress as it happens" }
+                  { title: "Shared Comms", desc: "Keep your site and office teams working from the same job" },
+                  { title: "Progress Overview", desc: "See where each job stands before you update the client" }
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-4 p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/[0.08] transition-colors group/item shadow-sm">
                     <div className="mt-1 w-5 h-5 rounded-full bg-blue-400/20 flex items-center justify-center border border-blue-400/30 group-hover/item:bg-blue-400/40 transition-colors">
@@ -230,7 +230,7 @@ export default function FullFeaturesPage() {
               <div className="relative aspect-[4/3] w-full max-w-[600px] mx-auto">
                 <Image 
                   src="/Quote Plan Deliver 1.png" 
-                  alt="Client delivery screen in Constructa" 
+                  alt="Diagram graphic reading Quote it, Plan it, Deliver it, with document, calendar and tick icons"
                   fill
                   className="object-contain mix-blend-screen brightness-95 [mask-image:radial-gradient(ellipse_at_center,black_70%,transparent_100%)] transition-transform duration-700 group-hover:scale-[1.02]"
                 />
@@ -245,14 +245,14 @@ export default function FullFeaturesPage() {
       <section className="relative py-32 md:py-48 border-t border-white/5 overflow-hidden text-center bg-white/[0.02]">
         <div className="max-w-4xl mx-auto px-4 relative z-10">
           <h2 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-8 uppercase leading-[1]">
-            Save hours. <span className="text-blue-500">Win more work.</span> <br />Stay in control.
+            Clearly priced. <span className="text-blue-500">Better presented.</span> <br />Stay in control.
           </h2>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto font-medium leading-relaxed">
             Constructa isn't just software—it's the structure that helps you price better, plan tighter, and deliver with confidence.
           </p>
           <div className="mt-12">
-            <a href="/login" className="inline-flex h-12 items-center justify-center px-8 bg-white text-black text-sm font-black uppercase tracking-widest rounded-xl hover:bg-gray-100 transition-colors shadow-lg shadow-white/10">
-              Get Started for free
+            <a href="/apply" className="inline-flex h-12 items-center justify-center px-8 bg-white text-black text-sm font-black uppercase tracking-widest rounded-xl hover:bg-gray-100 transition-colors shadow-lg shadow-white/10">
+              Apply to the founding cohort
             </a>
           </div>
         </div>

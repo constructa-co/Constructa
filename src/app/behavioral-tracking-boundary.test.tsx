@@ -29,12 +29,14 @@ it('does not inject automatic analytics or replay around confidential child cont
 
 it('does not leave a landing analytics or replay loader that can survive navigation to private pages', () => {
     const html = renderToStaticMarkup(<FullLandingPage />);
-    expect(html).toContain('Join the waitlist');
+    expect(html).toContain('href="/apply"');
+    expect(html).not.toContain('Join the waitlist');
     expect(html).not.toContain('https://plausible.io/js/script.js');
     expect(html).toContain('src="/feature-scroll.js"');
     expect(html).not.toContain('id="plausible-contact"');
     expect(html).not.toContain('window.plausible');
-    expect(html).toContain('id="waitlist-form"');
+    expect(html).not.toContain('id="waitlist-form"');
+    expect(html).not.toContain('convertkit.com');
     expect(html).not.toMatch(/clarity-script|microsoft-clarity|clarity\.ms\/tag\//);
 });
 

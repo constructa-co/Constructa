@@ -10,6 +10,19 @@ const bundle = readFileSync(path.join(output, "components.js"), "utf8");
 const css = readFileSync(path.join(output, "components.css"), "utf8");
 let requests: string[] = [];
 let pageErrors: string[] = [];
+// A089 D24: elapsed time per meaningful step, so a slow run shows where it spent the time.
+// Observation only: no step waits on, or is bounded by, these numbers.
+let timings: Array<{ step: string; ms: number }> = [];
+let lapStart = 0;
+const lap = (step: string) => {
+    const now = performance.now();
+    timings.push({ step, ms: Math.round((now - lapStart) * 10) / 10 });
+    lapStart = now;
+};
+const attachTimings = (info: import("@playwright/test").TestInfo) => info.attach("timings", {
+    body: JSON.stringify({ steps: timings, totalMs: Math.round(timings.reduce((sum, t) => sum + t.ms, 0) * 10) / 10 }),
+    contentType: "application/json",
+});
 
 const scope = {
     companySetup: "REAL_COMPONENT_MOCK_SAVE",
@@ -102,6 +115,7 @@ async function expectPdfDownload(download: import("@playwright/test").Download) 
 
 test.beforeEach(async ({ page, context }) => {
     requests = []; pageErrors = [];
+    timings = []; lapStart = performance.now();
     page.on("request", request => requests.push(request.url()));
     page.on("pageerror", error => pageErrors.push(error.message));
     await context.setOffline(true);
@@ -123,6 +137,7 @@ test.beforeEach(async ({ page, context }) => {
     });
     await page.addStyleTag({ content: css });
     await page.addScriptTag({ content: bundle });
+    lap("fixture-load");
 });
 
 test("company through first job, brief, seeded pricing, programme and draft PDF on one explicit mock journey", async ({ page }, info) => {
@@ -132,6 +147,7 @@ test("company through first job, brief, seeded pricing, programme and draft PDF 
     await page.getByLabel("Your name", { exact: false }).fill(OPERATOR);
     await page.getByRole("button", { name: "Save and continue", exact: true }).click();
     await expect(page.getByRole("heading", { name: COMPANY, exact: true })).toBeVisible();
+    lap("company-setup");
 
     const afterCompany = await snapshot(page);
     expect(afterCompany.setupCalls).toHaveLength(2);
@@ -145,6 +161,7 @@ test("company through first job, brief, seeded pricing, programme and draft PDF 
     await fillNewJob(page);
     await page.getByRole("button", { name: CREATE, exact: true }).click();
     await expect(page.getByText(`${JOB} for ${CLIENT}`, { exact: true })).toBeVisible();
+    lap("new-job-created");
 
     const created = await snapshot(page);
     const requestId = created.attempts[0].requestId;
@@ -166,6 +183,7 @@ test("company through first job, brief, seeded pricing, programme and draft PDF 
     await page.getByRole("button", { name: "Save and build the price", exact: true }).click();
 
     await expect(page.getByRole("heading", { name: "Build the price", exact: true })).toBeVisible();
+    lap("brief-to-pricing");
     await expect(page.locator("[aria-labelledby='pricing-context-title']")).toContainText(WORK);
     const priced = await snapshot(page);
     expect(priced.briefSaves[0].payload.brief_scope).toBe(WORK);
@@ -174,6 +192,7 @@ test("company through first job, brief, seeded pricing, programme and draft PDF 
 
     await page.getByRole("link", { name: /Next: Programme/ }).click();
     await expect(page.getByLabel("Start on site", { exact: true })).toBeVisible();
+    lap("pricing-to-programme");
 
     await page.getByLabel("Start on site", { exact: true }).fill(MONDAY);
     await page.getByRole("button", { name: "Break the job into stages", exact: true }).click();
@@ -188,12 +207,14 @@ test("company through first job, brief, seeded pricing, programme and draft PDF 
     await stage2.getByLabel("Stage 2", { exact: true }).fill("First fix");
     await page.locator("[data-programme-preview]").getByRole("button", { name: "Save programme", exact: true }).click();
     await expect(page.locator("[data-save-status='saved']")).toBeVisible();
+    lap("programme-edit-and-save");
 
     await page.getByRole("button", { name: "Next: Proposal", exact: true }).click();
     await page.getByRole("button", { name: "2. Review document", exact: true }).click();
     await expect(page.locator("[data-proposal-document]")).toBeVisible();
     await expect(page.locator("[data-key-facts]")).toContainText("£576.00");
     await expect(page.locator("[data-doc-section='response']")).toBeVisible();
+    lap("proposal-review");
 
     const downloadPromise = page.waitForEvent("download");
     await page.getByRole("button", { name: "Download this draft as a PDF", exact: true }).click();
@@ -201,6 +222,7 @@ test("company through first job, brief, seeded pricing, programme and draft PDF 
     expect(download.suggestedFilename()).toMatch(/_Proposal_Draft\.pdf$/);
     await expectPdfDownload(download);
     await expect(page.locator("[data-presend-pdf-result]")).toContainText("Nothing has been sent.");
+    lap("pdf-download");
 
     const finished = await snapshot(page);
     expect(finished.view).toBe("proposal");
@@ -218,7 +240,9 @@ test("company through first job, brief, seeded pricing, programme and draft PDF 
     expect(requests).toEqual([]);
     expect(pageErrors).toEqual([]);
 
-    await info.attach("scope", { body: JSON.stringify({ ...scope, requestId, requests }), contentType: "application/json" });
+    lap("final-assertions");
+    await attachTimings(info);
+    await info.attach("scope",{ body: JSON.stringify({ ...scope, requestId, requests }), contentType: "application/json" });
     await page.screenshot({ path: path.join(output, "joined-journey.png"), fullPage: true });
 });
 
@@ -229,6 +253,7 @@ test("A059 weekend working days survive a refused programme save and carry into 
     await page.getByLabel("Your name", { exact: false }).fill(OPERATOR);
     await page.getByRole("button", { name: "Save and continue", exact: true }).click();
     await expect(page.getByRole("heading", { name: COMPANY, exact: true })).toBeVisible();
+    lap("company-setup");
 
     await page.locator('[data-welcome-step="proposal"]').click();
     await expect(page.getByRole("heading", { name: "Add your first job", exact: true })).toBeVisible();
@@ -236,6 +261,7 @@ test("A059 weekend working days survive a refused programme save and carry into 
     await fillNewJob(page);
     await page.getByRole("button", { name: CREATE, exact: true }).click();
     await expect(page.getByText(`${JOB} for ${CLIENT}`, { exact: true })).toBeVisible();
+    lap("new-job-created");
 
     const created = await snapshot(page);
     const requestId = created.attempts[0].requestId;
@@ -255,8 +281,10 @@ test("A059 weekend working days survive a refused programme save and carry into 
     await page.getByRole("button", { name: "Save and build the price", exact: true }).click();
 
     await expect(page.getByRole("heading", { name: "Build the price", exact: true })).toBeVisible();
+    lap("brief-to-pricing");
     await page.getByRole("link", { name: /Next: Programme/ }).click();
     await expect(page.getByLabel("Start on site", { exact: true })).toBeVisible();
+    lap("pricing-to-programme");
 
     // A059: Friday 13 November 2026 start, three working days, with Saturday
     // and Sunday explicitly included through the real workspace checkboxes.
@@ -296,6 +324,7 @@ test("A059 weekend working days survive a refused programme save and carry into 
     await page.evaluate(() => { window.__journeyLocal.programmeNextSave = "refused"; });
     await page.locator("[data-programme-preview]").getByRole("button", { name: "Save programme", exact: true }).click();
     await expect(page.locator("[data-programme-save-error]")).toContainText("programme save not acknowledged");
+    lap("programme-weekend-refused-save");
 
     const refused = await snapshot(page);
     expect(refused.view).toBe("programme");
@@ -319,6 +348,7 @@ test("A059 weekend working days survive a refused programme save and carry into 
     await page.locator("[data-programme-save-error]").getByRole("button", { name: "Try again", exact: true }).click();
     await expect(page.locator("[data-programme-save-error]")).toBeHidden();
     await expect(page.locator("[data-save-status='saved']")).toBeVisible();
+    lap("programme-weekend-retry-save");
 
     const acknowledgedRow = await projectRowProbe();
     expect(acknowledgedRow.workingPattern).toEqual(ALL_WEEK);
@@ -339,6 +369,7 @@ test("A059 weekend working days survive a refused programme save and carry into 
     await expect(document).toBeVisible();
     await expect(document).toContainText(/15 (?:November|Nov) 2026/);
     await expect(document).not.toContainText(/17 (?:November|Nov) 2026/);
+    lap("weekend-proposal-review");
 
     const finished = await snapshot(page);
     expect(finished.view).toBe("proposal");
@@ -361,7 +392,9 @@ test("A059 weekend working days survive a refused programme save and carry into 
     expect(requests).toEqual([]);
     expect(pageErrors).toEqual([]);
 
-    await info.attach("scope", { body: JSON.stringify({ ...scope, requestId, requests }), contentType: "application/json" });
+    lap("final-assertions");
+    await attachTimings(info);
+    await info.attach("scope",{ body: JSON.stringify({ ...scope, requestId, requests }), contentType: "application/json" });
     await page.screenshot({ path: path.join(output, "weekend-journey.png"), fullPage: true });
 });
 

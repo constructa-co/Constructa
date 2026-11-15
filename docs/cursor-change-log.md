@@ -1,5 +1,50 @@
 # Cursor change log
 
+## 2026-11-14 — A109 Apply entry on full-profile marketing nav (cursor/a109-apply-marketing-nav-c539)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/components/Header.tsx` | landing + default header | Primary CTA → `/apply`; remove Sign up and waitlist scroll; keep Log in → `/login` | A109: one clear apply entry separate from sign-in on full-profile public chrome |
+| `src/components/Footer.tsx` | Connect column | Apply + Log in links before contact | Footer matches cohort apply/sign-in split |
+| `src/components/marketing/full-home.tsx` | hero + pricing cards | Apply copy; pricing card buttons → `/apply` | Full home CTAs no longer masquerade as sign-up |
+| `src/components/marketing/full-features.tsx` | highlight bar | `/login` → `/apply` with founding cohort label | Features page bottom CTA is apply not sign-in |
+| `src/components/marketing/full-pricing.tsx` | plan cards | Get Started buttons → `/apply` Apply links | Pricing tier actions route to application |
+| `Header.a109-full-apply-nav.test.tsx`, `Footer.a109-apply-entry.test.tsx`, `full-features-apply-cta.test.tsx` | new | Focused full-profile nav regression | A109 evidence without broad rewrites |
+| `Header.test.tsx`, `full-home-cta.test.tsx`, `phase-one.test.tsx` | expectations | Updated markers for Apply wording | Keep existing marketing integration guards green |
+
+## 2026-11-14 — A074 proposal cover photo choice (cursor/a074-proposal-cover-choice-7129)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/proposal-cover-photo.ts` | (new) | Shared assets, choice parsing, resolve site vs illustrative cover | A074: labelled render + first site photo; legacy default no cover |
+| `src/lib/proposal-cover-photo.test.ts` | (new) | Focused parse/resolve tests | Regression guard |
+| `src/components/marketing/project-cover-render.tsx` | imports | Reuse shared lib constants/helpers | One source for marketing + proposal |
+| `src/lib/proposal-review.ts` | draft, payload, save | `coverPhoto` on draft; validation when `site` without photos | Reuse draft contract; preserve null default |
+| `src/lib/proposal-publication.ts` | snapshot | Optional `cover_photo`; resolve on publish | Legacy snapshots unchanged |
+| `src/lib/proposal-document.ts` | `ProposalDocument.coverImage` | Map snapshot cover into web/PDF model | Preview/PDF parity |
+| `src/components/proposal/proposal-document-view.tsx` | cover header | Figure with mandatory caption | Client-readable cover |
+| `src/lib/pdf/proposal-brochure.ts` | `cover()` | Draw cover image + caption | PDF matches preview |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | `review-cover` | Radio choices + illustrative preview | Settings in preparation flow |
+| `src/app/dashboard/projects/proposal/actions.ts` | save draft | Persist `proposal_cover_photo` | Explicit selection stored |
+| `src/types/domain.ts` | `Project` | `proposal_cover_photo` optional column | Type parity with migration |
+| `supabase/migrations/20261114201500_a074_proposal_cover_photo.sql` | (new) | `projects.proposal_cover_photo` text nullable | Schema for persistence (not applied this run) |
+| `src/lib/deployment/review-editable.ts` | allowlist | Include `proposal_cover_photo` | QA editable path |
+| `src/app/dashboard/projects/proposal/a074-cover-photo-choice.test.tsx` | (new) | UI labels and selection state | A074 focused check |
+| `src/lib/proposal-publication.test.ts`, `proposal-document.test.ts`, `proposal-review.test.ts`, `actions.test.ts` | tests | Cover choice behaviour | Save/publish/document guards |
+
+## 2026-11-14 — A074 D27 pre-migration rollout gate (cursor/a074-proposal-cover-choice-7129)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/proposal-cover-photo.ts` | gate | `CONSTRUCTA_PROPOSAL_COVER_PHOTO=1` enables reads/writes/UI/publication | D27: default off until column exists |
+| `src/app/dashboard/projects/proposal/actions.ts` | save | Omit `proposal_cover_photo` from update when gate off | Routine PostgREST saves stay valid pre-migration |
+| `src/lib/proposal-review.ts` | draft/preview | Ignore stored choice and column when gate off | Legacy rows and previews unchanged |
+| `src/lib/proposal-publication.ts` | snapshot | No `cover_photo` without gate | Publication path safe pre-migration |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | UI | `coverPhotoEnabled` prop hides cover controls | No dead UI before rollout |
+| `src/app/dashboard/projects/proposal/page.tsx` | pass gate | Server passes `isProposalCoverPhotoEnabled()` | Single deploy-time switch |
+| `src/lib/deployment/review-editable.ts` | allowlist | Column allowed only when gate on | Review QA matches production |
+| `*.test.ts` | pre-migration cases | Default-off save, UI, publication | Focused D27 regression |
+
 ## 2026-11-14 — A097 D12 Vercel Web Analytics default-off (cursor/a097-d12-vercel-web-analytics-985d)
 
 | File | Lines (approx.) | Change | Intent |

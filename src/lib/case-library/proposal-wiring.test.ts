@@ -27,8 +27,10 @@ const draftOf = (ctx: ReviewContext) => draftFromProject(ctx.project, () => "key
 
 describe("older-only proposals are exactly as they were", () => {
     // Hashes of the representative fixture's snapshot as built by the accepted code at 63ca10f, before this wiring.
-    it("the representative proposal's content and snapshot hashes are unchanged", async () => {
+    it("the representative proposal changes only by adding the calculation method", async () => {
         const snapshot = buildProposalPublicationSnapshot(representativeInput());
+        expect(snapshot.commercial.calculation_note).toContain("are compounded");
+        delete snapshot.commercial.calculation_note;
         expect(await hashProposalContent(snapshot)).toBe("c2f49cabb4771dbb6810ea0896a3ab8413040a309097032b903cbc3010442e61");
         expect(await hashProposalPublication(snapshot)).toBe("bea30af8126b29ec39653032105dc9b889c435bcccf251ad7396c6bed5f2aa1d");
     });

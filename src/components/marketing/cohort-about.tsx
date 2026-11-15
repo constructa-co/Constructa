@@ -81,10 +81,10 @@ export function PhaseOneAbout() {
           <p>Big software platforms are overkill. Manual systems are high risk. And most tools weren&apos;t built for builders.</p>
         </div>
         <AboutFigure
-          src="/images/about-problem.png"
-          alt="Illustration of colleagues on site discussing plans beside a conservatory build"
-          width={2688}
-          height={1792}
+          src="/images/about-problem1.png"
+          alt="Illustration of three colleagues discussing drawings on a building site"
+          width={1024}
+          height={1024}
         />
       </section>
 

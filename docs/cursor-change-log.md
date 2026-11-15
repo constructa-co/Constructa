@@ -1,5 +1,16 @@
 # Cursor change log
 
+## 2026-11-15 — A001 D28 marketing palette evidence follow-up (cursor/a001-d28-evidence-followup-4902)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `e2e/local-phase1/marketing-palette-entry.tsx` | new | Phase-one marketing pages offline mount | Synthetic visual evidence for cohort public routes |
+| `e2e/local-phase1/marketing-palette.spec.ts` | new | Computed sage primaries + customers exception | Close D28 marketing visual gap without marketing source edits |
+| `e2e/local-phase1/build-brief-price.mjs` | scenarios, resolve, `next/image` | `marketing-palette` scenario; static image modules | Offline compile for marketing walkthrough |
+| `docs/temp-files/a001-d28-evidence/capture-marketing-screenshots.mjs` | new | Full-page PNG capture per marketing page | Screenshot receipts under `/opt/cursor/artifacts/a001-d28-palette/` |
+| `docs/temp-files/a001-d28-evidence/playwright-marketing-palette.config.ts` | new | Chromium Playwright config | Cloud-agent-friendly marketing palette run |
+| `docs/temp-files/a001-d28-evidence/verification.md` | full | Base SHA, routes, screenshots, blocked list | D28 follow-up evidence register |
+
 ## 2026-11-15 — A001 D28 route palette walkthrough (cursor/a001-d28-route-palette-walkthrough-2527)
 
 | File | Lines (approx.) | Change | Intent |

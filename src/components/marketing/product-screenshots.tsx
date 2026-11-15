@@ -32,7 +32,7 @@ const captures = [
 
 function CapturePicture({ capture }: { capture: (typeof captures)[number] }) {
   const { alt, src, phoneSrc } = capture;
-  const { props: { srcSet: phoneSrcSet } } = getImageProps({ src: phoneSrc, alt, width: 780, height: 1688, sizes: '88vw' });
+  const { props: { srcSet: phoneSrcSet } } = getImageProps({ src: phoneSrc, alt, width: 390, height: 844, sizes: '88vw' });
   const { props: desktop } = getImageProps({ src, alt, width: 1440, height: 900, sizes: '(max-width: 1422px) 100vw, 1440px' });
   return (
     <picture>
@@ -52,7 +52,7 @@ export function ProductScreenshots() {
       </div>
 
       <p className={shots.qualification}>
-        These are synthetic journey fixture captures from 15 November 2026. They show the current review interface on a disposable test database with made-up data. They are not proof that live customer sign-up, email send or production saving is available. Controls may still change before release.
+        These are synthetic journey fixture captures from 15 November 2026. They show the current review interface with made-up data and simulated saves. Live signup, email and production saving require separate verification. Controls may still change before release.
       </p>
 
       <div className={shots.figures}>
@@ -62,7 +62,7 @@ export function ProductScreenshots() {
             <figcaption>
               <div>
                 <h3>{capture.title}</h3>
-                <p className={shots.capturedLine}>Synthetic journey fixture capture · <time dateTime={capture.capturedOn}>{capture.capturedLabel}</time> · Current review interface · Disposable test database</p>
+                <p className={shots.capturedLine}>Synthetic journey fixture capture · <time dateTime={capture.capturedOn}>{capture.capturedLabel}</time> · Current review interface · Simulated saves</p>
               </div>
               <div>
                 <p>{capture.description}</p>

@@ -99,8 +99,8 @@ describe('phase-one product screenshots', () => {
     for (const fact of [
       'synthetic journey fixture captures from 15 November 2026',
       'current review interface',
-      'disposable test database',
-      'They are not proof that live customer sign-up, email send or production saving is available.',
+      'simulated saves',
+      'Live signup, email and production saving require separate verification.',
       'Example screens',
       'From the current review interface.',
     ]) expect(visible).toContain(fact);
@@ -109,7 +109,7 @@ describe('phase-one product screenshots', () => {
   it('dates and qualifies each figure in its own caption', () => {
     const captions = html().match(/<figcaption[\s\S]*?<\/figcaption>/g) ?? [];
     for (const caption of captions) expect(caption).toMatch(/<time datetime="2026-11-15">15 November 2026<\/time>/i);
-    for (const caption of captions) for (const label of ['Synthetic journey fixture capture', 'Current review interface', 'Disposable test database']) expect(caption).toContain(label);
+    for (const caption of captions) for (const label of ['Synthetic journey fixture capture', 'Current review interface', 'Simulated saves']) expect(caption).toContain(label);
     expect(captions[0]).toContain('They are not prices, typical margins or a quote.');
     expect(captions[1]).toContain('not a standard programme or a promise of how long any job takes');
   });

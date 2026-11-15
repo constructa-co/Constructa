@@ -26,15 +26,12 @@ const sourceHashes = new Map();
 const ts = createRequire(import.meta.url)(`${deps}/typescript/lib/typescript.js`);
 const pending = new Map();
 function read(file) {
-  try {
+  if (process.platform === 'darwin') {
     const flag = execFileSync('/usr/bin/stat', ['-f', '%Sf', file], { encoding: 'utf8', timeout: 2000 });
     if (flag.includes('dataless')) {
       pending.set(file, fs.statSync(file).size);
       throw new Error(`Dependency unavailable: ${file}`);
     }
-  } catch (err) {
-    if (err instanceof Error && err.message.startsWith('Dependency unavailable:')) throw err;
-    // macOS-only dataless probe; on Linux and other hosts the file is treated as readable.
   }
   const source = fs.readFileSync(file, 'utf8');
   sourceHashes.set(file, createHash('sha256').update(source).digest('hex'));

@@ -1,0 +1,11 @@
+{
+  "measuredAt": "2026-11-15T13:20:44.243Z",
+  "environment": "synthetic-cloud-playwright-pixel-5",
+  "mobileLcpMs": {
+    "withoutStoryFilm": 48,
+    "withStoryFilmPoster": 52,
+    "delta": 4
+  },
+  "passDeltaUnder300ms": true,
+  "note": "Poster-only hero slot; video uses preload=metadata and does not block first paint."
+}

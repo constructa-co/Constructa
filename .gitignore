@@ -21,6 +21,9 @@
 # production
 /build
 
+# story film cloud render scratch
+/marketing/story-film/.render-tmp/
+
 # misc
 .DS_Store
 *.pem

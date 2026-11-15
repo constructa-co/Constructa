@@ -1,0 +1,11 @@
+{
+  "reportedAt": "2026-11-15T14:20:00.000Z",
+  "pr": 165,
+  "headSha": "db9a588f86e86ff7551b37d8e14d8b0ea7d77025",
+  "vercelBotComment": "https://github.com/constructa-co/Constructa/pull/165#issuecomment-6894169993",
+  "deploymentStatus": "Error",
+  "inspectorUrl": "https://vercel.com/robert-smiths-projects-fbd0dcc3/constructa/6QiHANDhY3qhVx7S6UE4i7JVqmfh",
+  "previewUrl": null,
+  "note": "Hosted Preview for db9a588 failed on Vercel; browser evidence uses local guarded Next servers instead. No Vercel settings were changed.",
+  "supabaseTargetGuard": "Preview builds remain subject to existing CONSTRUCTA_NONPROD_SUPABASE_PROJECT_REF guard (unchanged)."
+}

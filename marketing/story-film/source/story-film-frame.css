@@ -1,0 +1,435 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #101211;
+}
+
+.film-root {
+  --base: #101211;
+  --panel: #191f1b;
+  --line: #343e36;
+  --ink: #f4f2ed;
+  --muted: #a7b0a9;
+  --accent: #c9efcf;
+  --accent-ink: #182c1b;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  font-family: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
+  color: var(--ink);
+  background: radial-gradient(ellipse at 70% 30%, #233f2a66, var(--base) 65%);
+}
+
+.film-stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 6%;
+}
+
+.film-scene {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  animation: scene-visibility 38s linear infinite;
+}
+
+.scene-after-hours {
+  animation-name: scene-after-hours;
+}
+.scene-promise {
+  animation-name: scene-promise;
+}
+.scene-company {
+  animation-name: scene-company;
+}
+.scene-brief {
+  animation-name: scene-brief;
+}
+.scene-estimate {
+  animation-name: scene-estimate;
+}
+.scene-programme {
+  animation-name: scene-programme;
+}
+.scene-proposal {
+  animation-name: scene-proposal;
+}
+.scene-end-card {
+  animation-name: scene-end-card;
+}
+
+@keyframes scene-after-hours {
+  0%,
+  13.1% {
+    opacity: 1;
+  }
+  13.2%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes scene-promise {
+  0%,
+  13.1% {
+    opacity: 0;
+  }
+  13.2%,
+  23.6% {
+    opacity: 1;
+  }
+  23.7%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes scene-company {
+  0%,
+  23.6% {
+    opacity: 0;
+  }
+  23.7%,
+  34.1% {
+    opacity: 1;
+  }
+  34.2%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes scene-brief {
+  0%,
+  34.1% {
+    opacity: 0;
+  }
+  34.2%,
+  44.6% {
+    opacity: 1;
+  }
+  44.7%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes scene-estimate {
+  0%,
+  44.6% {
+    opacity: 0;
+  }
+  44.7%,
+  57.8% {
+    opacity: 1;
+  }
+  57.9%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes scene-programme {
+  0%,
+  57.8% {
+    opacity: 0;
+  }
+  57.9%,
+  71% {
+    opacity: 1;
+  }
+  71.1%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes scene-proposal {
+  0%,
+  71% {
+    opacity: 0;
+  }
+  71.1%,
+  86.7% {
+    opacity: 1;
+  }
+  86.8%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes scene-end-card {
+  0%,
+  86.7% {
+    opacity: 0;
+  }
+  86.8%,
+  100% {
+    opacity: 1;
+  }
+}
+
+.scene-inner {
+  width: min(92%, 920px);
+  text-align: center;
+}
+
+.eyebrow {
+  color: var(--accent);
+  font-size: clamp(14px, 2vw, 20px);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 650;
+  margin-bottom: 1.2rem;
+}
+
+.headline {
+  font-size: clamp(36px, 5.2vw, 64px);
+  line-height: 1.08;
+  font-weight: 550;
+  letter-spacing: -0.04em;
+  margin-bottom: 1rem;
+}
+
+.caption {
+  color: var(--muted);
+  font-size: clamp(16px, 2.2vw, 22px);
+  line-height: 1.5;
+  max-width: 36ch;
+  margin: 0 auto;
+}
+
+/* Scene-specific art */
+.mug-scene .props {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 2rem;
+  animation: float-in 1.2s ease-out both;
+}
+
+.chip {
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  font-size: 14px;
+  color: #d4e1d6;
+}
+
+.mug {
+  width: 72px;
+  height: 72px;
+  border: 2px solid var(--accent);
+  border-radius: 50% 50% 12px 12px;
+  background: linear-gradient(180deg, #2a352c, #141816);
+  margin: 0 auto 1.5rem;
+}
+
+.paper-card {
+  width: min(520px, 90vw);
+  margin: 0 auto 1.5rem;
+  padding: 28px;
+  border-radius: 12px;
+  border: 1px solid #45534a;
+  background: linear-gradient(145deg, #314136, #1b241e);
+  box-shadow: 0 24px 60px #0006;
+  animation: settle 1s ease-out both;
+}
+
+.profile-card {
+  display: grid;
+  gap: 12px;
+  text-align: left;
+  max-width: 420px;
+  margin: 0 auto 1rem;
+  padding: 22px;
+  border-radius: 10px;
+  background: #f6f4ed;
+  color: #28352b;
+}
+
+.profile-card strong {
+  font-size: 20px;
+}
+
+.sketch {
+  height: 120px;
+  border: 1px dashed #6b806e;
+  border-radius: 8px;
+  background: repeating-linear-gradient(
+    -12deg,
+    #1e2821 0,
+    #1e2821 8px,
+    #243027 8px,
+    #243027 16px
+  );
+  margin-bottom: 1rem;
+}
+
+.estimate-table {
+  width: min(480px, 92vw);
+  margin: 0 auto 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 15px;
+}
+
+.estimate-table div {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.estimate-table div:last-child {
+  border: 0;
+  font-weight: 650;
+  color: var(--accent);
+}
+
+.estimate-badge {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 6px 12px;
+  border: 1px solid #526455;
+  border-radius: 6px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #c0cdc3;
+}
+
+.gantt {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: min(520px, 92vw);
+  margin: 0 auto 1rem;
+}
+
+.gantt span {
+  height: 12px;
+  border-radius: 3px;
+  background: #96b79b;
+  animation: grow-bar 1.4s ease-out both;
+}
+
+.gantt span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.gantt span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.gantt span:nth-child(4) {
+  animation-delay: 0.45s;
+}
+
+.proposal-stack {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: min(420px, 88vw);
+  margin: 0 auto 1rem;
+}
+
+.proposal-stack i {
+  display: block;
+  height: 140px;
+  border-radius: 4px;
+  background: #f6f4ed;
+  border: 1px solid #cbd2c8;
+  box-shadow: 0 8px 24px #0004;
+  animation: stack-in 0.9s ease-out both;
+}
+
+.proposal-stack i:nth-child(2) {
+  animation-delay: 0.12s;
+  transform: translateY(-8px);
+}
+.proposal-stack i:nth-child(3) {
+  animation-delay: 0.24s;
+  transform: translateY(-16px);
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 650;
+  letter-spacing: -0.06em;
+}
+
+.wordmark-mark {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  color: var(--accent);
+}
+
+@keyframes float-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes grow-bar {
+  from {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes stack-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .film-scene {
+    animation: none !important;
+    opacity: 0;
+  }
+  .scene-end-card {
+    opacity: 1 !important;
+  }
+}

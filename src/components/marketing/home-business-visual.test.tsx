@@ -80,14 +80,15 @@ describe('homepage business illustration placement', () => {
     expect(scope).toBeGreaterThan(story);
     expect(page.split(QUALIFIER)).toHaveLength(2);
     expect(page).toContain(html());
-    expect(page).not.toMatch(/about-hero|<img\b/);
+    expect(page).not.toMatch(/about-hero/);
+    expect(page).toContain('constructa-story-poster.webp');
     expect(page).not.toContain('Construction team reviewing plans together');
   });
 
-  it('preserves the labelled hero, story prose and story action', () => {
+  it('preserves the hero story film, story prose and story action', () => {
     const page = home();
-    expect(page).toContain('Illustrative example');
-    expect(page).toContain('Oak &amp; Stone');
+    expect(page).toContain('Watch the 40-second story');
+    expect(page).toContain('constructa-story-poster.webp');
     expect(page).toContain('Construction is a people business.');
     expect(page).toContain('Whether you fit kitchens, refurbish workplaces or run a multi-trade team, the story should be yours.');
     expect(page).toContain('Start with your business');

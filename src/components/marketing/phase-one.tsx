@@ -2,6 +2,7 @@ import { NewsletterSignup } from './newsletter-signup';
 import Link from 'next/link';
 import { ArrowDown, ArrowRight, Check, Plus } from 'lucide-react';
 import { HomeBusinessVisual } from './home-business-visual';
+import { StoryFilmHero } from './story-film-hero';
 import { ProductReviewGuide } from './product-review-guide';
 import { ProductScreenshots } from './product-screenshots';
 import ui from './phase-one.module.css';
@@ -151,7 +152,7 @@ export function PhaseOneHome() {
           <p className={ui.reviewNote}>Founding cohort opens 7 December 2026.</p>
           <p className={ui.reviewNote}>Phase one review · Built for domestic and commercial contractors</p>
         </div>
-        <ProposalIllustration />
+        <StoryFilmHero />
       </section>
       <div className={ui.chapterLine}><span>Built around your business</span><span>Company <i /> Price <i /> Programme <i /> Proposal</span></div>
       <Journey />

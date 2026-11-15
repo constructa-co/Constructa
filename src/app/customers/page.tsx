@@ -62,10 +62,10 @@ function FullCustomersPage() {
               </a>
               <span className="text-gray-400">or</span>
               <a
-                href="/"
+                href="/apply"
                 className="inline-flex items-center px-6 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-100 transition-colors duration-200"
               >
-                Join the waitlist
+                Apply to the founding cohort
                 <CtaArrow />
               </a>
             </div>

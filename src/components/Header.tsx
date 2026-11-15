@@ -20,7 +20,7 @@ const Header = () => {
     return (
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="h-16 grid grid-cols-3 items-center">
+          <div className="h-16 flex items-center justify-between md:grid md:grid-cols-3">
             {/* Left column - Logo */}
             <div className="flex items-center">
               <a href="/" className="text-2xl font-semibold text-white hover:opacity-90 transition-opacity">
@@ -31,26 +31,20 @@ const Header = () => {
             {/* Center column - Empty for landing page */}
             <div className="hidden md:block"></div>
 
-            {/* Right column - Waitlist CTA */}
-            <div className="flex items-center justify-end">
+            {/* Right column — founding cohort application (separate from sign-in).
+                Log in stays visible at every width; there is no mobile menu on this header. */}
+            <div className="flex items-center justify-end space-x-3 sm:space-x-6">
               <a
-                href="#waitlist-form"
-                onClick={(e) => {
-                  e.preventDefault();
-                  const form = document.getElementById('waitlist-form');
-                  const headerOffset = 300; // Increased from 100 to 300 to reduce scroll distance
-                  if (form) {
-                    const elementPosition = form.getBoundingClientRect().top;
-                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                    window.scrollTo({
-                      top: offsetPosition,
-                      behavior: 'smooth'
-                    });
-                  }
-                }}
-                className="px-4 py-1.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors duration-200"
+                href="/login"
+                className="text-sm text-gray-500 hover:text-gray-300 transition-colors duration-200"
               >
-                Join the waitlist
+                Log in
+              </a>
+              <a
+                href="/apply"
+                className="px-3 sm:px-4 py-1.5 bg-white text-black text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors duration-200"
+              >
+                Apply to the founding cohort
               </a>
             </div>
           </div>
@@ -84,11 +78,11 @@ const Header = () => {
           <div className="flex items-center justify-end space-x-6">
             {/* Desktop auth buttons */}
             <div className="hidden md:flex items-center space-x-6">
+              <a href="/apply" className="px-4 py-1.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors duration-200">
+                Apply to the founding cohort
+              </a>
               <a href="/login" className="text-sm text-gray-500 hover:text-gray-300 transition-colors duration-200">
                 Log in
-              </a>
-              <a href="/login" className="px-4 py-1.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors duration-200">
-                Sign up
               </a>
             </div>
 
@@ -124,8 +118,10 @@ const Header = () => {
             <a href="/about" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">About</a>
             <a href="/contact" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">Contact</a>
             <div className="pt-4 space-y-2">
+              <a href="/apply" className="block px-3 py-2 text-sm bg-white text-black rounded-md hover:bg-gray-100">
+                Apply to the founding cohort
+              </a>
               <a href="/login" className="block px-3 py-2 text-sm text-gray-300 hover:text-white">Log in</a>
-              <a href="/login" className="block px-3 py-2 text-sm bg-white text-black rounded-md hover:bg-gray-100">Sign up</a>
             </div>
           </div>
         </div>

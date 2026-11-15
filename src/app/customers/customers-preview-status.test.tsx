@@ -58,12 +58,13 @@ describe("customers preview status (cohort default)", () => {
 });
 
 describe("customers page (full launch profile)", () => {
-  it("retains the original early-access copy and both contact and waitlist links", () => {
+  it("retains the early-access copy with contact and cohort apply links, no waitlist", () => {
     const html = renderCustomers("full");
 
     expect(html).toContain("Early users will help shape the platform. Want in?");
     expect(html).toMatch(/href="\/contact"[^>]*>Get in touch/);
-    expect(html).toMatch(/href="\/"[^>]*>Join the waitlist/);
+    expect(html).toMatch(/href="\/apply"[^>]*>Apply to the founding cohort/);
+    expect(html).not.toContain("Join the waitlist");
     expect(html).not.toContain("phase-one review");
   });
 
@@ -82,6 +83,7 @@ describe("customers page (full launch profile)", () => {
     expect(mainContent).toContain("Built for builders—not admins");
     expect(mainContent).toMatch(/<h1[\s>]/);
     expect(mainContent).toMatch(/href="\/contact"[^>]*>Get in touch/);
-    expect(mainContent).toMatch(/href="\/"[^>]*>Join the waitlist/);
+    expect(mainContent).toMatch(/href="\/apply"[^>]*>Apply to the founding cohort/);
+    expect(mainContent).not.toContain("Join the waitlist");
   });
 });

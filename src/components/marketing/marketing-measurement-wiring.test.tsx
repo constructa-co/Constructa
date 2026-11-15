@@ -177,22 +177,16 @@ describe("marketing measurement handler wiring", () => {
     ]);
   });
 
-  it("fires WaitlistSubmitAttempt on landing waitlist submit (attempt only, not confirmed signup)", () => {
-    const events: string[] = [];
-    __setPublicMeasurementTestSink((event) => {
-      events.push(event);
-    });
-    vi.stubGlobal("window", {
-      location: { pathname: "/landing" },
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    });
+  it("landing has no second intake form; its only CTA is the cohort apply link", () => {
+    const tree = renderLanding();
 
-    const waitlist = findById(renderLanding(), "waitlist-form")!;
-    (waitlist.props.onSubmit as () => void)();
+    expect(findById(tree, "waitlist-form")).toBeUndefined();
+    expect(tree.filter((element) => element.type === "form")).toEqual([]);
+    const cta = findById(tree, "landing-apply-cta")!;
+    expect(cta.props.href).toBe("/apply");
+  });
 
-    expect(events).toEqual(["WaitlistSubmitAttempt"]);
-    expect(events).not.toContain("ContactFormSubmit");
+  it("keeps the WaitlistSubmitAttempt event name registered for the separate newsletter scope", () => {
     expect(PUBLIC_MEASUREMENT_EVENT_NAMES).toEqual([
       "ContactFormSubmit",
       "TryConstructaClick",

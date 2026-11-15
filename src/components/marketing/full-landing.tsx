@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Script from 'next/script';
-import { trackWaitlistSubmitAttempt } from '@/lib/public-measurement';
 
 // Feature section component with sticky scroll
 const FeatureSection = () => {
@@ -112,8 +111,6 @@ const FeatureSection = () => {
 };
 
 export default function FullLandingPage() {
-  const [isSubmitted, setIsSubmitted] = useState(false);
-
   return (
     <div className="min-h-screen bg-black text-white">
       <Script src="/feature-scroll.js" strategy="afterInteractive" />
@@ -132,37 +129,13 @@ export default function FullLandingPage() {
                   Quote faster, plan smarter, and keep control of every job.
                 </p>
                 <div className="mt-8">
-                  <script src="https://f.convertkit.com/ckjs/ck.5.js"></script>
-                  <form 
-                    id="waitlist-form"
-                    action="https://app.convertkit.com/forms/7919715/subscriptions" 
-                    className="seva-form formkit-form" 
-                    method="post" 
-                    onSubmit={() => trackWaitlistSubmitAttempt()}
-                    data-sv-form="7919715" 
-                    data-uid="0fbf2928bb" 
-                    data-format="inline" 
-                    data-version="5"
-                    min-width="400 500 600 700 800"
+                  <a
+                    id="landing-apply-cta"
+                    href="/apply"
+                    className="inline-flex items-center px-8 py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-100 transition-colors"
                   >
-                    <div data-style="clean">
-                      <div className="flex flex-col sm:flex-row gap-4">
-                        <input 
-                          type="email" 
-                          name="email_address" 
-                          placeholder="Enter your email" 
-                          required 
-                          className="px-6 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/40"
-                        />
-                        <button 
-                          type="submit" 
-                          className="px-8 py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-100 transition-colors"
-                        >
-                          Join the waitlist
-                        </button>
-                      </div>
-                    </div>
-                  </form>
+                    Apply to the founding cohort
+                  </a>
                 </div>
               </div>
             </div>

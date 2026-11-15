@@ -33,11 +33,15 @@ export default function PrivacyPolicyPage() {
           </p>
           
           <p className="text-gray-400 mb-6">
-            When you sign up for updates or use our platform, we hold the details you give us, such as your name, email address and company details.
+            When you use our platform, we hold the details you give us, such as your name, email address and company details.
+          </p>
+
+          <p className="text-gray-400 mb-6">
+            If you submit the updates form on this site, your email address is sent to Kit (ConvertKit), the email provider that runs that list.
           </p>
 
           <p className="text-gray-400 mb-6" data-privacy-analytics-note>
-            Vercel Web Analytics is currently off. If enabled, it will count visits to public pages for signed-out visitors. Constructa removes query strings from page addresses before sending page views. This notice will be updated before activation.
+            This site includes Vercel Web Analytics, which can be on or off. When it is on, it counts visits to public pages for signed-out visitors. Constructa removes query strings from page addresses before page views are sent.
           </p>
           
           <p className="text-gray-400 mb-6" data-privacy-review-note>

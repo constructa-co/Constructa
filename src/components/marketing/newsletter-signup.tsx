@@ -14,9 +14,8 @@ export function NewsletterSignup() {
     <section aria-labelledby="newsletter-heading">
       <h2 id="newsletter-heading">Constructa updates</h2>
       <p>
-        Occasional product news and launch updates for construction businesses.
-        This list is separate from a Constructa account, and your email address
-        is used only for these updates.
+        Product news and launch updates for construction businesses. This list
+        is separate from a Constructa account.
       </p>
       <form action="https://app.convertkit.com/forms/7919715/subscriptions" method="post">
         <label htmlFor="newsletter-email">Email for Constructa updates</label>
@@ -24,8 +23,8 @@ export function NewsletterSignup() {
         <button type="submit">Subscribe to updates</button>
       </form>
       <p>
-        Subscribing sends your email address to Kit (ConvertKit), the email
-        provider that runs this list.
+        Submitting this form sends your email address to Kit (ConvertKit), the
+        email provider that runs this list.
       </p>
     </section>
   );

@@ -27,6 +27,7 @@
     "test:proposal-response-sql": "bash scripts/test-proposal-response-sql.sh",
     "test:supervisor-sql": "bash scripts/test-supervisor-token-sql.sh",
     "test:storage-sql": "bash scripts/test-storage-policy-sql.sh",
+    "test:ephemeral-replay-guards": "bash scripts/test-ephemeral-replay-guards.sh",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "e2e:smoke": "playwright test --project=desktop --project=phone",

@@ -189,6 +189,36 @@ describe("a preview or E2E build cannot target production", () => {
         expect(checkSupabaseTarget(replay)).toMatchObject({ ok: true, context: EPHEMERAL_REPLAY_CONTEXT });
         expect(checkSupabaseTarget({ ...replay, NEXT_PUBLIC_SUPABASE_URL: `https://${DISPOSABLE}.supabase.co` }).ok).toBe(false);
     });
+
+    it("rejects loopback Supabase URLs for preview, hosted E2E, and Vercel", () => {
+        const loopback = "http://127.0.0.1:54321";
+        const hostedE2e = {
+            [DEPLOY_CONTEXT_VARIABLE]: "e2e",
+            [NONPROD_REF_VARIABLE]: DISPOSABLE,
+            NEXT_PUBLIC_SUPABASE_URL: loopback,
+            NEXT_PUBLIC_SUPABASE_ANON_KEY: key(DISPOSABLE, "anon"),
+            SUPABASE_SERVICE_ROLE_KEY: key(DISPOSABLE, "service_role"),
+        };
+        expect(problemsOf(hostedE2e)).toContain("only permitted in the e2e-replay context");
+
+        const vercelPreview = {
+            ...preview({
+                NEXT_PUBLIC_SUPABASE_URL: loopback,
+            }),
+        };
+        expect(problemsOf(vercelPreview)).toContain("only permitted in the e2e-replay context");
+
+        const vercelWithReplayDeclare = {
+            VERCEL: "1",
+            VERCEL_ENV: "preview",
+            [DEPLOY_CONTEXT_VARIABLE]: EPHEMERAL_REPLAY_CONTEXT,
+            [NONPROD_REF_VARIABLE]: EPHEMERAL,
+            NEXT_PUBLIC_SUPABASE_URL: loopback,
+            NEXT_PUBLIC_SUPABASE_ANON_KEY: key(EPHEMERAL, "anon"),
+            SUPABASE_SERVICE_ROLE_KEY: key(EPHEMERAL, "service_role"),
+        };
+        expect(problemsOf(vercelWithReplayDeclare)).toContain("only permitted in the e2e-replay context");
+    });
 });
 
 describe("production and ordinary builds are unaffected", () => {

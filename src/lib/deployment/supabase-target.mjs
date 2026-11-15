@@ -124,6 +124,15 @@ function urlProjectRef(value) {
  */
 function ephemeralReplayApiUrl(value, context) {
     if (context !== EPHEMERAL_REPLAY_CONTEXT) return false;
+    return loopbackSupabaseApiUrl(value);
+}
+
+/**
+ * Loopback Supabase API (local CLI). Not valid for preview, production, or Vercel.
+ *
+ * @param {string} value
+ */
+function loopbackSupabaseApiUrl(value) {
     try {
         const url = new URL(value);
         if (url.protocol !== "http:") return false;
@@ -219,7 +228,20 @@ export function checkSupabaseTarget(env) {
     let urlRef = "not set";
     if (!url) {
         problems.push("NEXT_PUBLIC_SUPABASE_URL is not set. A preview needs its own disposable project.");
-    } else if (ephemeralReplayApiUrl(url, context)) {
+    } else if (loopbackSupabaseApiUrl(url)) {
+        if (context === "preview" || context === "e2e") {
+            problems.push(
+                "NEXT_PUBLIC_SUPABASE_URL is a loopback test address. That is only permitted in the e2e-replay context, not preview or hosted E2E.",
+            );
+        } else if (text(env.VERCEL) === "1" || text(env.VERCEL_ENV) !== "") {
+            problems.push("Ephemeral replay loopback URLs cannot be used on Vercel preview or production deployments.");
+        } else if (context !== EPHEMERAL_REPLAY_CONTEXT) {
+            problems.push(
+                `NEXT_PUBLIC_SUPABASE_URL is a loopback test address. Set ${DEPLOY_CONTEXT_VARIABLE}=${EPHEMERAL_REPLAY_CONTEXT} only for local ephemeral tests.`,
+            );
+        }
+    }
+    if (url && ephemeralReplayApiUrl(url, context)) {
         urlRef = expected ?? "local-ephemeral-replay";
         if (!expected) {
             problems.push(`${NONPROD_REF_VARIABLE} must be set for ${EPHEMERAL_REPLAY_CONTEXT}; the local API URL does not carry a project reference.`);

@@ -1,6 +1,7 @@
 # D38 CON-001 / CON-002 browser evidence
 
 **Branch:** `cursor/constructa-d38-con-001-002-browser-reproduction-bd36`  
+**Parent:** `8624f49` · post-hardening head — see latest `git rev-parse HEAD`  
 **Merged `origin/main`:** yes (PR #170 brief smoke SQL preserved)  
 **Date:** 2026-11-15
 
@@ -8,8 +9,9 @@
 
 | Layer | Command / artefact | Result | Notes |
 |-------|-------------------|--------|-------|
-| TypeScript | `npx tsc --noEmit` | See commit receipt | |
-| Unit tests | `npm test` | See commit receipt | Includes `supabase-target` + `ephemeral-replay-env` |
+| Shell guards | `npm run test:ephemeral-replay-guards` | **GREEN** | Workflow + parser + loopback guards |
+| TypeScript | `npx tsc --noEmit` | **GREEN** | |
+| Unit tests | `npm test` | See commit receipt | Includes loopback-on-preview guard |
 | SQL smoke (#170) | `scripts/verify-phase1-smoke.sql` | **GREEN** on migration-replay job (existing workflow) | Brief RPC block unchanged |
 | Hosted browser | `npm run e2e:d38-con-brief-persistence` | **NOT_RUN** | Policy: no protected hosted QA credentials |
 | Ephemeral orchestrator | `bash scripts/ephemeral-replay/d38-ephemeral-browser.sh` | **NOT_RUN** | **BLOCKER:** `docker: command not found` on agent VM |

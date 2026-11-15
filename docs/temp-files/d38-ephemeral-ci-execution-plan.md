@@ -20,10 +20,12 @@ Run `e2e/d38-con-001-002-browser.qa.ts` against a **local** Supabase stack (migr
 1. Checkout
 2. `npm ci --engine-strict=false`
 3. Install Supabase CLI (pinned 2.39.3)
-4. `bash scripts/ephemeral-replay/d38-ephemeral-browser.sh`
+4. `bash scripts/test-ephemeral-replay-guards.sh`
+5. `npx playwright install chromium --with-deps`
+6. `bash scripts/ephemeral-replay/d38-ephemeral-browser.sh`
    - `supabase start` (loopback API on port 54321)
-   - `supabase db reset` (replay all `supabase/migrations/`)
-   - Export keys from `supabase status -o env`
+   - Parse whitelisted keys from `supabase status -o env` (no `eval`, values not logged)
+   - Verify loopback `DB_URL`, then **local** `supabase db reset` only
    - Guards: no production ref, loopback URL only, project ref `ephemeralreplay00001`
    - `seed-disposable-auth.mjs` → `d38-ephemeral@example.com` (synthetic)
    - `npm run e2e:d38-ephemeral-replay` (build + Playwright)

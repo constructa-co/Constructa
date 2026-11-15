@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/d38-con-browser-replay.yml"
       - "scripts/ephemeral-replay/**"
+      - "scripts/test-ephemeral-replay-guards.sh"
       - "scripts/verify-phase1-smoke.sql"
       - "e2e/d38-con-001-002-browser.qa.ts"
       - "e2e/support/ephemeral-replay-*.ts"
@@ -22,22 +23,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-    - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
 
-    - uses: actions/setup-node@v4
-      with:
-        node-version: "24"
-        cache: npm
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
 
-    - name: Install dependencies
-      run: npm ci --engine-strict=false
+      - name: Install dependencies
+        run: npm ci --engine-strict=false
 
-    - uses: supabase/setup-cli@v1
-      with:
-        version: 2.39.3
+      - name: Validate ephemeral replay shell guards
+        run: bash scripts/test-ephemeral-replay-guards.sh
 
-    - name: Start ephemeral Supabase and run D38 browser test
-      env:
-        E2E_D38_AUTH: seed
-        E2E_EVIDENCE: "0"
-      run: bash scripts/ephemeral-replay/d38-ephemeral-browser.sh
+      - name: Install Playwright Chromium and system deps
+        run: npx playwright install chromium --with-deps
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.39.3
+
+      - name: Start ephemeral Supabase and run D38 browser test
+        env:
+          E2E_D38_AUTH: seed
+          E2E_EVIDENCE: "0"
+        run: bash scripts/ephemeral-replay/d38-ephemeral-browser.sh

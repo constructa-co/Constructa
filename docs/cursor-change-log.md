@@ -1,5 +1,17 @@
 # Cursor change log
 
+## 2026-11-15 — D38 ephemeral hardening (post-8624f49, pre-PR)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `scripts/ephemeral-replay/parse-supabase-status-env.sh` | (new) Whitelist parse of `supabase status -o env`; no eval; no value logging | CI/local safety |
+| `scripts/ephemeral-replay/guards.sh` | DB URL, link, Vercel, return-based failures | Local-only reset; guards testable |
+| `scripts/test-ephemeral-replay-guards.sh` | (new) Shell validation | `npm run test:ephemeral-replay-guards` |
+| `scripts/ephemeral-replay/d38-ephemeral-browser.sh` | Parse before reset; loopback DB_URL guard | Explicit local reset |
+| `.github/workflows/d38-con-browser-replay.yml` | Chromium `--with-deps`; guard step | Clean Ubuntu CI |
+| `src/lib/deployment/supabase-target.mjs` | Loopback forbidden in preview/E2E/Vercel | Test-only loopback |
+| `playwright.d38-ephemeral-replay.config.ts` | `browserName: chromium` | CI browser install match |
+
 ## 2026-11-15 — D38 ephemeral Supabase browser replay (continuation on cursor/constructa-d38-con-001-002-browser-reproduction-bd36)
 
 | File | Lines (approx.) | Change | Intent |

@@ -28,7 +28,7 @@ export default defineConfig({
     reporter: [["list"], ["json", { outputFile: "test-results/d38-ephemeral-replay/report.json" }]],
     use: {
         baseURL: env.baseUrl,
-        channel: "chrome",
+        browserName: "chromium",
         locale: "en-GB",
         timezoneId: "Europe/London",
         actionTimeout: 20_000,

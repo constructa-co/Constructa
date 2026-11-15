@@ -250,6 +250,13 @@ describe("Review and Send", () => {
         expect(send.match(/<input[^>]*data-send-confirm[^>]*>/)![0]).not.toContain("disabled");
     });
 
+    it("does not opt in to client email by default when a client email is saved", () => {
+        const send = html.slice(html.indexOf("data-review-send"));
+        const emailOptIn = send.match(/<input[^>]*data-deliver-by-email[^>]*>/)![0];
+        expect(emailOptIn).not.toContain("checked");
+        expect(send).toContain("Leave unticked to publish a private link only");
+    });
+
     it("offers payment on completion, a deposit and balance, or custom stages, and opens on what is saved", () => {
         const presets = (markup: string) => (markup.match(/<input[^>]*name="payment-preset"[^>]*>/g) ?? []).map((radio) => radio.includes("checked"));
         expect(html.match(/data-payment-preset="[^"]+"/g)).toEqual([

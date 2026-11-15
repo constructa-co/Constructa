@@ -182,7 +182,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     }
     const setDocumentViewOpen = (open: boolean) => setDocumentView({ open, projectId: project.id, lockReason });
     const [termsOpen, setTermsOpen] = useState(false);
-    const [deliverByEmail, setDeliverByEmail] = useState(Boolean(project.client_email));
+    const [deliverByEmail, setDeliverByEmail] = useState(false);
     const [upload, setUpload] = useState<{ busy: boolean; error: string }>({ busy: false, error: "" });
     const [copy, setCopy] = useState("");
     const [companyClosingNote, setCompanyClosingNote] = useState("");
@@ -1254,8 +1254,14 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                     checked={deliverByEmail}
                                     disabled={state.send.status === "publishing"}
                                     onChange={(e) => setDeliverByEmail(e.target.checked)}
+                                    data-deliver-by-email
                                 />
-                                <span className="min-w-0 break-words">Email the link to <strong>{project.client_email}</strong></span>
+                                <span className="min-w-0 break-words">
+                                    Email the link to <strong>{project.client_email}</strong>
+                                    <span className={`block text-sm ${s.muted} font-normal`}>
+                                        Optional. Leave unticked to publish a private link only; nothing is emailed unless you tick this.
+                                    </span>
+                                </span>
                             </label>
                         ) : (
                             <div>

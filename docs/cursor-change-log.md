@@ -1,5 +1,14 @@
 # Cursor change log
 
+## 2026-11-15 — D38 CON-007 proposal client email default off (cursor/d38-con-007-proposal-email-default-off-20261115)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | `deliverByEmail` state, email checkbox | Default `useState(false)`; `data-deliver-by-email`; optional helper copy | CON-007: no client email unless contractor explicitly opts in; send confirmation unchanged |
+| `src/app/dashboard/projects/proposal/review-send-client.test.ts` | new `it` | SSR guard: email opt-in unchecked by default | Focused D38 regression |
+| `src/lib/proposal-review.test.ts` | new `it` | `sendProposal` with `deliverByEmail: false` | Controller still publishes link-only delivery |
+| `e2e/phase1-journey.spec.ts` | `publish()` helper | `{ emailClient: true }` opts in before send | Preserve mocked email journey when explicitly requested |
+
 ## 2026-11-15 — Marketing Features example screens follow-up (cursor/marketing-features-captures-e459)
 
 | File | Lines (approx.) | Change | Intent |

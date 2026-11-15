@@ -547,6 +547,15 @@ describe("send", () => {
         expect(store.getState().confirmed).toBe(false);
     });
 
+    it("publishes a link without emailing when deliverByEmail is false", async () => {
+        const store = storeFor(context);
+        store.dispatch({ type: "confirm/set", confirmed: true });
+        const publish = vi.fn<PublishProposal>(async () => ({ ...published, delivery: { status: "not_requested" } }));
+        await expect(sendProposal(store, { ...deps(publish), deliverByEmail: false })).resolves.toBe("published");
+        expect(publish).toHaveBeenCalledWith({ responseKind: "acknowledgement", deliverByEmail: false, reviewedContent: REVIEWED });
+        expect(store.getState().published?.delivery).toEqual({ status: "not_requested" });
+    });
+
     it("asks to change a draft after ticking the box to be confirmed again", () => {
         const store = storeFor(context);
         store.dispatch({ type: "confirm/set", confirmed: true });

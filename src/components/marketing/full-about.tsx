@@ -14,7 +14,7 @@ function AboutImage({
   height: number;
   className?: string;
 }) {
-  return <Image src={src} alt={alt} width={width} height={height} className={className} />;
+  return <Image src={src} alt={alt} width={width} height={height} sizes="(max-width: 900px) 100vw, 42vw" className={className} />;
 }
 
 export function FullAboutPage() {
@@ -60,13 +60,13 @@ export function FullAboutPage() {
           </p>
         </div>
         <div>
-          <AboutImage src="/images/about-problem1.png" alt="Illustration of three colleagues discussing drawings on a building site" width={720} height={480} />
+          <AboutImage src="/images/about-problem.png" alt="Illustration of colleagues on site discussing plans beside a conservatory build" width={2688} height={1792} />
         </div>
       </section>
 
       <section className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div>
-          <AboutImage src="/images/about-solution.png" alt="Illustration of a project team around a table with a glowing programme timeline overlaid" width={720} height={480} />
+          <AboutImage src="/images/about-solution.png" alt="Illustration of a project team around a table with a glowing programme timeline overlaid" width={1024} height={1024} />
         </div>
         <div className="text-left">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">The solution we&apos;re building</h2>

@@ -7,15 +7,26 @@ import styles from './cohort-about.module.css';
 function AboutFigure({
   src,
   alt,
+  width,
+  height,
   caption,
 }: {
   src: string;
   alt: string;
+  width: number;
+  height: number;
   caption?: string;
 }) {
   return (
     <figure className={styles.figure}>
-      <Image src={src} alt={alt} width={720} height={480} sizes="(max-width: 900px) 100vw, 42vw" />
+      <Image
+        src={src}
+        alt={alt}
+        width={width}
+        height={height}
+        sizes="(max-width: 900px) 100vw, 42vw"
+        className={styles.figureImage}
+      />
       {caption ? <figcaption>{caption}</figcaption> : null}
     </figure>
   );
@@ -36,6 +47,8 @@ export function PhaseOneAbout() {
         <AboutFigure
           src="/images/about-hero.png"
           alt="Three people in hard hats gathered around a laptop"
+          width={2048}
+          height={2048}
           caption="AI-generated illustration. The people shown are not Constructa staff or clients."
         />
         <div className={styles.copy}>
@@ -68,8 +81,10 @@ export function PhaseOneAbout() {
           <p>Big software platforms are overkill. Manual systems are high risk. And most tools weren&apos;t built for builders.</p>
         </div>
         <AboutFigure
-          src="/images/about-problem1.png"
-          alt="Illustration of three colleagues discussing drawings on a building site"
+          src="/images/about-problem.png"
+          alt="Illustration of colleagues on site discussing plans beside a conservatory build"
+          width={2688}
+          height={1792}
         />
       </section>
 
@@ -77,6 +92,8 @@ export function PhaseOneAbout() {
         <AboutFigure
           src="/images/about-solution.png"
           alt="Illustration of a project team around a table with a glowing programme timeline overlaid"
+          width={1024}
+          height={1024}
         />
         <div className={styles.copy}>
           <h2>The solution we&apos;re building</h2>
@@ -112,8 +129,9 @@ export function PhaseOneAbout() {
           <Image
             src="/images/founder-message.png"
             alt="AI-generated illustration of a man standing behind a desk at sunset"
-            width={720}
-            height={480}
+            width={1024}
+            height={1024}
+            className={styles.figureImage}
           />
           <figcaption>AI-generated illustration. The person shown is not Robert Smith.</figcaption>
         </figure>
@@ -183,6 +201,8 @@ export function PhaseOneAbout() {
         <AboutFigure
           src="/images/about-whats-next.png"
           alt="Illustration of colleagues reviewing drawings around a studio table"
+          width={1024}
+          height={1024}
         />
       </section>
 

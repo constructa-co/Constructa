@@ -1,5 +1,14 @@
 # Cursor change log
 
+## 2026-11-15 — Marketing About illustration panels (cursor/marketing-about-illustrations-e459)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/components/marketing/cohort-about.tsx` | `AboutFigure`, problem/solution figures | `className` on `next/image`; intrinsic sizes match assets; problem panel uses `/images/about-problem.png` | Fix blank problem/solution panels caused by wrapper styling + wrong 720×480 hints on 1024² assets |
+| `src/components/marketing/cohort-about.module.css` | `.figureImage` | Replace `.figure img` descendant rule with module class on `Image` | Ensure Turbopack/Next optimizer span shows sized `<img>` in split panels |
+| `src/components/marketing/full-about.tsx` | problem/solution `AboutImage` | Same asset path and intrinsic dimensions as cohort | Full launch profile parity |
+| `src/components/marketing/cohort-about-illustrations.test.tsx` | (new) | Panel src, class, dimension and PNG presence guards | Render/source proof for the two split illustrations |
+
 ## 2026-11-15 — A001 D28 route palette walkthrough (cursor/a001-d28-route-palette-walkthrough-2527)
 
 | File | Lines (approx.) | Change | Intent |

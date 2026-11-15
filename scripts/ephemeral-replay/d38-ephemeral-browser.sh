@@ -33,19 +33,21 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 guard_no_remote_supabase_link "$ROOT/supabase/.temp/project-ref" || exit 1
+project_id="$(sed -n 's/^project_id = "\([^"]*\)"$/\1/p' "$ROOT/supabase/config.toml")"
+guard_ephemeral_project_ref "$project_id" || exit 1
 
 echo "Starting local Supabase stack (CLI ${SUPABASE_CLI_VERSION})…"
-"${SUPABASE_CLI[@]}" start -x studio,imgproxy,vector,logflare,edge-runtime
+"${SUPABASE_CLI[@]}" start -x studio,imgproxy,vector,logflare,edge-runtime >/dev/null
 
 ephemeral_load_supabase_status_from_cli "${SUPABASE_CLI[@]}"
 
 guard_loopback_supabase_url "$API_URL" || exit 1
 guard_loopback_database_url "$DB_URL" || exit 1
 guard_no_production_urls "$API_URL" || exit 1
-guard_ephemeral_project_ref "${PROJECT_ID}" || exit 1
+guard_ephemeral_project_ref "$project_id" || exit 1
 
 echo "Applying migrations — local database reset only (loopback DB_URL verified)."
-"${SUPABASE_CLI[@]}" db reset --yes
+"${SUPABASE_CLI[@]}" db reset --local --yes
 
 export NEXT_PUBLIC_SUPABASE_URL="$API_URL"
 export NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY"

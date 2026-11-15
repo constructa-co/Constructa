@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # Names we accept from `supabase status -o env` (no other keys are exported).
-EPHEMERAL_STATUS_KEYS=(API_URL ANON_KEY SERVICE_ROLE_KEY PROJECT_ID DB_URL)
+EPHEMERAL_STATUS_KEYS=(API_URL ANON_KEY SERVICE_ROLE_KEY DB_URL)
 
 ephemeral_parse_supabase_status_file() {
   local file="${1:?status env file required}"
@@ -21,7 +21,7 @@ ephemeral_parse_supabase_status_file() {
     key="${line%%=*}"
     raw="${line#*=}"
     case "$key" in
-      API_URL|ANON_KEY|SERVICE_ROLE_KEY|PROJECT_ID|DB_URL) ;;
+      API_URL|ANON_KEY|SERVICE_ROLE_KEY|DB_URL) ;;
       *) continue ;;
     esac
   value="$raw"

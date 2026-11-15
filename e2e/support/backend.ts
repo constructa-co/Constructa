@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { functionSignatureFromApiDescription } from "./api-description";
 import { BRIEF_AI_PREREQUISITES, type BudgetInspector, type Read } from "./brief-ai-mode";
+import { EPHEMERAL_REPLAY_PROJECT_REF } from "./ephemeral-replay-env";
 import { APPROVED_DISPOSABLE_PROJECT, SYNTHETIC_EMAIL_DOMAIN, readE2EEnv, type E2EEnv } from "./env";
 
 /**
@@ -10,11 +11,28 @@ import { APPROVED_DISPOSABLE_PROJECT, SYNTHETIC_EMAIL_DOMAIN, readE2EEnv, type E
  * disposable project until that project is deleted. The journey itself goes
  * through the browser like a contractor would.
  */
-function admin(env: E2EEnv): SupabaseClient {
-    // Checked again at the point of use: nothing below can run against any
-    // project other than the approved disposable one.
-    if (new URL(env.supabaseUrl).hostname !== `${APPROVED_DISPOSABLE_PROJECT.ref}.supabase.co` || env.projectRef !== APPROVED_DISPOSABLE_PROJECT.ref) {
-        throw new Error("Refusing to use the admin client: the target is not the approved disposable project.");
+function isApprovedE2eBackend(env: E2EEnv): boolean {
+    const host = new URL(env.supabaseUrl).hostname;
+    const port = new URL(env.supabaseUrl).port;
+    if (
+        env.projectRef === APPROVED_DISPOSABLE_PROJECT.ref &&
+        host === `${APPROVED_DISPOSABLE_PROJECT.ref}.supabase.co`
+    ) {
+        return true;
+    }
+    if (
+        env.projectRef === EPHEMERAL_REPLAY_PROJECT_REF &&
+        (host === "127.0.0.1" || host === "localhost") &&
+        (port === "54321" || port === "")
+    ) {
+        return true;
+    }
+    return false;
+}
+
+function admin(env: E2EEnv = readE2EEnv()): SupabaseClient {
+    if (!isApprovedE2eBackend(env)) {
+        throw new Error("Refusing to use the admin client: the target is not an approved E2E backend.");
     }
     return createClient(env.supabaseUrl, env.supabaseServiceRoleKey, {
         auth: { autoRefreshToken: false, persistSession: false },
@@ -28,9 +46,9 @@ function assertSynthetic(email: string) {
 }
 
 /** The account the browser just created exists in the disposable project. */
-export async function syntheticUserExists(userId: string, email: string): Promise<boolean> {
+export async function syntheticUserExists(userId: string, email: string, env: E2EEnv = readE2EEnv()): Promise<boolean> {
     assertSynthetic(email);
-    const { data, error } = await admin(readE2EEnv()).auth.admin.getUserById(userId);
+    const { data, error } = await admin(env).auth.admin.getUserById(userId);
     return !error && data.user?.email?.toLowerCase() === email.toLowerCase();
 }
 
@@ -164,9 +182,13 @@ export interface SavedProjectBrief {
     startDate: string | null;
 }
 
-export async function savedProjectBrief(projectId: string, ownerEmail: string): Promise<SavedProjectBrief | null> {
+export async function savedProjectBrief(
+    projectId: string,
+    ownerEmail: string,
+    env: E2EEnv = readE2EEnv(),
+): Promise<SavedProjectBrief | null> {
     assertSynthetic(ownerEmail);
-    const { data, error } = await admin(readE2EEnv())
+    const { data, error } = await admin(env)
         .from("projects")
         .select("name, client_name, brief_scope, brief_completed, brief_trade_sections, client_type, start_date")
         .eq("id", projectId)

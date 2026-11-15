@@ -1,5 +1,23 @@
 # Cursor change log
 
+## 2026-11-15 — D38 ephemeral Supabase browser replay (continuation on cursor/constructa-d38-con-001-002-browser-reproduction-bd36)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/deployment/supabase-target.mjs` | context + URL + compiled | `e2e-replay` context; loopback `:54321` API URL; allow empty `.supabase.co` refs in bundle | Build/start guard for ephemeral CLI stack |
+| `src/lib/deployment/supabase-target.test.ts` | tests | Ephemeral loopback pass/fail cases | Regression |
+| `e2e/support/ephemeral-replay-env.ts` | (new) | Fail-closed env; no hosted credentials | D38 ephemeral harness |
+| `e2e/support/ephemeral-replay-env.test.ts` | (new) | Unit tests | |
+| `e2e/support/ephemeral-replay-global-setup.ts` | (new) | Local auth health; no production in build | |
+| `playwright.d38-ephemeral-replay.config.ts` | (new) | Playwright + `e2e-replay` server env | |
+| `e2e/d38-con-001-002-browser.qa.ts` | auth steps | Ephemeral sign-up/seed + hosted QA dual mode | No hosted secrets on ephemeral path |
+| `e2e/support/backend.ts` | admin | Allow loopback ephemeral replay read-back | |
+| `scripts/ephemeral-replay/*` | (new) | Guards, seed auth, orchestrator | Runnable local/CI startup |
+| `supabase/config.toml` | (new) | Local CLI project id `ephemeralreplay00001` | Ephemeral stack |
+| `.github/workflows/d38-con-browser-replay.yml` | (new) | CI job without E2E secrets | CI-only browser when Docker present |
+| `docs/temp-files/d38-ephemeral-ci-execution-plan.md` | (new) | Blocker + steps | Agent VM without Docker |
+| `package.json` | scripts | `e2e:d38-ephemeral-replay` | |
+
 ## 2026-11-15 — D38 CON-001 / CON-002 browser reproduction (cursor/constructa-d38-con-001-002-browser-reproduction-bd36)
 
 | File | Lines (approx.) | Change | Intent |

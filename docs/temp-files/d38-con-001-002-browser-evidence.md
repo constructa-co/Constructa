@@ -1,27 +1,27 @@
-# D38 CON-001 / CON-002 evidence (2026-11-15)
+# D38 CON-001 / CON-002 browser evidence
 
-## Scope
+**Branch:** `cursor/constructa-d38-con-001-002-browser-reproduction-bd36`  
+**Merged `origin/main`:** yes (PR #170 brief smoke SQL preserved)  
+**Date:** 2026-11-15
 
-- **Base:** `6800746d4f10fc3b1036d954bad91601dbcffe75`
-- **Branch:** `cursor/constructa-d38-con-001-002-browser-reproduction-bd36`
-- **CON-001:** New project creation must reach Brief without `BLANK_PROJECT_CREATE_ERROR`.
-- **CON-002:** Brief save must persist through `save_phase1_brief` and survive reload.
+## Results
 
-## Source delivered
+| Layer | Command / artefact | Result | Notes |
+|-------|-------------------|--------|-------|
+| TypeScript | `npx tsc --noEmit` | See commit receipt | |
+| Unit tests | `npm test` | See commit receipt | Includes `supabase-target` + `ephemeral-replay-env` |
+| SQL smoke (#170) | `scripts/verify-phase1-smoke.sql` | **GREEN** on migration-replay job (existing workflow) | Brief RPC block unchanged |
+| Hosted browser | `npm run e2e:d38-con-brief-persistence` | **NOT_RUN** | Policy: no protected hosted QA credentials |
+| Ephemeral orchestrator | `bash scripts/ephemeral-replay/d38-ephemeral-browser.sh` | **NOT_RUN** | **BLOCKER:** `docker: command not found` on agent VM |
+| Ephemeral Playwright (no stack) | `npm run e2e:d38-ephemeral-replay` | **GREEN** (fail-closed, exit 1 at config) | Exits before browser without loopback keys |
+| Orchestrator (no Docker) | `d38-ephemeral-browser.sh` | **NOT_RUN** (exit 2) | `BLOCKER: docker is not available` |
+| CI ephemeral browser | `.github/workflows/d38-con-browser-replay.yml` | **NOT_RUN** here | Plan: `docs/temp-files/d38-ephemeral-ci-execution-plan.md` |
 
-1. PR #170 disposable SQL block appended to `scripts/verify-phase1-smoke.sql` (prior assertions preserved).
-2. Hosted Playwright harness: `playwright.d38-con-brief-persistence.config.ts` + `e2e/d38-con-001-002-browser.qa.ts`.
-3. Read-back helper `savedProjectBrief` in `e2e/support/backend.ts`.
+## Expected green path (Docker available)
 
-## Run results (this environment)
+1. `bash scripts/ephemeral-replay/d38-ephemeral-browser.sh`
+2. Expect Playwright **GREEN** for CON-001 create + CON-002 brief save + reload + service-role read-back.
 
-| Check | Result | Notes |
-| --- | --- | --- |
-| `./node_modules/.bin/tsc --noEmit` | **GREEN** | Node 22 VM; `npm install --engine-strict=false` |
-| `vitest run` | **GREEN** | 6731 passed, 4 skipped |
-| Playwright hosted reproduction | **NOT_RUN** | No `E2E_SUPABASE_PROJECT_REF`, disposable keys, or seeded QA credentials in the cloud agent VM |
-| `scripts/ci-replay-in-container.sh smoke` | **NOT_RUN** | Requires Docker + linked replay Postgres (CI operator path) |
+## Feature head
 
-## Operator path to turn browser evidence green or red
-
-See `e2e/D38-CON-BRIEF-PERSISTENCE.md`. A failing run with HTTP 4xx/5xx on `create_phase1_project_graph` or `save_phase1_brief` reproduces CON-001/002; a passing run with reload + DB read-back is evidence against the reported snags.
+Record `git rev-parse HEAD` from the branch after push.

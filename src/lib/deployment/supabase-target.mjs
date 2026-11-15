@@ -39,7 +39,10 @@ const SUPABASE_HOST = /\b([a-z0-9]{20})\.supabase\.co\b/g;
 const METADATA_VARIABLE = /^(VERCEL_GIT_|GITHUB_|npm_)/;
 
 /** @typedef {Record<string, string | undefined>} Env */
-/** @typedef {"production" | "preview" | "e2e" | "development" | "unspecified"} DeployContextName */
+/** Ephemeral local Supabase stack (Supabase CLI on loopback). Not a hosted project. */
+export const EPHEMERAL_REPLAY_CONTEXT = "e2e-replay";
+
+/** @typedef {"production" | "preview" | "e2e" | "e2e-replay" | "development" | "unspecified"} DeployContextName */
 /** @typedef {{ context: DeployContextName, guarded: boolean, source: string }} DeployContext */
 /** @typedef {{ context: DeployContextName, guarded: boolean, ok: boolean, problems: string[], summary: string }} TargetCheck */
 
@@ -72,6 +75,9 @@ export function resolveDeployContext(env) {
     if (declared === "") return { context: "unspecified", guarded: false, source: "none" };
     if (declared === "production" || declared === "development") {
         return { context: declared, guarded: false, source: DEPLOY_CONTEXT_VARIABLE };
+    }
+    if (declared === EPHEMERAL_REPLAY_CONTEXT) {
+        return { context: EPHEMERAL_REPLAY_CONTEXT, guarded: true, source: DEPLOY_CONTEXT_VARIABLE };
     }
     return { context: declared === "e2e" ? "e2e" : "preview", guarded: true, source: DEPLOY_CONTEXT_VARIABLE };
 }
@@ -107,6 +113,24 @@ function urlProjectRef(value) {
         return url.protocol === "https:" && match ? match[1] : null;
     } catch {
         return null;
+    }
+}
+
+/**
+ * Whether a Supabase API URL is the guarded local ephemeral replay stack.
+ *
+ * @param {string} value
+ * @param {DeployContextName} context
+ */
+function ephemeralReplayApiUrl(value, context) {
+    if (context !== EPHEMERAL_REPLAY_CONTEXT) return false;
+    try {
+        const url = new URL(value);
+        if (url.protocol !== "http:") return false;
+        if (!["127.0.0.1", "localhost"].includes(url.hostname)) return false;
+        return url.port === "" || url.port === "54321";
+    } catch {
+        return false;
     }
 }
 
@@ -195,6 +219,11 @@ export function checkSupabaseTarget(env) {
     let urlRef = "not set";
     if (!url) {
         problems.push("NEXT_PUBLIC_SUPABASE_URL is not set. A preview needs its own disposable project.");
+    } else if (ephemeralReplayApiUrl(url, context)) {
+        urlRef = expected ?? "local-ephemeral-replay";
+        if (!expected) {
+            problems.push(`${NONPROD_REF_VARIABLE} must be set for ${EPHEMERAL_REPLAY_CONTEXT}; the local API URL does not carry a project reference.`);
+        }
     } else {
         const ref = urlProjectRef(url);
         urlRef = ref ?? "unreadable";
@@ -311,7 +340,7 @@ export function checkCompiledTarget(env, refs) {
     if (refs.includes(PRODUCTION_SUPABASE_PROJECT_REF)) {
         problems.push("The compiled build names the production Supabase project.");
     }
-    if (refs.length === 0) {
+    if (refs.length === 0 && context !== EPHEMERAL_REPLAY_CONTEXT) {
         problems.push("The compiled build names no Supabase project, so its backend cannot be proved.");
     }
     const others = refs.filter((ref) => ref !== expected && ref !== PRODUCTION_SUPABASE_PROJECT_REF);

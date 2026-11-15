@@ -33,6 +33,7 @@
     "e2e:evidence": "E2E_EVIDENCE=1 playwright test",
     "e2e:import-fixture": "playwright test -c playwright.import-fixture.config.ts",
     "e2e:d38-con-brief-persistence": "playwright test -c playwright.d38-con-brief-persistence.config.ts",
+    "e2e:d38-ephemeral-replay": "playwright test -c playwright.d38-ephemeral-replay.config.ts",
     "eval:interview": "EVAL_WRITE=1 vitest run src/lib/company-interview/eval",
     "eval:cohort-ai": "EVAL_WRITE=1 vitest run src/lib/cohort-ai/eval"
   },

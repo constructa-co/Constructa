@@ -1,45 +1,34 @@
 # D38 CON-001 / CON-002 browser reproduction
 
-Tracks P0 review items **CON-001** (new project creation) and **CON-002** (brief save persistence) with a **hosted** Playwright run against the approved disposable Supabase project only.
+Tracks P0 **CON-001** (new project creation) and **CON-002** (brief save persistence).
 
-## What runs
+## Ephemeral replay (preferred — no hosted QA secrets)
 
-| Layer | File | Purpose |
-| --- | --- | --- |
-| SQL replay (CON-002 RPC) | `scripts/verify-phase1-smoke.sql` | Same `save_phase1_brief` arguments and read-back assertions as draft PR #170; all prior smoke assertions unchanged |
-| Browser (CON-001 + CON-002) | `e2e/d38-con-001-002-browser.qa.ts` | Seeded QA sign-in → New project → Brief save → reload UI check → service-role row read |
-
-## Prerequisites (fail closed)
-
-Same disposable guard as `e2e/support/env.ts`, plus labelled QA credentials:
-
-| Variable | Purpose |
-| --- | --- |
-| `E2E_SUPABASE_PROJECT_REF` | Approved disposable reference (`constructa-e2e-pr79` / `umqtzfsnyoofmgfbnrgv`) |
-| `NEXT_PUBLIC_SUPABASE_URL` / keys | Disposable project keys only |
-| `SUPABASE_SERVICE_ROLE_KEY` | Read-back only in the test harness |
-| `E2E_SYNTHETIC_QA_EMAIL` | `*e2e-qa*@example.com` labelled mailbox |
-| `E2E_SYNTHETIC_PASSWORD` | Password for that account |
-
-Optional: `E2E_BASE_URL`, `E2E_STUB_URL`, `E2E_SKIP_BUILD`, `E2E_EVIDENCE`.
-
-## Command (operator — not run automatically in cloud agents without credentials)
+Requires **Docker** + Supabase CLI on loopback `http://127.0.0.1:54321`.
 
 ```bash
-npx playwright test --config=playwright.d38-con-brief-persistence.config.ts
+npm ci --engine-strict=false
+bash scripts/ephemeral-replay/d38-ephemeral-browser.sh
 ```
 
-With Keychain-backed env:
+- Migrations: `supabase db reset` (committed `supabase/migrations/`)
+- Auth: seeded disposable user (`E2E_D38_AUTH=seed`, default) or browser sign-up (`E2E_D38_AUTH=signup`)
+- Playwright config: `playwright.d38-ephemeral-replay.config.ts`
+- npm: `npm run e2e:d38-ephemeral-replay`
 
-```bash
-E2E_SUPABASE_PROJECT_REF=<disposable ref> \
-E2E_SYNTHETIC_QA_EMAIL=<e2e-qa-labelled@example.com> \
-E2E_SYNTHETIC_PASSWORD=<from protected store> \
-scripts/e2e-with-keychain.sh npx playwright test --config=playwright.d38-con-brief-persistence.config.ts
-```
+## Hosted disposable (legacy)
 
-## Honest limits
+Labelled QA credentials against the approved hosted disposable project only.
 
-- **No production**, no live settings changes, no sign-up in this variant.
-- Browser green/red depends on disposable schema/migrations matching `main` at the feature base and a QA account that can reach `/dashboard/projects/new`.
-- SQL replay green/red depends on CI/local Postgres replay (`scripts/ci-replay-in-container.sh smoke`), not on this browser run.
+- Playwright config: `playwright.d38-con-brief-persistence.config.ts`
+- npm: `npm run e2e:d38-con-brief-persistence`
+- See `e2e/support/no-publish-guard.ts` for `E2E_SYNTHETIC_QA_EMAIL` / `E2E_SYNTHETIC_PASSWORD`
+
+## SQL replay (CON-002)
+
+`scripts/verify-phase1-smoke.sql` includes PR #170 `save_phase1_brief` assertions. CI: `.github/workflows/migration-replay.yml` and `.github/workflows/d38-con-browser-replay.yml`.
+
+## Limits
+
+- No production, no manual deploy, no protected hosted credentials on the ephemeral path.
+- Cloud agents without Docker: **NOT_RUN** for full browser; see `docs/temp-files/d38-ephemeral-ci-execution-plan.md`.

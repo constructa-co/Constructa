@@ -540,11 +540,43 @@ describe("send", () => {
         store.dispatch({ type: "confirm/set", confirmed: true });
         const publish = vi.fn<PublishProposal>(async () => ({ ...published, delivery: { status: "sent", email: "alex@example.test" } }));
         await expect(sendProposal(store, deps(publish))).resolves.toBe("published");
-        expect(publish).toHaveBeenCalledWith({ responseKind: "non_binding_intent", deliverByEmail: true, reviewedContent: REVIEWED });
+        expect(publish).toHaveBeenCalledWith({
+            responseKind: "non_binding_intent",
+            deliverByEmail: true,
+            emailRecipientConfirmed: undefined,
+            reviewedContent: REVIEWED,
+        });
         expect(store.getState().send.status).toBe("published");
         expect(store.getState().published).toMatchObject({ versionNumber: 1, responseKind: "non_binding_intent", delivery: { status: "sent" } });
         // A second send needs a fresh confirmation.
         expect(store.getState().confirmed).toBe(false);
+    });
+
+    it("publishes a link without emailing when deliverByEmail is false", async () => {
+        const store = storeFor(context);
+        store.dispatch({ type: "confirm/set", confirmed: true });
+        const publish = vi.fn<PublishProposal>(async () => ({ ...published, delivery: { status: "not_requested" } }));
+        await expect(sendProposal(store, { ...deps(publish), deliverByEmail: false })).resolves.toBe("published");
+        expect(publish).toHaveBeenCalledWith({
+            responseKind: "acknowledgement",
+            deliverByEmail: false,
+            emailRecipientConfirmed: undefined,
+            reviewedContent: REVIEWED,
+        });
+        expect(store.getState().published?.delivery).toEqual({ status: "not_requested" });
+    });
+
+    it("passes recipient confirmation through when emailing on publish", async () => {
+        const store = storeFor(context);
+        store.dispatch({ type: "confirm/set", confirmed: true });
+        const publish = vi.fn<PublishProposal>(async () => ({ ...published, delivery: { status: "sent", email: "alex@example.test" } }));
+        await expect(sendProposal(store, { ...deps(publish), deliverByEmail: true, emailRecipientConfirmed: true })).resolves.toBe("published");
+        expect(publish).toHaveBeenCalledWith({
+            responseKind: "acknowledgement",
+            deliverByEmail: true,
+            emailRecipientConfirmed: true,
+            reviewedContent: REVIEWED,
+        });
     });
 
     it("asks to change a draft after ticking the box to be confirmed again", () => {

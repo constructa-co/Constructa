@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useTransition, useMemo, useEffect, useRef } from "react";
 import { updatePhasesAction, getEstimatePhasesAction, saveProgrammePhasesAction } from "./actions";
 import ProgrammeAiUpdate from "./programme-ai-update";
 import { toast } from "sonner";
@@ -430,7 +430,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     );
 
     // ── Drag system ───────────────────────────────────────────────────────
-    const handleBarMouseDown = useCallback((e: React.MouseEvent, idx: number, type: DragType) => {
+    const handleBarMouseDown = (e: React.MouseEvent, idx: number, type: DragType) => {
         e.preventDefault();
         e.stopPropagation();
         const track = ganttRef.current;
@@ -446,12 +446,12 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 : (phase.manualDays ?? phase.calculatedDays),
             originalPhase: phase,
             ownDateOffset: type === "move" && usesSavedCalendar && "start_date" in phase && typeof phase.start_date === "string"
-                ? plannerPhaseSpan(toInputDate(programmeStart), phase, workingPattern)?.startOffset ?? null : null,
+                ? plannerPhaseSpan(toInputDate(programmeStart), phase, expectedWorkingPattern, bankHolidayDivision)?.startOffset ?? null : null,
             trackWidth: rect.width,
             capturedTotalDays: axisDaysRef.current,
         };
         setIsDragging(true);
-    }, [programmeStart, setIsDragging, usesSavedCalendar, workingPattern]);
+    };
 
     useEffect(() => {
         const onMouseMove = (e: MouseEvent) => {

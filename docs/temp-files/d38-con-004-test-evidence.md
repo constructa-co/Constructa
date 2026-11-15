@@ -53,6 +53,25 @@ Compiled Supabase target: context=preview (from VERCEL_ENV) expected=umqtzfsnyoo
 
 - `addWorkingDays("2026-12-24", 5)` → **2027-01-04** (skips Christmas, substitute Boxing Day, New Year’s Day)
 
+## BLOCK #171 CI follow-up (681845b → next)
+
+### Health run 43757700930
+
+- **Failure:** `react-hooks/preserve-manual-memoization` at `schedule/client-page.tsx:454` (`useCallback` + `workingPattern` dep).
+- **Fix:** Plain `handleBarMouseDown` handler; `plannerPhaseSpan` uses `expectedWorkingPattern` + `bankHolidayDivision`.
+
+```bash
+npm_config_engine_strict=false npm run lint
+```
+
+**Result:** **0 errors** (491 warnings, pre-existing).
+
+### Secret scan run 43757695377
+
+- Log shows only: `Secret scan could not establish a safe baseline or complete its checks. No credentials were printed.` — **no redacted finding lines**.
+- Repro: same message when `gitleaks` is absent; with gitleaks, `1cdd766..681845b` history scan → **no leaks**; full tree scan reports pre-existing hits outside this commit (unchanged on main).
+- **Assessment:** Not a new credential in CON-004; prior force-push likely left `before` unreachable for history verification. **No credential or history rewrite.** Next fast-forward push should scan `681845b..<new>`.
+
 ## Note
 
 `src/lib/programme-working-pattern-integration.test.tsx` still hangs in this VM when run with vitest; not used as a gate here.

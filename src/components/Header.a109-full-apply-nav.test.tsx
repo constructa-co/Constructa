@@ -33,4 +33,14 @@ describe("A109 full-profile marketing header apply entry", () => {
     expect(html).not.toContain("#waitlist-form");
     expect(html).not.toContain("Join the waitlist");
   });
+
+  it("keeps Log in reachable below 640px on the landing header", () => {
+    route.pathname = "/landing";
+    const html = renderToStaticMarkup(<Header />);
+    const loginTag = html.match(/<a[^>]*href="\/login"[^>]*>/)?.[0] ?? "";
+    expect(loginTag).not.toBe("");
+    expect(loginTag).not.toMatch(/\bhidden\b/);
+    expect(loginTag).not.toMatch(/\bsm:inline\b/);
+    expect(html).toContain("Log in");
+  });
 });

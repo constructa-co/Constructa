@@ -20,7 +20,7 @@ const Header = () => {
     return (
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="h-16 grid grid-cols-3 items-center">
+          <div className="h-16 flex items-center justify-between md:grid md:grid-cols-3">
             {/* Left column - Logo */}
             <div className="flex items-center">
               <a href="/" className="text-2xl font-semibold text-white hover:opacity-90 transition-opacity">
@@ -31,17 +31,18 @@ const Header = () => {
             {/* Center column - Empty for landing page */}
             <div className="hidden md:block"></div>
 
-            {/* Right column — founding cohort application (separate from sign-in) */}
-            <div className="flex items-center justify-end space-x-6">
+            {/* Right column — founding cohort application (separate from sign-in).
+                Log in stays visible at every width; there is no mobile menu on this header. */}
+            <div className="flex items-center justify-end space-x-3 sm:space-x-6">
               <a
                 href="/login"
-                className="hidden sm:inline text-sm text-gray-500 hover:text-gray-300 transition-colors duration-200"
+                className="text-sm text-gray-500 hover:text-gray-300 transition-colors duration-200"
               >
                 Log in
               </a>
               <a
                 href="/apply"
-                className="px-4 py-1.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors duration-200"
+                className="px-3 sm:px-4 py-1.5 bg-white text-black text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors duration-200"
               >
                 Apply to the founding cohort
               </a>

@@ -1,12 +1,18 @@
-import { computeProgrammePlan, formatDateRange, formatPlanDate, formatWorkingDuration, PROGRAMME_BASIS_NOTE, stageBar, type ProgrammePlan } from "./programme-plan";
-import { describeJobWorkingPattern, isDefaultJobWorkingPattern, isJobWorkingPatternV2, resolveJobWorkingPattern, type JobWorkingPattern } from "./job-working-pattern";
+import {
+    computeProgrammePlan, formatDateRange, formatPlanDate, formatWorkingDuration, programmeBasisNoteForPlan,
+    PROGRAMME_BASIS_NOTE, stageBar, type ProgrammePlan,
+} from "./programme-plan";
+import { describeJobWorkingPattern, isDefaultJobWorkingPattern, resolveJobWorkingPattern, type JobWorkingPattern } from "./job-working-pattern";
+import { ukBankHolidayWorkingDayClause, type UkBankHolidayDivision } from "./uk-bank-holidays";
 
 export const RELATIVE_PROGRAMME_BASIS = "relative_working_days" as const;
-export const RELATIVE_PROGRAMME_NOTE = "Start date not agreed. Day numbers count working days, not calendar dates. A week means five working days.";
+export const RELATIVE_PROGRAMME_NOTE =
+    "Start date not agreed. Day numbers count working days, not calendar dates. A week means five working days. UK bank holidays for England and Wales are not working days.";
 
 export interface RelativeProgrammePlan {
     basis: typeof RELATIVE_PROGRAMME_BASIS;
     working_pattern?: JobWorkingPattern;
+    bank_holiday_division: UkBankHolidayDivision;
     start_date?: never;
     end_date?: never;
     calendar_days?: never;
@@ -36,9 +42,14 @@ export function hasRelativeProgramme(phases: unknown[] | null | undefined): bool
 }
 
 /** Only explicitly marked, complete, sequential working-day phases are relative. */
-export function computeRelativeProgramme(phases: unknown[] | null | undefined, rawPattern?: unknown): RelativeProgrammePlan | null {
+export function computeRelativeProgramme(
+    phases: unknown[] | null | undefined,
+    rawPattern?: unknown,
+    bankHolidayDivision?: UkBankHolidayDivision | null,
+): RelativeProgrammePlan | null {
     const pattern = resolveJobWorkingPattern(rawPattern);
     if (!pattern) return null;
+    const division = bankHolidayDivision ?? "england-and-wales";
     if (!Array.isArray(phases) || !phases.length || phases.length > 200) return null;
     let offset = 0;
     const stages: RelativeProgrammePlan["stages"] = [];
@@ -57,12 +68,20 @@ export function computeRelativeProgramme(phases: unknown[] | null | undefined, r
     return {
         basis: RELATIVE_PROGRAMME_BASIS,
         ...(isDefaultJobWorkingPattern(pattern) ? {} : { working_pattern: pattern }),
+        bank_holiday_division: division,
         working_days: offset, duration_label: formatWorkingDuration(offset, pattern), stages,
     };
 }
 
-export function computeDisplayProgramme(startDate: string | null | undefined, phases: unknown[] | null | undefined, rawPattern?: unknown): DisplayProgrammePlan | null {
-    return hasRelativeProgramme(phases) ? computeRelativeProgramme(phases, rawPattern) : computeProgrammePlan(startDate, phases, rawPattern);
+export function computeDisplayProgramme(
+    startDate: string | null | undefined,
+    phases: unknown[] | null | undefined,
+    rawPattern?: unknown,
+    bankHolidayDivision?: UkBankHolidayDivision | null,
+): DisplayProgrammePlan | null {
+    return hasRelativeProgramme(phases)
+        ? computeRelativeProgramme(phases, rawPattern, bankHolidayDivision)
+        : computeProgrammePlan(startDate, phases, rawPattern, bankHolidayDivision);
 }
 
 export function programmeFacts(plan: DisplayProgrammePlan, style: "long" | "short" = "long") {
@@ -103,13 +122,14 @@ export function programmeStageBar(plan: DisplayProgrammePlan, index: number, min
 }
 
 export function programmeBasisNote(plan: DisplayProgrammePlan): string {
+    const division = plan.bank_holiday_division;
+    if (plan.basis !== RELATIVE_PROGRAMME_BASIS) return programmeBasisNoteForPlan(plan);
     const pattern = resolveJobWorkingPattern(plan.working_pattern);
     if (!pattern) return "Working pattern is invalid. Programme basis unavailable.";
-    if (isJobWorkingPatternV2(pattern) || !isDefaultJobWorkingPattern(pattern)) {
-        const basis = describeJobWorkingPattern(pattern);
-        return plan.basis === RELATIVE_PROGRAMME_BASIS
-            ? `Start date not agreed. Day numbers count working days, not calendar dates. ${basis}`
-            : basis;
+    const bankClause = ukBankHolidayWorkingDayClause(division);
+    if (!isDefaultJobWorkingPattern(pattern)) {
+        const basis = describeJobWorkingPattern(pattern, division);
+        return `Start date not agreed. Day numbers count working days, not calendar dates. ${basis}`;
     }
-    return plan.basis === RELATIVE_PROGRAMME_BASIS ? RELATIVE_PROGRAMME_NOTE : PROGRAMME_BASIS_NOTE;
+    return `Start date not agreed. Day numbers count working days, not calendar dates. A week means five working days. ${bankClause}`;
 }

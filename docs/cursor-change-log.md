@@ -1,5 +1,20 @@
 # Cursor change log
 
+## 2026-11-15 — D38 CON-004 UK bank holidays in programme math (cursor/constructa-d38-con-004-b37b)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/data/uk-bank-holidays-bundled.json` | (new) | Snapshot of GOV.UK `bank-holidays.json` for all UK divisions | Offline fallback for programme working-day math |
+| `src/lib/uk-bank-holidays.ts` | (new) | Regional division resolver, holiday lookup, basis-note copy, feed merge | CON-004 core: England/Scotland/NI bank holidays excluded from working days |
+| `src/lib/uk-bank-holidays-feed.ts` | (new) | `refreshUkBankHolidaysFromGovUk` with TTL + merge over bundled | Live GOV.UK feed with bundled fallback |
+| `src/lib/programme-calendar.ts` | (new) | Re-export calendar helpers from job-working-pattern | Avoid circular imports; project region → division |
+| `src/lib/job-working-pattern.ts` | worksUtc, add/count/next, describe | Thread `ProgrammeCalendar` through all working-day math; skip bank holidays for v1 and v2 | All programme working-day paths honour UK holidays |
+| `src/lib/programme-plan.ts` | compute/plan types, basis notes | `bank_holiday_division` on plans; region-aware `programmePlanForProject` | Publication/editor share one calendar |
+| `src/lib/relative-programme.ts` | compute/basis note | Division on relative plans; updated basis wording | Relative + dated programmes consistent |
+| `src/lib/simple-programme.ts`, `planning-conversation.ts`, `proposal-publication.ts` | call sites | Pass job region into display/snapshot programme math | Regional holidays follow brief site region |
+| `src/lib/*.test.ts`, schedule/proposal tests | expectations | CON-004 acceptance (65 days → 2027-05-05); basis note copy; dates with holidays | Focused regression evidence |
+| `docs/cursor-change-log.md` | this entry | Log D38 CON-004 scope | User change-log rule |
+
 ## 2026-11-15 — Marketing Features example screens follow-up (cursor/marketing-features-captures-e459)
 
 | File | Lines (approx.) | Change | Intent |

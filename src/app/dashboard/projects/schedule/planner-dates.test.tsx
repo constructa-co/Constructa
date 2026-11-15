@@ -102,7 +102,7 @@ describe("five-day detailed planner date presentation", () => {
         expect(html).toContain("2 working days / 2 calendar days");
         expect(html).toContain('aria-label="W1: 2026-10-12 to 2026-10-18"');
         for (const day of [0, 1, 2, 3, 4, 5, 6]) expect(html).toContain(`data-planner-calendar-day="${day}" data-working-day="${weekdays.includes(day) ? "true" : "false"}"`);
-        expect(html).toContain("Bank holidays are not allowed for.");
+        expect(html).toContain("UK bank holidays for England and Wales are not working days.");
         expect(html).not.toContain("prog_dpw_");
     });
 

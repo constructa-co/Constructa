@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-11-15 — A006 UK disciplines research decision (cursor/a006-uk-disciplines-20261115)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `docs/delivery/2026-11-15/a006-uk-disciplines-research-decision.md` | (new) | ONS-ranked first-wave discipline catalogue, domestic/commercial job priorities, taxonomy gaps, ordered next steps | Close A006 ranking gap; docs-only; no product/register change |
+| `docs/evidence/a006-20261115/source-extract.json` | (new) | Dated primary-source URLs and Q3 2024 IDBR firm counts from ONS Tables 3.7–3.8 | Machine-readable evidence for coordinator review |
+
 ## 2026-11-15 — Marketing Features example screens follow-up (cursor/marketing-features-captures-e459)
 
 | File | Lines (approx.) | Change | Intent |

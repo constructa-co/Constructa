@@ -1,0 +1,119 @@
+{
+  "actionId": "A006",
+  "extractedAt": "2026-11-15T13:20:00Z",
+  "agentBranch": "cursor/a006-uk-disciplines-20261115",
+  "baseCommit": "33d8fd3f986571b669567a99039bf0166d3d9085",
+  "method": "ONS XLSX parsed locally (openpyxl); figures taken from 'All firms' rows unless noted",
+  "localParseFiles": [
+    "docs/temp-files/a006-20261115/csatables2024.xlsx",
+    "docs/temp-files/a006-20261115/ah1715.xlsx"
+  ],
+  "committedEvidence": false,
+  "primarySources": [
+    {
+      "title": "Construction statistics, Great Britain: 2024",
+      "publisher": "ONS",
+      "url": "https://www.ons.gov.uk/businessindustryandtrade/constructionindustry/articles/constructionstatistics/2024",
+      "releaseDate": "2026-02-19",
+      "dataPeriod": "Calendar 2024; construction firms Q3 2024",
+      "keyFigures": {
+        "vatPayeConstructionFirmsGB": 370770,
+        "constructionEmployeesGBThousands": 1400,
+        "newOrdersTotalGBPMillion": 71707,
+        "newOrdersYoYPercent": 5.6,
+        "privateCommercialNewOrdersYoYPercent": 18.8,
+        "allHousingNewOrdersYoYPercent": -10.9
+      }
+    },
+    {
+      "title": "Construction statistics annual tables (2024 edition)",
+      "publisher": "ONS",
+      "url": "https://www.ons.gov.uk/businessindustryandtrade/constructionindustry/datasets/constructionstatisticsannualtables",
+      "releaseDate": "2026-02-19",
+      "worksheets": ["Table 3.7", "Table 3.8", "Table 3.10", "Table 2.1"]
+    },
+    {
+      "title": "Enterprises in specialised construction: 2022 to 2024",
+      "publisher": "ONS",
+      "url": "https://www.ons.gov.uk/businessindustryandtrade/business/activitysizeandlocation/adhocs/2900enterprisesinspecialisedconstruction2022to2024",
+      "releaseDate": "2025-06-25",
+      "idbrSnapshot": "March 2024",
+      "division43GroupsEnterprises2024": {
+        "431DemolitionSitePrep": 4195,
+        "432Install": 106800,
+        "433Finishing": 84300,
+        "439OtherSpecialised": 40680
+      }
+    },
+    {
+      "title": "Business population estimates for the UK and regions 2024",
+      "publisher": "Department for Business and Trade",
+      "url": "https://www.gov.uk/government/statistics/business-population-estimates-2024/business-population-estimates-for-the-uk-and-regions-2024-statistical-release",
+      "releaseDate": "2024-10-03",
+      "keyFigures": {
+        "constructionSmeCountStart2024": 870000,
+        "constructionSmeShareOfAllSmePercent": 16
+      }
+    },
+    {
+      "title": "Construction output quality and methodology information",
+      "publisher": "ONS",
+      "url": "https://www.ons.gov.uk/businessindustryandtrade/constructionindustry/methodologies/constructionoutputqualityandmethodologyinformation",
+      "use": "SIC 2007 activity list for Section F (41201 domestic, 41202 commercial, 43.x trades)"
+    },
+    {
+      "title": "About Us — FIS",
+      "publisher": "Finishes and Interiors Sector",
+      "url": "https://www.thefis.org/about-us/",
+      "use": "Fit-out/refurb spans homes, offices, hospitals, schools, hotels, retail"
+    }
+  ],
+  "onsTable37AllFirmsQ32024GB": {
+    "propertyDevelopers4110": 44137,
+    "commercialBuildings41201": 17344,
+    "domesticBuildings41202": 56980,
+    "civilEngineering42": 21680
+  },
+  "onsTable38AllFirmsQ32024GB": {
+    "demolition4311": 771,
+    "sitePreparation4312": 2863,
+    "testDrilling4313": 288,
+    "electricalInstallation4321": 47532,
+    "plumbingHvac4322": 44668,
+    "otherInstallationFinishing4329_4339": 35799,
+    "plastering4331": 6427,
+    "joinery4332": 26881,
+    "floorWallCovering4333": 9102,
+    "painting43341": 12020,
+    "glazing43342": 3926,
+    "roofing4391": 11842,
+    "scaffolding43991": 6220,
+    "otherSpecialised43999": 22290,
+    "alliedTradesColumnTotal": 370770
+  },
+  "onsTable310TurnoverBandsQ32024GB": {
+    "firmsTurnoverUnder500k": 226445,
+    "firmsTurnover1mToUnder5m": 21412
+  },
+  "priorInRepoEvidence": {
+    "walkthroughDisciplineResearch": "docs/backup-snapshots/2026-10-20/walkthrough-discipline-research.json",
+    "rankVerifiedPrior": false,
+    "rankVerifiedNow": true
+  },
+  "productTaxonomySnapshot": {
+    "setupWorkSuggestionsCount": 16,
+    "briefTradesCount": 47,
+    "projectTypesByTradeKeys": [
+      "General Builder / Extensions",
+      "Electrical",
+      "Plumbing & Heating",
+      "Roofing",
+      "Groundworks & Civils",
+      "Painting & Decorating",
+      "Joinery & Carpentry",
+      "Bathroom & Kitchen Fitting",
+      "Landscaping & Fencing",
+      "Multi-trade / Other"
+    ]
+  }
+}

@@ -14,7 +14,7 @@ import { useState } from "react";
 import { Copy, Link2, Loader2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { createSupervisorTokenAction } from "../actions";
-import { coreFocusRing } from "@/lib/core-editing-palette";
+import { coreFocusRing, coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 export function SupervisorInvite({ projectId }: { projectId: string }) {
     const [open, setOpen] = useState(false);
@@ -100,7 +100,7 @@ export function SupervisorInvite({ projectId }: { projectId: string }) {
                         <button
                             onClick={handleCreate}
                             disabled={saving}
-                            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                            className={`flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                         >
                             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2 className="w-3.5 h-3.5" />}
                             Generate Link

@@ -85,6 +85,19 @@ describe("A001 commercial-controls primary palette", () => {
     expect(source).toContain("border border-slate-700");
   });
 
+  it("contract-admin delay analysis + supervisor invite: primary actions use core palette", () => {
+    for (const rel of [
+      "projects/contract-admin/components/DelayAnalysisTab.tsx",
+      "projects/contract-admin/components/SupervisorInvite.tsx",
+    ]) {
+      const source = read(rel);
+      expect(source).toContain("core-editing-palette");
+      expect(source).toContain("${corePrimaryButton}");
+      expect(forbiddenActionHoverBlue(source)).toEqual([]);
+      expect(source).not.toMatch(/\bbg-blue-600 hover:bg-blue-500\b/);
+    }
+  });
+
   it("contract-admin: setup/modal primaries keep disabled + handlers; badge, tab, purple scoped actions stay", () => {
     const source = read("projects/contract-admin/contract-admin-client.tsx");
     // Disabled rules retained on setup and the three modal primaries.

@@ -1,5 +1,17 @@
 # Cursor change log
 
+## 2026-11-15 — A001 D28 route palette walkthrough (cursor/a001-d28-route-palette-walkthrough-2527)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/projects/contract-admin/components/DelayAnalysisTab.tsx` | imports, Run Analysis button | `corePrimaryButton` / `coreFocusVisibleRing` | Confirmed brand-blue primary deviation |
+| `src/app/dashboard/projects/contract-admin/components/SupervisorInvite.tsx` | Generate Link button | Same core palette | Confirmed primary deviation |
+| `src/app/offline/page.tsx` | mark tile | `bg-[#c9efcf]` + ink text | Public offline mark matches sage palette |
+| `src/app/dashboard/a001-commercial-controls-palette.test.ts` | new `it` | Guard delay analysis + supervisor invite primaries | Regression |
+| `src/components/a001-workflow-standalone-controls-brand.test.ts` | offline `it` | Assert sage mark, no `bg-blue-600` | D28 offline evidence |
+| `e2e/local-navigation/compile.mjs` | `read()` | GNU/Linux-tolerant `stat` probe | Cloud agent offline fixture build |
+| `docs/temp-files/a001-d28-evidence/*` | new | Route inventory, verification report, Chromium Playwright configs, nav screenshot script | D28 evidence (screenshots under `/opt/cursor/artifacts/a001-d28-palette/`) |
+
 ## 2026-11-14 — A109 Apply entry on full-profile marketing nav (cursor/a109-apply-marketing-nav-c539)
 
 | File | Lines (approx.) | Change | Intent |

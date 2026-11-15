@@ -26,10 +26,12 @@ const sourceHashes = new Map();
 const ts = createRequire(import.meta.url)(`${deps}/typescript/lib/typescript.js`);
 const pending = new Map();
 function read(file) {
-  const flag = execFileSync('/usr/bin/stat', ['-f', '%Sf', file], { encoding: 'utf8', timeout: 2000 });
-  if (flag.includes('dataless')) {
-    pending.set(file, fs.statSync(file).size);
-    throw new Error(`Dependency unavailable: ${file}`);
+  if (process.platform === 'darwin') {
+    const flag = execFileSync('/usr/bin/stat', ['-f', '%Sf', file], { encoding: 'utf8', timeout: 2000 });
+    if (flag.includes('dataless')) {
+      pending.set(file, fs.statSync(file).size);
+      throw new Error(`Dependency unavailable: ${file}`);
+    }
   }
   const source = fs.readFileSync(file, 'utf8');
   sourceHashes.set(file, createHash('sha256').update(source).digest('hex'));

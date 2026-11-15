@@ -72,8 +72,10 @@ describe("A001 workflow standalone controls brand primary (cq-2224)", () => {
         expect(source).not.toMatch(/bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium/);
     });
 
-    it("offline page: Back to Hub uses core primary", () => {
+    it("offline page: Back to Hub uses core primary; mark tile uses sage not brand blue", () => {
         const source = read(PATHS.offlinePage);
+        expect(source).toContain("bg-[#c9efcf]");
+        expect(source).not.toMatch(/bg-blue-600/);
         const hubChunk = source.slice(source.indexOf("Back to Hub") - 250, source.indexOf("Back to Hub") + 40);
         expect(hubChunk).toContain("corePrimaryButton");
         expect(hubChunk).toContain("coreFocusVisibleRing");

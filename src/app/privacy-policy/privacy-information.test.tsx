@@ -53,7 +53,16 @@ describe("privacy information", () => {
 
     it("keeps the page structure and the facts it already stated", () => {
         expect(html).toMatch(/^<main[^>]*><div[^>]*><h1[^>]*>Privacy Policy<\/h1>/);
-        expect(text).toContain("When you sign up for updates or use our platform, we hold the details you give us, such as your name, email address and company details.");
-        expect(html.match(/<p /g)).toHaveLength(6);
+        expect(text).toContain("When you use our platform, we hold the details you give us, such as your name, email address and company details.");
+        expect(text).toContain("If you submit the updates form on this site, your email address is sent to Kit (ConvertKit), the email provider that runs that list.");
+        expect(html.match(/<p /g)).toHaveLength(8);
+    });
+
+    it("describes analytics without claiming whether it is on or off", () => {
+        const note = html.match(/<p [^>]*data-privacy-analytics-note[^>]*>([^<]*)<\/p>/);
+        expect(note).not.toBeNull();
+        expect(note![1].replace(/\s+/g, " ").trim()).toBe(
+            "This site includes Vercel Web Analytics, which can be on or off. When it is on, it counts visits to public pages for signed-out visitors. Constructa removes query strings from page addresses before page views are sent.",
+        );
     });
 });

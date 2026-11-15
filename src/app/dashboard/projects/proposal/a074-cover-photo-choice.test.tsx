@@ -1,8 +1,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { representativeInput } from "@/lib/__fixtures__/proposal";
-import { COVER_RENDER_CAPTION } from "@/lib/proposal-cover-photo";
+import { COVER_RENDER_CAPTION, PROPOSAL_COVER_PHOTO_ENV } from "@/lib/proposal-cover-photo";
 import type { ReviewContext } from "@/lib/proposal-review";
 import ReviewSendClient from "./review-send-client";
 
@@ -16,11 +16,15 @@ vi.mock("./actions", () => ({
     uploadPhotoAction: vi.fn(),
 }));
 
+afterEach(() => {
+    vi.unstubAllEnvs();
+});
+
 const input = representativeInput();
 
-function review(project: Partial<ReviewContext["project"]> = {}) {
+function review(options: { coverPhotoEnabled?: boolean; project?: Partial<ReviewContext["project"]> } = {}) {
     const context: ReviewContext = {
-        project: { ...input.project, validity_days: 30, client_email: "alex@example.test", ...project },
+        project: { ...input.project, validity_days: 30, client_email: "alex@example.test", ...options.project },
         profile: input.profile,
         estimate: input.estimate,
         nextVersion: 1,
@@ -32,12 +36,21 @@ function review(project: Partial<ReviewContext["project"]> = {}) {
         estimateIssue: null,
         publications: [],
         now: "2026-11-14T12:00:00Z",
+        coverPhotoEnabled: options.coverPhotoEnabled ?? false,
     }));
 }
 
-describe("A074 proposal cover photo choice", () => {
-    it("offers no cover, first site photo, and the labelled illustrative render", () => {
+describe("A074 proposal cover photo choice (pre-migration default)", () => {
+    it("shows no cover controls when the rollout gate is off", () => {
         const html = review();
+        expect(html).not.toContain("data-review-cover-photo");
+        expect(html).not.toContain("Cover image");
+    });
+});
+
+describe("A074 proposal cover photo choice (enabled)", () => {
+    it("offers no cover, first site photo, and the labelled illustrative render", () => {
+        const html = review({ coverPhotoEnabled: true });
         expect(html).toContain("Cover image");
         expect(html).toContain("No cover image");
         expect(html).toContain("First site photo");
@@ -46,7 +59,11 @@ describe("A074 proposal cover photo choice", () => {
     });
 
     it("checks the illustrative option when that choice is saved on the project", () => {
-        const html = review({ proposal_cover_photo: "illustrative_render" });
+        vi.stubEnv(PROPOSAL_COVER_PHOTO_ENV, "1");
+        const html = review({
+            coverPhotoEnabled: true,
+            project: { proposal_cover_photo: "illustrative_render" },
+        });
         expect(html).toContain('id="review-cover-photo-illustrative_render"');
         expect(html).toMatch(/<input[^>]*id="review-cover-photo-illustrative_render"[^>]*checked/);
     });

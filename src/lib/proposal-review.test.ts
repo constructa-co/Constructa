@@ -122,10 +122,19 @@ describe("save payload", () => {
     const draft = draftFromProject(context.project, keys());
 
     it("requires a site photo when the cover choice is the first site photo", () => {
+        vi.stubEnv("CONSTRUCTA_PROPOSAL_COVER_PHOTO", "1");
         const built = buildProposalPayload({ ...draft, coverPhoto: "site", photos: [] });
         expect(built.ok).toBe(false);
         if (built.ok) return;
         expect(built.fieldErrors.coverPhoto).toMatch(/site photo/i);
+    });
+
+    it("ignores cover choice validation while the rollout gate is off", () => {
+        vi.stubEnv("CONSTRUCTA_PROPOSAL_COVER_PHOTO", "");
+        const built = buildProposalPayload({ ...draft, coverPhoto: "site", photos: [] });
+        expect(built.ok).toBe(true);
+        if (!built.ok) return;
+        expect(built.payload.coverPhoto).toBeNull();
     });
 
     it("sends the contractor's wording and choices, trimmed, with blank rows dropped", () => {

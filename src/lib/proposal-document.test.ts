@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 import ProposalDocumentView from "@/components/proposal/proposal-document-view";
@@ -71,9 +71,14 @@ describe("independent site address in the document", () => {
     });
 });
 
+afterEach(() => {
+    vi.unstubAllEnvs();
+});
+
 describe("A074 cover image on the document", () => {
     it("omits a cover image on legacy snapshots and shows it when explicitly chosen", () => {
         expect(buildProposalDocument(snapshot).coverImage).toBeNull();
+        vi.stubEnv("CONSTRUCTA_PROPOSAL_COVER_PHOTO", "1");
         const withCover = buildProposalPublicationSnapshot({
             ...representativeInput(),
             project: {

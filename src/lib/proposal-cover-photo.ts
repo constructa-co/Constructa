@@ -3,7 +3,17 @@
  *
  * Contractors may show no cover image (legacy default), their first site photo,
  * or the approved illustrative design render with mandatory labelling.
+ *
+ * Deploy safety (D27): reads, writes, UI and publication stay off until the
+ * migration is live and this env is set to `1` at deploy time.
  */
+
+/** Set to `1` only after `projects.proposal_cover_photo` exists in production. */
+export const PROPOSAL_COVER_PHOTO_ENV = "CONSTRUCTA_PROPOSAL_COVER_PHOTO";
+
+export function isProposalCoverPhotoEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+    return env[PROPOSAL_COVER_PHOTO_ENV] === "1";
+}
 
 export const COVER_PRIMARY_SRC = "/Setting us apart.png";
 export const COVER_FALLBACK_SRC = "/minimalist infographic cluster of small construction buildings.png";

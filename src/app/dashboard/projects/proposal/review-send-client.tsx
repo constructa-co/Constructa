@@ -117,6 +117,8 @@ interface Props {
     server?: ReviewServer;
     /** The time shown on the preview. Fixed only for evidence capture. */
     now?: string;
+    /** Off until the cover-photo column migration is live (D27 deploy safety). */
+    coverPhotoEnabled?: boolean;
 }
 
 function realServer(projectId: string, paymentSource: unknown[] | null): ReviewServer {
@@ -146,7 +148,7 @@ const FIELD_LABEL: Record<WordingField, string> = {
 const PROPOSAL_LEAVE_WARNING =
     "Your proposal has changes that are not saved yet.\n\nPress Cancel to stay here and save them, or OK to leave without saving.";
 
-export default function ReviewSendClient({ context, caseStudies, lockReason, estimateIssue, publications, server, now }: Props) {
+export default function ReviewSendClient({ context, caseStudies, lockReason, estimateIssue, publications, server, now, coverPhotoEnabled = false }: Props) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
     const s = workspaceStyles(isDark);
@@ -645,7 +647,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                             ))}
                         </dl>
                         {elsewhere("Job, client and site come from the project. Your company name comes from your profile.", href("settings"), "Change project details")}
-                        <fieldset className="space-y-3" data-review-cover-photo>
+                        {coverPhotoEnabled && <fieldset className="space-y-3" data-review-cover-photo>
                             <legend className={`text-sm font-semibold ${s.heading}`}>Cover image</legend>
                             <p className={`text-sm ${s.muted}`}>Optional. Leave unset for no cover image, as in earlier proposals.</p>
                             {([
@@ -691,7 +693,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                 </figure>
                             )}
                             {fieldErrors.coverPhoto && <p role="alert" className={`text-sm ${s.errorText}`}>{fieldErrors.coverPhoto}</p>}
-                        </fieldset>
+                        </fieldset>}
                         {wordingField("introduction", {
                             rows: 4,
                             help: "A few lines in your own words: why you want the job and what matters about it.",

@@ -20,7 +20,11 @@ import { buildPastJobs, type ProposalLibrary } from "@/lib/case-library/past-job
 import { computeContractSum, roundMoney } from "./financial";
 import { splitScope } from "./guided-brief";
 import { resolveProgrammeSource } from "./programme-plan";
-import { parseProposalCoverPhotoChoice, type ProposalCoverPhotoChoice } from "@/lib/proposal-cover-photo";
+import {
+    isProposalCoverPhotoEnabled,
+    parseProposalCoverPhotoChoice,
+    type ProposalCoverPhotoChoice,
+} from "@/lib/proposal-cover-photo";
 import {
     buildProposalPublicationSnapshot,
     sanitisePhotos,
@@ -144,7 +148,9 @@ export function draftFromProject(project: ReviewProject, makeKey: () => string):
         clarifications: project.clarifications_text?.trim() ? project.clarifications_text : project.contract_clarifications ?? "",
         closing: project.closing_statement ?? "",
         validityDays: String(project.validity_days ?? DEFAULT_VALIDITY_DAYS),
-        coverPhoto: parseProposalCoverPhotoChoice(project.proposal_cover_photo),
+        coverPhoto: isProposalCoverPhotoEnabled()
+            ? parseProposalCoverPhotoChoice(project.proposal_cover_photo)
+            : null,
         payments: fixed ? [] : schedule.map((row) => {
             const r = asRecord(row);
             return {
@@ -352,7 +358,8 @@ export function buildProposalPayload(draft: ProposalDraft): BuildPayloadResult {
         });
     }
 
-    if (draft.coverPhoto === "site" && draft.photos.filter((photo) => photo.url.trim()).length === 0) {
+    const coverPhoto = isProposalCoverPhotoEnabled() ? draft.coverPhoto : null;
+    if (coverPhoto === "site" && draft.photos.filter((photo) => photo.url.trim()).length === 0) {
         fieldErrors.coverPhoto = "Add a site photo below, or choose a different cover image.";
     }
 
@@ -366,7 +373,7 @@ export function buildProposalPayload(draft: ProposalDraft): BuildPayloadResult {
             clarifications: draft.clarifications.trim(),
             closing: draft.closing.trim(),
             validityDays,
-            coverPhoto: draft.coverPhoto,
+            coverPhoto,
             paymentSchedule,
             photos: draft.photos
                 .filter((photo) => photo.url)
@@ -406,7 +413,7 @@ export function projectWithDraft(project: ReviewProject, draft: ProposalDraft): 
         payment_schedule: draftPaymentSchedule(draft),
         site_photos: draft.photos,
         selected_case_study_ids: draft.caseStudyIds,
-        proposal_cover_photo: draft.coverPhoto,
+        ...(isProposalCoverPhotoEnabled() ? { proposal_cover_photo: draft.coverPhoto } : {}),
     };
 }
 

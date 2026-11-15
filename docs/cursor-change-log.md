@@ -20,6 +20,19 @@
 | `src/app/dashboard/projects/proposal/a074-cover-photo-choice.test.tsx` | (new) | UI labels and selection state | A074 focused check |
 | `src/lib/proposal-publication.test.ts`, `proposal-document.test.ts`, `proposal-review.test.ts`, `actions.test.ts` | tests | Cover choice behaviour | Save/publish/document guards |
 
+## 2026-11-14 — A074 D27 pre-migration rollout gate (cursor/a074-proposal-cover-choice-7129)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/proposal-cover-photo.ts` | gate | `CONSTRUCTA_PROPOSAL_COVER_PHOTO=1` enables reads/writes/UI/publication | D27: default off until column exists |
+| `src/app/dashboard/projects/proposal/actions.ts` | save | Omit `proposal_cover_photo` from update when gate off | Routine PostgREST saves stay valid pre-migration |
+| `src/lib/proposal-review.ts` | draft/preview | Ignore stored choice and column when gate off | Legacy rows and previews unchanged |
+| `src/lib/proposal-publication.ts` | snapshot | No `cover_photo` without gate | Publication path safe pre-migration |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | UI | `coverPhotoEnabled` prop hides cover controls | No dead UI before rollout |
+| `src/app/dashboard/projects/proposal/page.tsx` | pass gate | Server passes `isProposalCoverPhotoEnabled()` | Single deploy-time switch |
+| `src/lib/deployment/review-editable.ts` | allowlist | Column allowed only when gate on | Review QA matches production |
+| `*.test.ts` | pre-migration cases | Default-off save, UI, publication | Focused D27 regression |
+
 ## 2026-11-14 — A097 D12 Vercel Web Analytics default-off (cursor/a097-d12-vercel-web-analytics-985d)
 
 | File | Lines (approx.) | Change | Intent |
